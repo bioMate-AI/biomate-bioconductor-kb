@@ -23,11 +23,21 @@ def configure_ai_assistant(
     # Extract AI-specific configuration
     ai_config_dict = {}
     
-    # LLM Configuration
-    ai_config_dict['llm_provider'] = raw_config.get('ai_llm_provider', 'openai')
-    ai_config_dict['llm_model'] = raw_config.get('ai_llm_model', 'gpt-4')
-    # Try ai_llm_api_key from config, then ANTHROPIC_API_KEY, then GALAXY_AI_API_KEY
-    ai_config_dict['llm_api_key'] = raw_config.get('ai_llm_api_key') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
+    # LLM Configuration — auto-detect provider from available API keys
+    _api_key = raw_config.get('ai_llm_api_key') or os.getenv('ANTHROPIC_API_KEY') or os.getenv('OPENAI_API_KEY') or os.getenv('GALAXY_AI_API_KEY')
+    _explicit_provider = raw_config.get('ai_llm_provider') or os.getenv('GALAXY_AI_LLM_PROVIDER')
+    if _explicit_provider:
+        _provider = _explicit_provider
+    elif os.getenv('ANTHROPIC_API_KEY'):
+        _provider = 'anthropic'
+    elif os.getenv('OPENAI_API_KEY'):
+        _provider = 'openai'
+    else:
+        _provider = 'anthropic'  # Default to anthropic (BioMate default)
+    ai_config_dict['llm_provider'] = _provider
+    _default_model = 'claude-sonnet-4-6' if _provider == 'anthropic' else 'gpt-4'
+    ai_config_dict['llm_model'] = raw_config.get('ai_llm_model', _default_model)
+    ai_config_dict['llm_api_key'] = _api_key
     ai_config_dict['llm_base_url'] = raw_config.get('ai_llm_base_url')
     
     # Tool Discovery Configuration

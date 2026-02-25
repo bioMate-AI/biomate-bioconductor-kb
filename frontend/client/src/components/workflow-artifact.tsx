@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,7 +26,8 @@ import {
   Laptop,
   Scissors,
   Download,
-  Sparkles
+  Sparkles,
+  History
 } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { ParameterDialog } from "./parameter-dialog"
@@ -36,6 +37,7 @@ import { ExecutionControlPanel } from "./execution-control-panel"
 import { WorkflowReportViewer } from "./workflow-report-viewer"
 import { InteractiveLauncher } from "./interactive-launcher"
 import { SubworkflowExtractor } from "./subworkflow-extractor"
+import { QCGateModal } from "./qc-gate-modal"
 import type { Citation, MethodsSection, TuningConfig, ParameterRecommendation, ExecutionRun, ExecutionConfig } from "@shared/schema"
 
 interface WorkflowStep {
@@ -179,6 +181,38 @@ export function WorkflowArtifact({
   const [showInteractiveLauncher, setShowInteractiveLauncher] = useState(false)
   const [showSubworkflowExtractor, setShowSubworkflowExtractor] = useState(false)
 
+  // QC Gate modal state (Gap 3)
+  const [showQCGateModal, setShowQCGateModal] = useState(false)
+  const [qcGateData, setQCGateData] = useState<{
+    processName: string
+    qcMetrics: Record<string, number>
+    // Structured failure objects from backend (preferred) or fallback plain strings
+    failures: Array<{ metric: string; value: number; threshold: number; operator: string; message: string } | string>
+    suggestions: Array<{
+      parameter: string
+      currentValue: any
+      suggestedValue: any
+      reason: string
+      confidence: number
+    }>
+  } | null>(null)
+  const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false)
+  // US-7.3 — retry counter + previous metrics per process
+  const [qcRetryCount, setQCRetryCount] = useState<Record<string, number>>({})
+  const [qcPreviousMetrics, setQCPreviousMetrics] = useState<Record<string, Record<string, number>>>({})
+  // US-7.2 — SSE connection status + reconnect refs
+  const [sseStatus, setSseStatus] = useState<"connected" | "reconnecting" | "failed">("connected")
+  const [sseRetryKey, setSseRetryKey] = useState(0)
+  const sseRef = useRef<EventSource | null>(null)
+  const reconnectAttemptsRef = useRef(0)
+  // US-2.6 — per-step QC annotations
+  const [stepQCAnnotations, setStepQCAnnotations] = useState<
+    Record<string, { processName: string; failures: any[]; severity?: string }>
+  >({})
+  // Ref to read latest qcGateData in SSE closure without stale capture
+  const qcGateDataRef = useRef(qcGateData)
+  qcGateDataRef.current = qcGateData
+
   // Determine if we should show the pilot suggestion banner prominently
   const showPilotBanner = pilotRunSuggested && !pilotBannerDismissed && !isRunning && pilotReasons.length > 0
 
@@ -187,6 +221,7 @@ export function WorkflowArtifact({
   const autofixWorkflowId = currentExecutionRun?.execution?.galaxyWorkflowId || galaxyWorkflowId
   const autofixInvocationId = currentExecutionRun?.execution?.galaxyInvocationId || invocationId
   const nextflowStatus = currentExecutionRun?.execution?.nextflowStatus
+  const sseInvocationId = currentExecutionRun?.execution?.galaxyInvocationId || invocationId
 
   // Normalize steps array
   const normalizedSteps: WorkflowStep[] = Array.isArray(steps) ? steps :
@@ -203,6 +238,109 @@ export function WorkflowArtifact({
 
   const completedSteps = normalizedSteps.filter(s => s.status === 'completed').length
   const totalSteps = normalizedSteps.length
+
+  // SSE listener for QC gate events (Gap 3) — with exponential-backoff reconnect (US-7.2)
+  useEffect(() => {
+    if (!sseInvocationId) return
+
+    let stopped = false
+
+    const connect = () => {
+      if (stopped) return
+
+      const es = new EventSource(`/api/workflows/${sseInvocationId}/events`)
+      sseRef.current = es
+
+      es.onopen = () => {
+        reconnectAttemptsRef.current = 0
+        setSseStatus("connected")
+      }
+
+      es.addEventListener("qc_gate_triggered", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          console.log("[QC Gate] Event received:", data)
+
+          const processKey = data.process_name
+          // US-7.3 — save previous metrics before overwriting, increment retry count
+          setQCPreviousMetrics((prev) => ({
+            ...prev,
+            [processKey]: qcGateDataRef.current?.qcMetrics ?? {},
+          }))
+          setQCRetryCount((prev) => ({
+            ...prev,
+            [processKey]: (prev[processKey] ?? 0) + 1,
+          }))
+
+          setQCGateData({
+            processName: data.process_name,
+            qcMetrics: data.qc_metrics,
+            failures: data.failures || [],
+            suggestions: data.suggestions || [],
+          })
+          setShowQCGateModal(true)
+        } catch (error) {
+          console.error("[QC Gate] Failed to parse event:", error)
+        }
+      })
+
+      // US-6.3 — qc_warning → annotate the step without opening a modal
+      es.addEventListener("qc_warning", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          const step = normalizedSteps.find(
+            (s) =>
+              s.name?.toUpperCase() === data.process_name?.toUpperCase() ||
+              s.name
+                ?.toUpperCase()
+                .includes(data.process_name?.split(":").pop()?.toUpperCase() ?? "")
+          )
+          if (step) {
+            setStepQCAnnotations((prev) => ({
+              ...prev,
+              [step.id]: {
+                processName: data.process_name,
+                failures: data.failures || [],
+                severity: "warning",
+              },
+            }))
+          }
+        } catch (error) {
+          console.error("[QC Warning] Failed to parse event:", error)
+        }
+      })
+
+      // US-1.3 — pilot_qc_passed → auto-advance to full run
+      es.addEventListener("pilot_qc_passed", () => {
+        if (onRun) {
+          onRun(workflow, normalizedSteps)
+        }
+      })
+
+      es.onerror = () => {
+        es.close()
+        sseRef.current = null
+        if (stopped) return
+        const attempt = reconnectAttemptsRef.current
+        reconnectAttemptsRef.current += 1
+        const delay = Math.min(2000 * Math.pow(2, attempt), 30000)
+        if (attempt < 5) {
+          setSseStatus("reconnecting")
+          setTimeout(connect, delay)
+        } else {
+          setSseStatus("failed")
+        }
+      }
+    }
+
+    connect()
+
+    return () => {
+      stopped = true
+      sseRef.current?.close()
+      sseRef.current = null
+    }
+  }, [sseInvocationId, sseRetryKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleStepExpanded = (stepId: string) => {
     setExpandedSteps(prev => {
@@ -284,6 +422,90 @@ export function WorkflowArtifact({
       onParameterChange(editingStep.id, params)
     }
     setEditingStep(null)
+  }
+
+  // QC Gate handlers (Gap 3)
+  const handleRetryWithSuggestions = async () => {
+    if (!qcGateData || !onParameterChange) return
+
+    setIsApplyingSuggestions(true)
+    try {
+      for (const suggestion of qcGateData.suggestions) {
+        // Exact key match first; fall back to case-insensitive exact match.
+        // substring/includes is intentionally avoided — it causes false positives
+        // e.g. "dose" matching "overdose_correction".
+        const step = normalizedSteps.find(s => {
+          if (!s.parameters) return false
+          const keys = Object.keys(s.parameters)
+          return (
+            keys.includes(suggestion.parameter) ||
+            keys.some(k => k.toLowerCase() === suggestion.parameter.toLowerCase())
+          )
+        })
+
+        if (step) {
+          const suggestedValue = suggestion.suggestedValue
+          // If suggestedValue is a plain object (e.g. defocus range dict), merge each key
+          if (suggestedValue !== null && typeof suggestedValue === 'object' && !Array.isArray(suggestedValue)) {
+            console.log(`[QC Gate] Applying dict suggestion for ${suggestion.parameter}:`, suggestedValue)
+            onParameterChange(step.id, { ...step.parameters, ...suggestedValue })
+          } else {
+            console.log(`[QC Gate] Applying ${suggestion.parameter}: ${suggestion.currentValue} → ${suggestedValue}`)
+            onParameterChange(step.id, { ...step.parameters, [suggestion.parameter]: suggestedValue })
+          }
+        } else {
+          console.warn(`[QC Gate] No step found with parameter "${suggestion.parameter}" — suggestion skipped`)
+        }
+      }
+
+      setShowQCGateModal(false)
+      setQCGateData(null)
+
+      if (onRun) {
+        await onRun(workflow, normalizedSteps)
+      }
+    } catch (error) {
+      console.error('[QC Gate] Failed to apply suggestions:', error)
+    } finally {
+      setIsApplyingSuggestions(false)
+    }
+  }
+
+  // US-2.6 — helper: find the step matching a QC process name and annotate it
+  const annotateQCStep = (processName: string, failures: any[], severity: string) => {
+    const key = processName.split(":").pop()?.toUpperCase() ?? processName.toUpperCase()
+    const step = normalizedSteps.find(
+      (s) =>
+        s.name?.toUpperCase() === processName.toUpperCase() ||
+        s.name?.toUpperCase() === key
+    )
+    if (step) {
+      setStepQCAnnotations((prev) => ({
+        ...prev,
+        [step.id]: { processName, failures, severity },
+      }))
+    }
+  }
+
+  const handleProceedAnyway = () => {
+    console.log("[QC Gate] User chose to proceed despite QC failures")
+    if (qcGateData) {
+      annotateQCStep(qcGateData.processName, qcGateData.failures, "failed")
+    }
+    setShowQCGateModal(false)
+    setQCGateData(null)
+  }
+
+  const handleCancelWorkflow = () => {
+    console.log("[QC Gate] User cancelled workflow due to QC failures")
+    if (qcGateData) {
+      annotateQCStep(qcGateData.processName, qcGateData.failures, "failed")
+    }
+    setShowQCGateModal(false)
+    setQCGateData(null)
+    if (onStop) {
+      onStop()
+    }
   }
 
   return (
@@ -605,6 +827,36 @@ export function WorkflowArtifact({
               </p>
             )}
 
+            {/* US-7.2 — SSE reconnection banner */}
+            {invocationId && isRunning && sseStatus !== "connected" && (
+              <Alert className="mt-2 py-2 border-yellow-500/40 bg-yellow-50/30 dark:bg-yellow-950/10">
+                <Loader2
+                  className={cn(
+                    "h-3 w-3 text-yellow-600",
+                    sseStatus === "reconnecting" && "animate-spin"
+                  )}
+                />
+                <AlertDescription className="text-xs text-yellow-700 dark:text-yellow-300">
+                  {sseStatus === "reconnecting" ? (
+                    "Live updates paused — reconnecting..."
+                  ) : (
+                    <>
+                      Live updates unavailable.{" "}
+                      <button
+                        className="underline"
+                        onClick={() => {
+                          reconnectAttemptsRef.current = 0
+                          setSseRetryKey((k) => k + 1)
+                        }}
+                      >
+                        Retry
+                      </button>
+                    </>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Prominent Pilot Run Suggestion Banner */}
             {showPilotBanner && (
               <Alert className="mt-3 border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
@@ -645,6 +897,10 @@ export function WorkflowArtifact({
                       {useUnifiedExecution ? 'Skip' : 'Skip pilot'}
                     </Button>
                   </div>
+                  {/* US-1.1 — consequence note for skip */}
+                  <p className="text-xs text-amber-600/70 mt-1">
+                    Full dataset will run immediately — no quality check first
+                  </p>
                 </AlertDescription>
               </Alert>
             )}
@@ -784,6 +1040,23 @@ export function WorkflowArtifact({
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* US-2.6 — per-step QC annotation */}
+                    {stepQCAnnotations[step.id] && (
+                      <Collapsible className="mt-1">
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-amber-600 ml-9 hover:underline cursor-pointer">
+                          <AlertTriangle className="h-3 w-3" />
+                          Last run: QC {stepQCAnnotations[step.id].severity === "warning" ? "warning" : "failed"}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="ml-9 mt-1 space-y-0.5">
+                          {stepQCAnnotations[step.id].failures.map((f: any, i: number) => (
+                            <p key={i} className="text-xs text-muted-foreground">
+                              {typeof f === "string" ? f : f.message}
+                            </p>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
                   </div>
                 ))}
@@ -976,6 +1249,45 @@ export function WorkflowArtifact({
           workflowId={galaxyWorkflowId}
           workflowName={workflow.name}
           steps={normalizedSteps}
+        />
+      )}
+
+      {/* QC Gate Modal (Gap 3) */}
+      {showQCGateModal && qcGateData && (
+        <QCGateModal
+          open={showQCGateModal}
+          onOpenChange={setShowQCGateModal}
+          processName={qcGateData.processName}
+          metrics={Object.entries(qcGateData.qcMetrics || {}).map(([name, value]) => {
+            // Use structured failure object when available (exact metric match),
+            // fall back to plain-string scan only if backend sent legacy format.
+            const structuredFailure = qcGateData.failures.find(
+              (f): f is { metric: string; value: number; threshold: number; operator: string; message: string } =>
+                typeof f === 'object' && (f as any).metric === name
+            )
+            const passed = !structuredFailure &&
+              !qcGateData.failures.some(f =>
+                typeof f === 'string' && f.toLowerCase().includes(name.replace(/_/g, ' ').toLowerCase())
+              )
+            const threshold = structuredFailure?.threshold ?? 0
+
+            return {
+              name: name.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+              value: typeof value === 'number' ? value : 0,
+              threshold,
+              passed,
+              unit: name.includes('angstrom') ? 'Å' : undefined
+            }
+          })}
+          failures={qcGateData.failures.map(f => typeof f === 'string' ? f : f.message)}
+          suggestions={qcGateData.suggestions}
+          onRetryWithSuggested={handleRetryWithSuggestions}
+          onProceedAnyway={handleProceedAnyway}
+          onCancel={handleCancelWorkflow}
+          isApplying={isApplyingSuggestions}
+          retryCount={(qcRetryCount[qcGateData.processName] ?? 1) - 1}
+          previousMetrics={qcPreviousMetrics[qcGateData.processName]}
+          qcMetrics={qcGateData.qcMetrics}
         />
       )}
     </>

@@ -5,6 +5,9 @@ runners:
   local:
     load: galaxy.jobs.runners.local:LocalJobRunner
     workers: 4
+  nextflow:
+    load: galaxy.jobs.runners.nextflow_runner:NextflowJobRunner
+    workers: 4
 
 execution:
   default: docker_local
@@ -13,6 +16,11 @@ execution:
     # Standard local execution (fallback)
     local:
       runner: local
+
+    # Nextflow execution
+    nextflow_local:
+      runner: nextflow
+
 
     # Docker-enabled local execution (default)
     docker_local:

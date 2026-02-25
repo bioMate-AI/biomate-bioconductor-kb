@@ -6,7 +6,7 @@ import { cn, getSimpleToolName } from "@/lib/utils"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
-import { WorkflowArtifact } from "./workflow-artifact"
+import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
@@ -125,36 +125,14 @@ export function ChatMessage({
             />
           )}
 
-          {/* Workflow Artifact - Interactive inline workflow display */}
+          {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
           {!isUser && message.metadata?.type === 'workflow' && message.metadata?.workflow && (
-            <WorkflowArtifact
-              workflow={message.metadata.workflow}
-              steps={message.metadata.steps || []}
-              confidence={message.metadata.confidence || 0}
-              onRun={onRunWorkflow}
-              onStop={onStopWorkflow}
-              onParameterChange={onParameterChange}
-              isRunning={isWorkflowRunning}
+            <NextflowWorkflowViewer
+              workflowDefinition={message.metadata.workflow}
+              status={isWorkflowRunning ? 'running' : 'idle'}
               progress={workflowProgress}
-              className="mt-2"
-              // Citation and pilot run props from workflow generation
-              citations={message.metadata.citations || []}
-              methodsSection={message.metadata.methods_section}
-              pilotRunSuggested={message.metadata.pilot_run_suggested || false}
-              pilotReasons={message.metadata.pilot_reasons || []}
-              pilotMessage={message.metadata.pilot_message}
-              totalSamples={message.metadata.total_samples || 0}
-              tuningConfig={message.metadata.tuning_config}
-              parameterRecommendations={message.metadata.parameter_recommendations || {}}
-              // Validation info for transparency
-              validationIssues={message.metadata.validation?.issues || []}
-              validationWarnings={message.metadata.validation?.warnings || []}
-              // Prerequisites validation (input data, parameters needed)
-              prerequisitesValidation={message.metadata.prerequisitesValidation}
-              // Invocation ID for workflow report viewer
-              invocationId={message.invocationId}
-              galaxyWorkflowId={currentExecutionRun?.execution?.galaxyWorkflowId}
-              currentExecutionRun={currentExecutionRun || undefined}
+              onExecute={(params) => onRunWorkflow?.(message.metadata.workflow, message.metadata.steps || [])}
+              onParameterChange={(id, value) => onParameterChange?.(id, { value })}
             />
           )}
 

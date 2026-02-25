@@ -582,14 +582,26 @@ export class GalaxyAPIProxy {
       console.log('[GalaxyAPIProxy] Calling unified AI Assistant endpoint');
       console.log('[GalaxyAPIProxy] User intent:', request.user_intent);
 
-      const response = await this.client.post<WorkflowGenerationResponse>(
-        '/api/ai_assistant/generate_workflow',  // ✅ Correct unified endpoint
-        backendRequest
-      );
+      // Use lightweight Nextflow search endpoint (no LLM required)
+      // Falls back to full generate_workflow if not available
+      let response: any;
+      try {
+        response = await this.client.post<WorkflowGenerationResponse>(
+          '/api/ai_assistant/search_nextflow_workflow',
+          { user_intent: request.user_intent }
+        );
+        console.log('[GalaxyAPIProxy] Nextflow search result:', response.data.workflow_name, response.data.format);
+      } catch (searchErr: any) {
+        console.warn('[GalaxyAPIProxy] Nextflow search failed, falling back to generate_workflow:', searchErr.message);
+        response = await this.client.post<WorkflowGenerationResponse>(
+          '/api/ai_assistant/generate_workflow',
+          backendRequest
+        );
+      }
 
-      console.log('[GalaxyAPIProxy] Workflow generated via:', response.data.source);
-      console.log('[GalaxyAPIProxy] Confidence:', response.data.confidence);
-      console.log('[GalaxyAPIProxy] Datasets assigned:', response.data.datasets_assigned);
+      console.log('[GalaxyAPIProxy] Workflow found via:', response.data.source);
+      console.log('[GalaxyAPIProxy] Workflow type:', response.data.workflow_type);
+      console.log('[GalaxyAPIProxy] Nextflow path:', response.data.nextflow_path);
 
       return response.data;
     } catch (error: any) {

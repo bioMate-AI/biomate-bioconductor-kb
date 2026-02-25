@@ -27,6 +27,8 @@ from .galaxy_workflow_generator import GalaxyWorkflowGenerator
 from .workflow_dataset_selector import WorkflowDatasetSelector
 from .biomni_dataset_rag import BioMNIDatasetRAG
 from .benchmark_knowledge import BenchmarkKnowledgeDB
+from .tool_knowledge_provider import ToolKnowledgeProvider
+import json
 import logging
 
 # Import new agents (Added 2025-12-30)
@@ -55,6 +57,7 @@ except ImportError as e:
     UnifiedLiteratureClient = None
 
 log = logging.getLogger(__name__)
+
 
 
 class AIAssistant:
@@ -1434,8 +1437,59 @@ class AIAssistant:
                 best_match = search_results[0]
                 source = 'template_reuse'
 
-                # Parse workflow JSON if available
-                import json
+                # Check if this is a Nextflow workflow
+                if best_match.format == 'nextflow':
+                    log.info(f"[UnifiedWorkflowGeneration] Matched Nextflow workflow: {best_match.filename}")
+
+                    # Build scientific rationale + parameter hints from Bioconductor KB.
+                    # Pass best_match.tools (the workflow's tools_used list) for
+                    # dynamic lookup; pattern dict supplements for R packages not listed.
+                    scientific_rationale = self._build_scientific_rationale(
+                        best_match.filename, best_match.name,
+                        workflow_tools=best_match.tools,
+                    )
+                    if scientific_rationale:
+                        log.info(
+                            f"[UnifiedWorkflowGeneration] Scientific rationale built for "
+                            f"{scientific_rationale.get('tools_used', [])}"
+                        )
+
+                    # Return Nextflow workflow format for direct execution
+                    return {
+                        'success': True,
+                        'nextflow_path': best_match.filename,
+                        'workflow_name': best_match.name,
+                        'workflow_type': 'nextflow',  # Critical: tells frontend to use Nextflow execution
+                        'source': 'template_reuse',
+                        'confidence': int(score),
+                        'template_match_score': int(score),
+                        'message': f"Reused existing Nextflow workflow: {best_match.name}",
+                        'note': f'Found Nextflow workflow with {best_match.step_count} step(s)',
+                        'execution_engine': 'nextflow',
+                        'format': 'nextflow',
+                        # Scientific rationale from Bioconductor knowledge base
+                        'scientific_rationale': scientific_rationale,
+                        # Include workflow metadata for UI display
+                        # scientific_rationale is also embedded here so the frontend
+                        # can access it via data.workflow?.workflow_ga?.scientific_rationale
+                        'workflow_ga': {
+                            'name': best_match.name,
+                            'description': best_match.description,
+                            'annotation': best_match.description,
+                            'tags': best_match.tags,
+                            'format': 'nextflow',
+                            'nextflow_path': best_match.filename,
+                            'workflow_type': 'nextflow',
+                            'steps': {},  # Nextflow steps are in the .nf file, not here
+                            'scientific_rationale': scientific_rationale,
+                        },
+                        'datasets_assigned': False,  # Nextflow handles inputs via parameters
+                        'generated_parameters': [],
+                        'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
+                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []}
+                    }
+
+                # Parse workflow JSON if available (Galaxy format)
                 workflow_json = {}
                 if best_match.workflow_json:
                     try:
@@ -1760,6 +1814,138 @@ class AIAssistant:
         
         return optimized_workflow
     
+    def _build_scientific_rationale(
+        self,
+        workflow_filename: str,
+        workflow_name: str,
+        workflow_tools: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Build a scientific rationale block for a matched Nextflow workflow.
+
+        For each tool in workflow_tools (the workflow's tools_used list), looks up
+        tool_knowledge in the BioMate DB.  Only includes tools that have actual
+        use_cases recorded — this naturally filters out tools with no KB coverage
+        (aligners not yet enriched, biomni custom processes, etc.).
+
+        Returns a dict with:
+          - tools_used: canonical tool names found in tool_knowledge with use_cases
+          - when_to_use: up to 3 use-case strings
+          - do_not_use_when: up to 3 limitation strings
+          - data_requirements: data_requirements dict from scientific_context
+          - key_assumptions: up to 2 assumption strings
+          - common_pitfalls: up to 2 {error, cause, fix} dicts
+          - parameter_hints: up to 8 {param, recommended, rationale, tool} dicts
+        """
+        try:
+            provider = ToolKnowledgeProvider()
+            db_path = provider.db_path
+        except Exception as e:
+            log.warning(f"[ScientificRationale] Could not init ToolKnowledgeProvider: {e}")
+            return {}
+
+        import sqlite3 as _sqlite3
+
+        # For each tool the workflow declares, look it up in tool_knowledge.
+        # Only accept results that have actual use_cases — this filters out tools
+        # with no meaningful KB coverage (e.g. custom biomni processes).
+        seen_lower: set = set()
+        core_tools: List[str] = []
+
+        for raw_name in (workflow_tools or []):
+            knowledge = provider.get_tool_knowledge(raw_name)
+            if (knowledge
+                    and knowledge.use_cases
+                    and knowledge.tool_name.lower() not in seen_lower):
+                core_tools.append(knowledge.tool_name)
+                seen_lower.add(knowledge.tool_name.lower())
+
+        if not core_tools:
+            return {}
+
+        rationale: Dict[str, Any] = {
+            "tools_used": [],
+            "when_to_use": [],
+            "do_not_use_when": [],
+            "data_requirements": {},
+            "key_assumptions": [],
+            "common_pitfalls": [],
+            "parameter_hints": [],
+        }
+
+        for tool_name in core_tools:
+            # ── tool_knowledge table ──────────────────────────────────────
+            knowledge = provider.get_tool_knowledge(tool_name)
+            if knowledge:
+                rationale["tools_used"].append(knowledge.tool_name)
+
+                for uc in (knowledge.use_cases or [])[:3]:
+                    if uc not in rationale["when_to_use"]:
+                        rationale["when_to_use"].append(uc)
+
+                for lim in (knowledge.limitations or [])[:3]:
+                    if lim not in rationale["do_not_use_when"]:
+                        rationale["do_not_use_when"].append(lim)
+
+                for param_name, rec in list((knowledge.recommended_parameters or {}).items())[:6]:
+                    hint = {
+                        "param": param_name,
+                        "recommended": str(rec.recommended_value),
+                        "rationale": rec.description or "",
+                        "tool": tool_name,
+                    }
+                    rationale["parameter_hints"].append(hint)
+
+            # ── tools.scientific_context ──────────────────────────────────
+            try:
+                conn = _sqlite3.connect(db_path)
+                row = conn.execute(
+                    "SELECT scientific_context FROM tools WHERE lower(name)=? LIMIT 1",
+                    (tool_name.lower(),)
+                ).fetchone()
+                conn.close()
+
+                if row and row[0]:
+                    sc = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+
+                    # data_requirements — take first non-empty one
+                    if not rationale["data_requirements"]:
+                        dr = sc.get("data_requirements") or {}
+                        if dr:
+                            rationale["data_requirements"] = dr
+
+                    # scientific_assumptions — up to 2
+                    for item in (sc.get("scientific_assumptions") or []):
+                        text = item.get("assumption", item) if isinstance(item, dict) else str(item)
+                        if text and text not in rationale["key_assumptions"]:
+                            rationale["key_assumptions"].append(text)
+                        if len(rationale["key_assumptions"]) >= 2:
+                            break
+
+                    # common_errors — up to 2
+                    for item in (sc.get("common_errors") or []):
+                        if isinstance(item, dict) and item.get("error"):
+                            entry = {
+                                "error": str(item.get("error", ""))[:120],
+                                "cause": str(item.get("cause", ""))[:120],
+                                "fix":   str(item.get("fix",   ""))[:120],
+                            }
+                            rationale["common_pitfalls"].append(entry)
+                        if len(rationale["common_pitfalls"]) >= 2:
+                            break
+
+            except Exception as e:
+                log.debug(f"[ScientificRationale] scientific_context lookup failed for {tool_name}: {e}")
+
+        # Trim lists to keep the response lean
+        rationale["when_to_use"]     = rationale["when_to_use"][:3]
+        rationale["do_not_use_when"] = rationale["do_not_use_when"][:3]
+        rationale["key_assumptions"] = rationale["key_assumptions"][:2]
+        rationale["common_pitfalls"] = rationale["common_pitfalls"][:2]
+        rationale["parameter_hints"] = rationale["parameter_hints"][:8]
+
+        return rationale
+
     def _index_galaxy_tools(self):
         """Index available Galaxy tools for discovery."""
         

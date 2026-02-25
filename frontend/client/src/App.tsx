@@ -89,7 +89,7 @@ function PublicPageLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-import NextflowDemoPage from "@/pages/nextflow-demo";
+// NextflowDemoPage removed
 
 // Authenticated pages wrapper with header
 function AuthenticatedPageLayout({ children }: { children: React.ReactNode }) {
@@ -275,11 +275,7 @@ function Router({
         </PublicPageLayout>
       </Route>
 
-      <Route path="/nextflow-demo">
-        <AuthenticatedPageLayout>
-          <NextflowDemoPage />
-        </AuthenticatedPageLayout>
-      </Route>
+{/* NextflowDemoPage removed */}
 
       {/* Authenticated pages */}
       <Route path="/dashboard">

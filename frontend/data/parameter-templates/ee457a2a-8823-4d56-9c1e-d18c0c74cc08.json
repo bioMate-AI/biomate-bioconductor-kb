@@ -1,0 +1,37 @@
+{
+  "id": "ee457a2a-8823-4d56-9c1e-d18c0c74cc08",
+  "tool_id": "fastqc",
+  "tool_version": "0.12.1",
+  "tool_name": "FastQC Quality Control",
+  "use_case": {
+    "id": "0e3edac1-aca0-411f-9e6d-f019fe430ef5",
+    "name": "RNA-seq Quality Control - Human",
+    "description": "Standard QC parameters for human RNA-seq data",
+    "category": "quality_control",
+    "tags": [
+      "qc",
+      "rna-seq",
+      "human",
+      "illumina"
+    ],
+    "sample_type": "human",
+    "analysis_type": "rna_seq",
+    "difficulty": "intermediate",
+    "created_by": "system",
+    "created_at": "2026-02-18T12:05:40.575Z",
+    "updated_at": "2026-02-18T12:05:40.575Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "parameters": {
+    "threads": 4,
+    "nogroup": false,
+    "kmers": 7,
+    "min_length": 0
+  },
+  "rationale": "Default parameters optimized for Illumina RNA-seq reads. Threads set to 4 for balanced performance.",
+  "references": [
+    "https://www.bioinformatics.babraham.ac.uk/projects/fastqc/"
+  ],
+  "validated": false
+}

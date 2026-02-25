@@ -1,0 +1,42 @@
+{
+  "id": "d9803626-268b-42a1-b5dc-37d75156552b",
+  "tool_id": "xcms",
+  "tool_version": "3.16.1",
+  "tool_name": "XCMS Peak Detection",
+  "use_case": {
+    "id": "2e921481-526a-49f5-b1ec-b347eff83ecf",
+    "name": "LC-MS Metabolomics - Positive Mode",
+    "description": "Peak detection for LC-MS metabolomics in positive ionization mode",
+    "category": "metabolomics",
+    "tags": [
+      "metabolomics",
+      "lc-ms",
+      "positive-mode",
+      "plasma"
+    ],
+    "sample_type": "plasma",
+    "analysis_type": "lc_ms_peak_detection",
+    "difficulty": "intermediate",
+    "created_by": "system",
+    "created_at": "2026-02-18T12:05:40.576Z",
+    "updated_at": "2026-02-18T12:05:40.576Z",
+    "usage_count": 0,
+    "success_rate": 0
+  },
+  "parameters": {
+    "method": "centWave",
+    "ppm": 15,
+    "peakwidth_min": 5,
+    "peakwidth_max": 20,
+    "snthresh": 10,
+    "prefilter_k": 3,
+    "prefilter_i": 100,
+    "noise": 0
+  },
+  "rationale": "CentWave method with 15 ppm tolerance for high-resolution MS. Peak width 5-20s typical for UPLC.",
+  "references": [
+    "Smith et al. (2006) XCMS: Processing mass spectrometry data",
+    "https://bioconductor.org/packages/xcms/"
+  ],
+  "validated": false
+}

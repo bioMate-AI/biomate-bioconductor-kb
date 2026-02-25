@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { ChatInterface } from "./chat-interface"
-import { WorkflowHistoryPanel } from "./workflow-history-panel"
+// WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
 import type { ChatSession } from "@shared/schema"
@@ -75,10 +75,10 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const handleRunWorkflow = async (workflow: any, steps: any[]) => {
     console.log('[ChatWithArtifacts] Running workflow:', workflow?.name || 'unnamed');
     console.log('[ChatWithArtifacts] Steps:', steps?.length || 0);
-    console.log('[ChatWithArtifacts] Workflow format:', workflow?.a_galaxy_workflow ? 'Galaxy .ga' : 'simplified');
+    console.log('[ChatWithArtifacts] Workflow format:', workflow?.workflow_type || workflow?.format || (workflow?.a_galaxy_workflow ? 'galaxy' : 'unknown'));
 
-    if (!workflow || !steps || steps.length === 0) {
-      console.error('[ChatWithArtifacts] No workflow or steps to run');
+    if (!workflow) {
+      console.error('[ChatWithArtifacts] No workflow to run');
       return;
     }
 
@@ -87,11 +87,29 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setIsWorkflowRunning(true);
     setWorkflowProgress(0);
 
+    const isNextflow = workflow.workflow_type === 'nextflow' || workflow.format === 'nextflow' || !!workflow.nextflow_path;
+
+    // Non-Nextflow workflows still require concrete step definitions.
+    if (!isNextflow && (!steps || steps.length === 0)) {
+      console.error('[ChatWithArtifacts] No steps to run (Galaxy workflow requires steps)');
+      setIsWorkflowRunning(false);
+      return;
+    }
+
     try {
       // Build workflow definition (Galaxy .ga format)
       let workflowDefinition: any;
 
-      if (workflow.a_galaxy_workflow) {
+      if (isNextflow) {
+        console.log('[ChatWithArtifacts] Preparing Nextflow workflow for unified execution');
+        workflowDefinition = {
+          ...workflow,
+          name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
+          workflow_type: 'nextflow',
+          format: workflow.format || 'nextflow',
+          parameters: workflow.parameters || {},
+        };
+      } else if (workflow.a_galaxy_workflow) {
         console.log('[ChatWithArtifacts] Using AI-generated .ga workflow format');
         workflowDefinition = workflow;
       } else {
@@ -150,7 +168,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       });
 
       console.log('[ChatWithArtifacts] Workflow execution started:', run?.id);
-      setCurrentWorkflowId(run?.execution?.galaxyWorkflowId || null);
+      setCurrentWorkflowId(
+        run?.execution?.galaxyWorkflowId ||
+        run?.execution?.galaxyInvocationId ||
+        null
+      );
 
       // Update message with invocationId for output tracking
       if (run && currentChatSession) {
@@ -239,7 +261,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
               </div>
             )}
           </div>
-          <WorkflowHistoryPanel />
+{/* WorkflowHistoryPanel removed */}
         </div>
       </div>
 
@@ -253,9 +275,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
                 Executing workflow... {workflowProgress}%
               </span>
             </div>
-            {invocationId && (
+            {currentWorkflowId && (
               <span className="text-xs text-muted-foreground font-mono">
-                ID: {invocationId}
+                ID: {currentWorkflowId}
               </span>
             )}
           </div>

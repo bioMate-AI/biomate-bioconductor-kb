@@ -1388,17 +1388,18 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // Use action flags (not hardcoded type) to decide if workflow generation is needed
     const hasWorkflowIntent = intent.actions?.needsWorkflowGeneration || intent.type === 'workflow_generation';
 
-    // Allow single-tool workflows (e.g., reverse complement is one tool)
+    // For Nextflow workflows: we always generate when intent is clear.
+    // We no longer gate on Galaxy tool search — Nextflow workflow DB is queried by backend directly.
     const hasEnoughTools = recommendedTools.length >= 1;
 
     return {
-      shouldGenerate: hasWorkflowIntent && hasEnoughTools,
+      shouldGenerate: hasWorkflowIntent,  // Always attempt if intent is workflow generation
       userIntent: message,
-      confidence: hasWorkflowIntent && hasEnoughTools ? 0.9 : hasWorkflowIntent ? 0.5 : 0.1,
+      confidence: hasWorkflowIntent ? (hasEnoughTools ? 0.9 : 0.8) : 0.1,
       reasoning: hasWorkflowIntent
         ? hasEnoughTools
           ? `Workflow intent detected with ${recommendedTools.length} tool(s) found`
-          : 'Workflow intent detected but no matching tools found — will suggest tools'
+          : 'Workflow intent detected — searching Nextflow workflow library'
         : `Intent type is "${intent.type}", no workflow generation needed`,
     };
   }

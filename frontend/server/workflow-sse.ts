@@ -383,6 +383,87 @@ export class WorkflowSSEManager {
   }
 
   /**
+   * Handle SSE connection using only invocationId (no workflowId required).
+   * Used by the QC gate SSE endpoint (/api/workflows/:invocationId/events).
+   * Does NOT start Galaxy polling — events arrive via injectRawEvent().
+   */
+  async handleConnectionByInvocationId(req: Request, res: Response): Promise<void> {
+    const { invocationId } = req.params;
+    if (!invocationId) {
+      res.status(400).json({ error: 'Missing invocationId parameter' });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const clientId = `qc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const client: SSEClient = {
+      id: clientId,
+      invocationId,
+      userId: null,
+      response: res,
+      isActive: true,
+    };
+
+    if (!this.clients.has(invocationId)) {
+      this.clients.set(invocationId, []);
+    }
+    this.clients.get(invocationId)!.push(client);
+
+    console.log(`[SSE] QC client ${clientId} connected for invocation ${invocationId}`);
+
+    // Send initial connected acknowledgement
+    res.write(`event: connected\n`);
+    res.write(`data: ${JSON.stringify({ invocation_id: invocationId })}\n\n`);
+
+    req.on('close', () => {
+      client.isActive = false;
+      this.removeClient(invocationId, clientId);
+      console.log(`[SSE] QC client ${clientId} disconnected`);
+    });
+
+    const pingInterval = setInterval(() => {
+      if (!client.isActive) {
+        clearInterval(pingInterval);
+        return;
+      }
+      res.write(': ping\n\n');
+    }, 30000);
+
+    req.on('close', () => clearInterval(pingInterval));
+  }
+
+  /**
+   * Inject a raw SSE event to all clients listening to an invocationId.
+   * Called by the /internal/sse-inject route so the Python backend can push
+   * QC gate events without going through the Galaxy poller.
+   */
+  injectRawEvent(invocationId: string, eventType: string, data: Record<string, any>): void {
+    const clients = this.clients.get(invocationId);
+    if (!clients || clients.length === 0) {
+      console.log(`[SSE] No clients for invocation ${invocationId}, dropping ${eventType} event`);
+      return;
+    }
+
+    console.log(`[SSE] Injecting ${eventType} to ${clients.length} clients for ${invocationId}`);
+
+    clients.forEach((client) => {
+      if (client.isActive) {
+        try {
+          client.response.write(`event: ${eventType}\n`);
+          client.response.write(`data: ${JSON.stringify(data)}\n\n`);
+        } catch (err) {
+          console.error(`[SSE] Failed to write to client ${client.id}:`, err);
+          client.isActive = false;
+        }
+      }
+    });
+  }
+
+  /**
    * Get active client count for an invocation
    */
   getClientCount(invocationId: string): number {
