@@ -1,0 +1,140 @@
+
+======================================================================
+  TARGET 1/4 — Priority A  [charles-river-genomics-001]
+  Charles River Laboratories — Genomics & Translational Sciences  |  Wilmington, MA
+======================================================================
+Subject: [BioMate beta] pharmacogenomics workflows — BioMate beta invite
+
+Dear Dr. Services,
+
+I'm reaching out because your pharmacogenomics program at Charles River Laboratories — Genomics & Translational Sciences is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your pharmacogenomics program, BioMate handles:
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+  • LC-MS/MS proteomics (MaxQuant/DIA-NN) with QC governance
+The core differentiator: 21 CFR Part 11-ready audit trails, evidence-graded QC thresholds, and per-run override logging for FDA and ICH E6 compliant genomics workflows.
+
+All workflows produce full audit trails with per-run QC logs, evidence-cited thresholds (GOLD/SILVER/BRONZE), and override records — designed from the ground up for 21 CFR Part 11 and ICH E6 compliant genomics operations.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 2/4 — Priority A  [labcorp-genomics-001]
+  Labcorp Drug Development (Covance) — Genomics & Translational Services  |  Durham, NC
+======================================================================
+Subject: [BioMate beta] clinical genomics with audit trails — BioMate beta invite
+
+Dear Dr. Genomics,
+
+I'm reaching out because your clinical genomics program at Labcorp Drug Development (Covance) — Genomics & Translational Services is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your clinical genomics program, BioMate handles:
+  • whole-genome sequencing variant calling and QC
+  • whole-exome sequencing analysis
+  • RNA-seq differential expression analysis
+The core differentiator: 21 CFR Part 11-ready audit trails, evidence-graded QC thresholds, and per-run override logging for FDA and ICH E6 compliant genomics workflows.
+
+All workflows produce full audit trails with per-run QC logs, evidence-cited thresholds (GOLD/SILVER/BRONZE), and override records — designed from the ground up for 21 CFR Part 11 and ICH E6 compliant genomics operations.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 3/4 — Priority A  [ppd-thermo-fisher-001]
+  PPD (Thermo Fisher) — Genomics & Central Lab Services  |  Wilmington, NC
+======================================================================
+Subject: [BioMate beta] pharmacogenomics workflows — BioMate beta invite
+
+Dear Dr. Genomics,
+
+I'm reaching out because your pharmacogenomics program at PPD (Thermo Fisher) — Genomics & Central Lab Services is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your pharmacogenomics program, BioMate handles:
+  • whole-genome sequencing variant calling and QC
+  • RNA-seq differential expression analysis
+  • pharmacogenomics variant interpretation (CYP2D6, TPMT, DPYD)
+The core differentiator: 21 CFR Part 11-ready audit trails, evidence-graded QC thresholds, and per-run override logging for FDA and ICH E6 compliant genomics workflows.
+
+All workflows produce full audit trails with per-run QC logs, evidence-cited thresholds (GOLD/SILVER/BRONZE), and override records — designed from the ground up for 21 CFR Part 11 and ICH E6 compliant genomics operations.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 4/4 — Priority A  [genoptix-novartis-001]
+  Tempus AI — Clinical Genomics & AI  |  Chicago, IL
+======================================================================
+Subject: [BioMate beta] clinical genomics with audit trails — BioMate beta invite
+
+Dear Dr. Officer,
+
+I'm reaching out because your clinical genomics program at Tempus AI — Clinical Genomics & AI is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your clinical genomics program, BioMate handles:
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+  • single-cell RNA-seq clustering and cell-type annotation
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+All workflows produce full audit trails with per-run QC logs, evidence-cited thresholds (GOLD/SILVER/BRONZE), and override records — designed from the ground up for 21 CFR Part 11 and ICH E6 compliant genomics operations.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+

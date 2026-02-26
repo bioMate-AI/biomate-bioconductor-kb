@@ -1,0 +1,400 @@
+
+======================================================================
+  TARGET 1/12 — Priority A  [arpa-h-dallas-001]
+  ARPA-H Dallas Hub — Biomedical Innovation Ecosystem  |  Dallas, TX
+======================================================================
+Subject: [BioMate beta] clinical genomics with audit trails — BioMate beta invite
+
+Dear Dr. Director,
+
+I'm reaching out because your clinical genomics program at ARPA-H Dallas Hub — Biomedical Innovation Ecosystem is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your clinical genomics program, BioMate handles:
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+  • single-cell RNA-seq clustering and cell-type annotation
+The core differentiator: complete drug discovery pipeline — ADMET, pharmacogenomics, proteomics, and multi-omics integration — in one governed platform.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 2/12 — Priority A  [bcm-hgsc-001]
+  Baylor College of Medicine — Human Genome Sequencing Center (HGSC)  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] multi-omics cancer analysis — BioMate beta invite
+
+Dear Dr. Gibbs,
+
+I'm reaching out because your rare disease genomics program at Baylor College of Medicine — Human Genome Sequencing Center (HGSC) is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your rare disease genomics program, BioMate handles:
+  • whole-genome sequencing variant calling and QC
+  • whole-exome sequencing analysis
+  • RNA-seq differential expression analysis
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 3/12 — Priority A  [bcm-qcb-001]
+  Baylor College of Medicine — Quantitative & Computational Biosciences (QCB) Program  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] drug discovery workflows — BioMate beta invite
+
+Dear Dr. Director,
+
+I'm reaching out because your drug discovery pipeline at Baylor College of Medicine — Quantitative & Computational Biosciences (QCB) Program is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your drug discovery pipeline, BioMate handles:
+  • RNA-seq differential expression analysis
+  • LC-MS/MS proteomics (MaxQuant/DIA-NN) with QC governance
+  • ADMET prediction, molecular docking, and pharmacogenomics
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 4/12 — Priority A  [baylor-genetics-001]
+  Baylor Genetics — Clinical Genomics Testing  |  Houston, TX
+======================================================================
+Subject: BioMate beta invite — AI-powered bioinformatics for your research
+
+Dear Dr. Director,
+
+I'm reaching out because your computational biology research at Baylor Genetics — Clinical Genomics Testing is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your computational biology research, BioMate handles:
+  • whole-genome sequencing variant calling and QC
+  • whole-exome sequencing analysis
+  • RNA-seq differential expression analysis
+The core differentiator: complete drug discovery pipeline — ADMET, pharmacogenomics, proteomics, and multi-omics integration — in one governed platform.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 5/12 — Priority A  [igenbio-001]
+  Igenbio — Genomics for Bioremediation  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] metagenomics for bioremediation — BioMate beta invite
+
+Dear Dr. CEO,
+
+I'm reaching out because your bioremediation genomics program at Igenbio — Genomics for Bioremediation is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your bioremediation genomics program, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • 16S rRNA amplicon sequencing and OTU classification
+  • functional gene annotation and pathway enrichment
+The core differentiator: metagenomics workflows purpose-built for reservoir microbiome characterization, bioremediation scale-up, and algae strain optimization.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 6/12 — Priority A  [mdanderson-bioinformatics-001]
+  MD Anderson Cancer Center — Bioinformatics & Computational Biology  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] multi-omics cancer analysis — BioMate beta invite
+
+Dear Dr. Chen,
+
+I'm reaching out because your cancer multi-omics research at MD Anderson Cancer Center — Bioinformatics & Computational Biology is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your cancer multi-omics research, BioMate handles:
+  • RNA-seq differential expression analysis
+  • single-cell RNA-seq clustering and cell-type annotation
+  • whole-genome sequencing variant calling and QC
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 6 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 7/12 — Priority A  [neurox1-001]
+  NeuroX1 — Generative AI Drug Discovery (Neurological Disorders)  |  Austin, TX
+======================================================================
+Subject: [BioMate beta] drug discovery workflows — BioMate beta invite
+
+Dear Dr. CEO/Co-Founder,
+
+I'm reaching out because your drug discovery pipeline at NeuroX1 — Generative AI Drug Discovery (Neurological Disorders) is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your drug discovery pipeline, BioMate handles:
+  • ADMET prediction, molecular docking, and pharmacogenomics
+  • LC-MS/MS proteomics (MaxQuant/DIA-NN) with QC governance
+  • molecular docking and binding affinity prediction
+The core differentiator: complete drug discovery pipeline — ADMET, pharmacogenomics, proteomics, and multi-omics integration — in one governed platform.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 8/12 — Priority A  [rice-treangen-001]
+  Rice University — Treangen Lab (Metagenomics & Computational Biology)  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Treangen,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Rice University — Treangen Lab (Metagenomics & Computational Biology) is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • 16S rRNA amplicon sequencing and OTU classification
+  • whole-genome sequencing variant calling and QC
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 9/12 — Priority A  [tmc-umbrella-001]
+  Texas Medical Center (TMC) — Institutional Umbrella  |  Houston, TX
+======================================================================
+Subject: [BioMate beta] clinical genomics with audit trails — BioMate beta invite
+
+Dear Dr. Director,
+
+I'm reaching out because your clinical genomics program at Texas Medical Center (TMC) — Institutional Umbrella is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your clinical genomics program, BioMate handles:
+  • whole-genome sequencing variant calling and QC
+  • RNA-seq differential expression analysis
+  • single-cell RNA-seq clustering and cell-type annotation
+The core differentiator: HIPAA-ready QC governance with evidence-graded thresholds and full audit trails for clinical translation and regulatory submissions.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 10/12 — Priority A  [utsw-bioinformatics-001]
+  UT Southwestern — Lyda Hill Department of Bioinformatics  |  Dallas, TX
+======================================================================
+Subject: [BioMate beta] drug discovery workflows — BioMate beta invite
+
+Dear Dr. Danuser,
+
+I'm reaching out because your single-cell genomics work at UT Southwestern — Lyda Hill Department of Bioinformatics is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your single-cell genomics work, BioMate handles:
+  • RNA-seq differential expression analysis
+  • single-cell RNA-seq clustering and cell-type annotation
+  • whole-genome sequencing variant calling and QC
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 6 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 11/12 — Priority A  [utsw-simmons-001]
+  UT Southwestern — Simmons Comprehensive Cancer Center  |  Dallas, TX
+======================================================================
+Subject: [BioMate beta] multi-omics cancer analysis — BioMate beta invite
+
+Dear Dr. Arteaga,
+
+I'm reaching out because your cancer multi-omics research at UT Southwestern — Simmons Comprehensive Cancer Center is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your cancer multi-omics research, BioMate handles:
+  • RNA-seq differential expression analysis
+  • single-cell RNA-seq clustering and cell-type annotation
+  • whole-genome sequencing variant calling and QC
+The core differentiator: HIPAA-ready QC governance with evidence-graded thresholds and full audit trails for clinical translation and regulatory submissions.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 12/12 — Priority A  [uth-mcwilliams-001]
+  UTHealth Houston — McWilliams School of Biomedical Informatics  |  Houston, TX
+======================================================================
+Subject: BioMate beta invite — AI-powered bioinformatics for your research
+
+Dear Colleagues,
+
+I'm reaching out because your computational biology research at UTHealth Houston — McWilliams School of Biomedical Informatics is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your computational biology research, BioMate handles:
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+  • single-cell RNA-seq clustering and cell-type annotation
+The core differentiator: no Nextflow or Python required — describe your analysis in plain English and BioMate generates, configures, and runs the workflow automatically.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 5 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+

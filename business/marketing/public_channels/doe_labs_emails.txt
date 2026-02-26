@@ -1,0 +1,245 @@
+
+======================================================================
+  TARGET 1/7 — Priority A  [doe-jgi-001]
+  DOE Joint Genome Institute (JGI)  |  Walnut Creek, CA
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Mouncey,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at DOE Joint Genome Institute (JGI) is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • whole-genome sequencing variant calling and QC
+  • functional gene annotation and pathway enrichment
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 2/7 — Priority A  [doe-ornl-001]
+  Oak Ridge National Laboratory — Biosciences Division  |  Oak Ridge, TN
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Director,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Oak Ridge National Laboratory — Biosciences Division is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • whole-genome sequencing variant calling and QC
+  • RNA-seq differential expression analysis
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 3/7 — Priority A  [doe-pnnl-001]
+  Pacific Northwest National Laboratory — Biological Sciences Division  |  Richland, WA
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Magnuson,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Pacific Northwest National Laboratory — Biological Sciences Division is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • LC-MS/MS proteomics (MaxQuant/DIA-NN) with QC governance
+  • RNA-seq differential expression analysis
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-A early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 4/7 — Priority B  [doe-anl-001]
+  Argonne National Laboratory — Biosciences Division  |  Lemont, IL
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Meyer,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Argonne National Laboratory — Biosciences Division is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • 16S rRNA amplicon sequencing and OTU classification
+  • whole-genome sequencing variant calling and QC
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-B early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 5/7 — Priority B  [doe-lbnl-001]
+  Lawrence Berkeley National Laboratory — Environmental Genomics & Systems Biology  |  Berkeley, CA
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Arkin,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Lawrence Berkeley National Laboratory — Environmental Genomics & Systems Biology is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-B early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 6/7 — Priority B  [doe-llnl-001]
+  Lawrence Livermore National Laboratory — Biosciences & Biotechnology Division  |  Livermore, CA
+======================================================================
+Subject: [BioMate beta] metagenomics QC in minutes — BioMate beta invite
+
+Dear Dr. Leader,
+
+I'm reaching out because your microbiome characterization and environmental genomics work at Lawrence Livermore National Laboratory — Biosciences & Biotechnology Division is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your microbiome characterization and environmental genomics work, BioMate handles:
+  • metagenomics community profiling and functional annotation
+  • whole-genome sequencing variant calling and QC
+  • functional gene annotation and pathway enrichment
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-B early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
+
+======================================================================
+  TARGET 7/7 — Priority B  [doe-nrel-001]
+  National Renewable Energy Laboratory (NREL) — Biosciences Center  |  Golden, CO
+======================================================================
+Subject: [BioMate beta] algae strain optimization — BioMate beta invite
+
+Dear Dr. Director,
+
+I'm reaching out because your algae biofuels research at National Renewable Energy Laboratory (NREL) — Biosciences Center is exactly the kind of work BioMate was built for.
+
+BioMate is an AI-powered research execution platform for life sciences — researchers describe their analysis in plain English and BioMate generates, configures, and runs the workflow end-to-end. No Nextflow, no Python, no pipeline debugging.
+
+For your algae biofuels research, BioMate handles:
+  • RNA-seq differential expression analysis
+  • whole-genome sequencing variant calling and QC
+  • metagenomics community profiling and functional annotation
+The core differentiator: BER-grade reproducibility with QC governance across 10,595 validated bioinformatics tools — the same pipeline QC rigor DOE peer review expects.
+
+Given the energy-biology convergence in your work — whether that's reservoir microbiome characterization, bioremediation scale-up, or synthetic biology for biofuels — BioMate's metagenomics workflows include evidence-graded QC thresholds and full audit logs that keep industrial-scale analyses reproducible and compliance-ready.
+
+We're opening a limited closed beta with invite codes for researchers in Texas and the surrounding region. As a Priority-B early adopter, you'd get:
+  • Free professional-tier access for 90 days
+  • Direct line to our engineering team for workflow requests
+  • Co-authorship consideration on our benchmark papers (Nature Methods, Genome Biology)
+
+Would you be open to a 20-minute demo, or shall I send you an invite code directly?
+
+Best regards,
+[Your Name]
+BioMate AI | biomate.ai
+[Your email] | [Your LinkedIn]
+
+P.S. BioMate currently covers 4 workflows directly relevant to your lab, backed by 10,595 validated bioinformatics tools and evidence-graded QC thresholds with published citations.
+
