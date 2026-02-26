@@ -3,9 +3,9 @@
     "created": "2026-02-25",
     "updated": "2026-02-26",
     "description": "Texas beta outreach targets for BioMate",
-    "total": 57,
-    "priority_A": 12,
-    "priority_B": 31,
+    "total": 63,
+    "priority_A": 13,
+    "priority_B": 36,
     "priority_C": 14
   },
   "targets": [
@@ -1006,6 +1006,115 @@
       "notes": "Thermo Fisher has significant R&D operations in Austin (legacy Life Technologies / Ion Torrent). They develop sequencing reagents and run internal genomics QC pipelines. Long-term partnership angle: BioMate as an analysis layer on top of their sequencing platforms. Decision cycle is long (large corporation) — watch list for partnership opportunity.",
       "energy_link": false,
       "website": "https://www.thermofisher.com/us/en/home/life-science/sequencing.html"
+    },
+
+    // ─── ADDITIONS: CLINICAL DIAGNOSTIC LABS ─────────────────────────────────
+
+    {
+      "id": "sonic-healthcare-usa-001",
+      "name": "Sonic Healthcare USA — Clinical Genomics & Pathology",
+      "city": "Austin", "state": "TX",
+      "segment": "clinical_lab", "sub_segment": "national_diagnostic_lab",
+      "key_contacts": [
+        {"name": "Chris Stelzel", "title": "CEO, Sonic Healthcare USA", "email_hint": "info@sonichealthcareusa.com"},
+        {"name": "Genomics & Molecular Director", "title": "Director, Molecular Diagnostics", "email_hint": "molecular@sonichealthcareusa.com"}
+      ],
+      "domains": ["clinical-genomics", "ngs-oncology-panels", "pharmacogenomics", "hereditary-cancer", "molecular-diagnostics"],
+      "biomate_workflows": ["variant-calling", "wgs", "wes", "rnaseq", "pharmacogenomics"],
+      "priority": "A",
+      "reach_channel": "cold-email, Austin biotech network, CAP/CLIA lab conferences (AACC, CAP)",
+      "notes": "US headquarters is Austin, TX. One of the top-5 clinical diagnostics companies in the US (~$3B revenue). Operates clinical genomics labs (including CPL — Clinical Pathology Laboratories) across the country. CLIA/CAP certified. Runs NGS-based oncology panels, hereditary cancer testing, and pharmacogenomics. BioMate's evidence-graded QC audit trails are a direct compliance fit for their regulatory obligations. Highest-priority diagnostic lab target because of Austin HQ.",
+      "energy_link": false,
+      "website": "https://www.sonichealthcareusa.com/"
+    },
+
+    {
+      "id": "quest-diagnostics-tx-001",
+      "name": "Quest Diagnostics — Advanced Diagnostics & Genomics (Texas)",
+      "city": "Dallas", "state": "TX",
+      "segment": "clinical_lab", "sub_segment": "national_diagnostic_lab",
+      "key_contacts": [
+        {"name": "VP, Advanced Diagnostics & Genomics", "title": "VP", "email_hint": "genomics@questdiagnostics.com"},
+        {"name": "Medical Director, Oncology Genomics", "title": "Medical Director", "email_hint": "oncology.genomics@questdiagnostics.com"}
+      ],
+      "domains": ["ngs-oncology-panels", "hereditary-cancer", "pharmacogenomics", "clinical-wgs", "carrier-screening"],
+      "biomate_workflows": ["variant-calling", "wgs", "wes", "pharmacogenomics", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "cold-email, AACC / CAP conference, clinical genomics networks",
+      "notes": "Largest clinical laboratory company in the US. Major Texas operations (Dallas regional hub). Runs extensive NGS-based testing: FoundationOne-equivalent oncology panels, hereditary cancer (BRCA, Lynch), pharmacogenomics (CYP2D6, TPMT, DPYD), carrier screening. QC governance + audit trail is operationally critical for CAP/CLIA compliance. Decision cycle is long (large corporation + procurement) but contract size is enterprise. Note: Quest is already on the national CRO list — this entry covers Texas-specific outreach to regional lab directors.",
+      "energy_link": false,
+      "website": "https://www.questdiagnostics.com/healthcare-professionals/science-and-innovation/genomics-and-advanced-diagnostics"
+    },
+
+    {
+      "id": "labcorp-diagnostics-tx-001",
+      "name": "Labcorp Diagnostics — Genomics & Molecular Pathology (Texas)",
+      "city": "Houston", "state": "TX",
+      "segment": "clinical_lab", "sub_segment": "national_diagnostic_lab",
+      "key_contacts": [
+        {"name": "Regional Medical Director, Genomics", "title": "Medical Director", "email_hint": "genomics@labcorp.com"}
+      ],
+      "domains": ["hereditary-cancer", "ngs-oncology-panels", "pharmacogenomics", "clinical-wgs", "constitutional-genetics"],
+      "biomate_workflows": ["variant-calling", "wgs", "wes", "pharmacogenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, CAP / AACC conference, clinical genomics networks",
+      "notes": "IMPORTANT DISTINCTION: This entry targets Labcorp's clinical diagnostics division (CLIA/CAP certified patient testing). The CRO segment already includes 'Labcorp Drug Development (Covance)' — that is the pharma contract research arm and is a completely separate business unit with different buyers. This entry is for the clinical lab side: hereditary cancer panels, pharmacogenomics, oncology NGS. Large Houston regional presence. Same compliance-driven QC audit trail need as Quest.",
+      "energy_link": false,
+      "website": "https://www.labcorp.com/specialty-testing/genomics-and-oncology"
+    },
+
+    {
+      "id": "myriad-genetics-tx-001",
+      "name": "Myriad Genetics — Hereditary Cancer & Pharmacogenomics Testing (Texas)",
+      "city": "Salt Lake City", "state": "UT",
+      "segment": "clinical_lab", "sub_segment": "genetic_testing_lab",
+      "key_contacts": [
+        {"name": "Paul Diaz", "title": "CEO, Myriad Genetics", "email_hint": "investors@myriad.com"},
+        {"name": "Medical Affairs — Oncology", "title": "VP Medical Affairs", "email_hint": "medicalaffairs@myriad.com"}
+      ],
+      "domains": ["hereditary-cancer", "brca-testing", "pharmacogenomics", "tumor-profiling", "precision-psychiatry"],
+      "biomate_workflows": ["variant-calling", "wgs", "pharmacogenomics", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "cold-email, ASCO / AACR conference, hereditary cancer networks",
+      "notes": "National genetic testing company (HQ: Salt Lake City) with a very large Texas customer base — MD Anderson, UTSouthwestern, and Texas oncology practices are major referrers. Runs myRisk (hereditary cancer), GeneSight (pharmacogenomics for psychiatry), and tumor profiling panels. Serves Texas extensively through molecular pathology networks. QC governance for hereditary cancer panel variant interpretation is a direct fit. National HQ but included here because of outsized Texas clinical presence.",
+      "energy_link": false,
+      "website": "https://myriad.com/"
+    },
+
+    {
+      "id": "genedx-tx-001",
+      "name": "GeneDx — Pediatric & Rare Disease Genetic Testing (Texas)",
+      "city": "Gaithersburg", "state": "MD",
+      "segment": "clinical_lab", "sub_segment": "rare_disease_genetic_testing",
+      "key_contacts": [
+        {"name": "Katherine Johansen Taber", "title": "CEO, GeneDx", "email_hint": "info@genedx.com"},
+        {"name": "Medical Affairs — Pediatric Genomics", "title": "VP Medical Affairs", "email_hint": "medaffairs@genedx.com"}
+      ],
+      "domains": ["pediatric-rare-disease", "clinical-wgs", "clinical-wes", "constitutional-genetics", "neurodevelopmental-disorders"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "cold-email, ACMG conference, pediatric genetics networks, Texas Children's / Cook Children's connections",
+      "notes": "Leading national genetic testing lab for pediatric and rare disease (formerly BioReference Genomics division). Major referral volumes from Texas Children's Hospital, Cook Children's, and Children's Medical Center Dallas. Clinical WGS and WES for undiagnosed rare disease is their primary workload — BioMate's variant calling QC governance and audit trails are directly applicable. National HQ but serving Texas pediatric centers at scale.",
+      "energy_link": false,
+      "website": "https://www.genedx.com/"
+    },
+
+    {
+      "id": "christus-health-lab-001",
+      "name": "CHRISTUS Health — Laboratory & Genomics Services",
+      "city": "Irving", "state": "TX",
+      "segment": "clinical_lab", "sub_segment": "health_system_clinical_lab",
+      "key_contacts": [
+        {"name": "Chief Laboratory Officer", "title": "CLO", "email_hint": "laboratoryservices@christushealth.org"},
+        {"name": "Genomics Program Director", "title": "Director", "email_hint": "genomics@christushealth.org"}
+      ],
+      "domains": ["clinical-genomics", "pharmacogenomics", "cancer-genetics", "rare-disease", "population-health"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling", "pharmacogenomics", "rnaseq"],
+      "priority": "B",
+      "reach_channel": "cold-email, Catholic health system networks, Texas clinical lab associations",
+      "notes": "Large Catholic health system headquartered in Irving, TX (Dallas area). Operates hospitals and clinics across Texas, Louisiana, New Mexico, and internationally (Mexico, Chile, Colombia). Running clinical genomics and pharmacogenomics programs at scale. CLIA/CAP certified lab network. QC governance + audit trails for compliance is a strong pitch. Texas HQ makes this a higher-priority target than national chains.",
+      "energy_link": false,
+      "website": "https://www.christushealth.org/"
     }
   ]
 }

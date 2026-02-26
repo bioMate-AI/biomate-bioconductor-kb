@@ -237,7 +237,7 @@ Pediatric rare disease genomics program in Fort Worth. Similar profile to Childr
 | West/South Texas | TTUHSC, UTRGV | **Weak** — low priority but geographic gaps |
 | Corporate/pharma | ExxonMobil, AstraZeneca missing, Thermo Fisher | **Weak** — add AstraZeneca TMC Hub |
 
-**All 12 gaps have been added to `texas_targets.json`.** Total list is now **57 targets (12-A / 31-B / 14-C)**.
+**All gaps have been added to `texas_targets.json`.** Total list is now **63 targets (13-A / 36-B / 14-C)**.
 
 The 12 additions were:
 1. **Texas Biomedical Research Institute, San Antonio** [B] — major standalone institute, infectious disease + comparative genomics
@@ -252,6 +252,46 @@ The 12 additions were:
 10. **Texas Southern University** [C] — Houston HBCU, NIH RCMI funding angle
 11. **Cook Children's Fort Worth** [C] — pediatric rare disease, independent from CMC Dallas
 12. **Thermo Fisher Austin R&D** [C] — long-term platform partnership candidate
+
+**Clinical diagnostic labs (6 added):**
+13. **Sonic Healthcare USA, Austin** [A] — US HQ in Austin, top-5 diagnostics company, CAP/CLIA, NGS panels
+14. **Quest Diagnostics Texas** [B] — largest US clinical lab, major TX operations, NGS oncology + pharmacogenomics
+15. **Labcorp Diagnostics Texas** [B] — clinical diagnostics arm (distinct from Covance/CRO already listed), TX presence
+16. **Myriad Genetics** [B] — hereditary cancer + pharmacogenomics, massive TX referral volume from MD Anderson / UTSW
+17. **GeneDx** [B] — national leader in pediatric/rare disease WGS, serves TX Children's and Cook Children's
+18. **CHRISTUS Health Lab Services, Irving** [B] — Texas-HQ'd Catholic health system, CLIA/CAP clinical genomics at scale
+
+---
+
+## Clinical Diagnostic Labs — Segment Notes
+
+This segment was not in the original list and deserves its own framing. Diagnostic labs are structurally different from academic labs and biotech companies:
+
+**Why they are high-value targets:**
+- Run NGS at industrial scale (thousands of samples/week) — QC automation is a hard operational need, not a nice-to-have
+- CLIA/CAP certification requires documented, defensible QC thresholds — BioMate's GOLD/SILVER/BRONZE cited evidence tiers are purpose-built for this
+- 21 CFR Part 11 audit logs are required for any FDA-regulated testing — BioMate's per-run override logging directly addresses this
+- Contract size is Enterprise tier ($500–5,000+/month) with long retention; once embedded in a lab's validation workflow, switching cost is very high
+
+**The critical distinction — Labcorp has two separate businesses:**
+- `labcorp-diagnostics-tx-001` (this list) = Labcorp's clinical patient testing division (CLIA/CAP)
+- `labcorp-genomics-001` (CRO segment list) = Labcorp Drug Development / Covance = pharma contract research
+These are completely different buyers with different budgets, procurement paths, and value propositions.
+
+**Reach strategy for diagnostic labs:**
+Cold email alone will not work for large chains (Quest, Labcorp). The right sequence:
+1. **Conference presence** — AACC (American Association for Clinical Chemistry) and CAP (College of American Pathologists) annual meetings are where lab directors make vendor decisions
+2. **Academic connection** — MD Anderson, UTSW, and Texas Children's refer samples to Quest/Labcorp/GeneDx. A warm introduction from those academic contacts is far more effective than cold outreach
+3. **Sonic Healthcare USA is the exception** — Austin HQ means accessible leadership; treat like a local biotech, not a national chain
+
+| Lab | Reach Priority | Best First Step |
+|---|---|---|
+| Sonic Healthcare USA | Immediate (Austin-based) | Direct cold email to genomics director |
+| CHRISTUS Health | Soon (Irving/Dallas-based) | Cold email + Catholic health system networks |
+| Quest Diagnostics TX | After conference touchpoint | AACC or CAP meeting → follow-up email |
+| Labcorp Diagnostics TX | After conference touchpoint | Same as Quest; via separate buyer from Covance |
+| Myriad Genetics | Via academic referral path | MD Anderson / UTSW oncology connection first |
+| GeneDx | Via pediatric hospital connection | Texas Children's / Cook Children's referral |
 
 ---
 
