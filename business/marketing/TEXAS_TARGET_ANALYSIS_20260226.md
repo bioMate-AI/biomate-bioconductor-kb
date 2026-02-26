@@ -237,14 +237,21 @@ Pediatric rare disease genomics program in Fort Worth. Similar profile to Childr
 | West/South Texas | TTUHSC, UTRGV | **Weak** — low priority but geographic gaps |
 | Corporate/pharma | ExxonMobil, AstraZeneca missing, Thermo Fisher | **Weak** — add AstraZeneca TMC Hub |
 
-**Recommended additions: 7 Priority-B targets, 5 Priority-C targets.** Total revised list: ~57 Texas targets.
+**All 12 gaps have been added to `texas_targets.json`.** Total list is now **57 targets (12-A / 31-B / 14-C)**.
 
-The most significant omissions are:
-1. **Texas Biomedical Research Institute (San Antonio)** — major standalone institute not in the list
-2. **Dell Medical School, UT Austin** — large and growing, directly in the Austin biotech corridor
-3. **AstraZeneca TMC Hub** — enterprise pharma with Houston footprint
-4. **MD Anderson Proteomics Core** — distinct from the Bioinformatics dept, direct proteomics fit
-5. **Memorial Hermann** — one of Houston's largest health systems
+The 12 additions were:
+1. **Texas Biomedical Research Institute, San Antonio** [B] — major standalone institute, infectious disease + comparative genomics
+2. **Dell Medical School, UT Austin** [B] — precision medicine, clinical genomics, Austin corridor
+3. **UNTHSC Fort Worth** [B] — forensic genetics, pharmacogenomics, Fort Worth node
+4. **MD Anderson Proteomics Core** [B] — distinct from Bioinformatics dept, LC-MS/MS direct fit
+5. **Memorial Hermann** [B] — largest Houston health system with independent procurement
+6. **Texas Heart Institute** [B] — standalone cardiovascular genomics institute at TMC
+7. **AstraZeneca BioHub at TMC3** [B] — enterprise pharma with global BioHub network
+8. **UTRGV** [C] — South Texas / Hispanic health disparities genomics
+9. **Baylor University** [C] — Central Texas corridor (Waco) geographic gap filler
+10. **Texas Southern University** [C] — Houston HBCU, NIH RCMI funding angle
+11. **Cook Children's Fort Worth** [C] — pediatric rare disease, independent from CMC Dallas
+12. **Thermo Fisher Austin R&D** [C] — long-term platform partnership candidate
 
 ---
 

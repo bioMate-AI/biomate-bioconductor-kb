@@ -1,11 +1,12 @@
 {
   "meta": {
     "created": "2026-02-25",
+    "updated": "2026-02-26",
     "description": "Texas beta outreach targets for BioMate",
-    "total": 82,
-    "priority_A": 14,
-    "priority_B": 42,
-    "priority_C": 26
+    "total": 57,
+    "priority_A": 12,
+    "priority_B": 31,
+    "priority_C": 14
   },
   "targets": [
 
@@ -792,6 +793,219 @@
       "notes": "Environmental remediation services. Potential metagenomics characterization customer.",
       "energy_link": true,
       "website": "https://www.etec-inc.com/"
+    },
+
+    // ─── ADDITIONS: ACADEMIC GAPS ─────────────────────────────────────────────
+
+    {
+      "id": "tbri-san-antonio-001",
+      "name": "Texas Biomedical Research Institute (TBRI)",
+      "city": "San Antonio", "state": "TX",
+      "segment": "academic", "sub_segment": "infectious_disease_research",
+      "key_contacts": [
+        {"name": "Larry Schlesinger", "title": "President & CEO", "email_hint": "lschlesinger@txbiomed.org"},
+        {"name": "Binhua Ling", "title": "Associate Director, Research", "email_hint": "bling@txbiomed.org"}
+      ],
+      "domains": ["infectious-disease-genomics", "comparative-genomics", "virology", "zoonotic-diseases", "primate-models"],
+      "biomate_workflows": ["wgs", "metagenomics", "rnaseq", "16s-rrna", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, infectious disease conferences (ASM, IDSA)",
+      "notes": "Largest standalone biomedical research institute in Texas (~$100M+ annual budget). Former Southwest Foundation for Biomedical Research. Specializes in infectious disease, virology, and comparative genomics using non-human primate models. Major NIH-funded sequencing infrastructure. Key omission from original list.",
+      "energy_link": false,
+      "website": "https://www.txbiomed.org/"
+    },
+
+    {
+      "id": "dell-medical-utaustin-001",
+      "name": "Dell Medical School — UT Austin (Precision Medicine & Genomics)",
+      "city": "Austin", "state": "TX",
+      "segment": "academic", "sub_segment": "precision_medicine",
+      "key_contacts": [
+        {"name": "Claudia Lucchinetti", "title": "Dean, Dell Medical School", "email_hint": "deanoffice@dell.med.utexas.edu"},
+        {"name": "Genomics/Precision Medicine Program Lead", "title": "Director", "email_hint": "genomics@dell.med.utexas.edu"}
+      ],
+      "domains": ["precision-medicine", "clinical-genomics", "health-disparities", "neuroscience", "population-genomics"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "scrna", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "cold-email, Austin biotech network, UT Austin institutional contacts",
+      "notes": "UT Austin's medical school, opened 2016 and growing rapidly. Strong precision medicine and clinical genomics program. Located in the heart of the Austin biotech corridor alongside Dell Seton Medical Center. Growing bioinformatics infrastructure — QC governance for clinical trial genomics is a direct fit.",
+      "energy_link": false,
+      "website": "https://dellmed.utexas.edu/"
+    },
+
+    {
+      "id": "unthsc-fort-worth-001",
+      "name": "University of North Texas Health Science Center (UNTHSC)",
+      "city": "Fort Worth", "state": "TX",
+      "segment": "academic", "sub_segment": "forensic_genomics",
+      "key_contacts": [
+        {"name": "Bruce Budowle", "title": "Regents Professor, Forensic Genetics", "email_hint": "bruce.budowle@unthsc.edu"},
+        {"name": "Arthur Eisenberg", "title": "Professor & Chair, Molecular & Medical Genetics", "email_hint": "arthur.eisenberg@unthsc.edu"}
+      ],
+      "domains": ["forensic-genetics", "pharmacogenomics", "health-disparities-genomics", "clinical-microbiology", "population-genetics"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling", "metagenomics", "pharmacogenomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, forensic genetics conferences (ISFG, AAFS), pharmacogenomics networks",
+      "notes": "Nationally recognized forensic genetics program (DNA identity laboratory). Also runs pharmacogenomics and health disparities genomics research. Covers Fort Worth — an underrepresented node in the current target list (only Dallas was covered for north Texas). Bruce Budowle is a world authority in forensic genomics.",
+      "energy_link": false,
+      "website": "https://www.unthsc.edu/"
+    },
+
+    {
+      "id": "utrgv-genomics-001",
+      "name": "University of Texas Rio Grande Valley — Biomedical Sciences & Genomics",
+      "city": "Edinburg", "state": "TX",
+      "segment": "academic", "sub_segment": "health_disparities_genomics",
+      "key_contacts": [
+        {"name": "Biomedical Sciences Department Chair", "title": "Chair", "email_hint": "biomed@utrgv.edu"}
+      ],
+      "domains": ["health-disparities-genomics", "hispanic-population-genetics", "precision-medicine", "clinical-genomics"],
+      "biomate_workflows": ["wgs", "rnaseq", "variant-calling"],
+      "priority": "C",
+      "reach_channel": "cold-email, NIH RCMI program contacts, health disparities conferences",
+      "notes": "Growing genomics program in the Rio Grande Valley. Focus on Hispanic/Latino population health disparities — an underserved genomics niche. NIH RCMI-funded institution. Geographic gap filler for South Texas.",
+      "energy_link": false,
+      "website": "https://www.utrgv.edu/biomed/"
+    },
+
+    {
+      "id": "baylor-university-waco-001",
+      "name": "Baylor University — Biochemistry & Molecular Biology",
+      "city": "Waco", "state": "TX",
+      "segment": "academic", "sub_segment": "biochemistry",
+      "key_contacts": [
+        {"name": "Department Chair, Biochemistry & Molecular Biology", "title": "Chair", "email_hint": "biochemistry@baylor.edu"}
+      ],
+      "domains": ["biochemistry", "molecular-biology", "genomics", "systems-biology"],
+      "biomate_workflows": ["rnaseq", "wgs", "proteomics"],
+      "priority": "C",
+      "reach_channel": "cold-email",
+      "notes": "Research university in Waco. Smaller bioinformatics footprint than major Texas institutions but represents the Central Texas corridor between Austin and Dallas. Potential for early adopter individual labs.",
+      "energy_link": false,
+      "website": "https://www.baylor.edu/biochemmolbio/"
+    },
+
+    {
+      "id": "texas-southern-001",
+      "name": "Texas Southern University — Biology & Health Sciences (HBCU)",
+      "city": "Houston", "state": "TX",
+      "segment": "academic", "sub_segment": "hbcu_biomedical",
+      "key_contacts": [
+        {"name": "Department Chair, Biology", "title": "Chair", "email_hint": "biology@tsu.edu"}
+      ],
+      "domains": ["health-disparities", "biomedical-sciences", "population-genomics"],
+      "biomate_workflows": ["rnaseq", "wgs"],
+      "priority": "C",
+      "reach_channel": "cold-email, NIH BUILD / RCMI HBCU programs",
+      "notes": "HBCU in Houston with growing biomedical research. NIH RCMI and BUILD programs fund genomics infrastructure at HBCUs. Important for equity-focused outreach and federal grant alignment. Limited bioinformatics infrastructure currently but trajectory is positive.",
+      "energy_link": false,
+      "website": "https://www.tsu.edu/academics/colleges-schools-and-departments/college-of-science-engineering-and-technology/"
+    },
+
+    // ─── ADDITIONS: MEDICAL CENTER GAPS ──────────────────────────────────────
+
+    {
+      "id": "mdanderson-proteomics-core-001",
+      "name": "MD Anderson Cancer Center — Proteomics & Metabolomics Core Facility",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "proteomics_core",
+      "key_contacts": [
+        {"name": "Core Director, Proteomics & Metabolomics", "title": "Core Director", "email_hint": "proteomics@mdanderson.org"}
+      ],
+      "domains": ["clinical-proteomics", "cancer-proteomics", "metabolomics", "lc-ms-ms", "drug-target-identification"],
+      "biomate_workflows": ["proteomics", "metabolomics"],
+      "priority": "B",
+      "reach_channel": "cold-email, ASMS conference (American Society for Mass Spectrometry), internal MD Anderson contacts",
+      "notes": "Distinct from the Bioinformatics & Computational Biology department (Ken Chen). The proteomics core is a separate service unit running MaxQuant and DIA-NN analyses for dozens of internal MD Anderson labs. BioMate's LC-MS/MS proteomics workflows with QC governance are a direct service-core fit. Separate outreach from the bioinformatics dept entry.",
+      "energy_link": false,
+      "website": "https://www.mdanderson.org/research/research-resources/core-facilities/proteomics-and-metabolomics-core-facility.html"
+    },
+
+    {
+      "id": "memorial-hermann-genomics-001",
+      "name": "Memorial Hermann Health System — Clinical Genomics",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "clinical_genomics",
+      "key_contacts": [
+        {"name": "Chief Medical Officer", "title": "CMO", "email_hint": "genomics@memorialhermann.org"}
+      ],
+      "domains": ["clinical-genomics", "cancer-genetics", "rare-disease", "pharmacogenomics"],
+      "biomate_workflows": ["wgs", "wes", "rnaseq", "variant-calling"],
+      "priority": "B",
+      "reach_channel": "TMC networking, cold-email, clinical lab associations",
+      "notes": "One of the largest not-for-profit health systems in Houston (17 hospitals, 6,000+ physicians). Part of the Texas Medical Center but independent procurement from the TMC umbrella. Running clinical genomics for cancer and rare disease at substantial scale. CLIA/CAP compliance requirements make BioMate's audit trail a direct fit.",
+      "energy_link": false,
+      "website": "https://www.memorialhermann.org/"
+    },
+
+    {
+      "id": "texas-heart-institute-001",
+      "name": "Texas Heart Institute — Cardiovascular Genomics",
+      "city": "Houston", "state": "TX",
+      "segment": "medical", "sub_segment": "cardiovascular_research",
+      "key_contacts": [
+        {"name": "Joseph Rogers", "title": "President & CEO", "email_hint": "research@texasheart.org"}
+      ],
+      "domains": ["cardiovascular-genomics", "single-cell", "rnaseq", "cardiac-regeneration", "translational-genomics"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "proteomics"],
+      "priority": "B",
+      "reach_channel": "TMC networking, cold-email, AHA/ACC conference (cardiovascular genomics sessions)",
+      "notes": "Standalone research institute at the Texas Medical Center, not covered under the TMC umbrella entry (independent procurement). Runs RNA-seq and single-cell genomics for cardiac regeneration and heart failure research. Strong translational push — QC governance for clinical translation is a direct need.",
+      "energy_link": false,
+      "website": "https://www.texasheart.org/research/"
+    },
+
+    {
+      "id": "cook-childrens-fort-worth-001",
+      "name": "Cook Children's Health Care System — Genomics & Rare Disease",
+      "city": "Fort Worth", "state": "TX",
+      "segment": "medical", "sub_segment": "pediatric_rare_disease",
+      "key_contacts": [
+        {"name": "Genomics Program Director", "title": "Director", "email_hint": "genomics@cookchildrens.org"}
+      ],
+      "domains": ["pediatric-rare-disease", "clinical-wgs", "pharmacogenomics", "neurogenomics"],
+      "biomate_workflows": ["wgs", "wes", "variant-calling"],
+      "priority": "C",
+      "reach_channel": "cold-email, pediatric genomics networks, ACMG conference",
+      "notes": "Independent pediatric health system in Fort Worth (not affiliated with Children's Medical Center Dallas). Rare disease genomics and pharmacogenomics program. Completes the north Texas pediatric genomics picture alongside CMC Dallas.",
+      "energy_link": false,
+      "website": "https://www.cookchildrens.org/research/"
+    },
+
+    // ─── ADDITIONS: CORPORATE / PHARMA GAPS ──────────────────────────────────
+
+    {
+      "id": "astrazeneca-tmc-hub-001",
+      "name": "AstraZeneca — BioHub at TMC3 (Houston)",
+      "city": "Houston", "state": "TX",
+      "segment": "biotech", "sub_segment": "pharma_innovation_hub",
+      "key_contacts": [
+        {"name": "AstraZeneca BioHub Houston Lead", "title": "Hub Director", "email_hint": "biohub@astrazeneca.com"}
+      ],
+      "domains": ["oncology-genomics", "cardiovascular-genomics", "drug-discovery", "multi-omics", "translational-research"],
+      "biomate_workflows": ["rnaseq", "scrna", "wgs", "proteomics", "drug-discovery", "atac_seq"],
+      "priority": "B",
+      "reach_channel": "TMC3 partnership process, AstraZeneca innovation contacts, LinkedIn",
+      "notes": "AstraZeneca opened a BioHub at the TMC3 campus as part of their global network of open innovation hubs. They co-invest in early-stage biotech and run internal multi-omics R&D. An enterprise partnership here would have global reach given AstraZeneca's international BioHub network. Primary focus: oncology and cardiovascular.",
+      "energy_link": false,
+      "website": "https://www.astrazeneca.com/r-d/open-innovation/biohubs.html"
+    },
+
+    {
+      "id": "thermo-fisher-austin-001",
+      "name": "Thermo Fisher Scientific — R&D Operations (Austin)",
+      "city": "Austin", "state": "TX",
+      "segment": "biotech", "sub_segment": "genomics_tools_rd",
+      "key_contacts": [
+        {"name": "R&D Director, Sequencing Division", "title": "R&D Director", "email_hint": "rd.sequencing@thermofisher.com"}
+      ],
+      "domains": ["ngs-reagent-development", "sequencing-qc", "genomics-assay-validation", "bioinformatics-tools"],
+      "biomate_workflows": ["rnaseq", "wgs", "variant-calling"],
+      "priority": "C",
+      "reach_channel": "conference (ASHG, AGBT), LinkedIn, partnership inquiry",
+      "notes": "Thermo Fisher has significant R&D operations in Austin (legacy Life Technologies / Ion Torrent). They develop sequencing reagents and run internal genomics QC pipelines. Long-term partnership angle: BioMate as an analysis layer on top of their sequencing platforms. Decision cycle is long (large corporation) — watch list for partnership opportunity.",
+      "energy_link": false,
+      "website": "https://www.thermofisher.com/us/en/home/life-science/sequencing.html"
     }
   ]
 }
