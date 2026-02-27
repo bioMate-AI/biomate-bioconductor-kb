@@ -47,7 +47,7 @@ The table below is the clearest summary of BioMate's competitive position. The k
 | Evidence basis | **Published citations, tiered** | None | None | None |
 | QC governance | **GOLD/SILVER/BRONZE, cited** | None | None | Manual, uncited |
 | Protocol awareness | **20 named QC profiles** | None | None | None |
-| Execution | **Full (local/AWS/Slurm)** | None | Limited | Manual config |
+| Execution | **Full (local/AWS/Slurm)** | None | **Not executable** — pipeline suggestions fail on real data | Manual config |
 | Audit trail | **Per-run, full log** | None | None | None |
 | Researcher skill required | **None** | Bioinformatics PhD | Some | Nextflow expertise |
 
@@ -70,7 +70,7 @@ BioMate is not an AI scientist (replacing researchers) and not an expert pipelin
 |---|---|---|---|
 | Validated tools | **10,595** | 82 | 500+ pipelines (expert-only) |
 | Evidence basis | **Published citations** | None | None |
-| Execution | **Full, natural language** | Limited | Full, code required |
+| Execution | **Full, natural language** | **Not executable** — NL pipeline suggestions fail on real data | Full, code required |
 | QC governance | **Evidence-graded, cited** | None | Manual |
 | Researcher-friendly | **Yes** | Partial | No |
 | Funding | Bootstrap / beta | $13.5M seed (Feb 2026) | Well-funded |
@@ -268,7 +268,7 @@ This is BioMate's most defensible competitive differentiator. Every quality cont
 | **Evidence-driven foundation** | **Every tool validated, every QC threshold cited — the AI cannot hallucinate or guess. No competitor has this.** |
 | Domain knowledge depth | 10,595 validated tools, 20 named protocol-aware QC profiles, 967 workflow templates — years of curation that cannot be replicated quickly |
 | QC governance | GOLD/SILVER/BRONZE evidence tiers with published citations — *Nature Methods* paper in preparation; scientific community will validate this |
-| Execution breadth | 20 scientific domains, full local/cloud/HPC execution — Seqera (1 domain, expert-only); Phylo (limited execution) |
+| Execution breadth | 20 scientific domains, full local/cloud/HPC execution — Seqera (1 domain, expert-only); Phylo (pipeline suggestions are not executable in practice — confirmed by user feedback) |
 | Open foundation | Built on Galaxy (50,000+ researcher network), Bioconductor, nf-core — community trust inherited from day one |
 | Team depth | Every member has 5+ years biomedical experience — BioMate's domain knowledge is not bolted on, it is the product |
 | Clinical readiness | 21 CFR Part 11 audit trail, per-run QC logs with override records — directly addressable CRO, clinical lab, pharma market |
@@ -353,7 +353,7 @@ Phylo/Biomni is the most direct competitor — both target non-expert researcher
 | Validated tools | **10,595** | 82 tools, 68 databases |
 | Evidence basis for tools | **Published methodology DOIs, containerized** | Not documented |
 | Scientific domains | **20** | ~10 |
-| Full pipeline execution | **Yes — Galaxy + Nextflow + AWS/Slurm** | Limited — analysis recommendations |
+| Full pipeline execution | **Yes — Galaxy + Nextflow + AWS/Slurm** | **No** — pipeline suggestions are not executable end-to-end; LLM-generated steps fail on real data due to shallow tool validation (82 tools) and insufficient configuration depth |
 | QC governance | **Evidence-graded (GOLD/SILVER/BRONZE), cited** | None |
 | Protocol-aware QC profiles | **20 named profiles (FFPE, clinical WGS, etc.)** | None |
 | Audit trail | **100% per-run, override-logged** | None |
@@ -362,7 +362,7 @@ Phylo/Biomni is the most direct competitor — both target non-expert researcher
 | Funding | Bootstrap (beta stage) | $13.5M seed (Feb 2026) |
 | Time to market | Now (closed beta) | Launched Feb 2026 |
 
-**BioMate's core advantage over Phylo:** Phylo's intelligence comes from AI alone — it recommends tools and generates plans from a language model's understanding of biology. BioMate's intelligence comes from AI *plus* a validated tool catalog, evidence-cited QC standards, and protocol-specific domain knowledge. Phylo can suggest a pipeline. BioMate can run it correctly — and prove it ran correctly.
+**BioMate's core advantage over Phylo:** Phylo's intelligence comes from AI alone — it recommends tools and generates plans from a language model's understanding of biology. **User experience confirms that Phylo cannot produce a mature, working end-to-end pipeline**: LLM-generated steps fail on real biological data because the tool catalog is shallow (82 tools) and pipeline generation lacks the configuration depth required for actual execution. BioMate's intelligence comes from AI *plus* a validated tool catalog, evidence-cited QC standards, and protocol-specific domain knowledge. The gap is not "limited execution" — it is the difference between a plan that sounds plausible and a pipeline that actually runs.
 
 ### Head-to-Head: BioMate vs. Edison/Kosmos (Autonomous Science)
 
@@ -705,7 +705,7 @@ Shifting from usage-based to outcome-based for heavy users dramatically improves
 | Origin | Stanford SNAP Lab (Prof. Jure Leskovec); Biomni open-source project |
 | Users | 7,000+ labs, biopharma, and healthcare organizations |
 | Tools | 82 biology tools, 68 databases, 100+ software packages |
-| Execution | Limited — primarily recommends tools and moves data between them; does not run full pipelines |
+| Execution | **Not executable end-to-end** — pipeline suggestions fail on real biological data; tool validation is shallow (82 tools), configuration depth is insufficient for real execution; confirmed by user experience |
 | Business model | Freemium — free tier with daily usage limits; paid features unannounced |
 | **BioMate advantage** | 129× tool catalog; full pipeline execution; evidence-graded QC governance; Galaxy institutional layer; clinical compliance (21 CFR) |
 
