@@ -14,7 +14,9 @@
 
 # I. EXECUTIVE SUMMARY
 
-BioMate AI is an **AI-powered research execution platform for life sciences**. A researcher describes their analysis in plain English — *"run differential expression on my RNA-seq data, FFPE tumor vs. normal, use DESeq2"* — and BioMate generates the computational pipeline, configures it for their data type, executes it on cloud or local infrastructure, and monitors quality control in real time.
+BioMate AI is an **evidence-driven research execution platform for life sciences**, augmented by AI. A researcher describes their analysis in plain English — *"run differential expression on my RNA-seq data, FFPE tumor vs. normal, use DESeq2"* — and BioMate generates the computational pipeline, configures it correctly for their protocol and data type, executes it on cloud or local infrastructure, and monitors quality control in real time — with every tool selection and every QC threshold backed by published scientific evidence.
+
+**The critical distinction:** AI alone is not enough. Generic LLMs hallucinate tool names, invent parameters, and have no concept of field-accepted QC standards. BioMate's intelligence is grounded in domain knowledge — 10,595 validated tools, evidence-graded QC thresholds with published citations, and 20 named protocol-specific profiles built from the bioinformatics literature. This is what separates a research-grade platform from a chatbot that happens to know some biology.
 
 ## The Problem
 
@@ -23,17 +25,31 @@ Life science researchers spend **2–5 days per analysis** on pipeline debugging
 - **Core facility:** $500–5,000/project, 2–8 week queue
 - **In-house bioinformatician:** $120,000–180,000/year
 
-This bottleneck does not exist because the analysis is scientifically hard. It exists because the tools require specialist configuration. A wet-lab researcher with a valid hypothesis abandons it — not because the biology is wrong, but because execution costs too much and takes too long.
+But the deeper problem is not cost — it is **correctness and reproducibility**. When a researcher uses a generic AI tool to design a pipeline, there is no guarantee the tools are real, the parameters are appropriate, or the quality thresholds are defensible. Published research and clinical submissions require QC decisions that can be traced to a source. No current AI platform provides this.
 
 ## The Solution
 
-BioMate collapses this bottleneck with three integrated capabilities:
+BioMate addresses both the execution bottleneck and the evidence gap:
 
-- **Think:** Natural language understanding of research intent → workflow design → literature-grounded parameter recommendations
-- **Execute:** 10,595 validated tools, 967 workflow templates, 20 scientific domains — run automatically from a single sentence
-- **Govern:** Evidence-graded quality control thresholds (GOLD/SILVER/BRONZE, all with published citations) — the first platform where every QC decision is defensible and auditable
+- **Execute:** 10,595 validated tools, 967 workflow templates, 20 scientific domains — run automatically from a single sentence, on local compute, AWS, or HPC
+- **Evidence-grounded AI:** Every tool recommendation draws from a validated catalog. Every parameter suggestion is grounded in published best practices. The AI cannot recommend a tool that does not exist.
+- **Govern:** Evidence-graded QC thresholds (GOLD = universally accepted consensus; SILVER = community standard; BRONZE = field heuristic) — every threshold has a published citation, every run produces a full audit log
 
 **Current status:** Production-ready. Running on AWS. Closed beta with invite-code system. Bioconductor (2,241 tools), Galaxy (8,354 tools), and nf-core (231 pipelines) fully integrated.
+
+## What Makes BioMate Different
+
+The table below is the clearest summary of BioMate's competitive position. The key column is **Evidence basis** — this is where every competitor falls short.
+
+| | BioMate | Generic LLM (ChatGPT, etc.) | Phylo/Biomni | nf-core |
+|---|---|---|---|---|
+| Tool knowledge | **10,595 validated** | Hallucinated | 82 tools | Curated, manual |
+| Evidence basis | **Published citations, tiered** | None | None | None |
+| QC governance | **GOLD/SILVER/BRONZE, cited** | None | None | Manual, uncited |
+| Protocol awareness | **20 named QC profiles** | None | None | None |
+| Execution | **Full (local/AWS/Slurm)** | None | Limited | Manual config |
+| Audit trail | **Per-run, full log** | None | None | None |
+| Researcher skill required | **None** | Bioinformatics PhD | Some | Nextflow expertise |
 
 ## Market Opportunity
 
@@ -48,11 +64,12 @@ BioMate collapses this bottleneck with three integrated capabilities:
 
 ## Competitive Position
 
-BioMate is not an AI scientist (replacing researchers) and not an expert pipeline tool (serving bioinformaticians). It occupies a distinct position: **AI-powered execution infrastructure for the researcher who knows the biology but not the code.**
+BioMate is not an AI scientist (replacing researchers) and not an expert pipeline tool (serving bioinformaticians). It occupies a distinct and uncontested position: **evidence-driven execution infrastructure for the researcher who knows the biology but not the code** — where every recommendation is grounded in domain knowledge and every QC decision is traceable to a published source.
 
 | | BioMate | Phylo/Biomni (closest AI-native competitor) | Seqera (closest execution competitor) |
 |---|---|---|---|
 | Validated tools | **10,595** | 82 | 500+ pipelines (expert-only) |
+| Evidence basis | **Published citations** | None | None |
 | Execution | **Full, natural language** | Limited | Full, code required |
 | QC governance | **Evidence-graded, cited** | None | Manual |
 | Researcher-friendly | **Yes** | Partial | No |
@@ -83,17 +100,19 @@ BioMate is seeking seed funding ($500K–$800K), strategic partnerships (institu
 
 ## Mission Statement
 
-To accelerate scientific discovery by making the full computational research cycle — from hypothesis to validated, reproducible result — fast, accessible, and affordable for every life science researcher.
+To accelerate scientific discovery by making evidence-grounded computational research — from hypothesis to reproducible, defensible result — fast and accessible to every life science researcher, regardless of their computational background.
 
 ## Company Philosophy and Vision
 
+**Evidence first, AI second.** BioMate is not an AI product that happens to know some biology. It is a domain-knowledge system that uses AI as an interface. Every tool in BioMate's catalog is validated against a real software package with published methodology. Every QC threshold is cited to a peer-reviewed source. Every workflow recommendation reflects what the bioinformatics field has established as best practice — not what a language model predicts sounds plausible. The AI layer makes this knowledge accessible in natural language; the domain knowledge makes it trustworthy.
+
 **Researcher-first design.** Every feature starts with one question: does this make the researcher's scientific work easier? BioMate removes computational friction; it does not replace scientific judgment.
 
-**Honest AI.** BioMate automates pipeline execution, not scientific reasoning. We do not claim to replace researchers or generate autonomous discoveries. We claim to run analyses faster, more reliably, and more reproducibly than manual methods — and we can prove it.
+**Honest about what we automate.** BioMate automates pipeline execution, not scientific reasoning. We claim to run analyses faster, more reliably, and more reproducibly than manual methods — with every decision traceable to a published source. We do not claim autonomous discovery.
 
-**Open foundation.** BioMate is built on Galaxy (the world's most widely adopted open-source life science platform), Bioconductor (3,700+ R packages for genomic data analysis), and nf-core (community-curated Nextflow pipelines). Our tool catalog is community-validated. Our workflows are citable. Researchers can inspect, trust, and build on what we provide.
+**Open foundation.** BioMate is built on Galaxy (50,000+ researcher network), Bioconductor (3,700+ R packages, the gold standard for genomic data analysis in R), and nf-core (community-curated Nextflow pipelines with peer-reviewed methods). Our tool catalog is community-validated. Our workflows are citable. Researchers can inspect, trust, and build on what we provide.
 
-**Quality governance as a first-class feature.** The bioinformatics field lacks standardized, evidence-graded QC thresholds. BioMate's evidence-graded QC governance (every threshold cited to a published source, tiered GOLD/SILVER/BRONZE) is a scientific contribution, not just a product feature. This is the subject of a *Nature Methods* paper in preparation.
+**Quality governance as a scientific contribution.** The bioinformatics field lacks standardized, evidence-graded QC thresholds. A researcher choosing a QC cutoff today relies on informal consensus, lab tradition, or a single paper they happened to read. BioMate's GOLD/SILVER/BRONZE evidence framework — systematically compiled across RNA-seq, DNA-seq, single-cell, metagenomics, cryo-EM, proteomics, and drug discovery — is itself a scientific contribution. This is the subject of a *Nature Methods* paper in preparation. No competitor is positioned to make this contribution because no competitor has invested in the domain knowledge required to build it.
 
 **Vision:** In five years, BioMate is the standard research execution infrastructure for academic and early-stage commercial life science. In ten years, BioMate is the operating layer through which a significant fraction of global life science computation flows — the way Stripe became the operating layer for global commerce.
 
@@ -139,13 +158,27 @@ BioMate AI LLC. Founder-owned. Registered in the United States.
 
 BioMate is a web-based research execution platform. No installation. No infrastructure configuration. No code required.
 
-### Capability 1 — THINK: AI Research Intelligence
+### The Evidence Foundation
+
+Before describing what BioMate does, it is important to explain what makes its outputs trustworthy — because this is what distinguishes BioMate from every AI tool that offers to "help with bioinformatics."
+
+BioMate's intelligence rests on three layers of domain knowledge:
+
+1. **Validated tool catalog (10,595 tools):** Every tool has been verified to exist as real published software, with methodology DOI, containerized execution environment, and input/output specifications. The AI cannot recommend a hallucinated tool.
+2. **Evidence-graded QC thresholds:** Every quality control threshold in the system is tied to a published citation. Thresholds are tiered: GOLD (universally accepted, e.g., GATK Best Practices), SILVER (community standard, e.g., ENCODE4 guidelines), BRONZE (field heuristic from benchmark papers). A researcher — or an auditor, or a journal reviewer — can trace any QC decision to its source.
+3. **Protocol-aware profiles (20 named profiles):** Different biological protocols require different QC standards. FFPE RNA-seq has different acceptable alignment rates than fresh-frozen tissue. Clinical WGS has different coverage requirements than research WGS. BioMate encodes this domain knowledge into named profiles that automatically adjust thresholds based on the declared protocol. No other platform does this.
+
+This is the foundation. The AI layer — natural language understanding, workflow generation, parameter recommendation — runs on top of it.
+
+### Capability 1 — EXECUTE + THINK: AI-Assisted Workflow Generation
 
 A researcher types: *"I have RNA-seq data from FFPE tumor samples and matched normal tissue. I want to find differentially expressed genes related to immune evasion."*
 
-BioMate responds with: recommended pipeline (DESeq2 with FFPE-specific QC profile), relevant tools, parameter recommendations based on FFPE tissue characteristics, and a literature-grounded rationale for each choice.
+BioMate responds with: the FFPE-specific QC profile automatically applied, DESeq2 configured with FFPE-appropriate parameters, a literature-grounded rationale for each tool choice, and the pipeline ready to run with one click.
 
-**Technical foundation:** Hybrid LLM inference — local model (handles 90% of queries, reducing cost by 84%) with cloud model fallback for complex reasoning. PhD-level biomedical NLP architecture applied to workflow generation.
+**Key point:** The tool recommendations come from a validated catalog. The parameter suggestions come from published best practices for FFPE tissue. The AI understands the researcher's intent; the domain knowledge ensures the output is correct.
+
+**Technical foundation:** Hybrid LLM inference — local model (handles 90% of queries, reducing cost by 84%) with cloud model fallback. PhD-level biomedical NLP architecture applied to workflow generation.
 
 ### Capability 2 — EXECUTE: Automated Pipeline Execution
 
@@ -232,13 +265,14 @@ This is BioMate's most defensible competitive differentiator. Every quality cont
 
 | Category | Detail |
 |---|---|
-| Tool catalog | 10,595 validated tools — 100× more than nearest AI-native competitor (Phylo: 82) |
-| QC governance | Evidence-graded, citation-backed thresholds — no competitor has this |
-| Execution breadth | 20 scientific domains, 967 templates — Seqera serves 1 domain (Nextflow) |
-| Open foundation | Built on Galaxy (50,000+ researcher network); trust inherited from day one |
-| Team depth | Every member has 5+ years biomedical experience — unusual for AI startups |
-| Cost structure | 84% LLM cost reduction via local inference; break-even at 78 Pro users |
-| Clinical readiness | 21 CFR Part 11 audit trail, per-run QC logs — addressable CRO/clinical lab market |
+| **Evidence-driven foundation** | **Every tool validated, every QC threshold cited — the AI cannot hallucinate or guess. No competitor has this.** |
+| Domain knowledge depth | 10,595 validated tools, 20 named protocol-aware QC profiles, 967 workflow templates — years of curation that cannot be replicated quickly |
+| QC governance | GOLD/SILVER/BRONZE evidence tiers with published citations — *Nature Methods* paper in preparation; scientific community will validate this |
+| Execution breadth | 20 scientific domains, full local/cloud/HPC execution — Seqera (1 domain, expert-only); Phylo (limited execution) |
+| Open foundation | Built on Galaxy (50,000+ researcher network), Bioconductor, nf-core — community trust inherited from day one |
+| Team depth | Every member has 5+ years biomedical experience — BioMate's domain knowledge is not bolted on, it is the product |
+| Clinical readiness | 21 CFR Part 11 audit trail, per-run QC logs with override records — directly addressable CRO, clinical lab, pharma market |
+| Cost structure | 84% LLM cost reduction via local inference; break-even at only 78 Pro users |
 
 ### Weaknesses
 
@@ -312,22 +346,23 @@ The following sources were used: company websites, pricing pages, PubMed/bioRxiv
 
 ### Head-to-Head: BioMate vs. Phylo/Biomni (Closest Competitor)
 
-Phylo/Biomni is the most direct competitor — both are AI-native, biology-specific, and target non-expert researchers.
+Phylo/Biomni is the most direct competitor — both target non-expert researchers in biology with AI-powered interfaces. The fundamental difference is **depth of domain knowledge and evidence grounding.**
 
 | Dimension | BioMate | Phylo/Biomni |
 |---|---|---|
-| Validated tools | 10,595 | 82 tools, 68 databases |
-| Scientific domains | 20 | ~10 |
-| Full pipeline execution | Yes — Galaxy + Nextflow + AWS | Limited — primarily analysis recommendations |
-| QC governance | Evidence-graded (GOLD/SILVER/BRONZE), cited | None |
-| Audit trail | 100% per-run logging | None |
-| Institutional integration | Galaxy ecosystem (50K+ researchers) | Standalone platform |
-| Collaboration layer | Institutional-grade (shared histories, SSO) | Minimal |
-| Clinical compliance (21 CFR) | Yes | No |
+| Validated tools | **10,595** | 82 tools, 68 databases |
+| Evidence basis for tools | **Published methodology DOIs, containerized** | Not documented |
+| Scientific domains | **20** | ~10 |
+| Full pipeline execution | **Yes — Galaxy + Nextflow + AWS/Slurm** | Limited — analysis recommendations |
+| QC governance | **Evidence-graded (GOLD/SILVER/BRONZE), cited** | None |
+| Protocol-aware QC profiles | **20 named profiles (FFPE, clinical WGS, etc.)** | None |
+| Audit trail | **100% per-run, override-logged** | None |
+| Institutional integration | **Galaxy ecosystem (50K+ researchers)** | Standalone platform |
+| Clinical compliance (21 CFR) | **Yes** | No |
 | Funding | Bootstrap (beta stage) | $13.5M seed (Feb 2026) |
 | Time to market | Now (closed beta) | Launched Feb 2026 |
 
-**BioMate's core advantage over Phylo:** Phylo recommends tools and generates analysis plans. BioMate *runs them* — end-to-end, with QC governance and audit trails. These are fundamentally different value propositions.
+**BioMate's core advantage over Phylo:** Phylo's intelligence comes from AI alone — it recommends tools and generates plans from a language model's understanding of biology. BioMate's intelligence comes from AI *plus* a validated tool catalog, evidence-cited QC standards, and protocol-specific domain knowledge. Phylo can suggest a pipeline. BioMate can run it correctly — and prove it ran correctly.
 
 ### Head-to-Head: BioMate vs. Edison/Kosmos (Autonomous Science)
 
