@@ -683,7 +683,7 @@ export const dataScopeSchema = z.object({
   fraction: z.number().min(0.01).max(1.0).default(1.0), // 1% to 100%
   absoluteCount: z.number().optional(),
   totalAvailable: z.number().optional(),
-  samplingStrategy: z.enum(["random", "stratified", "first_n", "representative"]).default("random"),
+  samplingStrategy: z.enum(["random", "stratified", "first_n", "representative", "sequential"]).default("random"),
   sampledIds: z.array(z.string()).default([]),
   strataDistribution: z.record(z.number()).optional(), // For stratified sampling
   strataColumn: z.string().optional(),
@@ -724,9 +724,6 @@ export const executionConfigSchema = z.object({
   executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
   // Explicit operator override for low-confidence generation states.
   allowLowConfidence: z.boolean().optional(),
-  // Named QC profile (e.g. "proteomics_standard", "pgx_clinical"). Empty = auto-detect.
-  qcProfile: z.string().optional(),
-  nextflow_profile: z.string().optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
@@ -839,6 +836,7 @@ export const userInteractionTypeSchema = z.enum([
   "cancel",
   "apply_recommendation",
   "adjust_data_scope",
+  "autofix",
   "retry_step",
   "view_logs",
   "download_output"
@@ -949,6 +947,7 @@ export const executionRunSchema = z.object({
     galaxyInvocationId: z.string().optional(),
     galaxyHistoryId: z.string().optional(),
     galaxyWorkflowId: z.string().optional(),
+    nextflowRunId: z.string().optional(),
     executionEngine: z.string().optional(),
     nextflowStatus: z.any().optional(),
     status: executionRunStatusSchema,
@@ -1049,6 +1048,15 @@ export const executionRunStatusResponseSchema = z.object({
       sessionId: z.string().optional(),
       totalAttempts: z.number().optional(),
       terminationReason: z.string().optional(),
+    })
+    .optional(),
+  artifactReadiness: z
+    .object({
+      hasOutputs: z.boolean().optional(),
+      visualizableCount: z.number().optional(),
+      downloadableCount: z.number().optional(),
+      totalOutputs: z.number().optional(),
+      meetsContract: z.boolean().optional(),
     })
     .optional(),
   nextflowStatus: z.any().optional(),

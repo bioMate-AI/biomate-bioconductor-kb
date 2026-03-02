@@ -127,7 +127,7 @@ async function apiGetRunStatus(runId: string): Promise<{
     terminationReason?: string;
   };
   nextflowStatus?: any;
-  usefulness?: {
+  artifactReadiness?: {
     hasOutputs?: boolean;
     visualizableCount?: number;
     downloadableCount?: number;
@@ -269,6 +269,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const artifactReadinessTelemetrySentRef = useRef<Set<string>>(new Set());
 
   // ============================================================================
   // SSE Connection (leverages existing /api/galaxy/workflows/sse endpoint)
@@ -361,6 +362,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
 
         const updatedStep: StepExecution = {
           stepId: step_id,
+          stepIndex: stepIndex >= 0 ? steps[stepIndex].stepIndex : steps.length,
           stepName: '',
           toolId: '',
           status: stepStatus,
@@ -369,7 +371,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
             completedAt: step_state === 'ok' || step_state === 'error' ? new Date() : undefined,
           },
           metrics: {},
-          logs: { stdout: [], stderr: [], truncated: false },
+          logs: { stdout: [], stderr: [], truncated: false, lastLines: 100 },
           outputs: [],
         };
 
@@ -382,7 +384,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
         // Calculate progress
         const completedSteps = steps.filter((s) => s.status === 'completed').length;
         const totalSteps = prev.currentRun.progress.totalSteps || steps.length;
-        const percent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+        const percentComplete = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
         return {
           ...prev,
@@ -391,8 +393,8 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
             steps,
             progress: {
               ...prev.currentRun.progress,
-              percent,
-              currentStep: completedSteps,
+              percentComplete,
+              completedSteps,
               totalSteps,
             },
           },
@@ -427,6 +429,18 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
     const poll = async () => {
       try {
         const status = await apiGetRunStatus(runId);
+        if (status.artifactReadiness?.meetsContract === false && !artifactReadinessTelemetrySentRef.current.has(runId)) {
+          artifactReadinessTelemetrySentRef.current.add(runId);
+          emitUxEvent('workflow.error_shown', {
+            runId,
+            category: 'artifact_readiness',
+            silent: true,
+            hasOutputs: !!status.artifactReadiness?.hasOutputs,
+            totalOutputs: status.artifactReadiness?.totalOutputs ?? 0,
+            visualizableCount: status.artifactReadiness?.visualizableCount ?? 0,
+            downloadableCount: status.artifactReadiness?.downloadableCount ?? 0,
+          });
+        }
 
         setState((prev) => {
           if (!prev.currentRun || prev.currentRun.id !== runId) return prev;
@@ -450,7 +464,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
                 errorMessage: status.errorMessage,
                 nextflowStatus: {
                   ...(status.nextflowStatus || {}),
-                  ...(status.usefulness ? { usefulness: status.usefulness } : {}),
+                  ...(status.artifactReadiness ? { artifactReadiness: status.artifactReadiness } : {}),
                   ...(status.autofix ? { autofix: status.autofix } : {}),
                 },
               },

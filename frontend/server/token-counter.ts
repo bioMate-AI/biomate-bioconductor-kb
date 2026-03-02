@@ -200,7 +200,7 @@ export class TokenCounter {
   analyzeConversation(messages: Message[], model: string = 'claude-sonnet-4-5'): {
     tokenCount: TokenCountResult;
     contextStatus: { percentage: number; shouldCompress: boolean; shouldWarn: boolean; limit: number; };
-    cost: { inputCost: number; outputCost: number; totalCost: number; breakdown: { inputTokens: number; outputTokens: number; }; };
+    cost: { inputCost: number; estimatedOutputCost: number; total: number; };
     recommendations: string[];
   } {
     const tokenCount = this.countMessages(messages);

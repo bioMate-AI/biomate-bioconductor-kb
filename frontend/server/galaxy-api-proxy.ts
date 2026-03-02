@@ -568,11 +568,27 @@ export class GalaxyAPIProxy {
    */
   async generateWorkflow(request: WorkflowGenerationRequest): Promise<WorkflowGenerationResponse> {
     try {
+      const isExecutableNextflowPath = (rawPath: unknown): boolean => {
+        const path = String(rawPath || "").trim().toLowerCase();
+        if (!path) {
+          return false;
+        }
+        if (!path.endsWith(".nf")) {
+          return false;
+        }
+        // Guard against selecting library subworkflows that cannot run standalone.
+        if (path.includes("/subworkflows/") || path.includes("subworkflow")) {
+          return false;
+        }
+        return true;
+      };
+
       const isRunnableWorkflowResponse = (payload: any): boolean => {
         if (!payload || payload.success !== true) {
           return false;
         }
-        if (payload.nextflow_path && typeof payload.nextflow_path === 'string') {
+        const nextflowPath = payload.nextflow_path || payload.workflow_ga?.nextflow_path;
+        if (isExecutableNextflowPath(nextflowPath)) {
           return true;
         }
         const workflowGa = payload.workflow_ga;
@@ -817,7 +833,7 @@ export class GalaxyAPIProxy {
       console.error('[GalaxyAPIProxy] ❌ Connection validation failed:', this.connectionError);
       return {
         connected: false,
-        error: this.connectionError
+        error: this.connectionError || undefined
       };
     }
   }
@@ -831,6 +847,36 @@ export class GalaxyAPIProxy {
       error: this.connectionError || undefined,
       url: this.galaxyUrl
     };
+  }
+
+  /**
+   * Query research agent backend for literature-backed answers.
+   */
+  async queryResearch(payload: Record<string, any>): Promise<any> {
+    try {
+      const response = await this.client.post('/api/ai_assistant/query_research', payload);
+      return response.data;
+    } catch (error: any) {
+      // Backward-compatible fallback endpoint
+      const fallback = await this.client.post('/api/ai_assistant/research', payload).catch(() => null);
+      if (fallback?.data) return fallback.data;
+      throw error;
+    }
+  }
+
+  /**
+   * Query benchmark agent backend for comparative evidence.
+   */
+  async queryBenchmark(payload: Record<string, any>): Promise<any> {
+    try {
+      const response = await this.client.post('/api/ai_assistant/query_benchmark', payload);
+      return response.data;
+    } catch (error: any) {
+      // Backward-compatible fallback endpoint
+      const fallback = await this.client.post('/api/ai_assistant/benchmark', payload).catch(() => null);
+      if (fallback?.data) return fallback.data;
+      throw error;
+    }
   }
 
   // ============================================================================

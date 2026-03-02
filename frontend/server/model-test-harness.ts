@@ -35,7 +35,7 @@ const MODELS = {
 
 interface TestCase {
   id: string;
-  category: 'intent' | 'ranking' | 'response' | 'thinking';
+  category: 'intent' | 'ranking' | 'response' | 'thinking' | 'consistency';
   prompt: string;
   expectedIntent?: string;
   expectedKeywords?: string[];

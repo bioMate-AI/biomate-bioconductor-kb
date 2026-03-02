@@ -220,7 +220,7 @@ export function configureCSRF(app: Express) {
 
   // Provide CSRF token endpoint
   app.get('/api/csrf-token', (req, res) => {
-    const token = generateToken(req, res);
+    const token = generateToken(req);
     res.json({ csrfToken: token });
   });
 

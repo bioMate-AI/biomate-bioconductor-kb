@@ -123,6 +123,8 @@ export interface ChatContext {
   currentWorkflow?: any;
   selectedDatasets?: string[];
   userId?: number; // For fetching user patterns
+  sessionId?: string;
+  enableThinking?: boolean;
   /** Accumulated facts from prior turns, passed so the LLM can decide supersession */
   accumulatedFacts?: Array<{ id: string; category: string; value: string }>;
   /** Current conversation turn number */
@@ -305,6 +307,8 @@ export interface GalaxyAssistantResponse {
     datasetRAGUsed: boolean;
     workflowGenerated: boolean;
     thinkingUsed: boolean;
+    researchAgentUsed?: boolean;
+    benchmarkAgentUsed?: boolean;
   };
 }
 
@@ -526,8 +530,8 @@ export class GalaxyAssistant {
       intentConfidence: intent.confidence,
       inlineParameters: Object.keys(intent.inlineParameters).length > 0 ? intent.inlineParameters : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
-      thinking_content: response.thinking?.thinkingContent,
-      thinking_level: response.thinking?.thinkingLevel,
+      thinking_content: response.thinking?.thinkingContent ?? undefined,
+      thinking_level: response.thinking?.thinkingLevel ?? undefined,
       recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
       recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
       workflowSuggestion,
@@ -668,8 +672,8 @@ export class GalaxyAssistant {
       intentConfidence: primaryIntent.confidence,
       inlineParameters: Object.keys(primaryIntent.inlineParameters).length > 0 ? primaryIntent.inlineParameters : undefined,
       extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
-      thinking_content: response.thinking?.thinkingContent,
-      thinking_level: response.thinking?.thinkingLevel,
+      thinking_content: response.thinking?.thinkingContent ?? undefined,
+      thinking_level: response.thinking?.thinkingLevel ?? undefined,
       recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
       recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
       workflowSuggestion: {
@@ -1441,7 +1445,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       datasets: datasets.map((d) => ({
         id: d.id,
         name: d.name,
-        type: d.type,
+        type: d.type || 'unknown',
       })),
     });
 

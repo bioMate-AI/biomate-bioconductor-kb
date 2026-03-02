@@ -4742,7 +4742,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNextflowRun && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
         try {
           const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
-          nextflowStatus = await galaxyAPIProxy.getNextflowStatus(nextflowRunId);
+          if (nextflowRunId) {
+            nextflowStatus = await galaxyAPIProxy.getNextflowStatus(nextflowRunId);
+          }
 
           // Promote Nextflow terminal state into execution run state.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
@@ -4817,10 +4819,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Real-usefulness contract: terminal "completed" should have concrete outputs
-      // that users can either visualize or download. This is reported (not hard-blocked)
-      // so UI and E2E can distinguish "technically completed" vs "usefully completed".
-      let usefulness: {
+      // Artifact-readiness contract: terminal "completed" should expose concrete
+      // artifacts users can visualize or download in the UI. This is reported
+      // (not hard-blocked) so UI/E2E can distinguish technical completion from
+      // artifact materialization readiness.
+      let artifactReadiness: {
         hasOutputs: boolean;
         visualizableCount: number;
         downloadableCount: number;
@@ -4834,7 +4837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let outputs = invocation ? await storage.getInvocationOutputs(invocation.id) : [];
 
         // If completed but no outputs are persisted yet, make a best-effort fetch
-        // from Galaxy to avoid false "usefulness=false" due to timing lag.
+        // from Galaxy to avoid false "artifact_readiness=false" due to timing lag.
         if (invocation && outputs.length === 0 && invocation.galaxyHistoryId) {
           try {
             const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
@@ -4873,7 +4876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             outputs = await storage.getInvocationOutputs(invocation.id);
           } catch (fetchError: any) {
-            console.warn("[ExecutionRun] Failed best-effort output fetch for usefulness:", fetchError?.message || fetchError);
+            console.warn("[ExecutionRun] Failed best-effort output fetch for artifact readiness:", fetchError?.message || fetchError);
           }
         }
         let visualizableCount = outputs.filter((o: any) => {
@@ -4929,7 +4932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         const meetsContract = hasOutputs && visualizableCount > 0 && downloadableCount > 0;
-        usefulness = {
+        artifactReadiness = {
           hasOutputs,
           visualizableCount,
           downloadableCount,
@@ -4947,7 +4950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errorMessage: run.execution.errorMessage,
         autofix,
         nextflowStatus,
-        usefulness,
+        artifactReadiness,
       });
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run status:", error);

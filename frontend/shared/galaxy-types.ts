@@ -213,6 +213,7 @@ export interface GalaxyInvocationStep {
 export interface GalaxyWorkflowInvocation {
   id: string;
   workflow_id: string;
+  history_id?: string;
   state: 'new' | 'ready' | 'scheduled' | 'cancelled' | 'failed';
   create_time: string;
   update_time: string;
@@ -397,6 +398,7 @@ export interface ToolParameterSchema {
 export interface WorkflowGenerationRequest {
   user_intent: string;
   max_tools_search?: number;
+  inline_parameters?: Record<string, string>;
   datasets?: Array<{
     id: string;
     name: string;
@@ -408,6 +410,10 @@ export interface WorkflowGenerationResponse {
   success: boolean;
   error?: string;
   workflow_ga?: any; // Galaxy .ga JSON format
+  workflow_name?: string;
+  format?: string;
+  workflow_type?: string;
+  nextflow_path?: string;
 
   // ===== NEW: Unified AI Assistant Response Fields =====
   // These fields are returned by the new /api/ai_assistant/generate_workflow endpoint

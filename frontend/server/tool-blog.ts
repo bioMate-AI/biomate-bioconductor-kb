@@ -23,7 +23,7 @@ const BLOG_GENERATOR_SCRIPT = path.join(process.env.HOME || '', 'biomate/auto_up
 
 const db = new sqlite3.Database(DB_PATH);
 const dbAll = promisify(db.all.bind(db));
-const dbGet = promisify(db.get.bind(db));
+const dbGet = promisify(db.get.bind(db)) as (sql: string, params?: any[]) => Promise<any>;
 const execPromise = promisify(exec);
 
 interface ToolBlogPost {

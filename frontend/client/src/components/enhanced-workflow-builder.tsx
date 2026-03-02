@@ -218,10 +218,12 @@ export function EnhancedWorkflowBuilder({
       // Full workflow mode: use executionSteps from SSE
       return Array.from(executionSteps.values()).map(step => {
         const workflowStep = steps.find(s => s.id === step.stepId)
+        const timelineState =
+          step.state === 'deleted' ? 'error' : step.state
         return {
           stepId: step.stepId,
           stepName: workflowStep?.title || step.stepId,
-          state: step.state,
+          state: timelineState,
           timestamp: step.updateTime,
           elapsedMs: step.elapsedMs,
           jobId: step.jobId,
@@ -234,7 +236,7 @@ export function EnhancedWorkflowBuilder({
         .map(step => ({
           stepId: step.id,
           stepName: step.title,
-          state: step.status === 'running' ? 'running' : step.status === 'completed' ? 'ok' : 'error',
+          state: (step.status === 'running' ? 'running' : step.status === 'completed' ? 'ok' : 'error') as 'running' | 'ok' | 'error',
           timestamp: new Date().toISOString(),
           elapsedMs: undefined,
           jobId: undefined,

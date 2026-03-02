@@ -65,10 +65,6 @@ interface WorkflowArtifactProps {
     name?: string
     annotation?: string
     steps?: any
-    __executionOverrides?: Record<string, any>
-    __retryContext?: Record<string, any>
-    __generationAssessment?: Record<string, any>
-    [key: string]: any
   }
   steps: WorkflowStep[]
   confidence?: number
@@ -989,7 +985,7 @@ export function WorkflowArtifact({
                         {getStepIcon(step.status)}
                         <div>
                           <p className="font-medium text-sm">
-                            {step.name || step.title || getSimpleToolName(step.tool_id) || `Step ${idx + 1}`}
+                            {step.name || step.title || getSimpleToolName(step.tool_id || '') || `Step ${idx + 1}`}
                           </p>
                           {step.tool_id && (
                             <p className="text-xs text-muted-foreground font-mono">
@@ -1184,8 +1180,11 @@ export function WorkflowArtifact({
           step={{
             id: editingStep.id,
             title: editingStep.name || editingStep.title || 'Step',
+            description: editingStep.description || '',
+            status: 'pending',
             tool: editingStep.tool_id || '',
-            parameters: editingStep.parameters || {}
+            parameters: editingStep.parameters || {},
+            complexity: 'simple',
           }}
           onSave={(stepId, params) => handleSaveParameters(params)}
         />

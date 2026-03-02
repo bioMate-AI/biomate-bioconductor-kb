@@ -422,13 +422,13 @@ export class GalaxyStatePoller extends EventEmitter {
    * Get the effective state of a step by checking its jobs
    * Galaxy step.state can be stale - use jobs[0].state for accuracy
    */
-  private getEffectiveStepState(step: any): string {
+  private getEffectiveStepState(step: any): GalaxyJobState | undefined {
     // If step has jobs array with job details, use the job state
     if (step.jobs && step.jobs.length > 0 && step.jobs[0].state) {
-      return step.jobs[0].state;
+      return step.jobs[0].state as GalaxyJobState;
     }
     // Fall back to step.state
-    return step.state;
+    return step.state as GalaxyJobState | undefined;
   }
 
   /**

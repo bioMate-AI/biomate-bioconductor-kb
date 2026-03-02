@@ -180,7 +180,7 @@ We would value your perspective on the following questions. There are no right a
 
 3. For ADMET screening specifically: do you currently rely on RDKit-based physicochemical estimates, commercial tools (StarDrop, Schrodinger, OpenEye), or experimental assay data? What role would computational pre-screening play in your decision-making?
 
-4. For PK/PD: is non-compartmental analysis something your team runs internally, or does it go to a dedicated pharmacokinetrician? Would having it embedded in the same platform as the compound analysis change how early you run it?
+4. For PK/PD: is non-compartmental analysis something your team runs internally, or does it go to a dedicated pharmacokinetician? Would having it embedded in the same platform as the compound analysis change how early you run it?
 
 **On quality governance:**
 

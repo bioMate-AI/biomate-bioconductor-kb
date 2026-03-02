@@ -21,7 +21,7 @@ interface WorkflowExecutionState {
 interface StepState {
   stepId: string;
   jobId?: string;
-  state: 'new' | 'queued' | 'running' | 'ok' | 'error' | 'paused' | 'waiting';
+  state: 'new' | 'queued' | 'running' | 'ok' | 'error' | 'paused' | 'waiting' | 'deleted';
   startTime?: string;
   updateTime: string;
   logs: string[];
@@ -136,7 +136,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
 
         newSteps.set(step_id!, {
           ...existingStep,
-          state: step_state!,
+          state: (step_state as StepState['state']) || existingStep.state,
           jobId: job_id,
           updateTime: update.timestamp,
           startTime: existingStep.startTime || (step_state === 'running' ? update.timestamp : undefined),
@@ -176,8 +176,12 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
     });
 
     // Errors
-    eventSource.addEventListener('error', (event) => {
-      const update: WorkflowExecutionUpdate = JSON.parse(event.data);
+    eventSource.addEventListener('error', (event: Event) => {
+      const payload = (event as MessageEvent).data;
+      if (!payload) {
+        return;
+      }
+      const update: WorkflowExecutionUpdate = JSON.parse(payload);
       console.error('[SSE] Error:', update.data.error);
 
       setState(prev => ({

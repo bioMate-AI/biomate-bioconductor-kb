@@ -85,13 +85,13 @@ export class MemStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === username,
     );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user = { ...insertUser, id } as User;
     this.users.set(id, user);
     return user;
   }
@@ -560,13 +560,34 @@ export class MemStorage implements IStorage {
       quality: {},
       outputs: { fileCount: 0, totalSizeBytes: 0, byType: {}, bySize: {} },
     };
+    const baseRuntime = existingMetrics.runtime || { totalSeconds: 0, perStepSeconds: {} };
+    const baseResources = existingMetrics.resources || { peakMemoryGB: 0, avgCpuPercent: 0, diskUsedGB: 0 };
+    const baseOutputs = existingMetrics.outputs || { fileCount: 0, totalSizeBytes: 0, byType: {}, bySize: {} };
 
     return this.updateExecutionRun(id, {
       metrics: {
-        runtime: { ...existingMetrics.runtime, ...metricsUpdate.runtime },
-        resources: { ...existingMetrics.resources, ...metricsUpdate.resources },
+        runtime: {
+          ...baseRuntime,
+          ...metricsUpdate.runtime,
+          totalSeconds: metricsUpdate.runtime?.totalSeconds ?? baseRuntime.totalSeconds,
+          perStepSeconds: metricsUpdate.runtime?.perStepSeconds ?? baseRuntime.perStepSeconds,
+        },
+        resources: {
+          ...baseResources,
+          ...metricsUpdate.resources,
+          peakMemoryGB: metricsUpdate.resources?.peakMemoryGB ?? baseResources.peakMemoryGB,
+          avgCpuPercent: metricsUpdate.resources?.avgCpuPercent ?? baseResources.avgCpuPercent,
+          diskUsedGB: metricsUpdate.resources?.diskUsedGB ?? baseResources.diskUsedGB,
+        },
         quality: { ...existingMetrics.quality, ...metricsUpdate.quality },
-        outputs: { ...existingMetrics.outputs, ...metricsUpdate.outputs },
+        outputs: {
+          ...baseOutputs,
+          ...metricsUpdate.outputs,
+          fileCount: metricsUpdate.outputs?.fileCount ?? baseOutputs.fileCount,
+          totalSizeBytes: metricsUpdate.outputs?.totalSizeBytes ?? baseOutputs.totalSizeBytes,
+          byType: metricsUpdate.outputs?.byType ?? baseOutputs.byType,
+          bySize: metricsUpdate.outputs?.bySize ?? baseOutputs.bySize,
+        },
       },
     });
   }

@@ -29,7 +29,8 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderProps) {
   const [, setLocation] = useLocation()
-  const { user, isAuthenticated: authState, isAdmin, logout } = useAuth()
+  const { user, isAuthenticated: authState, logout } = useAuth()
+  const isAdmin = (user?.role as string | undefined) === 'admin'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Use prop if provided, otherwise use auth state

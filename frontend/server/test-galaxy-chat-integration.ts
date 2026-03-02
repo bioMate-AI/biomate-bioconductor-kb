@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * End-to-End Test: Galaxy Chat Integration
  *

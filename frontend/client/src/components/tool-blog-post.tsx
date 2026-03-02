@@ -35,6 +35,7 @@ interface BlogPost {
 }
 
 interface WorkflowLinkData {
+  success?: boolean;
   tool_id: string;
   tool_name: string;
   workflow_url: string;

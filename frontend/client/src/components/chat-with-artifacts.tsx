@@ -106,7 +106,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   // Update progress based on execution run
   useEffect(() => {
     if (currentRun?.progress) {
-      setWorkflowProgress(currentRun.progress.percent || 0)
+      setWorkflowProgress(currentRun.progress.percentComplete || 0)
     }
   }, [currentRun?.progress])
 
@@ -317,7 +317,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         chatSessionId: currentChatSession?.id || undefined,
         executionConfig: {
           mode: 'sandbox',
-          dataScope: { fraction: 1.0, samplingStrategy: 'sequential' },
+          dataScope: { fraction: 1.0, samplingStrategy: 'sequential', sampledIds: [] },
           allowLowConfidence: allowLowConfidenceOverride,
           retryOfRunId: retryContext?.runId,
           retryOfInvocationId: retryContext?.galaxyInvocationId,

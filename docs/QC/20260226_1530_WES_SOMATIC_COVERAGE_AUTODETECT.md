@@ -3,6 +3,9 @@
 **Status:** Implemented, tested, 533/533 passing
 **Context:** Last remaining P0 item from Paper 1 plan (`research_repos/biomate_qc_governance_paper/20260225_1545_PAPER1_OVERVIEW.md`)
 
+## Status Note (2026-03-02)
+This document is a historical session record. Some implementation claims may not match current `HEAD` due to subsequent branch changes or refactors. Treat this file as audit evidence for the recorded session, not as a guaranteed current-state implementation reference.
+
 ---
 
 ## Problem

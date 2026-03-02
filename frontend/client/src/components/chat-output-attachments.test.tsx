@@ -412,8 +412,8 @@ describe('Metadata Display', () => {
     });
 
     it('should handle missing dimensions gracefully', () => {
-      const output = { ...mockImageOutput, metadata: {} };
-      const hasDimensions = output.metadata?.width && output.metadata?.height;
+      const output = { ...mockImageOutput, metadata: {} as Record<string, unknown> };
+      const hasDimensions = (output.metadata as any)?.width && (output.metadata as any)?.height;
 
       expect(hasDimensions).toBeFalsy();
     });

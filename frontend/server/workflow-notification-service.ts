@@ -7,7 +7,7 @@
 
 import { emailService } from './email-service';
 import type { GalaxyStatePoller } from './galaxy-state-poller';
-import type { Storage } from './storage';
+import type { IStorage } from './storage';
 
 // Notification preferences interface
 export interface NotificationPreferences {
@@ -38,10 +38,10 @@ interface InvocationMetadata {
  */
 export class WorkflowNotificationService {
   private poller: GalaxyStatePoller;
-  private storage: Storage;
+  private storage: IStorage;
   private activeInvocations: Map<string, InvocationMetadata> = new Map();
 
-  constructor(poller: GalaxyStatePoller, storage: Storage) {
+  constructor(poller: GalaxyStatePoller, storage: IStorage) {
     this.poller = poller;
     this.storage = storage;
 
@@ -217,7 +217,7 @@ export class WorkflowNotificationService {
  */
 export function createWorkflowNotificationService(
   poller: GalaxyStatePoller,
-  storage: Storage
+  storage: IStorage
 ): WorkflowNotificationService {
   return new WorkflowNotificationService(poller, storage);
 }

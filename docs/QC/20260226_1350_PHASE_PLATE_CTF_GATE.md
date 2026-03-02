@@ -3,6 +3,9 @@
 **Status:** Implemented, tested, passing (513/513 tests)
 **Context:** P2 item from cryo-EM benchmark paper plan — "Phase plate CTF fitting support"
 
+## Status Note (2026-03-02)
+This document is a historical session record. Some implementation claims may not match current `HEAD` due to subsequent branch changes or refactors. Treat this file as audit evidence for the recorded session, not as a guaranteed current-state implementation reference.
+
 ---
 
 ## What Was Built

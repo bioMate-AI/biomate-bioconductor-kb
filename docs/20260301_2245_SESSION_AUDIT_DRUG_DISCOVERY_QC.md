@@ -128,7 +128,8 @@ Added to `TROUBLESHOOTING_STEPS` (7 drug discovery domains):
 
 File: `frontend/client/src/lib/ux-telemetry.ts`
 
-Added `'workflow.background_action_selected'` to `UxEventName` union type (was causing a TypeScript error from `chat-with-artifacts.tsx:476`).
+Identified `UxEventName` union drift with `chat-with-artifacts.tsx` event emissions during the audited session.  
+**Follow-up (2026-03-02): resolved** — `workflow.background_action_selected`, `workflow.prereq_recovery_requested`, `async.retry_clicked`, `async.report_issue_clicked`, `chat.suggestion_clicked`, `workflow.run_switched`, and `workflow.low_confidence_override_clicked` were added to `frontend/client/src/lib/ux-telemetry.ts`.
 
 ---
 
@@ -170,7 +171,7 @@ Remaining error clusters:
 | `researchAgentUsed` not in metadata response type | 2 | Schema needs extending |
 | Execution hook schema drift (`sampledIds`, `milestonePercentages`, `lastLines`) | 4 | Fields added in Python not yet reflected in TS types |
 | `WorkflowStep` missing `description`/`status`/`complexity` | 1 | Interface drift |
-| `UxEventName` missing `workflow.prereq_recovery_requested` | 1 | New event not in union |
+| `UxEventName` missing telemetry events (7 total) | 7 | Session-time + follow-up validation issues; resolved on 2026-03-02 |
 | Sampling strategy `"sequential"` not in union | 1 | New strategy not added to type |
 | Stale test/utility files (`token-counter`, `tool-blog`, etc.) | ~30 | Not production code |
 
@@ -185,7 +186,7 @@ Remaining error clusters:
 
 **Frontend:**
 - `components/qc-gate-modal.tsx` — 15 drug discovery display names + 7 troubleshooting guides added
-- `lib/ux-telemetry.ts` — `workflow.background_action_selected` added to UxEventName
+- `lib/ux-telemetry.ts` — follow-up fix added all 7 missing emitted telemetry events to `UxEventName`
 
 **Docs (new):**
 - `docs/client/biomate_drug_development_overview.md` — client-facing capability document

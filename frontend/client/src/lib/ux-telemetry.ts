@@ -10,17 +10,18 @@ export type UxEventName =
   | 'chat.suggestion_clicked'
   | 'workflow.generated'
   | 'workflow.run_clicked'
+  | 'workflow.run_switched'
+  | 'workflow.background_action_selected'
+  | 'workflow.prereq_recovery_requested'
+  | 'workflow.low_confidence_override_clicked'
   | 'workflow.status_changed'
   | 'workflow.error_shown'
-  | 'workflow.low_confidence_override_clicked'
+  | 'async.retry_clicked'
+  | 'async.report_issue_clicked'
   | 'output.panel_opened'
   | 'output.download_clicked'
   | 'output.visualization_opened'
-  | 'feedback.submitted'
-  | 'async.retry_clicked'
-  | 'async.report_issue_clicked'
-  | 'workflow.run_switched'
-  | 'workflow.background_action_selected';
+  | 'feedback.submitted';
 
 export interface UxEventPayload {
   /** Chat/session correlation */

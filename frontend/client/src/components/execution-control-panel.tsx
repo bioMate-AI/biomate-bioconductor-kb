@@ -212,6 +212,7 @@ export function ExecutionControlPanel({
       dataScope: {
         fraction: mode === 'production' ? 1.0 : fraction,
         samplingStrategy,
+        sampledIds: [],
         strataColumn: samplingStrategy === 'stratified' ? strataColumn : undefined,
       },
       environment: {
@@ -224,6 +225,7 @@ export function ExecutionControlPanel({
         collectDetailedMetrics: true,
         logLevel: 'detailed',
         notifyMilestones: true,
+        milestonePercentages: [25, 50, 75, 100],
       },
       ...(qcProfile && { qcProfile }),
       ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),

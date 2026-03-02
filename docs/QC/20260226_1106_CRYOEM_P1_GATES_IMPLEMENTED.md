@@ -3,6 +3,9 @@
 **Status:** All three P1 gates implemented, tested, and passing (484/484 tests)
 **Context:** From cryo-EM benchmark paper plan (`research_repos/cryo_em_benchmark_paper/20260225_1138_CRYOEM_PAPER_PLAN.md`)
 
+## Status Note (2026-03-02)
+This document is a historical session record. Some implementation claims may not match current `HEAD` due to subsequent branch changes or refactors. Treat this file as audit evidence for the recorded session, not as a guaranteed current-state implementation reference.
+
 ---
 
 ## What Was Built

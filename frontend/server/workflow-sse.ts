@@ -111,8 +111,9 @@ export class WorkflowSSEManager {
 
       // Update local invocation record with completed state
       try {
+        const finalStatus = (data.state === 'scheduled' ? 'ok' : data.state) as 'new' | 'queued' | 'running' | 'ok' | 'error' | 'paused' | 'deleted';
         await storage.updateInvocation(data.invocation_id, {
-          status: data.state === 'scheduled' ? 'ok' : data.state,
+          status: finalStatus,
           updatedAt: new Date(),
         });
         console.log('[SSE] Workflow completed, updated local record:', data.invocation_id);
