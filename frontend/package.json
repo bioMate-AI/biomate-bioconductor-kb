@@ -21,7 +21,11 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "e2e:feedback:matrix": "bash scripts/run-feedback-e2e-matrix.sh",
-    "e2e:report": "playwright show-report e2e/reports"
+    "e2e:report": "playwright show-report e2e/reports",
+    "pm:wire:deps": "bash scripts/check-pm-wire-deps.sh",
+    "pm:wire:quick": "bash scripts/run-pm-test-wire.sh quick",
+    "pm:wire:full": "bash scripts/run-pm-test-wire.sh full",
+    "pm:wire:release": "PM_WIRE_STRICT=1 bash scripts/run-pm-test-wire.sh full"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
