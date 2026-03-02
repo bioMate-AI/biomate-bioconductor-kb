@@ -17,6 +17,7 @@ class ParameterSuggestion:
     suggested_value: Any
     reason: str
     confidence: float  # 0.0 to 1.0
+    source: str = "rule"  # "rule" = empirical heuristic; "literature" = cites a paper/standard
 
 
 class BaseParameterSuggester:
@@ -334,7 +335,8 @@ class RNASeqParameterSuggester(BaseParameterSuggester):
                         current_value=False,
                         suggested_value=True,
                         reason=f'Alignment rate {rate:.1f}% is low. STAR two-pass mode improves novel splice detection.',
-                        confidence=0.75
+                        confidence=0.75,
+                        source="literature"  # Dobin et al. (2013) Bioinformatics; nf-core/rnaseq default
                     ))
                 mismatches = current_parameters.get('max_mismatches', 2)
                 if mismatches < 3:
@@ -369,7 +371,8 @@ class RNASeqParameterSuggester(BaseParameterSuggester):
                     current_value=current_parameters.get('decoy_aware', False),
                     suggested_value=True,
                     reason=f'Mapping rate {mapping:.1f}% is low. Decoy-aware mapping reduces spurious alignments.',
-                    confidence=0.75
+                    confidence=0.75,
+                    source="literature"  # Srivastava et al. (2020) Bioinformatics
                 ))
 
         return suggestions
@@ -527,14 +530,16 @@ class ChIPSeqParameterSuggester(BaseParameterSuggester):
                     current_value=current_parameters.get('shift', 0),
                     suggested_value=-100,
                     reason=f'Low TSS enrichment ({tss:.1f}). ATAC-seq shift of -100 bp centers reads on Tn5 cut sites.',
-                    confidence=0.75
+                    confidence=0.75,
+                    source="literature"  # ENCODE4; Corces et al. (2017) Nat Methods
                 ))
                 suggestions.append(ParameterSuggestion(
                     parameter='extsize',
                     current_value=current_parameters.get('extsize', 200),
                     suggested_value=200,
                     reason=f'Low TSS enrichment ({tss:.1f}). ATAC-seq extsize of 200 bp is standard for open chromatin.',
-                    confidence=0.70
+                    confidence=0.70,
+                    source="literature"  # ENCODE4 ATAC-seq standards
                 ))
 
             nrf = qc_metrics.get('nrf_score')
@@ -547,7 +552,8 @@ class ChIPSeqParameterSuggester(BaseParameterSuggester):
                         current_value=current_cycles,
                         suggested_value=max(8, current_cycles - 4),
                         reason=f'Low library complexity (NRF={nrf:.3f}). Fewer PCR cycles reduce optical duplicates.',
-                        confidence=0.70
+                        confidence=0.70,
+                        source="literature"  # ENCODE4 library complexity standards
                     ))
 
         return suggestions

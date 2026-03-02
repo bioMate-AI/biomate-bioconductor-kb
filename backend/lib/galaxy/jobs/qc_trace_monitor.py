@@ -416,6 +416,99 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
             "[SILVER] ABPP community practice — enrichment ratio > 3× input proteome",
         ],
     },
+
+    # ── Compound structure / cheminformatics profiles ────────────────────────
+    "compound_druglike": {
+        "description": (
+            "Standard drug-like compound library QC applying Lipinski's Rule of Five "
+            "(Ro5): MW ≤ 500 Da, logP ≤ 5, HBD ≤ 5, HBA ≤ 10. "
+            "Tighter MW gate than the default 900 Da. Appropriate for oral small-molecule "
+            "drug discovery campaigns."
+        ),
+        "domain_hint": "cheminformatics",
+        "overrides": {
+            "compound_mw_limit": 500.0,    # Lipinski Ro5 vs default 900 Da
+            "logp_limit": 5.0,
+            "hbd_limit": 5,
+            "hba_limit": 10,
+        },
+        "references": [
+            "[GOLD] Lipinski et al. (2001) Adv Drug Deliv Rev — Rule of Five",
+            "[SILVER] Veber et al. (2002) J Med Chem — oral bioavailability descriptors",
+        ],
+    },
+    "compound_natural_product": {
+        "description": (
+            "Natural product and natural-product-inspired compound QC. "
+            "Relaxed MW gate (≤ 1000 Da) to accommodate macrolides, terpenes, and "
+            "glycosylated scaffolds. No logP limit (natural products span a wide range). "
+            "Ro5 violations are expected and flagged as advisory only."
+        ),
+        "domain_hint": "cheminformatics",
+        "overrides": {
+            "compound_mw_limit": 1000.0,   # accommodate macrolides, terpenes
+            "logp_limit": None,            # no limit — NPs span wide logP range
+        },
+        "references": [
+            "[SILVER] Newman & Cragg (2020) J Nat Prod — natural products in drug discovery",
+            "[BRONZE] Rodrigues et al. (2016) J Med Chem — NP-likeness beyond Ro5",
+        ],
+    },
+    "compound_peptidomimetic": {
+        "description": (
+            "Peptidomimetic and stapled peptide compound QC. "
+            "MW gate relaxed to ≤ 900 Da; higher HBD/HBA counts accepted. "
+            "Undefined stereocenters are flagged with higher priority "
+            "(stereochemistry is critical for peptide backbone activity)."
+        ),
+        "domain_hint": "cheminformatics",
+        "overrides": {
+            "compound_mw_limit": 900.0,    # default — peptidomimetics can be large
+            "hbd_limit": 10,               # relaxed from Ro5 (5) — peptide bonds donate
+            "hba_limit": 15,               # relaxed from Ro5 (10)
+        },
+        "references": [
+            "[SILVER] Giordanetto & Kihlberg (2014) J Med Chem — beyond Ro5 for peptides",
+            "[BRONZE] Doak et al. (2016) J Med Chem — macrocycle oral bioavailability",
+        ],
+    },
+
+    # ── Pharmacogenomics (PGx) profiles ─────────────────────────────────────
+    "pgx_clinical": {
+        "description": (
+            "Clinical pharmacogenomics (PGx) WGS QC — CPIC-compliant. "
+            "Requires ≥ 30× coverage on each PGx gene (CYP2D6, CYP2C19, CYP3A4, "
+            "DPYD, TPMT, NUDT15, SLCO1B1, UGT1A1) to support reliable star allele "
+            "assignment and CPIC-grade dosing recommendations. "
+            "Coverage below 30× produces unreliable diplotype calls even in 30× WGS "
+            "libraries due to GC bias (CYP2D6 is particularly GC-rich)."
+        ),
+        "domain_hint": "pharmacogenomics",
+        "overrides": {
+            "pgx_min_coverage": 30,        # CPIC guideline minimum
+        },
+        "references": [
+            "[GOLD] CPIC guidelines (cpicpgx.org) — 30× minimum for tier 1 genes",
+            "[GOLD] GATK Best Practices — VQSR PASS rate > 95%",
+            "[SILVER] PharmVar — CYP2D6 copy number detection requirements",
+        ],
+    },
+    "pgx_research": {
+        "description": (
+            "Research-grade pharmacogenomics WGS QC. "
+            "Accepts ≥ 15× per-gene coverage with low-confidence calls flagged as "
+            "advisory. Suitable for population studies and discovery cohorts where "
+            "CPIC clinical-grade precision is not required. "
+            "Star allele assignments at 15–29× should be treated as provisional."
+        ),
+        "domain_hint": "pharmacogenomics",
+        "overrides": {
+            "pgx_min_coverage": 15,        # advisory confidence at 15-29×
+        },
+        "references": [
+            "[SILVER] CPIC guidelines — 15× minimum for tier 2 research use",
+        ],
+    },
 }
 
 
@@ -805,6 +898,17 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("SMILES_QC", "COMPOUND_QC", "STRUCTURE_QC",
                                                "ADMET_PRECHECK", "DOCKING_PRECHECK")):
             return self._parse_smiles_metrics(task_work_dir)
+
+        # --- ADMET toxicity safety gates (hERG, DILI, Ames, ClinTox) ---
+        elif any(k in process_upper for k in ("ADMET_TOXICITY", "HERG_SCREEN", "DILI_SCREEN",
+                                               "TOXICITY_SCREEN", "ADMET_PRED",
+                                               "PREDICT_ADMET", "ADMET_SAFETY")):
+            return self._parse_admet_toxicity_metrics(task_work_dir)
+
+        # --- Pharmacogenomics CYP gene coverage ---
+        elif any(k in process_upper for k in ("PGX_COVERAGE", "CYP_COVERAGE",
+                                               "PHARMACOGENOMICS_QC", "PGX_QC")):
+            return self._parse_pgx_coverage_metrics(task_work_dir)
 
         else:
             return None
@@ -2016,6 +2120,203 @@ class NextflowQCGateHandler:
         )
         return metrics
 
+    def _parse_admet_toxicity_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse ADMET toxicity prediction output for safety screening gates.
+
+        Reads (in priority order):
+          1. ``toxicity_report.json``   — structured output from a dedicated toxicity step
+          2. ``predict_admet_properties_results.json`` — DeepPurpose MPNN output
+          3. ``predict_admet_properties_output.txt``  — text research log (fallback)
+          4. ``ADMET_pred_results.json`` — simple ADMET_pred output
+
+        Metrics extracted:
+          herg_ic50_uM            — hERG IC50 (μM); < 1 μM = high cardiotox risk
+          herg_inhibition_prob    — probability of hERG channel inhibition (0–1)
+          dili_risk               — "high" | "medium" | "low" (DILIrank category)
+          dili_probability        — DILI probability score (0–1)
+          ames_positive           — bool; True = mutagenicity predicted
+          ames_probability        — Ames test probability (0–1)
+          clintox_probability     — ClinTox clinical toxicity probability (0–1)
+        """
+        metrics: Dict[str, Any] = {}
+
+        # ── 1. Structured toxicity_report.json ──────────────────────────────
+        for candidate in (list(task_work_dir.glob("toxicity_report.json"))
+                          + list(task_work_dir.glob("**/toxicity_report.json"))):
+            try:
+                import json as _json
+                data = _json.loads(candidate.read_text())
+                tox = data.get("toxicity", data)  # allow flat or nested
+
+                if "herg_ic50_uM" in tox:
+                    metrics["herg_ic50_uM"] = float(tox["herg_ic50_uM"])
+                if "herg_inhibition_prob" in tox:
+                    metrics["herg_inhibition_prob"] = float(tox["herg_inhibition_prob"])
+                if "dili_risk" in tox:
+                    metrics["dili_risk"] = str(tox["dili_risk"]).lower()
+                if "dili_probability" in tox:
+                    metrics["dili_probability"] = float(tox["dili_probability"])
+                if "ames_positive" in tox:
+                    metrics["ames_positive"] = bool(tox["ames_positive"])
+                if "ames_probability" in tox:
+                    metrics["ames_probability"] = float(tox["ames_probability"])
+                if "clintox_probability" in tox:
+                    metrics["clintox_probability"] = float(tox["clintox_probability"])
+                if metrics:
+                    return metrics
+            except (OSError, ValueError, KeyError):
+                continue
+
+        # ── 2. predict_admet_properties_results.json ────────────────────────
+        for candidate in (list(task_work_dir.glob("predict_admet_properties_results.json"))
+                          + list(task_work_dir.glob("**/predict_admet_properties_results.json"))):
+            try:
+                import json as _json
+                data = _json.loads(candidate.read_text())
+                result = data.get("result", "")
+                if isinstance(result, dict):
+                    tox = result.get("toxicity", result)
+                    if "herg_ic50_uM" in tox:
+                        metrics["herg_ic50_uM"] = float(tox["herg_ic50_uM"])
+                    if "clintox_probability" in tox:
+                        metrics["clintox_probability"] = float(tox["clintox_probability"])
+                    if "dili_risk" in tox:
+                        metrics["dili_risk"] = str(tox["dili_risk"]).lower()
+                    if metrics:
+                        return metrics
+            except (OSError, ValueError, KeyError):
+                continue
+
+        # ── 3. Text log: predict_admet_properties_output.txt ────────────────
+        # Format: "- Clinical Toxicity: 0.85 %"
+        for txt_file in (list(task_work_dir.glob("predict_admet_properties_output.txt"))
+                         + list(task_work_dir.glob("**/predict_admet_properties_output.txt"))):
+            try:
+                import re as _re
+                text = txt_file.read_text(errors="replace")
+                clintox_m = _re.search(
+                    r"clinical.?toxicity[:\s]+([0-9]+\.?[0-9]*)\s*%?", text, _re.IGNORECASE
+                )
+                if clintox_m:
+                    val = float(clintox_m.group(1))
+                    # Value may be 0–100 (%) or 0–1 (probability)
+                    metrics["clintox_probability"] = val / 100.0 if val > 1.0 else val
+                herg_m = _re.search(
+                    r"herg.{0,20}ic50[:\s]+([0-9]+\.?[0-9]*)\s*(uM|μM|µM)?", text, _re.IGNORECASE
+                )
+                if herg_m:
+                    metrics["herg_ic50_uM"] = float(herg_m.group(1))
+                if metrics:
+                    return metrics
+            except OSError:
+                continue
+
+        # ── 4. ADMET_pred_results.json fallback ─────────────────────────────
+        for candidate in (list(task_work_dir.glob("ADMET_pred_results.json"))
+                          + list(task_work_dir.glob("**/ADMET_pred_results.json"))):
+            try:
+                import json as _json
+                data = _json.loads(candidate.read_text())
+                result = data.get("result", {})
+                if isinstance(result, dict):
+                    pred = result.get("predictions", {})
+                    if "herg_ic50_uM" in pred:
+                        metrics["herg_ic50_uM"] = float(pred["herg_ic50_uM"])
+                    if "clintox_probability" in pred:
+                        metrics["clintox_probability"] = float(pred["clintox_probability"])
+                    if "dili_risk" in pred:
+                        metrics["dili_risk"] = str(pred["dili_risk"]).lower()
+                    if metrics:
+                        return metrics
+            except (OSError, ValueError, KeyError):
+                continue
+
+        log.debug(f"[QC] No ADMET toxicity metrics found in {task_work_dir}")
+        return None
+
+    def _parse_pgx_coverage_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse per-gene WGS coverage for pharmacogenomics (PGx) QC.
+
+        Reads mosdepth per-gene summary output.  Expects either:
+          - ``pgx_coverage.tsv``      — custom PGx report: gene \\t mean_coverage
+          - ``mosdepth.gene_summary`` — mosdepth gene-level summary
+          - ``*.regions.bed.gz``      — mosdepth regions output (requires pysam)
+
+        Extracts coverage for the CPIC Tier 1 + 2 genes:
+            CYP2D6, CYP2C19, CYP3A4, CYP3A5, CYP2C9, CYP1A2,
+            DPYD, TPMT, NUDT15, SLCO1B1, UGT1A1, VKORC1
+
+        Returns dict of {gene_name: coverage_depth, "min_pgx_coverage": float,
+                         "pgx_genes_below_threshold": list[str]}
+        """
+        metrics: Dict[str, Any] = {}
+        _PGX_GENES = {
+            "CYP2D6", "CYP2C19", "CYP3A4", "CYP3A5", "CYP2C9", "CYP1A2",
+            "DPYD", "TPMT", "NUDT15", "SLCO1B1", "UGT1A1", "VKORC1",
+        }
+
+        gene_coverage: Dict[str, float] = {}
+
+        # ── pgx_coverage.tsv ────────────────────────────────────────────────
+        for tsv in (list(task_work_dir.glob("pgx_coverage.tsv"))
+                    + list(task_work_dir.glob("**/pgx_coverage.tsv"))):
+            try:
+                for line in tsv.read_text(errors="replace").splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split("\t")
+                    if len(parts) >= 2:
+                        gene = parts[0].strip().upper()
+                        if gene in _PGX_GENES:
+                            try:
+                                gene_coverage[gene] = float(parts[1])
+                            except ValueError:
+                                pass
+                if gene_coverage:
+                    break
+            except OSError:
+                continue
+
+        # ── mosdepth gene_summary ────────────────────────────────────────────
+        if not gene_coverage:
+            for summary_file in (list(task_work_dir.glob("*.gene_summary"))
+                                  + list(task_work_dir.glob("**/mosdepth.gene_summary"))):
+                try:
+                    import re as _re
+                    for line in summary_file.read_text(errors="replace").splitlines():
+                        parts = line.split("\t")
+                        if len(parts) >= 4:
+                            gene = parts[0].strip().upper()
+                            if gene in _PGX_GENES:
+                                try:
+                                    gene_coverage[gene] = float(parts[3])  # mean coverage col
+                                except ValueError:
+                                    pass
+                    if gene_coverage:
+                        break
+                except OSError:
+                    continue
+
+        if not gene_coverage:
+            log.debug(f"[QC] No PGx coverage files found in {task_work_dir}")
+            return None
+
+        threshold = self._get_threshold("pgx_min_coverage", 30)
+        below = [g for g, cov in gene_coverage.items() if cov < threshold]
+
+        metrics.update(gene_coverage)
+        metrics["min_pgx_coverage"] = min(gene_coverage.values()) if gene_coverage else 0.0
+        metrics["pgx_genes_below_threshold"] = below
+        metrics["pgx_genes_assessed"] = len(gene_coverage)
+        log.debug(
+            f"[QC] PGx coverage: {len(gene_coverage)} genes assessed, "
+            f"{len(below)} below {threshold}×"
+        )
+        return metrics
+
     def _check_qc_thresholds(
         self,
         process_name: str,
@@ -2776,6 +3077,193 @@ class NextflowQCGateHandler:
                     ),
                 })
 
+        elif any(k in process_upper for k in ("ADMET_TOXICITY", "HERG_SCREEN", "DILI_SCREEN",
+                                               "TOXICITY_SCREEN", "ADMET_PRED",
+                                               "PREDICT_ADMET", "ADMET_SAFETY")):
+            # ── hERG cardiotoxicity ──────────────────────────────────────────
+            # [GOLD] IC50 < 1 μM — high-risk hERG inhibition; QT prolongation + TdP risk.
+            # Source: Sanguinetti & Tristani-Firouzi (2006) Nature 440:463
+            # FDA Guidance for Industry: E14 Clinical Evaluation of QT/QTc Interval (2005)
+            herg_ic50 = qc_metrics.get("herg_ic50_uM")
+            if herg_ic50 is not None:
+                _herg_gold_t = self._get_threshold("herg_ic50_high_risk_uM", 1.0)
+                _herg_silver_t = self._get_threshold("herg_ic50_medium_risk_uM", 10.0)
+                if herg_ic50 < _herg_gold_t:
+                    failures.append({
+                        "metric": "herg_ic50_uM",
+                        "value": round(herg_ic50, 3),
+                        "threshold": _herg_gold_t,
+                        "operator": "<",
+                        "message": (
+                            f"[GOLD] hERG IC50 {herg_ic50:.3f} μM is below the high-risk "
+                            f"threshold of {_herg_gold_t:.1f} μM (Sanguinetti & Tristani-Firouzi "
+                            f"2006; FDA E14 guidance). High-risk hERG inhibition predicts QT "
+                            f"interval prolongation and risk of Torsade de Pointes (TdP). "
+                            f"Structural optimisation to reduce hERG liability is required "
+                            f"before progression."
+                        ),
+                    })
+                elif herg_ic50 < _herg_silver_t:
+                    failures.append({
+                        "metric": "herg_ic50_uM",
+                        "value": round(herg_ic50, 3),
+                        "threshold": _herg_silver_t,
+                        "operator": "<",
+                        "advisory": True,
+                        "message": (
+                            f"[SILVER] hERG IC50 {herg_ic50:.3f} μM is in the medium-risk "
+                            f"range (1–{_herg_silver_t:.0f} μM). Monitor QT interval in "
+                            f"preclinical cardiac safety assays (IonWorks / manual patch clamp). "
+                            f"Document in IND safety package."
+                        ),
+                    })
+
+            # Also accept hERG inhibition probability from ML models
+            herg_prob = qc_metrics.get("herg_inhibition_prob")
+            if herg_prob is not None and herg_ic50 is None:
+                _herg_prob_t = self._get_threshold("herg_inhibition_prob_threshold", 0.9)
+                if herg_prob >= _herg_prob_t:
+                    failures.append({
+                        "metric": "herg_inhibition_prob",
+                        "value": round(herg_prob, 3),
+                        "threshold": _herg_prob_t,
+                        "operator": ">=",
+                        "message": (
+                            f"[GOLD] hERG inhibition probability {herg_prob:.3f} ≥ "
+                            f"{_herg_prob_t:.1f} (high-confidence prediction). "
+                            f"Follow up with experimental IC50 measurement before IND filing."
+                        ),
+                    })
+
+            # ── DILI (drug-induced liver injury) ────────────────────────────
+            # [GOLD] "Most-DILI-Concern" — FDA DILIrank database (Chen et al. 2016,
+            # Drug Metabolism and Disposition 44:1717)
+            dili_risk = qc_metrics.get("dili_risk", "").lower()
+            dili_prob = qc_metrics.get("dili_probability")
+            _dili_prob_t = self._get_threshold("dili_probability_threshold", 0.7)
+            if dili_risk == "high" or (dili_prob is not None and dili_prob >= 0.8):
+                failures.append({
+                    "metric": "dili_risk",
+                    "value": dili_risk or f"{dili_prob:.2f}",
+                    "threshold": "low",
+                    "operator": "!=",
+                    "message": (
+                        f"[GOLD] DILI risk classified as '{dili_risk or 'high-probability'}' "
+                        f"(DILIrank; Chen et al. 2016). Drug-induced liver injury is the "
+                        f"leading cause of post-market drug withdrawal (Onakpoya et al. 2016). "
+                        f"Hepatotoxicity investigation (ALT/AST panel, hepatocyte assay) is "
+                        f"required before clinical progression."
+                    ),
+                })
+            elif dili_risk == "medium" or (
+                dili_prob is not None and _dili_prob_t <= dili_prob < 0.8
+            ):
+                failures.append({
+                    "metric": "dili_risk",
+                    "value": dili_risk or f"{dili_prob:.2f}",
+                    "threshold": "low",
+                    "operator": "!=",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] DILI risk classified as '{dili_risk or 'medium-probability'}'. "
+                        f"Includes 'Less-DILI-Concern' compounds in DILIrank. "
+                        f"Include hepatotoxicity monitoring in preclinical and Phase I design."
+                    ),
+                })
+
+            # ── Ames mutagenicity ────────────────────────────────────────────
+            # [SILVER] Positive Ames prediction — ICH S2(R1) guideline requires Ames test
+            # for all new drug substances before first-in-human dosing.
+            ames_positive = qc_metrics.get("ames_positive")
+            ames_prob = qc_metrics.get("ames_probability")
+            _ames_prob_t = self._get_threshold("ames_probability_threshold", 0.7)
+            if ames_positive or (ames_prob is not None and ames_prob >= _ames_prob_t):
+                failures.append({
+                    "metric": "ames_positive",
+                    "value": ames_prob if ames_prob is not None else int(bool(ames_positive)),
+                    "threshold": _ames_prob_t,
+                    "operator": ">=",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Ames mutagenicity predicted positive "
+                        f"(probability: {ames_prob:.2f}). "
+                        f"ICH S2(R1) requires experimental Ames assay (TA98, TA100, TA1535, "
+                        f"TA1537 ± S9 activation) before IND filing. "
+                        f"Genotoxic compounds require additional in vivo follow-up."
+                    ),
+                })
+
+            # ── Clinical toxicity (ClinTox) ──────────────────────────────────
+            # [SILVER] ClinTox > 0.8 — DeepPurpose ClinTox model trained on FDA clinical
+            # trial failures due to toxicity (Wu et al. 2018, Mol Pharm 15:2362)
+            clintox = qc_metrics.get("clintox_probability")
+            _clintox_t = self._get_threshold("clintox_probability_threshold", 0.8)
+            if clintox is not None and clintox >= _clintox_t:
+                failures.append({
+                    "metric": "clintox_probability",
+                    "value": round(clintox, 3),
+                    "threshold": _clintox_t,
+                    "operator": ">=",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] ClinTox clinical toxicity probability {clintox:.2f} ≥ "
+                        f"{_clintox_t:.1f} (Wu et al. 2018, Mol Pharm). High probability "
+                        f"of clinical trial failure due to toxicity. Review all available "
+                        f"safety data before IND submission."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("PGX_COVERAGE", "CYP_COVERAGE",
+                                               "PHARMACOGENOMICS_QC", "PGX_QC")):
+            # ── PGx CYP gene coverage ────────────────────────────────────────
+            # [GOLD] < 30× on any CPIC Tier 1 gene — CPIC guideline minimum for reliable
+            # star allele assignment. GC bias causes CYP2D6 to fall below 30× even in
+            # 30× WGS libraries. Source: cpicpgx.org
+            genes_below = qc_metrics.get("pgx_genes_below_threshold", [])
+            min_cov = qc_metrics.get("min_pgx_coverage", 0.0)
+            _pgx_t = self._get_threshold("pgx_min_coverage", 30)
+            if genes_below:
+                failures.append({
+                    "metric": "pgx_genes_below_threshold",
+                    "value": min_cov,
+                    "threshold": _pgx_t,
+                    "operator": "<",
+                    "message": (
+                        f"[GOLD] {len(genes_below)} PGx gene(s) below {_pgx_t}× coverage: "
+                        f"{', '.join(sorted(genes_below))}. "
+                        f"Coverage < {_pgx_t}× produces unreliable diplotype calls and "
+                        f"CPIC-grade dosing recommendations cannot be issued "
+                        f"(cpicpgx.org Tier 1 standards). "
+                        f"Check for GC-bias in library prep (CYP2D6 is particularly affected). "
+                        f"Consider local coverage re-sequencing of PGx loci."
+                    ),
+                })
+
+            # Near-threshold warning: 30–36× (within 20% of threshold)
+            _near_pgx_t = _pgx_t * 1.2
+            near_threshold_genes = [
+                g for g, cov in qc_metrics.items()
+                if g in {"CYP2D6", "CYP2C19", "CYP3A4", "CYP3A5", "CYP2C9", "CYP1A2",
+                         "DPYD", "TPMT", "NUDT15", "SLCO1B1", "UGT1A1", "VKORC1"}
+                and isinstance(cov, (int, float))
+                and _pgx_t <= cov < _near_pgx_t
+                and g not in genes_below
+            ]
+            if near_threshold_genes:
+                failures.append({
+                    "metric": "pgx_near_threshold_genes",
+                    "value": min(qc_metrics.get(g, _pgx_t) for g in near_threshold_genes),
+                    "threshold": _near_pgx_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[ADVISORY] {len(near_threshold_genes)} PGx gene(s) marginally above "
+                        f"{_pgx_t}× threshold (within 20%): "
+                        f"{', '.join(sorted(near_threshold_genes))}. "
+                        f"CPIC calls are valid but fragile; flag as provisional in reports."
+                    ),
+                })
+
         # Advisory items (advisory=True) are informational only — they do not block the workflow.
         # qc_passed is determined solely by hard (non-advisory) failures.
         blocking_failures = [f for f in failures if not f.get("advisory", False)]
@@ -2808,7 +3296,8 @@ class NextflowQCGateHandler:
                         "currentValue": s.current_value,
                         "suggestedValue": s.suggested_value,
                         "reason": s.reason,
-                        "confidence": s.confidence
+                        "confidence": s.confidence,
+                        "source": s.source,  # US-6.1: "rule" or "literature"
                     }
                     for s in suggestion_objects
                 ]

@@ -21,6 +21,7 @@ Date: 2024-12-31
 import json
 import sqlite3
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
@@ -288,10 +289,39 @@ class UnifiedWorkflowSearch:
         'fastqc': ['fastqc', 'quality', 'control'],
     }
 
+    def _infer_domain_preferences(self, query: str) -> Tuple[set, set]:
+        """
+        Infer domain preferences from user query for ranking bias.
+
+        Returns:
+            (preferred_domains, penalized_domains)
+        """
+        q = query.lower()
+        preferred = set()
+        penalized = set()
+
+        # WES / somatic variant workflows should not rank microbiome workflows highly.
+        if any(token in q for token in [
+            'wes', 'whole exome', 'exome', 'tumor normal', 'tumor-normal', 'somatic'
+        ]):
+            preferred.update({'genomics', 'variant_calling', 'cancer_biology'})
+            penalized.update({'microbiology', 'metagenomics'})
+
+        # Microbiome / metagenomics intent
+        if any(token in q for token in ['microbiome', 'metagenomics', '16s', 'metagenome']):
+            preferred.update({'microbiology', 'metagenomics'})
+            penalized.update({'variant_calling'})
+
+        # Transcriptomics intent
+        if any(token in q for token in ['rna-seq', 'rnaseq', 'deseq2', 'differential expression', 'transcriptome']):
+            preferred.update({'transcriptomics'})
+
+        return preferred, penalized
+
     def _build_fts_query(self, query: str) -> str:
-        """Build FTS5 query from natural language with abbreviation expansion."""
-        # Clean and tokenize
-        words = query.lower().replace("-", " ").split()
+        """Build FTS5 query from natural language with safe tokenization and abbreviation expansion."""
+        # Robust tokenization: strip punctuation that can break FTS syntax.
+        words = re.findall(r"[a-z0-9]+", query.lower())
 
         # Remove common words
         stopwords = {'i', 'want', 'to', 'the', 'a', 'an', 'for', 'with', 'and', 'or', 'from', 'in', 'on', 'my', 'run'}
@@ -334,7 +364,7 @@ class UnifiedWorkflowSearch:
             tags = []
 
         # Calculate custom score
-        score = self._calculate_score(query, name, description or "", tools, tags, source, fts_score)
+        score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -379,6 +409,7 @@ class UnifiedWorkflowSearch:
                          tools: List[str],
                          tags: List[str],
                          source: str,
+                         workflow_domain: str,
                          fts_score: float) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
@@ -413,6 +444,14 @@ class UnifiedWorkflowSearch:
         # 5. Source priority (~5% weight)
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 50.0  # Normalize to ~2.0 max
         score += source_bonus
+
+        # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
+        preferred_domains, penalized_domains = self._infer_domain_preferences(query)
+        domain_value = (workflow_domain or "general").lower()
+        if domain_value in preferred_domains:
+            score += 4.0
+        if domain_value in penalized_domains:
+            score -= 4.0
 
         return round(score, 2)
 

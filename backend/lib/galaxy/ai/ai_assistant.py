@@ -1382,6 +1382,77 @@ class AIAssistant:
             log.error(f"Tool installation error: {e}", exc_info=True)
             return {'success': False, 'message': f'Installation error: {str(e)}', 'failed_tools': []}
 
+    @staticmethod
+    def _infer_qc_profile(domain: str, tags: list, name: str) -> Optional[str]:
+        """
+        Infer the most specific named QC profile from workflow domain, tags, and name.
+
+        Returns None for most workflows — the backend auto-detects from domain.
+        Only returns a profile name when the workflow is a *specialised sub-type*
+        that needs thresholds different from the generic domain defaults.
+        """
+        d = (domain or "").lower()
+        n = (name or "").lower()
+        t_str = " ".join(str(t).lower() for t in (tags or []))
+        all_text = f"{d} {n} {t_str}"
+
+        # --- Cryo-EM ---
+        if "cryo_em" in d or "cryo-em" in d or "cryoem" in d:
+            if any(k in all_text for k in ("phase_plate", "phase plate", "volta", "vpp")):
+                return "cryoem_spa_phase_plate"
+            if any(k in all_text for k in ("high_resolution", "high resolution", ">2a", ">2å")):
+                return "cryoem_spa_high_resolution"
+            return None  # auto-detect picks cryoem_spa_standard
+
+        # --- Proteomics sub-types ---
+        if "proteomics" in d or "proteomics" in all_text:
+            if any(k in all_text for k in ("phospho", "phosphoproteomics")):
+                return "proteomics_phospho"
+            if any(k in all_text for k in ("plasma", "biomarker", "serum", "biomarker")):
+                return "proteomics_plasma_biomarker"
+            if any(k in all_text for k in ("pulldown", "chemoproteomics", "abpp", "enrichment")):
+                return "proteomics_chemoproteomics"
+            return None  # auto-detect picks proteomics_standard
+
+        # --- Pharmacogenomics ---
+        if any(k in all_text for k in ("pgx", "pharmacogenomics", "pharmacogenomic", "cpic")):
+            if any(k in all_text for k in ("clinical", "patient", "tier 1", "tier1")):
+                return "pgx_clinical"
+            return "pgx_research"
+
+        # --- Drug discovery compound sub-types ---
+        if any(k in d for k in ("drug", "compound", "pharmacol", "admet")):
+            if any(k in all_text for k in ("natural product", "natural_product", "fragment")):
+                return "compound_natural_product"
+            if any(k in all_text for k in ("peptidomimetic", "peptide mimetic")):
+                return "compound_peptidomimetic"
+            if any(k in all_text for k in ("druglike", "drug-like", "ro5", "lipinski", "hts")):
+                return "compound_druglike"
+            return None
+
+        # --- RNA-seq specialisations ---
+        if any(k in d for k in ("rnaseq", "rna_seq", "rna-seq", "transcriptomics")):
+            if "encode4" in all_text or ("encode" in all_text and "atac" not in all_text):
+                return "rnaseq_encode4"
+            if any(k in all_text for k in ("low_input", "low input", "low-input")):
+                return "rnaseq_low_input"
+            if any(k in all_text for k in ("novel organism", "novel_organism", "non-model")):
+                return "rnaseq_novel_organism"
+            return None
+
+        # --- Metagenomics sub-environments ---
+        if "metagenom" in d:
+            if any(k in all_text for k in ("clinical", "hospital", "infection")):
+                return "metagenomics_clinical"
+            if any(k in all_text for k in ("soil", "sediment", "rhizosphere")):
+                return "metagenomics_soil"
+            if any(k in all_text for k in ("marine", "ocean", "aquatic")):
+                return "metagenomics_marine"
+            return None
+
+        # For everything else, let the backend auto-detect from workflow_domain
+        return None
+
     def _is_executable_nextflow_match(self, match: Any) -> bool:
         """
         Return True only for directly runnable Nextflow workflows.
@@ -1473,6 +1544,37 @@ class AIAssistant:
                 return match
         return None
 
+    def _build_intent_trials(self, user_intent: str) -> List[str]:
+        """
+        Build iterative retrieval trials from a user intent.
+
+        Strategy:
+        1) Original user text
+        2) Punctuation-normalized variant
+        3) Domain-enriched query for known high-risk intents
+        """
+        normalized = " ".join(user_intent.replace("-", " ").split())
+        trials: List[str] = [user_intent, normalized]
+        q = user_intent.lower()
+
+        # High-risk domain enrichments to improve scientific fit.
+        if any(t in q for t in ["whole exome", "whole-exome", " wes ", "tumor-normal", "tumor normal", "somatic"]):
+            trials.append("WES BAM tumor normal somatic variant calling quality control")
+        if any(t in q for t in ["rna-seq", "rnaseq", "deseq2", "differential expression"]):
+            trials.append("RNA-seq differential expression DESeq2 quantification QC")
+        if any(t in q for t in ["microbiome", "metagenomics", "16s"]):
+            trials.append("metagenomics microbiome taxonomic profiling kraken2 metaphlan")
+
+        # De-duplicate while preserving order.
+        seen = set()
+        unique_trials: List[str] = []
+        for trial in trials:
+            key = trial.strip().lower()
+            if key and key not in seen:
+                seen.add(key)
+                unique_trials.append(trial.strip())
+        return unique_trials
+
     def generate_workflow_unified(self, user_intent: str, uploaded_datasets: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -1500,21 +1602,46 @@ class AIAssistant:
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
 
         try:
-            # Step 1: Search existing workflows (951+ indexed workflows)
-            log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows...")
-            search_results = self.workflow_search.search(user_intent, limit=5, include_workflow_json=True)
+            # Step 1: Iterative search trials until confidence is high.
+            log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
+            trials = self._build_intent_trials(user_intent)
+            selected_trial = user_intent
+            search_results: List[Any] = []
+            best_match = None
+            score = 0.0
+            match_type = "no_match"
+            executable_nextflow_match = None
+
+            for trial in trials:
+                trial_results = self.workflow_search.search(trial, limit=5, include_workflow_json=True)
+                if not trial_results:
+                    continue
+                trial_best = trial_results[0]
+                if best_match is None or trial_best.score > score:
+                    selected_trial = trial
+                    search_results = trial_results
+                    best_match = trial_best
+                    score = trial_best.score
+                    match_type = trial_best.match_type
+                    executable_nextflow_match = self._pick_best_executable_nextflow_match(trial_results)
+                if trial_best.match_type == "high_confidence":
+                    selected_trial = trial
+                    search_results = trial_results
+                    best_match = trial_best
+                    score = trial_best.score
+                    match_type = trial_best.match_type
+                    executable_nextflow_match = self._pick_best_executable_nextflow_match(trial_results)
+                    break
 
             if not search_results:
-                log.info("[UnifiedWorkflowGeneration] No workflows found, will generate from scratch")
+                log.info("[UnifiedWorkflowGeneration] No workflows found after iterative trials, will generate from scratch")
                 score = 0.0
                 match_type = "no_match"
             else:
-                # WorkflowMatch is a dataclass, access via attributes
-                best_match = search_results[0]
-                executable_nextflow_match = self._pick_best_executable_nextflow_match(search_results)
-                score = best_match.score
-                match_type = best_match.match_type  # high_confidence, medium_confidence, low_confidence
-                log.info(f"[UnifiedWorkflowGeneration] Best match: {best_match.name} (score: {score:.2f}, match: {match_type})")
+                log.info(
+                    f"[UnifiedWorkflowGeneration] Selected trial='{selected_trial}' | "
+                    f"best={best_match.name if best_match else 'N/A'} (score={score:.2f}, match={match_type})"
+                )
 
             workflow_ga = None
             source = None
@@ -1575,6 +1702,9 @@ class AIAssistant:
                         )
 
                     # Return Nextflow workflow format for direct execution
+                    _qc_profile = self._infer_qc_profile(
+                        best_match.domain, best_match.tags, best_match.name
+                    )
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -1587,6 +1717,7 @@ class AIAssistant:
                         'note': f'Found Nextflow workflow with {best_match.step_count} step(s)',
                         'execution_engine': 'nextflow',
                         'format': 'nextflow',
+                        **({'qc_profile': _qc_profile} if _qc_profile else {}),
                         # Scientific rationale from Bioconductor knowledge base
                         'scientific_rationale': scientific_rationale,
                         # Include workflow metadata for UI display
@@ -1606,7 +1737,20 @@ class AIAssistant:
                         'datasets_assigned': False,  # Nextflow handles inputs via parameters
                         'generated_parameters': [],
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
-                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []}
+                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
+                        'needs_user_feedback': False,
+                        'selected_trial': selected_trial,
+                        'trial_count': len(trials),
+                        'candidate_workflows': [
+                            {
+                                'name': m.name,
+                                'domain': m.domain,
+                                'source': m.source,
+                                'score': m.score,
+                                'format': m.format,
+                            }
+                            for m in (search_results or [])[:3]
+                        ],
                     }
 
                 # Parse workflow JSON if available (Galaxy format)
@@ -1703,6 +1847,18 @@ class AIAssistant:
                 log.info(f"[UnifiedWorkflowGeneration] Tool installation successful: {tool_install_result['message']}")
 
             # Return success response
+            needs_user_feedback = match_type != "high_confidence"
+            candidate_workflows = [
+                {
+                    'name': m.name,
+                    'domain': m.domain,
+                    'source': m.source,
+                    'score': m.score,
+                    'format': m.format,
+                }
+                for m in (search_results or [])[:3]
+            ]
+
             return {
                 'success': True,
                 'workflow_ga': workflow_ga,
@@ -1714,7 +1870,16 @@ class AIAssistant:
                 'generated_parameters': generated_parameters,  # Include LLM-generated parameters with confidence scores
                 'tool_installation': tool_install_result,  # Include tool installation results
                 'execution_engine': 'galaxy' if source == 'template_reuse' else 'nextflow',  # Explicit execution engine
-                'workflow_tags': workflow_ga.get('tags', [])  # Workflow tags for frontend detection
+                'workflow_tags': workflow_ga.get('tags', []),  # Workflow tags for frontend detection
+                'needs_user_feedback': needs_user_feedback,
+                'feedback_prompt': (
+                    "I found a best-available workflow, but confidence is not high enough. "
+                    "Please confirm the domain/tool fit or provide corrections before execution."
+                    if needs_user_feedback else None
+                ),
+                'selected_trial': selected_trial,
+                'trial_count': len(trials),
+                'candidate_workflows': candidate_workflows,
             }
 
         except Exception as e:
