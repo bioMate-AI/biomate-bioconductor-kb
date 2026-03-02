@@ -151,6 +151,53 @@ npm run e2e -- --headed
 npm run e2e -- comprehensive-workflow-tests.spec.ts -g "RNA-seq"
 ```
 
+### Run UX Feedback Regression Matrix
+
+```bash
+cd /home/yzhang/biomate/frontend
+
+# Run both feedback suites with CI-style summary output
+BIOMATE_URL=http://localhost:5000 npm run e2e:feedback:matrix
+
+# Run release-gate mode (critical suites only, no SKIP allowed in critical logs)
+FEEDBACK_MATRIX_MODE=release STRICT_NO_SKIP_CRITICAL=true BIOMATE_URL=http://localhost:5000 npm run e2e:feedback:matrix
+```
+
+Includes:
+- `feedback-regression.e2e.ts` (core feedback flow)
+- `feedback-branches-deterministic.e2e.ts` (deterministic confusion/download branches)
+- `feedback-real-ui-strict.e2e.ts` (strict real-UI-only feedback gate; no direct fallback POST)
+- `real-user-visual-evaluation.e2e.ts` (real UI-based visual evaluation with screenshots/report)
+- `pm-user-stories-comprehensive.e2e.ts` (PM user stories and acceptance criteria validation)
+
+Release mode includes only:
+- `feedback-real-ui-strict.e2e.ts`
+- `pm-user-stories-comprehensive.e2e.ts`
+
+### Evidence-First Artifact Package (Detailed Logs + Data)
+
+Each matrix run now writes a stable artifact package under:
+
+- `frontend/e2e/matrix-runs/feedback-matrix-run-<timestamp>.txt` (run metadata)
+- `frontend/e2e/matrix-runs/feedback-matrix-run-<timestamp>/matrix-console.log` (full execution log)
+- `frontend/e2e/matrix-runs/feedback-matrix-run-<timestamp>/<suite>.console.log` (suite logs)
+- `frontend/e2e/matrix-runs/feedback-matrix-run-<timestamp>/<suite>.results.json` (Playwright JSON report)
+- `frontend/e2e/matrix-runs/feedback-matrix-run-<timestamp>/<suite>.artifacts/attachments-manifest.json` (copied evidence index)
+- copied attachments per suite (`trace.zip`, `video.webm`, `test-finished-1.png`, custom evidence JSON)
+
+Key-point checks now explicitly covered and inspectable:
+- **Chats**: prompt and chat-step logs in console + visual report JSON.
+- **Workflow**: workflow card/title and state (`RUNNING/COMPLETED/...`) in visual report.
+- **Execution process**: ordered timeline + per-suite durations in metadata and logs.
+- **Parameters**: parameter panel visibility evidence in visual report.
+- **Output/result surfaces**: output section/action visibility in visual report and PM suite.
+- **Reports**: per-suite Playwright JSON reports and trace/video artifacts.
+
+CI workflow:
+- GitHub Actions workflow: `UX Feedback Regression CI`
+- File: `.github/workflows/feedback-e2e-matrix.yml`
+- Trigger: path-filtered `pull_request` and `push` (main/master), plus `workflow_dispatch`
+
 ---
 
 ### Generate HTML Report
@@ -253,6 +300,23 @@ open playwright-report/index.html
 ---
 
 ## Debugging Failed Tests
+
+### Quick Troubleshooting (Matrix)
+
+Common failures and exact rerun/debug commands:
+
+- **`Workflow card not visible` / generation timeout**
+  - `BIOMATE_URL=http://localhost:5310 npx playwright test e2e/real-user-visual-evaluation.e2e.ts --project chromium --headed`
+- **`post-run survey not visible`**
+  - `BIOMATE_URL=http://localhost:5310 npx playwright test e2e/feedback-regression.e2e.ts --project chromium --headed`
+- **`deterministic branch assertion failed`**
+  - `BIOMATE_URL=http://localhost:5310 npx playwright test e2e/feedback-branches-deterministic.e2e.ts --project chromium --headed`
+- **`PM user story acceptance check failed`**
+  - `BIOMATE_URL=http://localhost:5310 npx playwright test e2e/pm-user-stories-comprehensive.e2e.ts --project chromium --headed`
+- **`Need trace for root cause`**
+  - `npx playwright show-trace e2e/test-results/<failed-test-folder>/trace.zip`
+- **`Rerun full matrix`**
+  - `BIOMATE_URL=http://localhost:5310 npm run e2e:feedback:matrix`
 
 ### Test Fails at Workflow Generation
 
