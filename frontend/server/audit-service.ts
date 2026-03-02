@@ -226,6 +226,7 @@ export function auditMiddleware(
     const originalEnd = res.end;
     res.end = function (this: Response, ...args: any[]) {
       const durationMs = Date.now() - startTime;
+      const safeParams = req.params ?? {};
 
       // Log async to not block response
       auditService.log({
@@ -233,7 +234,7 @@ export function auditMiddleware(
         sessionId: req.sessionID,
         action: `api.${req.method.toLowerCase()}.${req.path.replace(/\//g, '.')}`,
         resourceType: 'api',
-        resourceId: req.params.id ?? req.params.invocationId ?? req.path,
+        resourceId: safeParams.id ?? safeParams.invocationId ?? req.path,
         details: options.logBody ? { body: req.body } : undefined,
         ipAddress: req.ip || req.socket.remoteAddress,
         userAgent: req.headers['user-agent'],

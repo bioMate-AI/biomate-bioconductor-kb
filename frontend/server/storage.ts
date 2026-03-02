@@ -46,7 +46,13 @@ export interface IStorage {
   createExecutionRun(request: CreateExecutionRunRequest, userId?: string, projectId?: string): Promise<ExecutionRun>;
   getExecutionRun(id: string): Promise<ExecutionRun | undefined>;
   getExecutionRunByGalaxyId(galaxyInvocationId: string): Promise<ExecutionRun | undefined>;
-  getExecutionRuns(userId?: string, projectId?: string, mode?: 'sandbox' | 'production', limit?: number): Promise<ExecutionRun[]>;
+  getExecutionRuns(
+    userId?: string,
+    projectId?: string,
+    mode?: 'sandbox' | 'production',
+    limit?: number,
+    chatSessionId?: string
+  ): Promise<ExecutionRun[]>;
   getExecutionRunsByParent(parentRunId: string): Promise<ExecutionRun[]>;
   updateExecutionRun(id: string, updates: Partial<ExecutionRun>): Promise<ExecutionRun | undefined>;
   updateExecutionRunStatus(id: string, status: ExecutionRunStatus, errorMessage?: string): Promise<ExecutionRun | undefined>;
@@ -308,7 +314,7 @@ export class MemStorage implements IStorage {
       runSequence,
       userId,
       projectId,
-      chatSessionId: undefined,
+      chatSessionId: request.chatSessionId,
 
       mode: config.mode || 'sandbox',
       workflowName,
@@ -386,7 +392,8 @@ export class MemStorage implements IStorage {
     userId?: string,
     projectId?: string,
     mode?: 'sandbox' | 'production',
-    limit: number = 100
+    limit: number = 100,
+    chatSessionId?: string
   ): Promise<ExecutionRun[]> {
     let runs = Array.from(this.executionRuns.values());
 
@@ -403,6 +410,11 @@ export class MemStorage implements IStorage {
     // Filter by mode if provided
     if (mode) {
       runs = runs.filter(run => run.mode === mode);
+    }
+
+    // Filter by chat session if provided
+    if (chatSessionId) {
+      runs = runs.filter(run => run.chatSessionId === chatSessionId);
     }
 
     // Sort by created date (newest first)

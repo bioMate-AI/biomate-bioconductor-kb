@@ -25,6 +25,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
+import { createHash } from "crypto";
 import { authService } from "./auth-service";
 import { authenticateToken, optionalAuth } from "./auth-middleware";
 import type { RegisterData, LoginData } from "./auth-service";
@@ -108,6 +109,196 @@ function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' {
 
   // Default to Nextflow (as per integration plan)
   return 'nextflow';
+}
+
+type AutofixLifecycleState =
+  | "idle"
+  | "analyzing"
+  | "fixing"
+  | "restarting"
+  | "succeeded"
+  | "failed";
+
+function normalizeAutofixState(raw: any): AutofixLifecycleState {
+  const value = String(raw ?? "").toLowerCase();
+  if (!value) return "idle";
+  if (["analyzing", "analysis", "planning"].includes(value)) return "analyzing";
+  if (["fixing", "running", "in_progress", "applying", "queued"].includes(value)) return "fixing";
+  if (["restarting", "restart_pending", "restart_in_progress"].includes(value)) return "restarting";
+  if (["succeeded", "success", "completed", "fixed"].includes(value)) return "succeeded";
+  if (["failed", "error", "aborted", "timeout"].includes(value)) return "failed";
+  return "idle";
+}
+
+function deriveAutofixLifecycle(session: any): {
+  state: AutofixLifecycleState;
+  source: "auto" | "manual" | "unknown";
+  lastActionAt?: string;
+  message?: string;
+  sessionId?: string;
+  totalAttempts?: number;
+  terminationReason?: string;
+} {
+  if (!session) {
+    return { state: "idle", source: "unknown" };
+  }
+
+  const rawSource = String(
+    session?.source ?? session?.trigger_source ?? session?.mode ?? ""
+  ).toLowerCase();
+  const source =
+    rawSource.includes("auto")
+      ? "auto"
+      : rawSource.includes("manual")
+      ? "manual"
+      : "unknown";
+
+  const terminationReason = session?.termination_reason || session?.result || session?.reason;
+  const stateFromSession = normalizeAutofixState(
+    session?.status || session?.state || session?.phase
+  );
+  const stateFromTermination = normalizeAutofixState(terminationReason);
+  const state = stateFromSession !== "idle" ? stateFromSession : stateFromTermination;
+
+  return {
+    state,
+    source,
+    lastActionAt:
+      session?.updated_at ||
+      session?.updatedAt ||
+      session?.finished_at ||
+      session?.created_at,
+    message:
+      session?.message ||
+      session?.summary ||
+      session?.explanation ||
+      (terminationReason ? String(terminationReason) : undefined),
+    sessionId: session?.session_id || session?.id,
+    totalAttempts:
+      typeof session?.total_attempts === "number"
+        ? session.total_attempts
+        : typeof session?.attempts === "number"
+        ? session.attempts
+        : undefined,
+    terminationReason: terminationReason ? String(terminationReason) : undefined,
+  };
+}
+
+async function getAutofixLifecycleForRun(run: any): Promise<{
+  state: AutofixLifecycleState;
+  source: "auto" | "manual" | "unknown";
+  active: boolean;
+  lastActionAt?: string;
+  message?: string;
+  sessionId?: string;
+  totalAttempts?: number;
+  terminationReason?: string;
+}> {
+  const cached = run?.execution?.nextflowStatus?.autofix;
+  if (cached) {
+    const state = normalizeAutofixState(cached.state);
+    return {
+      state,
+      source:
+        cached.source === "auto" || cached.source === "manual"
+          ? cached.source
+          : "unknown",
+      active: cached.active === true || ["analyzing", "fixing", "restarting"].includes(state),
+      lastActionAt: cached.lastActionAt,
+      message: cached.message,
+      sessionId: cached.sessionId,
+      totalAttempts: cached.totalAttempts,
+      terminationReason: cached.terminationReason,
+    };
+  }
+
+  if (!run?.execution?.galaxyWorkflowId || !run?.execution?.galaxyInvocationId) {
+    return { state: "idle", source: "unknown", active: false };
+  }
+
+  try {
+    const sessionsResult = await galaxyAPIBackend.listAutofix3Sessions(
+      run.execution.galaxyWorkflowId,
+      run.execution.galaxyInvocationId,
+      1
+    );
+    const latestSession = Array.isArray(sessionsResult?.sessions)
+      ? sessionsResult.sessions[0]
+      : undefined;
+    const lifecycle = deriveAutofixLifecycle(latestSession);
+    return {
+      ...lifecycle,
+      active: ["analyzing", "fixing", "restarting"].includes(lifecycle.state),
+    };
+  } catch (error: any) {
+    console.warn("[AutoFix] Failed to resolve lifecycle for run:", error?.message || error);
+    return { state: "idle", source: "unknown", active: false };
+  }
+}
+
+function normalizeWorkflowName(raw: any): string {
+  return String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeForFingerprint(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeForFingerprint(item));
+  }
+  if (value && typeof value === "object") {
+    return Object.keys(value)
+      .sort()
+      .reduce((acc: Record<string, any>, key) => {
+        acc[key] = normalizeForFingerprint(value[key]);
+        return acc;
+      }, {});
+  }
+  return value;
+}
+
+function buildWorkflowFingerprint(workflowDef: any): string {
+  if (!workflowDef || typeof workflowDef !== "object") {
+    return "";
+  }
+
+  const steps = workflowDef.steps && typeof workflowDef.steps === "object" ? workflowDef.steps : {};
+  const normalizedSteps = Object.entries(steps)
+    .sort(([a], [b]) => String(a).localeCompare(String(b)))
+    .map(([stepId, rawStep]: [string, any]) => {
+      let normalizedToolState: any = rawStep?.tool_state;
+      if (typeof normalizedToolState === "string") {
+        try {
+          normalizedToolState = JSON.parse(normalizedToolState);
+        } catch {
+          // Keep raw string if not valid JSON.
+        }
+      }
+      return {
+        stepId,
+        type: rawStep?.type,
+        tool_id: rawStep?.tool_id || rawStep?.tool,
+        name: rawStep?.name || rawStep?.label,
+        annotation: rawStep?.annotation,
+        inputs: rawStep?.inputs,
+        input_connections: rawStep?.input_connections,
+        tool_state: normalizedToolState,
+      };
+    });
+
+  const normalizedWorkflowShape = normalizeForFingerprint({
+    executionEngineHint: getWorkflowExecutionEngine(workflowDef),
+    workflow_type: workflowDef.workflow_type || workflowDef.format,
+    format: workflowDef.format,
+    nextflow_path: workflowDef.nextflow_path,
+    parameters: workflowDef.parameters || {},
+    steps: normalizedSteps,
+  });
+
+  return createHash("sha256")
+    .update(JSON.stringify(normalizedWorkflowShape))
+    .digest("hex");
 }
 
 // Initialize workflow notification service for email notifications
@@ -303,6 +494,7 @@ const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
 }) : null;
+const UX_FEEDBACK_ENABLED = process.env.ENABLE_UX_FEEDBACK !== "false";
 
 // Initialize Prerequisites Validator (LLM-powered pre-execution validation)
 const prerequisitesValidator = process.env.ANTHROPIC_API_KEY ? new WorkflowPrerequisitesValidator({
@@ -380,6 +572,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     excludePaths: ['/api/health', '/api/workflow/sse'],
     logBody: false, // Don't log request bodies by default (privacy)
   }));
+
+  // UX Telemetry - fire-and-forget event ingestion (non-blocking)
+  app.post("/api/telemetry/events", express.json(), async (req, res) => {
+    if (!UX_FEEDBACK_ENABLED) {
+      res.status(204).send();
+      return;
+    }
+    // Keep telemetry non-blocking for UI interactions.
+    res.status(204).send();
+  });
+
+  // UX Feedback ingestion endpoint for inline/post-run flows.
+  app.post("/api/feedback", express.json(), optionalAuth, async (req, res) => {
+    if (!UX_FEEDBACK_ENABLED) {
+      res.status(404).json({ success: false, error: "Feedback feature disabled" });
+      return;
+    }
+    const payload = req.body || {};
+    if (!payload.feedback_type) {
+      res.status(400).json({ success: false, error: "feedback_type is required" });
+      return;
+    }
+    res.status(200).json({
+      success: true,
+      id: `fb_${Date.now()}`,
+    });
+  });
 
   // Health check
   app.get("/api/health", async (req, res) => {
@@ -2112,10 +2331,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Domain-fit guardrail: block execution when generated tools are clearly off-domain.
+      const requestTextLower = (message || '').toLowerCase();
+      const requestedWesLike =
+        requestTextLower.includes('whole-exome') ||
+        requestTextLower.includes('whole exome') ||
+        /\bwes\b/.test(requestTextLower) ||
+        requestTextLower.includes('tumor-normal') ||
+        requestTextLower.includes('tumor normal');
+      const toolText = (assistantResponse.recommendedTools || [])
+        .map((t: any) => `${t?.tool?.name || ''} ${t?.tool?.tool_id || ''} ${t?.tool?.category || ''}`.toLowerCase())
+        .join(' ');
+      const hasWesPreferredSignals =
+        /picard|samtools|qualimap|mosdepth|bcftools|gatk|bamqc/.test(toolText);
+      const hasMicrobiomeSignals =
+        /qiime|microbiome|metagenom|16s/.test(toolText);
+      const selfReportedMismatch =
+        /not (the )?ideal match|aren't (the )?ideal match|not ideal for/.test(
+          (assistantResponse.message || '').toLowerCase()
+        );
+
+      const domainGuard =
+        (requestedWesLike && hasMicrobiomeSignals && !hasWesPreferredSignals) || selfReportedMismatch
+          ? {
+              blocked: true,
+              reason:
+                "Generated workflow appears domain-mismatched for your request. Please regenerate with domain-specific constraints before execution.",
+              detectedDomain: requestedWesLike ? "wes_qc" : "general",
+            }
+          : {
+              blocked: false,
+              reason: null,
+              detectedDomain: requestedWesLike ? "wes_qc" : "unspecified",
+            };
+
+      const prereqRecoveryRequested =
+        requestTextLower.includes("prepare runnable demo inputs") ||
+        requestTextLower.includes("sample/test inputs") ||
+        requestTextLower.includes("sample data") ||
+        requestTextLower.includes("test data");
+      const missingInputCount =
+        Array.isArray(prerequisitesValidation?.analysis?.missingInputs)
+          ? prerequisitesValidation.analysis.missingInputs.length
+          : 0;
+      const prereqRecoveryApproved =
+        prereqRecoveryRequested &&
+        !!assistantResponse.generatedWorkflow &&
+        missingInputCount > 0;
+      const prereqRecovery = {
+        requested: prereqRecoveryRequested,
+        approved: prereqRecoveryApproved,
+        reason: prereqRecoveryApproved
+          ? "Recovery mode approved: allow runnable demo/sample path while inputs are unresolved."
+          : null,
+      };
+
       // Format response for frontend
       addTiming('Sending response');
+      const suggestions = generateSuggestions(
+        String(assistantResponse.message || ""),
+        String(message || "")
+      );
       res.json({
         response: assistantResponse.message,
+        suggestions,
         workflow: assistantResponse.generatedWorkflow,
 
         // Pre-execution validation (if workflow was generated)
@@ -2135,6 +2414,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: useMemory,
+          domainGuard,
+          prereqRecovery,
         },
 
         // Multi-intent results
@@ -2192,6 +2473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         response: fallbackResponse,
+        suggestions: generateSuggestions(fallbackResponse, String(req.body?.message || "")),
         workflow: null,
         metadata: {
           error: error.message,
@@ -3627,12 +3909,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download all outputs for an invocation as ZIP
   app.get("/api/invocations/:id/download-all", async (req, res) => {
     try {
-      const invocation = await storage.getInvocation(req.params.id);
+      // Accept either a WorkflowInvocation ID or an ExecutionRun ID.
+      let invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        const executionRun = await storage.getExecutionRun(req.params.id);
+        if (executionRun?.execution?.galaxyInvocationId) {
+          const resolved = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
+          if (resolved) {
+            invocation = resolved;
+          }
+        }
+      }
       if (!invocation) {
         return res.status(404).json({ error: "Invocation not found" });
       }
 
-      const outputs = await storage.getInvocationOutputs(req.params.id);
+      const outputs = await storage.getInvocationOutputs(invocation.id);
       if (!outputs || outputs.length === 0) {
         return res.status(404).json({ error: "No outputs found for this invocation" });
       }
@@ -3641,7 +3933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const archive = archiver('zip', { zlib: { level: 9 } });
 
       // Set response headers
-      const zipFilename = `${invocation.workflowName || 'workflow'}_outputs_${req.params.id.slice(0, 8)}.zip`;
+      const zipFilename = `${invocation.workflowName || 'workflow'}_outputs_${invocation.id.slice(0, 8)}.zip`;
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
 
@@ -3973,10 +4265,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const request = req.body;
+      const generationAssessment = request.generationAssessment || request.workflowDefinition?.__generationAssessment;
+      const retryContext = request.retryContext || request.workflowDefinition?.__retryContext;
+      const retryOfRunId =
+        retryContext?.runId ||
+        request.executionConfig?.retryOfRunId;
+      const retryOfInvocationId =
+        retryContext?.galaxyInvocationId ||
+        request.executionConfig?.retryOfInvocationId;
 
       // Validation
       if (!request.workflowDefinition) {
         return res.status(400).json({ error: "workflowDefinition is required" });
+      }
+
+      // Server-side de-dup guard:
+      // if this request is an explicit manual retry, block it while AutoFix is active
+      // for the referenced failed run/invocation.
+      if (retryOfRunId || retryOfInvocationId) {
+        let retrySourceRun =
+          retryOfRunId ? await storage.getExecutionRun(retryOfRunId) : undefined;
+        if (!retrySourceRun && retryOfInvocationId) {
+          retrySourceRun = await storage.getExecutionRunByGalaxyId(retryOfInvocationId);
+        }
+
+        if (retrySourceRun) {
+          const autofixLifecycle = await getAutofixLifecycleForRun(retrySourceRun);
+          if (autofixLifecycle.active) {
+            return res.status(409).json({
+              error: "autofix_active_retry_blocked",
+              message: "Manual retry blocked while AutoFix is active for the referenced run.",
+              guidance: "Wait for AutoFix to complete before triggering a manual rerun.",
+              retryContext: {
+                runId: retryOfRunId,
+                galaxyInvocationId: retryOfInvocationId,
+              },
+              autofix: autofixLifecycle,
+            });
+          }
+        }
+      }
+
+      // Stage-C fallback guard:
+      // If caller did not provide explicit retry metadata, infer likely duplicate-manual-retry
+      // from a recent failed run for the same workflow identity that still has active AutoFix.
+      if (!retryOfRunId && !retryOfInvocationId && (req.user?.id || request.projectId)) {
+        const incomingWorkflowFingerprint = buildWorkflowFingerprint(request.workflowDefinition);
+        const incomingWorkflowName = normalizeWorkflowName(
+          request.workflowDefinition?.name || request.workflowDefinition?.annotation
+        );
+        const recentRuns = await storage.getExecutionRuns(
+          req.user?.id,
+          request.projectId,
+          undefined,
+          30
+        );
+        const now = Date.now();
+        const implicitRetrySource = recentRuns.find((run) => {
+          const runWorkflowName = normalizeWorkflowName(run.workflowName);
+          const runWorkflowFingerprint = buildWorkflowFingerprint(run.workflowDefinition);
+          const fingerprintMatches =
+            !!incomingWorkflowFingerprint &&
+            !!runWorkflowFingerprint &&
+            incomingWorkflowFingerprint === runWorkflowFingerprint;
+          const updatedAtMs = new Date(run.updatedAt || run.createdAt || Date.now()).getTime();
+          const isRecent = now - updatedAtMs <= 2 * 60 * 60 * 1000; // 2h safety window
+          return (
+            run.execution?.executionEngine === "nextflow" &&
+            run.execution?.status === "failed" &&
+            (
+              fingerprintMatches ||
+              (incomingWorkflowName && runWorkflowName === incomingWorkflowName)
+            ) &&
+            isRecent
+          );
+        });
+
+        if (implicitRetrySource) {
+          const implicitFingerprintMatched =
+            !!incomingWorkflowFingerprint &&
+            incomingWorkflowFingerprint === buildWorkflowFingerprint(implicitRetrySource.workflowDefinition);
+          const autofixLifecycle = await getAutofixLifecycleForRun(implicitRetrySource);
+          if (autofixLifecycle.active) {
+            return res.status(409).json({
+              error: "autofix_active_retry_blocked",
+              message: "Execution blocked: AutoFix is still active for a recent failed run of this workflow.",
+              guidance: "Wait for AutoFix to finish, or retry with explicit context after it reaches terminal state.",
+              retryContext: {
+                runId: implicitRetrySource.id,
+                galaxyInvocationId: implicitRetrySource.execution?.galaxyInvocationId,
+                inferred: true,
+                inferredBy: implicitFingerprintMatched ? "fingerprint" : "name",
+              },
+              autofix: autofixLifecycle,
+            });
+          }
+        }
       }
 
       // Check if workflow has input steps that require data
@@ -3995,15 +4379,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Scientific + technical confidence gate.
+      // Technical confidence: required inputs are present and generation didn't report tool-install blockers.
+      // Scientific confidence: generation stage must not require user feedback/domain correction.
+      const technicalReady = inputSteps.length === 0 || inputs.length > 0;
+      const toolInstallationReady = generationAssessment?.toolInstallationSuccess !== false;
+      const scientificBlocked =
+        generationAssessment?.needsUserFeedback === true ||
+        generationAssessment?.domainGuardBlocked === true;
+      const scientificReason =
+        generationAssessment?.domainGuardReason ||
+        generationAssessment?.feedbackPrompt ||
+        "Workflow confidence is not high enough for safe execution.";
+
+      if ((!technicalReady || !toolInstallationReady || scientificBlocked) && request.executionConfig?.allowLowConfidence !== true) {
+        return res.status(409).json({
+          error: "confidence_gate_blocked",
+          message: "Execution blocked pending scientific/technical confirmation.",
+          guidance: scientificReason,
+          technicalReady,
+          toolInstallationReady,
+          scientificBlocked,
+          nextActions: [
+            "review_workflow_and_domain",
+            "regenerate_with_constraints",
+            "confirm_override_with_allowLowConfidence",
+          ],
+        });
+      }
+      if (request.executionConfig?.allowLowConfidence === true) {
+        console.warn("[ConfidenceGate] Low-confidence override accepted", {
+          userId: req.user?.id ?? null,
+          workflowName: request.workflowDefinition?.name,
+          scientificBlocked,
+          technicalReady,
+          toolInstallationReady,
+        });
+      }
+
       // Determine execution engine using standardized helper
       const executionEngine = getWorkflowExecutionEngine(request.workflowDefinition);
       const workflowTags = request.workflowDefinition?.tags || [];
+      const {
+        __generationAssessment: _dropGenerationAssessment,
+        __retryContext: _dropRetryContext,
+        ...workflowDefinitionSanitized
+      } =
+        request.workflowDefinition || {};
       const workflowDefinitionForExecution = executionEngine === 'nextflow'
         ? {
-            ...request.workflowDefinition,
+            ...workflowDefinitionSanitized,
             tags: Array.from(new Set([...(workflowTags || []), 'nextflow'])),
           }
-        : request.workflowDefinition;
+        : workflowDefinitionSanitized;
 
       // Create execution run record
       executionRun = await storage.createExecutionRun(
@@ -4268,12 +4696,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all execution runs for the current user
   app.get("/api/workflows/runs", optionalAuth, async (req, res) => {
     try {
-      const { mode, projectId, limit } = req.query;
+      const { mode, projectId, chatSessionId, limit } = req.query;
       const runs = await storage.getExecutionRuns(
         req.user?.id,
         projectId as string,
         mode as 'sandbox' | 'production' | undefined,
-        limit ? parseInt(limit as string) : 100
+        limit ? parseInt(limit as string) : 100,
+        chatSessionId as string | undefined
       );
       res.json(runs);
     } catch (error: any) {
@@ -4309,6 +4738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         getWorkflowExecutionEngine(run.workflowDefinition) === 'nextflow' ||
         run.execution?.executionEngine === 'nextflow';
       let nextflowStatus: any | undefined = undefined;
+      let autofix: any | undefined = undefined;
       if (isNextflowRun && (run.execution?.nextflowRunId || run.execution?.galaxyInvocationId)) {
         try {
           const nextflowRunId = run.execution?.nextflowRunId || run.execution?.galaxyInvocationId;
@@ -4345,6 +4775,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      if (isNextflowRun && run.execution?.galaxyWorkflowId && run.execution?.galaxyInvocationId) {
+        try {
+          const sessionsResult = await galaxyAPIBackend.listAutofix3Sessions(
+            run.execution.galaxyWorkflowId,
+            run.execution.galaxyInvocationId,
+            1
+          );
+          const latestSession = Array.isArray(sessionsResult?.sessions)
+            ? sessionsResult.sessions[0]
+            : undefined;
+          const lifecycle = deriveAutofixLifecycle(latestSession);
+          autofix = {
+            ...lifecycle,
+            active: ["analyzing", "fixing", "restarting"].includes(lifecycle.state),
+          };
+
+          if (nextflowStatus && typeof nextflowStatus === "object") {
+            nextflowStatus = {
+              ...nextflowStatus,
+              autofix,
+            };
+          } else {
+            nextflowStatus = { autofix };
+          }
+        } catch (autofixError: any) {
+          console.warn("[ExecutionRun] Failed to fetch AutoFix lifecycle:", autofixError?.message || autofixError);
+          autofix = {
+            state: "idle",
+            source: "unknown",
+            active: false,
+          };
+          if (nextflowStatus && typeof nextflowStatus === "object") {
+            nextflowStatus = {
+              ...nextflowStatus,
+              autofix,
+            };
+          } else {
+            nextflowStatus = { autofix };
+          }
+        }
+      }
+
+      // Real-usefulness contract: terminal "completed" should have concrete outputs
+      // that users can either visualize or download. This is reported (not hard-blocked)
+      // so UI and E2E can distinguish "technically completed" vs "usefully completed".
+      let usefulness: {
+        hasOutputs: boolean;
+        visualizableCount: number;
+        downloadableCount: number;
+        totalOutputs: number;
+        meetsContract: boolean;
+      } | undefined = undefined;
+      if (String(run.execution?.status || "").toLowerCase() === "completed") {
+        const invocation = run.execution?.galaxyInvocationId
+          ? await storage.getInvocationByGalaxyId(run.execution.galaxyInvocationId)
+          : undefined;
+        let outputs = invocation ? await storage.getInvocationOutputs(invocation.id) : [];
+
+        // If completed but no outputs are persisted yet, make a best-effort fetch
+        // from Galaxy to avoid false "usefulness=false" due to timing lag.
+        if (invocation && outputs.length === 0 && invocation.galaxyHistoryId) {
+          try {
+            const historyContents = await galaxyAPIProxy.getHistoryContents(invocation.galaxyHistoryId);
+            const isNextflowInvocation = getWorkflowExecutionEngine(invocation.workflowDefinition) === 'nextflow';
+            let invocationOutputs = historyContents.filter((item: any) => {
+              const itemCreateTime = new Date(item.create_time);
+              return (
+                !item.deleted &&
+                item.state === 'ok' &&
+                item.history_content_type === 'dataset' &&
+                itemCreateTime >= invocation.createdAt
+              );
+            });
+            if (isNextflowInvocation && invocationOutputs.length === 0) {
+              invocationOutputs = historyContents.filter((item: any) => (
+                !item.deleted &&
+                item.state === 'ok' &&
+                item.history_content_type === 'dataset'
+              ));
+            }
+
+            for (const galaxyOutput of invocationOutputs) {
+              await storage.addOutput({
+                invocationId: invocation.id,
+                galaxyDatasetId: galaxyOutput.id,
+                name: galaxyOutput.name,
+                extension: galaxyOutput.extension || galaxyOutput.file_ext || 'txt',
+                size: galaxyOutput.file_size || 0,
+                fileType: classifyFileType(galaxyOutput.extension || galaxyOutput.file_ext || 'txt'),
+                isVisualizable: isVisualizable(galaxyOutput.extension || galaxyOutput.file_ext || 'txt'),
+                previewAvailable: ['txt', 'csv', 'tsv', 'json', 'xml', 'yaml', 'yml'].includes(
+                  String(galaxyOutput.extension || galaxyOutput.file_ext || 'txt').toLowerCase()
+                ),
+              });
+            }
+
+            outputs = await storage.getInvocationOutputs(invocation.id);
+          } catch (fetchError: any) {
+            console.warn("[ExecutionRun] Failed best-effort output fetch for usefulness:", fetchError?.message || fetchError);
+          }
+        }
+        let visualizableCount = outputs.filter((o: any) => {
+          if (o?.isVisualizable || o?.previewAvailable) {
+            return true;
+          }
+          const ext = String(o?.extension || "").toLowerCase();
+          return ["html", "htm", "png", "jpg", "jpeg", "svg", "pdf", "csv", "tsv", "txt"].includes(ext);
+        }).length;
+        let downloadableCount = outputs.filter((o: any) => !!o?.galaxyDatasetId).length;
+        let hasOutputs = outputs.length > 0;
+
+        // Fallback for Nextflow runs where outputs are available in Nextflow status
+        // before they are materialized into invocation output datasets.
+        if (!hasOutputs && nextflowStatus && typeof nextflowStatus === "object") {
+          const artifacts: string[] = [];
+          const pushArtifact = (value: any) => {
+            if (!value) return;
+            if (typeof value === "string") {
+              artifacts.push(value);
+              return;
+            }
+            if (Array.isArray(value)) {
+              value.forEach(pushArtifact);
+              return;
+            }
+            if (typeof value === "object") {
+              Object.values(value).forEach(pushArtifact);
+            }
+          };
+          pushArtifact(nextflowStatus.outputs);
+          pushArtifact(nextflowStatus.results);
+          pushArtifact(nextflowStatus.output_files);
+          pushArtifact(nextflowStatus.outdir);
+          if (Array.isArray(nextflowStatus.log_tail)) {
+            for (const line of nextflowStatus.log_tail) {
+              if (typeof line !== "string") {
+                continue;
+              }
+              const pathMatches = line.match(/\/[^\s,\]]+/g) || [];
+              pathMatches.forEach((p) => artifacts.push(p));
+            }
+          }
+
+          const validArtifacts = artifacts.filter((a) => typeof a === "string" && a.trim().length > 0);
+          if (validArtifacts.length > 0) {
+            hasOutputs = true;
+            downloadableCount = validArtifacts.length;
+            visualizableCount = validArtifacts.filter((artifactPath) => {
+              const ext = String(artifactPath).toLowerCase().split(".").pop() || "";
+              return ["html", "htm", "png", "jpg", "jpeg", "svg", "pdf", "csv", "tsv", "txt"].includes(ext);
+            }).length;
+          }
+        }
+        const meetsContract = hasOutputs && visualizableCount > 0 && downloadableCount > 0;
+        usefulness = {
+          hasOutputs,
+          visualizableCount,
+          downloadableCount,
+          totalOutputs: outputs.length,
+          meetsContract,
+        };
+      }
+
       res.json({
         runId: run.id,
         status: run.execution.status,
@@ -4352,7 +4945,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metrics: run.metrics,
         steps: req.query.includeSteps === 'true' ? run.steps : undefined,
         errorMessage: run.execution.errorMessage,
+        autofix,
         nextflowStatus,
+        usefulness,
       });
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching run status:", error);

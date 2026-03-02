@@ -719,7 +719,14 @@ export const executionConfigSchema = z.object({
   environment: executionEnvironmentSchema.optional(),
   tracking: trackingConfigSchema.optional(),
   parentRunId: z.string().optional(), // Links to previous iteration
+  retryOfRunId: z.string().optional(), // Explicit manual retry context
+  retryOfInvocationId: z.string().optional(), // Explicit manual retry context
   executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
+  // Explicit operator override for low-confidence generation states.
+  allowLowConfidence: z.boolean().optional(),
+  // Named QC profile (e.g. "proteomics_standard", "pgx_clinical"). Empty = auto-detect.
+  qcProfile: z.string().optional(),
+  nextflow_profile: z.string().optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
@@ -989,6 +996,8 @@ export const createExecutionRunRequestSchema = z.object({
   workflowDefinition: z.any(), // .ga format
 
   executionConfig: executionConfigSchema,
+  chatSessionId: z.string().optional(),
+  projectId: z.string().optional(),
 
   inputs: z.array(z.object({
     stepId: z.number().optional(),
@@ -1030,6 +1039,18 @@ export const executionRunStatusResponseSchema = z.object({
   metrics: executionMetricsSchema.optional(),
   steps: z.array(stepExecutionSchema).optional(),
   errorMessage: z.string().optional(),
+  autofix: z
+    .object({
+      state: z.enum(["idle", "analyzing", "fixing", "restarting", "succeeded", "failed"]),
+      source: z.enum(["auto", "manual", "unknown"]).optional(),
+      active: z.boolean().optional(),
+      lastActionAt: z.string().optional(),
+      message: z.string().optional(),
+      sessionId: z.string().optional(),
+      totalAttempts: z.number().optional(),
+      terminationReason: z.string().optional(),
+    })
+    .optional(),
   nextflowStatus: z.any().optional(),
 });
 
@@ -1127,3 +1148,109 @@ export type ExecutionRunDB = typeof executionRuns.$inferSelect;
 
 export const insertExecutionRunSchema = createInsertSchema(executionRuns);
 export type InsertExecutionRun = z.infer<typeof insertExecutionRunSchema>;
+
+// ============================================================================
+// UX Feedback Schema
+// ============================================================================
+
+export const feedbackTypeEnum = ['inline_thumbs', 'post_run_survey', 'report_confusion', 'download_outcome', 'session_pulse'] as const;
+export type FeedbackType = (typeof feedbackTypeEnum)[number];
+
+export const feedbackRatingEnum = ['positive', 'negative'] as const;
+export type FeedbackRating = (typeof feedbackRatingEnum)[number];
+
+export const feedbackReasonTags = [
+  'unclear_output',
+  'wrong_tool',
+  'slow',
+  'confusing_ui',
+  'missing_feature',
+  'error_not_helpful',
+  'workflow_failed',
+  'other',
+] as const;
+export type FeedbackReasonTag = (typeof feedbackReasonTags)[number];
+
+export const uxFeedback = pgTable("ux_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Who (nullable for anonymous)
+  userId: text("user_id"),
+  sessionId: text("session_id"),
+
+  // Feedback type and sentiment
+  feedbackType: text("feedback_type").notNull(),
+  rating: text("rating").notNull(), // positive | negative
+
+  // Structured context
+  reasonTags: text("reason_tags"), // JSON array of reason tag strings
+  comment: text("comment"),
+
+  // Correlation IDs
+  runId: text("run_id"),
+  workflowId: text("workflow_id"),
+  messageId: text("message_id"),
+
+  // Context metadata (for report_confusion, post_run_survey)
+  executionStatus: text("execution_status"),
+  errorMessage: text("error_message"),
+  uiRoute: text("ui_route"),
+
+  // Survey scores (1-5, for post_run_survey)
+  statusClarityScore: integer("status_clarity_score"),
+  outputUsefulnessScore: integer("output_usefulness_score"),
+  outputActionabilityScore: integer("output_actionability_score"),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type UxFeedback = typeof uxFeedback.$inferSelect;
+export type InsertUxFeedback = typeof uxFeedback.$inferInsert;
+
+// API payload validation schema
+export const feedbackPayloadSchema = z.object({
+  feedbackType: z.enum(feedbackTypeEnum),
+  rating: z.enum(feedbackRatingEnum),
+  reasonTags: z.array(z.string()).max(5).optional(),
+  comment: z.string().max(2000).optional(),
+  sessionId: z.string().optional(),
+  runId: z.string().optional(),
+  workflowId: z.string().optional(),
+  messageId: z.string().optional(),
+  executionStatus: z.string().optional(),
+  errorMessage: z.string().max(500).optional(),
+  uiRoute: z.string().max(200).optional(),
+  statusClarityScore: z.number().min(1).max(5).optional(),
+  outputUsefulnessScore: z.number().min(1).max(5).optional(),
+  outputActionabilityScore: z.number().min(1).max(5).optional(),
+});
+
+export type FeedbackPayload = z.infer<typeof feedbackPayloadSchema>;
+
+// ============================================================================
+// Telemetry Events Schema
+// ============================================================================
+
+export const telemetryEvents = pgTable("telemetry_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Event identity
+  event: text("event").notNull(),
+  timestamp: timestamp("timestamp").notNull(),
+
+  // Payload (JSON) - sessionId, runId, workflowId, etc.
+  payload: text("payload"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TelemetryEvent = typeof telemetryEvents.$inferSelect;
+export type InsertTelemetryEvent = typeof telemetryEvents.$inferInsert;
+
+// API payload validation schema for telemetry envelope
+export const telemetryEventEnvelopeSchema = z.object({
+  event: z.string().min(1).max(200),
+  timestamp: z.string().min(1),
+  payload: z.record(z.unknown()).optional(),
+});

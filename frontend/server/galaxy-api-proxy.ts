@@ -568,6 +568,40 @@ export class GalaxyAPIProxy {
    */
   async generateWorkflow(request: WorkflowGenerationRequest): Promise<WorkflowGenerationResponse> {
     try {
+      const isRunnableWorkflowResponse = (payload: any): boolean => {
+        if (!payload || payload.success !== true) {
+          return false;
+        }
+        if (payload.nextflow_path && typeof payload.nextflow_path === 'string') {
+          return true;
+        }
+        const workflowGa = payload.workflow_ga;
+        const steps = workflowGa?.steps;
+        return !!(
+          workflowGa &&
+          steps &&
+          typeof steps === 'object' &&
+          Object.keys(steps).length > 0
+        );
+      };
+
+      const lowerIntent = String(request.user_intent || '').toLowerCase();
+      const isPrereqRecoveryIntent =
+        lowerIntent.includes('blocked by missing prerequisites') ||
+        lowerIntent.includes('prepare runnable demo inputs') ||
+        lowerIntent.includes('sample/test inputs') ||
+        lowerIntent.includes('sample data') ||
+        lowerIntent.includes('test data') ||
+        lowerIntent.includes('do not have input files');
+
+      const searchTrials = isPrereqRecoveryIntent
+        ? [
+            request.user_intent,
+            'RNA-seq FASTQ quality control runnable nextflow workflow',
+            'RNA-seq QC demo sample data workflow with downloadable report',
+          ]
+        : [request.user_intent];
+
       // Transform request to backend format
       const backendRequest = {
         request_text: request.user_intent,  // Backend expects 'request_text' not 'user_intent'
@@ -586,11 +620,53 @@ export class GalaxyAPIProxy {
       // Falls back to full generate_workflow if not available
       let response: any;
       try {
-        response = await this.client.post<WorkflowGenerationResponse>(
-          '/api/ai_assistant/search_nextflow_workflow',
-          { user_intent: request.user_intent }
-        );
-        console.log('[GalaxyAPIProxy] Nextflow search result:', response.data.workflow_name, response.data.format);
+        let matched = false;
+        let lastSearchResponse: any = null;
+        for (const trialIntent of searchTrials) {
+          const trialResponse = await this.client.post<WorkflowGenerationResponse>(
+            '/api/ai_assistant/search_nextflow_workflow',
+            { user_intent: trialIntent }
+          );
+          lastSearchResponse = trialResponse;
+          console.log('[GalaxyAPIProxy] Nextflow search result:', trialResponse.data.workflow_name, trialResponse.data.format);
+          if (isRunnableWorkflowResponse(trialResponse.data)) {
+            response = trialResponse;
+            matched = true;
+            break;
+          }
+        }
+
+        if (!matched) {
+          const generateTrials = isPrereqRecoveryIntent
+            ? [
+                request.user_intent,
+                'Generate a runnable RNA-seq FASTQ QC workflow with valid steps and demo/sample inputs',
+              ]
+            : [request.user_intent];
+
+          let generatedMatched = false;
+          let lastGenerateResponse: any = null;
+          for (const trialIntent of generateTrials) {
+            const trialBackendRequest = {
+              ...backendRequest,
+              request_text: trialIntent,
+            };
+            const generatedResponse = await this.client.post<WorkflowGenerationResponse>(
+              '/api/ai_assistant/generate_workflow',
+              trialBackendRequest
+            );
+            lastGenerateResponse = generatedResponse;
+            if (isRunnableWorkflowResponse(generatedResponse.data)) {
+              response = generatedResponse;
+              generatedMatched = true;
+              break;
+            }
+          }
+
+          if (!generatedMatched) {
+            response = lastGenerateResponse || lastSearchResponse;
+          }
+        }
       } catch (searchErr: any) {
         console.warn('[GalaxyAPIProxy] Nextflow search failed, falling back to generate_workflow:', searchErr.message);
         response = await this.client.post<WorkflowGenerationResponse>(
