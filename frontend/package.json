@@ -20,6 +20,7 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
+    "e2e:feedback:matrix": "bash scripts/run-feedback-e2e-matrix.sh",
     "e2e:report": "playwright show-report e2e/reports"
   },
   "dependencies": {

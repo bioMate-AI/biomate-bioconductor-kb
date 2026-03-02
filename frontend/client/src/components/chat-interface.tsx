@@ -12,12 +12,14 @@ import { Card } from "@/components/ui/card"
 import { useMutation } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/queryClient"
 import { chatHistoryService } from "@/lib/chat-history"
+import { emitUxEvent } from "@/lib/ux-telemetry"
+import { getChatAsyncGuidance } from "@/lib/async-guidance"
+import { useNetworkStatus } from "@/lib/network-status"
 import type { ChatSession, ExecutionRun } from "@shared/schema"
 import {
   ChevronRight,
   ChevronDown,
-  Play,
-  Pause,
+  Loader2,
   CheckCircle,
   Clock,
   AlertTriangle,
@@ -51,12 +53,15 @@ interface ChatInterfaceProps {
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
   onRunWorkflow?: (workflow: any, steps: any[]) => void
+  onRequestPrereqRecovery?: () => void
   onStopWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   workflowError?: string | null
   currentExecutionRun?: ExecutionRun | null
+  externalPromptRequest?: { id: number; prompt: string } | null
+  onExternalPromptConsumed?: (id: number) => void
 }
 
 export function ChatInterface({
@@ -70,12 +75,15 @@ export function ChatInterface({
   showProgress,
   onToggleProgress,
   onRunWorkflow,
+  onRequestPrereqRecovery,
   onStopWorkflow,
   onParameterChange,
   isWorkflowRunning = false,
   workflowProgress = 0,
   workflowError,
-  currentExecutionRun
+  currentExecutionRun,
+  externalPromptRequest = null,
+  onExternalPromptConsumed
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -86,6 +94,7 @@ export function ChatInterface({
   const [isCompressing, setIsCompressing] = useState(false)
   const [currentTokenCount, setCurrentTokenCount] = useState(0)
   const [compressionDismissed, setCompressionDismissed] = useState(false)
+  const { isOnline } = useNetworkStatus()
   
   // Use messages from chat session or empty array if no session
   const displayMessages = chatSession?.messages || []
@@ -179,6 +188,19 @@ export function ChatInterface({
         workflowData = null;
       }
 
+      // Deterministic recovery fallback: if the recovery turn does not return a
+      // new workflow, carry forward the latest generated workflow so users can
+      // continue with the recovery-approved runnable path.
+      if (!workflowData && data.metadata?.prereqRecovery?.requested) {
+        const previousWorkflow = [...displayMessages]
+          .reverse()
+          .find((m) => m.role === "assistant" && m.metadata?.workflow)?.metadata?.workflow
+        if (previousWorkflow) {
+          workflowData = previousWorkflow
+          workflowSuccess = true
+        }
+      }
+
       // Use the natural language response from /api/chat
       // This includes tool recommendations, dataset suggestions, etc.
       let workflowInfo: string = data.response || '';
@@ -188,6 +210,12 @@ export function ChatInterface({
         // Response already contains helpful context from Claude
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
+        }
+        if (data.metadata?.prereqRecovery?.requested) {
+          workflowInfo += '\n\n🔁 Recovery mode is active for this workflow. You can run with demo/sample input assumptions and refine with your real datasets afterward.';
+        }
+        if (data.workflow?.needs_user_feedback) {
+          workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
         }
       } else if (data.workflow && !workflowSuccess) {
         workflowInfo = (data.response || '') + `\n\n⚠️ **Note:** Real workflow generation failed. No demo workflow is shown.`;
@@ -213,7 +241,9 @@ export function ChatInterface({
         // Include invocationId from API response to trigger output viewers
         invocationId: data.invocationId,
         // Use suggestions from /api/chat or fallbacks
-        suggestions: data.suggestions || (workflowSuccess
+        suggestions: data.suggestions || (data.workflow?.needs_user_feedback
+          ? ["This domain looks correct", "Use different domain/tools", "Regenerate with stricter constraints", "Show alternative workflows"]
+          : workflowSuccess
           ? ["Open in Workflow Builder", "Show details", "Generate another"]
           : ["Try again with different request", "Check server status", "Build workflow"]),
         metadata: {
@@ -222,6 +252,11 @@ export function ChatInterface({
           steps: stepsArray,
           confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
           source: data.workflow?.source || 'chat',
+          needsUserFeedback: !!data.workflow?.needs_user_feedback,
+          feedbackPrompt: data.workflow?.feedback_prompt,
+          candidateWorkflows: data.workflow?.candidate_workflows || [],
+          selectedTrial: data.workflow?.selected_trial,
+          trialCount: data.workflow?.trial_count,
           isDemo: false,
           generationFailed: data.workflow && !workflowSuccess,
           failureReason: data.workflow?.error || data.workflow?.message,
@@ -234,6 +269,8 @@ export function ChatInterface({
           workflowSuggestion: data.metadata?.workflowSuggestion,
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
+          domainGuard: data.metadata?.domainGuard,
+          prereqRecovery: data.metadata?.prereqRecovery,
           episodeId: data.episodeId,
           // Validation info from workflow if available
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
@@ -312,6 +349,10 @@ export function ChatInterface({
 
       // Trigger workflow builder display
       if (workflowSuccess && workflowData) {
+        emitUxEvent('workflow.generated', {
+          sessionId: chatSession?.id,
+          invocationId: data.invocationId,
+        })
         onWorkflowGenerated(workflowData)
       }
     },
@@ -323,29 +364,32 @@ export function ChatInterface({
         stack: error.stack
       })
 
-      // Show CLEAR error message to user - no hiding the problem
       const errorMessage = error.message || 'Unknown error occurred';
-      const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('Failed to fetch');
-
-      let userFriendlyError: string;
-      if (isNetworkError) {
-        userFriendlyError = `⚠️ **Connection Error**\n\nCould not reach the workflow generation service. This might be because:\n\n• The server is temporarily unavailable\n• Your network connection is interrupted\n• The service is being updated\n\n**What you can do:**\n1. Check your internet connection\n2. Try again in a few moments\n3. Contact support if the issue persists`;
-      } else {
-        userFriendlyError = `❌ **Workflow Generation Failed**\n\n${errorMessage}\n\n**What you can do:**\n1. Try rephrasing your request\n2. Be more specific about your data type and analysis goal\n3. Try again in a few moments`;
-      }
+      const guidance = getChatAsyncGuidance(errorMessage, { isOnline });
+      const isNetworkError = guidance.isNetworkRelated;
+      const userFriendlyError = `⚠️ **${guidance.title}**\n\n` +
+        `**Reason:** ${guidance.reason}\n\n` +
+        `**Try again:** ${guidance.retry}\n\n` +
+        `**Report issue:** ${guidance.escalation}`;
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: userFriendlyError,
         role: "assistant",
         timestamp: new Date(),
-        suggestions: ["Try again", "Refine my request", "Check server status", "Get help"],
+        suggestions: ["Try again", "Refine my request", "Check server status", "Report issue"],
         metadata: {
           type: 'error',
           errorType: isNetworkError ? 'network' : 'api',
           errorMessage: errorMessage,
         }
       }
+
+      emitUxEvent('workflow.error_shown', {
+        sessionId: chatSession?.id,
+        errorType: isNetworkError ? 'network' : 'api',
+        errorMessage: errorMessage,
+      })
 
       // Add error message to chat session
       if (chatSession) {
@@ -754,6 +798,40 @@ export function ChatInterface({
     // Future: Navigate to tool details or add to workflow
   }
 
+  const handleSuggestionClick = (suggestion: string, message: Message) => {
+    const normalized = suggestion.toLowerCase().trim()
+    console.log("[ChatInterface] Suggestion clicked:", suggestion)
+
+    if (normalized.includes("try again")) {
+      const lastUserMessage = [...displayMessages].reverse().find((m) => m.role === "user" && m.content?.trim())
+      if (lastUserMessage?.content) {
+        emitUxEvent("async.retry_clicked", {
+          sessionId: chatSession?.id,
+          source: "chat_error_surface",
+          suggestion,
+        })
+        handleSendMessage(lastUserMessage.content)
+      }
+      return
+    }
+
+    if (normalized.includes("report issue")) {
+      emitUxEvent("async.report_issue_clicked", {
+        sessionId: chatSession?.id,
+        source: "chat_error_surface",
+        suggestion,
+        errorType: message.metadata?.errorType,
+      })
+      return
+    }
+
+    emitUxEvent("chat.suggestion_clicked", {
+      sessionId: chatSession?.id,
+      suggestion,
+      messageRole: message.role,
+    })
+  }
+
   const handleDatasetClick = (dataset: any) => {
     console.log('Dataset clicked:', dataset)
     // Future: Preview dataset or add to workflow inputs
@@ -848,6 +926,18 @@ export function ChatInterface({
     }, 10 * 60 * 1000)
   }
 
+  useEffect(() => {
+    if (!externalPromptRequest) return
+    if (displayTyping) return
+    const prompt = externalPromptRequest.prompt?.trim()
+    if (!prompt) {
+      onExternalPromptConsumed?.(externalPromptRequest.id)
+      return
+    }
+    handleSendMessage(prompt)
+    onExternalPromptConsumed?.(externalPromptRequest.id)
+  }, [externalPromptRequest, displayTyping])
+
   return (
     <div className={`flex flex-col h-full ${className}`}>
       {/* Compression status badge */}
@@ -866,6 +956,7 @@ export function ChatInterface({
             <ChatMessage
               key={message.id}
               message={message}
+              sessionId={chatSession?.id}
               onToolClick={handleToolClick}
               onDatasetClick={handleDatasetClick}
               onCreateWorkflow={() => {
@@ -875,8 +966,10 @@ export function ChatInterface({
               }}
               // Workflow execution props for inline artifacts
               onRunWorkflow={onRunWorkflow}
+              onRequestPrereqRecovery={onRequestPrereqRecovery}
               onStopWorkflow={onStopWorkflow}
               onParameterChange={onParameterChange}
+              onSuggestionClick={handleSuggestionClick}
               isWorkflowRunning={isWorkflowRunning}
               workflowProgress={workflowProgress}
               currentExecutionRun={currentExecutionRun}
@@ -979,6 +1072,19 @@ export function ChatInterface({
         onSend={handleSendMessage}
         disabled={displayTyping}
       />
+      {displayTyping && (
+        <div
+          className="border-t bg-muted/40 px-4 py-2 text-sm"
+          role="status"
+          aria-live="polite"
+          data-testid="chat-response-pending"
+        >
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Generating response... this can take 10-60 seconds for complex workflows.</span>
+          </div>
+        </div>
+      )}
 
       {/* Compression dialog */}
       <CompressionDialog

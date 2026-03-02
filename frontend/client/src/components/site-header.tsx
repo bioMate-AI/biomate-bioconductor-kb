@@ -13,6 +13,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, X, User } from "lucide-react"
 import { ThemeToggle } from "./theme-toggle"
+import { UX_FEEDBACK_ADMIN_ENABLED } from "@/lib/feature-flags"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +29,7 @@ interface SiteHeaderProps {
 
 export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderProps) {
   const [, setLocation] = useLocation()
-  const { user, isAuthenticated: authState, logout } = useAuth()
+  const { user, isAuthenticated: authState, isAdmin, logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Use prop if provided, otherwise use auth state
@@ -41,7 +42,6 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
 
   const navigation = {
     main: [
-      { name: "Home", href: "/home" },
       { name: "About", href: "/about" },
       { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
@@ -129,6 +129,11 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
                   <DropdownMenuItem onClick={() => handleNavigation('/projects')}>
                     Projects
                   </DropdownMenuItem>
+                  {isAdmin && UX_FEEDBACK_ADMIN_ENABLED && (
+                    <DropdownMenuItem onClick={() => handleNavigation('/admin/feedback-dashboard')}>
+                      UX Feedback
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     Logout
@@ -178,6 +183,15 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
                           {item.name}
                         </Button>
                       ))}
+                      {isAdmin && UX_FEEDBACK_ADMIN_ENABLED && (
+                        <Button
+                          variant="ghost"
+                          className="justify-start"
+                          onClick={() => handleNavigation('/admin/feedback-dashboard')}
+                        >
+                          UX Feedback
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         onClick={handleLogout}

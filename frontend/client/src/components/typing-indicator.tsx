@@ -4,7 +4,7 @@ import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba
 
 export function TypingIndicator() {
   return (
-    <div className="flex gap-4 p-4" data-testid="typing-indicator">
+    <div className="flex gap-4 p-4" data-testid="chat-response-pending">
       <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarImage src={assistantAvatar} alt="Assistant" />
         <AvatarFallback>AI</AvatarFallback>

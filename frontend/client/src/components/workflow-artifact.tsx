@@ -27,7 +27,8 @@ import {
   Scissors,
   Download,
   Sparkles,
-  History
+  History,
+  Lock,
 } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { ParameterDialog } from "./parameter-dialog"
@@ -64,6 +65,10 @@ interface WorkflowArtifactProps {
     name?: string
     annotation?: string
     steps?: any
+    __executionOverrides?: Record<string, any>
+    __retryContext?: Record<string, any>
+    __generationAssessment?: Record<string, any>
+    [key: string]: any
   }
   steps: WorkflowStep[]
   confidence?: number
@@ -946,6 +951,25 @@ export function WorkflowArtifact({
           <CollapsibleContent>
             <CardContent className="p-4 pt-0">
               <Separator className="my-3" />
+              {/* US-1.2 — Phase 0 / Phase 1 visual grouping */}
+              {pilotRunSuggested && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={cn(
+                    "text-xs font-semibold px-2 py-0.5 rounded-full",
+                    isRunning
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                      : isCompleted
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  )}>
+                    Phase 0 · Pilot
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {isRunning ? "Running on sample subset…" : isCompleted ? "Complete" : "Ready to run"}
+                  </span>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {normalizedSteps.map((step, idx) => (
                   <div
@@ -1062,6 +1086,19 @@ export function WorkflowArtifact({
                 ))}
               </div>
 
+              {/* US-1.2 — Phase 1 locked indicator */}
+              {pilotRunSuggested && !isCompleted && (
+                <div className="mt-3 rounded-lg border border-dashed border-muted-foreground/30 p-3 flex items-center gap-3">
+                  <Lock className="h-4 w-4 text-muted-foreground/50 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Phase 1 · Full Dataset</p>
+                    <p className="text-xs text-muted-foreground/70">
+                      Full dataset run starts after pilot QC passes
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Completion Actions Panel - P1, P2, P3 */}
               {isCompleted && !isRunning && (
                 <>
@@ -1121,7 +1158,11 @@ export function WorkflowArtifact({
                         variant="outline"
                         size="sm"
                         className="h-auto py-2 flex-col gap-1"
-                        disabled={outputs.length === 0}
+                        onClick={() => {
+                          if (!invocationId || outputs.length === 0) return
+                          window.open(`/api/invocations/${invocationId}/download-all`, "_blank")
+                        }}
+                        disabled={!invocationId || outputs.length === 0}
                       >
                         <Download className="h-4 w-4" />
                         <span className="text-xs">Download</span>

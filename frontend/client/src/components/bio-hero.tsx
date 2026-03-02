@@ -16,9 +16,14 @@ export function BioHero({ className }: BioHeroProps) {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Set canvas size
-    canvas.width = canvas.offsetWidth
-    canvas.height = canvas.offsetHeight
+    const handleResize = () => {
+      if (!canvas) return
+      canvas.width = canvas.offsetWidth
+      canvas.height = canvas.offsetHeight
+    }
+
+    window.addEventListener('resize', handleResize)
+    handleResize()
 
     // DNA helix particles
     const particles: Array<{
@@ -86,6 +91,7 @@ export function BioHero({ className }: BioHeroProps) {
     animate()
 
     return () => {
+      window.removeEventListener('resize', handleResize)
       if (animationFrame) {
         cancelAnimationFrame(animationFrame)
       }

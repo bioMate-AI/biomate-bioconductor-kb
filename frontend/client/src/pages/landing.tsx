@@ -3,49 +3,12 @@ import { useLocation } from "wouter"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, ArrowRight, Beaker, Bot, Workflow, Zap, Shield, Users, Database, Settings, MessageSquare, Package, GitBranch, Sparkles } from "lucide-react"
+import { Check, ArrowRight, Beaker, Workflow, Zap, Shield, Settings, MessageSquare, Package, GitBranch, Sparkles } from "lucide-react"
+
+import { BioHero } from "@/components/bio-hero"
 
 export default function LandingPage() {
   const [, setLocation] = useLocation()
-
-  const features = [
-    {
-      icon: MessageSquare,
-      title: "Chat-Based. Zero Code.",
-      description: "Design and run complex analyses through natural conversation—no programming required",
-      details: "Your AI mate understands research terminology and translates it into optimized workflows"
-    },
-    {
-      icon: Shield,
-      title: "100% Cloud Infrastructure",
-      description: "Enterprise-grade compute that scales automatically—no servers to manage",
-      details: "Work from anywhere. Your analyses continue running even when you close your laptop"
-    },
-    {
-      icon: Bot,
-      title: "Smart Notifications",
-      description: "Get alerted when jobs complete or when AI needs your input to proceed",
-      details: "Stay in the loop without constantly checking status—focus on other work"
-    },
-    {
-      icon: Settings,
-      title: "Auto Parameter Tuning",
-      description: "AI optimizes parameters for your specific analysis requirements",
-      details: "No manual tuning needed—our AI finds optimal settings based on your data"
-    },
-    {
-      icon: Package,
-      title: "10,000+ Ready-to-Use Tools",
-      description: "Instant access to Bioconductor, Biocontainer, Bioconda, Conda, and HuggingFace",
-      details: "All containerized and pre-configured—no installation or dependency hell"
-    },
-    {
-      icon: GitBranch,
-      title: "Seamless Workflow Migration",
-      description: "Import from Galaxy, Nextflow, Snakemake with one click",
-      details: "Automatically converts and optimizes your existing workflows for cloud execution"
-    }
-  ]
 
   const stats = [
     { value: "10,000+", label: "Researchers" },
@@ -72,11 +35,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <section className="relative border-b overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             {/* Left Column - Text */}
-            <div className="space-y-8">
+            <div className="space-y-8 text-center lg:text-left">
               <div className="space-y-6">
                 <div className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">
                   <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full animate-pulse" />
@@ -92,7 +55,7 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-6 text-base shadow-lg shadow-blue-500/30"
@@ -111,7 +74,7 @@ export default function LandingPage() {
                 </Button>
               </div>
 
-              <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-center lg:justify-start gap-6 text-sm text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-blue-600" />
                   No credit card
@@ -127,34 +90,35 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Column - Simple Visual */}
-            <div className="relative hidden lg:block">
-              <div className="relative">
-                <div className="rounded-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950 dark:via-purple-950 dark:to-pink-950 p-8 shadow-2xl">
-                  <div className="text-center space-y-6">
-                    <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 shadow-lg animate-pulse">
-                      <Sparkles className="h-10 w-10 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                        Your AI Research Mate
-                      </h3>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        Intelligent, fast, and always learning
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 pt-4">
-                      <div className="text-center p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-blue-100 dark:border-blue-900">
-                        <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">10,000+</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Tools & Models</div>
-                      </div>
-                      <div className="text-center p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-purple-100 dark:border-purple-900">
-                        <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">16×</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Faster</div>
-                      </div>
-                    </div>
+            {/* Right Column - Visual */}
+            <div className="relative mt-12 lg:mt-0 px-4 sm:px-0">
+              <div className="relative max-w-md mx-auto lg:max-w-none">
+                <BioHero className="w-full h-[400px] shadow-2xl border-2 border-blue-200 dark:border-blue-800" />
+                
+                {/* Floating Stats Card Overlay */}
+                <div className="absolute -bottom-6 -left-6 right-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 shadow-xl border border-slate-200 dark:border-slate-800 hidden sm:block">
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="flex items-center gap-3">
+                       <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
+                         <Sparkles className="h-5 w-5" />
+                       </div>
+                       <div>
+                         <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Tools</div>
+                         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">10,000+</div>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-3">
+                       <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400">
+                         <Zap className="h-5 w-5" />
+                       </div>
+                       <div>
+                         <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Speedup</div>
+                         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">16x</div>
+                       </div>
+                     </div>
                   </div>
                 </div>
+                
                 <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-3xl" />
               </div>
             </div>

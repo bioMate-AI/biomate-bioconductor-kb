@@ -21,6 +21,7 @@ import type {
   ParameterRecommendation,
   CreateExecutionRunRequest,
 } from '@shared/schema';
+import { emitUxEvent } from '@/lib/ux-telemetry';
 
 // ============================================================================
 // Types
@@ -50,6 +51,15 @@ export interface ExecuteWorkflowParams {
   inputs: Array<{ id: string; src: string; step_id?: number }>;
   /** Project ID for grouping */
   projectId?: string;
+  /** Chat session linkage for run manager filtering */
+  chatSessionId?: string;
+  /** Optional scientific/technical quality assessment from generation stage */
+  generationAssessment?: Record<string, any>;
+  /** Optional explicit retry metadata for server-side de-dup checks */
+  retryContext?: {
+    runId?: string;
+    galaxyInvocationId?: string;
+  };
 }
 
 export interface UseUnifiedExecutionOptions {
@@ -106,7 +116,24 @@ async function apiGetRunStatus(runId: string): Promise<{
   metrics?: ExecutionRun['metrics'];
   steps?: StepExecution[];
   errorMessage?: string;
+  autofix?: {
+    state: 'idle' | 'analyzing' | 'fixing' | 'restarting' | 'succeeded' | 'failed';
+    source?: 'auto' | 'manual' | 'unknown';
+    active?: boolean;
+    lastActionAt?: string;
+    message?: string;
+    sessionId?: string;
+    totalAttempts?: number;
+    terminationReason?: string;
+  };
   nextflowStatus?: any;
+  usefulness?: {
+    hasOutputs?: boolean;
+    visualizableCount?: number;
+    downloadableCount?: number;
+    totalOutputs?: number;
+    meetsContract?: boolean;
+  };
 }> {
   const response = await fetch(`/api/workflows/runs/${runId}/status?includeSteps=true`);
   if (!response.ok) {
@@ -288,6 +315,15 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
           status = 'running';
         }
 
+        if (['completed', 'failed', 'cancelled'].includes(status)) {
+          emitUxEvent('workflow.status_changed', {
+            runId: prev.currentRun.id,
+            workflowId: prev.currentRun.execution.galaxyWorkflowId,
+            invocationId: prev.currentRun.execution.galaxyInvocationId,
+            status,
+          });
+        }
+
         return {
           ...prev,
           currentRun: {
@@ -395,6 +431,15 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
         setState((prev) => {
           if (!prev.currentRun || prev.currentRun.id !== runId) return prev;
 
+          if (['completed', 'failed', 'cancelled'].includes(status.status)) {
+            emitUxEvent('workflow.status_changed', {
+              runId,
+              workflowId: prev.currentRun.execution.galaxyWorkflowId,
+              invocationId: prev.currentRun.execution.galaxyInvocationId,
+              status: status.status,
+            });
+          }
+
           return {
             ...prev,
             currentRun: {
@@ -403,7 +448,11 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
                 ...prev.currentRun.execution,
                 status: status.status,
                 errorMessage: status.errorMessage,
-                nextflowStatus: status.nextflowStatus,
+                nextflowStatus: {
+                  ...(status.nextflowStatus || {}),
+                  ...(status.usefulness ? { usefulness: status.usefulness } : {}),
+                  ...(status.autofix ? { autofix: status.autofix } : {}),
+                },
               },
               progress: status.progress,
               metrics: status.metrics || prev.currentRun.metrics,
@@ -412,7 +461,6 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
           };
         });
 
-        // Stop polling if run is complete
         if (['completed', 'failed', 'cancelled'].includes(status.status)) {
           stopPolling();
         }

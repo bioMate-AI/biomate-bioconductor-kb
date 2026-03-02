@@ -1,34 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { emitUxEvent } from "@/lib/ux-telemetry";
 import { Badge } from "@/components/ui/badge";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye } from "lucide-react";
+import { ReportConfusionButton } from "./feedback/report-confusion-button";
+import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useUnifiedExecution } from "@/hooks/useUnifiedExecution";
+import { ChatOutputAttachments } from "./chat-output-attachments";
+import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
+  invocationId?: string;
+  executionBlockedReason?: string;
+  prereqChecklist?: PrereqChecklist;
   workflowDefinition?: any; // Nextflow definition
   initialParams?: any;
   onExecute?: (params: any) => void;
   status?: 'idle' | 'running' | 'completed' | 'failed';
+  errorMessage?: string;
   progress?: number;
   onParameterChange?: (id: string, value: any) => void;
+  onRequestPrereqRecovery?: () => void;
+  sessionId?: string;
+  runId?: string;
+  autofix?: {
+    state: "idle" | "analyzing" | "fixing" | "restarting" | "succeeded" | "failed";
+    source?: "auto" | "manual" | "unknown";
+    active?: boolean;
+    message?: string;
+    totalAttempts?: number;
+  };
+  usefulness?: {
+    hasOutputs?: boolean;
+    visualizableCount?: number;
+    downloadableCount?: number;
+    totalOutputs?: number;
+    meetsContract?: boolean;
+  };
 }
 
 export function NextflowWorkflowViewer({ 
   workflowId, 
+  invocationId,
+  executionBlockedReason,
+  prereqChecklist,
   workflowDefinition, 
   initialParams, 
   onExecute,
   status = 'idle',
+  errorMessage,
   progress = 0,
-  onParameterChange
+  onParameterChange,
+  onRequestPrereqRecovery,
+  sessionId,
+  runId,
+  autofix,
+  usefulness,
 }: NextflowWorkflowViewerProps) {
   const [params, setParams] = useState(initialParams || {});
   const [logs, setLogs] = useState<string[]>([]);
+  const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
 
   // Derive phases from workflow steps if available
   const phases = workflowDefinition?.steps ? Object.values(workflowDefinition.steps).map((step: any, index: number) => ({
@@ -64,15 +99,46 @@ export function NextflowWorkflowViewer({
   };
 
   const handleExecute = () => {
+    if (prereqChecklist && !prereqChecklist.canRun) {
+      return;
+    }
+    emitUxEvent('workflow.run_clicked', { workflowId, invocationId });
     if (onExecute) {
       onExecute(params);
     }
   };
 
   const rationale = workflowDefinition?.scientific_rationale;
+  const [showResults, setShowResults] = useState(status === 'completed');
+  const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
+  const isPrereqBlocked = !!prereqChecklist && !prereqChecklist.canRun;
+  const isAutofixActive =
+    autofix?.active === true ||
+    ["analyzing", "fixing", "restarting"].includes(autofix?.state || "");
+  const completedButNotUseful =
+    status === "completed" &&
+    usefulness?.meetsContract === false;
+
+  useEffect(() => {
+    if (status === 'completed') {
+      setShowResults(true);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    setLastUpdateAt(new Date());
+  }, [status, progress, errorMessage]);
 
   return (
     <div className="space-y-6 p-4">
+      <DownloadOutcomePrompt
+        open={downloadAllPromptOpen}
+        onOpenChange={setDownloadAllPromptOpen}
+        invocationId={invocationId}
+        sessionId={sessionId}
+        runId={runId}
+        isDownloadAll={true}
+      />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -180,6 +246,37 @@ export function NextflowWorkflowViewer({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-4">
+              {completedButNotUseful && (
+                <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="space-y-2 text-xs">
+                    <div className="font-medium text-amber-800 dark:text-amber-300">
+                      Run completed, but outputs are not yet useful.
+                    </div>
+                    <div className="text-amber-700 dark:text-amber-400">
+                      Found {usefulness?.totalOutputs ?? 0} output(s), visualizable {usefulness?.visualizableCount ?? 0}, downloadable {usefulness?.downloadableCount ?? 0}.
+                    </div>
+                    {onRequestPrereqRecovery && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        data-testid="button-usefulness-recovery"
+                        onClick={() => {
+                          emitUxEvent("workflow.error_shown", {
+                            runId,
+                            invocationId,
+                            category: "usefulness_contract",
+                          });
+                          onRequestPrereqRecovery();
+                        }}
+                      >
+                        Ask BioMate to regenerate runnable output path
+                      </Button>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
               <h3 className="text-lg font-semibold">Parameters</h3>
               <ParameterGroup
                 id="main-params"
@@ -193,15 +290,151 @@ export function NextflowWorkflowViewer({
               />
               <Button 
                 className="w-full" 
+                data-testid="button-run-workflow-panel"
                 onClick={handleExecute} 
-                disabled={status === 'running'}
+                disabled={
+                  status === 'running' ||
+                  status === 'completed' ||
+                  !!executionBlockedReason ||
+                  isPrereqBlocked ||
+                  isAutofixActive
+                }
               >
-                {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Run Workflow'}
+                {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : status === 'completed' ? 'Completed' : 'Run Workflow'}
               </Button>
+              {isAutofixActive && (
+                <Alert className="border-blue-400/40 bg-blue-50/40 dark:bg-blue-950/20" data-testid="autofix-active-banner">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <AlertDescription className="text-xs">
+                    Auto-fix is in progress ({autofix?.state || "fixing"}). Manual retry is temporarily disabled to avoid duplicate reruns.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {prereqChecklist && prereqChecklist.items.length > 0 && (
+                <div
+                  className="space-y-2 rounded-md border border-muted bg-muted/30 p-3"
+                  data-testid="workflow-prereq-checklist"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Execution checklist
+                    </p>
+                    <Badge variant={prereqChecklist.canRun ? "outline" : "secondary"}>
+                      {prereqChecklist.canRun ? "Ready" : "Action required"}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    {prereqChecklist.items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded border border-border/70 bg-background/70 px-2 py-1.5"
+                        data-testid={`workflow-prereq-item-${item.id}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium">{item.label}</span>
+                          <Badge
+                            variant={
+                              item.status === "ok"
+                                ? "outline"
+                                : item.status === "warning"
+                                ? "secondary"
+                                : "destructive"
+                            }
+                            className="text-[10px] uppercase"
+                          >
+                            {item.status}
+                          </Badge>
+                        </div>
+                        {item.reason && <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>}
+                        {item.actionHint && <p className="mt-1 text-xs">{item.actionHint}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  {isPrereqBlocked && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      data-testid="button-prereq-recovery"
+                      onClick={onRequestPrereqRecovery}
+                    >
+                      Ask BioMate to prepare runnable demo inputs
+                    </Button>
+                  )}
+                </div>
+              )}
+              {executionBlockedReason && (
+                <div className="space-y-2">
+                  <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-xs">
+                      {executionBlockedReason}
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-confirm-low-confidence-run"
+                    onClick={() => {
+                      emitUxEvent('workflow.low_confidence_override_clicked', {
+                        workflowId,
+                        invocationId,
+                        runId,
+                      });
+                      onExecute?.({
+                        ...params,
+                        __executionOverrides: {
+                          allowLowConfidence: true,
+                          overrideReason: executionBlockedReason,
+                        },
+                      });
+                    }}
+                    disabled={
+                      status === 'running' ||
+                      status === 'completed' ||
+                      isPrereqBlocked ||
+                      isAutofixActive
+                    }
+                  >
+                    Confirm and Run Anyway
+                  </Button>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowResults((prev) => !prev)}
+                  disabled={!invocationId}
+                  title={invocationId ? "View output results" : "Run workflow to view results"}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  {showResults ? 'Hide Results' : 'View Results'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-download-all-workflow-panel"
+                  disabled={!invocationId}
+                  title={invocationId ? "Download all outputs" : "Run workflow to enable download"}
+                  onClick={() => {
+                    if (!invocationId) return;
+                    emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
+                    window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
+                    setDownloadAllPromptOpen(true);
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download All
+                </Button>
+              </div>
             </div>
 
             <div className="md:col-span-2 space-y-4">
               <h3 className="text-lg font-semibold">Execution Progress</h3>
+              <p className="text-xs text-muted-foreground" data-testid="workflow-last-update">
+                Last update: {lastUpdateAt.toLocaleTimeString()}
+              </p>
               <div className="space-y-2">
                 {updatedPhases.map((phase: any, index: number) => (
                   <PhaseCard
@@ -217,8 +450,43 @@ export function NextflowWorkflowViewer({
                   <div key={i}>{log}</div>
                 ))}
               </div>
+              {status === 'running' && logs.length === 0 && (
+                <p className="text-xs text-blue-700 dark:text-blue-300" data-testid="workflow-running-hint">
+                  Workflow is running. Logs can take a short time to appear.
+                </p>
+              )}
+              <div className="mt-2 flex justify-end">
+                <ReportConfusionButton
+                  runId={runId}
+                  sessionId={sessionId}
+                  workflowId={workflowId}
+                  invocationId={invocationId}
+                  context={{
+                    executionStatus: status,
+                    errorMessage,
+                    workflowName: workflowDefinition?.name,
+                    progress,
+                    showResults,
+                  }}
+                  variant="ghost"
+                  size="sm"
+                />
+              </div>
             </div>
           </div>
+
+          {invocationId && showResults && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Output Results</h3>
+              <ChatOutputAttachments
+                invocationId={invocationId}
+                sessionId={sessionId}
+                runId={runId}
+                executionStatus={status}
+                errorMessage={errorMessage}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

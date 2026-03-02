@@ -6,8 +6,8 @@ export function SiteFooter() {
 
   const footerLinks = {
     product: [
-      { name: "Features", href: "/home" },
       { name: "Pricing", href: "/pricing" },
+      { name: "Features", href: "/home" },
       { name: "Security", href: "/privacy" },
       { name: "Enterprise", href: "/contact" }
     ],
@@ -16,12 +16,6 @@ export function SiteFooter() {
       { name: "Blog", href: "/blog" },
       { name: "Contact", href: "/contact" },
       { name: "Careers", href: "/contact" }
-    ],
-    resources: [
-      { name: "Documentation", href: "/blog" },
-      { name: "Community", href: "/contact" },
-      { name: "Support", href: "/contact" },
-      { name: "Status", href: "/contact" }
     ],
     legal: [
       { name: "Privacy Policy", href: "/privacy" },
@@ -65,7 +59,7 @@ export function SiteFooter() {
     <footer className="border-t bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
@@ -127,23 +121,7 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          {/* Resources */}
-          <div>
-            <h3 className="font-semibold mb-3">Resources</h3>
-            <ul className="space-y-2">
-              {footerLinks.resources.map((link) => (
-                <li key={link.name}>
-                  <button
-                    onClick={() => setLocation(link.href)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-
+          {/* Resources - Removed as placeholders */}
           {/* Legal */}
           <div>
             <h3 className="font-semibold mb-3">Legal</h3>

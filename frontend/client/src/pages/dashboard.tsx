@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Clock,
   Star,
-  Settings,
   CreditCard
 } from "lucide-react"
 
@@ -60,12 +59,6 @@ export default function DashboardPage() {
       title: "Browse Tools",
       description: "Explore available tools",
       action: () => setLocation('/')
-    },
-    {
-      icon: Settings,
-      title: "Settings",
-      description: "Configure your account",
-      action: () => console.log("Settings")
     }
   ]
 
@@ -270,18 +263,6 @@ export default function DashboardPage() {
                   className="block text-sm text-primary hover:underline"
                 >
                   → Contact support
-                </a>
-                <a
-                  href="#"
-                  className="block text-sm text-primary hover:underline"
-                >
-                  → View documentation
-                </a>
-                <a
-                  href="#"
-                  className="block text-sm text-primary hover:underline"
-                >
-                  → Join our community
                 </a>
               </CardContent>
             </Card>

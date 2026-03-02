@@ -24,6 +24,10 @@ import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } 
 interface ChatOutputAttachmentsProps {
   invocationId: string
   className?: string
+  sessionId?: string
+  runId?: string
+  executionStatus?: string
+  errorMessage?: string
 }
 
 export function ChatOutputAttachments({ invocationId, className }: ChatOutputAttachmentsProps) {

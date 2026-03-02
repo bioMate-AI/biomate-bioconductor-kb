@@ -18,7 +18,8 @@ import {
   RotateCcw,
   ArrowRight,
   Settings2,
-  Loader2
+  Loader2,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -59,6 +60,25 @@ const PROCESS_DISPLAY_NAMES: Record<string, string> = {
   KRAKEN2: "Taxonomic Classification (Kraken2)",
   KRAKEN2_KRAKEN2: "Taxonomic Classification (Kraken2)",
   BRACKEN: "Abundance Estimation (Bracken)",
+  // Drug discovery / pharmacology
+  ADMET_PRED: "ADMET Safety Screening",
+  PREDICT_ADMET_PROPERTIES: "ADMET Property Prediction",
+  ADMET_TOXICITY: "Toxicity Safety Gate",
+  ADMET_SAFETY: "ADMET Safety Check",
+  HERG_SCREEN: "hERG Cardiotoxicity Screen",
+  DILI_SCREEN: "DILI Hepatotoxicity Screen",
+  TOXICITY_SCREEN: "Compound Toxicity Screen",
+  SMILES_QC: "Compound Structure QC",
+  COMPOUND_QC: "Compound Quality Check",
+  STRUCTURE_QC: "Structure Validity Check",
+  ADMET_PRECHECK: "ADMET Pre-screening",
+  PGX_COVERAGE: "Pharmacogenomics Coverage",
+  PGX_QC: "PGx Gene Coverage QC",
+  CYP_COVERAGE: "CYP Gene Coverage",
+  PHARMACOGENOMICS_QC: "Pharmacogenomics QC",
+  PULLDOWN_QC: "Pulldown Enrichment QC",
+  CHEMOPROTEOMICS_QC: "Chemoproteomics QC",
+  ENRICHMENT_QC: "Enrichment Efficiency QC",
 }
 
 function humanizeProcessName(raw: string): string {
@@ -116,6 +136,48 @@ const TROUBLESHOOTING_STEPS: Record<string, string[]> = {
     "Remove the confidence threshold (set to 0.0) to classify more reads",
     "Check if your sample is from a poorly-represented environment in the database",
   ],
+  // Drug discovery / pharmacology
+  ADMET_PRED: [
+    "Verify all SMILES strings are valid — use RDKit or ChemDraw to check structural validity",
+    "For hERG risk: reduce logP below 3, break planar ring stacks, remove basic amines adjacent to aromatic rings",
+    "For DILI risk: evaluate daily dose projection — low-dose compounds (< 10 mg/day) have substantially lower DILI incidence",
+    "Consider scaffold hopping or bioisostere replacement to reduce toxicophores while maintaining potency",
+  ],
+  PREDICT_ADMET_PROPERTIES: [
+    "Verify all SMILES strings are valid — use RDKit or ChemDraw to check structural validity",
+    "For hERG risk: reduce logP below 3, break planar ring stacks, remove basic amines adjacent to aromatic rings",
+    "For DILI risk: evaluate daily dose projection — low-dose compounds (< 10 mg/day) have substantially lower DILI incidence",
+    "Confirm predictions with in vitro assays (hERG patch-clamp IC50, HepaRG DILI assay) before IND filing",
+  ],
+  HERG_SCREEN: [
+    "Structural modifications to reduce hERG liability: lower logP, remove basic nitrogen atoms, reduce planarity",
+    "Consider methyl or fluorine bioisostere substitutions that disrupt hERG channel binding",
+    "Confirm with automated patch-clamp (IonWorks Barracuda) or manual patch-clamp for IC50 measurement",
+    "Check if QT prolongation risk is acceptable relative to therapeutic benefit (FDA E14 guidance)",
+  ],
+  DILI_SCREEN: [
+    "Evaluate daily dose — DILI incidence drops significantly below 10 mg/day (Lammert et al. 2010)",
+    "Assess reactive metabolite formation potential via GSH trapping assay",
+    "Run HepaRG or primary human hepatocyte cytotoxicity assay for mechanistic confirmation",
+    "Review structural alerts: quinones, epoxides, Michael acceptors, thiophenes (reactive metabolite flags)",
+  ],
+  SMILES_QC: [
+    "Check that SMILES notation is canonical (use RDKit Chem.MolToSmiles after parsing)",
+    "Resolve salt forms: remove counterions using RDKit SaltRemover before analysis",
+    "Resolve undefined stereocenters: assign R/S configuration or use racemic notation explicitly",
+    "Ensure charged forms match physiological pH (typically deprotonated acids, protonated bases)",
+  ],
+  PGX_COVERAGE: [
+    "CYP2D6 has high GC content — consider increasing depth target to 60× for reliable star allele calling",
+    "CYP2D6 copy number variations (CNVs) require long-read or specialized CNV-aware tools",
+    "Use CPIC-recommended star allele callers (Stargazer, Aldy, PyPGx) that account for GC bias",
+    "Consider a targeted PGx panel (e.g., PGXT, xTARGet PGx) if WGS depth is insufficient",
+  ],
+  PHARMACOGENOMICS_QC: [
+    "CYP2D6 has high GC content — consider increasing depth target to 60× for reliable star allele calling",
+    "Use CPIC-recommended star allele callers that account for GC bias (Stargazer, Aldy, PyPGx)",
+    "Verify the variant calling pipeline handles complex structural variants in CYP2D6 locus",
+  ],
 }
 
 interface QCMetric {
@@ -132,6 +194,8 @@ interface ParameterSuggestion {
   suggestedValue: any
   reason: string
   confidence: number
+  // US-6.1: provenance — "rule" = empirical heuristic, "literature" = cites a published standard
+  source?: string
 }
 
 interface QCGateModalProps {
@@ -351,6 +415,13 @@ export function QCGateModal({
                           >
                             {(suggestion.confidence * 100).toFixed(0)}% confidence
                           </Badge>
+                          {/* US-6.1 — source provenance badge, shown only for literature-backed suggestions */}
+                          {suggestion.source === "literature" && (
+                            <span className="inline-flex items-center gap-1 text-xs text-sky-600 dark:text-sky-400 font-normal">
+                              <BookOpen className="h-3 w-3" />
+                              Literature
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mb-2">
                           {suggestion.reason}
