@@ -155,17 +155,98 @@ def compute_structural_safety(smiles_input):
     }
 
 
+def compute_ames_alerts(smiles_input):
+    """
+    Ames mutagenicity prediction via structural alerts.
+
+    Kazius et al. 2005 J Med Chem 48:312-320 — 13 mechanistic alert classes
+    covering the principal mutagens in the Salmonella Ames assay (TA98, TA100,
+    TA1535, TA1537). Returns ames_positive (bool), ames_probability (0–1),
+    and structural_alerts list. ICH S2(R1) still requires experimental confirmation.
+    """
+    try:
+        from rdkit import Chem
+    except ImportError:
+        return {}
+
+    ALERTS = [
+        ("n_nitroso",               "[NX3]-N=O",                    0.90),
+        ("aromatic_nitro",          "c[N+](=O)[O-]",                0.85),
+        ("primary_aromatic_amine",  "[NH2]c",                       0.80),
+        ("organic_azide",           "[NX2]=[NX2+]=[NX1-]",         0.80),
+        ("azo_aromatic",            "c-[NX2]=[NX2]-c",             0.70),
+        ("alkyl_nitrite",           "[OX2][NX2]=O",                 0.65),
+        ("alkylating_epoxide",      "[O;r3]",                       0.65),
+        ("haloacetyl",              "[F,Cl,Br,I][CH2][CX3]=O",      0.60),
+        ("furan",                   "c1ccoc1",                      0.60),
+        ("beta_lactone",            "C1(=O)CCO1",                   0.60),
+        ("michael_acceptor",        "[CX3]=[CX3][CX3](=O)[#6]",    0.55),
+        ("hydroxamic_acid",         "[CX3](=O)[NX3][OH]",           0.55),
+        ("alpha_haloketone",        "[F,Cl,Br,I][CX4][CX3](=O)",   0.55),
+    ]
+
+    items = smiles_input if isinstance(smiles_input, list) else [smiles_input]
+    triggered = []
+    alert_lookup = {name: w for name, _s, w in ALERTS}
+
+    for smiles in items:
+        smiles = str(smiles).strip()
+        if not smiles:
+            continue
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            continue
+        for name, smarts, _w in ALERTS:
+            if name in triggered:
+                continue
+            try:
+                pattern = Chem.MolFromSmarts(smarts)
+                if pattern and mol.HasSubstructMatch(pattern):
+                    triggered.append(name)
+            except Exception:
+                continue
+
+    if not triggered:
+        return {
+            "ames_positive": False,
+            "ames_probability": 0.10,
+            "structural_alerts": [],
+            "n_alerts_triggered": 0,
+            "ames_method": "kazius_structural_alerts",
+        }
+
+    max_w = max(alert_lookup.get(a, 0.5) for a in triggered)
+    prob = round(min(0.95, max_w + 0.05 * (len(triggered) - 1)), 3)
+    return {
+        "ames_positive": True,
+        "ames_probability": prob,
+        "structural_alerts": triggered,
+        "n_alerts_triggered": len(triggered),
+        "ames_method": "kazius_structural_alerts",
+    }
+
+
 def ADMET_pred(smiles):
     """ADMET safety screening using RDKit + optional DeepPurpose."""
     safety = compute_structural_safety(smiles)
     per_compound = safety.pop("per_compound", None)
 
+    # Ames mutagenicity structural alerts
+    ames_result = compute_ames_alerts(smiles)
+
     # Build toxicity_report (QC-gate-ready)
+    tox = dict(safety)
+    if ames_result:
+        tox["ames_positive"] = ames_result.get("ames_positive", False)
+        tox["ames_probability"] = ames_result.get("ames_probability", 0.10)
+        tox["ames_structural_alerts"] = ames_result.get("structural_alerts", [])
+        tox["ames_method"] = ames_result.get("ames_method", "kazius_structural_alerts")
+
     tox_report = {
         "compounds_assessed": len(per_compound) if per_compound else 1,
         "model_type": "rdkit_descriptors",
         "estimation_method": "rdkit_descriptors",
-        "toxicity": dict(safety),
+        "toxicity": tox,
     }
     if per_compound:
         tox_report["per_compound"] = per_compound

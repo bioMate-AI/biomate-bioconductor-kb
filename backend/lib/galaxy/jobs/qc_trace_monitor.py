@@ -5,6 +5,7 @@ Monitors Nextflow trace file for process completions and triggers QC validation.
 Emits SSE events when QC gates are triggered.
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -909,6 +910,21 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("PGX_COVERAGE", "CYP_COVERAGE",
                                                "PHARMACOGENOMICS_QC", "PGX_QC")):
             return self._parse_pgx_coverage_metrics(task_work_dir)
+
+        # --- Non-compartmental analysis (PKNCA) ---
+        elif any(k in process_upper for k in ("NCA_PKNCA", "NCA_ANALYSIS",
+                                               "NONCOMPARTMENTAL", "PKNCA")):
+            return self._parse_nca_results(task_work_dir)
+
+        # --- Population pharmacokinetics (nlmixr2 / SAEM) ---
+        elif any(k in process_upper for k in ("NLMIXR2", "POPULATION_PK",
+                                               "POP_PK", "POPPK", "POPK")):
+            return self._parse_nlmixr2_results(task_work_dir)
+
+        # --- IVIVE hepatic clearance scaling ---
+        elif any(k in process_upper for k in ("IVIVE", "HEPATIC_CLEARANCE",
+                                               "IVIVE_HEPATIC", "CLEARANCE_SCALING")):
+            return self._parse_ivive_results(task_work_dir)
 
         else:
             return None
@@ -2317,6 +2333,104 @@ class NextflowQCGateHandler:
         )
         return metrics
 
+    def _parse_nca_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse PKNCA non-compartmental analysis output.
+
+        Reads ``nca_results.json`` produced by the nca_pknca Nextflow workflow.
+        Key QC fields:
+          - auc_extrap_pct_max  : max % AUC extrapolated across subjects (> 20% = unreliable t½)
+          - subjects_with_no_terminal_slope : count of subjects where lambda_z failed
+          - n_subjects          : total subjects analysed
+        """
+        for fname in ("nca_results.json",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    for key in ("n_subjects", "route", "cmax_mean", "auclast_mean",
+                                "thalf_mean_h", "cl_f_mean", "auc_extrap_pct_max",
+                                "subjects_with_no_terminal_slope", "pknca_version"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                    if metrics:
+                        log.debug(
+                            f"[QC] NCA: {metrics.get('n_subjects')} subjects, "
+                            f"AUC extrap {metrics.get('auc_extrap_pct_max')}%, "
+                            f"no-slope subjects {metrics.get('subjects_with_no_terminal_slope')}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError, KeyError):
+                    continue
+        return None
+
+    def _parse_nlmixr2_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse nlmixr2 population PK results.
+
+        Reads ``nlmixr2_results.json`` produced by the nlmixr2_population_pk workflow.
+        Key QC fields:
+          - convergence_status      : "converged" | "not_converged" | "failed"
+          - max_eta_shrinkage_pct   : random effects shrinkage (> 30% = parameters poorly estimated)
+          - condition_number        : covariance matrix condition (> 1000 = parameter correlation)
+          - ofv                     : objective function value
+        """
+        for fname in ("nlmixr2_results.json",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    for key in ("convergence_status", "ofv", "model_type", "algorithm",
+                                "n_subjects", "n_observations", "max_eta_shrinkage_pct",
+                                "condition_number", "aic", "bic"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                    if metrics:
+                        log.debug(
+                            f"[QC] Population PK: convergence={metrics.get('convergence_status')}, "
+                            f"ETA shrinkage={metrics.get('max_eta_shrinkage_pct')}%, "
+                            f"condition={metrics.get('condition_number')}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError, KeyError):
+                    continue
+        return None
+
+    def _parse_ivive_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse IVIVE hepatic clearance scaling output.
+
+        Reads ``ivive_results.json`` produced by the ivive_hepatic_clearance workflow.
+        Key QC fields:
+          - clh_predicted_ml_min_kg   : predicted hepatic clearance (mL/min/kg)
+          - clh_fraction_of_qh        : CLh as fraction of hepatic blood flow (0–1)
+          - scaling_method            : "well_stirred" | "parallel_tube" | "dispersion"
+          - fu_plasma                 : fraction unbound in plasma used
+          - clint_scaled_ml_min_kg    : scaled intrinsic clearance
+        """
+        for fname in ("ivive_results.json",):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    for key in ("clh_predicted_ml_min_kg", "clh_fraction_of_qh",
+                                "scaling_method", "fu_plasma", "clint_scaled_ml_min_kg",
+                                "species", "clh_lower_ci", "clh_upper_ci"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                    if metrics:
+                        log.debug(
+                            f"[QC] IVIVE: CLh={metrics.get('clh_predicted_ml_min_kg')} mL/min/kg, "
+                            f"fraction of QH={metrics.get('clh_fraction_of_qh')}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError, KeyError):
+                    continue
+        return None
+
     def _check_qc_thresholds(
         self,
         process_name: str,
@@ -3261,6 +3375,155 @@ class NextflowQCGateHandler:
                         f"{_pgx_t}× threshold (within 20%): "
                         f"{', '.join(sorted(near_threshold_genes))}. "
                         f"CPIC calls are valid but fragile; flag as provisional in reports."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("NCA_PKNCA", "NCA_ANALYSIS",
+                                               "NONCOMPARTMENTAL", "PKNCA")):
+            # ── Non-compartmental analysis (PKNCA) ─────────────────────────────
+            # [SILVER] AUC extrapolation > 20% — Gabrielsson & Weiner 2006;
+            # FDA Guidance on PK studies 2018: "extrapolated AUC should be < 20%
+            # of AUCinf to consider the profile adequately characterised"
+            auc_extrap = qc_metrics.get("auc_extrap_pct_max")
+            _extrap_t = self._get_threshold("auc_extrap_pct_max", 20.0)
+            if auc_extrap is not None and auc_extrap > _extrap_t:
+                failures.append({
+                    "metric": "auc_extrap_pct_max",
+                    "value": round(auc_extrap, 1),
+                    "threshold": _extrap_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] Maximum AUC extrapolation {auc_extrap:.1f}% exceeds "
+                        f"{_extrap_t:.0f}% (FDA PK Guidance 2018). Terminal half-life is poorly "
+                        f"characterised — the concentration-time profile was not sampled long "
+                        f"enough to capture ≥ 80% of AUCinf. Extend sampling to ≥ 3 half-lives "
+                        f"or report AUClast without AUCinf extrapolation."
+                    ),
+                })
+
+            # [BRONZE] Subjects with no estimable terminal slope
+            no_slope = qc_metrics.get("subjects_with_no_terminal_slope", 0)
+            n_subj = qc_metrics.get("n_subjects", 1)
+            _no_slope_frac_t = self._get_threshold("nca_no_slope_fraction", 0.3)
+            if no_slope and n_subj and (no_slope / max(n_subj, 1)) > _no_slope_frac_t:
+                failures.append({
+                    "metric": "subjects_with_no_terminal_slope",
+                    "value": no_slope,
+                    "threshold": int(n_subj * _no_slope_frac_t),
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] {no_slope}/{n_subj} subjects have no estimable terminal "
+                        f"elimination slope (lambda_z). Half-life and AUCinf cannot be "
+                        f"calculated for these subjects. Check that sampling extends through "
+                        f"at least 3 half-lives and that ≥ 3 time points fall in the terminal "
+                        f"log-linear phase."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("NLMIXR2", "POPULATION_PK",
+                                               "POP_PK", "POPPK", "POPK")):
+            # ── Population pharmacokinetics (nlmixr2) ──────────────────────────
+            # [GOLD] Non-convergence — Karlsson & Sheiner 1993; FDA Pop PK Guidance 2019:
+            # "a model that did not converge should not be used for labelling"
+            convergence = qc_metrics.get("convergence_status")
+            if convergence and convergence != "converged":
+                failures.append({
+                    "metric": "convergence_status",
+                    "value": convergence,
+                    "threshold": "converged",
+                    "operator": "!=",
+                    "message": (
+                        f"[GOLD] Population PK model did not converge "
+                        f"(status: {convergence}). A non-converged model cannot be used "
+                        f"for dosing recommendations or regulatory submissions "
+                        f"(FDA Pop PK Guidance 2019). "
+                        f"Try simplifying the model (1-compartment before 2-compartment), "
+                        f"increasing iterations, or checking for data outliers."
+                    ),
+                })
+
+            # [SILVER] ETA shrinkage > 30% — Savic & Karlsson 2009 CPT:PSP:
+            # "shrinkage > 30% renders individual estimates unreliable for EBE-based diagnostics"
+            shrinkage = qc_metrics.get("max_eta_shrinkage_pct")
+            _shrinkage_t = self._get_threshold("max_eta_shrinkage_pct", 30.0)
+            if shrinkage is not None and shrinkage > _shrinkage_t:
+                failures.append({
+                    "metric": "max_eta_shrinkage_pct",
+                    "value": round(shrinkage, 1),
+                    "threshold": _shrinkage_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[SILVER] ETA shrinkage {shrinkage:.1f}% exceeds {_shrinkage_t:.0f}% "
+                        f"(Savic & Karlsson 2009 CPT:PSP). Individual Bayesian estimates (EBEs) "
+                        f"are unreliable for individual-level diagnostics. "
+                        f"Consider merging sparse occasions, collecting richer PK sampling, "
+                        f"or simplifying the random effects structure."
+                    ),
+                })
+
+            # [BRONZE] Condition number > 1000 — Beal & Sheiner 1992;
+            # high condition number indicates near-collinear parameters
+            cond_num = qc_metrics.get("condition_number")
+            _cond_t = self._get_threshold("condition_number", 1000.0)
+            if cond_num is not None and cond_num > _cond_t:
+                failures.append({
+                    "metric": "condition_number",
+                    "value": round(cond_num, 1),
+                    "threshold": _cond_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Covariance matrix condition number {cond_num:.0f} > "
+                        f"{_cond_t:.0f}. High condition numbers indicate near-collinear "
+                        f"parameters — the model may be over-parameterised for the available "
+                        f"data. Consider fixing one clearance or volume parameter to a "
+                        f"literature value, or reducing to a simpler structural model."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("IVIVE", "HEPATIC_CLEARANCE",
+                                               "IVIVE_HEPATIC", "CLEARANCE_SCALING")):
+            # ── IVIVE hepatic clearance ─────────────────────────────────────────
+            # [BRONZE] CLh approaching hepatic blood flow — Obach 2009 Drug Metab Dispos;
+            # CLh > 90% of QH means the compound is a high-extraction drug;
+            # predictions are most uncertain at the extremes (< 30% or > 90% QH)
+            clh_frac = qc_metrics.get("clh_fraction_of_qh")
+            _high_extraction_t = self._get_threshold("clh_fraction_of_qh_high", 0.90)
+            _low_extraction_t = self._get_threshold("clh_fraction_of_qh_low", 0.30)
+            clh_val = qc_metrics.get("clh_predicted_ml_min_kg")
+            if clh_frac is not None and clh_frac > _high_extraction_t:
+                failures.append({
+                    "metric": "clh_fraction_of_qh",
+                    "value": round(clh_frac, 3),
+                    "threshold": _high_extraction_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Predicted hepatic clearance is {clh_frac*100:.0f}% of "
+                        f"hepatic blood flow (CLh = {clh_val:.1f} mL/min/kg). "
+                        f"High-extraction compounds (> 90% QH) are subject to high first-pass "
+                        f"metabolism; IVIVE predictions are least reliable in this range "
+                        f"(Obach 2009 Drug Metab Dispos). Confirm with portal-vein dosing "
+                        f"data or a physiologically-based PK model."
+                    ),
+                })
+            elif clh_frac is not None and clh_frac < _low_extraction_t:
+                failures.append({
+                    "metric": "clh_fraction_of_qh",
+                    "value": round(clh_frac, 3),
+                    "threshold": _low_extraction_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Predicted hepatic clearance is {clh_frac*100:.0f}% of "
+                        f"hepatic blood flow (CLh = {clh_val:.1f} mL/min/kg). "
+                        f"Low-extraction compounds are sensitive to plasma protein binding "
+                        f"and intrinsic clearance variability. Verify fu_plasma and "
+                        f"CLint_in_vitro inputs, as small measurement errors are amplified "
+                        f"in this range."
                     ),
                 })
 

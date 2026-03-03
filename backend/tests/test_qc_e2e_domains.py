@@ -1993,3 +1993,282 @@ class TestCompoundProfiles:
         for expected in ("compound_druglike", "compound_natural_product",
                          "compound_peptidomimetic", "pgx_clinical", "pgx_research"):
             assert expected in profile_ids, f"Profile '{expected}' not found in list_profiles()"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Population PK, NCA, and IVIVE QC gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestPopulationPKQCGates:
+    """QC gates for nlmixr2 population PK and PKNCA non-compartmental analysis."""
+
+    # ── Population PK: nlmixr2 ──────────────────────────────────────────────
+
+    def _nlmixr2_writer(self, convergence, eta_shrinkage, condition_number):
+        def write(d):
+            import json
+            (d / "nlmixr2_results.json").write_text(json.dumps({
+                "convergence_status": convergence,
+                "ofv": 650.4,
+                "model_type": "2cmt_oral",
+                "algorithm": "saem",
+                "n_subjects": 24,
+                "n_observations": 480,
+                "max_eta_shrinkage_pct": eta_shrinkage,
+                "condition_number": condition_number,
+                "aic": 664.4,
+                "bic": 681.2,
+            }))
+        return write
+
+    def test_converged_model_passes(self, tmp_path):
+        """Converged model with good shrinkage and condition → no gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NLMIXR2_POPULATION_PK", "aa", "00000040", tmp_path,
+                self._nlmixr2_writer("converged", 15.0, 85.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 0
+
+    def test_nonconvergence_fires_gold_gate(self, tmp_path):
+        """Non-converged model fires a GOLD blocking gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NLMIXR2_POPULATION_PK", "aa", "00000041", tmp_path,
+                self._nlmixr2_writer("not_converged", 15.0, 85.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        failures = gate[0][1]["failures"]
+        blocking = [f for f in failures if not f.get("advisory", False)]
+        assert any(f["metric"] == "convergence_status" for f in blocking)
+
+    def test_high_eta_shrinkage_advisory(self, tmp_path):
+        """ETA shrinkage > 30% fires SILVER advisory (not blocking)."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NLMIXR2_POPULATION_PK", "aa", "00000042", tmp_path,
+                self._nlmixr2_writer("converged", 45.0, 85.0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        advisory_found = False
+        for evt_type, data in all_events:
+            for f in data.get("failures", []) + data.get("warnings", []):
+                if f.get("metric") == "max_eta_shrinkage_pct":
+                    advisory_found = True
+                    assert f.get("advisory", False), "ETA shrinkage should be advisory only"
+        assert advisory_found, "Expected ETA shrinkage advisory"
+
+    def test_high_condition_number_bronze(self, tmp_path):
+        """Condition number > 1000 fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NLMIXR2_POPULATION_PK", "aa", "00000043", tmp_path,
+                self._nlmixr2_writer("converged", 15.0, 1500.0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        cond_found = False
+        for evt_type, data in all_events:
+            for f in data.get("failures", []) + data.get("warnings", []):
+                if f.get("metric") == "condition_number":
+                    cond_found = True
+                    assert f.get("advisory", False)
+        assert cond_found
+
+    def test_popk_process_name_routing(self, tmp_path):
+        """POPULATION_PK process name routes to nlmixr2 parser."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "POPULATION_PK", "aa", "00000044", tmp_path,
+                self._nlmixr2_writer("not_converged", 15.0, 85.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+
+    # ── NCA: PKNCA ──────────────────────────────────────────────────────────
+
+    def _nca_writer(self, auc_extrap, no_slope, n_subjects=24):
+        def write(d):
+            import json
+            (d / "nca_results.json").write_text(json.dumps({
+                "n_subjects": n_subjects,
+                "route": "oral",
+                "cmax_mean": 15.4,
+                "auclast_mean": 245.8,
+                "thalf_mean_h": 4.32,
+                "cl_f_mean": 2.15,
+                "auc_extrap_pct_max": auc_extrap,
+                "subjects_with_no_terminal_slope": no_slope,
+                "pknca_version": "0.10.3",
+            }))
+        return write
+
+    def test_nca_good_profile_passes(self, tmp_path):
+        """NCA with low extrapolation and no missing slopes → no gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NCA_PKNCA", "bb", "00000045", tmp_path,
+                self._nca_writer(8.0, 0))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) == 0
+
+    def test_high_auc_extrapolation_advisory(self, tmp_path):
+        """AUC extrapolation > 20% fires SILVER advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NCA_PKNCA", "bb", "00000046", tmp_path,
+                self._nca_writer(35.0, 0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        extrap_found = False
+        for evt_type, data in all_events:
+            for f in data.get("failures", []) + data.get("warnings", []):
+                if f.get("metric") == "auc_extrap_pct_max":
+                    extrap_found = True
+                    assert f.get("advisory", False)
+        assert extrap_found
+
+    def test_many_no_slope_subjects_advisory(self, tmp_path):
+        """50% subjects with no terminal slope fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NCA_PKNCA", "bb", "00000047", tmp_path,
+                self._nca_writer(5.0, 10, n_subjects=20))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        slope_found = False
+        for evt_type, data in all_events:
+            for f in data.get("failures", []) + data.get("warnings", []):
+                if f.get("metric") == "subjects_with_no_terminal_slope":
+                    slope_found = True
+                    assert f.get("advisory", False)
+        assert slope_found
+
+    def test_nca_pknca_process_name_routing(self, tmp_path):
+        """NCA_PKNCA process name routes to nca parser."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "NCA_PKNCA", "bb", "00000048", tmp_path,
+                self._nca_writer(35.0, 0))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) >= 1
+
+    # ── IVIVE ────────────────────────────────────────────────────────────────
+
+    def _ivive_writer(self, clh_fraction):
+        Q_liver = 20.7
+        def write(d):
+            import json
+            (d / "ivive_results.json").write_text(json.dumps({
+                "clint_in_vitro": 100.0,
+                "assay_type": "microsomal",
+                "clint_scaled_ml_min_kg": 116.775,
+                "clh_predicted_ml_min_kg": round(Q_liver * clh_fraction, 3),
+                "clh_fraction_of_qh": clh_fraction,
+                "clh_lower_ci": round(Q_liver * clh_fraction * 0.5, 3),
+                "clh_upper_ci": round(Q_liver * clh_fraction * 1.5, 3),
+                "extraction_class": (
+                    "high" if clh_fraction > 0.7 else
+                    "intermediate" if clh_fraction > 0.3 else "low"),
+                "Q_liver_ml_min_kg": Q_liver,
+                "fu_plasma": 0.10,
+                "species": "human",
+                "scaling_model": "well_stirred",
+            }))
+        return write
+
+    def test_ivive_intermediate_extraction_no_warning(self, tmp_path):
+        """Intermediate extraction (30–90% QH) → no advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "IVIVE", "cc", "00000049", tmp_path, self._ivive_writer(0.60))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) == 0
+
+    def test_ivive_high_extraction_advisory(self, tmp_path):
+        """High extraction (> 90% QH) fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "IVIVE", "cc", "00000050", tmp_path, self._ivive_writer(0.95))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        frac_found = any(
+            f.get("metric") == "clh_fraction_of_qh" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert frac_found
+
+    def test_ivive_low_extraction_advisory(self, tmp_path):
+        """Low extraction (< 30% QH) fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "IVIVE", "cc", "00000051", tmp_path, self._ivive_writer(0.10))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        frac_found = any(
+            f.get("metric") == "clh_fraction_of_qh"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert frac_found
+
+    def test_ivive_hepatic_clearance_process_name_routing(self, tmp_path):
+        """HEPATIC_CLEARANCE process name routes to IVIVE parser."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "HEPATIC_CLEARANCE", "cc", "00000052", tmp_path, self._ivive_writer(0.95))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) >= 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ames mutagenicity structural alerts
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestAmesStructuralAlerts:
+    """Ames gate fires when toxicity_report.json contains ames_positive/probability fields."""
+
+    def _ames_tox_writer(self, ames_positive, ames_prob,
+                          herg_ic50=5.0, dili_risk="low", dili_prob=0.20):
+        def write(d):
+            import json
+            (d / "toxicity_report.json").write_text(json.dumps({
+                "compounds_assessed": 1,
+                "model_type": "rdkit_descriptors",
+                "estimation_method": "rdkit_descriptors+kazius_alerts",
+                "toxicity": {
+                    "herg_ic50_uM": herg_ic50,
+                    "dili_risk": dili_risk,
+                    "dili_probability": dili_prob,
+                    "ames_positive": ames_positive,
+                    "ames_probability": ames_prob,
+                    "ames_structural_alerts": ["n_nitroso"] if ames_positive else [],
+                    "ames_method": "kazius_structural_alerts",
+                },
+            }))
+        return write
+
+    def test_ames_positive_fires_silver_advisory(self, tmp_path):
+        """ames_positive=True with probability >= 0.70 fires SILVER advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "ADMET_PRED", "dd", "00000053", tmp_path,
+                self._ames_tox_writer(True, 0.85))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        ames_found = any(
+            f.get("metric") == "ames_positive" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert ames_found, "Expected Ames SILVER advisory"
+
+    def test_ames_negative_no_advisory(self, tmp_path):
+        """ames_positive=False with low probability → no Ames advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "PREDICT_ADMET_PROPERTIES", "dd", "00000054", tmp_path,
+                self._ames_tox_writer(False, 0.10))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        ames_events = [
+            f for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+            if f.get("metric") == "ames_positive"
+        ]
+        assert len(ames_events) == 0
+
+    def test_ames_below_threshold_no_advisory(self, tmp_path):
+        """ames_positive=False, ames_probability=0.60 < 0.70 threshold → no advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "ADMET_PRED", "dd", "00000055", tmp_path,
+                self._ames_tox_writer(False, 0.60))
+        for _, data in events:
+            for f in data.get("failures", []) + data.get("warnings", []):
+                assert f.get("metric") != "ames_positive", \
+                    "Ames advisory should not fire at prob 0.60 < 0.70 threshold"
+
+    def test_ames_coexists_with_herg_gate(self, tmp_path):
+        """hERG GOLD blocking + Ames SILVER advisory both appear in one gate event."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        # hERG IC50 0.3 μM (GOLD blocking) + Ames prob 0.85 (SILVER advisory)
+        _submit(h, "ADMET_PRED", "dd", "00000056", tmp_path,
+                self._ames_tox_writer(True, 0.85, herg_ic50=0.3,
+                                       dili_risk="high", dili_prob=0.80))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        metrics = {f["metric"] for f in gate[0][1]["failures"]}
+        assert "herg_ic50_uM" in metrics
+        assert "ames_positive" in metrics
