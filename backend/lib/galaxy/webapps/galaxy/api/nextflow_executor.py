@@ -16,9 +16,14 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from galaxy.webapps.galaxy.api import Router
+from galaxy.managers.context import ProvidesUserContext
+from galaxy.webapps.galaxy.api import (
+    DependsOnTrans,
+    Router,
+)
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +32,11 @@ router = Router(tags=["nextflow"])
 # In-process registry: run_id → {status, process, outdir, ...}
 _runs: Dict[str, Dict[str, Any]] = {}
 _runs_lock = threading.Lock()
+
+# QC handler registry: invocation_id → NextflowQCGateHandler
+# Populated by _start_qc_monitor so the export endpoint can retrieve live state.
+_qc_handlers: Dict[str, Any] = {}
+_qc_handlers_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -503,6 +513,10 @@ def _start_qc_monitor(
         qc_profile=qc_profile,
     )
 
+    # Register handler so export endpoint can access live QC state.
+    with _qc_handlers_lock:
+        _qc_handlers[invocation_id] = handler
+
     def _poll() -> None:
         import time as _time
         trace_file = work_dir / "workflow-trace.txt"
@@ -560,6 +574,8 @@ def _start_qc_monitor(
                     break
 
         log.debug(f"[QC Monitor] Monitoring thread for {invocation_id} exiting")
+        # Keep handler in registry even after thread exits — it holds the
+        # complete in-memory event log that the export endpoint reads.
 
     t = threading.Thread(target=_poll, daemon=True, name=f"qc-monitor-{invocation_id[:8]}")
     t.start()
@@ -912,3 +928,565 @@ def get_invocation_qc_events(
     except Exception as e:
         log.error(f"[QC Events] Failed to retrieve events for {invocation_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve QC events: {e}")
+
+
+# ---------------------------------------------------------------------------
+# QC Report Export
+# ---------------------------------------------------------------------------
+
+class QCReportExportRequest(BaseModel):
+    invocation_id: str
+    format: str = "html"
+
+
+def _lookup_work_dir_for_invocation(invocation_id: str) -> Optional[Path]:
+    """
+    Resolve the Nextflow work directory for a given invocation_id.
+
+    Searches the in-process _runs registry (keyed by run_id) for a run whose
+    invocation_id matches.  Returns None if no matching run is found.
+    """
+    with _runs_lock:
+        for run_info in _runs.values():
+            if run_info.get("invocation_id") == invocation_id:
+                wd = run_info.get("work_dir")
+                return Path(wd) if wd else None
+    return None
+
+
+def _build_qc_report_from_jsonl(invocation_id: str, audit_path: Path) -> Dict[str, Any]:
+    """
+    Reconstruct a minimal QC report from a persisted JSONL audit file.
+
+    The audit file records override/profile initialisation and gate-trigger events.
+    It does NOT contain full metric snapshots, so the reconstructed report has
+    less detail than the live in-memory version.
+    """
+    import json as _json
+
+    entries = []
+    try:
+        for line in audit_path.read_text(errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(_json.loads(line))
+            except Exception:
+                pass
+    except OSError:
+        pass
+
+    gate_entries = [e for e in entries if e.get("event_type") == "gate_triggered"]
+    active_profile = next(
+        (e.get("active_profile") for e in entries if e.get("active_profile")), None
+    )
+    active_overrides = next(
+        (e.get("configured_overrides", {}) for e in entries), {}
+    )
+
+    events = []
+    for e in gate_entries:
+        events.append({
+            "type": "gate",
+            "process_name": e.get("applied_overrides", {}).get("process_name", "unknown"),
+            "timestamp": e.get("timestamp", ""),
+            "metrics": {},
+            "failures": [],
+            "suggestions": [],
+            "active_profile": e.get("active_profile"),
+        })
+
+    return {
+        "invocation_id": invocation_id,
+        "active_profile": active_profile,
+        "active_overrides": active_overrides,
+        "gates_triggered": len(gate_entries),
+        "warnings_emitted": 0,
+        "events": events,
+        "methods_text": "QC governance applied (see audit log for details).",
+        "source": "audit_jsonl",
+    }
+
+
+def _html_escape(value: Any) -> str:
+    """Minimal HTML escaping for values embedded in table cells."""
+    s = str(value)
+    return (
+        s.replace("&", "&amp;")
+         .replace("<", "&lt;")
+         .replace(">", "&gt;")
+         .replace('"', "&quot;")
+    )
+
+
+def _render_qc_report_html(report: Dict[str, Any]) -> str:
+    """
+    Generate a self-contained HTML QC report from a structured report dict.
+
+    The report dict is the same shape returned by NextflowQCGateHandler.get_qc_report().
+    """
+    from datetime import datetime as _dt, timezone as _tz
+
+    invocation_id = report.get("invocation_id", "unknown")
+    active_profile = report.get("active_profile") or "none"
+    active_overrides = report.get("active_overrides", {})
+    gates_triggered = report.get("gates_triggered", 0)
+    warnings_emitted = report.get("warnings_emitted", 0)
+    events = report.get("events", [])
+    methods_text = _html_escape(report.get("methods_text", ""))
+    source = report.get("source", "unknown")
+
+    generated_at = _dt.now(_tz.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    # Summary counts
+    gate_events = [e for e in events if e.get("type") == "gate"]
+    warn_events = [e for e in events if e.get("type") == "warning"]
+    total_steps = len(set(e.get("process_name", "") for e in events))
+    failed_steps = len(set(e.get("process_name", "") for e in gate_events))
+    warning_steps = len(set(e.get("process_name", "") for e in warn_events))
+    passed_steps = total_steps - failed_steps
+
+    # Build overrides table rows
+    overrides_rows = ""
+    if active_overrides:
+        for metric, val in sorted(active_overrides.items()):
+            overrides_rows += (
+                f"<tr><td>{_html_escape(metric)}</td>"
+                f"<td>{_html_escape(val)}</td></tr>\n"
+            )
+    else:
+        overrides_rows = '<tr><td colspan="2" class="none">No custom overrides applied</td></tr>'
+
+    # Build per-step event rows
+    step_rows = ""
+    for event in events:
+        etype = event.get("type", "")
+        process_name = _html_escape(event.get("process_name", "unknown"))
+        timestamp = _html_escape(event.get("timestamp", ""))
+        profile_used = _html_escape(event.get("active_profile") or "none")
+
+        if etype == "gate":
+            status_cell = '<td class="status-failed">FAILED</td>'
+            row_class = "row-failed"
+            failures = event.get("failures", [])
+            detail_cells = _render_failures_cells(failures)
+        elif etype == "warning":
+            status_cell = '<td class="status-warning">WARNING</td>'
+            row_class = "row-warning"
+            warnings_list = event.get("warnings", [])
+            detail_cells = _render_warnings_cells(warnings_list)
+        else:
+            status_cell = '<td class="status-passed">PASSED</td>'
+            row_class = "row-passed"
+            detail_cells = "<td>-</td><td>-</td><td>-</td><td>-</td>"
+
+        step_rows += (
+            f'<tr class="{row_class}">'
+            f"<td>{process_name}</td>"
+            f"{status_cell}"
+            f"<td>{timestamp}</td>"
+            f"<td>{profile_used}</td>"
+            f"{detail_cells}"
+            f"</tr>\n"
+        )
+
+    if not step_rows:
+        step_rows = (
+            '<tr><td colspan="8" class="none">'
+            "No QC events recorded — all processes passed automatically."
+            "</td></tr>"
+        )
+
+    # Build suggestions section (only if any gate events have suggestions)
+    suggestions_section = ""
+    all_suggestions = []
+    for event in gate_events:
+        for s in event.get("suggestions", []):
+            all_suggestions.append((event.get("process_name", ""), s))
+
+    if all_suggestions:
+        sug_rows = ""
+        for proc, s in all_suggestions:
+            sug_rows += (
+                f"<tr>"
+                f"<td>{_html_escape(proc)}</td>"
+                f"<td>{_html_escape(s.get('parameter', ''))}</td>"
+                f"<td>{_html_escape(s.get('currentValue', ''))}</td>"
+                f"<td>{_html_escape(s.get('suggestedValue', ''))}</td>"
+                f"<td>{_html_escape(s.get('reason', ''))}</td>"
+                f"<td>{_html_escape(s.get('confidence', ''))}</td>"
+                f"</tr>\n"
+            )
+        suggestions_section = f"""
+        <h2>Parameter Suggestions</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Process</th><th>Parameter</th><th>Current Value</th>
+              <th>Suggested Value</th><th>Reason</th><th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>{sug_rows}</tbody>
+        </table>
+        """
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioMate QC Report — {_html_escape(invocation_id)}</title>
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 24px;
+    }}
+    .container {{
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      padding: 32px;
+    }}
+    h1 {{
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: #111;
+    }}
+    h2 {{
+      font-size: 16px;
+      font-weight: 600;
+      margin: 28px 0 10px;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 6px;
+      color: #333;
+    }}
+    .meta {{
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 24px;
+    }}
+    .meta span {{ margin-right: 18px; }}
+    .summary-grid {{
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }}
+    .summary-card {{
+      border-radius: 6px;
+      padding: 14px 18px;
+      text-align: center;
+    }}
+    .card-total   {{ background: #f0f4ff; border: 1px solid #c5d3f7; }}
+    .card-passed  {{ background: #f0faf4; border: 1px solid #a8d5b8; }}
+    .card-failed  {{ background: #fff4f4; border: 1px solid #f5c5c5; }}
+    .card-warning {{ background: #fff9ec; border: 1px solid #f5dfa5; }}
+    .summary-card .number {{
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.2;
+    }}
+    .summary-card .label {{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #555;
+      margin-top: 2px;
+    }}
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }}
+    th {{
+      background: #f5f5f5;
+      text-align: left;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      font-weight: 600;
+      white-space: nowrap;
+    }}
+    td {{
+      padding: 7px 10px;
+      border: 1px solid #e8e8e8;
+      vertical-align: top;
+    }}
+    tr:hover td {{ background: #fafafa; }}
+    .row-failed td {{ background: #fff8f8; }}
+    .row-warning td {{ background: #fffbf0; }}
+    .row-passed td {{ background: #f8fff9; }}
+    .status-passed  {{ color: #1a7f3c; font-weight: 600; }}
+    .status-failed  {{ color: #b91c1c; font-weight: 600; }}
+    .status-warning {{ color: #b45309; font-weight: 600; }}
+    .tier-gold   {{ color: #b45309; font-weight: 600; }}
+    .tier-silver {{ color: #64748b; font-weight: 600; }}
+    .tier-bronze {{ color: #92400e; font-weight: 600; }}
+    .advisory    {{ color: #6d4c41; font-style: italic; }}
+    .methods-box {{
+      background: #f8faff;
+      border: 1px solid #d0d9f0;
+      border-radius: 6px;
+      padding: 14px 18px;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }}
+    .overrides-small {{
+      font-size: 12px;
+      color: #555;
+    }}
+    .none {{
+      color: #888;
+      font-style: italic;
+    }}
+    .footer {{
+      margin-top: 32px;
+      padding-top: 14px;
+      border-top: 1px solid #e8e8e8;
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+    }}
+    .badge {{
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 9px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }}
+    .badge-source {{
+      background: #e8f0fe;
+      color: #1a73e8;
+    }}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>BioMate QC Governance Report</h1>
+  <div class="meta">
+    <span><strong>Invocation ID:</strong> {_html_escape(invocation_id)}</span>
+    <span><strong>Generated:</strong> {generated_at}</span>
+    <span><strong>QC Profile:</strong> {_html_escape(active_profile)}</span>
+    <span><span class="badge badge-source">{_html_escape(source)}</span></span>
+  </div>
+
+  <h2>Summary</h2>
+  <div class="summary-grid">
+    <div class="summary-card card-total">
+      <div class="number">{total_steps}</div>
+      <div class="label">Total Steps with QC Events</div>
+    </div>
+    <div class="summary-card card-passed">
+      <div class="number">{passed_steps}</div>
+      <div class="label">Passed Steps</div>
+    </div>
+    <div class="summary-card card-failed">
+      <div class="number">{failed_steps}</div>
+      <div class="label">Failed Steps</div>
+    </div>
+    <div class="summary-card card-warning">
+      <div class="number">{warning_steps + warnings_emitted}</div>
+      <div class="label">Advisory Warnings</div>
+    </div>
+  </div>
+
+  <h2>Methods Summary</h2>
+  <div class="methods-box">{methods_text}</div>
+
+  <h2>Per-Step QC Gate Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Process Name</th>
+        <th>Status</th>
+        <th>Timestamp</th>
+        <th>Profile</th>
+        <th>Metric</th>
+        <th>Value</th>
+        <th>Threshold</th>
+        <th>Tier</th>
+      </tr>
+    </thead>
+    <tbody>
+      {step_rows}
+    </tbody>
+  </table>
+
+  {suggestions_section}
+
+  <h2>Active Threshold Overrides</h2>
+  <table class="overrides-small">
+    <thead>
+      <tr><th>Metric</th><th>Override Value</th></tr>
+    </thead>
+    <tbody>
+      {overrides_rows}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by BioMate QC Governance Engine &mdash;
+    <a href="https://biomate.ai" style="color:#999;">biomate.ai</a>
+  </div>
+
+</div>
+</body>
+</html>"""
+
+    return html
+
+
+def _render_failures_cells(failures: list) -> str:
+    """Render the Metric / Value / Threshold / Tier table cells for gate failures."""
+    if not failures:
+        return "<td>-</td><td>-</td><td>-</td><td>-</td>"
+
+    metric_parts, value_parts, threshold_parts, tier_parts = [], [], [], []
+    for f in failures:
+        metric = _html_escape(f.get("metric", ""))
+        value = _html_escape(f.get("value", ""))
+        threshold = _html_escape(f.get("threshold", ""))
+        tier = _html_escape(f.get("tier", f.get("severity", "")))
+        advisory = f.get("advisory", False)
+        msg = _html_escape(f.get("message", ""))
+
+        tier_class = ""
+        if "GOLD" in tier.upper():
+            tier_class = "tier-gold"
+        elif "SILVER" in tier.upper():
+            tier_class = "tier-silver"
+        elif "BRONZE" in tier.upper():
+            tier_class = "tier-bronze"
+
+        adv_note = ' <span class="advisory">(advisory)</span>' if advisory else ""
+
+        metric_parts.append(f"{metric}{adv_note}")
+        value_parts.append(str(value))
+        threshold_parts.append(f"{threshold} &mdash; {msg}" if msg else str(threshold))
+        tier_parts.append(f'<span class="{tier_class}">{tier}</span>' if tier_class else tier)
+
+    sep = "<br>"
+    return (
+        f"<td>{sep.join(metric_parts)}</td>"
+        f"<td>{sep.join(value_parts)}</td>"
+        f"<td>{sep.join(threshold_parts)}</td>"
+        f"<td>{sep.join(tier_parts)}</td>"
+    )
+
+
+def _render_warnings_cells(warnings: list) -> str:
+    """Render the Metric / Value / Threshold / Tier table cells for near-threshold warnings."""
+    if not warnings:
+        return "<td>-</td><td>-</td><td>-</td><td>-</td>"
+
+    metric_parts, value_parts, threshold_parts, tier_parts = [], [], [], []
+    for w in warnings:
+        metric = _html_escape(w.get("metric", ""))
+        value = _html_escape(w.get("value", ""))
+        threshold = _html_escape(w.get("threshold", ""))
+        severity = _html_escape(w.get("severity", "near_threshold"))
+        msg = _html_escape(w.get("message", ""))
+
+        metric_parts.append(metric)
+        value_parts.append(str(value))
+        threshold_parts.append(f"{threshold} &mdash; {msg}" if msg else str(threshold))
+        tier_parts.append(severity)
+
+    sep = "<br>"
+    return (
+        f"<td>{sep.join(metric_parts)}</td>"
+        f"<td>{sep.join(value_parts)}</td>"
+        f"<td>{sep.join(threshold_parts)}</td>"
+        f"<td>{sep.join(tier_parts)}</td>"
+    )
+
+
+@router.post(
+    "/api/export/qc_report",
+    summary="Export QC governance report as HTML",
+    response_class=HTMLResponse,
+)
+def export_qc_report(
+    request: QCReportExportRequest,
+) -> HTMLResponse:
+    """
+    Generate and return an HTML QC governance report for a workflow invocation.
+
+    Lookup order:
+      1. In-memory QC handler registry (_qc_handlers) — populated when the workflow
+         is launched via POST /api/nextflow/execute.
+      2. Persisted JSONL audit log at <work_dir>/qc_overrides_audit.jsonl — used when
+         the handler has been evicted or the process was launched in a previous session.
+
+    Accepted formats: "html" (only format supported in v1).
+
+    Returns Content-Type: text/html.
+    """
+    invocation_id = request.invocation_id.strip()
+    fmt = (request.format or "html").lower()
+
+    if fmt != "html":
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported format '{fmt}'. Only 'html' is supported.",
+        )
+
+    if not invocation_id:
+        raise HTTPException(status_code=422, detail="invocation_id must not be empty.")
+
+    report: Optional[Dict[str, Any]] = None
+
+    # --- Path 1: live in-memory handler ---
+    with _qc_handlers_lock:
+        handler = _qc_handlers.get(invocation_id)
+
+    if handler is not None:
+        try:
+            report = handler.get_qc_report()
+            report["source"] = "live_handler"
+        except Exception as exc:
+            log.warning(f"[QC Export] Failed to get report from live handler: {exc}")
+
+    # --- Path 2: persisted JSONL audit file ---
+    if report is None:
+        work_dir = _lookup_work_dir_for_invocation(invocation_id)
+        if work_dir is not None:
+            audit_path = work_dir / "qc_overrides_audit.jsonl"
+            if audit_path.exists():
+                report = _build_qc_report_from_jsonl(invocation_id, audit_path)
+
+    # --- Path 3: empty report (no QC data recorded yet) ---
+    if report is None:
+        report = {
+            "invocation_id": invocation_id,
+            "active_profile": None,
+            "active_overrides": {},
+            "gates_triggered": 0,
+            "warnings_emitted": 0,
+            "events": [],
+            "methods_text": (
+                "No QC events have been recorded for this invocation. "
+                "The workflow may still be running, or QC monitoring was not enabled."
+            ),
+            "source": "not_found",
+        }
+
+    try:
+        html_content = _render_qc_report_html(report)
+    except Exception as exc:
+        log.error(f"[QC Export] HTML rendering failed for {invocation_id}: {exc}")
+        raise HTTPException(status_code=500, detail=f"HTML rendering failed: {exc}")
+
+    return HTMLResponse(content=html_content, status_code=200)
