@@ -588,6 +588,11 @@ class NextflowQCGateHandler:
         # Track which processes have been checked
         self.checked_processes = set()
 
+        # US-6.2: In-memory QC event log — all gate + warning events for this invocation.
+        # Each entry: {"type": "gate"|"warning", "process_name", "timestamp",
+        #               "metrics", "failures"|"warnings", "suggestions"}
+        self.qc_event_log: list = []
+
         # Write an audit record at initialisation when overrides are active
         if self.qc_overrides or self.active_profile:
             self._write_audit_log_entry("initialized", {})
@@ -4144,6 +4149,17 @@ class NextflowQCGateHandler:
         if self.qc_overrides or self.active_profile:
             self._write_audit_log_entry("gate_triggered", {"process_name": process_name})
 
+        # US-6.2: append to in-memory event log
+        self.qc_event_log.append({
+            "type": "gate",
+            "process_name": process_name,
+            "timestamp": event_data["timestamp"],
+            "metrics": qc_metrics,
+            "failures": failures,
+            "suggestions": suggestions,
+            "active_profile": self.active_profile,
+        })
+
         try:
             self.sse_callback("qc_gate_triggered", event_data)
             log.info(f"[QC Gate] SSE event emitted for {process_name} with {len(suggestions)} suggestions")
@@ -4232,6 +4248,61 @@ class NextflowQCGateHandler:
 
         return warnings
 
+    # ------------------------------------------------------------------
+    # US-6.2: QC event log + structured report
+    # ------------------------------------------------------------------
+
+    def get_qc_report(self) -> Dict[str, Any]:
+        """
+        Return a structured QC summary for this invocation.
+
+        Returned dict:
+          invocation_id: str
+          active_profile: str | None
+          active_overrides: dict
+          gates_triggered: int          — blocking gate events
+          warnings_emitted: int         — near-threshold warning events
+          events: list[dict]            — all events in chronological order
+          methods_text: str             — human-readable paragraph for methods sections
+        """
+        gate_events = [e for e in self.qc_event_log if e["type"] == "gate"]
+        warn_events = [e for e in self.qc_event_log if e["type"] == "warning"]
+
+        # Build methods paragraph
+        profile_phrase = (
+            f" using named profile '{self.active_profile}'"
+            if self.active_profile else ""
+        )
+        override_phrase = (
+            f" with {len(self.qc_overrides)} custom threshold override(s)"
+            if self.qc_overrides else ""
+        )
+        if gate_events:
+            gate_phrase = (
+                f"QC gates were triggered for {len(gate_events)} process(es) "
+                f"({', '.join(e['process_name'] for e in gate_events)}). "
+            )
+        else:
+            gate_phrase = "All processes passed automated QC gates without intervention. "
+
+        methods_text = (
+            f"Quality control was performed automatically by BioMate{profile_phrase}{override_phrase}. "
+            f"{gate_phrase}"
+            f"A total of {len(warn_events)} near-threshold advisory warning(s) were recorded. "
+            f"Gate thresholds and references are described in the BioMate QC governance "
+            f"documentation (qc_trace_monitor.py, threshold evidence v3)."
+        )
+
+        return {
+            "invocation_id": self.invocation_id,
+            "active_profile": self.active_profile,
+            "active_overrides": dict(self.qc_overrides) if self.qc_overrides else {},
+            "gates_triggered": len(gate_events),
+            "warnings_emitted": len(warn_events),
+            "events": list(self.qc_event_log),
+            "methods_text": methods_text,
+        }
+
     def _emit_qc_warning_event(
         self,
         process_name: str,
@@ -4252,6 +4323,16 @@ class NextflowQCGateHandler:
             "active_overrides": dict(self.qc_overrides) if self.qc_overrides else {},
             "active_profile": self.active_profile,
         }
+        # US-6.2: append to in-memory event log
+        self.qc_event_log.append({
+            "type": "warning",
+            "process_name": process_name,
+            "timestamp": event_data["timestamp"],
+            "metrics": qc_metrics,
+            "warnings": warnings,
+            "active_profile": self.active_profile,
+        })
+
         try:
             self.sse_callback("qc_warning", event_data)
             log.info(f"[QC Gate] Near-threshold warning emitted for {process_name}")

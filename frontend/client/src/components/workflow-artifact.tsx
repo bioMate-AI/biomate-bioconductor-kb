@@ -210,6 +210,15 @@ export function WorkflowArtifact({
   const [stepQCAnnotations, setStepQCAnnotations] = useState<
     Record<string, { processName: string; failures: any[]; severity?: string }>
   >({})
+  // US-6.2 — QC event report fetched after workflow completes
+  const [qcReport, setQCReport] = useState<{
+    gates_triggered: number
+    warnings_emitted: number
+    events: any[]
+    methods_text: string
+    active_profile?: string
+  } | null>(null)
+  const [showQCSummary, setShowQCSummary] = useState(false)
   // Ref to read latest qcGateData in SSE closure without stale capture
   const qcGateDataRef = useRef(qcGateData)
   qcGateDataRef.current = qcGateData
@@ -342,6 +351,15 @@ export function WorkflowArtifact({
       sseRef.current = null
     }
   }, [sseInvocationId, sseRetryKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // US-6.2: fetch QC event report when workflow completes
+  useEffect(() => {
+    if (!isCompleted || !invocationId) return
+    fetch(`/api/invocations/${invocationId}/qc-events`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setQCReport(data) })
+      .catch(() => {}) // non-critical; summary section simply won't show
+  }, [isCompleted, invocationId])
 
   const toggleStepExpanded = (stepId: string) => {
     setExpandedSteps(prev => {
@@ -1104,6 +1122,64 @@ export function WorkflowArtifact({
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
                       Workflow Completed
                     </h4>
+
+                    {/* US-6.2 — QC Summary (shows when events exist) */}
+                    {qcReport && (qcReport.gates_triggered > 0 || qcReport.warnings_emitted > 0) && (
+                      <div className="border rounded-md text-xs">
+                        <button
+                          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-muted/40 transition-colors"
+                          onClick={() => setShowQCSummary(v => !v)}
+                        >
+                          <span className="flex items-center gap-2 font-medium">
+                            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                            QC Summary
+                            {qcReport.active_profile && (
+                              <span className="text-xs font-normal text-muted-foreground">
+                                · profile: {qcReport.active_profile.replace(/_/g, " ")}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-muted-foreground flex gap-3">
+                            {qcReport.gates_triggered > 0 && (
+                              <span className="text-red-600">{qcReport.gates_triggered} gate{qcReport.gates_triggered !== 1 ? "s" : ""}</span>
+                            )}
+                            {qcReport.warnings_emitted > 0 && (
+                              <span className="text-amber-600">{qcReport.warnings_emitted} warning{qcReport.warnings_emitted !== 1 ? "s" : ""}</span>
+                            )}
+                            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showQCSummary && "rotate-180")} />
+                          </span>
+                        </button>
+                        {showQCSummary && (
+                          <div className="border-t px-3 py-2 space-y-2">
+                            {qcReport.events.map((ev: any, i: number) => (
+                              <div key={i} className={cn(
+                                "rounded px-2 py-1.5 space-y-0.5",
+                                ev.type === "gate" ? "bg-red-50/60 dark:bg-red-950/20" : "bg-amber-50/60 dark:bg-amber-950/20"
+                              )}>
+                                <p className="font-medium capitalize">
+                                  {ev.type === "gate" ? "🔴" : "⚠️"}{" "}
+                                  {(ev.process_name || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                                </p>
+                                {(ev.failures || ev.warnings || []).map((f: any, j: number) => (
+                                  <p key={j} className="text-muted-foreground pl-2">
+                                    {typeof f === "string" ? f : f.message || `${f.metric}: ${f.value}`}
+                                  </p>
+                                ))}
+                              </div>
+                            ))}
+                            <div className="pt-1 border-t">
+                              <p className="text-muted-foreground italic leading-snug">{qcReport.methods_text}</p>
+                              <button
+                                className="mt-1 text-primary hover:underline"
+                                onClick={() => navigator.clipboard?.writeText(qcReport.methods_text)}
+                              >
+                                Copy methods text
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Output summary */}
                     {outputs.length > 0 && (

@@ -842,3 +842,73 @@ def list_qc_profiles() -> Dict[str, Any]:
         "profiles": profiles,
         "count": len(profiles),
     }
+
+
+@router.get("/api/invocations/{invocation_id}/qc-events",
+            summary="Get QC event log for a workflow invocation")
+def get_invocation_qc_events(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+):
+    """
+    Return all QC gate and warning events recorded for a workflow invocation.
+
+    Includes:
+    - All blocking gate events (type='gate') with failures, metrics, suggestions
+    - All near-threshold warning events (type='warning')
+    - A methods_text paragraph suitable for inserting into paper methods sections
+    - Summary counts (gates_triggered, warnings_emitted)
+    """
+    try:
+        from galaxy.jobs.runners.nextflow_monitor import get_monitor_service
+        monitor_service = get_monitor_service(trans.app)
+
+        # Try integer lookup first (Galaxy invocation IDs), then string
+        monitor = None
+        for key in (invocation_id, int(invocation_id) if invocation_id.isdigit() else None):
+            if key is None:
+                continue
+            monitor = monitor_service.monitors.get(key)
+            if monitor:
+                break
+
+        if monitor is None or monitor.qc_handler is None:
+            # Attempt to locate a persisted JSONL audit log even if monitor is gone
+            import json as _json
+            jobs_dir = getattr(getattr(trans.app, 'config', None), 'root', None)
+            if jobs_dir:
+                from pathlib import Path as _Path
+                audit_path = (_Path(jobs_dir) / 'database' / 'jobs_directory'
+                              / 'nextflow_workflows' / f"workflow_{invocation_id}"
+                              / "qc_overrides_audit.jsonl")
+                if audit_path.exists():
+                    entries = []
+                    for line in audit_path.read_text().splitlines():
+                        try:
+                            entries.append(_json.loads(line))
+                        except Exception:
+                            pass
+                    return {
+                        "invocation_id": invocation_id,
+                        "source": "audit_jsonl",
+                        "gates_triggered": sum(1 for e in entries if e.get("event_type") == "gate_triggered"),
+                        "warnings_emitted": 0,
+                        "events": entries,
+                        "methods_text": "QC governance applied (see audit log for details).",
+                    }
+            return {
+                "invocation_id": invocation_id,
+                "source": "not_found",
+                "gates_triggered": 0,
+                "warnings_emitted": 0,
+                "events": [],
+                "methods_text": "No QC events recorded for this invocation.",
+            }
+
+        report = monitor.qc_handler.get_qc_report()
+        report["source"] = "live_monitor"
+        return report
+
+    except Exception as e:
+        log.error(f"[QC Events] Failed to retrieve events for {invocation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve QC events: {e}")

@@ -48,6 +48,8 @@ import {
   getExecutionRunsOverview,
   RunOverviewBadRequestError,
 } from "./run-overview";
+import { telemetryService } from "./telemetry-service";
+import { TokenCounter } from "./token-counter";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -57,6 +59,7 @@ const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim())
 // Initialize Galaxy backend - using REAL Galaxy API (no more mock)
 const galaxyAPIBackend = new GalaxyAPIProxy(); // Real Galaxy API for all operations
 const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
+const tokenCounter = new TokenCounter();
 
 // Initialize state poller and SSE manager
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
@@ -585,6 +588,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     // Keep telemetry non-blocking for UI interactions.
     res.status(204).send();
+    const event = String(req.body?.event || "").trim();
+    const timestamp = req.body?.timestamp ? new Date(req.body.timestamp) : new Date();
+    const payload = req.body?.payload && typeof req.body.payload === "object" ? req.body.payload : undefined;
+    if (!event) {
+      return;
+    }
+    telemetryService.create(event, Number.isNaN(timestamp.getTime()) ? new Date() : timestamp, payload).catch((error) => {
+      console.warn("[Telemetry] Failed to persist telemetry event:", error?.message || error);
+    });
+  });
+
+  app.get("/api/telemetry/summary", async (req, res) => {
+    try {
+      const from = typeof req.query?.from === "string" ? req.query.from : undefined;
+      const to = typeof req.query?.to === "string" ? req.query.to : undefined;
+      const summary = await telemetryService.getSummary({ from, to });
+      res.json(summary);
+    } catch (error: any) {
+      console.error("[Telemetry] Failed to fetch summary:", error);
+      res.status(500).json({ error: "TelemetrySummaryError", message: error?.message || String(error) });
+    }
   });
 
   // UX Feedback ingestion endpoint for inline/post-run flows.
@@ -2093,6 +2117,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy — QC event log for a completed invocation (US-6.2)
+  app.get("/api/invocations/:id/qc-events", optionalAuth, async (req, res) => {
+    try {
+      const response = await galaxyAPIProxy.client.get(`/api/invocations/${req.params.id}/qc-events`);
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: "QC events proxy error" });
+    }
+  });
+
   // ============================================================================
   // Server-Sent Events (SSE) for Real-Time Workflow Updates
   // ============================================================================
@@ -2116,17 +2151,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     sseManager.injectRawEvent(String(invocation_id), String(event_type), data);
     res.json({ ok: true });
-  });
-
-  // Proxy — QC named profiles list (backend at /api/qc/profiles)
-  app.get("/api/qc/profiles", async (_req, res) => {
-    try {
-      const response = await galaxyAPIProxy.client.get("/api/qc/profiles");
-      return res.status(response.status).json(response.data);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json(err.response?.data || { error: "QC profiles proxy error" });
-    }
   });
 
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
@@ -2407,6 +2431,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         String(assistantResponse.message || ""),
         String(message || "")
       );
+
+      // Persist chat cost estimate for end-to-end process auditing.
+      // This is an approximation based on local token counting heuristics.
+      try {
+        const inCount = tokenCounter.countText(String(message || "")).tokens;
+        const outCount = tokenCounter.countText(String(assistantResponse.message || "")).tokens;
+        const pricing = tokenCounter.estimateCost([
+          { role: "user", content: String(message || "") },
+          { role: "assistant", content: String(assistantResponse.message || "") },
+        ]);
+        const estimatedCostUsd = Number((pricing.total || 0).toFixed(8));
+        const sessionId = String(context?.memorySessionId || context?.sessionId || "");
+        const runId = String(context?.runId || context?.executionRunId || "");
+        const invocationId = String(context?.invocationId || "");
+
+        telemetryService
+          .create("cost.chat.estimated", new Date(), {
+            userId: req.user ? String(req.user.id) : "anonymous",
+            sessionId: sessionId || undefined,
+            runId: runId || undefined,
+            invocationId: invocationId || undefined,
+            provider: "anthropic",
+            model: "claude-sonnet-4-5",
+            inputTokensEstimated: inCount,
+            outputTokensEstimated: outCount,
+            estimatedCostUsd,
+            estimationMethod: "token_counter_heuristic",
+          })
+          .catch((error) => {
+            console.warn("[CostAudit] Failed to persist chat cost estimate:", error?.message || error);
+          });
+      } catch (costError: any) {
+        console.warn("[CostAudit] Failed to estimate chat cost:", costError?.message || costError);
+      }
+
       res.json({
         response: assistantResponse.message,
         suggestions,
@@ -4680,10 +4739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: request.workflowDefinition.parameters || {},
-              profile: request.executionConfig?.nextflow_profile || 'standard',
-              ...(request.executionConfig?.qcProfile && { qc_profile: request.executionConfig.qcProfile }),
-              ...(request.executionConfig?.qcOverrides && Object.keys(request.executionConfig.qcOverrides).length > 0
-                && { qc_overrides: request.executionConfig.qcOverrides }),
+              profile: request.executionConfig?.nextflow_profile || 'standard'
             })
           });
 
