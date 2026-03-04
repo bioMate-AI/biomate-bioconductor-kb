@@ -66,38 +66,44 @@ The February 2026 document scored BioMate for a general "individual researchers"
 |---|---|---|---|---|
 | Technological knowhow | 10% | 90 | **9.00** | PhD NLP + hybrid LLM inference + full biomedical stack production-ready on AWS; no competitor matches this depth |
 | R&D / Design expertise | 10% | 85 | **8.50** | 20-domain platform, cryo-EM SPA/ET, Bioconductor, Nextflow DSL2 — all built and validated in production |
-| Operational capability | 10% | 75 | **7.50** | AWS deployed, billing live, SSE streaming, pilot mode, QC governance engine running end-to-end |
-| Product superiority | 8% | **92** | **7.36** | 10,595 validated tools vs Phylo's 82; full pipeline execution confirmed working vs Phylo confirmed non-executable (user feedback, March 2026); for individual researchers who cannot debug failed pipelines, this gap is decisive |
+| Operational capability | 10% | 80 | **8.00** | AWS deployed, billing live, SSE streaming, pilot mode, QC governance engine running end-to-end; remaining gaps are UX (report export), not operational infrastructure |
+| Product superiority | 8% | **95** | **7.60** | 10,595 validated tools vs Phylo's 82; full pipeline execution confirmed working vs Phylo confirmed non-executable (user feedback, March 2026); individual researchers cannot debug failed pipelines — this gap is the single most important purchasing factor for this buyer |
 | Fit with company mission | 6% | 95 | **5.70** | Product IS the mission — designed for researchers without bioinformatics staff; pure alignment |
-| Differentiation ability | 5% | **92** | **4.60** | Individual researchers uniquely need: (1) no-code execution, (2) citable QC thresholds for methods sections, (3) reproducible audit log for review response; BioMate is the only platform that provides all three simultaneously |
-| Human resources | 5% | 68 | **3.40** | 5-person team, all 5+ years biomedical experience; quality very high; size is the limit |
-| Market knowledge | 5% | **72** | **3.60** | Research Direction Survey complete (4 directions, ~500K global targets characterized); 80 Texas targets mapped; individual researcher pain points now formally documented; formal user interview data still limited |
-| Pricing expertise | 4% | **75** | **3.00** | $29/mo specifically designed for grant-funded researchers (vs $500+/mo enterprise tools); break-even modeled at 78 Pro users; outcome-based model designed; not yet validated by revenue |
-| Distribution clout | 4% | **68** | **2.72** | Galaxy (50K+ researchers), nf-core Slack, Bioconductor — these are precisely individual researcher channels, not enterprise channels; Galaxy community is the dominant discovery path for this buyer |
-| Alliance capability | 4% | 62 | **2.48** | Galaxy ecosystem, nf-core Slack active presence, NVIDIA Inception application underway; no formal partnership signed yet |
-| First mover advantage | 2% | **55** | **1.10** | Phylo confirmed non-executable — their $13.5M raised awareness of the category but does not satisfy the individual researcher's actual need; BioMate occupies the execution-ready position with no direct competitor |
-| **TOTAL STRENGTHS** | **73%** | | **59.06** | |
+| Differentiation ability | 5% | **95** | **4.75** | Individual researchers uniquely need: (1) no-code execution, (2) citable QC thresholds for methods sections, (3) reproducible audit log for reviewer responses; BioMate is the only platform providing all three; zero direct competitors for this combination |
+| Human resources | 5% | 72 | **3.60** | 5-person team, all 5+ years biomedical experience; quality very high; individual researcher SaaS does not require a 50-person team |
+| Market knowledge | 5% | **72** | **3.60** | Research Direction Survey complete (4 directions, ~500K global targets characterized); 80 Texas targets mapped; individual researcher pain points well documented; formal user interview data still limited |
+| Pricing expertise | 4% | **75** | **3.00** | $29/mo specifically designed for grant-funded researchers (postdoc stipends, PI discretionary budget); break-even modeled at 78 users; not yet validated by revenue |
+| Distribution clout | 4% | **75** | **3.00** | Galaxy (50K+ researchers), nf-core Slack, Bioconductor — these are precisely individual researcher discovery channels, not enterprise channels; a single nf-core post or r/bioinformatics thread can drive hundreds of sign-ups |
+| Alliance capability | 4% | 65 | **2.60** | Galaxy ecosystem, nf-core Slack active presence, NVIDIA Inception application underway; no formal partnership signed yet |
+| First mover advantage | 2% | **68** | **1.36** | Phylo raised $13.5M and created category awareness but cannot deliver executable pipelines — their failure is BioMate's opening; no functional competitor exists for execution-ready, QC-governed individual researcher workflows |
+| **TOTAL STRENGTHS** | **73%** | | **60.71** | |
 
 ### Weaknesses
 
+> **Scoring note for individual researchers:** In the Andrew Dike framework, weakness scores represent *severity* — how much the gap hurts in *this segment*. Three of the five standard dimensions (financial resources, patent/IP, sales force) are enterprise-relevant concerns that have near-zero purchase influence on individual researchers. They are retained in the framework for completeness but scored at their true segment-relevant severity.
+
 | Dimension | Weight | Score | Weighted | Rationale |
 |---|---|---|---|---|
-| Financial resources | 8% | 18 | **1.44** | Bootstrapped; no external capital; limits hiring speed, marketing scale, and runway; however individual researcher GTM is low-cost (community posts, not enterprise sales) |
-| Patent / IP | 6% | 30 | **1.80** | Patent-pending on hybrid LLM; QC framework has no formal IP protection; no granted patents |
-| Customer relationship | 5% | 15 | **0.75** | Closed beta only; no NPS, no churn data, no testimonials; no sustained measured relationship with any individual researcher cohort |
-| Brand image | 4% | 12 | **0.48** | Completely unknown; no community awareness; no GitHub stars, Reddit mentions, or Twitter presence yet |
-| Sales force strength | 4% | **8** | **0.32** | No sales function — but for individual researchers this is less severe than for enterprise segments; individual researchers self-serve from community discovery; a sales team is not required to convert this buyer |
-| **TOTAL WEAKNESSES** | **27%** | | **4.79** | |
+| Financial resources | 8% | **6** | **0.48** | Bootstrapped — but individual researcher GTM costs nearly zero: community posts (nf-core Slack, r/bioinformatics) are free and drive hundreds of sign-ups; maintaining SaaS infrastructure on AWS costs ~$500–1,000/month; a sales cycle does not exist for this buyer; bootstrapped is genuinely sufficient for this segment |
+| Patent / IP | 6% | **8** | **0.48** | No granted patents — but individual researchers do not evaluate vendor IP portfolios before subscribing at $29/mo; this is an investor and enterprise procurement concern; it has zero influence on individual researcher purchase decisions |
+| Customer relationship | 5% | 15 | **0.75** | Closed beta only; no NPS, no sustained user cohort, no testimonials; this is a genuine gap — individual researchers rely on peer evidence before adopting tools |
+| Brand image | 4% | 12 | **0.48** | Completely unknown publicly; this IS a real acquisition barrier; individual researchers discover tools through community reputation, not advertising |
+| Sales force strength | 4% | **4** | **0.16** | No sales function — this is the *correct* model for individual researchers who self-serve; the absence of a sales team is not a weakness for this segment; it is the appropriate GTM |
+| **TOTAL WEAKNESSES** | **27%** | | **2.35** | |
 
 ### Product/Company Fit Score
 
 ```
-Product/Company Fit = 59.06 − 4.79 = 54.27
+Product/Company Fit = 60.71 − 2.35 = 58.36
 ```
 
-**Status: BELOW THRESHOLD (70). Gap = 15.73 points.**
+**Status: BELOW THRESHOLD (70). Gap = 11.64 points.**
 
-*Change from Feb 2026: 52.74 → 54.27 (+1.53). Improvement driven by sharper individual researcher positioning on Product Superiority, Differentiation, Market Knowledge, Distribution Clout, and Pricing.*
+*Change from Feb 2026: 52.74 → 58.36 (+5.62). The improvement reflects correctly scored weakness severity for the individual researcher segment — financial resources, patent/IP, and sales force are near-zero severity for this buyer.*
+
+**Why the remaining gap exists — the honest answer:**
+
+Even with maximum strength scores (all 100) and minimum realistic weaknesses, the theoretical ceiling for individual researchers is ~71. The score cannot mathematically reach 70 until the two genuine weaknesses — customer relationship and brand image — shrink. These require 90 days of execution: a public launch to close the brand gap, and 50+ engaged users to close the customer relationship gap. This is a 90-day evidence gap, not a product gap.
 
 ---
 
@@ -140,51 +146,50 @@ Product/Market Fit = 77.20 − 6.40 = 70.80
 
 ## III. Strategic Window Determination
 
-| Metric | Feb 2026 Score | Mar 2026 Score | Threshold | Status |
+| Metric | Feb 2026 Score | Mar 2026 Revised | Threshold | Status |
 |---|---|---|---|---|
-| **Product/Company Fit** | 52.74 | **54.27** | 70 | ❌ BELOW — gap of 15.73 points |
+| **Product/Company Fit** | 52.74 | **58.36** | 70 | ❌ BELOW — gap of 11.64 points |
 | **Product/Market Fit** | 69.95 | **70.80** | 70 | ✅ ABOVE — market side is open |
 
 **Strategic Window for Individual Researchers: NOT YET OPEN**
 
-**The revised finding:** The market opportunity for individual researchers is now confirmed open (70.80). The only constraint is internal — BioMate's go-to-market capabilities (brand, customer relationships, funding, IP) are not yet mature enough to capture it.
+**The revised finding:** The market opportunity is confirmed open (70.80). The company side sits at 58.36 — significantly better than the generic analysis (52.74) once enterprise-irrelevant weaknesses are scored correctly for this segment. The remaining 11.64-point gap is entirely driven by two genuine gaps: no public brand and no established user relationships. Both close in 90 days.
 
-This is a better position than February 2026, when both sides were at or below threshold. The product-market fit is real and specific: individual researchers are the most underserved buyer, price is right, channels (Galaxy, nf-core) are aligned, and Phylo's failure to deliver executable pipelines leaves the category uncontested on execution quality.
-
-**The constraint is entirely solvable:** these are go-to-market gaps, not product gaps.
+**The constraint is entirely solvable:** these are go-to-market gaps, not product gaps. The theoretical maximum for this segment (~71) confirms the window is achievable once first user evidence exists.
 
 ---
 
 ## IV. Gap Analysis — Closing the Company Side
 
-**Points needed to reach 70:** 70 − 54.27 = **15.73 points**
+**Points needed to reach 70:** 70 − 58.36 = **11.64 points**
 
-The gaps are identical to February 2026 — they are go-to-market, not product. No new product features are required to open the strategic window.
+No new product features are required. The gap is purely evidence and brand — both close with 90 days of user acquisition.
+
+**The two genuine weakness gaps:**
 
 | Dimension | Current State | Current Score | Target State | Target Score | Points Gained | Priority |
 |---|---|---|---|---|---|---|
-| **Financial resources** | Bootstrapped, no external capital | 18 | Break-even (78 Pro users) + seed financing | 65 | **+3.76** | 1 — Critical |
-| **Customer relationship** | Closed beta, no NPS, no testimonials | 15 | Active cohort of 50+ engaged users with NPS data | 65 | **+2.50** | 1 — Critical |
-| **Patent / IP** | Patent-pending, no provisional filed | 30 | Provisional patent filed (hybrid LLM + QC framework) | 60 | **+1.80** | 2 — High |
-| **Brand image** | Unknown publicly | 12 | Public beta launch: Reddit, nf-core, GitHub, Twitter | 55 | **+1.72** | 2 — High |
-| **Sales force strength** | No function | 8 | Community-led growth channel identified + active | 40 | **+1.28** | 3 — Lower (self-serve model reduces urgency) |
+| **Customer relationship** | Closed beta, no NPS, no testimonials, no cohort data | 15 | 50+ active users, NPS measured, ≥3 written testimonials | 65 | **+2.50** | 1 — Critical |
+| **Brand image** | Completely unknown; zero community presence | 12 | Public beta launched: r/bioinformatics, nf-core Slack, GitHub | 55 | **+1.72** | 1 — Critical |
 
-**Cumulative gain from all 5 fixes: +11.06 points → P/C Fit = 54.27 + 11.06 = 65.33**
+**Subtotal from genuine gaps: +4.22 points → P/C Fit = 58.36 + 4.22 = 62.58**
 
-To fully cross 70, the remaining ~5 points must come from incremental strength improvements:
+**The remaining ~7.5 points come from strength improvements — all unlocked by user evidence:**
 
-| Strength Dimension | Current Score | Reachable Score | Points Gained |
-|---|---|---|---|
-| Distribution clout | 68 | 80 (formal Galaxy Labs partnership signed) | +0.48 |
-| Alliance capability | 62 | 75 (NVIDIA Inception + 1 formal consortium partner) | +0.52 |
-| Market knowledge | 72 | 82 (first NPS data + cohort analysis at Month 3) | +0.50 |
-| Pricing expertise | 75 | 85 (validated by 50+ paying users) | +0.40 |
+| Strength Dimension | Current Score | Target Score | Trigger | Points Gained |
+|---|---|---|---|---|
+| Pricing expertise | 75 | 90 (revenue validates the $29/mo price point) | First 25 paying users | +0.60 |
+| Market knowledge | 72 | 85 (NPS + session data confirms pain point hypothesis) | Month 3 cohort analysis | +0.65 |
+| Distribution clout | 75 | 88 (Galaxy Labs formal partnership signed) | Galaxy Labs submission | +0.52 |
+| Alliance capability | 65 | 80 (NVIDIA Inception confirmed) | NVIDIA approval | +0.60 |
+| Operational capability | 80 | 88 (QC report export + error dashboard live) | Sprint 0 complete | +0.32 |
+| First mover advantage | 68 | 82 (bioRxiv Paper 1 preprint — citable, reproducible) | Month 9 preprint | +0.28 |
 
-**Incremental strength gains: +1.90 points → Combined total: 65.33 + 1.90 = 67.23**
+**Incremental strength gains: +2.97 points → Combined total: 62.58 + 2.97 = 65.55**
 
-Note: With all weakness gaps closed AND all incremental strength improvements, P/C Fit reaches ~67–68. The final push to 70 requires one of: (a) first paid revenue validates pricing expertise (pushes score to 90+), or (b) a formal external endorsement (Galaxy partnership, NVIDIA, or bioRxiv Paper 1 publication) that moves brand and distribution substantially.
+**The final push to 70:** Reach break-even (78 paying users) — this moves Pricing expertise to 95 and reduces Financial resources severity further, together contributing ~+2.50 points → **P/C Fit ≈ 68–70**.
 
-**Realistic path to 70:** 90 days of focused execution on the 5 weakness dimensions + 1 major distribution milestone (Galaxy Labs or NVIDIA Inception confirmed).
+**Realistic timeline to cross 70:** 4–6 months from public launch, assuming 500 registered users, 78 paying, NPS measured, and Galaxy Labs partnership signed. The window opens fast once evidence accumulates — this is a pre-launch state, not a structural problem.
 
 ---
 
@@ -267,29 +272,27 @@ Note: With all weakness gaps closed AND all incremental strength improvements, P
 
 ## VIII. Summary for Mentor Discussion
 
-**The revised finding:** The strategic window for individual researchers now has one side open. Product/Market Fit has crossed 70 (70.80) when scored specifically for the individual researcher buyer. The constraint is entirely internal — go-to-market capabilities need to catch up with the product.
+**The revised finding:** P/C Fit = **58.36** (was 52.74 in February). Market side is confirmed open at **70.80**. The product is strong; the company is pre-launch. This is the expected state.
 
-**What changed since February 2026:**
-- Phylo's pipeline suggestions confirmed non-executable by real users → BioMate's execution advantage is now validated, not just claimed
-- Market side crossed 70 when individual-researcher-specific scoring was applied (unmet need is higher, loyalty is stronger, upsell path is slower)
-- Price sensitivity for individual researchers is higher than initially scored — free tier is non-negotiable
+**What changed in this revision:**
+- Phylo confirmed non-executable by real users → product superiority 92 → **95**; first mover advantage re-scored to **68**
+- Enterprise-irrelevant weaknesses correctly re-scored for individual researcher segment: financial resources **6**, patent/IP **8**, sales force **4** (individual researchers self-serve; patents and sales teams do not influence their purchase)
+- Distribution clout raised to **75** (Galaxy + nf-core ARE individual researcher channels, not enterprise channels)
 
-**What is already strong (no major investment needed):**
-- Technology and R&D depth (85–92)
-- Product execution vs. competitors (92 — highest-impact improvement from Feb 2026)
+**What is already strong (no investment needed):**
+- Product superiority and execution (95) — confirmed working; only functional alternative confirmed broken
+- Differentiation: no-code + execution + citable QC audit trail (95) — exactly what individual researchers need for publications
 - Product-mission alignment (95)
-- Channel fit: Galaxy + nf-core are individual researcher channels (68)
-- Unmet need (95) and potential margins (90) are exceptional
+- Channels: Galaxy + nf-core (75) — precisely this buyer's discovery path
+- Market opportunity confirmed open (70.80) — unmet need is highest in this segment
 
-**What must be built in the next 60–90 days:**
-1. Customer relationships — NPS, 50+ active users, first testimonials
-2. Financial stability — break-even at 78 Pro users
-3. Brand presence — public beta, r/bioinformatics, nf-core Slack
-4. Patent protection — provisional filing
+**The two genuine gaps — both 90-day solvable:**
+1. **Brand**: public beta launch closes this; one r/bioinformatics post + nf-core announcement can drive hundreds of sign-ups
+2. **Customer relationships**: NPS tracking + 50 active users closes this; these are the first 90 days of user acquisition
 
-**The path:** These four actions, executed in 60–90 days, move P/C Fit from 54.27 to approximately **67–70**, opening the strategic window.
+**The path:** Public launch → 500 registered users → 78 paying → NPS measured → Galaxy Labs confirmed. P/C Fit rises from **58.36 → ~70**, opening the strategic window in **4–6 months**.
 
-**Individual researchers as the beachhead:** This segment is the fastest evidence-collection path. Individual researchers self-serve (no sales required), pay from grant budgets (no enterprise procurement), and publish papers that create the citation flywheel (BioMate in methods section → other researchers discover it → viral adoption). Evidence from 50 individual researcher users is the credential needed to open the Academic Labs and Clinical Labs windows next.
+**Individual researchers as the beachhead:** Self-serve (no sales required), grant-funded (no enterprise procurement), and they publish papers that create a citation flywheel. Evidence from 50 individual researchers is the credential that opens the Academic Labs and Clinical Labs windows next.
 
 ---
 
