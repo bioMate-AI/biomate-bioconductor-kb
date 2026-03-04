@@ -12,7 +12,7 @@ import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
 import { WorkflowSSEManager } from "./workflow-sse";
 import { createWorkflowNotificationService, type WorkflowNotificationService } from "./workflow-notification-service";
-import { GalaxyAssistant } from "./galaxy-assistant";
+import { GalaxyAssistant, type ModelConfig } from "./galaxy-assistant";
 import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
@@ -501,21 +501,32 @@ const parsedThinkingBudget = process.env.BIOMATE_THINKING_BUDGET
   ? Number(process.env.BIOMATE_THINKING_BUDGET)
   : undefined;
 
+const modelConfigOverrides: Partial<ModelConfig> = {};
+
+if (process.env.BIOMATE_INTENT_MODEL) {
+  modelConfigOverrides.intentModel = process.env.BIOMATE_INTENT_MODEL;
+}
+
+if (process.env.BIOMATE_TOOL_RANKING_MODEL) {
+  modelConfigOverrides.toolRankingModel = process.env.BIOMATE_TOOL_RANKING_MODEL;
+}
+
+if (process.env.BIOMATE_RESPONSE_MODEL) {
+  modelConfigOverrides.responseModel = process.env.BIOMATE_RESPONSE_MODEL;
+}
+
+if (process.env.BIOMATE_ENABLE_THINKING) {
+  modelConfigOverrides.enableThinking = process.env.BIOMATE_ENABLE_THINKING !== "false";
+}
+
+if (typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBudget)) {
+  modelConfigOverrides.thinkingBudget = parsedThinkingBudget;
+}
+
 const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
-  modelConfig: {
-    intentModel: process.env.BIOMATE_INTENT_MODEL || undefined,
-    toolRankingModel: process.env.BIOMATE_TOOL_RANKING_MODEL || undefined,
-    responseModel: process.env.BIOMATE_RESPONSE_MODEL || undefined,
-    enableThinking: process.env.BIOMATE_ENABLE_THINKING
-      ? process.env.BIOMATE_ENABLE_THINKING !== "false"
-      : undefined,
-    thinkingBudget:
-      typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBudget)
-        ? parsedThinkingBudget
-        : undefined,
-  },
+  modelConfig: modelConfigOverrides,
 }) : null;
 const UX_FEEDBACK_ENABLED = process.env.ENABLE_UX_FEEDBACK !== "false";
 
@@ -596,6 +607,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     logBody: false, // Don't log request bodies by default (privacy)
   }));
 
+  // Request counter for error rate computation (denominator for rate metrics)
+  app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Only count API routes, skip static/health
+    if (req.path.startsWith('/api/') && req.path !== '/api/health') {
+      telemetryService.create('api_request', new Date(), { path: req.path, method: req.method }).catch(() => {});
+    }
+    next();
+  });
+
   // UX Telemetry - fire-and-forget event ingestion (non-blocking)
   app.post("/api/telemetry/events", express.json(), async (req, res) => {
     if (!UX_FEEDBACK_ENABLED) {
@@ -624,6 +644,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Telemetry] Failed to fetch summary:", error);
       res.status(500).json({ error: "TelemetrySummaryError", message: error?.message || String(error) });
+    }
+  });
+
+  // Error rate dashboard — returns 7-day rates for crash/timeout/5xx monitoring
+  app.get('/api/admin/error-rates', async (req, res) => {
+    try {
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const summary = await telemetryService.getSummary({
+        from: since.toISOString(),
+      });
+
+      const totalRequests = (summary.byEventName['api_request'] ?? 0) || 1; // avoid div/0
+      const errors5xx = summary.byEventName['api_error_5xx'] ?? 0;
+      const timeouts = summary.byEventName['workflow_timeout'] ?? 0;
+      const aiErrors = summary.byEventName['ai_assistant_error'] ?? 0;
+
+      res.json({
+        period: '7d',
+        since: since.toISOString(),
+        metrics: {
+          error_rate_5xx_pct: +((errors5xx / totalRequests) * 100).toFixed(2),
+          timeout_rate_pct: +((timeouts / totalRequests) * 100).toFixed(2),
+          ai_error_count: aiErrors,
+          total_errors: errors5xx + timeouts + aiErrors,
+          total_requests: totalRequests,
+        },
+        by_day: summary.byDay,
+        by_event: summary.byEventName,
+        sla: {
+          error_rate_target_pct: 1.0,
+          error_rate_ok: (errors5xx / totalRequests) * 100 < 1.0,
+          timeout_target_pct: 0.5,
+          timeout_ok: (timeouts / totalRequests) * 100 < 0.5,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -2546,6 +2603,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       addTiming(`Error: ${error.message}`);
       console.error("Chat API error:", error);
+
+      // Track AI assistant errors for error-rate dashboard
+      telemetryService.create('ai_assistant_error', new Date(), {
+        error: (error as Error).message?.slice(0, 200),
+        path: req.path,
+      }).catch(() => {});
 
       // Fallback response
       const fallbackResponse = "I'm here to help you with bioinformatics analysis! What kind of data or workflow would you like to work on?";
@@ -6159,6 +6222,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error('[Biomate Chat] Error:', error);
+
+      // Track AI assistant errors for error-rate dashboard
+      telemetryService.create('ai_assistant_error', new Date(), {
+        error: (error as Error).message?.slice(0, 200),
+        path: req.path,
+      }).catch(() => {});
+
       res.status(500).json({
         error: 'InternalError',
         message: error.message || 'Failed to process message',
@@ -6418,85 +6488,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ============================================================================
 
-  // ── LC-MS Agent Routes ─────────────────────────────────────────────────────
-  const { lcmsProxy } = await import('./lcms-proxy');
+  // Error rate tracking middleware (must be last, after all routes)
+  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    // Record 5xx as telemetry event (fire-and-forget)
+    telemetryService.create('api_error_5xx', new Date(), {
+      path: req.path,
+      method: req.method,
+      error: err.message?.slice(0, 200),
+      stack_top: err.stack?.split('\n')[1]?.trim()?.slice(0, 200),
+    }).catch(() => {});
 
-  // Health / availability
-  app.get('/api/lcms/health', async (req, res) => {
-    try {
-      const status = await lcmsProxy.checkHealth();
-      res.json({ ...status, available: lcmsProxy.isAvailable });
-    } catch (err: any) {
-      res.json({ status: 'unavailable', available: false, error: err.message });
+    // Default error response
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
-
-  // General query — auto-routes to best LC-MS agent
-  app.post('/api/lcms/query', optionalAuth, async (req, res) => {
-    try {
-      if (!lcmsProxy.isAvailable) {
-        return res.status(503).json({ error: 'LC-MS agent service is not available' });
-      }
-      const result = await lcmsProxy.query(req.body);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message || 'LC-MS agent query failed' });
-    }
-  });
-
-  // Methodology design
-  app.post('/api/lcms/methodology', optionalAuth, async (req, res) => {
-    try {
-      if (!lcmsProxy.isAvailable) {
-        return res.status(503).json({ error: 'LC-MS agent service is not available' });
-      }
-      const result = await lcmsProxy.designMethodology(req.body);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message || 'Methodology design failed' });
-    }
-  });
-
-  // Troubleshooting
-  app.post('/api/lcms/troubleshoot', optionalAuth, async (req, res) => {
-    try {
-      if (!lcmsProxy.isAvailable) {
-        return res.status(503).json({ error: 'LC-MS agent service is not available' });
-      }
-      const result = await lcmsProxy.troubleshoot(req.body);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message || 'Troubleshooting failed' });
-    }
-  });
-
-  // Workflow planning
-  app.post('/api/lcms/workflow', optionalAuth, async (req, res) => {
-    try {
-      if (!lcmsProxy.isAvailable) {
-        return res.status(503).json({ error: 'LC-MS agent service is not available' });
-      }
-      const result = await lcmsProxy.planWorkflow(req.body);
-      res.json(result);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message || 'Workflow planning failed' });
-    }
-  });
-
-  // List available agents
-  app.get('/api/lcms/agents', async (req, res) => {
-    try {
-      if (!lcmsProxy.isAvailable) {
-        return res.json({ registered_agents: [], total_agents: 0, available: false });
-      }
-      const result = await lcmsProxy.listAgents();
-      res.json({ ...result, available: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // ============================================================================
 
   const httpServer = createServer(app);
 
