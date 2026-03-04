@@ -2885,3 +2885,129 @@ class TestChemoproteomicsPulldownGate:
             for f in data.get("failures", []) + data.get("warnings", [])
         )
         assert found, "ABPP_PULLDOWN should route to pulldown parser"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Perturb-seq / CRISPR screen guide library QC gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+import unittest
+
+
+class TestSingleCell_PerturbSeq(unittest.TestCase):
+    """Tests for Perturb-seq (CRISPR screen) guide library QC gates."""
+
+    def _make_handler(self, domain="scrna_seq", profile=None):
+        h = NextflowQCGateHandler.__new__(NextflowQCGateHandler)
+        h.workflow_domain = domain
+        h.active_profile = profile
+        h.qc_overrides = {}
+        h.qc_profile = profile
+        if profile:
+            h.qc_overrides = NextflowQCGateHandler.get_profile_overrides(profile)
+        return h
+
+    def test_guide_coverage_below_threshold_silver_blocking(self):
+        h = self._make_handler(profile="scrna_perturbation")
+        metrics = {"guide_library_coverage_pct": 55.0}
+        _qc_passed, failures = h._check_qc_thresholds("MAGECK_COUNT", metrics)
+        names = [f["metric"] for f in failures if not f.get("advisory")]
+        self.assertIn("guide_library_coverage_pct", names)
+
+    def test_guide_coverage_above_threshold_passes(self):
+        h = self._make_handler(profile="scrna_perturbation")
+        metrics = {"guide_library_coverage_pct": 82.0}
+        _qc_passed, failures = h._check_qc_thresholds("MAGECK_COUNT", metrics)
+        names = [f["metric"] for f in failures if not f.get("advisory")]
+        self.assertNotIn("guide_library_coverage_pct", names)
+
+    def test_low_transfection_efficiency_advisory_not_blocking(self):
+        h = self._make_handler(profile="scrna_perturbation")
+        metrics = {"transfection_efficiency_pct": 15.0}
+        _qc_passed, failures = h._check_qc_thresholds("MAGECK_COUNT", metrics)
+        advisory = [f for f in failures if f.get("advisory") and f["metric"] == "transfection_efficiency_pct"]
+        blocking = [f for f in failures if not f.get("advisory") and f["metric"] == "transfection_efficiency_pct"]
+        self.assertTrue(len(advisory) > 0)
+        self.assertEqual(len(blocking), 0)
+
+    def test_high_doublet_fraction_advisory(self):
+        h = self._make_handler(profile="scrna_perturbation")
+        metrics = {"doublet_fraction_pct": 18.0}
+        _qc_passed, failures = h._check_qc_thresholds("CRISPRRESSO", metrics)
+        advisory = [f for f in failures if f.get("advisory") and f["metric"] == "doublet_fraction_pct"]
+        self.assertTrue(len(advisory) > 0)
+
+    def test_all_metrics_pass(self):
+        h = self._make_handler(profile="scrna_perturbation")
+        metrics = {
+            "guide_library_coverage_pct": 85.0,
+            "transfection_efficiency_pct": 65.0,
+            "doublet_fraction_pct": 4.0,
+        }
+        _qc_passed, failures = h._check_qc_thresholds("MAGECK_COUNT", metrics)
+        blocking = [f for f in failures if not f.get("advisory")]
+        self.assertEqual(len(blocking), 0)
+
+    def test_scrna_perturbation_profile_loaded(self):
+        profiles = NextflowQCGateHandler.list_profiles()
+        profile_ids = [p["id"] for p in profiles]
+        self.assertIn("scrna_perturbation", profile_ids)
+        overrides = NextflowQCGateHandler.get_profile_overrides("scrna_perturbation")
+        self.assertIn("guide_library_coverage_pct", overrides)
+        self.assertEqual(overrides["guide_library_coverage_pct"], 70.0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cryo-EM model quality: MolProbity + EMRinger advisory gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestCryoEM_ModelQuality(unittest.TestCase):
+    """Tests for MolProbity and EMRinger model quality advisory gates."""
+
+    def _make_handler(self):
+        h = NextflowQCGateHandler.__new__(NextflowQCGateHandler)
+        h.workflow_domain = "cryo_em"
+        h.qc_overrides = {}
+        h.qc_profile = None
+        h.active_profile = None
+        return h
+
+    def test_high_ramachandran_outliers_advisory(self):
+        h = self._make_handler()
+        metrics = {"ramachandran_outliers_pct": 3.5}
+        _qc_passed, failures = h._check_qc_thresholds("MOLPROBITY", metrics)
+        advisory = [f for f in failures if f.get("advisory") and f["metric"] == "ramachandran_outliers_pct"]
+        blocking = [f for f in failures if not f.get("advisory") and f["metric"] == "ramachandran_outliers_pct"]
+        self.assertTrue(len(advisory) > 0)
+        self.assertEqual(len(blocking), 0)
+
+    def test_good_ramachandran_passes(self):
+        h = self._make_handler()
+        metrics = {"ramachandran_outliers_pct": 1.2}
+        _qc_passed, failures = h._check_qc_thresholds("MODEL_QUALITY", metrics)
+        self.assertFalse(any(f["metric"] == "ramachandran_outliers_pct" for f in failures))
+
+    def test_low_emringer_score_advisory(self):
+        h = self._make_handler()
+        metrics = {"emringer_score": 0.6}
+        _qc_passed, failures = h._check_qc_thresholds("EMRINGER", metrics)
+        advisory = [f for f in failures if f.get("advisory") and f["metric"] == "emringer_score"]
+        self.assertTrue(len(advisory) > 0)
+
+    def test_good_emringer_score_passes(self):
+        h = self._make_handler()
+        metrics = {"emringer_score": 2.1}
+        _qc_passed, failures = h._check_qc_thresholds("ALPHAFOLD_FIT", metrics)
+        self.assertFalse(any(f["metric"] == "emringer_score" for f in failures))
+
+    def test_all_model_quality_metrics_good(self):
+        h = self._make_handler()
+        metrics = {
+            "ramachandran_outliers_pct": 0.8,
+            "rotamer_outliers_pct": 1.2,
+            "clashscore": 8.5,
+            "emringer_score": 1.8,
+        }
+        _qc_passed, failures = h._check_qc_thresholds("MOLPROBITY", metrics)
+        self.assertEqual(len(failures), 0)

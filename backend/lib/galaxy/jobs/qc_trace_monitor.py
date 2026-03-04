@@ -248,6 +248,25 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
             "Bakken TE et al. 2021 Nature 598:86-102 (Human Brain Cell Atlas)",
         ],
     },
+    "scrna_perturbation": {
+        "description": (
+            "Single-cell RNA-seq with CRISPR perturbation (Perturb-seq, CROP-seq, CRISPRi screens). "
+            "Adds guide library coverage, transfection efficiency, and doublet detection gates "
+            "on top of standard scRNA-seq thresholds."
+        ),
+        "domain_hint": "scrna_seq",
+        "overrides": {
+            "guide_library_coverage_pct": 70.0,
+            "transfection_efficiency_pct": 30.0,
+            "max_doublet_fraction_pct": 10.0,
+        },
+        "references": [
+            "Replogle JM et al. 2022 Cell 185(14):2559-2575 (Perturb-seq genome-wide)",
+            "Datlinger P et al. 2021 Nat Methods 18(6):688-693 (CROP-seq updated)",
+            "Norman TM et al. 2019 Science 365(6455):786-793 (CRISPRi Perturb-seq)",
+            "[SILVER] 70% guide coverage: Replogle et al. 2022 Cell Supp Methods",
+        ],
+    },
 
     # ---------------------------------------------------------------
     # Metagenomics
@@ -870,6 +889,8 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("SHARPEN", "CTF_REFINE_SHARPEN",
                                                "POSTPROCESS", "POSTPROCESSING")):
             return self._parse_sharpening_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("MOLPROBITY", "EMRINGER", "MODEL_QUALITY", "MODEL_VALIDATION", "ALPHAFOLD_FIT")):
+            return self._parse_model_quality_metrics(task_work_dir)
         elif any(k in process_upper for k in ("LOCAL_RESOLUTION", "LOCALRES",
                                                "MONORES", "RESMAP")):
             return self._parse_local_resolution_metrics(task_work_dir)
@@ -898,6 +919,10 @@ class NextflowQCGateHandler:
         elif any(k in process_upper for k in ("MOSDEPTH", "SAMTOOLS_COVERAGE",
                                                "GATK_COVERAGE", "PICARD_WGS")):
             return self._parse_coverage_metrics(task_work_dir)
+
+        # --- CRISPR screen / Perturb-seq guide library ---
+        elif any(k in process_upper for k in ("MAGECK_COUNT", "MAGECK_MLE", "MAGECK_TEST", "CRISPRRESSO", "GUIDE_ASSIGN", "PERTURB_SEQ")):
+            return self._parse_guide_library_metrics(task_work_dir)
 
         # --- Single-cell RNA-seq ---
         elif any(k in process_upper for k in ("CELLRANGER_COUNT", "CELLRANGER",
@@ -1628,6 +1653,46 @@ class NextflowQCGateHandler:
             return None
         return metrics
 
+    def _parse_guide_library_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """Parse MAGeCK count or Perturb-seq guide library assignment statistics."""
+        metrics: Dict[str, Any] = {}
+        for fname in (
+            "mageck_count_summary.json",
+            "guide_library_summary.json",
+            "perturbseq_qc.json",
+            "guide_assignment.json",
+            "crispr_screen_qc.json",
+        ):
+            for p in (
+                list(task_work_dir.glob(fname))
+                + list(task_work_dir.glob(f"**/{fname}"))
+            ):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    for key in ("guide_library_coverage_pct", "guide_coverage_pct", "pct_cells_assigned"):
+                        if key in data:
+                            metrics["guide_library_coverage_pct"] = float(data[key])
+                            break
+                    for key in ("transfection_efficiency_pct", "transduction_efficiency_pct", "pct_transduced"):
+                        if key in data:
+                            metrics["transfection_efficiency_pct"] = float(data[key])
+                            break
+                    for key in ("doublet_fraction_pct", "predicted_doublet_rate", "doublet_rate"):
+                        if key in data:
+                            val = float(data[key])
+                            metrics["doublet_fraction_pct"] = val * 100.0 if val <= 1.0 else val
+                            break
+                    if metrics:
+                        log.debug(
+                            f"[QC] Guide library: coverage={metrics.get('guide_library_coverage_pct')}%, "
+                            f"transf_eff={metrics.get('transfection_efficiency_pct')}%, "
+                            f"doublets={metrics.get('doublet_fraction_pct')}%"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError):
+                    continue
+        return None
+
     # ------------------------------------------------------------------
     # ChIP-seq / ATAC-seq
     # ------------------------------------------------------------------
@@ -1955,6 +2020,78 @@ class NextflowQCGateHandler:
                 except (OSError, json.JSONDecodeError):
                     continue
         return None
+
+    def _parse_model_quality_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """Parse MolProbity validation report and EMRinger score after atomic model fitting."""
+        metrics: Dict[str, Any] = {}
+        import re as _re
+
+        # MolProbity JSON output
+        for fname in (
+            "molprobity_results.json",
+            "molprobity_report.json",
+            "validation_report.json",
+            "model_validation.json",
+        ):
+            for p in (
+                list(task_work_dir.glob(fname))
+                + list(task_work_dir.glob(f"**/{fname}"))
+            ):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    for key in ("ramachandran_outliers_pct", "rama_outliers_pct", "ramachandran_outliers"):
+                        if key in data:
+                            metrics["ramachandran_outliers_pct"] = float(data[key])
+                            break
+                    for key in ("rotamer_outliers_pct", "rota_outliers_pct", "rotamer_outliers"):
+                        if key in data:
+                            metrics["rotamer_outliers_pct"] = float(data[key])
+                            break
+                    for key in ("clashscore", "clash_score"):
+                        if key in data:
+                            metrics["clashscore"] = float(data[key])
+                            break
+                    if metrics:
+                        log.debug(
+                            f"[QC] MolProbity: Rama={metrics.get('ramachandran_outliers_pct')}%, "
+                            f"Rotamer={metrics.get('rotamer_outliers_pct')}%, "
+                            f"Clashscore={metrics.get('clashscore')}"
+                        )
+                        break
+                except (OSError, json.JSONDecodeError):
+                    continue
+
+        # EMRinger — plain text "Overall EMRinger Score: X.XX" or JSON
+        for fname in (
+            "emringer_score.txt",
+            "emringer_results.json",
+            "emringer_output.json",
+            "emringer_report.txt",
+        ):
+            for p in (
+                list(task_work_dir.glob(fname))
+                + list(task_work_dir.glob(f"**/{fname}"))
+            ):
+                try:
+                    text = p.read_text(errors="replace")
+                    if fname.endswith(".txt"):
+                        m = _re.search(r"(?i)overall emringer score[:\s]+([0-9.-]+)", text)
+                        if m:
+                            metrics["emringer_score"] = float(m.group(1))
+                            break
+                    else:
+                        data = json.loads(text)
+                        for key in ("emringer_score", "overall_score", "score"):
+                            if key in data:
+                                metrics["emringer_score"] = float(data[key])
+                                break
+                    if "emringer_score" in metrics:
+                        log.debug(f"[QC] EMRinger score: {metrics['emringer_score']:.2f}")
+                        break
+                except (OSError, json.JSONDecodeError, ValueError):
+                    continue
+
+        return metrics if metrics else None
 
     def _parse_local_resolution_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
@@ -3039,6 +3176,68 @@ class NextflowQCGateHandler:
                         ),
                     })
 
+        elif any(k in process_upper for k in ("MOLPROBITY", "EMRINGER", "MODEL_QUALITY", "MODEL_VALIDATION", "ALPHAFOLD_FIT")):
+            # MolProbity Ramachandran outliers — advisory >2%
+            rama = qc_metrics.get("ramachandran_outliers_pct")
+            if rama is not None and rama > 2.0:
+                failures.append({
+                    "metric": "ramachandran_outliers_pct",
+                    "value": rama,
+                    "threshold": 2.0,
+                    "severity": "BRONZE",
+                    "advisory": True,
+                    "message": (
+                        f"Ramachandran outliers {rama:.1f}% > 2.0% advisory. "
+                        "Good structures have < 2% Ramachandran outliers (MolProbity guidelines). "
+                        "[BRONZE] Advisory — consider real-space refinement."
+                    ),
+                })
+            # MolProbity Rotamer outliers — advisory >5%
+            rota = qc_metrics.get("rotamer_outliers_pct")
+            if rota is not None and rota > 5.0:
+                failures.append({
+                    "metric": "rotamer_outliers_pct",
+                    "value": rota,
+                    "threshold": 5.0,
+                    "severity": "BRONZE",
+                    "advisory": True,
+                    "message": (
+                        f"Rotamer outliers {rota:.1f}% > 5.0% advisory. "
+                        "[BRONZE] Advisory — consider PHENIX real_space_refine."
+                    ),
+                })
+            # MolProbity Clashscore — advisory >20
+            clash = qc_metrics.get("clashscore")
+            if clash is not None and clash > 20.0:
+                failures.append({
+                    "metric": "clashscore",
+                    "value": clash,
+                    "threshold": 20.0,
+                    "severity": "BRONZE",
+                    "advisory": True,
+                    "message": (
+                        f"MolProbity clashscore {clash:.1f} > 20.0 advisory. "
+                        "Score < 20 expected for well-refined cryo-EM models. "
+                        "[BRONZE] Advisory — run PHENIX real_space_refine."
+                    ),
+                })
+            # EMRinger score — advisory <1.0
+            emringer = qc_metrics.get("emringer_score")
+            if emringer is not None and emringer < 1.0:
+                failures.append({
+                    "metric": "emringer_score",
+                    "value": emringer,
+                    "threshold": 1.0,
+                    "severity": "BRONZE",
+                    "advisory": True,
+                    "message": (
+                        f"EMRinger score {emringer:.2f} < 1.0 advisory. "
+                        "Scores > 1.0 indicate good side-chain-to-density fit "
+                        "(Barad BA et al. 2015 Nat Methods 12(10):943-946). "
+                        "[BRONZE] Advisory — model may need rotamer correction."
+                    ),
+                })
+
         elif any(k in process_upper for k in ("LOCAL_RESOLUTION", "LOCALRES",
                                                "MONORES", "RESMAP")):
             # [BRONZE advisory] High spread in local resolution distribution.
@@ -3192,6 +3391,53 @@ class NextflowQCGateHandler:
                                    f"Indicates low library complexity — consider deeper sequencing "
                                    f"or additional PCR cycles during library prep."
                     })
+
+        # --- CRISPR screen / Perturb-seq guide library ---
+        elif any(k in process_upper for k in ("MAGECK_COUNT", "MAGECK_MLE", "MAGECK_TEST", "CRISPRRESSO", "GUIDE_ASSIGN", "PERTURB_SEQ")):
+            guide_cov = qc_metrics.get("guide_library_coverage_pct")
+            _guide_t = self._get_threshold("guide_library_coverage_pct", 70.0)
+            if guide_cov is not None and guide_cov < _guide_t:
+                failures.append({
+                    "metric": "guide_library_coverage_pct",
+                    "value": guide_cov,
+                    "threshold": _guide_t,
+                    "severity": "SILVER",
+                    "message": (
+                        f"Guide library coverage {guide_cov:.1f}% below {_guide_t:.0f}% threshold. "
+                        "Low coverage reduces statistical power for hit calling. "
+                        "[SILVER] Replogle et al. 2022 Cell Supp Methods."
+                    ),
+                })
+            transf = qc_metrics.get("transfection_efficiency_pct")
+            _transf_t = self._get_threshold("transfection_efficiency_pct", 30.0)
+            if transf is not None and transf < _transf_t:
+                failures.append({
+                    "metric": "transfection_efficiency_pct",
+                    "value": transf,
+                    "threshold": _transf_t,
+                    "severity": "BRONZE",
+                    "advisory": True,
+                    "message": (
+                        f"Transfection/transduction efficiency {transf:.1f}% below {_transf_t:.0f}%. "
+                        "Low efficiency increases unperturbed cell fraction. "
+                        "[BRONZE] Advisory only — acceptable for pilot screens."
+                    ),
+                })
+            doublets = qc_metrics.get("doublet_fraction_pct")
+            _doublet_t = self._get_threshold("max_doublet_fraction_pct", 10.0)
+            if doublets is not None and doublets > _doublet_t:
+                failures.append({
+                    "metric": "doublet_fraction_pct",
+                    "value": doublets,
+                    "threshold": _doublet_t,
+                    "severity": "SILVER",
+                    "advisory": True,
+                    "message": (
+                        f"Predicted doublet fraction {doublets:.1f}% exceeds {_doublet_t:.0f}% advisory. "
+                        "High doublet rate inflates guide co-occurrence and confounds perturbation effects. "
+                        "[SILVER] Advisory. Consider DoubletFinder filtering before MAGeCK."
+                    ),
+                })
 
         # --- Single-cell ---
         elif any(k in process_upper for k in ("CELLRANGER_COUNT", "CELLRANGER",
