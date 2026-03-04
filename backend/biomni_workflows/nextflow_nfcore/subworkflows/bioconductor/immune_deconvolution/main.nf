@@ -120,7 +120,7 @@ process BIOC_DECONRNASEQ {
 
         # Read inputs — accept TSV or CSV
         read_table_auto <- function(f) {
-            sep <- if (grepl("\\\\.tsv$", f, ignore.case = TRUE)) "\\t" else ","
+            sep <- if (grepl("\\\\.tsv\$", f, ignore.case = TRUE)) "\\t" else ","
             read.table(f, header = TRUE, sep = sep, row.names = 1,
                        check.names = FALSE, stringsAsFactors = FALSE)
         }
@@ -383,13 +383,14 @@ workflow IMMUNE_DECONVOLUTION {
 workflow {
     // In mock mode the actual file paths are ignored inside the R script.
     // Supply placeholder paths so the channel tuple is well-formed.
+    // Use distinct names to avoid Nextflow filename-collision error in stub mode.
     def counts_path = params.counts_matrix
         ? file(params.counts_matrix)
-        : file('NO_FILE')
+        : file('NO_COUNTS_FILE')
 
     def sig_path = params.signature_matrix
         ? file(params.signature_matrix)
-        : file('NO_FILE')
+        : file('NO_SIGNATURE_FILE')
 
     def clin_path = params.clinical_metadata
         ? file(params.clinical_metadata)

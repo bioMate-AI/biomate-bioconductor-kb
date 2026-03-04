@@ -151,6 +151,30 @@ process CRAN_SURVIVAL_COX {
     """
 }
 
+// ─── Standalone entry workflow ───────────────────────────────────────────────
+
+workflow {
+    ch_input = Channel.of(
+        [[id: 'test'],
+         file(params.clinical_csv ?: 'NO_FILE')]
+    )
+
+    SURVIVAL_ANALYSIS(
+        ch_input,
+        params.time_col   ?: 'time',
+        params.event_col  ?: 'event',
+        params.group_col  ?: 'treatment',
+        params.covariates ?: 'age'
+    )
+
+    SURVIVAL_ANALYSIS.out.km_fit.view { meta, f ->
+        "KM fit written: ${f}"
+    }
+    SURVIVAL_ANALYSIS.out.cox_results.view { meta, f ->
+        "Cox results written: ${f}"
+    }
+}
+
 workflow SURVIVAL_ANALYSIS {
     take:
     clinical_data  // channel: [ val(meta), path(clinical_csv) ]

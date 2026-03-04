@@ -47,6 +47,18 @@ process GEO_FETCH {
     tuple val(meta), path("sample_metadata.csv") , emit: sample_metadata
     path "versions.yml"                           , emit: versions
 
+    stub:
+    """
+    touch series_matrix.rds
+    echo '"geo_accession","title","source_name_ch1","organism_ch1"' > sample_metadata.csv
+    echo '"GSM1","Sample_1","tumor","Homo sapiens"' >> sample_metadata.csv
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: "4.4.0 (stub)"
+        bioconductor-geoquery: "2.72.0 (stub)"
+    END_VERSIONS
+    """
+
     script:
     def accession = meta.accession ?: params.accession
     if (params.mock_mode) {
@@ -212,6 +224,19 @@ process GEO_COUNT_MATRIX {
     tuple val(meta), path("feature_metadata.csv") , emit: feature_metadata
     path "versions.yml"                            , emit: versions
 
+    stub:
+    """
+    echo '"gene_id","GSM1","GSM2"' > count_matrix.csv
+    echo '"GAPDH","100","120"' >> count_matrix.csv
+    echo '"ID","Symbol"' > feature_metadata.csv
+    echo '"GAPDH","GAPDH"' >> feature_metadata.csv
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: "4.4.0 (stub)"
+        bioconductor-geoquery: "2.72.0 (stub)"
+    END_VERSIONS
+    """
+
     script:
     if (params.mock_mode) {
         """
@@ -331,6 +356,17 @@ process GEO_CLINICAL_METADATA {
     output:
     tuple val(meta), path("clinical_metadata_clean.csv"), emit: clinical_metadata_clean
     path "versions.yml"                                  , emit: versions
+
+    stub:
+    """
+    echo '"sample_id","time","event","treatment","age","sex"' > clinical_metadata_clean.csv
+    echo '"GSM1","24","1","Drug_A_100nM","55","male"' >> clinical_metadata_clean.csv
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: "4.4.0 (stub)"
+        bioconductor-geoquery: "2.72.0 (stub)"
+    END_VERSIONS
+    """
 
     script:
     if (params.mock_mode) {

@@ -114,6 +114,28 @@ process BIOC_CONSENSUSCLUSTERPLUS {
 }
 
 
+// ─── Standalone entry workflow ───────────────────────────────────────────────
+
+workflow {
+    ch_input = Channel.of(
+        [[id: 'test'],
+         file(params.expr_matrix_rds ?: 'NO_FILE')]
+    )
+
+    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW(
+        ch_input,
+        params.max_k  ?: 8,
+        params.n_reps ?: 500
+    )
+
+    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.assignments.view { meta, f ->
+        "Cluster assignments written: ${f}"
+    }
+    BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW.out.optimal_k.view { meta, f ->
+        "Optimal k written: ${f}"
+    }
+}
+
 workflow BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW {
     take:
     ch_input  // channel: [ val(meta), path(expr_matrix.rds) ]

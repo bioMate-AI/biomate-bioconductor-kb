@@ -115,13 +115,19 @@ workflow RNASEQ_PATIENT_STRATIFICATION {
 // Entry point (standalone run)
 // ---------------------------------------------------------------------------
 workflow {
-    if (!params.expr_matrix || !params.clinical) {
-        error "Usage: nextflow run main.nf --expr_matrix <rds> --clinical <csv> --time_col <col> --event_col <col>"
+    if (params.mock_mode || params.test_mode) {
+        // Test/mock mode: supply placeholder files (stub blocks handle actual output)
+        def test_meta = [id: 'patient_stratification']
+        ch_expr     = Channel.of([test_meta, file('NO_FILE')])
+        ch_clinical = Channel.of([test_meta, file('NO_CLINICAL_FILE')])
+        RNASEQ_PATIENT_STRATIFICATION(ch_expr, ch_clinical)
+    } else {
+        if (!params.expr_matrix || !params.clinical) {
+            error "Usage: nextflow run main.nf --expr_matrix <rds> --clinical <csv> --time_col <col> --event_col <col>"
+        }
+        def run_meta = [id: 'patient_stratification']
+        ch_expr     = Channel.of([run_meta, file(params.expr_matrix)])
+        ch_clinical = Channel.of([run_meta, file(params.clinical)])
+        RNASEQ_PATIENT_STRATIFICATION(ch_expr, ch_clinical)
     }
-
-    ch_meta     = Channel.of([[id: 'patient_stratification']])
-    ch_expr     = ch_meta.map { meta -> [meta, file(params.expr_matrix)] }
-    ch_clinical = ch_meta.map { meta -> [meta, file(params.clinical)] }
-
-    RNASEQ_PATIENT_STRATIFICATION(ch_expr, ch_clinical)
 }
