@@ -497,9 +497,25 @@ galaxyPoller.on('step_state', async (data: { invocation_id: string; data: { step
 });
 
 // Initialize Galaxy Assistant (hybrid intelligence with Claude Sonnet 4.5)
+const parsedThinkingBudget = process.env.BIOMATE_THINKING_BUDGET
+  ? Number(process.env.BIOMATE_THINKING_BUDGET)
+  : undefined;
+
 const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   galaxyAPIProxy,
+  modelConfig: {
+    intentModel: process.env.BIOMATE_INTENT_MODEL || undefined,
+    toolRankingModel: process.env.BIOMATE_TOOL_RANKING_MODEL || undefined,
+    responseModel: process.env.BIOMATE_RESPONSE_MODEL || undefined,
+    enableThinking: process.env.BIOMATE_ENABLE_THINKING
+      ? process.env.BIOMATE_ENABLE_THINKING !== "false"
+      : undefined,
+    thinkingBudget:
+      typeof parsedThinkingBudget === "number" && Number.isFinite(parsedThinkingBudget)
+        ? parsedThinkingBudget
+        : undefined,
+  },
 }) : null;
 const UX_FEEDBACK_ENABLED = process.env.ENABLE_UX_FEEDBACK !== "false";
 
@@ -2117,17 +2133,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Proxy — QC event log for a completed invocation (US-6.2)
-  app.get("/api/invocations/:id/qc-events", optionalAuth, async (req, res) => {
-    try {
-      const response = await galaxyAPIProxy.client.get(`/api/invocations/${req.params.id}/qc-events`);
-      return res.status(response.status).json(response.data);
-    } catch (err: any) {
-      const status = err.response?.status || 502;
-      return res.status(status).json(err.response?.data || { error: "QC events proxy error" });
-    }
-  });
-
   // ============================================================================
   // Server-Sent Events (SSE) for Real-Time Workflow Updates
   // ============================================================================
@@ -2453,7 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             runId: runId || undefined,
             invocationId: invocationId || undefined,
             provider: "anthropic",
-            model: "claude-sonnet-4-5",
+            model: galaxyAssistant?.getModelConfig().responseModel || "claude-sonnet-4-6",
             inputTokensEstimated: inCount,
             outputTokensEstimated: outCount,
             estimatedCostUsd,
@@ -6406,6 +6411,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db.delete(inviteCodes).where(eq(inviteCodes.id, req.params.id));
       res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
+
+  // ── LC-MS Agent Routes ─────────────────────────────────────────────────────
+  const { lcmsProxy } = await import('./lcms-proxy');
+
+  // Health / availability
+  app.get('/api/lcms/health', async (req, res) => {
+    try {
+      const status = await lcmsProxy.checkHealth();
+      res.json({ ...status, available: lcmsProxy.isAvailable });
+    } catch (err: any) {
+      res.json({ status: 'unavailable', available: false, error: err.message });
+    }
+  });
+
+  // General query — auto-routes to best LC-MS agent
+  app.post('/api/lcms/query', optionalAuth, async (req, res) => {
+    try {
+      if (!lcmsProxy.isAvailable) {
+        return res.status(503).json({ error: 'LC-MS agent service is not available' });
+      }
+      const result = await lcmsProxy.query(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'LC-MS agent query failed' });
+    }
+  });
+
+  // Methodology design
+  app.post('/api/lcms/methodology', optionalAuth, async (req, res) => {
+    try {
+      if (!lcmsProxy.isAvailable) {
+        return res.status(503).json({ error: 'LC-MS agent service is not available' });
+      }
+      const result = await lcmsProxy.designMethodology(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Methodology design failed' });
+    }
+  });
+
+  // Troubleshooting
+  app.post('/api/lcms/troubleshoot', optionalAuth, async (req, res) => {
+    try {
+      if (!lcmsProxy.isAvailable) {
+        return res.status(503).json({ error: 'LC-MS agent service is not available' });
+      }
+      const result = await lcmsProxy.troubleshoot(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Troubleshooting failed' });
+    }
+  });
+
+  // Workflow planning
+  app.post('/api/lcms/workflow', optionalAuth, async (req, res) => {
+    try {
+      if (!lcmsProxy.isAvailable) {
+        return res.status(503).json({ error: 'LC-MS agent service is not available' });
+      }
+      const result = await lcmsProxy.planWorkflow(req.body);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || 'Workflow planning failed' });
+    }
+  });
+
+  // List available agents
+  app.get('/api/lcms/agents', async (req, res) => {
+    try {
+      if (!lcmsProxy.isAvailable) {
+        return res.json({ registered_agents: [], total_agents: 0, available: false });
+      }
+      const result = await lcmsProxy.listAgents();
+      res.json({ ...result, available: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

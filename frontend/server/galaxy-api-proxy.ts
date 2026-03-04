@@ -1306,6 +1306,47 @@ export class GalaxyAPIProxy {
     const response = await this.client.post('/api/workflows', { workflow: subWorkflow });
     return { id: response.data.id, name };
   }
+
+  // ── LC-MS Agent Integration ───────────────────────────────────────────────
+  /**
+   * Route a user message to the LC-MS specialized agent if the query
+   * is about mass spectrometry, proteomics, metabolomics, or LC-MS.
+   * Returns null if the topic is not LC-MS or the service is unavailable.
+   */
+  async callLCMSAgent(
+    userMessage: string,
+    sessionId?: string
+  ): Promise<{ content: string; recommendations: string[]; followUpQuestions: string[] } | null> {
+    const lcmsKeywords = [
+      'lc-ms', 'lcms', 'mass spec', 'mass spectrometry', 'proteomics', 'metabolomics',
+      'mzml', 'mzxml', 'raw file', 'maxquant', 'dia-nn', 'openms', 'xcms', 'mzmine',
+      'peptide', 'protein identification', 'feature detection', 'peak picking',
+      'chromatography', 'tandem ms', 'ms/ms', 'msms', 'tmt', 'itraq', 'silac',
+      'label-free quantification', 'lfq', 'dda', 'dia', 'swath'
+    ];
+
+    const lower = userMessage.toLowerCase();
+    const isLCMSQuery = lcmsKeywords.some(kw => lower.includes(kw));
+    if (!isLCMSQuery) return null;
+
+    try {
+      const { lcmsProxy } = await import('./lcms-proxy');
+      if (!lcmsProxy.isAvailable) return null;
+
+      const response = await lcmsProxy.query({
+        query: userMessage,
+        session_id: sessionId,
+      });
+
+      return {
+        content: response.content,
+        recommendations: response.recommendations,
+        followUpQuestions: response.follow_up_questions,
+      };
+    } catch {
+      return null;
+    }
+  }
 }
 
 // Export singleton instance
