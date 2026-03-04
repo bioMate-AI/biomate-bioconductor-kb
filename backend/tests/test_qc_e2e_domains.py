@@ -2488,3 +2488,128 @@ class TestNamedProfilesCoverage:
         _submit(h, "KRAKEN2", "dd", "01000010", tmp_path, self._kraken_writer(55.0))
         gate = [e for e in events if e[0] == "qc_gate_triggered"]
         assert len(gate) == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Molecular Docking QC gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestMolecularDockingQCGates:
+    """Docking score, pose count, and RMSD gates."""
+
+    def _docking_writer(self, score, n_poses=10, rmsd=None):
+        def write(d):
+            import json
+            data = {
+                "best_score_kcal_mol": score,
+                "n_poses_generated": n_poses,
+                "docking_software": "AutoDock Vina",
+                "receptor": "target_protein.pdbqt",
+            }
+            if rmsd is not None:
+                data["top_pose_rmsd_angstrom"] = rmsd
+            (d / "docking_results.json").write_text(json.dumps(data))
+        return write
+
+    def test_good_score_passes(self, tmp_path):
+        """Docking score −9.5 kcal/mol (strong hit) → no gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "MOLECULAR_DOCKING", "gg", "00000070", tmp_path,
+                self._docking_writer(-9.5))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_weak_score_fires_silver_gate(self, tmp_path):
+        """Docking score −4.0 kcal/mol (> −7 threshold) → SILVER blocking gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "MOLECULAR_DOCKING", "gg", "00000071", tmp_path,
+                self._docking_writer(-4.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        blocking = [f for f in gate[0][1]["failures"] if not f.get("advisory", False)]
+        assert any(f["metric"] == "best_score_kcal_mol" for f in blocking)
+
+    def test_few_poses_advisory(self, tmp_path):
+        """Only 2 poses generated → BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "MOLECULAR_DOCKING", "gg", "00000072", tmp_path,
+                self._docking_writer(-8.0, n_poses=2))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "n_poses_generated" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected low pose count advisory"
+
+    def test_high_rmsd_advisory(self, tmp_path):
+        """RMSD 3.5 Å vs reference → BRONZE advisory (> 2 Å threshold)."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "MOLECULAR_DOCKING", "gg", "00000073", tmp_path,
+                self._docking_writer(-8.0, rmsd=3.5))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "top_pose_rmsd_angstrom" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected RMSD advisory"
+
+    def test_vina_process_name_routing(self, tmp_path):
+        """VINA process name routes to docking parser."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "VINA", "gg", "00000074", tmp_path, self._docking_writer(-4.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# QSAR Model QC gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestQSARModelQCGates:
+    """QSAR cross-validated R² and training set size gates."""
+
+    def _qsar_writer(self, r2, n_compounds=200, rmse=0.5):
+        def write(d):
+            import json
+            (d / "qsar_results.json").write_text(json.dumps({
+                "cv_r2_score": r2,
+                "cv_rmse": rmse,
+                "n_compounds": n_compounds,
+                "model_type": "random_forest",
+                "target_property": "pIC50",
+            }))
+        return write
+
+    def test_good_r2_passes(self, tmp_path):
+        """R² = 0.80 → no gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "QSAR_MODEL", "hh", "00000075", tmp_path, self._qsar_writer(0.80))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_low_r2_fires_silver_gate(self, tmp_path):
+        """R² = 0.35 < 0.5 threshold → SILVER blocking gate."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "QSAR_MODEL", "hh", "00000076", tmp_path, self._qsar_writer(0.35))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        blocking = [f for f in gate[0][1]["failures"] if not f.get("advisory", False)]
+        assert any(f["metric"] == "cv_r2_score" for f in blocking)
+
+    def test_small_dataset_advisory(self, tmp_path):
+        """30 compounds < 50 threshold → BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "QSAR_MODEL", "hh", "00000077", tmp_path,
+                self._qsar_writer(0.75, n_compounds=30))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "n_compounds" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected small dataset advisory"
+
+    def test_chemprop_process_name_routing(self, tmp_path):
+        """CHEMPROP process name routes to QSAR parser."""
+        h, events = _make_handler(tmp_path, "drug_discovery")
+        _submit(h, "CHEMPROP", "hh", "00000078", tmp_path, self._qsar_writer(0.30))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 1

@@ -932,6 +932,16 @@ class NextflowQCGateHandler:
                                                "IVIVE_HEPATIC", "CLEARANCE_SCALING")):
             return self._parse_ivive_results(task_work_dir)
 
+        # --- Molecular docking ---
+        elif any(k in process_upper for k in ("MOLECULAR_DOCKING", "DOCKING",
+                                               "AUTODOCK", "VINA", "GLIDE")):
+            return self._parse_docking_results(task_work_dir)
+
+        # --- QSAR modelling ---
+        elif any(k in process_upper for k in ("QSAR_MODEL", "QSAR",
+                                               "CHEMPROP", "DEEPCHEM")):
+            return self._parse_qsar_results(task_work_dir)
+
         else:
             return None
 
@@ -2516,6 +2526,76 @@ class NextflowQCGateHandler:
                     continue
         return None
 
+    def _parse_docking_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse molecular docking output.
+
+        Reads ``docking_results.json`` written by the molecular_docking workflow step.
+
+        Key QC fields:
+          best_score_kcal_mol  — most favourable (most negative) binding energy across all poses (kcal/mol).
+            AutoDock Vina convention: more negative = stronger binding.
+            Typical hit threshold: ≤ −7 kcal/mol (community heuristic; Trott & Olson 2010 J Comput Chem).
+          top_pose_rmsd_angstrom — RMSD of top pose relative to known/reference ligand (optional).
+            > 2 Å RMSD from reference = pose unreliable for pharmacophore work.
+          n_poses_generated — number of valid docking poses produced.
+            < 5 may indicate steric clash or parameter issue.
+        """
+        for fname in ("docking_results.json", "vina_results.json", "glide_results.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    for key in ("best_score_kcal_mol", "top_pose_rmsd_angstrom",
+                                "n_poses_generated", "docking_software", "receptor"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                    if metrics:
+                        log.debug(
+                            f"[QC] Docking: best_score={metrics.get('best_score_kcal_mol')} kcal/mol, "
+                            f"poses={metrics.get('n_poses_generated')}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError, KeyError):
+                    continue
+        return None
+
+    def _parse_qsar_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse QSAR model evaluation output.
+
+        Reads ``qsar_results.json`` written by the qsar_model workflow step.
+
+        Key QC fields:
+          cv_r2_score      — cross-validated R² (0–1).
+            < 0.5 is typically considered uninformative (Golbraikh & Tropsha 2002 J Mol Graph Model).
+          cv_rmse          — cross-validated RMSE in the same units as the target.
+          test_r2_score    — holdout test set R² (when available).
+          n_compounds      — number of compounds in training set.
+            < 50 makes QSAR models unreliable.
+          model_type       — "random_forest", "xgboost", "chemprop", etc.
+        """
+        for fname in ("qsar_results.json", "model_metrics.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    for key in ("cv_r2_score", "cv_rmse", "test_r2_score",
+                                "n_compounds", "model_type", "target_property"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+                    if metrics:
+                        log.debug(
+                            f"[QC] QSAR: R²={metrics.get('cv_r2_score')}, "
+                            f"n_compounds={metrics.get('n_compounds')}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError, KeyError):
+                    continue
+        return None
+
     def _check_qc_thresholds(
         self,
         process_name: str,
@@ -3665,6 +3745,99 @@ class NextflowQCGateHandler:
                         f"and intrinsic clearance variability. Verify fu_plasma and "
                         f"CLint_in_vitro inputs, as small measurement errors are amplified "
                         f"in this range."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("MOLECULAR_DOCKING", "DOCKING",
+                                               "AUTODOCK", "VINA", "GLIDE")):
+            # [SILVER] Docking score threshold.
+            # Trott & Olson 2010 J Comput Chem 31:455 — Vina scoring; community heuristic for hits.
+            # ≤ −7 kcal/mol is a commonly used minimum for primary screening hits.
+            score = qc_metrics.get("best_score_kcal_mol")
+            _score_t = self._get_threshold("docking_score_kcal_mol", -7.0)
+            if score is not None and score > _score_t:  # more negative = better; gate fires when too weak
+                failures.append({
+                    "metric": "best_score_kcal_mol",
+                    "value": score,
+                    "threshold": _score_t,
+                    "operator": ">",
+                    "message": (
+                        f"[SILVER] Weak docking score: {score:.1f} kcal/mol "
+                        f"(threshold: ≤ {_score_t:.0f} kcal/mol). "
+                        f"Compound may not bind the target with sufficient affinity. "
+                        f"Consider scaffold hopping, growing into polar sub-pockets, or "
+                        f"verifying the binding site definition."
+                    ),
+                })
+
+            # [BRONZE advisory] Insufficient pose count.
+            n_poses = qc_metrics.get("n_poses_generated")
+            if n_poses is not None and n_poses < 5:
+                failures.append({
+                    "metric": "n_poses_generated",
+                    "value": n_poses,
+                    "threshold": 5,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Only {n_poses} docking pose(s) generated (expected ≥ 5). "
+                        f"Check for steric clashes in the binding site definition or "
+                        f"invalid SMILES input."
+                    ),
+                })
+
+            # [BRONZE advisory] High RMSD vs reference.
+            rmsd = qc_metrics.get("top_pose_rmsd_angstrom")
+            _rmsd_t = self._get_threshold("docking_rmsd_angstrom", 2.0)
+            if rmsd is not None and rmsd > _rmsd_t:
+                failures.append({
+                    "metric": "top_pose_rmsd_angstrom",
+                    "value": rmsd,
+                    "threshold": _rmsd_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Top pose RMSD {rmsd:.2f} Å vs reference (threshold: < {_rmsd_t:.1f} Å). "
+                        f"Pose may not reproduce the reference binding mode. "
+                        f"Check grid box placement and receptor preparation."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("QSAR_MODEL", "QSAR",
+                                               "CHEMPROP", "DEEPCHEM")):
+            # [SILVER] Cross-validated R² gate.
+            # Golbraikh & Tropsha 2002 J Mol Graph Model 20:269 — R² < 0.5 = uninformative model.
+            r2 = qc_metrics.get("cv_r2_score")
+            _r2_t = self._get_threshold("qsar_cv_r2", 0.5)
+            if r2 is not None and r2 < _r2_t:
+                failures.append({
+                    "metric": "cv_r2_score",
+                    "value": r2,
+                    "threshold": _r2_t,
+                    "operator": "<",
+                    "message": (
+                        f"[SILVER] Low QSAR cross-validated R²: {r2:.3f} "
+                        f"(threshold: ≥ {_r2_t:.1f}). "
+                        f"Model explains less than 50% of variance — predictions are unreliable. "
+                        f"Consider adding more compounds, additional descriptors, or switching to "
+                        f"a graph neural network (ChemProp)."
+                    ),
+                })
+
+            # [BRONZE advisory] Insufficient training set size.
+            n_cpds = qc_metrics.get("n_compounds")
+            _n_t = self._get_threshold("qsar_min_compounds", 50)
+            if n_cpds is not None and n_cpds < _n_t:
+                failures.append({
+                    "metric": "n_compounds",
+                    "value": n_cpds,
+                    "threshold": _n_t,
+                    "operator": "<",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] QSAR model trained on {n_cpds} compounds (advised: ≥ {_n_t}). "
+                        f"Small datasets produce high-variance models. "
+                        f"Expand the assay data or apply Bayesian uncertainty quantification."
                     ),
                 })
 

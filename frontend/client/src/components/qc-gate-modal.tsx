@@ -93,6 +93,17 @@ const PROCESS_DISPLAY_NAMES: Record<string, string> = {
   IVIVE_HEPATIC: "IVIVE Hepatic Clearance",
   HEPATIC_CLEARANCE: "IVIVE Hepatic Clearance",
   CLEARANCE_SCALING: "Clearance Scaling (IVIVE)",
+  // Molecular docking
+  MOLECULAR_DOCKING: "Molecular Docking",
+  DOCKING: "Molecular Docking",
+  AUTODOCK: "Molecular Docking (AutoDock)",
+  VINA: "Molecular Docking (Vina)",
+  GLIDE: "Molecular Docking (Glide)",
+  // QSAR modelling
+  QSAR_MODEL: "QSAR Modelling",
+  QSAR: "QSAR Modelling",
+  CHEMPROP: "QSAR Modelling (ChemProp)",
+  DEEPCHEM: "QSAR Modelling (DeepChem)",
 }
 
 function humanizeProcessName(raw: string): string {
