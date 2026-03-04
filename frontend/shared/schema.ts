@@ -730,6 +730,8 @@ export const executionConfigSchema = z.object({
   qcProfile: z.string().optional(),
   // Per-metric threshold overrides (map of metric name → numeric value)
   qcOverrides: z.record(z.string(), z.number()).optional(),
+  // US-4.2 — auto-apply toggle: false = always pause at QC failures (default); true = auto-apply high-confidence suggestions and continue
+  pauseAtQcFailures: z.boolean().optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;

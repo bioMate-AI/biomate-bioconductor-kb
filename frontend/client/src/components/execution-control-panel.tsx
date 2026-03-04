@@ -176,7 +176,8 @@ export function ExecutionControlPanel({
   const [strataColumn, setStrataColumn] = useState<string | undefined>();
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set());
-  // QC governance settings (US-4.3)
+  // QC governance settings (US-4.2 + US-4.3)
+  const [pauseAtQcFailures, setPauseAtQcFailures] = useState(true);
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
   const [showQcSettings, setShowQcSettings] = useState(false);
   const [newOverrideKey, setNewOverrideKey] = useState('');
@@ -218,8 +219,9 @@ export function ExecutionControlPanel({
         milestonePercentages: [25, 50, 75, 100],
       },
       ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
+      pauseAtQcFailures,
     };
-  }, [mode, fraction, samplingStrategy, strataColumn, qcOverrides]);
+  }, [mode, fraction, samplingStrategy, strataColumn, qcOverrides, pauseAtQcFailures]);
 
   // Handlers
   const handleExecute = async () => {
@@ -460,6 +462,22 @@ export function ExecutionControlPanel({
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pt-2 pb-1">
+        {/* US-4.2 — Pause at QC failures toggle */}
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <Label className="text-xs font-medium">Pause at QC failures</Label>
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
+              {pauseAtQcFailures
+                ? "Workflow pauses when a gate fires — you review and decide"
+                : "High-confidence suggestions auto-applied — workflow continues"}
+            </p>
+          </div>
+          <Switch
+            checked={pauseAtQcFailures}
+            onCheckedChange={setPauseAtQcFailures}
+          />
+        </div>
+        <Separator className="my-0" />
         {/* Per-metric threshold overrides */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>

@@ -170,7 +170,14 @@ export function WorkflowArtifact({
   const [showCitations, setShowCitations] = useState(false)
   const [showPilotRun, setShowPilotRun] = useState(false)
   const [showUnifiedExecution, setShowUnifiedExecution] = useState(false)
-  const [pilotBannerDismissed, setPilotBannerDismissed] = useState(false)
+  // US-4.1 — 7-day localStorage suppression for skip-pilot
+  const pilotSuppressKey = `biomate_pilot_suppress_${(workflow.name || '').toLowerCase().replace(/\W+/g, '_')}`
+  const [pilotBannerDismissed, setPilotBannerDismissed] = useState(() => {
+    try {
+      const stored = localStorage.getItem(pilotSuppressKey)
+      return stored ? Date.now() < parseInt(stored, 10) : false
+    } catch { return false }
+  })
   const [autofixStatus, setAutofixStatus] = useState<any | null>(null)
   const [autofixError, setAutofixError] = useState<string | null>(null)
   const [isAutofixRunning, setIsAutofixRunning] = useState(false)
@@ -222,6 +229,8 @@ export function WorkflowArtifact({
   // Ref to read latest qcGateData in SSE closure without stale capture
   const qcGateDataRef = useRef(qcGateData)
   qcGateDataRef.current = qcGateData
+  // US-4.2 — pauseAtQcFailures ref updated when execution config is submitted
+  const pauseAtQcRef = useRef(true)
 
   // Determine if we should show the pilot suggestion banner prominently
   const showPilotBanner = pilotRunSuggested && !pilotBannerDismissed && !isRunning && pilotReasons.length > 0
@@ -282,13 +291,38 @@ export function WorkflowArtifact({
             [processKey]: (prev[processKey] ?? 0) + 1,
           }))
 
-          setQCGateData({
+          const gateData = {
             processName: data.process_name,
             qcMetrics: data.qc_metrics,
             failures: data.failures || [],
             suggestions: data.suggestions || [],
-          })
-          setShowQCGateModal(true)
+          }
+          setQCGateData(gateData)
+
+          // US-4.2 — auto-apply mode: if pauseAtQcFailures=false, apply high-confidence suggestions silently
+          if (!pauseAtQcRef.current && gateData.suggestions.length > 0 && onParameterChange) {
+            const highConf = gateData.suggestions.filter((s: any) => (s.confidence ?? 0) >= 0.7)
+            console.log(`[QC Gate] Auto-apply mode — applying ${highConf.length}/${gateData.suggestions.length} high-confidence suggestions`)
+            for (const suggestion of highConf) {
+              const step = normalizedSteps.find(s => {
+                if (!s.parameters) return false
+                const keys = Object.keys(s.parameters)
+                return keys.includes(suggestion.parameter) || keys.some(k => k.toLowerCase() === suggestion.parameter.toLowerCase())
+              })
+              if (step) {
+                const sv = suggestion.suggestedValue
+                onParameterChange(step.id, sv !== null && typeof sv === 'object' && !Array.isArray(sv)
+                  ? { ...step.parameters, ...sv }
+                  : { ...step.parameters, [suggestion.parameter]: sv })
+              }
+            }
+            annotateQCStep(data.process_name, data.failures || [], "warning")
+            setQCGateData(null)
+            // continue workflow
+            if (onRun) void onRun(workflow, normalizedSteps)
+          } else {
+            setShowQCGateModal(true)
+          }
         } catch (error) {
           console.error("[QC Gate] Failed to parse event:", error)
         }
@@ -911,14 +945,20 @@ export function WorkflowArtifact({
                       size="sm"
                       variant="ghost"
                       className="h-7 text-xs text-amber-700 hover:text-amber-800"
-                      onClick={() => setPilotBannerDismissed(true)}
+                      onClick={() => {
+                        try {
+                          localStorage.setItem(pilotSuppressKey, String(Date.now() + 7 * 24 * 60 * 60 * 1000))
+                        } catch {}
+                        setPilotBannerDismissed(true)
+                      }}
                     >
                       {useUnifiedExecution ? 'Skip' : 'Skip pilot'}
                     </Button>
                   </div>
-                  {/* US-1.1 — consequence note for skip */}
+                  {/* US-1.1 — consequence note for skip; US-4.1 — 7-day suppression note */}
                   <p className="text-xs text-amber-600/70 mt-1">
-                    Full dataset will run immediately — no quality check first
+                    Full dataset will run immediately — no quality check first.
+                    This workflow won&apos;t ask for a pilot again for 7 days.
                   </p>
                 </AlertDescription>
               </Alert>
@@ -1308,6 +1348,8 @@ export function WorkflowArtifact({
             previousRuns={previousExecutionRuns}
             recommendations={parameterRecommendations}
             onExecute={async (config) => {
+              // US-4.2 — capture auto-apply preference from execution config
+              pauseAtQcRef.current = config.pauseAtQcFailures !== false
               if (onUnifiedExecute) {
                 await onUnifiedExecute(config)
               }
