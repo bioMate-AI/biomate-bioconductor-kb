@@ -12,6 +12,7 @@ import { AlertTriangle, MessageCircle, Layers, RefreshCw } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
+import { analytics } from "@/lib/analytics"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
   if (!status) return null
@@ -196,8 +197,23 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       console.log('[ChatWithArtifacts] Workflow execution complete')
       setIsWorkflowRunning(false)
       setWorkflowProgress(100)
+      const status = currentRun?.execution?.status
+      if (status === 'completed') {
+        analytics.track('workflow_completed', {
+          invocation_id: currentRun?.execution?.galaxyInvocationId,
+        })
+      } else if (status === 'failed') {
+        analytics.track('workflow_failed', {
+          invocation_id: currentRun?.execution?.galaxyInvocationId,
+          error: currentRun?.execution?.errorMessage,
+        })
+      } else if (status === 'cancelled') {
+        analytics.track('workflow_cancelled', {
+          invocation_id: currentRun?.execution?.galaxyInvocationId,
+        })
+      }
     }
-  }, [isComplete])
+  }, [isComplete]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!currentRun) return
@@ -448,6 +464,14 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       });
 
       console.log('[ChatWithArtifacts] Workflow execution started:', run?.id);
+      analytics.track('workflow_started', {
+        domain: workflow.domain,
+        workflow_steps: (workflow.steps ? Object.keys(workflow.steps).length : steps?.length) ?? 0,
+        execution_engine: isNextflow ? 'nextflow' : 'galaxy',
+        qc_profile: workflow.qc_profile,
+        total_samples: workflow.totalSamples,
+        invocation_id: run?.execution?.galaxyInvocationId,
+      })
       setCurrentWorkflowId(
         run?.execution?.galaxyWorkflowId ||
         run?.execution?.galaxyInvocationId ||
@@ -498,6 +522,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       console.error('[ChatWithArtifacts] Failed to run workflow:', error);
       setIsWorkflowRunning(false);
       setWorkflowProgress(0);
+
+      analytics.track('workflow_failed', { error: error?.message || 'Failed to run workflow' })
 
       // Error message comes from unified API (includes input validation errors)
       setWorkflowError(error?.message || 'Failed to run workflow');

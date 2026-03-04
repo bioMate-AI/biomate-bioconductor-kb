@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react"
+import { analytics } from "@/lib/analytics"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -298,6 +299,17 @@ export function WorkflowArtifact({
             suggestions: data.suggestions || [],
           }
           setQCGateData(gateData)
+
+          const blockingFailures = (data.failures || []).filter((f: any) => !f.advisory)
+          if (blockingFailures.length > 0) {
+            analytics.track('qc_failed', {
+              gates_failed: blockingFailures.length,
+              gates_advisory: (data.failures || []).length - blockingFailures.length,
+              failing_step: data.process_name,
+            })
+          } else {
+            analytics.track('qc_passed')
+          }
 
           // US-4.2 — auto-apply mode: if pauseAtQcFailures=false, apply high-confidence suggestions silently
           if (!pauseAtQcRef.current && gateData.suggestions.length > 0 && onParameterChange) {
@@ -623,7 +635,10 @@ export function WorkflowArtifact({
                     variant="outline"
                     size="sm"
                     className="h-7 px-2 text-xs border-amber-500/50 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                    onClick={() => useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)}
+                    onClick={() => {
+                      analytics.track('pilot_run_started', { total_samples: totalSamples })
+                      useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)
+                    }}
                   >
                     <FlaskConical className="h-3 w-3 mr-1" />
                     {useUnifiedExecution ? 'Execute' : 'Pilot Run'}
@@ -936,7 +951,10 @@ export function WorkflowArtifact({
                       size="sm"
                       variant="default"
                       className="h-7 bg-amber-600 hover:bg-amber-700 text-white"
-                      onClick={() => useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)}
+                      onClick={() => {
+                        analytics.track('pilot_run_started', { total_samples: totalSamples })
+                        useUnifiedExecution ? setShowUnifiedExecution(true) : setShowPilotRun(true)
+                      }}
                     >
                       <FlaskConical className="h-3 w-3 mr-1" />
                       {useUnifiedExecution ? 'Configure Execution' : 'Configure Pilot Run'}
@@ -946,6 +964,7 @@ export function WorkflowArtifact({
                       variant="ghost"
                       className="h-7 text-xs text-amber-700 hover:text-amber-800"
                       onClick={() => {
+                        analytics.track('pilot_run_skipped', { total_samples: totalSamples })
                         try {
                           localStorage.setItem(pilotSuppressKey, String(Date.now() + 7 * 24 * 60 * 60 * 1000))
                         } catch {}

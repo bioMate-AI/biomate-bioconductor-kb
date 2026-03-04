@@ -16,6 +16,7 @@ import { emitUxEvent } from "@/lib/ux-telemetry"
 import { getChatAsyncGuidance } from "@/lib/async-guidance"
 import { useNetworkStatus } from "@/lib/network-status"
 import type { ChatSession, ExecutionRun } from "@shared/schema"
+import { analytics } from "@/lib/analytics"
 import {
   ChevronRight,
   ChevronDown,
@@ -866,6 +867,8 @@ export function ChatInterface({
     }
 
     setIsTypingLocal(true)
+
+    analytics.track('query_sent', { query_length: content.length })
 
     // Call Galaxy API (always, regardless of session)
     chatMutation.mutate(content)

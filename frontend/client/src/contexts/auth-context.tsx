@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
+import { analytics } from '@/lib/analytics'
 
 interface User {
   id: string
@@ -99,7 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Login failed')
     }
 
-    setUser(mapResponseToUser(data))
+    const mappedUser = mapResponseToUser(data)
+    setUser(mappedUser)
+    analytics.identify(mappedUser.id, { plan: mappedUser.role, email: mappedUser.email, name: mappedUser.name })
+    analytics.track('user_logged_in', { plan: mappedUser.role })
     setLocation('/dashboard')
   }
 
@@ -126,22 +130,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Registration failed')
     }
 
-    setUser({
+    const newUser = {
       id: data.user.id,
       email: data.user.email,
       name: data.user.fullName,
-      role: 'free',
+      role: 'free' as const,
       subscription: {
         plan: 'Trial',
-        status: 'trialing',
+        status: 'trialing' as const,
         currentPeriodEnd: data.user.trialEndsAt
       }
-    })
+    }
+    setUser(newUser)
+    analytics.identify(newUser.id, { plan: newUser.role, email: newUser.email, name: newUser.name })
+    analytics.track('user_registered', { plan: newUser.role })
 
     setLocation('/dashboard')
   }
 
   const logout = async () => {
+    analytics.track('user_logged_out')
+    analytics.reset()
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',

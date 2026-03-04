@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { PanelLeft } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
+import { analytics } from "@/lib/analytics";
 
 // Import new pages
 import LandingPage from "@/pages/landing";
@@ -342,7 +343,12 @@ function App() {
   const [selectedTool, setSelectedTool] = useState<ToolItem | null>(null)
   const [currentChatSession, setCurrentChatSession] = useState<ChatSession | null>(null)
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
-  const [, setLocation] = useLocation()
+  const [location, setLocation] = useLocation()
+
+  // Track page views on route change
+  useEffect(() => {
+    analytics.track('page_viewed', { page: location })
+  }, [location])
 
   // Initialize chat history on mount
   useEffect(() => {
