@@ -212,7 +212,55 @@ Execute button (checks for at least one workflow block).
 
 ---
 
-## 6. Quick Reference — New Thresholds Added Since Last Plan
+## 6. QC Profile Selector — Now Wired End-to-End
+
+Previously: `execution-control-panel.tsx` had a dropdown for named QC profiles but it
+was never passed to the backend (missing schema field + missing proxy + missing execute body).
+
+**Now fully wired:**
+- `ExecutionConfig` schema has `qcProfile` and `qcOverrides` fields
+- `GET /api/qc/profiles` is proxied from frontend → backend (returns all 31 profiles live)
+- Nextflow execute call includes `qc_profile` and `qc_overrides` when set
+
+**Test:**
+1. Open any workflow in the execution panel
+2. Expand the QC settings section
+3. Select a named profile (e.g. `rnaseq ribodepleted`)
+4. Execute the workflow
+5. In the backend logs, confirm: `"[QC Profile] Invocation ...: named profile 'rnaseq_ribodepleted' active"`
+
+---
+
+## 7. QC Summary Panel — After Workflow Completes
+
+When a workflow finishes, a **QC Summary** panel now appears in the completion section.
+
+**What it shows:**
+- Gate count (red) and warning count (amber)
+- Per-event details with the process name and specific failure/warning messages
+- Active profile badge if a named profile was used
+- Auto-generated **methods text** with a "Copy methods text" button
+
+**Expected behavior:**
+- Panel only appears if at least one gate or warning event was recorded during the run
+- "Copy methods text" copies a paragraph like:
+  > *"Quality control was performed automatically by BioMate using named profile
+  > 'rnaseq_ribodepleted'. QC gates were triggered for 1 process(es) (STAR_ALIGN).
+  > A total of 2 near-threshold advisory warning(s) were recorded. Gate thresholds
+  > and references are described in the BioMate QC governance documentation."*
+
+**API endpoint (if testing directly):**
+```
+GET /api/invocations/:id/qc-events
+```
+Returns `{ gates_triggered, warnings_emitted, events[], methods_text }`.
+
+**Fail criteria:** Panel doesn't appear after a workflow that had gate events, OR
+"Copy methods text" produces generic/empty text.
+
+---
+
+## 8. Quick Reference — New Thresholds Added Since Last Plan
 
 | Domain | Metric | Gate |
 |---|---|---|
