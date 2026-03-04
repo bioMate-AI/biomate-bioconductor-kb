@@ -79,6 +79,17 @@ const PROCESS_DISPLAY_NAMES: Record<string, string> = {
   PULLDOWN_QC: "Pulldown Enrichment QC",
   CHEMOPROTEOMICS_QC: "Chemoproteomics QC",
   ENRICHMENT_QC: "Enrichment Efficiency QC",
+  // Proteomics (MaxQuant / DIA-NN)
+  MAXQUANT: "MaxQuant Database Search",
+  MAXQUANT_SEARCH: "MaxQuant Database Search",
+  MAXQUANT_ANDROMEDA: "MaxQuant (Andromeda)",
+  DIANN: "DIA-NN Spectral Library Search",
+  DIANN_SEARCH: "DIA-NN Spectral Library Search",
+  DIANN_CONVERT: "DIA-NN Data Conversion",
+  SPECTRONAUT: "Spectronaut DIA Analysis",
+  PHOSPHO_ENRICHMENT: "Phosphopeptide Enrichment",
+  PHOSPHO_LOCALIZATION: "Phosphosite Localization",
+  PROTEOMICS_QC: "Proteomics Quality Control",
   // PK/PD — non-compartmental analysis
   NCA_PKNCA: "Non-Compartmental Analysis (PKNCA)",
   NCA_ANALYSIS: "Non-Compartmental Analysis",
@@ -202,6 +213,30 @@ const TROUBLESHOOTING_STEPS: Record<string, string[]> = {
     "CYP2D6 has high GC content — consider increasing depth target to 60× for reliable star allele calling",
     "Use CPIC-recommended star allele callers that account for GC bias (Stargazer, Aldy, PyPGx)",
     "Verify the variant calling pipeline handles complex structural variants in CYP2D6 locus",
+  ],
+  // Proteomics — MaxQuant / DIA-NN
+  MAXQUANT: [
+    "High FDR: tighten main search mass tolerance (e.g. 4.5 → 2 ppm) to reduce false peptide matches",
+    "High missed cleavage rate: extend digestion time (2→4 h) or increase enzyme:protein ratio (1:50 → 1:100)",
+    "Verify the FASTA database species and isoform completeness — contaminants database should be included",
+    "For phosphoproteomics: enable ptmRS module for phosphosite localization probability scoring",
+  ],
+  MAXQUANT_SEARCH: [
+    "High FDR: tighten main search mass tolerance (e.g. 4.5 → 2 ppm) to reduce false peptide matches",
+    "High missed cleavage rate: extend digestion time (2→4 h) or increase enzyme:protein ratio (1:50 → 1:100)",
+    "Verify the FASTA database species and isoform completeness — contaminants database should be included",
+    "For phosphoproteomics: enable ptmRS module for phosphosite localization probability scoring",
+  ],
+  DIANN: [
+    "High protein FDR: use --protein-q-value 0.005 (0.5%) for stricter control",
+    "Set --pg-level 2 for global protein FDR estimation across the full experiment",
+    "Verify spectral library species matches your sample — a mismatch is the most common cause of poor identification",
+    "For narrow-window DIA: use --window 0 for automatic optimal window selection",
+  ],
+  DIANN_SEARCH: [
+    "High protein FDR: use --protein-q-value 0.005 (0.5%) for stricter control",
+    "Set --pg-level 2 for global protein FDR estimation across the full experiment",
+    "Verify spectral library species matches your sample — a mismatch is the most common cause of poor identification",
   ],
 }
 
