@@ -3,6 +3,8 @@ set -euo pipefail
 
 MODE="${1:-quick}"
 STRICT_MODE="${PM_WIRE_STRICT:-0}"
+RESEARCH_E2E_TIMEOUT="${PM_WIRE_RESEARCH_E2E_TIMEOUT:-12m}"
+PYTHON_BIN="${PM_WIRE_PYTHON_BIN:-python3}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
@@ -37,6 +39,13 @@ require_cmd npm
 
 cd "${ROOT_DIR}"
 
+# Load local env vars (DATABASE_URL, ANTHROPIC_API_KEY, etc.) when available.
+if [[ -f "${ROOT_DIR}/.env" ]]; then
+  set -a
+  source "${ROOT_DIR}/.env"
+  set +a
+fi
+
 step "Type Safety Gate (frontend)"
 echo "[PASS] Type Safety Gate" >> "${REPORT_FILE}"
 npm run check
@@ -70,18 +79,22 @@ if [[ "${MODE}" == "full" ]]; then
     skip "Set TEST_BASE_URL (and ensure frontend/backend/DB are running) to execute flexible intent E2E."
   else
     echo "[PASS] Research E2E Gate" >> "${REPORT_FILE}"
-    npx tsx server/test-e2e-flexible-intents.ts
+    if command -v timeout >/dev/null 2>&1; then
+      timeout "${RESEARCH_E2E_TIMEOUT}" npx tsx server/test-e2e-flexible-intents.ts
+    else
+      npx tsx server/test-e2e-flexible-intents.ts
+    fi
   fi
 
   step "Backend QC Regression Gate"
   if command -v pytest >/dev/null 2>&1; then
-    if command -v python3 >/dev/null 2>&1 && python3 -c "import pulsar" >/dev/null 2>&1; then
+    if command -v "${PYTHON_BIN}" >/dev/null 2>&1 && "${PYTHON_BIN}" -c "import pulsar, sqlalchemy" >/dev/null 2>&1; then
       cd "${PROJECT_DIR}"
       echo "[PASS] Backend QC Regression Gate" >> "${REPORT_FILE}"
       pytest backend/tests/test_qc_e2e_domains.py backend/tests/test_qc_edge_cases.py -q
       cd "${ROOT_DIR}"
     else
-      skip "Backend QC regression requires Python module 'pulsar'. Install backend test deps to enable this gate."
+      skip "Backend QC regression requires Python modules 'pulsar' and 'sqlalchemy'. Install backend test deps to enable this gate."
     fi
   else
     skip "pytest not found; install Python test tooling to run backend QC regression gate."

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { ChatInterface } from "./chat-interface"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
@@ -34,12 +34,33 @@ interface RunListItem {
     status?: string
     galaxyInvocationId?: string
     galaxyWorkflowId?: string
+    artifactReadiness?: {
+      hasOutputs?: boolean
+      visualizableCount?: number
+      downloadableCount?: number
+      totalOutputs?: number
+      meetsContract?: boolean
+    }
+    nextflowStatus?: {
+      artifactReadiness?: {
+        hasOutputs?: boolean
+        visualizableCount?: number
+        downloadableCount?: number
+        totalOutputs?: number
+        meetsContract?: boolean
+      }
+      outputs?: unknown[]
+      results?: unknown[]
+      output_files?: unknown[]
+    }
   }
   updatedAt?: string
   createdAt?: string
 }
 
 type RunBucket = 'running' | 'queued' | 'failed' | 'completed'
+type RunManagerScope = 'current_chat' | 'all_chats'
+type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
 
 function mapRunBucket(status?: string): RunBucket {
   switch (status) {
@@ -65,6 +86,56 @@ function formatRunTime(raw?: string): string {
   return date.toLocaleTimeString()
 }
 
+function formatFreshness(raw?: string): string {
+  if (!raw) return "freshness unknown"
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return "freshness unknown"
+  const deltaMs = Date.now() - date.getTime()
+  if (deltaMs < 0 || deltaMs < 60_000) return "just now"
+  const deltaMinutes = Math.floor(deltaMs / 60_000)
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`
+  const deltaHours = Math.floor(deltaMinutes / 60)
+  if (deltaHours < 24) return `${deltaHours}h ago`
+  return `${Math.floor(deltaHours / 24)}d ago`
+}
+
+function shortenId(raw?: string, prefix = "", maxLen = 8): string {
+  if (!raw) return `${prefix}n/a`
+  const short = raw.length > maxLen ? raw.slice(0, maxLen) : raw
+  return `${prefix}${short}`
+}
+
+function getOutputReadinessHint(run: RunListItem): string | null {
+  const readiness = run.execution?.artifactReadiness || run.execution?.nextflowStatus?.artifactReadiness
+  if (readiness) {
+    if (readiness.meetsContract === true) {
+      return `outputs ready (${readiness.visualizableCount ?? 0} viz / ${readiness.downloadableCount ?? 0} dl)`
+    }
+    if (readiness.hasOutputs) {
+      return `partial outputs (${readiness.totalOutputs ?? 0})`
+    }
+    if (readiness.meetsContract === false) {
+      return "outputs not ready"
+    }
+  }
+
+  const outputCount =
+    (Array.isArray(run.execution?.nextflowStatus?.outputs) ? run.execution?.nextflowStatus?.outputs.length : 0) +
+    (Array.isArray(run.execution?.nextflowStatus?.results) ? run.execution?.nextflowStatus?.results.length : 0) +
+    (Array.isArray(run.execution?.nextflowStatus?.output_files) ? run.execution?.nextflowStatus?.output_files.length : 0)
+
+  if (outputCount > 0) return `outputs detected (${outputCount})`
+  if (run.execution?.status === "completed") return "completed; check artifacts"
+  return null
+}
+
+function runUpdatedAtMs(run: RunListItem): number {
+  const value = run.updatedAt || run.createdAt
+  if (!value) return 0
+  const ms = new Date(value).getTime()
+  return Number.isFinite(ms) ? ms : 0
+}
+
 /**
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
@@ -82,6 +153,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const [runList, setRunList] = useState<RunListItem[]>([])
   const [isRunListLoading, setIsRunListLoading] = useState(false)
   const [runListError, setRunListError] = useState<string | null>(null)
+  const [runManagerScope, setRunManagerScope] = useState<RunManagerScope>('current_chat')
+  const [runSearchQuery, setRunSearchQuery] = useState("")
+  const [runStatusFilter, setRunStatusFilter] = useState<"all" | RunBucket>("all")
+  const [runSort, setRunSort] = useState<RunManagerSort>("updated_desc")
+  const [focusedRunId, setFocusedRunId] = useState<string | null>(null)
+  const [runAnchorRequestId, setRunAnchorRequestId] = useState(0)
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -89,6 +166,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   } | null>(null)
   const surveyedRunIds = useRef<Set<string>>(new Set())
   const pulseShownForSession = useRef<Set<string>>(new Set())
+  const recentRunSwitchesRef = useRef<number[]>([])
+  const recentErrorCountsRef = useRef<Map<string, { count: number; windowStartMs: number }>>(new Map())
+  const runListRequestSeqRef = useRef(0)
 
   // Unified workflow execution hook (with input validation)
   const {
@@ -128,12 +208,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     )
   }, [currentRun])
 
+  useEffect(() => {
+    if (currentRun?.id) {
+      setFocusedRunId(currentRun.id)
+    }
+  }, [currentRun?.id])
+
   const fetchRunList = async () => {
+    const requestSeq = ++runListRequestSeqRef.current
     setIsRunListLoading(true)
     setRunListError(null)
     try {
       const params = new URLSearchParams({ limit: "50" })
-      if (currentChatSession?.id) {
+      if (runManagerScope === "current_chat" && currentChatSession?.id) {
         params.set("chatSessionId", currentChatSession.id)
       }
       const response = await fetch(`/api/workflows/runs?${params.toString()}`)
@@ -142,10 +229,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       }
       const data = await response.json()
       const runs = Array.isArray(data) ? data : []
+      if (requestSeq !== runListRequestSeqRef.current) {
+        return
+      }
       setRunList(runs)
     } catch (error: any) {
+      if (requestSeq !== runListRequestSeqRef.current) {
+        return
+      }
       setRunListError(error?.message || "Failed to fetch runs")
     } finally {
+      if (requestSeq !== runListRequestSeqRef.current) {
+        return
+      }
       setIsRunListLoading(false)
     }
   }
@@ -154,7 +250,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     fetchRunList()
     const intervalId = setInterval(fetchRunList, 10000)
     return () => clearInterval(intervalId)
-  }, [currentChatSession?.id])
+  }, [currentChatSession?.id, runManagerScope])
 
   // Post-run micro-survey: trigger once per run when status is completed/failed/cancelled
   useEffect(() => {
@@ -180,6 +276,25 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         runId: currentRun?.id,
         errorMessage: executionError,
       })
+      const runKey = currentRun?.id || "unknown"
+      const now = Date.now()
+      const existing = recentErrorCountsRef.current.get(runKey)
+      const withinWindow = existing && now - existing.windowStartMs <= 120000
+      const count = withinWindow ? existing.count + 1 : 1
+      recentErrorCountsRef.current.set(runKey, {
+        count,
+        windowStartMs: withinWindow ? existing.windowStartMs : now,
+      })
+      if (count >= 3) {
+        emitUxEvent("workflow.confusion_signal", {
+          sessionId: currentChatSession?.id,
+          runId: currentRun?.id,
+          signal: "repeated_error_surface",
+          severity: "high",
+          windowMs: 120000,
+          count,
+        })
+      }
       console.error('[ChatWithArtifacts] Workflow execution error:', executionError)
       setIsWorkflowRunning(false)
     }
@@ -456,6 +571,22 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   };
 
   const handleSwitchRun = async (runId: string) => {
+    setFocusedRunId(runId)
+    setRunAnchorRequestId((prev) => prev + 1)
+    const now = Date.now()
+    const recentSwitches = recentRunSwitchesRef.current.filter((ts) => now - ts <= 120000)
+    recentSwitches.push(now)
+    recentRunSwitchesRef.current = recentSwitches
+    if (recentSwitches.length >= 4) {
+      emitUxEvent("workflow.confusion_signal", {
+        sessionId: currentChatSession?.id,
+        runId,
+        signal: "run_switch_oscillation",
+        severity: "medium",
+        windowMs: 120000,
+        count: recentSwitches.length,
+      })
+    }
     try {
       await loadRun(runId)
       emitUxEvent("workflow.run_switched", {
@@ -496,11 +627,44 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     currentRun?.execution?.nextflowStatus?.autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes((autofixState || "").toLowerCase())
   const runningCount = runList.filter((run) => mapRunBucket(run.execution?.status) === "running").length
+  const filteredSortedRuns = useMemo(() => {
+    const normalizedQuery = runSearchQuery.trim().toLowerCase()
+    const filtered = runList.filter((run) => {
+      const matchesQuery =
+        normalizedQuery.length === 0 ||
+        (run.workflowName || "").toLowerCase().includes(normalizedQuery) ||
+        run.id.toLowerCase().includes(normalizedQuery)
+      const bucket = mapRunBucket(run.execution?.status)
+      const matchesStatus = runStatusFilter === "all" || bucket === runStatusFilter
+      return matchesQuery && matchesStatus
+    })
+
+    const byUpdatedAtDesc = (a: RunListItem, b: RunListItem) => {
+      return runUpdatedAtMs(b) - runUpdatedAtMs(a)
+    }
+
+    if (runSort === "updated_desc") {
+      return [...filtered].sort(byUpdatedAtDesc)
+    }
+
+    const priorityByBucket: Record<RunBucket, number> =
+      runSort === "running_first"
+        ? { running: 0, queued: 1, failed: 2, completed: 3 }
+        : { failed: 0, running: 1, queued: 2, completed: 3 }
+
+    return [...filtered].sort((a, b) => {
+      const bucketDelta =
+        priorityByBucket[mapRunBucket(a.execution?.status)] -
+        priorityByBucket[mapRunBucket(b.execution?.status)]
+      if (bucketDelta !== 0) return bucketDelta
+      return byUpdatedAtDesc(a, b)
+    })
+  }, [runList, runSearchQuery, runStatusFilter, runSort])
   const runBuckets: Record<RunBucket, RunListItem[]> = {
-    running: runList.filter((run) => mapRunBucket(run.execution?.status) === "running"),
-    queued: runList.filter((run) => mapRunBucket(run.execution?.status) === "queued"),
-    failed: runList.filter((run) => mapRunBucket(run.execution?.status) === "failed"),
-    completed: runList.filter((run) => mapRunBucket(run.execution?.status) === "completed"),
+    running: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "running"),
+    queued: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "queued"),
+    failed: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "failed"),
+    completed: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "completed"),
   }
 
   return (
@@ -546,36 +710,120 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
       {showRunManager && (
         <div className="border-b bg-muted/20 px-4 py-3" data-testid="run-manager-panel">
+          <div
+            className="sr-only"
+            data-testid="run-manager-focused-run-state"
+            data-focused-run-id={focusedRunId || ""}
+          />
           {runListError && (
             <p className="text-xs text-red-600 dark:text-red-400 mb-2">
               Failed to refresh runs: {runListError}
             </p>
           )}
+          <div className="mb-3 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+            <div className="inline-flex rounded-md border bg-background p-0.5" data-testid="run-manager-scope-toggle">
+              <button
+                type="button"
+                data-testid="run-manager-scope-current-chat"
+                onClick={() => setRunManagerScope("current_chat")}
+                className={`rounded px-2 py-1 text-xs ${
+                  runManagerScope === "current_chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                Current chat
+              </button>
+              <button
+                type="button"
+                data-testid="run-manager-scope-all-chats"
+                onClick={() => setRunManagerScope("all_chats")}
+                className={`rounded px-2 py-1 text-xs ${
+                  runManagerScope === "all_chats" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                All chats
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:min-w-[720px]">
+              <input
+                value={runSearchQuery}
+                onChange={(event) => setRunSearchQuery(event.target.value)}
+                data-testid="run-manager-search-input"
+                placeholder="Search workflow or run id"
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+              />
+              <select
+                value={runStatusFilter}
+                onChange={(event) => setRunStatusFilter(event.target.value as "all" | RunBucket)}
+                data-testid="run-manager-filter-status"
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+              >
+                <option value="all">All statuses</option>
+                <option value="running">Running</option>
+                <option value="queued">Queued</option>
+                <option value="failed">Failed</option>
+                <option value="completed">Completed</option>
+              </select>
+              <select
+                value={runSort}
+                onChange={(event) => setRunSort(event.target.value as RunManagerSort)}
+                data-testid="run-manager-sort-select"
+                className="h-8 rounded-md border bg-background px-2 text-xs"
+              >
+                <option value="updated_desc">Updated (newest first)</option>
+                <option value="running_first">Running first</option>
+                <option value="failed_first">Failed first</option>
+              </select>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {(["running", "queued", "failed", "completed"] as RunBucket[]).map((bucket) => (
-              <div key={bucket} className="rounded-md border bg-background p-2">
+              <div
+                key={bucket}
+                className="rounded-md border bg-background p-2"
+                data-testid={`run-manager-bucket-${bucket}`}
+              >
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {bucket}
                   </p>
-                  <span className="text-xs text-muted-foreground">{runBuckets[bucket].length}</span>
+                  <span
+                    className="text-xs text-muted-foreground"
+                    data-testid={`run-manager-bucket-count-${bucket}`}
+                  >
+                    {runBuckets[bucket].length}
+                  </span>
                 </div>
                 <div className="space-y-1.5">
                   {runBuckets[bucket].slice(0, 6).map((run) => (
-                    <button
-                      key={run.id}
-                      type="button"
-                      className={`w-full rounded border px-2 py-1.5 text-left text-xs hover:bg-muted ${
-                        currentRun?.id === run.id ? "border-primary bg-primary/5" : "border-border"
-                      }`}
-                      data-testid={`run-manager-item-${run.id}`}
-                      onClick={() => handleSwitchRun(run.id)}
-                    >
-                      <p className="font-medium truncate">{run.workflowName || "Untitled run"}</p>
-                      <p className="text-muted-foreground">
-                        {run.execution?.status || "unknown"} · {formatRunTime(run.updatedAt || run.createdAt)}
-                      </p>
-                    </button>
+                    (() => {
+                      const readinessHint = getOutputReadinessHint(run)
+                      return (
+                        <button
+                          key={run.id}
+                          type="button"
+                          className={`w-full rounded border px-2 py-1.5 text-left text-xs hover:bg-muted ${
+                            focusedRunId === run.id || currentRun?.id === run.id
+                              ? "border-primary bg-primary/5"
+                              : "border-border"
+                          }`}
+                          data-testid={`run-manager-item-${run.id}`}
+                          onClick={() => handleSwitchRun(run.id)}
+                        >
+                          <p className="font-medium truncate">{run.workflowName || "Untitled run"}</p>
+                          <p className="text-muted-foreground">
+                            {run.execution?.status || "unknown"} · {formatRunTime(run.updatedAt || run.createdAt)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {shortenId(run.id, "run ")}
+                            {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, "inv ")}` : ""}
+                            {` · ${formatFreshness(run.updatedAt || run.createdAt)}`}
+                          </p>
+                          {readinessHint && (
+                            <p className="text-[11px] text-muted-foreground">{readinessHint}</p>
+                          )}
+                        </button>
+                      )
+                    })()
                   ))}
                   {runBuckets[bucket].length === 0 && (
                     <p className="text-xs text-muted-foreground">No runs</p>
@@ -772,6 +1020,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           currentExecutionRun={currentRun}
           workflowError={workflowError}
           externalPromptRequest={externalPromptRequest}
+          focusedRunId={focusedRunId}
+          runAnchorRequestId={runAnchorRequestId}
           onExternalPromptConsumed={(id) => {
             setExternalPromptRequest((prev) => (prev?.id === id ? null : prev))
           }}

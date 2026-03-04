@@ -34,13 +34,7 @@ interface NextflowWorkflowViewerProps {
     message?: string;
     totalAttempts?: number;
   };
-  usefulness?: {
-    hasOutputs?: boolean;
-    visualizableCount?: number;
-    downloadableCount?: number;
-    totalOutputs?: number;
-    meetsContract?: boolean;
-  };
+  nextflowStatus?: any;
 }
 
 export function NextflowWorkflowViewer({ 
@@ -59,7 +53,7 @@ export function NextflowWorkflowViewer({
   sessionId,
   runId,
   autofix,
-  usefulness,
+  nextflowStatus,
 }: NextflowWorkflowViewerProps) {
   const [params, setParams] = useState(initialParams || {});
   const [logs, setLogs] = useState<string[]>([]);
@@ -115,9 +109,6 @@ export function NextflowWorkflowViewer({
   const isAutofixActive =
     autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes(autofix?.state || "");
-  const completedButNotUseful =
-    status === "completed" &&
-    usefulness?.meetsContract === false;
 
   useEffect(() => {
     if (status === 'completed') {
@@ -127,7 +118,101 @@ export function NextflowWorkflowViewer({
 
   useEffect(() => {
     setLastUpdateAt(new Date());
-  }, [status, progress, errorMessage]);
+  }, [status, progress, errorMessage, nextflowStatus]);
+
+  useEffect(() => {
+    const rawLogTail = Array.isArray(nextflowStatus?.log_tail)
+      ? nextflowStatus.log_tail.filter((line: unknown) => typeof line === "string")
+      : [];
+    if (rawLogTail.length > 0) {
+      setLogs(rawLogTail.slice(-120));
+      return;
+    }
+    const statusLine = nextflowStatus?.status
+      ? `Nextflow status: ${String(nextflowStatus.status)}`
+      : null;
+    if (statusLine) {
+      setLogs([statusLine]);
+    }
+  }, [nextflowStatus]);
+
+  const effectiveProgress = Number(
+    nextflowStatus?.progressPercent ??
+      nextflowStatus?.progress ??
+      progress ??
+      0
+  );
+  const nextflowRunId =
+    nextflowStatus?.run_id ??
+    nextflowStatus?.runId ??
+    nextflowStatus?.nextflow_run_id ??
+    nextflowStatus?.nextflowRunId;
+  const formatContextValue = (value: unknown) => {
+    if (value === null || value === undefined) return "n/a";
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : "n/a";
+    }
+    const asText = String(value);
+    return asText.trim().length > 0 ? asText : "n/a";
+  };
+
+  const runtimeArtifacts = React.useMemo(() => {
+    const artifacts: string[] = [];
+    const pushArtifact = (value: any) => {
+      if (!value) return;
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed) artifacts.push(trimmed);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach(pushArtifact);
+        return;
+      }
+      if (typeof value === "object") {
+        Object.values(value).forEach(pushArtifact);
+      }
+    };
+
+    pushArtifact(nextflowStatus?.outputs);
+    pushArtifact(nextflowStatus?.results);
+    pushArtifact(nextflowStatus?.output_files);
+    pushArtifact(nextflowStatus?.outdir);
+
+    if (Array.isArray(nextflowStatus?.log_tail)) {
+      for (const line of nextflowStatus.log_tail) {
+        if (typeof line !== "string") continue;
+        const pathMatches = line.match(/\/[^\s,\]]+/g) || [];
+        pathMatches.forEach((candidate) => artifacts.push(candidate));
+      }
+    }
+
+    return Array.from(new Set(artifacts)).slice(0, 12);
+  }, [nextflowStatus]);
+  const triageStatus = String(nextflowStatus?.status || status || "idle").toLowerCase();
+  const triageNextAction =
+    triageStatus === "failed"
+      ? "Review the failure reason, inspect recent logs, then retry with corrected inputs or parameters."
+      : triageStatus === "completed"
+        ? "Open Output Results to verify artifacts and downloadables."
+        : triageStatus === "running"
+          ? "Monitor logs and wait for terminal status before deciding on retry."
+          : "Configure parameters and prerequisites, then run the workflow.";
+  const triageLogsHint =
+    logs.length > 0
+      ? `Latest ${Math.min(logs.length, 120)} log lines are available below.`
+      : triageStatus === "running"
+        ? "Execution is active; logs may appear shortly."
+        : "No runtime logs are available yet.";
+  const triageOutputsHint =
+    !invocationId
+      ? "Outputs are not available until execution starts."
+      : triageStatus === "completed" && runtimeArtifacts.length === 0
+        ? "Run completed; output hydration may still be in progress."
+        : triageStatus === "completed"
+          ? `Detected ${runtimeArtifacts.length} runtime artifact${runtimeArtifacts.length === 1 ? "" : "s"}.`
+          : "Use View Results to check generated outputs as they arrive.";
 
   return (
     <div className="space-y-6 p-4">
@@ -144,7 +229,7 @@ export function NextflowWorkflowViewer({
           <CardTitle className="flex items-center justify-between">
             <span>Nextflow Workflow: {workflowDefinition?.name || 'Untitled'}</span>
             <div className="flex items-center gap-2">
-                {progress > 0 && <span className="text-sm text-muted-foreground">{progress}%</span>}
+                {effectiveProgress > 0 && <span className="text-sm text-muted-foreground">{effectiveProgress}%</span>}
                 <Badge variant={status === 'running' ? 'secondary' : 'outline'}>
                 {status.toUpperCase()}
                 </Badge>
@@ -246,37 +331,6 @@ export function NextflowWorkflowViewer({
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-4">
-              {completedButNotUseful && (
-                <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="space-y-2 text-xs">
-                    <div className="font-medium text-amber-800 dark:text-amber-300">
-                      Run completed, but outputs are not yet useful.
-                    </div>
-                    <div className="text-amber-700 dark:text-amber-400">
-                      Found {usefulness?.totalOutputs ?? 0} output(s), visualizable {usefulness?.visualizableCount ?? 0}, downloadable {usefulness?.downloadableCount ?? 0}.
-                    </div>
-                    {onRequestPrereqRecovery && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        data-testid="button-usefulness-recovery"
-                        onClick={() => {
-                          emitUxEvent("workflow.error_shown", {
-                            runId,
-                            invocationId,
-                            category: "usefulness_contract",
-                          });
-                          onRequestPrereqRecovery();
-                        }}
-                      >
-                        Ask BioMate to regenerate runnable output path
-                      </Button>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
               <h3 className="text-lg font-semibold">Parameters</h3>
               <ParameterGroup
                 id="main-params"
@@ -435,6 +489,50 @@ export function NextflowWorkflowViewer({
               <p className="text-xs text-muted-foreground" data-testid="workflow-last-update">
                 Last update: {lastUpdateAt.toLocaleTimeString()}
               </p>
+              <div
+                className="rounded-md border border-muted bg-muted/30 p-3"
+                data-testid="run-context-chip"
+              >
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Run context
+                </div>
+                <div className="mt-2 grid grid-cols-1 gap-1 text-xs sm:grid-cols-3 sm:gap-2">
+                  <div>
+                    <span className="text-muted-foreground">Run ID:</span>{" "}
+                    <span className="font-mono">{formatContextValue(runId)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Invocation ID:</span>{" "}
+                    <span className="font-mono">{formatContextValue(invocationId)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Nextflow run ID:</span>{" "}
+                    <span className="font-mono">{formatContextValue(nextflowRunId)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-md border border-muted p-3 text-xs space-y-1" data-testid="workflow-execution-evidence">
+                <div className="font-medium">Execution evidence</div>
+                <div>Run ID: {runId || "n/a"}</div>
+                <div>Invocation ID: {invocationId || "n/a"}</div>
+                <div>Runtime status: {nextflowStatus?.status || status}</div>
+                {nextflowStatus?.run_id && <div>Nextflow run ID: {String(nextflowStatus.run_id)}</div>}
+              </div>
+              <div className="rounded-md border border-muted p-3 text-xs space-y-2" data-testid="execution-triage-summary">
+                <div className="font-medium">Execution triage</div>
+                <div data-testid="execution-triage-status">
+                  <span className="text-muted-foreground">Status:</span> {triageStatus}
+                </div>
+                <div data-testid="execution-triage-next-action">
+                  <span className="text-muted-foreground">Next action:</span> {triageNextAction}
+                </div>
+                <div data-testid="execution-triage-logs">
+                  <span className="text-muted-foreground">Logs:</span> {triageLogsHint}
+                </div>
+                <div data-testid="execution-triage-outputs">
+                  <span className="text-muted-foreground">Outputs:</span> {triageOutputsHint}
+                </div>
+              </div>
               <div className="space-y-2">
                 {updatedPhases.map((phase: any, index: number) => (
                   <PhaseCard
@@ -478,6 +576,26 @@ export function NextflowWorkflowViewer({
           {invocationId && showResults && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-3">Output Results</h3>
+              {runtimeArtifacts.length > 0 && (
+                <div
+                  className="mb-3 rounded-md border border-blue-200/70 bg-blue-50/40 p-3 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200"
+                  data-testid="nextflow-runtime-artifacts"
+                >
+                  <div className="font-medium mb-1">
+                    Runtime artifacts detected ({runtimeArtifacts.length})
+                  </div>
+                  <div className="space-y-0.5">
+                    {runtimeArtifacts.slice(0, 6).map((artifactPath, idx) => (
+                      <div key={`${artifactPath}-${idx}`} className="truncate font-mono">
+                        {artifactPath}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-300">
+                    If the output cards are still empty, Galaxy output hydration may still be in progress.
+                  </div>
+                </div>
+              )}
               <ChatOutputAttachments
                 invocationId={invocationId}
                 sessionId={sessionId}

@@ -34,6 +34,8 @@ Script location:
 - `frontend/scripts/run-pm-test-wire.sh`
 - Report output:
   - `frontend/test-results/pm-wire-report.txt`
+- CI workflow:
+  - `.github/workflows/pm-test-wire.yml` (quick gate on PR/push, manual quick/full/release dispatch)
 
 ---
 

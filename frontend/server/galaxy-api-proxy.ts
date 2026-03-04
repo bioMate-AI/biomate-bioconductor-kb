@@ -5,6 +5,8 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import fs from 'node:fs';
+import path from 'node:path';
 import type {
   GalaxyTool,
   ToolSearchResponse,
@@ -568,6 +570,42 @@ export class GalaxyAPIProxy {
    */
   async generateWorkflow(request: WorkflowGenerationRequest): Promise<WorkflowGenerationResponse> {
     try {
+      const hasRunnableNextflowWorkflow = (rawPath: unknown): boolean => {
+        const workflowPath = String(rawPath || "").trim();
+        if (!workflowPath) {
+          return false;
+        }
+        if (!workflowPath.toLowerCase().endsWith(".nf")) {
+          return false;
+        }
+        const candidatePaths = path.isAbsolute(workflowPath)
+          ? [workflowPath]
+          : [
+              workflowPath,
+              path.resolve(process.cwd(), workflowPath),
+              path.resolve(process.cwd(), "..", workflowPath),
+              path.resolve(process.cwd(), "..", "backend", workflowPath),
+            ];
+        const resolvedPath = candidatePaths.find((candidate) => fs.existsSync(candidate));
+        if (!resolvedPath) {
+          // If the path is not locally inspectable from this process, keep it
+          // as potentially runnable and let backend entry-resolution decide.
+          return true;
+        }
+        try {
+          const script = fs.readFileSync(resolvedPath, "utf8");
+          // Anonymous entry workflow: `workflow { ... }`
+          if (/\bworkflow\s*\{/.test(script)) {
+            return true;
+          }
+          // Named workflow entry: `workflow name { ... }`
+          const namedEntries = script.match(/\bworkflow\s+[A-Za-z_][A-Za-z0-9_]*\s*\{/g);
+          return !!(namedEntries && namedEntries.length > 0);
+        } catch {
+          return false;
+        }
+      };
+
       const isExecutableNextflowPath = (rawPath: unknown): boolean => {
         const path = String(rawPath || "").trim().toLowerCase();
         if (!path) {
@@ -576,11 +614,9 @@ export class GalaxyAPIProxy {
         if (!path.endsWith(".nf")) {
           return false;
         }
-        // Guard against selecting library subworkflows that cannot run standalone.
-        if (path.includes("/subworkflows/") || path.includes("subworkflow")) {
-          return false;
-        }
-        return true;
+        // Subworkflows may still be runnable when executed with explicit entry.
+        // Runtime entry resolution is handled in backend nextflow executor.
+        return hasRunnableNextflowWorkflow(rawPath);
       };
 
       const isRunnableWorkflowResponse = (payload: any): boolean => {
@@ -639,16 +675,23 @@ export class GalaxyAPIProxy {
         let matched = false;
         let lastSearchResponse: any = null;
         for (const trialIntent of searchTrials) {
-          const trialResponse = await this.client.post<WorkflowGenerationResponse>(
-            '/api/ai_assistant/search_nextflow_workflow',
-            { user_intent: trialIntent }
-          );
-          lastSearchResponse = trialResponse;
-          console.log('[GalaxyAPIProxy] Nextflow search result:', trialResponse.data.workflow_name, trialResponse.data.format);
-          if (isRunnableWorkflowResponse(trialResponse.data)) {
-            response = trialResponse;
-            matched = true;
-            break;
+          try {
+            const trialResponse = await this.client.post<WorkflowGenerationResponse>(
+              '/api/ai_assistant/search_nextflow_workflow',
+              { user_intent: trialIntent }
+            );
+            lastSearchResponse = trialResponse;
+            console.log('[GalaxyAPIProxy] Nextflow search result:', trialResponse.data.workflow_name, trialResponse.data.format);
+            if (isRunnableWorkflowResponse(trialResponse.data)) {
+              response = trialResponse;
+              matched = true;
+              break;
+            }
+          } catch (trialError: any) {
+            console.warn('[GalaxyAPIProxy] Nextflow search trial failed:', {
+              trialIntent,
+              message: trialError?.message || String(trialError),
+            });
           }
         }
 
@@ -663,19 +706,26 @@ export class GalaxyAPIProxy {
           let generatedMatched = false;
           let lastGenerateResponse: any = null;
           for (const trialIntent of generateTrials) {
-            const trialBackendRequest = {
-              ...backendRequest,
-              request_text: trialIntent,
-            };
-            const generatedResponse = await this.client.post<WorkflowGenerationResponse>(
-              '/api/ai_assistant/generate_workflow',
-              trialBackendRequest
-            );
-            lastGenerateResponse = generatedResponse;
-            if (isRunnableWorkflowResponse(generatedResponse.data)) {
-              response = generatedResponse;
-              generatedMatched = true;
-              break;
+            try {
+              const trialBackendRequest = {
+                ...backendRequest,
+                request_text: trialIntent,
+              };
+              const generatedResponse = await this.client.post<WorkflowGenerationResponse>(
+                '/api/ai_assistant/generate_workflow',
+                trialBackendRequest
+              );
+              lastGenerateResponse = generatedResponse;
+              if (isRunnableWorkflowResponse(generatedResponse.data)) {
+                response = generatedResponse;
+                generatedMatched = true;
+                break;
+              }
+            } catch (trialError: any) {
+              console.warn('[GalaxyAPIProxy] Workflow generation trial failed:', {
+                trialIntent,
+                message: trialError?.message || String(trialError),
+              });
             }
           }
 

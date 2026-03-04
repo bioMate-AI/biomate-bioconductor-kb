@@ -37,6 +37,7 @@ class NextflowExecuteRequest(BaseModel):
     nextflow_path: str
     parameters: Optional[Dict[str, Any]] = None
     profile: Optional[str] = "standard"
+    entry: Optional[str] = None
     history_id: Optional[str] = None
     compute_config: Optional[Dict[str, Any]] = None
     qc_overrides: Optional[Dict[str, Any]] = None
@@ -164,6 +165,30 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
         f"Could not resolve Nextflow script '{raw_path}'. "
         f"Set NEXTFLOW_SEARCH_ROOTS to include your workflow roots."
     )
+
+
+def _detect_nextflow_entry(nf_path: Path) -> Optional[str]:
+    """
+    Detect entry workflow name for scripts that define only named workflows.
+
+    If an anonymous `workflow { ... }` exists, Nextflow can use default entry and
+    no explicit `-entry` is needed.
+    """
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return None
+
+    # Anonymous workflow block exists; default entry is available.
+    if re.search(r"(?m)^\s*workflow\s*\{", text):
+        return None
+
+    named_entries = re.findall(r"(?m)^\s*workflow\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{", text)
+    if not named_entries:
+        return None
+
+    preferred = [name for name in named_entries if name.lower() in ("main", "run", "workflow")]
+    return preferred[0] if preferred else named_entries[0]
 
 
 def _extract_documented_images() -> list[str]:
@@ -605,6 +630,12 @@ def execute_nextflow(
 
     cmd = [nf_bin, "run", str(nf_path)]
 
+    # Entry selection: honor explicit request first; otherwise auto-detect for
+    # scripts with named-only workflows (e.g. runnable subworkflows).
+    selected_entry = (request.entry or "").strip() or _detect_nextflow_entry(nf_path)
+    if selected_entry:
+        cmd += ["-entry", selected_entry]
+
     # Resolve runtime environment using documented local Docker images first.
     strategy = _choose_container_strategy(nf_path, request.nextflow_path)
     if strategy["mode"] == "docker" and strategy["image"]:
@@ -638,6 +669,8 @@ def execute_nextflow(
 
     log.info(f"[Nextflow run {run_id}] cmd: {' '.join(cmd)}")
     log.info(f"[Nextflow run {run_id}] outdir: {outdir}")
+    if selected_entry:
+        log.info(f"[Nextflow run {run_id}] entry: {selected_entry}")
 
     log_path = log_dir / "nextflow.log"
 
@@ -709,6 +742,7 @@ def execute_nextflow(
             "work_dir": str(work_dir),
             "runtime_mode": strategy["mode"],
             "runtime_image": strategy["image"],
+            "entry": selected_entry,
             "required_modules": strategy["required_modules"],
             "missing_modules": strategy["missing_modules"],
             "host_arch": strategy.get("host_arch"),
@@ -744,6 +778,7 @@ def execute_nextflow(
         "runtime": {
             "mode": strategy["mode"],
             "image": strategy["image"],
+            "entry": selected_entry,
             "required_modules": strategy["required_modules"],
             "missing_modules": strategy["missing_modules"],
             "host_arch": strategy.get("host_arch"),

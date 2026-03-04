@@ -62,6 +62,8 @@ interface ChatInterfaceProps {
   currentExecutionRun?: ExecutionRun | null
   externalPromptRequest?: { id: number; prompt: string } | null
   onExternalPromptConsumed?: (id: number) => void
+  focusedRunId?: string | null
+  runAnchorRequestId?: number
 }
 
 export function ChatInterface({
@@ -83,11 +85,15 @@ export function ChatInterface({
   workflowError,
   currentExecutionRun,
   externalPromptRequest = null,
-  onExternalPromptConsumed
+  onExternalPromptConsumed,
+  focusedRunId = null,
+  runAnchorRequestId = 0,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
+  const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -99,6 +105,9 @@ export function ChatInterface({
   // Use messages from chat session or empty array if no session
   const displayMessages = chatSession?.messages || []
   const displayTyping = isTyping || isTypingLocal
+  const latestAssistantMessageId = [...displayMessages]
+    .reverse()
+    .find((msg) => msg.role !== "user")?.id
 
   // Debug: Log message count
   useEffect(() => {
@@ -112,6 +121,77 @@ export function ChatInterface({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
+
+  // Anchor chat view to the workflow artifact associated with the focused run.
+  useEffect(() => {
+    if (!focusedRunId) {
+      setFocusedAnchorMessageId(null)
+      setHighlightedAnchorMessageId(null)
+      return
+    }
+    if (displayMessages.length === 0) return
+
+    const candidateInvocationIds = new Set<string>([focusedRunId])
+    if (currentExecutionRun?.id) {
+      candidateInvocationIds.add(currentExecutionRun.id)
+    }
+    if (currentExecutionRun?.execution?.galaxyInvocationId) {
+      candidateInvocationIds.add(currentExecutionRun.execution.galaxyInvocationId)
+    }
+
+    const reversedMessages = [...displayMessages].reverse()
+    const targetMessage =
+      reversedMessages.find((message) => {
+        if (message.role !== "assistant") return false
+        if (message.invocationId && candidateInvocationIds.has(message.invocationId)) return true
+        return false
+      }) ||
+      reversedMessages.find((message) => {
+        if (message.role !== "assistant") return false
+        if (message.metadata?.type !== "workflow" || !message.metadata?.workflow) return false
+        if (!currentExecutionRun?.workflowName) return false
+        return (
+          message.metadata.workflow.name === currentExecutionRun.workflowName ||
+          message.metadata.workflow.workflow_name === currentExecutionRun.workflowName
+        )
+      })
+
+    if (!targetMessage) {
+      setFocusedAnchorMessageId(null)
+      return
+    }
+
+    setFocusedAnchorMessageId(targetMessage.id)
+    setHighlightedAnchorMessageId(targetMessage.id)
+
+    const scrollToTarget = () => {
+      const artifactElement = document.getElementById(`workflow-artifact-anchor-${targetMessage.id}`)
+      const messageElement = document.getElementById(`chat-message-anchor-${targetMessage.id}`)
+      const targetElement = artifactElement || messageElement
+      targetElement?.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(scrollToTarget)
+    } else {
+      scrollToTarget()
+    }
+
+    const highlightTimer = setTimeout(() => {
+      setHighlightedAnchorMessageId((prev) => (prev === targetMessage.id ? null : prev))
+    }, 2200)
+
+    return () => {
+      clearTimeout(highlightTimer)
+    }
+  }, [
+    focusedRunId,
+    runAnchorRequestId,
+    currentExecutionRun?.id,
+    currentExecutionRun?.execution?.galaxyInvocationId,
+    currentExecutionRun?.workflowName,
+    displayMessages,
+  ])
 
   // Monitor token count and trigger compression dialog
   useEffect(() => {
@@ -940,6 +1020,13 @@ export function ChatInterface({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
+      <div
+        className="sr-only"
+        data-testid="chat-run-anchor-state"
+        data-focused-run-id={focusedRunId || ""}
+        data-focused-message-id={focusedAnchorMessageId || ""}
+        data-highlighted-message-id={highlightedAnchorMessageId || ""}
+      />
       {/* Compression status badge */}
       {currentTokenCount > 0 && (
         <div className="flex justify-end p-2 border-b bg-background/95">
@@ -973,6 +1060,9 @@ export function ChatInterface({
               isWorkflowRunning={isWorkflowRunning}
               workflowProgress={workflowProgress}
               currentExecutionRun={currentExecutionRun}
+              isLatestAssistantMessage={message.id === latestAssistantMessageId}
+              isRunAnchorFocused={focusedAnchorMessageId === message.id}
+              isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
             />
           ))}
           {displayTyping && <TypingIndicator />}

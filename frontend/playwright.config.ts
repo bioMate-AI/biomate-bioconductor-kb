@@ -31,8 +31,8 @@ export default defineConfig({
     navigationTimeout: 60000,
   },
 
-  // Output directories
-  outputDir: 'e2e/test-results',
+  // Output directories (override for isolated runs via PW_OUTPUT_DIR)
+  outputDir: process.env.PW_OUTPUT_DIR || 'e2e/test-results',
 
   projects: [
     {

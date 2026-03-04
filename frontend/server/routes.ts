@@ -21,7 +21,7 @@ import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
 import multer from "multer";
-import { promises as fs } from "fs";
+import { promises as fs, createReadStream } from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
@@ -44,6 +44,10 @@ import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
+import {
+  getExecutionRunsOverview,
+  RunOverviewBadRequestError,
+} from "./run-overview";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -3750,18 +3754,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get outputs for a specific invocation (also accepts ExecutionRun IDs)
   app.get("/api/invocations/:id/outputs", async (req, res) => {
     try {
+      const resolveInvocation = async (identifier: string) => {
+        let invocation = await storage.getInvocation(identifier);
+        if (invocation) return invocation;
+        invocation = await storage.getInvocationByGalaxyId(identifier);
+        if (invocation) return invocation;
+        const executionRun = await storage.getExecutionRun(identifier);
+        if (executionRun?.execution?.galaxyInvocationId) {
+          invocation = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
+          if (invocation) return invocation;
+        }
+        return undefined;
+      };
+
+      const addRuntimeArtifactOutputs = async (invocationId: string, rawArtifacts: string[]) => {
+        const existing = await storage.getInvocationOutputs(invocationId);
+        const existingLocalPaths = new Set(
+          existing
+            .map((o: any) => String(o?.metadata?.localPath || ""))
+            .filter((p: string) => p.length > 0)
+        );
+
+        for (const artifactPath of rawArtifacts) {
+          if (!artifactPath || existingLocalPaths.has(artifactPath)) continue;
+          try {
+            const stat = await fs.stat(artifactPath);
+            if (!stat.isFile()) continue;
+            const ext = path.extname(artifactPath).replace(".", "").toLowerCase() || "txt";
+            const fileType = classifyFileType(ext);
+            await storage.addOutput({
+              invocationId,
+              galaxyDatasetId: "",
+              name: path.basename(artifactPath),
+              extension: ext,
+              size: stat.size,
+              fileType,
+              isVisualizable: isVisualizable(ext) || fileType === "text" || fileType === "table",
+              previewAvailable: fileType === "text" || fileType === "table",
+              metadata: {
+                source: "nextflow_runtime_artifact",
+                localPath: artifactPath,
+              },
+            });
+            existingLocalPaths.add(artifactPath);
+          } catch {
+            // Ignore non-existing or inaccessible artifact paths.
+          }
+        }
+      };
+
+      const materializeRuntimeSummary = async (
+        invocationId: string,
+        nextflowStatus: any,
+        executionRunId?: string
+      ) => {
+        const summaryDir = path.join("/tmp/biomate_runtime_outputs", invocationId);
+        await fs.mkdir(summaryDir, { recursive: true });
+        const summaryPath = path.join(summaryDir, "nextflow_run_summary.txt");
+        const lines = [
+          `BioMate Nextflow run summary`,
+          `generated_at: ${new Date().toISOString()}`,
+          `execution_run_id: ${executionRunId || "n/a"}`,
+          `nextflow_run_id: ${nextflowStatus?.run_id || "n/a"}`,
+          `status: ${nextflowStatus?.status || "unknown"}`,
+          `progress_percent: ${nextflowStatus?.progressPercent ?? nextflowStatus?.progress ?? 0}`,
+          "",
+          "log_tail:",
+          ...(Array.isArray(nextflowStatus?.log_tail)
+            ? nextflowStatus.log_tail.map((line: any) => String(line))
+            : ["(no runtime logs available)"]),
+        ];
+        await fs.writeFile(summaryPath, `${lines.join("\n")}\n`, "utf8");
+        const stat = await fs.stat(summaryPath);
+        await storage.addOutput({
+          invocationId,
+          galaxyDatasetId: "",
+          name: "nextflow_run_summary",
+          extension: "txt",
+          size: stat.size,
+          fileType: "text",
+          isVisualizable: true,
+          previewAvailable: true,
+          metadata: {
+            source: "nextflow_runtime_summary",
+            localPath: summaryPath,
+          },
+        });
+      };
+
       // First try to get outputs directly by invocation ID
       let outputs = await storage.getInvocationOutputs(req.params.id);
 
       // If no outputs found, check if this is an ExecutionRun ID
       // and look up the corresponding WorkflowInvocation
       if (outputs.length === 0) {
-        const executionRun = await storage.getExecutionRun(req.params.id);
-        if (executionRun?.execution?.galaxyInvocationId) {
-          // Find the WorkflowInvocation by Galaxy invocation ID
-          const invocation = await storage.getInvocationByGalaxyId(executionRun.execution.galaxyInvocationId);
-          if (invocation) {
-            outputs = await storage.getInvocationOutputs(invocation.id);
+        const invocation = await resolveInvocation(req.params.id);
+        if (invocation) {
+          outputs = await storage.getInvocationOutputs(invocation.id);
+
+          // If persisted outputs are still empty for Nextflow, materialize runtime evidence
+          // so users can inspect/download concrete run artifacts from the UI.
+          if (outputs.length === 0 && invocation.galaxyInvocationId) {
+            const executionRun = await storage.getExecutionRunByGalaxyId(invocation.galaxyInvocationId);
+            const nextflowStatus = executionRun?.execution?.nextflowStatus;
+            if (nextflowStatus && typeof nextflowStatus === "object") {
+              const artifacts: string[] = [];
+              const pushArtifact = (value: any) => {
+                if (!value) return;
+                if (typeof value === "string") {
+                  const trimmed = value.trim();
+                  if (trimmed) artifacts.push(trimmed);
+                  return;
+                }
+                if (Array.isArray(value)) {
+                  value.forEach(pushArtifact);
+                  return;
+                }
+                if (typeof value === "object") {
+                  Object.values(value).forEach(pushArtifact);
+                }
+              };
+              pushArtifact(nextflowStatus.outputs);
+              pushArtifact(nextflowStatus.results);
+              pushArtifact(nextflowStatus.output_files);
+              pushArtifact(nextflowStatus.outdir);
+              if (Array.isArray(nextflowStatus.log_tail)) {
+                for (const line of nextflowStatus.log_tail) {
+                  if (typeof line !== "string") continue;
+                  const pathMatches = line.match(/\/[^\s,\]]+/g) || [];
+                  pathMatches.forEach((candidate) => artifacts.push(candidate));
+                }
+              }
+
+              await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
+              outputs = await storage.getInvocationOutputs(invocation.id);
+              if (outputs.length === 0) {
+                await materializeRuntimeSummary(invocation.id, nextflowStatus, executionRun?.id);
+                outputs = await storage.getInvocationOutputs(invocation.id);
+              }
+            }
           }
         }
       }
@@ -3891,8 +4022,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      // Fetch file from Galaxy or local runtime artifact fallback.
+      let fileStream: any;
+      const localPath = String((output as any)?.metadata?.localPath || "");
+      if (output.galaxyDatasetId) {
+        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      } else if (localPath) {
+        fileStream = createReadStream(localPath);
+      } else {
+        return res.status(404).json({ error: "Output has no downloadable source" });
+      }
 
       // Set appropriate headers
       res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
@@ -3911,6 +4050,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Accept either a WorkflowInvocation ID or an ExecutionRun ID.
       let invocation = await storage.getInvocation(req.params.id);
+      if (!invocation) {
+        const byGalaxyId = await storage.getInvocationByGalaxyId(req.params.id);
+        if (byGalaxyId) {
+          invocation = byGalaxyId;
+        }
+      }
       if (!invocation) {
         const executionRun = await storage.getExecutionRun(req.params.id);
         if (executionRun?.execution?.galaxyInvocationId) {
@@ -3951,7 +4096,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add each output to the archive
       for (const output of outputs) {
         try {
-          const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+          const localPath = String((output as any)?.metadata?.localPath || "");
+          const fileStream = output.galaxyDatasetId
+            ? await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId)
+            : localPath
+            ? createReadStream(localPath)
+            : null;
+          if (!fileStream) {
+            continue;
+          }
           const filename = `${output.name}.${output.extension}`;
           archive.append(fileStream, { name: filename });
         } catch (err) {
@@ -3978,8 +4131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      // Fetch file from Galaxy or local runtime artifact fallback.
+      let fileStream: any;
+      const localPath = String((output as any)?.metadata?.localPath || "");
+      if (output.galaxyDatasetId) {
+        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+      } else if (localPath) {
+        fileStream = createReadStream(localPath);
+      } else {
+        return res.status(404).json({ error: "Output has no display source" });
+      }
 
       // Set appropriate content type for inline display
       const contentTypeMap: Record<string, string> = {
@@ -4020,28 +4181,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Preview not available for this file type" });
       }
 
-      // Fetch file content from Galaxy
-      const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-
-      // Read first N lines
-      const lines: string[] = [];
-      let lineCount = 0;
       const maxLines = parseInt(req.query.lines as string) || 100;
-
-      for await (const chunk of fileStream) {
-        const chunkLines = chunk.toString().split('\n');
-        for (const line of chunkLines) {
-          if (lineCount >= maxLines) break;
-          lines.push(line);
-          lineCount++;
+      const localPath = String((output as any)?.metadata?.localPath || "");
+      let rawText = "";
+      if (output.galaxyDatasetId) {
+        const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+        for await (const chunk of fileStream) {
+          rawText += chunk.toString();
+          if (rawText.split("\n").length > maxLines + 50) {
+            break;
+          }
         }
-        if (lineCount >= maxLines) break;
+      } else if (localPath) {
+        rawText = await fs.readFile(localPath, "utf8");
+      } else {
+        return res.status(404).json({ error: "Output has no preview source" });
       }
+      const lines = rawText.split("\n").slice(0, maxLines);
 
       res.json({
         lines,
-        totalLines: output.metadata?.rows || lineCount,
-        hasMore: (output.metadata?.rows || 0) > maxLines
+        totalLines: output.metadata?.rows || lines.length,
+        hasMore: (output.metadata?.rows || lines.length) > maxLines
       });
     } catch (error: any) {
       console.error("Error previewing output:", error);
@@ -4537,9 +4698,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          // Start polling for status updates using backend invocation ID
-          if (backendInvocationId) {
-            galaxyPoller.startPolling(backendInvocationId, '');
+          // Nextflow-direct runs do not have a Galaxy workflow ID, so polling the
+          // Galaxy invocation endpoint would produce noisy /api/workflows//... 404s.
+          if (backendInvocationId && executionRun.execution?.galaxyWorkflowId) {
+            galaxyPoller.startPolling(backendInvocationId, executionRun.execution.galaxyWorkflowId);
           }
 
           // Create legacy invocation record
@@ -4708,6 +4870,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[ExecutionRun] Error fetching runs:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Leverage-first runs overview endpoint (summary rows for run manager surfaces)
+  app.get("/api/workflows/runs/overview", optionalAuth, async (req, res) => {
+    try {
+      const overview = await getExecutionRunsOverview(storage, {
+        userId: req.user?.id,
+        scope: req.query.scope as string | undefined,
+        chatSessionId: req.query.chatSessionId as string | undefined,
+        status: req.query.status as string | undefined,
+        search: req.query.search as string | undefined,
+        sort: req.query.sort as string | undefined,
+        limit: req.query.limit as string | undefined,
+        offset: req.query.offset as string | undefined,
+      });
+      res.json(overview);
+    } catch (error: any) {
+      if (error instanceof RunOverviewBadRequestError) {
+        return res.status(error.statusCode).json({ error: error.message });
+      }
+      console.error("[ExecutionRun] Error fetching run overview:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch run overview" });
     }
   });
 
@@ -4886,7 +5071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const ext = String(o?.extension || "").toLowerCase();
           return ["html", "htm", "png", "jpg", "jpeg", "svg", "pdf", "csv", "tsv", "txt"].includes(ext);
         }).length;
-        let downloadableCount = outputs.filter((o: any) => !!o?.galaxyDatasetId).length;
+        let downloadableCount = outputs.filter(
+          (o: any) => !!o?.galaxyDatasetId || !!o?.metadata?.localPath
+        ).length;
         let hasOutputs = outputs.length > 0;
 
         // Fallback for Nextflow runs where outputs are available in Nextflow status

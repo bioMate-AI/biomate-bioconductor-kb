@@ -590,7 +590,7 @@ class MetagenomicsParameterSuggester(BaseParameterSuggester):
                     parameter='database',
                     current_value=current_parameters.get('database', 'standard'),
                     suggested_value='standard_8gb',
-                    reason=(f'Classification rate {classified:.1f}% is {'critically low' if classified < 30 else 'below recommended 60%'}. '
+                    reason=(f"Classification rate {classified:.1f}% is {'critically low' if classified < 30 else 'below recommended 60%'}. "
                             f'A larger database may substantially improve classification rates.'),
                     confidence=0.65 if classified < 30.0 else 0.60
                 ))
