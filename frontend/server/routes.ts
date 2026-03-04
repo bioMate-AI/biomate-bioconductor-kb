@@ -2118,6 +2118,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
+  // Proxy — QC named profiles list (backend at /api/qc/profiles)
+  app.get("/api/qc/profiles", async (_req, res) => {
+    try {
+      const response = await galaxyAPIProxy.client.get("/api/qc/profiles");
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: "QC profiles proxy error" });
+    }
+  });
+
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
   // which must be forwarded to the Galaxy backend. No dedicated route existed before.
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
@@ -4669,7 +4680,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: request.workflowDefinition.parameters || {},
-              profile: request.executionConfig?.nextflow_profile || 'standard'
+              profile: request.executionConfig?.nextflow_profile || 'standard',
+              ...(request.executionConfig?.qcProfile && { qc_profile: request.executionConfig.qcProfile }),
+              ...(request.executionConfig?.qcOverrides && Object.keys(request.executionConfig.qcOverrides).length > 0
+                && { qc_overrides: request.executionConfig.qcOverrides }),
             })
           });
 

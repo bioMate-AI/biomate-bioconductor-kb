@@ -726,6 +726,10 @@ export const executionConfigSchema = z.object({
   executionEngine: z.enum(["nextflow", "galaxy"]).optional(),
   // Explicit operator override for low-confidence generation states.
   allowLowConfidence: z.boolean().optional(),
+  // Named QC profile — selects a curated threshold set (e.g. "rnaseq_ribodepleted")
+  qcProfile: z.string().optional(),
+  // Per-metric threshold overrides (map of metric name → numeric value)
+  qcOverrides: z.record(z.string(), z.number()).optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
