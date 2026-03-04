@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,25 +20,74 @@ import {
 } from "lucide-react"
 import type { OutputDataset } from "@shared/schema"
 import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } from "./viewers"
+import { ReportConfusionButton } from "./feedback/report-confusion-button"
+import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
+import { emitUxEvent } from "@/lib/ux-telemetry"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 interface ChatOutputAttachmentsProps {
   invocationId: string
-  className?: string
   sessionId?: string
   runId?: string
   executionStatus?: string
   errorMessage?: string
+  className?: string
 }
 
-export function ChatOutputAttachments({ invocationId, className }: ChatOutputAttachmentsProps) {
-  const { data: outputs = [], isLoading } = useQuery<OutputDataset[]>({
+export function ChatOutputAttachments({
+  invocationId,
+  sessionId,
+  runId,
+  executionStatus,
+  errorMessage,
+  className,
+}: ChatOutputAttachmentsProps) {
+  const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
+  const [downloadPromptContext, setDownloadPromptContext] = useState<{
+    outputId?: string
+    outputName?: string
+    isDownloadAll?: boolean
+  } | null>(null)
+
+  const { data: outputs = [], isLoading, refetch } = useQuery<OutputDataset[]>({
     queryKey: ['outputs', invocationId],
     queryFn: async () => {
       const response = await fetch(`/api/invocations/${invocationId}/outputs`)
       if (!response.ok) throw new Error('Failed to fetch outputs')
       return response.json()
     },
+    refetchInterval: (query) => {
+      const data = (query.state.data as OutputDataset[] | undefined) || []
+      if (data.length > 0) return false
+      if (executionStatus === 'running' || executionStatus === 'completed') return 3000
+      return false
+    },
   })
+
+  useEffect(() => {
+    if (outputs.length > 0) {
+      emitUxEvent('output.panel_opened', { invocationId, outputCount: outputs.length });
+    }
+  }, [invocationId, outputs.length]);
+
+  useEffect(() => {
+    if (outputs.length > 0) return
+    if (executionStatus !== 'completed') return
+    let cancelled = false
+    ;(async () => {
+      try {
+        await fetch(`/api/invocations/${invocationId}/fetch-outputs`, { method: 'POST' })
+      } catch {
+        // best-effort fallback only
+      }
+      if (!cancelled) {
+        await refetch()
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [executionStatus, invocationId, outputs.length, refetch])
 
   if (isLoading) {
     return (
@@ -72,8 +121,71 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
     !['image', 'interactive', 'table', 'sequence', 'variants', 'annotation', 'singlecell'].includes(o.fileType)
   )
 
+  const isTerminalStatus = executionStatus === 'completed' || executionStatus === 'failed' || executionStatus === 'cancelled'
+  const hasOutputs = outputs.length > 0
+  const isPartial = executionStatus === 'failed' || executionStatus === 'cancelled' || (executionStatus === 'running' && hasOutputs)
+  const outputState = isPartial
+    ? { label: 'Partial outputs', status: 'warning' as const }
+    : hasOutputs && isTerminalStatus
+      ? { label: 'Outputs found', status: 'success' as const }
+      : { label: 'No outputs yet', status: 'pending' as const }
+
+  const handleDownloadWithFeedback = (output: OutputDataset) => {
+    emitUxEvent('output.download_clicked', {
+      outputId: output.id,
+      outputName: output.name,
+      invocationId,
+    })
+    const link = document.createElement('a')
+    link.href = `/api/outputs/${output.id}/download`
+    link.download = output.name
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setDownloadPromptContext({
+      outputId: output.id,
+      outputName: output.name,
+      isDownloadAll: false,
+    })
+    setDownloadPromptOpen(true)
+  }
+
   return (
     <div className={`space-y-4 ${className}`}>
+      <DownloadOutcomePrompt
+        open={downloadPromptOpen}
+        onOpenChange={setDownloadPromptOpen}
+        outputId={downloadPromptContext?.outputId}
+        outputName={downloadPromptContext?.outputName}
+        invocationId={invocationId}
+        sessionId={sessionId}
+        runId={runId}
+        isDownloadAll={downloadPromptContext?.isDownloadAll}
+      />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Outputs</span>
+          <div data-testid="output-result-state-badge">
+            <StatusBadge status={outputState.status} className="text-xs">
+              {outputState.label}
+            </StatusBadge>
+          </div>
+        </div>
+        <ReportConfusionButton
+          runId={runId}
+          sessionId={sessionId}
+          invocationId={invocationId}
+          context={{
+            outputCount: outputs.length,
+            executionStatus,
+            errorMessage,
+            hasVisualizations: visualizations.length > 0,
+            hasTables: tables.length > 0,
+          }}
+          variant="ghost"
+          size="sm"
+        />
+      </div>
       {/* Interactive Tool Launcher */}
       <InteractiveToolLauncher outputs={outputs} />
 
@@ -86,7 +198,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{visualizations.length}</Badge>
           </div>
           {visualizations.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -100,7 +212,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{variants.length}</Badge>
           </div>
           {variants.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -114,7 +226,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{sequences.length}</Badge>
           </div>
           {sequences.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -128,7 +240,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{annotations.length}</Badge>
           </div>
           {annotations.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -142,7 +254,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{singleCell.length}</Badge>
           </div>
           {singleCell.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -156,7 +268,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{tables.length}</Badge>
           </div>
           {tables.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -170,7 +282,7 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
             <Badge variant="secondary">{otherFiles.length}</Badge>
           </div>
           {otherFiles.map(output => (
-            <OutputRenderer key={output.id} output={output} />
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
           ))}
         </div>
       )}
@@ -180,18 +292,20 @@ export function ChatOutputAttachments({ invocationId, className }: ChatOutputAtt
 
 interface OutputRendererProps {
   output: OutputDataset
+  invocationId?: string
+  onDownload?: (output: OutputDataset) => void
 }
 
-function OutputRenderer({ output }: OutputRendererProps) {
+function OutputRenderer({ output, invocationId, onDownload }: OutputRendererProps) {
   switch (output.fileType) {
     case 'image':
-      return <ImageOutput output={output} />
+      return <ImageOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'interactive':
-      return <InteractiveOutput output={output} />
+      return <InteractiveOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'table':
-      return <TableOutput output={output} />
+      return <TableOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'text':
-      return <TextOutput output={output} />
+      return <TextOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'variants':
       return <VCFViewer output={output} />
     case 'sequence':
@@ -199,14 +313,13 @@ function OutputRenderer({ output }: OutputRendererProps) {
     case 'annotation':
       return <AnnotationViewer output={output} />
     case 'singlecell':
-      // Single-cell data typically requires interactive tools
-      return <FileOutput output={output} />
+      return <FileOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     default:
-      return <FileOutput output={output} />
+      return <FileOutput output={output} invocationId={invocationId} onDownload={onDownload} />
   }
 }
 
-function ImageOutput({ output }: OutputRendererProps) {
+function ImageOutput({ output, invocationId, onDownload }: OutputRendererProps) {
   const [expanded, setExpanded] = useState(true)
   const [imageError, setImageError] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
@@ -227,7 +340,19 @@ function ImageOutput({ output }: OutputRendererProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => {
+              const next = !expanded
+              if (next) {
+                emitUxEvent('output.visualization_opened', {
+                  outputId: output.id,
+                  outputName: output.name,
+                  fileType: 'image',
+                  invocationId,
+                  action: 'expand_inline',
+                })
+              }
+              setExpanded(next)
+            }}
           >
             {expanded ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
@@ -274,7 +399,16 @@ function ImageOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/api/outputs/${output.id}/display`, '_blank')}
+            onClick={() => {
+              emitUxEvent('output.visualization_opened', {
+                outputId: output.id,
+                outputName: output.name,
+                fileType: 'image',
+                invocationId,
+                action: 'open_full_size',
+              })
+              window.open(`/api/outputs/${output.id}/display`, '_blank')
+            }}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             Open Full Size
@@ -282,7 +416,7 @@ function ImageOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(output)}
+            onClick={() => onDownload?.(output)}
           >
             <Download className="h-4 w-4 mr-1" />
             Download
@@ -293,7 +427,7 @@ function ImageOutput({ output }: OutputRendererProps) {
   )
 }
 
-function InteractiveOutput({ output }: OutputRendererProps) {
+function InteractiveOutput({ output, invocationId, onDownload }: OutputRendererProps) {
   const [expanded, setExpanded] = useState(true)
   const [iframeError, setIframeError] = useState(false)
   const [iframeLoading, setIframeLoading] = useState(true)
@@ -311,7 +445,19 @@ function InteractiveOutput({ output }: OutputRendererProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => {
+              const next = !expanded
+              if (next) {
+                emitUxEvent('output.visualization_opened', {
+                  outputId: output.id,
+                  outputName: output.name,
+                  fileType: 'interactive',
+                  invocationId,
+                  action: 'expand_inline',
+                })
+              }
+              setExpanded(next)
+            }}
           >
             {expanded ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
@@ -361,7 +507,16 @@ function InteractiveOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`/api/outputs/${output.id}/display`, '_blank')}
+            onClick={() => {
+              emitUxEvent('output.visualization_opened', {
+                outputId: output.id,
+                outputName: output.name,
+                fileType: 'interactive',
+                invocationId,
+                action: 'open_new_tab',
+              })
+              window.open(`/api/outputs/${output.id}/display`, '_blank')
+            }}
           >
             <ExternalLink className="h-4 w-4 mr-1" />
             Open in New Tab
@@ -369,7 +524,7 @@ function InteractiveOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(output)}
+            onClick={() => onDownload?.(output)}
           >
             <Download className="h-4 w-4 mr-1" />
             Download HTML
@@ -380,7 +535,7 @@ function InteractiveOutput({ output }: OutputRendererProps) {
   )
 }
 
-function TableOutput({ output }: OutputRendererProps) {
+function TableOutput({ output, invocationId, onDownload }: OutputRendererProps) {
   const [showPreview, setShowPreview] = useState(false)
 
   const { data: preview, isLoading } = useQuery({
@@ -421,7 +576,7 @@ function TableOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(output)}
+            onClick={() => onDownload?.(output)}
           >
             <Download className="h-4 w-4 mr-1" />
             Download Full Table
@@ -451,7 +606,7 @@ function TableOutput({ output }: OutputRendererProps) {
   )
 }
 
-function TextOutput({ output }: OutputRendererProps) {
+function TextOutput({ output, invocationId, onDownload }: OutputRendererProps) {
   const [showPreview, setShowPreview] = useState(false)
 
   const { data: preview, isLoading } = useQuery({
@@ -486,7 +641,7 @@ function TextOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(output)}
+            onClick={() => onDownload?.(output)}
           >
             <Download className="h-4 w-4 mr-1" />
             Download
@@ -509,7 +664,7 @@ function TextOutput({ output }: OutputRendererProps) {
   )
 }
 
-function FileOutput({ output }: OutputRendererProps) {
+function FileOutput({ output, invocationId, onDownload }: OutputRendererProps) {
   const getFileIcon = () => {
     const ext = output.extension.toLowerCase()
     if (['json', 'xml', 'yaml', 'yml'].includes(ext)) return <FileCode className="h-8 w-8" />
@@ -532,7 +687,7 @@ function FileOutput({ output }: OutputRendererProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handleDownload(output)}
+            onClick={() => onDownload?.(output)}
           >
             <Download className="h-4 w-4 mr-1" />
             Download
@@ -556,12 +711,3 @@ function formatNumber(num: number): string {
   return new Intl.NumberFormat().format(num)
 }
 
-async function handleDownload(output: OutputDataset) {
-  // Trigger download
-  const link = document.createElement('a')
-  link.href = `/api/outputs/${output.id}/download`
-  link.download = output.name
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-}

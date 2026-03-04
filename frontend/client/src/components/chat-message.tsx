@@ -37,6 +37,9 @@ interface ChatMessageProps {
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
+  isLatestAssistantMessage?: boolean
+  isRunAnchorFocused?: boolean
+  isRunAnchorHighlighted?: boolean
 }
 
 export function ChatMessage({
@@ -55,14 +58,22 @@ export function ChatMessage({
   isWorkflowRunning = false,
   workflowProgress = 0,
   currentExecutionRun,
+  isLatestAssistantMessage = false,
+  isRunAnchorFocused = false,
+  isRunAnchorHighlighted = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
+  const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
   const { toast } = useToast()
   const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
   const effectiveInvocationId =
+    (isRunAnchorFocused
+      ? currentExecutionRun?.execution?.galaxyInvocationId || currentExecutionRun?.id
+      : undefined) ||
     message.invocationId ||
-    currentExecutionRun?.execution?.galaxyInvocationId ||
-    currentExecutionRun?.id
+    (isWorkflowMessage && isLatestAssistantMessage
+      ? currentExecutionRun?.execution?.galaxyInvocationId || currentExecutionRun?.id
+      : undefined)
 
   // Extract Galaxy Assistant metadata
   const hasGalaxyMetadata = message.metadata && (
@@ -107,8 +118,12 @@ export function ChatMessage({
   return (
     <div
       className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}
+      id={`chat-message-anchor-${message.id}`}
       data-testid={`chat-message-${message.id}`}
       data-role={message.role}
+      data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
+      data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
+      data-is-latest-assistant={isLatestAssistantMessage ? "true" : "false"}
     >
       <Avatar className="h-8 w-8 flex-shrink-0">
         <AvatarImage 
@@ -178,7 +193,7 @@ export function ChatMessage({
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
-          {!isUser && message.metadata?.type === 'workflow' && message.metadata?.workflow && (
+          {isWorkflowMessage && (
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
@@ -223,48 +238,59 @@ export function ChatMessage({
               const effectiveBlockedReason = executionBlockedReason;
 
               return (
-            <NextflowWorkflowViewer
-              workflowDefinition={message.metadata.workflow}
-              invocationId={invocationId}
-              workflowId={message.metadata?.workflow?.id}
-              executionBlockedReason={effectiveBlockedReason}
-              prereqChecklist={prereqChecklist}
-              autofix={currentExecutionRun?.execution?.nextflowStatus?.autofix}
-              usefulness={currentExecutionRun?.execution?.nextflowStatus?.usefulness}
-              status={viewerStatus}
-              errorMessage={currentExecutionRun?.execution?.errorMessage}
-              progress={workflowProgress}
-              onExecute={(params) =>
-                onRunWorkflow?.(
-                  {
-                    ...message.metadata?.workflow,
-                    __generationAssessment: {
-                      scientificConfidence: message.metadata?.confidence,
-                      needsUserFeedback: !!message.metadata?.needsUserFeedback,
-                      feedbackPrompt: message.metadata?.feedbackPrompt,
-                      source: message.metadata?.source,
-                      domainGuardBlocked: !!message.metadata?.domainGuard?.blocked,
-                      domainGuardReason: message.metadata?.domainGuard?.reason,
-                      candidateWorkflows: message.metadata?.candidateWorkflows || [],
-                      toolInstallationSuccess:
-                        message.metadata?.tool_installation?.success !== false,
-                    },
-                    __executionOverrides: params?.__executionOverrides || undefined,
-                  },
-                  message.metadata?.steps || []
-                )
-              }
-              onParameterChange={(id, value) => onParameterChange?.(id, { value })}
-              onRequestPrereqRecovery={onRequestPrereqRecovery}
-              sessionId={sessionId}
-              runId={currentExecutionRun?.id}
-            />
+                <div
+                  id={`workflow-artifact-anchor-${message.id}`}
+                  data-testid={`workflow-artifact-anchor-${message.id}`}
+                  data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
+                  data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
+                  className={cn(
+                    "rounded-md transition-all duration-700",
+                    isRunAnchorHighlighted && "ring-2 ring-primary/60 bg-primary/5"
+                  )}
+                >
+                  <NextflowWorkflowViewer
+                    workflowDefinition={message.metadata?.workflow}
+                    invocationId={invocationId}
+                    workflowId={message.metadata?.workflow?.id}
+                    executionBlockedReason={effectiveBlockedReason}
+                    prereqChecklist={prereqChecklist}
+                    autofix={currentExecutionRun?.execution?.nextflowStatus?.autofix}
+                    nextflowStatus={currentExecutionRun?.execution?.nextflowStatus}
+                    status={viewerStatus}
+                    errorMessage={currentExecutionRun?.execution?.errorMessage}
+                    progress={workflowProgress}
+                    onExecute={(params) =>
+                      onRunWorkflow?.(
+                        {
+                          ...message.metadata?.workflow,
+                          __generationAssessment: {
+                            scientificConfidence: message.metadata?.confidence,
+                            needsUserFeedback: !!message.metadata?.needsUserFeedback,
+                            feedbackPrompt: message.metadata?.feedbackPrompt,
+                            source: message.metadata?.source,
+                            domainGuardBlocked: !!message.metadata?.domainGuard?.blocked,
+                            domainGuardReason: message.metadata?.domainGuard?.reason,
+                            candidateWorkflows: message.metadata?.candidateWorkflows || [],
+                            toolInstallationSuccess:
+                              message.metadata?.tool_installation?.success !== false,
+                          },
+                          __executionOverrides: params?.__executionOverrides || undefined,
+                        },
+                        message.metadata?.steps || []
+                      )
+                    }
+                    onParameterChange={(id, value) => onParameterChange?.(id, { value })}
+                    onRequestPrereqRecovery={onRequestPrereqRecovery}
+                    sessionId={sessionId}
+                    runId={currentExecutionRun?.id}
+                  />
+                </div>
               );
             })()
           )}
 
           {/* Output Attachments - Show when workflow execution completes */}
-          {!isUser && effectiveInvocationId && (
+          {!isUser && effectiveInvocationId && (isWorkflowMessage || isRunAnchorFocused) && (
             <ChatOutputAttachments
               invocationId={effectiveInvocationId}
               sessionId={sessionId}

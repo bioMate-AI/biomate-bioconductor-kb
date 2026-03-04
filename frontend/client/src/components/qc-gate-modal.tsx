@@ -79,6 +79,20 @@ const PROCESS_DISPLAY_NAMES: Record<string, string> = {
   PULLDOWN_QC: "Pulldown Enrichment QC",
   CHEMOPROTEOMICS_QC: "Chemoproteomics QC",
   ENRICHMENT_QC: "Enrichment Efficiency QC",
+  // PK/PD — non-compartmental analysis
+  NCA_PKNCA: "Non-Compartmental Analysis (PKNCA)",
+  NCA_ANALYSIS: "Non-Compartmental Analysis",
+  NONCOMPARTMENTAL: "Non-Compartmental Analysis",
+  // PK/PD — population PK
+  NLMIXR2_POPULATION_PK: "Population PK Modelling (nlmixr2)",
+  POPULATION_PK: "Population PK Modelling",
+  POP_PK: "Population PK Modelling",
+  // PK/PD — IVIVE / hepatic clearance
+  IVIVE: "IVIVE Hepatic Clearance",
+  IVIVE_HEPATIC_CLEARANCE: "IVIVE Hepatic Clearance",
+  IVIVE_HEPATIC: "IVIVE Hepatic Clearance",
+  HEPATIC_CLEARANCE: "IVIVE Hepatic Clearance",
+  CLEARANCE_SCALING: "Clearance Scaling (IVIVE)",
 }
 
 function humanizeProcessName(raw: string): string {
