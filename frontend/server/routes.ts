@@ -647,6 +647,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Frontend event ingestion — receives events from analytics.ts (no auth required)
+  app.post('/api/telemetry/event', express.json(), async (req, res) => {
+    try {
+      const { event, properties } = req.body as {
+        event: string;
+        properties?: Record<string, unknown>;
+      };
+
+      if (!event || typeof event !== 'string') {
+        return res.status(400).json({ error: 'event is required' });
+      }
+
+      // Strip any PII before storing (email, name)
+      const safeProps = properties ? {
+        ...properties,
+        email: undefined,  // never store email in telemetry
+      } : undefined;
+
+      await telemetryService.create(event, new Date(), safeProps as Record<string, unknown> | undefined);
+      res.status(204).end();
+    } catch (err: any) {
+      // Never return errors to client for telemetry
+      res.status(204).end();
+    }
+  });
+
   // Error rate dashboard — returns 7-day rates for crash/timeout/5xx monitoring
   app.get('/api/admin/error-rates', async (req, res) => {
     try {
