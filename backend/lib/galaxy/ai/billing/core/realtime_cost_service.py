@@ -473,6 +473,139 @@ class RealtimeCostService:
             return False
         return total >= float(limit)
 
+    def get_cohort_cost_report(self, months: int = 1) -> dict:
+        """
+        Aggregate cost metrics across all users for the past N months.
+
+        Returns a dict with:
+          - period_months: number of months covered
+          - month_keys: list of "YYYY-MM" strings (most recent first)
+          - total_active_users: sum of active users across all months
+          - total_cost_usd: sum of all costs across all months
+          - cost_per_active_user_usd: total_cost / total_active_users
+          - by_month: per-month breakdown with active_users, costs, and breakdown
+          - percentiles: p50/p75/p90/p99 across all individual user costs
+
+        "Active" means the user had any spend > 0 in that month.
+        Safe to call when Redis is empty — returns zeros without raising.
+
+        Key patterns scanned (decode_responses=True, all values are str):
+          cost:{user_id}:month:{YYYY-MM}:total    — STRING float
+          cost:{user_id}:month:{YYYY-MM}:llm      — HSET input_usd, output_usd
+          cost:{user_id}:month:{YYYY-MM}:compute  — HSET vcpu_usd, gpu_usd, mem_usd
+          cost:{user_id}:month:{YYYY-MM}:storage  — HSET storage_usd, request_usd, transfer_usd
+        """
+        now = datetime.now(timezone.utc)
+
+        # Build list of month keys going backwards from current month.
+        # Use replace(day=1) then step back month-by-month to avoid timedelta
+        # arithmetic crossing month boundaries incorrectly.
+        month_keys: list[str] = []
+        dt = now.replace(day=1)
+        for _ in range(months):
+            month_keys.append(dt.strftime("%Y-%m"))
+            # Step back one month
+            if dt.month == 1:
+                dt = dt.replace(year=dt.year - 1, month=12)
+            else:
+                dt = dt.replace(month=dt.month - 1)
+
+        by_month: list[dict] = []
+        all_user_costs: list[float] = []
+
+        for mk in month_keys:
+            # Scan total keys to enumerate users who have any recorded spend.
+            # Pattern: cost:{user_id}:month:{YYYY-MM}:total
+            total_pattern = f"cost:*:month:{mk}:total"
+            user_costs: list[dict] = []
+
+            try:
+                for key in self._r.scan_iter(total_pattern):
+                    # key format: "cost:{user_id}:month:{YYYY-MM}:total"
+                    parts = key.split(":")
+                    # parts = ['cost', user_id, 'month', 'YYYY-MM', 'total']
+                    if len(parts) < 5:
+                        continue
+                    uid = parts[1]
+
+                    total_val = float(self._r.get(key) or 0)
+                    if total_val <= 0:
+                        continue  # user has no spend this month
+
+                    llm_h     = self._r.hgetall(f"cost:{uid}:month:{mk}:llm")     or {}
+                    compute_h = self._r.hgetall(f"cost:{uid}:month:{mk}:compute") or {}
+                    storage_h = self._r.hgetall(f"cost:{uid}:month:{mk}:storage") or {}
+
+                    llm_usd = (
+                        float(llm_h.get("input_usd", 0) or 0)
+                        + float(llm_h.get("output_usd", 0) or 0)
+                    )
+                    compute_usd = (
+                        float(compute_h.get("vcpu_usd", 0) or 0)
+                        + float(compute_h.get("gpu_usd", 0) or 0)
+                        + float(compute_h.get("mem_usd", 0) or 0)
+                    )
+                    storage_usd = (
+                        float(storage_h.get("storage_usd", 0) or 0)
+                        + float(storage_h.get("request_usd", 0) or 0)
+                        + float(storage_h.get("transfer_usd", 0) or 0)
+                    )
+
+                    user_costs.append({
+                        "llm":     llm_usd,
+                        "compute": compute_usd,
+                        "storage": storage_usd,
+                        "total":   total_val,
+                    })
+            except Exception as exc:
+                log.error("get_cohort_cost_report scan error month=%s: %s", mk, exc)
+                # Continue with whatever we collected so far rather than aborting.
+
+            active = len(user_costs)
+            month_total = sum(u["total"] for u in user_costs)
+            by_month.append({
+                "month":                   mk,
+                "active_users":            active,
+                "total_cost_usd":          round(month_total, 4),
+                "cost_per_active_user_usd": round(month_total / active, 4) if active > 0 else 0.0,
+                "cost_breakdown": {
+                    "llm_usd":     round(sum(u["llm"]     for u in user_costs), 4),
+                    "compute_usd": round(sum(u["compute"] for u in user_costs), 4),
+                    "storage_usd": round(sum(u["storage"] for u in user_costs), 4),
+                },
+            })
+            all_user_costs.extend(u["total"] for u in user_costs)
+
+        # Percentiles across all individual user-month cost observations
+        sorted_costs = sorted(all_user_costs)
+        n = len(sorted_costs)
+
+        def pct(p: float) -> float:
+            if n == 0:
+                return 0.0
+            # nearest-rank method
+            idx = max(0, int(n * p / 100) - 1) if p > 0 else 0
+            idx = min(idx, n - 1)
+            return round(sorted_costs[idx], 4)
+
+        total_active = sum(m["active_users"] for m in by_month)
+        total_cost   = sum(m["total_cost_usd"] for m in by_month)
+
+        return {
+            "period_months":           months,
+            "month_keys":              month_keys,
+            "total_active_users":      total_active,
+            "total_cost_usd":          round(total_cost, 4),
+            "cost_per_active_user_usd": round(total_cost / total_active, 4) if total_active > 0 else 0.0,
+            "by_month":                by_month,
+            "percentiles": {
+                "p50_usd": pct(50),
+                "p75_usd": pct(75),
+                "p90_usd": pct(90),
+                "p99_usd": pct(99),
+            },
+        }
+
 
 # ---------------------------------------------------------------------------
 # Singleton

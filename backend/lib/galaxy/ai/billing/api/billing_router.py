@@ -2,16 +2,18 @@
 BioMate Billing API Router (FastAPI)
 
 Public endpoints (require user JWT auth):
-  GET  /api/billing/usage           — current month breakdown
-  GET  /api/billing/usage/history   — past N months
-  GET  /api/billing/quota           — plan limits and current usage %
-  GET  /api/billing/jobs/running    — in-flight jobs with live cost estimate
+  GET  /api/billing/usage             — current month breakdown
+  GET  /api/billing/usage/history     — past N months
+  GET  /api/billing/usage/cohort      — user's relative cost position in the cohort
+  GET  /api/billing/quota             — plan limits and current usage %
+  GET  /api/billing/jobs/running      — in-flight jobs with live cost estimate
 
 Internal endpoints (require X-Internal-Key header, not exposed to public):
-  POST /internal/billing/job_started    — called by Batch Lambda on RUNNING
-  POST /internal/billing/job_completed  — called by Batch Lambda on SUCCEEDED/FAILED
-  POST /internal/billing/s3_put         — called by S3 Lambda on upload
-  POST /internal/billing/s3_delete      — called by S3 Lambda on delete
+  POST /internal/billing/job_started      — called by Batch Lambda on RUNNING
+  POST /internal/billing/job_completed    — called by Batch Lambda on SUCCEEDED/FAILED
+  POST /internal/billing/s3_put          — called by S3 Lambda on upload
+  POST /internal/billing/s3_delete       — called by S3 Lambda on delete
+  GET  /internal/billing/admin/cohort_cost — cohort cost dashboard (cost per active user/month)
 
 Lago webhook endpoint:
   POST /webhooks/lago               — subscription events, invoice events
@@ -641,6 +643,81 @@ def admin_users():
         })
     users.sort(key=lambda u: u["total_usd"], reverse=True)
     return {"month": month, "user_count": len(users), "users": users}
+
+
+@router.get("/internal/billing/admin/cohort_cost", dependencies=[Depends(require_internal_key)])
+def admin_cohort_cost(months: int = 1):
+    """
+    Cohort cost dashboard: cost per active user per month.
+
+    Returns aggregated spend across all users, broken down by month,
+    with p50/p75/p90/p99 spend distribution across individual users.
+
+    Query params:
+      months  — number of past months to include (1–12, default 1)
+
+    An "active" user is any user with spend > 0 in that month.
+    Safe to call when Redis is empty — returns zeros without raising.
+    """
+    months = max(1, min(months, 12))
+    svc = get_cost_service()
+    try:
+        report = svc.get_cohort_cost_report(months=months)
+        return report
+    except Exception as e:
+        log.error("Cohort cost report failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/billing/usage/cohort")
+async def get_cohort_position(
+    request: Request,
+    user_id: str = Depends(current_user_id),
+):
+    """
+    Returns the requesting user's cost position relative to the cohort.
+
+    Privacy-preserving: only aggregate statistics are returned; no other
+    individual user's data is disclosed.
+
+    Response fields:
+      your_spend_usd          — caller's committed spend this month
+      cohort_avg_usd          — mean spend across active users this month
+      cohort_p75_usd          — 75th-percentile spend
+      cohort_p90_usd          — 90th-percentile spend
+      your_tier               — "low" | "medium" | "high" | "very_high"
+      active_users_this_month — number of users with any spend this month
+    """
+    svc = get_cost_service()
+    try:
+        report     = svc.get_cohort_cost_report(months=1)
+        user_costs = svc.get_current_costs(user_id)
+        user_total = user_costs.get("total_usd", 0.0)
+
+        avg = report["cost_per_active_user_usd"]
+        p75 = report["percentiles"]["p75_usd"]
+        p90 = report["percentiles"]["p90_usd"]
+
+        if user_total <= avg:
+            tier = "low"
+        elif user_total <= p75:
+            tier = "medium"
+        elif user_total <= p90:
+            tier = "high"
+        else:
+            tier = "very_high"
+
+        return {
+            "your_spend_usd":          round(user_total, 4),
+            "cohort_avg_usd":          avg,
+            "cohort_p75_usd":          p75,
+            "cohort_p90_usd":          p90,
+            "your_tier":               tier,
+            "active_users_this_month": report["total_active_users"],
+        }
+    except Exception as e:
+        log.error("Cohort position failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ---------------------------------------------------------------------------
