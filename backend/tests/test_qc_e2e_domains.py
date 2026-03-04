@@ -50,7 +50,7 @@ from galaxy.jobs.parameter_suggester import (
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _make_handler(work_dir, domain, params=None):
+def _make_handler(work_dir, domain, params=None, profile=None):
     events = []
     h = NextflowQCGateHandler(
         invocation_id=f"e2e-{domain}",
@@ -59,6 +59,7 @@ def _make_handler(work_dir, domain, params=None):
         app=Mock(),
         workflow_domain=domain,
         current_parameters=params or {},
+        qc_profile=profile,
     )
     return h, events
 
@@ -2272,3 +2273,218 @@ class TestAmesStructuralAlerts:
         metrics = {f["metric"] for f in gate[0][1]["failures"]}
         assert "herg_ic50_uM" in metrics
         assert "ames_positive" in metrics
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cryo-EM: Sharpening B-factor + Local Resolution
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCryoEMSharpenLocalResolution:
+    """SHARPEN B-factor and LOCAL_RESOLUTION std spread advisory gates."""
+
+    def _sharpen_writer(self, bfactor):
+        def write(d):
+            import json
+            (d / "sharpening_results.json").write_text(json.dumps({
+                "bfactor_angstrom_squared": bfactor,
+                "fsc_resolution_angstrom": 3.2,
+            }))
+        return write
+
+    def _localres_writer(self, std_spread, mean_res=3.5):
+        def write(d):
+            import json
+            (d / "local_resolution_results.json").write_text(json.dumps({
+                "std_spread_angstrom": std_spread,
+                "mean_resolution_angstrom": mean_res,
+            }))
+        return write
+
+    def test_typical_bfactor_no_advisory(self, tmp_path):
+        """B-factor −120 Å² (typical) → no advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "SHARPEN", "ee", "00000060", tmp_path, self._sharpen_writer(-120.0))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) == 0
+
+    def test_positive_bfactor_advisory(self, tmp_path):
+        """Positive B-factor (blurring) fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "SHARPEN", "ee", "00000061", tmp_path, self._sharpen_writer(15.0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "bfactor_angstrom_squared" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected B-factor blurring advisory"
+
+    def test_extreme_negative_bfactor_advisory(self, tmp_path):
+        """B-factor < −300 Å² (over-sharpening) fires BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "CTF_REFINE_SHARPEN", "ee", "00000062", tmp_path,
+                self._sharpen_writer(-420.0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "bfactor_angstrom_squared" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected over-sharpening advisory"
+
+    def test_local_res_low_spread_no_advisory(self, tmp_path):
+        """Local resolution std 1.2 Å (good uniformity) → no advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "LOCAL_RESOLUTION", "ff", "00000063", tmp_path,
+                self._localres_writer(1.2))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) == 0
+
+    def test_local_res_high_spread_advisory(self, tmp_path):
+        """Local resolution std 4.5 Å > 3.0 threshold → BRONZE advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "LOCAL_RESOLUTION", "ff", "00000064", tmp_path,
+                self._localres_writer(4.5))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "std_spread_angstrom" and f.get("advisory", False)
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Expected local resolution spread advisory"
+
+    def test_monores_process_name_routing(self, tmp_path):
+        """MONORES process name routes to local resolution parser."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "MONORES", "ff", "00000065", tmp_path, self._localres_writer(5.0))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) >= 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Named profiles — one representative test per domain group
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestNamedProfilesCoverage:
+    """Smoke tests confirming each untested named profile can be loaded and changes thresholds."""
+
+    def _alignment_writer(self, rate):
+        # Use HISAT2/Bowtie2 "X% overall alignment rate" pattern in a .txt file
+        def write(d):
+            (d / "alignment_report.txt").write_text(
+                f"{rate}% overall alignment rate\n"
+                f"50000000 reads; of these:\n"
+            )
+        return write
+
+    def _coverage_writer(self, cov):
+        # mosdepth summary format: chrom\tlength\tbases\tmean\tmin\tmax
+        def write(d):
+            summary = d / "genome.mosdepth.summary.txt"
+            summary.write_text(
+                f"chrom1\t100000000\t{int(cov * 100000000)}\t{cov:.2f}\t0\t500\n"
+                f"total\t100000000\t{int(cov * 100000000)}\t{cov:.2f}\t0\t500\n"
+            )
+        return write
+
+    def _cellranger_writer(self, mito_pct, cells=3000):
+        def write(d):
+            import json
+            (d / "cellranger_metrics.json").write_text(json.dumps({
+                "cells_detected": cells,
+                "median_genes_per_cell": 2200,
+                "mito_fraction_pct": mito_pct,
+                "sequencing_saturation_pct": 60.0,
+            }))
+        return write
+
+    def _kraken_writer(self, classified_pct):
+        def write(d):
+            import json
+            (d / "kraken2_report.txt").write_text(
+                f" {classified_pct:.2f}\t1000\t1000\tU\t0\tunclassified\n"
+                f" {100 - classified_pct:.2f}\t{int((100-classified_pct)*10)}\t"
+                f"{int((100-classified_pct)*10)}\tR\t1\troot\n"
+            )
+        return write
+
+    # ── rnaseq_ribodepleted — relaxed alignment (65% vs 70%) ──────────────────
+
+    def test_rnaseq_ribodepleted_relaxed_alignment(self, tmp_path):
+        """rnaseq_ribodepleted profile: alignment 67% passes (< 70% default, but > 65% profile)."""
+        h, events = _make_handler(tmp_path, "rna_seq", profile="rnaseq_ribodepleted")
+        _submit(h, "STAR_ALIGN", "aa", "01000001", tmp_path, self._alignment_writer(67.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_rnaseq_ribodepleted_default_would_fail(self, tmp_path):
+        """Confirm 67% fails with default profile (no profile)."""
+        h, events = _make_handler(tmp_path, "rna_seq")
+        _submit(h, "STAR_ALIGN", "aa", "01000002", tmp_path, self._alignment_writer(67.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 1
+
+    # ── rnaseq_single_nucleus — very relaxed alignment (50%) ──────────────────
+
+    def test_rnaseq_single_nucleus_relaxed_alignment(self, tmp_path):
+        """rnaseq_single_nucleus: alignment 55% passes (profile threshold 50%)."""
+        h, events = _make_handler(tmp_path, "rna_seq", profile="rnaseq_single_nucleus")
+        _submit(h, "STAR_ALIGN", "aa", "01000003", tmp_path, self._alignment_writer(55.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    # ── wgs_germline_lowpass — reduced coverage threshold (10×) ───────────────
+
+    def test_wgs_lowpass_accepts_low_coverage(self, tmp_path):
+        """wgs_germline_lowpass: 15× coverage passes (< 30× default)."""
+        h, events = _make_handler(tmp_path, "dna_seq", profile="wgs_germline_lowpass")
+        _submit(h, "MOSDEPTH", "bb", "01000004", tmp_path, self._coverage_writer(15.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_wgs_lowpass_default_would_fail(self, tmp_path):
+        """Confirm 15× fails with default WGS profile."""
+        h, events = _make_handler(tmp_path, "dna_seq")
+        _submit(h, "MOSDEPTH", "bb", "01000005", tmp_path, self._coverage_writer(15.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 1
+
+    # ── wes_clinical_germline — strict coverage (100×) ────────────────────────
+
+    def test_wes_clinical_strict_coverage(self, tmp_path):
+        """wes_clinical_germline: 75× coverage fails (profile threshold 80×, ACMG 2016)."""
+        h, events = _make_handler(tmp_path, "wes", profile="wes_clinical_germline")
+        _submit(h, "MOSDEPTH", "bb", "01000006", tmp_path, self._coverage_writer(75.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+
+    # ── scrna_cardiac — relaxed mito threshold (30%) ──────────────────────────
+
+    def test_scrna_cardiac_relaxed_mito(self, tmp_path):
+        """scrna_cardiac: 25% mito passes (cardiomyocytes have high mito content)."""
+        h, events = _make_handler(tmp_path, "single_cell", profile="scrna_cardiac")
+        _submit(h, "CELLRANGER_COUNT", "cc", "01000007", tmp_path,
+                self._cellranger_writer(25.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        blocking = [e for e in gate if any(
+            not f.get("advisory", False) and f.get("metric") == "mito_fraction_pct"
+            for f in e[1].get("failures", [])
+        )]
+        assert len(blocking) == 0, "25% mito should not be blocking for cardiac profile"
+
+    # ── metagenomics_soil — relaxed classification (40%) ─────────────────────
+
+    def test_metagenomics_soil_relaxed_classification(self, tmp_path):
+        """metagenomics_soil: 45% classified passes (soil communities = low DB coverage)."""
+        h, events = _make_handler(tmp_path, "metagenomics", profile="metagenomics_soil")
+        _submit(h, "KRAKEN2", "dd", "01000008", tmp_path, self._kraken_writer(45.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 0
+
+    def test_metagenomics_soil_default_would_warn(self, tmp_path):
+        """Confirm 45% classified triggers gate/warning with default metagenomics profile."""
+        h, events = _make_handler(tmp_path, "metagenomics")
+        _submit(h, "KRAKEN2", "dd", "01000009", tmp_path, self._kraken_writer(45.0))
+        any_event = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        assert len(any_event) >= 1, "45% should trigger event with default metagenomics"
+
+    # ── metagenomics_clinical_pathogen — strict classification (80%) ──────────
+
+    def test_metagenomics_clinical_strict_classification(self, tmp_path):
+        """metagenomics_clinical_pathogen: 55% classified fails (profile critical threshold 60%)."""
+        h, events = _make_handler(tmp_path, "metagenomics", profile="metagenomics_clinical_pathogen")
+        _submit(h, "KRAKEN2", "dd", "01000010", tmp_path, self._kraken_writer(55.0))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1

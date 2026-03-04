@@ -841,6 +841,12 @@ class NextflowQCGateHandler:
                                                "HETEROGENEOUS_REFINEMENT", "VALIDATION_FSC",
                                                "LOCAL_CTF_REFINEMENT", "AB_INITIO")):
             return self._parse_refinement_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("SHARPEN", "CTF_REFINE_SHARPEN",
+                                               "POSTPROCESS", "POSTPROCESSING")):
+            return self._parse_sharpening_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("LOCAL_RESOLUTION", "LOCALRES",
+                                               "MONORES", "RESMAP")):
+            return self._parse_local_resolution_metrics(task_work_dir)
 
         # --- RNA-seq / general sequencing quality ---
         elif any(k in process_upper for k in ("FASTQC", "MULTIQC")):
@@ -1740,6 +1746,85 @@ class NextflowQCGateHandler:
             return None
         return metrics
 
+    def _parse_sharpening_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse CryoSPARC post-processing / sharpening output.
+
+        Reads ``sharpening_results.json`` written by the ctf_refine_sharpen workflow step.
+
+        Key QC field:
+          bfactor_angstrom_squared — applied B-factor in Å².
+            Negative = sharpening (typical: −50 to −200 Å² for near-atomic maps).
+            Positive = blurring (unusual; may indicate over-refinement).
+            Very large negative (< −300 Å²) = over-sharpening artefacts.
+
+        Guinier/DeepEMhancer references: Rosenthal & Henderson 2003 JMB 333:721;
+        Terwilliger et al. 2018 Acta Cryst D74:545.
+        """
+        for fname in ("sharpening_results.json", "postprocessing_results.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    bfactor = data.get("bfactor_angstrom_squared")
+                    if bfactor is None:
+                        bfactor = data.get("b_factor")
+                    if bfactor is not None:
+                        try:
+                            metrics["bfactor_angstrom_squared"] = float(bfactor)
+                        except (ValueError, TypeError):
+                            pass
+                    if metrics:
+                        log.debug(f"[QC] Sharpening: B-factor={metrics.get('bfactor_angstrom_squared')} Å²")
+                        return metrics
+                except (OSError, json.JSONDecodeError):
+                    continue
+        return None
+
+    def _parse_local_resolution_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse local resolution estimation output.
+
+        Reads ``local_resolution_results.json`` written by the local_resolution workflow step
+        (CryoSPARC local resolution job or MonoRes/ResMap).
+
+        Key QC field:
+          std_spread_angstrom — standard deviation of the local resolution distribution (Å).
+            Low spread (< 1 Å) = uniform, well-ordered structure.
+            Moderate (1–3 Å) = typical; some flexibility acceptable.
+            High (> 3 Å) = high conformational disorder or dominant flexible regions;
+                            advisory to check domain orientation and flexible loops.
+
+        Reference: Vilas et al. 2018 Structure 26:337 (MonoRes).
+        """
+        for fname in ("local_resolution_results.json", "localres_results.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+                    std = data.get("std_spread_angstrom")
+                    if std is None:
+                        std = data.get("resolution_std")
+                    if std is not None:
+                        try:
+                            metrics["std_spread_angstrom"] = float(std)
+                        except (ValueError, TypeError):
+                            pass
+                    mean_res = data.get("mean_resolution_angstrom")
+                    if mean_res is not None:
+                        try:
+                            metrics["mean_local_resolution_angstrom"] = float(mean_res)
+                        except (ValueError, TypeError):
+                            pass
+                    if metrics:
+                        log.debug(f"[QC] Local resolution: std={metrics.get('std_spread_angstrom')} Å")
+                        return metrics
+                except (OSError, json.JSONDecodeError):
+                    continue
+        return None
+
     def _parse_maxquant_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
         Parse MaxQuant output files.
@@ -2587,6 +2672,62 @@ class NextflowQCGateHandler:
                         f"High junk class fraction: {junk_frac:.1%} of particles in low-quality "
                         f"2D classes (advisory threshold: {_junk_t:.0%}). "
                         f"Consider lowering the particle picker threshold or re-selecting 2D classes."
+                    ),
+                })
+
+        elif any(k in process_upper for k in ("SHARPEN", "CTF_REFINE_SHARPEN",
+                                               "POSTPROCESS", "POSTPROCESSING")):
+            # [BRONZE advisory] B-factor out of expected range.
+            # Rosenthal & Henderson 2003 JMB 333:721 — typical values −50 to −200 Å².
+            # B > 0 (blurring) is unexpected in post-processing; B < −300 indicates over-sharpening.
+            bfactor = qc_metrics.get("bfactor_angstrom_squared")
+            if bfactor is not None:
+                if bfactor > 0:
+                    failures.append({
+                        "metric": "bfactor_angstrom_squared",
+                        "value": bfactor,
+                        "threshold": 0,
+                        "operator": ">",
+                        "advisory": True,
+                        "message": (
+                            f"[BRONZE] Applied B-factor {bfactor:.1f} Å² is positive (blurring). "
+                            f"Expected negative sharpening (−50 to −200 Å²). "
+                            f"Check that the correct half-maps were used for post-processing."
+                        ),
+                    })
+                elif bfactor < -300:
+                    failures.append({
+                        "metric": "bfactor_angstrom_squared",
+                        "value": bfactor,
+                        "threshold": -300,
+                        "operator": "<",
+                        "advisory": True,
+                        "message": (
+                            f"[BRONZE] Applied B-factor {bfactor:.1f} Å² is very large negative — "
+                            f"over-sharpening may introduce map artefacts. "
+                            f"Typical range: −50 to −200 Å² (Rosenthal & Henderson 2003). "
+                            f"Consider using automated B-factor estimation or DeepEMhancer."
+                        ),
+                    })
+
+        elif any(k in process_upper for k in ("LOCAL_RESOLUTION", "LOCALRES",
+                                               "MONORES", "RESMAP")):
+            # [BRONZE advisory] High spread in local resolution distribution.
+            # Vilas et al. 2018 Structure 26:337 — σ > 3 Å indicates high conformational disorder.
+            std = qc_metrics.get("std_spread_angstrom")
+            _std_t = self._get_threshold("local_resolution_std_spread", 3.0)
+            if std is not None and std > _std_t:
+                failures.append({
+                    "metric": "std_spread_angstrom",
+                    "value": std,
+                    "threshold": _std_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] Local resolution spread σ={std:.1f} Å (advisory: < {_std_t:.1f} Å). "
+                        f"High heterogeneity may indicate flexible regions, preferred orientation, "
+                        f"or a mixed particle population. Consider 3D variability analysis or "
+                        f"focused classification on the disordered region."
                     ),
                 })
 
