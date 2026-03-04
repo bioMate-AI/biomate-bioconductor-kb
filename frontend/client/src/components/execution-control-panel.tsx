@@ -15,7 +15,7 @@
  * - Inline editing where possible to reduce modal friction
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -177,20 +177,10 @@ export function ExecutionControlPanel({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set());
   // QC governance settings (US-4.3)
-  const [qcProfile, setQcProfile] = useState<string>('');
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
   const [showQcSettings, setShowQcSettings] = useState(false);
-  const [availableProfiles, setAvailableProfiles] = useState<Array<{id: string; description: string; domain_hint?: string}>>([]);
   const [newOverrideKey, setNewOverrideKey] = useState('');
   const [newOverrideVal, setNewOverrideVal] = useState('');
-
-  // Fetch QC profile list once on mount
-  useEffect(() => {
-    fetch('/api/qc/profiles')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.profiles) setAvailableProfiles(data.profiles); })
-      .catch(() => {}); // non-critical; falls back to empty list
-  }, []);
 
   // Derived values
   const absoluteCount = useMemo(() => {
@@ -227,10 +217,9 @@ export function ExecutionControlPanel({
         notifyMilestones: true,
         milestonePercentages: [25, 50, 75, 100],
       },
-      ...(qcProfile && { qcProfile }),
       ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
     };
-  }, [mode, fraction, samplingStrategy, strataColumn, qcProfile, qcOverrides]);
+  }, [mode, fraction, samplingStrategy, strataColumn, qcOverrides]);
 
   // Handlers
   const handleExecute = async () => {
@@ -461,9 +450,9 @@ export function ExecutionControlPanel({
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
             QC Settings
-            {(qcProfile || Object.keys(qcOverrides).length > 0) && (
+            {Object.keys(qcOverrides).length > 0 && (
               <Badge variant="secondary" className="text-xs h-4 px-1">
-                {qcProfile ? qcProfile.replace(/_/g, ' ') : `${Object.keys(qcOverrides).length} override${Object.keys(qcOverrides).length !== 1 ? 's' : ''}`}
+                {Object.keys(qcOverrides).length} override{Object.keys(qcOverrides).length !== 1 ? 's' : ''}
               </Badge>
             )}
           </span>
@@ -471,43 +460,6 @@ export function ExecutionControlPanel({
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="space-y-3 pt-2 pb-1">
-        {/* Named profile selector */}
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Named QC Profile</Label>
-          <Select value={qcProfile || '__none__'} onValueChange={v => setQcProfile(v === '__none__' ? '' : v)}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Platform defaults (no profile)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__" className="text-xs">Platform defaults (no profile)</SelectItem>
-              {availableProfiles.length > 0
-                ? availableProfiles.map(p => (
-                    <SelectItem key={p.id} value={p.id} className="text-xs">
-                      <span className="font-medium">{p.id.replace(/_/g, ' ')}</span>
-                      {p.domain_hint && <span className="text-muted-foreground ml-1">· {p.domain_hint}</span>}
-                    </SelectItem>
-                  ))
-                : [
-                    'rnaseq_polya_standard','rnaseq_ribodepleted','rnaseq_ffpe','rnaseq_single_nucleus','rnaseq_nonmodel_organism',
-                    'wgs_germline_standard','wgs_germline_lowpass','wgs_somatic_tumor_only','wgs_ffpe',
-                    'wes_research','wes_clinical_germline','wes_somatic_tumor_normal','wes_somatic_tumor_only',
-                    'scrna_standard','scrna_cardiac','scrna_neuronal',
-                    'metagenomics_human_gut','metagenomics_soil','metagenomics_marine','metagenomics_clinical_pathogen',
-                    'cryoem_spa_purified','cryoem_spa_membrane','cryoem_tomo_in_situ','cryoem_spa_phase_plate',
-                    'proteomics_standard','proteomics_phospho','proteomics_plasma_biomarker','proteomics_chemoproteomics',
-                  ].map(id => (
-                    <SelectItem key={id} value={id} className="text-xs">{id.replace(/_/g, ' ')}</SelectItem>
-                  ))
-              }
-            </SelectContent>
-          </Select>
-          {qcProfile && availableProfiles.find(p => p.id === qcProfile)?.description && (
-            <p className="text-xs text-muted-foreground leading-snug">
-              {availableProfiles.find(p => p.id === qcProfile)!.description.split('.')[0]}.
-            </p>
-          )}
-        </div>
-
         {/* Per-metric threshold overrides */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>
