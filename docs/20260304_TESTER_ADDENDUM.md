@@ -24,7 +24,7 @@ cd /home/yzhang/biomate/backend
     -q --tb=short
 ```
 
-**Expected:** `551 passed` (no failures).
+**Expected:** `577 passed` (no failures).
 
 If count differs, check git branch is `connection_formal` and the backend was restarted
 after the latest code pull.
@@ -283,3 +283,72 @@ These are documented to avoid confusion if a tester looks for them:
   no hard gate threshold yet (needs calibration against real CryoSPARC data).
 - **QSAR workflow real validation:** The `qsar_rf_model/main.nf` works in mock/RDKit mode;
   production accuracy with real compound datasets has not been benchmarked yet.
+
+---
+
+## 9. UX — QC Behaviour Changes (2026-03-04 second pass)
+
+### 9a. Skip Pilot — 7-day suppression (US-4.1)
+
+When a user clicks **Skip pilot** (or **Skip** in unified mode), the preference is
+now stored in `localStorage` for 7 days keyed by workflow name.
+
+**Expected:** After clicking Skip, refreshing the chat and opening the same workflow
+does NOT show the pilot banner again. After 7 days (or clearing localStorage) the
+banner reappears.
+
+**Note shown in banner:** *"This workflow won't ask for a pilot again for 7 days."*
+
+---
+
+### 9b. "Pause at QC failures" toggle (US-4.2)
+
+In the **Execution Panel → QC Settings** section, a new toggle appears:
+
+| Toggle state | Behaviour |
+|---|---|
+| ON (default) | Workflow pauses on QC gate and shows the blocking modal |
+| OFF | All suggestions with confidence ≥ 0.7 are auto-applied; workflow continues; step gets an amber QC annotation |
+
+**Test:** Turn toggle OFF, run a cryo-EM SPA workflow in mock mode. When a
+CTF gate fires, confirm no modal appears — instead the step shows
+"Last run: QC warning" annotation and the workflow continues.
+
+---
+
+## 10. Parameter Suggestions — New Domains
+
+Three new suggester classes now provide actionable suggestions when QC gates fire:
+
+### 10a. Drug discovery (hERG, DILI, Ames, pulldown, QSAR)
+
+| Process | Gate metric | Suggestion |
+|---|---|---|
+| HERG_PREDICTION | IC50 < 1 μM | Enable BRENK structural alert filter |
+| HERG_PREDICTION | IC50 1–10 μM | Enable hERG liability filter |
+| DILI_PREDICTION | high/medium | Enable DILI structural alert filter |
+| AMES_MUTAGENICITY | prob ≥ 0.7 | reactive_group_filter + PAINS filter |
+| CHEMOPROTEOMICS_PULLDOWN | enrichment < 3× | input_protein_ug + beads_ul |
+| QSAR_RF_MODEL | CV R² < 0.5 | n_estimators + feature_selection |
+
+### 10b. Proteomics (MaxQuant, DIA-NN)
+
+| Process | Gate metric | Suggestion |
+|---|---|---|
+| MAXQUANT | PSM/protein FDR > 1% | Tighten mass tolerance + reduce missed cleavages |
+| MAXQUANT | Missed cleavage > 20% | Longer digestion + higher enzyme:protein ratio |
+| MAXQUANT | Phosphosite localiz. < 0.75 | Switch to ptmRS algorithm |
+| DIANN | Protein FDR > 1% | Tighter Q-value + --pg-level 2 |
+
+### 10c. Cryo-EM sharpening and local resolution
+
+| Process | Gate metric | Suggestion |
+|---|---|---|
+| SHARPENING | B-factor > 0 | Suggest −50 Å² (Rosenthal & Henderson, literature) |
+| SHARPENING | B-factor < −300 | Suggest gentler −100 Å² |
+| LOCAL_RESOLUTION | std spread > 3.0 Å | local_ctf_refinement + local_motion_correction |
+
+**Test:** Trigger any of the above gates and confirm the modal shows at least one
+suggestion card with a specific parameter and suggested value (not just the
+troubleshooting steps fallback).
+
