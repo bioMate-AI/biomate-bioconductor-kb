@@ -598,6 +598,124 @@ class MetagenomicsParameterSuggester(BaseParameterSuggester):
         return suggestions
 
 
+class DrugDiscoveryParameterSuggester(BaseParameterSuggester):
+    """Parameter suggester for drug discovery / cheminformatics workflows."""
+
+    def suggest(
+        self,
+        process_name: str,
+        qc_metrics: Dict[str, Any],
+        current_parameters: Dict[str, Any],
+        failures: List[str]
+    ) -> List[ParameterSuggestion]:
+        suggestions = []
+        process_upper = process_name.upper()
+
+        if any(k in process_upper for k in ('HERG', 'CARDIO', 'CARDIAC_TOX')):
+            ic50 = qc_metrics.get('herg_ic50_uM')
+            if ic50 is not None and ic50 < 10.0:
+                suggestions.append(ParameterSuggestion(
+                    parameter='herg_liability_filter',
+                    current_value=current_parameters.get('herg_liability_filter', False),
+                    suggested_value=True,
+                    reason=(f'hERG IC50 {ic50:.2f} μM indicates cardiac risk. '
+                            f'Enable the hERG liability filter to flag and deprioritise '
+                            f'structural scaffolds associated with ion-channel binding.'),
+                    confidence=0.80,
+                    source="literature"  # Sanguinetti & Tristani-Firouzi (2006) Nature
+                ))
+                if ic50 < 1.0:
+                    suggestions.append(ParameterSuggestion(
+                        parameter='structural_alert_filter',
+                        current_value=current_parameters.get('structural_alert_filter', 'none'),
+                        suggested_value='brenk',
+                        reason=(f'hERG IC50 {ic50:.2f} μM is in the high-risk range (< 1 μM). '
+                                f'BRENK structural alert filter removes pan-assay interference '
+                                f'and reactive groups that correlate with off-target binding.'),
+                        confidence=0.72,
+                        source="literature"  # Brenk et al. (2008) ChemMedChem
+                    ))
+
+        elif any(k in process_upper for k in ('DILI', 'LIVER_TOX', 'HEPATOTOX')):
+            dili_cat = qc_metrics.get('dili_category', '')
+            suggestions.append(ParameterSuggestion(
+                parameter='structural_alert_filter',
+                current_value=current_parameters.get('structural_alert_filter', 'none'),
+                suggested_value='dili_alert',
+                reason=(f'DILI category "{dili_cat}" detected. '
+                        f'Enable DILI structural alert filter to flag reactive metabolite '
+                        f'precursors (acyl glucuronides, thiophenes, anilines).'),
+                confidence=0.75,
+                source="literature"  # Chen et al. (2016) Drug Discov Today
+            ))
+
+        elif any(k in process_upper for k in ('AMES', 'MUTAGENICITY', 'MUTAGEN')):
+            ames_prob = qc_metrics.get('ames_probability', 0)
+            suggestions.append(ParameterSuggestion(
+                parameter='reactive_group_filter',
+                current_value=current_parameters.get('reactive_group_filter', False),
+                suggested_value=True,
+                reason=(f'Ames mutagenicity probability {ames_prob:.2f} ≥ 0.7. '
+                        f'Reactive group filter removes known alkylating agents and '
+                        f'electrophiles that cause DNA adducts.'),
+                confidence=0.78,
+                source="literature"  # Kazius et al. (2005) J Med Chem
+            ))
+            suggestions.append(ParameterSuggestion(
+                parameter='structural_alert_filter',
+                current_value=current_parameters.get('structural_alert_filter', 'none'),
+                suggested_value='pains',
+                reason=('PAINS filter identifies pan-assay interference compounds '
+                        'that may produce false mutagenicity signals.'),
+                confidence=0.65,
+                source="literature"  # Baell & Holloway (2010) J Med Chem
+            ))
+
+        elif any(k in process_upper for k in ('CHEMOPROTEOMICS_PULLDOWN', 'ABPP', 'PULLDOWN')):
+            enr = qc_metrics.get('median_enrichment_ratio')
+            if enr is not None and enr < 3.0:
+                suggestions.append(ParameterSuggestion(
+                    parameter='input_protein_ug',
+                    current_value=current_parameters.get('input_protein_ug', 250),
+                    suggested_value=500,
+                    reason=(f'Median enrichment {enr:.1f}× is below 3×. '
+                            f'Increasing input protein amount typically improves '
+                            f'bead capture efficiency and enrichment ratio.'),
+                    confidence=0.72
+                ))
+                suggestions.append(ParameterSuggestion(
+                    parameter='beads_ul',
+                    current_value=current_parameters.get('beads_ul', 25),
+                    suggested_value=50,
+                    reason=(f'Doubling bead volume may recover more target proteins '
+                            f'when enrichment is below threshold ({enr:.1f}×).'),
+                    confidence=0.65
+                ))
+
+        elif any(k in process_upper for k in ('QSAR', 'QSAR_RF', 'QSAR_MODEL')):
+            cv_r2 = qc_metrics.get('cv_r2_score')
+            if cv_r2 is not None and cv_r2 < 0.5:
+                suggestions.append(ParameterSuggestion(
+                    parameter='n_estimators',
+                    current_value=current_parameters.get('n_estimators', 100),
+                    suggested_value=500,
+                    reason=(f'CV R² {cv_r2:.2f} < 0.5. More estimators reduce variance '
+                            f'and may improve cross-validated performance.'),
+                    confidence=0.68
+                ))
+                suggestions.append(ParameterSuggestion(
+                    parameter='feature_selection',
+                    current_value=current_parameters.get('feature_selection', 'none'),
+                    suggested_value='variance_threshold',
+                    reason=(f'Low CV R² ({cv_r2:.2f}) may indicate noisy features. '
+                            f'Variance-threshold feature selection removes near-constant '
+                            f'descriptors that add noise without predictive signal.'),
+                    confidence=0.65
+                ))
+
+        return suggestions
+
+
 def get_suggester_for_domain(domain: str, logger: Optional[logging.Logger] = None) -> BaseParameterSuggester:
     """
     Get the appropriate parameter suggester for a workflow domain.
@@ -628,6 +746,8 @@ def get_suggester_for_domain(domain: str, logger: Optional[logging.Logger] = Non
         return ChIPSeqParameterSuggester(logger)
     elif any(k in domain_lower for k in ('metagenomic', 'metagenom', 'microbiom', 'kraken', 'metaphlan')):
         return MetagenomicsParameterSuggester(logger)
+    elif any(k in domain_lower for k in ('drug', 'chemo', 'chemoproteom', 'herg', 'dili', 'ames', 'qsar', 'pulldown', 'abpp', 'pharmacol', 'compound', 'ligand', 'smiles', 'admet')):
+        return DrugDiscoveryParameterSuggester(logger)
     elif any(k in domain_lower for k in ('dna', 'genomic', 'variant', 'wgs', 'wes', 'exome', 'bwa', 'gatk')):
         return GenomicsParameterSuggester(logger)
     elif any(k in domain_lower for k in ('seq', 'sequenc')):

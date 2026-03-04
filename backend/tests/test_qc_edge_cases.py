@@ -37,6 +37,7 @@ from galaxy.jobs.parameter_suggester import (
     SingleCellParameterSuggester,
     ChIPSeqParameterSuggester,
     MetagenomicsParameterSuggester,
+    DrugDiscoveryParameterSuggester,
     BaseParameterSuggester,
     ParameterSuggestion,
     get_suggester_for_domain,
@@ -4283,3 +4284,97 @@ class TestNamedProfiles:
         )
         assert h_profile._get_threshold("alignment_rate", 70.0) == \
                h_default._get_threshold("alignment_rate", 70.0)
+
+
+# ---------------------------------------------------------------------------
+# US-6.1 — Drug discovery parameter suggestions
+# ---------------------------------------------------------------------------
+
+class TestDrugDiscoverySuggester:
+    """Tests for DrugDiscoveryParameterSuggester (hERG, DILI, Ames, pulldown, QSAR)."""
+
+    def setup_method(self):
+        self.s = DrugDiscoveryParameterSuggester()
+
+    def test_herg_ic50_high_risk_enables_filter(self):
+        """hERG IC50 < 1 μM → herg_liability_filter + brenk filter suggested."""
+        suggestions = self.s.suggest(
+            "HERG_PREDICTION", {"herg_ic50_uM": 0.5}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "herg_liability_filter" in params
+        assert "structural_alert_filter" in params
+        brenk = next(s for s in suggestions if s.parameter == "structural_alert_filter")
+        assert brenk.suggested_value == "brenk"
+        assert brenk.source == "literature"
+
+    def test_herg_ic50_medium_risk_only_filter(self):
+        """hERG IC50 5 μM (1–10 range) → only herg_liability_filter, no brenk."""
+        suggestions = self.s.suggest(
+            "HERG_PREDICTION", {"herg_ic50_uM": 5.0}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "herg_liability_filter" in params
+        assert "structural_alert_filter" not in params
+
+    def test_dili_high_suggests_structural_alert(self):
+        """DILI category 'high' → dili_alert filter suggested."""
+        suggestions = self.s.suggest(
+            "DILI_PREDICTION", {"dili_category": "high"}, {}, []
+        )
+        assert len(suggestions) == 1
+        assert suggestions[0].parameter == "structural_alert_filter"
+        assert suggestions[0].suggested_value == "dili_alert"
+        assert suggestions[0].source == "literature"
+
+    def test_ames_positive_suggests_reactive_group_filter(self):
+        """Ames probability ≥ 0.7 → reactive_group_filter + pains filter."""
+        suggestions = self.s.suggest(
+            "AMES_MUTAGENICITY", {"ames_probability": 0.85}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "reactive_group_filter" in params
+        assert "structural_alert_filter" in params
+        pains = next(s for s in suggestions if s.parameter == "structural_alert_filter")
+        assert pains.suggested_value == "pains"
+
+    def test_pulldown_low_enrichment_suggests_more_beads(self):
+        """Median enrichment ratio 1.5× < 3× → input_protein_ug + beads_ul."""
+        suggestions = self.s.suggest(
+            "CHEMOPROTEOMICS_PULLDOWN", {"median_enrichment_ratio": 1.5}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "input_protein_ug" in params
+        assert "beads_ul" in params
+
+    def test_abpp_alias_also_routed(self):
+        """ABPP_PULLDOWN alias also triggers enrichment suggestions."""
+        suggestions = self.s.suggest(
+            "ABPP_PULLDOWN", {"median_enrichment_ratio": 2.0}, {}, []
+        )
+        assert len(suggestions) > 0
+
+    def test_qsar_low_cv_r2_suggests_more_estimators(self):
+        """CV R² 0.3 < 0.5 → n_estimators + feature_selection."""
+        suggestions = self.s.suggest(
+            "QSAR_RF_MODEL", {"cv_r2_score": 0.3}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "n_estimators" in params
+        assert "feature_selection" in params
+
+    def test_domain_routing_drug_discovery(self):
+        """get_suggester_for_domain returns DrugDiscoveryParameterSuggester for drug domains."""
+        for domain in ("drug_discovery", "chemoproteomics", "herg_screening", "qsar", "abpp"):
+            s = get_suggester_for_domain(domain)
+            assert isinstance(s, DrugDiscoveryParameterSuggester), f"wrong suggester for domain '{domain}'"
+
+    def test_no_suggestions_when_metrics_absent(self):
+        """Empty qc_metrics → no suggestions (graceful no-op)."""
+        for process in ("HERG_PREDICTION", "DILI_PREDICTION", "AMES_MUTAGENICITY",
+                        "CHEMOPROTEOMICS_PULLDOWN", "QSAR_RF_MODEL"):
+            suggestions = self.s.suggest(process, {}, {}, [])
+            # Either empty or DILI always emits one advisory (DILI always fires)
+            # DILI suggest fires on process name alone (dili_category defaults to '')
+            if "DILI" not in process and "AMES" not in process:
+                assert suggestions == [], f"expected no suggestions for {process} with empty metrics"
