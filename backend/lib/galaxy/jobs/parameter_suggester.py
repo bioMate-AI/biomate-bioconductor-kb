@@ -88,6 +88,14 @@ class CryoEMParameterSuggester(BaseParameterSuggester):
         elif 'REFINE' in process_upper:
             suggestions.extend(self._suggest_refinement(qc_metrics, current_parameters))
 
+        # Sharpening (post-refinement B-factor)
+        elif 'SHARP' in process_upper or 'BFACTOR' in process_upper:
+            suggestions.extend(self._suggest_sharpening(qc_metrics, current_parameters))
+
+        # Local resolution validation
+        elif 'LOCAL_RES' in process_upper or 'LOCALRES' in process_upper:
+            suggestions.extend(self._suggest_local_resolution(qc_metrics, current_parameters))
+
         return suggestions
 
     def _suggest_motion_correction(
@@ -281,6 +289,73 @@ class CryoEMParameterSuggester(BaseParameterSuggester):
                     confidence=0.80
                 ))
 
+        return suggestions
+
+    def _suggest_sharpening(
+        self,
+        qc_metrics: Dict[str, Any],
+        current_params: Dict[str, Any]
+    ) -> List[ParameterSuggestion]:
+        """Suggest B-factor / sharpening parameter adjustments."""
+        suggestions = []
+        b_factor = qc_metrics.get('b_factor_applied')
+        if b_factor is None:
+            return suggestions
+
+        if b_factor > 0:
+            suggestions.append(ParameterSuggestion(
+                parameter='bfactor',
+                current_value=b_factor,
+                suggested_value=-50,
+                reason=(f'Positive B-factor ({b_factor:.0f} Å²) was applied, which blurs high-frequency '
+                        f'details. A negative B-factor (−30 to −100 Å²) sharpens features at high resolution. '
+                        f'Use −50 Å² as a starting point and refine manually.'),
+                confidence=0.82,
+                source="literature"  # Rosenthal & Henderson (2003) J Mol Biol
+            ))
+        elif b_factor < -300:
+            suggestions.append(ParameterSuggestion(
+                parameter='bfactor',
+                current_value=b_factor,
+                suggested_value=-100,
+                reason=(f'B-factor of {b_factor:.0f} Å² is very aggressive (< −300 Å²) and may amplify '
+                        f'noise at high resolution. Consider −50 to −150 Å² range. '
+                        f'Validate with the FSC-weighted map.'),
+                confidence=0.75,
+                source="literature"  # Rosenthal & Henderson (2003) J Mol Biol
+            ))
+        return suggestions
+
+    def _suggest_local_resolution(
+        self,
+        qc_metrics: Dict[str, Any],
+        current_params: Dict[str, Any]
+    ) -> List[ParameterSuggestion]:
+        """Suggest parameter adjustments when local resolution spread is large."""
+        suggestions = []
+        std_res = qc_metrics.get('std_resolution_angstroms')
+        if std_res is None or std_res <= 3.0:
+            return suggestions
+
+        if not current_params.get('local_ctf_refinement', False):
+            suggestions.append(ParameterSuggestion(
+                parameter='local_ctf_refinement',
+                current_value=False,
+                suggested_value=True,
+                reason=(f'Large local resolution spread ({std_res:.1f} Å σ). '
+                        f'Per-particle local CTF refinement can reduce conformational '
+                        f'heterogeneity and improve overall resolution uniformity.'),
+                confidence=0.78
+            ))
+        if not current_params.get('local_motion_correction', False):
+            suggestions.append(ParameterSuggestion(
+                parameter='local_motion_correction',
+                current_value=False,
+                suggested_value=True,
+                reason=(f'High resolution variance ({std_res:.1f} Å σ) may indicate residual beam-induced '
+                        f'motion. Local motion correction (patch-based) can correct intra-micrograph motion.'),
+                confidence=0.72
+            ))
         return suggestions
 
 

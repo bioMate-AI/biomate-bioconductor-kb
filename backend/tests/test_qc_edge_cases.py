@@ -4378,3 +4378,52 @@ class TestDrugDiscoverySuggester:
             # DILI suggest fires on process name alone (dili_category defaults to '')
             if "DILI" not in process and "AMES" not in process:
                 assert suggestions == [], f"expected no suggestions for {process} with empty metrics"
+
+
+class TestCryoEMSharpeningSuggester:
+    """Tests for sharpening and local resolution suggestion methods."""
+
+    def setup_method(self):
+        self.s = CryoEMParameterSuggester()
+
+    def test_positive_b_factor_suggests_negative(self):
+        """Positive B-factor → suggests −50 Å²."""
+        suggestions = self.s.suggest(
+            "SHARPENING", {"b_factor_applied": 20.0}, {}, []
+        )
+        assert len(suggestions) == 1
+        assert suggestions[0].parameter == "bfactor"
+        assert suggestions[0].suggested_value < 0
+        assert suggestions[0].source == "literature"
+
+    def test_very_negative_b_factor_suggests_gentler(self):
+        """B-factor < −300 Å² → suggests −100 Å² (less aggressive)."""
+        suggestions = self.s.suggest(
+            "SHARPEN_POSTPROCESSING", {"b_factor_applied": -450.0}, {}, []
+        )
+        assert len(suggestions) == 1
+        assert suggestions[0].parameter == "bfactor"
+        assert suggestions[0].suggested_value == -100
+
+    def test_b_factor_within_normal_range_no_suggestion(self):
+        """B-factor −80 Å² (normal) → no suggestion."""
+        suggestions = self.s.suggest(
+            "SHARPENING", {"b_factor_applied": -80.0}, {}, []
+        )
+        assert suggestions == []
+
+    def test_large_local_resolution_spread_suggests_local_ctf(self):
+        """std_resolution_angstroms 4.5 Å → local_ctf_refinement + local_motion_correction."""
+        suggestions = self.s.suggest(
+            "LOCAL_RESOLUTION", {"std_resolution_angstroms": 4.5}, {}, []
+        )
+        params = {s.parameter for s in suggestions}
+        assert "local_ctf_refinement" in params
+        assert "local_motion_correction" in params
+
+    def test_small_local_resolution_spread_no_suggestion(self):
+        """std_resolution_angstroms 1.5 Å (good) → no suggestion."""
+        suggestions = self.s.suggest(
+            "LOCAL_RESOLUTION", {"std_resolution_angstroms": 1.5}, {}, []
+        )
+        assert suggestions == []
