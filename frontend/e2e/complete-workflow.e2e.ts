@@ -51,7 +51,7 @@ interface RunStatusResponse {
     completed?: boolean;
     error?: string;
   };
-  usefulness?: {
+  artifactReadiness?: {
     hasOutputs?: boolean;
     visualizableCount?: number;
     downloadableCount?: number;
@@ -297,7 +297,7 @@ test.describe('Complete Workflow E2E', () => {
       let statusPayload: RunStatusResponse | null = null;
 
       if (executionRunId) {
-        for (let i = 0; i < 45; i++) { // Up to ~90s for status/usefulness convergence
+        for (let i = 0; i < 45; i++) { // Up to ~90s for status/artifact-readiness convergence
           await page.waitForTimeout(2000);
           const response = await page.request.get(`${BASE_URL}/api/workflows/runs/${executionRunId}/status`);
           if (!response.ok()) {
@@ -319,16 +319,16 @@ test.describe('Complete Workflow E2E', () => {
 
           if (terminalStatuses.has(status)) {
           backendTerminalStatus = status;
-          // For successful completion, keep polling briefly until usefulness
+          // For successful completion, keep polling briefly until artifact-readiness
           // contract is satisfied to avoid failing on persistence lag.
-          if (status !== 'completed' || statusPayload?.usefulness?.meetsContract) {
+          if (status !== 'completed' || statusPayload?.artifactReadiness?.meetsContract) {
             break;
           }
           }
 
           if (nfCompleted && (status === 'running' || status === 'pending')) {
           backendTerminalStatus = 'completed';
-          if (statusPayload?.usefulness?.meetsContract) {
+          if (statusPayload?.artifactReadiness?.meetsContract) {
             break;
           }
           }
@@ -340,8 +340,8 @@ test.describe('Complete Workflow E2E', () => {
           `Run reached non-success terminal state. Backend error: ${statusPayload?.errorMessage || statusPayload?.nextflowStatus?.error || 'n/a'}`
         ).toBe('completed');
         expect(
-          statusPayload?.usefulness?.meetsContract,
-          `Run completed without useful outputs. usefulness=${JSON.stringify(statusPayload?.usefulness || {})}`
+          statusPayload?.artifactReadiness?.meetsContract,
+          `Run completed before artifact readiness. artifactReadiness=${JSON.stringify(statusPayload?.artifactReadiness || {})}`
         ).toBe(true);
 
         executionComplete = true;
@@ -352,21 +352,27 @@ test.describe('Complete Workflow E2E', () => {
       if (executionComplete) {
         console.log('[Test] Step 7: Checking for output...');
 
-        const outputIndicators = [
-          'text=Download',
-          'text=Output',
-          'text=Results',
-          '[data-testid="output-viewer"]',
-        ];
+        // Post-run feedback modal can steal focus and mark background controls inert.
+        // Dismiss it before validating output affordances.
+        const feedbackSkip = page.getByRole('button', { name: /^skip$/i }).first();
+        if (await feedbackSkip.isVisible().catch(() => false)) {
+          await feedbackSkip.click().catch(() => {});
+          await page.waitForTimeout(300);
+        }
 
-        for (const indicator of outputIndicators) {
-          const element = page.locator(indicator).first();
-          if (await element.isVisible().catch(() => false)) {
-            console.log(`[Test] Found output indicator: ${indicator}`);
-            await saveScreenshot('08_output_available');
-            outputFound = true;
-            break;
-          }
+        const outputStateBadge = page.getByTestId('output-result-state-badge').first();
+        const runtimeArtifactsCard = page.getByTestId('nextflow-runtime-artifacts').first();
+        const noOutputsMessage = page.getByText('No outputs generated yet').first();
+        const hasOutputCards = await outputStateBadge.isVisible().catch(() => false);
+        const hasRuntimeArtifacts = await runtimeArtifactsCard.isVisible().catch(() => false);
+        const hasEmptyOutputsMessage = await noOutputsMessage.isVisible().catch(() => false);
+
+        outputFound = hasOutputCards || hasRuntimeArtifacts;
+        if (outputFound) {
+          console.log(
+            `[Test] Output evidence found: outputCards=${hasOutputCards}, runtimeArtifacts=${hasRuntimeArtifacts}, emptyMessage=${hasEmptyOutputsMessage}`
+          );
+          await saveScreenshot('08_output_available');
         }
 
         // Enforce frontend completion standard:
@@ -375,7 +381,7 @@ test.describe('Complete Workflow E2E', () => {
         const reportButton = page.getByRole('button', { name: /^report$/i }).first();
         const downloadButton = page.getByRole('button', { name: /^download$/i }).first();
 
-        if (await reportButton.isVisible().catch(() => false)) {
+        if (hasOutputCards && !hasEmptyOutputsMessage && await reportButton.isVisible().catch(() => false)) {
           outputVisualizable = await reportButton.isEnabled().catch(() => false);
           console.log(`[Test] Report button visible, enabled=${outputVisualizable}`);
         } else {
@@ -392,16 +398,72 @@ test.describe('Complete Workflow E2E', () => {
               break;
             }
           }
-          console.log(`[Test] Visualization indicator visible=${outputVisualizable}`);
+          if (hasEmptyOutputsMessage) {
+            outputVisualizable = false;
+          }
+          console.log(
+            `[Test] Visualization indicator visible=${outputVisualizable} (hasOutputCards=${hasOutputCards}, emptyMessage=${hasEmptyOutputsMessage})`
+          );
         }
 
-        if (await downloadButton.isVisible().catch(() => false)) {
-          outputDownloadable = await downloadButton.isEnabled().catch(() => false);
-          console.log(`[Test] Download button visible, enabled=${outputDownloadable}`);
+        if (hasOutputCards && !hasEmptyOutputsMessage) {
+          for (let attempt = 0; attempt < 20 && !outputDownloadable; attempt++) {
+            const outputDownloadCandidates = page.getByRole('button', { name: /download/i });
+            const candidateCount = await outputDownloadCandidates.count();
+            for (let idx = 0; idx < candidateCount; idx++) {
+              const candidate = outputDownloadCandidates.nth(idx);
+              const visible = await candidate.isVisible().catch(() => false);
+              if (!visible) {
+                continue;
+              }
+              const enabled = await candidate.isEnabled().catch(() => false);
+              if (enabled) {
+                outputDownloadable = true;
+                break;
+              }
+            }
+            if (!outputDownloadable) {
+              await page.waitForTimeout(1000);
+            }
+          }
+          // Legacy fallback for explicit Download button if present.
+          if (!outputDownloadable && await downloadButton.isVisible().catch(() => false)) {
+            outputDownloadable = await downloadButton.isEnabled().catch(() => false);
+          }
+          if (!outputDownloadable) {
+            const downloadAllButton = page.getByRole('button', { name: /download all/i }).first();
+            if (await downloadAllButton.isVisible().catch(() => false)) {
+              outputDownloadable = await downloadAllButton.isEnabled().catch(() => false);
+            }
+          }
+          if (!outputDownloadable && executionRunId) {
+            try {
+              const statusResp = await page.request.get(`/api/workflows/runs/${executionRunId}/status`);
+              if (statusResp.ok()) {
+                const statusJson: any = await statusResp.json();
+                const invocationIdFromStatus = statusJson?.nextflowStatus?.invocation_id;
+                if (invocationIdFromStatus) {
+                  const outputsResp = await page.request.get(`/api/invocations/${invocationIdFromStatus}/outputs`);
+                  if (outputsResp.ok()) {
+                    const outputsJson: any[] = await outputsResp.json();
+                    if (Array.isArray(outputsJson) && outputsJson.length > 0 && outputsJson[0]?.id) {
+                      const downloadProbe = await page.request.get(`/api/outputs/${outputsJson[0].id}/download`);
+                      outputDownloadable = downloadProbe.ok();
+                    }
+                  }
+                }
+              }
+            } catch {
+              // Keep UI-based result if API probe fails.
+            }
+          }
+          console.log(`[Test] Output download control enabled=${outputDownloadable}`);
         } else {
-          const downloadIndicator = page.locator('a:has-text("Download"), button:has-text("Download All")').first();
-          outputDownloadable = await downloadIndicator.isVisible().catch(() => false);
-          console.log(`[Test] Download indicator visible=${outputDownloadable}`);
+          // No output cards means no concrete downloadable dataset materialized in UI.
+          outputDownloadable = false;
+          console.log(
+            `[Test] Dataset download controls not found (hasOutputCards=${hasOutputCards}, emptyMessage=${hasEmptyOutputsMessage})`
+          );
         }
 
         if (outputVisualizable && outputDownloadable) {

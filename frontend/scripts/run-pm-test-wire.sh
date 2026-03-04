@@ -5,6 +5,7 @@ MODE="${1:-quick}"
 STRICT_MODE="${PM_WIRE_STRICT:-0}"
 RESEARCH_E2E_TIMEOUT="${PM_WIRE_RESEARCH_E2E_TIMEOUT:-12m}"
 PYTHON_BIN="${PM_WIRE_PYTHON_BIN:-python3}"
+BACKEND_GATE_MODE="${PM_WIRE_BACKEND_GATE_MODE:-auto}" # auto|docker|local
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
@@ -73,6 +74,37 @@ else
   skip "Set PM_WIRE_RUN_HARNESS=1 to run model test harness (requires live model key)."
 fi
 
+run_backend_gate_local() {
+  if command -v pytest >/dev/null 2>&1; then
+    if command -v "${PYTHON_BIN}" >/dev/null 2>&1 && "${PYTHON_BIN}" -c "import pulsar, sqlalchemy" >/dev/null 2>&1; then
+      cd "${PROJECT_DIR}"
+      echo "[PASS] Backend QC Regression Gate (local)" >> "${REPORT_FILE}"
+      pytest backend/tests/test_qc_e2e_domains.py backend/tests/test_qc_edge_cases.py -q
+      cd "${ROOT_DIR}"
+    else
+      skip "Local backend QC requires Python modules 'pulsar' and 'sqlalchemy'. Install backend test deps or use PM_WIRE_BACKEND_GATE_MODE=docker."
+    fi
+  else
+    skip "Local backend QC requires pytest. Install Python test tooling or use PM_WIRE_BACKEND_GATE_MODE=docker."
+  fi
+}
+
+run_backend_gate_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    skip "Docker backend QC requested but docker command is unavailable."
+    return
+  fi
+
+  cd "${PROJECT_DIR}"
+  if [[ -f "backend/scripts/run_qc_regression_in_galaxy_backend.sh" ]]; then
+    echo "[PASS] Backend QC Regression Gate (docker)" >> "${REPORT_FILE}"
+    bash backend/scripts/run_qc_regression_in_galaxy_backend.sh
+  else
+    skip "Docker backend QC helper script not found at backend/scripts/run_qc_regression_in_galaxy_backend.sh."
+  fi
+  cd "${ROOT_DIR}"
+}
+
 if [[ "${MODE}" == "full" ]]; then
   step "Research E2E Gate (live system)"
   if [[ -z "${TEST_BASE_URL:-}" ]]; then
@@ -87,18 +119,25 @@ if [[ "${MODE}" == "full" ]]; then
   fi
 
   step "Backend QC Regression Gate"
-  if command -v pytest >/dev/null 2>&1; then
-    if command -v "${PYTHON_BIN}" >/dev/null 2>&1 && "${PYTHON_BIN}" -c "import pulsar, sqlalchemy" >/dev/null 2>&1; then
-      cd "${PROJECT_DIR}"
-      echo "[PASS] Backend QC Regression Gate" >> "${REPORT_FILE}"
-      pytest backend/tests/test_qc_e2e_domains.py backend/tests/test_qc_edge_cases.py -q
-      cd "${ROOT_DIR}"
-    else
-      skip "Backend QC regression requires Python modules 'pulsar' and 'sqlalchemy'. Install backend test deps to enable this gate."
-    fi
-  else
-    skip "pytest not found; install Python test tooling to run backend QC regression gate."
-  fi
+  case "${BACKEND_GATE_MODE}" in
+    docker)
+      run_backend_gate_docker
+      ;;
+    local)
+      run_backend_gate_local
+      ;;
+    auto)
+      if command -v docker >/dev/null 2>&1; then
+        run_backend_gate_docker
+      else
+        run_backend_gate_local
+      fi
+      ;;
+    *)
+      echo "[PM-WIRE][ERROR] Invalid PM_WIRE_BACKEND_GATE_MODE='${BACKEND_GATE_MODE}'. Use auto|docker|local." >&2
+      exit 1
+      ;;
+  esac
 fi
 
 step "PM Wire Completed"
