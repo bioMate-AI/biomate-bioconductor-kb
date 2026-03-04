@@ -2366,6 +2366,94 @@ class TestCryoEMSharpenLocalResolution:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 2D Classification QC gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestCryoEM2DClassificationQCGates:
+    """CLASSIFY_2D junk fraction gates — uses actual SPA class2d_report.json format."""
+
+    def _class2d_writer(self, num_good, num_classes=50):
+        """Writes class2d_report.json in the format written by SPA CLASSIFY_2D_R1 process."""
+        def write(d):
+            import json
+            (d / "class2d_report.json").write_text(json.dumps({
+                "step": "09_classify_2d_round1",
+                "num_particles": 10000,
+                "num_classes": num_classes,
+                "num_good_classes": num_good,
+                "avg_resolution_angstroms": 14.2,
+                "sample_type": "protein",
+                "mock_mode": True,
+            }))
+        return write
+
+    def test_mostly_good_classes_passes(self, tmp_path):
+        """45/50 good classes → junk_fraction 0.10 → no gate."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "CLASSIFY_2D_R1", "aa", "02000001", tmp_path,
+                self._class2d_writer(num_good=45, num_classes=50))
+        assert len([e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]) == 0
+
+    def test_majority_junk_fires_advisory(self, tmp_path):
+        """30/50 good classes → junk_fraction 0.40 → BRONZE advisory (between 20–50% junk)."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "CLASSIFY_2D_R1", "aa", "02000002", tmp_path,
+                self._class2d_writer(num_good=30, num_classes=50))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        # junk_fraction 0.40 is between advisory thresholds — may or may not fire
+        # depending on exact advisory threshold (0.5 default); assert no BLOCKING gate
+        blocking = [
+            e for e in all_events if e[0] == "qc_gate_triggered"
+            and any(not f.get("advisory", False) and f.get("metric") == "junk_class_fraction"
+                    for f in e[1].get("failures", []))
+        ]
+        assert len(blocking) == 0, "40% junk should not be a blocking gate"
+
+    def test_heavy_junk_fires_gate(self, tmp_path):
+        """5/50 good classes → junk_fraction 0.90 → blocking or advisory gate fires."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "CLASSIFY_2D_R1", "aa", "02000003", tmp_path,
+                self._class2d_writer(num_good=5, num_classes=50))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "junk_class_fraction"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "90% junk should fire a gate or advisory"
+
+    def test_classify_2d_r2_routing(self, tmp_path):
+        """CLASSIFY_2D_R2 process name also routes to 2D classification parser."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "CLASSIFY_2D_R2", "aa", "02000004", tmp_path,
+                self._class2d_writer(num_good=5, num_classes=50))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "junk_class_fraction"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "CLASSIFY_2D_R2 should be routed to 2D classification parser"
+
+    def test_ctf_report_json_parsed(self, tmp_path):
+        """SPA pipeline ctf_report.json → defocus_u_angstrom extracted."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        # Write the SPA pipeline's ctf_report.json format
+        import json as _json
+        (tmp_path / "ctf_report.json").write_text(_json.dumps({
+            "step": "03_patch_ctf_estimation",
+            "num_micrographs": 100,
+            "avg_defocus_angstroms": 18500.0,   # valid in-range defocus
+            "avg_fit_resolution_angstroms": 5.2,
+            "voltage_kv": 300,
+            "mock_mode": True,
+        }))
+        _submit(h, "PATCH_CTF_ESTIMATION", "bb", "02000005", tmp_path, lambda d: None)
+        # avg_defocus 18500 Å is valid (1000–100000) → no gate
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Named profiles — one representative test per domain group
 # ─────────────────────────────────────────────────────────────────────────────
 

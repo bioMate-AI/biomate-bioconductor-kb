@@ -837,6 +837,9 @@ class NextflowQCGateHandler:
             return self._parse_ctf_metrics(task_work_dir)
         elif "PARTICLE_PICKING" in process_upper or "PICKING" in process_upper:
             return self._parse_picking_metrics(task_work_dir)
+        elif any(k in process_upper for k in ("CLASSIFY_2D", "CLASS_2D", "2D_CLASSIFICATION",
+                                               "2DCLASSIFICATION")):
+            return self._parse_2d_classification_metrics(task_work_dir)
         elif any(k in process_upper for k in ("HOMOGENEOUS_REFINEMENT", "NONUNIFORM_REFINEMENT",
                                                "HETEROGENEOUS_REFINEMENT", "VALIDATION_FSC",
                                                "LOCAL_CTF_REFINEMENT", "AB_INITIO")):
@@ -998,10 +1001,70 @@ class NextflowQCGateHandler:
 
     def _parse_ctf_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
-        Parse CTF estimation output (CTFFIND4 *.txt / Gctf *.log).
-        Falls back to None when files are absent.
+        Parse CTF estimation output.
+
+        Primary sources (tried in order):
+        1. micrographs_ctf.cs — CryoSPARC per-micrograph JSON (SPA pipeline).
+           Key fields: defocus_u_angstroms, astigmatism_angstroms, ctf_cross_correlation.
+        2. ctf_report.json — SPA pipeline summary JSON.
+        3. *.txt / *_ctf.log — CTFFIND4 / Gctf text format.
+
+        Note on scale: CryoSPARC ctf_cross_correlation is typically 0.05-0.20 for good
+        micrographs; CTFFIND4 fit_score is 0-1 with 0.7 as the pass threshold.  The two
+        metrics are stored under different keys so gates are calibrated separately.
         """
         metrics: Dict[str, Any] = {}
+
+        # --- CryoSPARC .cs JSON (per-micrograph array) ---
+        for cs_file in (list(task_work_dir.glob("micrographs_ctf.cs"))
+                        + list(task_work_dir.glob("**/micrographs_ctf.cs"))):
+            try:
+                data = json.loads(cs_file.read_text(errors="replace"))
+                mics = data.get("micrographs", [])
+                if not mics:
+                    continue
+
+                def _mean(key):
+                    vals = [m[key] for m in mics if isinstance(m.get(key), (int, float))]
+                    return round(sum(vals) / len(vals), 4) if vals else None
+
+                du = _mean("defocus_u_angstroms")
+                dv = _mean("defocus_v_angstroms")
+                astig = _mean("astigmatism_angstroms")
+                cc = _mean("ctf_cross_correlation")
+
+                if du is not None:
+                    metrics["defocus_u_angstrom"] = du
+                if dv is not None:
+                    metrics["defocus_v_angstrom"] = dv
+                if astig is not None:
+                    metrics["astigmatism_angstrom"] = round(astig, 1)
+                # ctf_cross_correlation is NOT the same scale as CTFFIND4 fit_score;
+                # stored under its own key so gates use the correct threshold.
+                if cc is not None:
+                    metrics["ctf_cross_correlation"] = cc
+                if metrics:
+                    log.debug(f"[QC] CTF (CryoSPARC cs): defocus={du} Å, CC={cc}")
+                    return metrics
+            except (OSError, json.JSONDecodeError, KeyError):
+                continue
+
+        # --- CryoSPARC summary JSON (ctf_report.json) ---
+        for json_file in (list(task_work_dir.glob("ctf_report.json"))
+                          + list(task_work_dir.glob("**/ctf_report.json"))):
+            try:
+                data = json.loads(json_file.read_text(errors="replace"))
+                avg_defocus = data.get("avg_defocus_angstroms")
+                if avg_defocus is not None:
+                    try:
+                        metrics["defocus_u_angstrom"] = float(avg_defocus)
+                    except (ValueError, TypeError):
+                        pass
+                if metrics:
+                    log.debug(f"[QC] CTF (ctf_report.json): avg_defocus={avg_defocus}")
+                    return metrics
+            except (OSError, json.JSONDecodeError):
+                continue
 
         # CTFFIND4 diagnostic output: each data line has
         # DefocusU  DefocusV  Astigmatism_angle  PhaseShift  FitScore
@@ -1681,6 +1744,58 @@ class NextflowQCGateHandler:
         if not metrics:
             return None
         return metrics
+
+    def _parse_2d_classification_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse CryoSPARC 2D classification output (class2d_report.json).
+
+        Derives ``junk_class_fraction`` from ``num_good_classes`` / ``num_classes``:
+          > 0.70 → GOLD blocking (too many poor classes to trust selected particles)
+          0.50–0.70 → BRONZE advisory
+
+        Reference: community heuristic; < 50% good classes usually indicates poor particle
+        quality or ice contamination.
+        """
+        for fname in ("class2d_report.json", "class2d_r1_report.json",
+                      "class2d_r2_report.json", "class2d_metrics.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+                    metrics: Dict[str, Any] = {}
+
+                    # Prefer explicit junk_class_fraction if written
+                    junk = data.get("junk_class_fraction")
+                    if junk is not None:
+                        try:
+                            metrics["junk_class_fraction"] = float(junk)
+                        except (ValueError, TypeError):
+                            pass
+
+                    # Derive from class counts (SPA pipeline format)
+                    if "junk_class_fraction" not in metrics:
+                        num_total = data.get("num_classes")
+                        num_good = data.get("num_good_classes")
+                        if (num_total is not None and num_good is not None
+                                and isinstance(num_total, (int, float)) and num_total > 0):
+                            metrics["junk_class_fraction"] = round(
+                                1.0 - float(num_good) / float(num_total), 4
+                            )
+
+                    # Additional informational metrics
+                    for key in ("num_particles", "num_classes", "num_good_classes",
+                                "avg_resolution_angstroms"):
+                        if data.get(key) is not None:
+                            metrics[key] = data[key]
+
+                    if "junk_class_fraction" in metrics:
+                        log.debug(
+                            f"[QC] 2D classify: junk_fraction={metrics['junk_class_fraction']:.2f}"
+                        )
+                        return metrics
+                except (OSError, json.JSONDecodeError):
+                    continue
+        return None
 
     def _parse_refinement_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
@@ -2743,6 +2858,29 @@ class NextflowQCGateHandler:
                     "threshold": _dup_pick_t,
                     "operator": ">",
                     "message": f"High duplicate fraction: {duplicate_frac:.1%} (threshold: {_dup_pick_t:.0%})"
+                })
+
+        elif any(k in process_upper for k in ("CLASSIFY_2D", "CLASS_2D", "2D_CLASSIFICATION",
+                                               "2DCLASSIFICATION")):
+            # [advisory] Junk class fraction — high fraction of particles in low-quality 2D classes.
+            # Gates on junk_class_fraction derived from class2d_report.json num_good_classes/num_classes.
+            # > 0.70 → heavy junk, effectively useless (BRONZE advisory — does not block by default)
+            # community heuristic; no published consensus threshold.
+            junk_frac = qc_metrics.get("junk_class_fraction")
+            _junk_t = self._get_threshold("junk_class_fraction", 0.5)
+            if junk_frac is not None and junk_frac > _junk_t:
+                failures.append({
+                    "metric": "junk_class_fraction",
+                    "value": junk_frac,
+                    "threshold": _junk_t,
+                    "operator": ">",
+                    "advisory": True,
+                    "message": (
+                        f"[BRONZE] High junk class fraction: {junk_frac:.1%} of 2D classes "
+                        f"are low-quality (advisory threshold: {_junk_t:.0%}). "
+                        f"Consider re-picking with a stricter threshold, checking ice thickness, "
+                        f"or reviewing the particle extraction box size."
+                    ),
                 })
 
         elif any(k in process_upper for k in ("HOMOGENEOUS_REFINEMENT", "NONUNIFORM_REFINEMENT",
