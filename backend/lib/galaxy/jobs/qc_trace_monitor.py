@@ -333,6 +333,24 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
         },
         "references": ["[BRONZE] Membrane protein cryo-EM community practice (2024)"],
     },
+    "cryoem_spa_phase_plate": {
+        "description": (
+            "Single-particle cryo-EM with Volta Phase Plate (VPP). "
+            "Phase plate experiments use much lower defocus (near-Gaussian transfer at 0.2–0.8 μm underfocus); "
+            "CTF fit quality thresholds are relaxed because VPP CTF fits have inherently lower CC scores. "
+            "Phase shift advisory gates are activated (depleted < 0.2 rad; overcharged > 1.5 rad)."
+        ),
+        "domain_hint": "cryo_em",
+        "overrides": {
+            "fit_quality": 0.65,            # vs default 0.7 — VPP CTF fits are noisier
+            "avg_phase_shift_rad_min": 0.2, # advisory: VPP depleted below this
+            "avg_phase_shift_rad_max": 1.5, # advisory: VPP over-charged above this
+        },
+        "references": [
+            "[BRONZE] Danev & Bharat 2018 Trends Cell Biol — phase shift 0.4–0.8π rad optimal",
+            "[BRONZE] CryoSPARC VPP tutorial (2023) — CTF fit quality relaxed for VPP data",
+        ],
+    },
     "cryoem_tomo_in_situ": {
         "description": (
             "Cryo-electron tomography of cellular lamellae prepared by FIB-SEM milling. "
@@ -901,7 +919,9 @@ class NextflowQCGateHandler:
                                                "DIANN_SEARCH")):
             return self._parse_diann_metrics(task_work_dir)
         elif any(k in process_upper for k in ("PULLDOWN_QC", "CHEMOPROTEOMICS_QC",
-                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS")):
+                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS",
+                                               "CHEMOPROTEOMICS_PULLDOWN", "ABPP_PULLDOWN",
+                                               "ABPP", "PULLDOWN")):
             return self._parse_pulldown_metrics(task_work_dir)
 
         # --- Cheminformatics / compound structure QC ---
@@ -1060,8 +1080,28 @@ class NextflowQCGateHandler:
                         metrics["defocus_u_angstrom"] = float(avg_defocus)
                     except (ValueError, TypeError):
                         pass
+                # Phase plate data (emitted when params.phase_plate=true in SPA pipeline)
+                phase_shift = data.get("avg_phase_shift_rad")
+                if phase_shift is not None:
+                    try:
+                        metrics["avg_phase_shift_rad"] = float(phase_shift)
+                    except (ValueError, TypeError):
+                        pass
+                # Also check degrees form and convert (VPP hardware often reports in degrees)
+                phase_shift_deg = data.get("avg_phase_shift_degrees")
+                if phase_shift_deg is not None and "avg_phase_shift_rad" not in metrics:
+                    import math as _math
+                    try:
+                        metrics["avg_phase_shift_rad"] = round(
+                            float(phase_shift_deg) * _math.pi / 180.0, 4
+                        )
+                    except (ValueError, TypeError):
+                        pass
                 if metrics:
-                    log.debug(f"[QC] CTF (ctf_report.json): avg_defocus={avg_defocus}")
+                    log.debug(
+                        f"[QC] CTF (ctf_report.json): avg_defocus={avg_defocus} Å, "
+                        f"phase_shift={metrics.get('avg_phase_shift_rad')} rad"
+                    )
                     return metrics
             except (OSError, json.JSONDecodeError):
                 continue
@@ -2836,6 +2876,42 @@ class NextflowQCGateHandler:
                     "message": f"Poor CTF fit: {fit:.3f} (threshold: {_fit_t:.1f})"
                 })
 
+            # --- Volta Phase Plate gates (advisory only; only fired when data present) ---
+            # Ref: Danev & Bharat 2018 Trends Cell Biol — optimal phase shift 0.4–0.8π (≈1.3–2.5 rad)
+            # practical range for productive VPP: 0.2–1.5 rad
+            phase_shift = qc_metrics.get("avg_phase_shift_rad")
+            if phase_shift is not None:
+                _ps_min = self._get_threshold("avg_phase_shift_rad_min", 0.2)
+                _ps_max = self._get_threshold("avg_phase_shift_rad_max", 1.5)
+                if phase_shift < _ps_min:
+                    failures.append({
+                        "metric": "avg_phase_shift_rad",
+                        "value": phase_shift,
+                        "threshold": _ps_min,
+                        "operator": "<",
+                        "advisory": True,
+                        "message": (
+                            f"[BRONZE] Volta Phase Plate appears depleted: avg phase shift "
+                            f"{phase_shift:.3f} rad < {_ps_min:.2f} rad advisory minimum. "
+                            f"Move the phase plate to a fresher position or condition it with "
+                            f"higher fluence before continuing data collection."
+                        ),
+                    })
+                elif phase_shift > _ps_max:
+                    failures.append({
+                        "metric": "avg_phase_shift_rad",
+                        "value": phase_shift,
+                        "threshold": _ps_max,
+                        "operator": ">",
+                        "advisory": True,
+                        "message": (
+                            f"[BRONZE] Volta Phase Plate is over-charged: avg phase shift "
+                            f"{phase_shift:.3f} rad > {_ps_max:.2f} rad advisory maximum. "
+                            f"Advance to a fresh VPP spot; over-charged plates introduce "
+                            f"non-uniform phase shifts that degrade CTF correction."
+                        ),
+                    })
+
         elif "PARTICLE_PICKING" in process_upper or "PICKING" in process_upper:
             count = qc_metrics.get("particles_picked")
             _pick_t = self._get_threshold("particles_picked", 1000)
@@ -3447,7 +3523,9 @@ class NextflowQCGateHandler:
                 })
 
         elif any(k in process_upper for k in ("PULLDOWN_QC", "CHEMOPROTEOMICS_QC",
-                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS")):
+                                               "ENRICHMENT_QC", "PULLDOWN_ANALYSIS",
+                                               "CHEMOPROTEOMICS_PULLDOWN", "ABPP_PULLDOWN",
+                                               "ABPP", "PULLDOWN")):
             # [SILVER] Enrichment ratio gate — prey/input > 3× (ABPP community practice).
             # A pulldown failing this gate means the bead coupling failed or the drug loading
             # was insufficient; downstream protein list will be dominated by matrix contaminants.

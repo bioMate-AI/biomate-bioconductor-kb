@@ -2716,3 +2716,172 @@ class TestQSARModelQCGates:
         h, events = _make_handler(tmp_path, "drug_discovery")
         _submit(h, "CHEMPROP", "hh", "00000078", tmp_path, self._qsar_writer(0.30))
         assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 1
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volta Phase Plate CTF gates
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestVoltaPhasePlateCTFGates:
+    """Phase plate advisory gates using actual ctf_report.json format (SPA pipeline)."""
+
+    def _ctf_report_writer(self, avg_defocus=18500.0, avg_phase_shift_rad=None):
+        """Writes ctf_report.json in the format written by PATCH_CTF_ESTIMATION."""
+        def write(d):
+            import json
+            data = {
+                "step": "03_patch_ctf_estimation",
+                "num_micrographs": 50,
+                "avg_defocus_angstroms": avg_defocus,
+                "avg_fit_resolution_angstroms": 5.5,
+                "voltage_kv": 300,
+                "spherical_aberration_mm": 2.7,
+                "phase_plate": avg_phase_shift_rad is not None,
+                "mock_mode": True,
+            }
+            if avg_phase_shift_rad is not None:
+                data["avg_phase_shift_rad"] = avg_phase_shift_rad
+            (d / "ctf_report.json").write_text(json.dumps(data))
+        return write
+
+    def test_no_phase_plate_no_advisory(self, tmp_path):
+        """Standard CTF report without phase_plate field → no phase advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "PATCH_CTF_ESTIMATION", "aa", "03000001", tmp_path,
+                self._ctf_report_writer(avg_phase_shift_rad=None))
+        phase_events = [
+            e for e in events
+            if e[0] in ("qc_gate_triggered", "qc_warning")
+            and any(f.get("metric") == "avg_phase_shift_rad"
+                    for _, data in [e]
+                    for f in data.get("failures", []) + data.get("warnings", []))
+        ]
+        assert len(phase_events) == 0
+
+    def test_healthy_phase_shift_no_advisory(self, tmp_path):
+        """Phase shift 0.75 rad (productive VPP range) → no advisory."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "PATCH_CTF_ESTIMATION", "aa", "03000002", tmp_path,
+                self._ctf_report_writer(avg_phase_shift_rad=0.75))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        phase_found = any(
+            f.get("metric") == "avg_phase_shift_rad"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert not phase_found, "0.75 rad is in productive range — should not trigger advisory"
+
+    def test_depleted_vpp_fires_advisory(self, tmp_path):
+        """Phase shift 0.10 rad < 0.20 threshold → BRONZE advisory (depleted VPP)."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "PATCH_CTF_ESTIMATION", "aa", "03000003", tmp_path,
+                self._ctf_report_writer(avg_phase_shift_rad=0.10))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "avg_phase_shift_rad"
+            and f.get("advisory", False)
+            and f.get("operator") == "<"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Phase shift 0.10 rad should fire depleted VPP advisory"
+
+    def test_overcharged_vpp_fires_advisory(self, tmp_path):
+        """Phase shift 1.80 rad > 1.50 threshold → BRONZE advisory (over-charged VPP)."""
+        h, events = _make_handler(tmp_path, "cryo_em")
+        _submit(h, "PATCH_CTF_ESTIMATION", "aa", "03000004", tmp_path,
+                self._ctf_report_writer(avg_phase_shift_rad=1.80))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "avg_phase_shift_rad"
+            and f.get("advisory", False)
+            and f.get("operator") == ">"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "Phase shift 1.80 rad should fire over-charged VPP advisory"
+
+    def test_cryoem_spa_phase_plate_profile_relaxes_fit_quality(self, tmp_path):
+        """Phase plate profile relaxes fit_quality to 0.65 (from 0.70 default)."""
+        # Without profile: 0.67 fails (< 0.70)
+        h_default, ev_default = _make_handler(tmp_path / "default", "cryo_em")
+        # Write a CTFFIND4-style .txt file with fit_quality = 0.67
+        def write_ctffind(d):
+            (d / "ctffind_output.txt").write_text(
+                "20000.0 19500.0 45.0 0.0 0.67\n"
+            )
+        _submit(h_default, "PATCH_CTF_ESTIMATION", "bb", "03000005",
+                tmp_path / "default", write_ctffind)
+        gate_default = [e for e in ev_default if e[0] == "qc_gate_triggered"]
+        assert len(gate_default) == 1, "0.67 fit_quality should fail with default threshold"
+
+        # With phase plate profile: 0.67 should pass (threshold relaxed to 0.65)
+        h_vpp, ev_vpp = _make_handler(tmp_path / "vpp", "cryo_em",
+                                      profile="cryoem_spa_phase_plate")
+        _submit(h_vpp, "PATCH_CTF_ESTIMATION", "bb", "03000006",
+                tmp_path / "vpp", write_ctffind)
+        gate_vpp = [e for e in ev_vpp if e[0] == "qc_gate_triggered"]
+        assert len(gate_vpp) == 0, "0.67 fit_quality should pass with phase plate profile (threshold 0.65)"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chemoproteomics pulldown enrichment gate
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TestChemoproteomicsPulldownGate:
+    """Pulldown enrichment ratio gate — uses enrichment_ratios.tsv (actual workflow output)."""
+
+    def _pulldown_writer(self, median_ratio, n_proteins=100):
+        """Writes enrichment_ratios.tsv in the format written by CHEMOPROTEOMICS_PULLDOWN workflow.
+        Guarantees the median is exactly median_ratio by writing n_proteins identical rows."""
+        def write(d):
+            import csv, math
+            with open(d / "enrichment_ratios.tsv", "w", newline="") as f:
+                writer = csv.writer(f, delimiter="\t")
+                writer.writerow(["protein_id", "prey_intensity", "input_intensity",
+                                  "enrichment_ratio", "log2_enrichment"])
+                for i in range(n_proteins):
+                    # Use identical ratio so median = exactly median_ratio
+                    r = median_ratio
+                    prey = r * 1e6
+                    ctrl = 1e6
+                    writer.writerow([f"PROT_{i:04d}", f"{prey:.2f}", f"{ctrl:.2f}",
+                                     f"{r:.4f}", f"{math.log2(max(r, 0.001)):.4f}"])
+        return write
+
+    def test_good_pulldown_passes(self, tmp_path):
+        """Median enrichment 5.0× → no gate."""
+        h, events = _make_handler(tmp_path, "proteomics")
+        _submit(h, "CHEMOPROTEOMICS_PULLDOWN", "ii", "04000001", tmp_path,
+                self._pulldown_writer(5.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_failed_pulldown_fires_gate(self, tmp_path):
+        """Median enrichment 1.5× < 3× threshold → SILVER blocking gate."""
+        h, events = _make_handler(tmp_path, "proteomics")
+        _submit(h, "CHEMOPROTEOMICS_PULLDOWN", "ii", "04000002", tmp_path,
+                self._pulldown_writer(1.5))
+        gate = [e for e in events if e[0] == "qc_gate_triggered"]
+        assert len(gate) == 1
+        blocking = [f for f in gate[0][1]["failures"] if not f.get("advisory", False)]
+        assert any(f["metric"] == "median_enrichment_ratio" for f in blocking)
+
+    def test_borderline_enrichment(self, tmp_path):
+        """Median enrichment exactly 3.0× → passes (gate fires strictly below 3)."""
+        h, events = _make_handler(tmp_path, "proteomics")
+        _submit(h, "CHEMOPROTEOMICS_PULLDOWN", "ii", "04000003", tmp_path,
+                self._pulldown_writer(3.0))
+        assert len([e for e in events if e[0] == "qc_gate_triggered"]) == 0
+
+    def test_abpp_process_name_routing(self, tmp_path):
+        """ABPP process name routes to pulldown parser."""
+        h, events = _make_handler(tmp_path, "proteomics")
+        _submit(h, "ABPP_PULLDOWN", "ii", "04000004", tmp_path,
+                self._pulldown_writer(1.0))
+        all_events = [e for e in events if e[0] in ("qc_gate_triggered", "qc_warning")]
+        found = any(
+            f.get("metric") == "median_enrichment_ratio"
+            for _, data in all_events
+            for f in data.get("failures", []) + data.get("warnings", [])
+        )
+        assert found, "ABPP_PULLDOWN should route to pulldown parser"
