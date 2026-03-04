@@ -224,7 +224,8 @@ def docking_autodock_vina(smiles_list, receptor_pdb_file, box_center, box_size, 
     try:
         output = json.loads(result.stdout.strip())
         if output.get("success"):
-            return output["result"]
+            # Return dict with both log text and scores so caller can persist both
+            return {"log": output["result"], "scores": output.get("scores", {})}
         else:
             raise RuntimeError(output.get("error", "Unknown error"))
     except json.JSONDecodeError:
@@ -254,7 +255,19 @@ output_data = {
 }
 
 if success:
-    if isinstance(result, (dict, list)):
+    if isinstance(result, dict) and "scores" in result:
+        # Structured result with log + scores dict
+        output_data["result"] = result.get("log", "")
+        scores = result.get("scores", {})
+        output_data["scores"] = scores
+        valid_scores = [v for v in scores.values()
+                        if v is not None and isinstance(v, (int, float))]
+        if valid_scores:
+            output_data["best_score_kcal_mol"] = min(valid_scores)
+            output_data["n_poses_generated"] = len(valid_scores)
+        else:
+            output_data["n_poses_generated"] = 0
+    elif isinstance(result, (dict, list)):
         output_data["result"] = result
     else:
         output_data["result"] = str(result)

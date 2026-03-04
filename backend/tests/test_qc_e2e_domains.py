@@ -2283,20 +2283,27 @@ class TestCryoEMSharpenLocalResolution:
     """SHARPEN B-factor and LOCAL_RESOLUTION std spread advisory gates."""
 
     def _sharpen_writer(self, bfactor):
+        # SPA pipeline writes sharpening_report.json with b_factor_applied
         def write(d):
             import json
-            (d / "sharpening_results.json").write_text(json.dumps({
-                "bfactor_angstrom_squared": bfactor,
-                "fsc_resolution_angstrom": 3.2,
+            (d / "sharpening_report.json").write_text(json.dumps({
+                "step": "23_sharpening",
+                "b_factor_applied": bfactor,
+                "lowpass_filter": "3.2",
+                "final_output": "volume_sharpened.mrc",
             }))
         return write
 
     def _localres_writer(self, std_spread, mean_res=3.5):
+        # SPA pipeline writes local_resolution_report.json with std_resolution_angstroms
         def write(d):
             import json
-            (d / "local_resolution_results.json").write_text(json.dumps({
-                "std_spread_angstrom": std_spread,
-                "mean_resolution_angstrom": mean_res,
+            (d / "local_resolution_report.json").write_text(json.dumps({
+                "step": "22_local_resolution",
+                "mean_resolution_angstroms": mean_res,
+                "min_resolution_angstroms": mean_res - 1.0,
+                "max_resolution_angstroms": mean_res + 1.0,
+                "std_resolution_angstroms": std_spread,
             }))
         return write
 
@@ -2498,17 +2505,25 @@ class TestMolecularDockingQCGates:
     """Docking score, pose count, and RMSD gates."""
 
     def _docking_writer(self, score, n_poses=10, rmsd=None):
+        # Matches docking_autodock_vina workflow output format:
+        # top-level best_score_kcal_mol + n_poses_generated + scores dict
         def write(d):
             import json
+            # Build a scores dict with n_poses entries; best = score
+            scores = {f"CC(=O)Oc1ccccc1C(=O)O_pose{i}": score + i * 0.1
+                      for i in range(n_poses)}
             data = {
+                "success": True,
+                "function": "docking_autodock_vina",
+                "domain": "pharmacology",
+                "result": "Step 1: Setting up docking parameters\n",
+                "scores": scores,
                 "best_score_kcal_mol": score,
                 "n_poses_generated": n_poses,
-                "docking_software": "AutoDock Vina",
-                "receptor": "target_protein.pdbqt",
             }
             if rmsd is not None:
                 data["top_pose_rmsd_angstrom"] = rmsd
-            (d / "docking_results.json").write_text(json.dumps(data))
+            (d / "docking_autodock_vina_results.json").write_text(json.dumps(data))
         return write
 
     def test_good_score_passes(self, tmp_path):

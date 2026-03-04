@@ -938,7 +938,7 @@ class NextflowQCGateHandler:
             return self._parse_docking_results(task_work_dir)
 
         # --- QSAR modelling ---
-        elif any(k in process_upper for k in ("QSAR_MODEL", "QSAR",
+        elif any(k in process_upper for k in ("QSAR_RF_MODEL", "QSAR_MODEL", "QSAR",
                                                "CHEMPROP", "DEEPCHEM")):
             return self._parse_qsar_results(task_work_dir)
 
@@ -1771,20 +1771,24 @@ class NextflowQCGateHandler:
         Guinier/DeepEMhancer references: Rosenthal & Henderson 2003 JMB 333:721;
         Terwilliger et al. 2018 Acta Cryst D74:545.
         """
-        for fname in ("sharpening_results.json", "postprocessing_results.json"):
+        # Field aliases: actual SPA pipeline uses b_factor_applied; legacy names also checked
+        _BFACTOR_KEYS = ("bfactor_angstrom_squared", "b_factor_applied", "b_factor",
+                         "bfactor", "b_factor_angstrom2")
+        for fname in ("sharpening_report.json", "sharpening_results.json",
+                      "postprocessing_results.json", "postprocess_report.json"):
             for p in (list(task_work_dir.glob(fname))
                       + list(task_work_dir.glob(f"**/{fname}"))):
                 try:
                     data = json.loads(p.read_text(errors="replace"))
                     metrics: Dict[str, Any] = {}
-                    bfactor = data.get("bfactor_angstrom_squared")
-                    if bfactor is None:
-                        bfactor = data.get("b_factor")
-                    if bfactor is not None:
-                        try:
-                            metrics["bfactor_angstrom_squared"] = float(bfactor)
-                        except (ValueError, TypeError):
-                            pass
+                    for key in _BFACTOR_KEYS:
+                        val = data.get(key)
+                        if val is not None:
+                            try:
+                                metrics["bfactor_angstrom_squared"] = float(val)
+                                break
+                            except (ValueError, TypeError):
+                                pass
                     if metrics:
                         log.debug(f"[QC] Sharpening: B-factor={metrics.get('bfactor_angstrom_squared')} Å²")
                         return metrics
@@ -1808,26 +1812,35 @@ class NextflowQCGateHandler:
 
         Reference: Vilas et al. 2018 Structure 26:337 (MonoRes).
         """
-        for fname in ("local_resolution_results.json", "localres_results.json"):
+        # std aliases: actual SPA pipeline writes std_resolution_angstroms
+        _STD_KEYS = ("std_spread_angstrom", "std_resolution_angstroms",
+                     "resolution_std", "std_local_resolution")
+        # mean aliases: SPA writes mean_resolution_angstroms (with trailing 's')
+        _MEAN_KEYS = ("mean_resolution_angstroms", "mean_resolution_angstrom",
+                      "mean_local_resolution_angstrom")
+        for fname in ("local_resolution_report.json", "local_resolution_results.json",
+                      "localres_results.json", "localres_report.json"):
             for p in (list(task_work_dir.glob(fname))
                       + list(task_work_dir.glob(f"**/{fname}"))):
                 try:
                     data = json.loads(p.read_text(errors="replace"))
                     metrics: Dict[str, Any] = {}
-                    std = data.get("std_spread_angstrom")
-                    if std is None:
-                        std = data.get("resolution_std")
-                    if std is not None:
-                        try:
-                            metrics["std_spread_angstrom"] = float(std)
-                        except (ValueError, TypeError):
-                            pass
-                    mean_res = data.get("mean_resolution_angstrom")
-                    if mean_res is not None:
-                        try:
-                            metrics["mean_local_resolution_angstrom"] = float(mean_res)
-                        except (ValueError, TypeError):
-                            pass
+                    for key in _STD_KEYS:
+                        val = data.get(key)
+                        if val is not None:
+                            try:
+                                metrics["std_spread_angstrom"] = float(val)
+                                break
+                            except (ValueError, TypeError):
+                                pass
+                    for key in _MEAN_KEYS:
+                        val = data.get(key)
+                        if val is not None:
+                            try:
+                                metrics["mean_local_resolution_angstrom"] = float(val)
+                                break
+                            except (ValueError, TypeError):
+                                pass
                     if metrics:
                         log.debug(f"[QC] Local resolution: std={metrics.get('std_spread_angstrom')} Å")
                         return metrics
@@ -2541,16 +2554,33 @@ class NextflowQCGateHandler:
           n_poses_generated — number of valid docking poses produced.
             < 5 may indicate steric clash or parameter issue.
         """
-        for fname in ("docking_results.json", "vina_results.json", "glide_results.json"):
+        for fname in ("docking_autodock_vina_results.json", "docking_results.json",
+                      "vina_results.json", "glide_results.json"):
             for p in (list(task_work_dir.glob(fname))
                       + list(task_work_dir.glob(f"**/{fname}"))):
                 try:
                     data = json.loads(p.read_text(errors="replace"))
                     metrics: Dict[str, Any] = {}
+
+                    # Direct top-level fields (preferred format)
                     for key in ("best_score_kcal_mol", "top_pose_rmsd_angstrom",
                                 "n_poses_generated", "docking_software", "receptor"):
                         if data.get(key) is not None:
                             metrics[key] = data[key]
+
+                    # AutoDock Vina workflow format: data["scores"] = {smiles: score_float}
+                    # Derives best_score_kcal_mol and n_poses_generated when not already present
+                    if "scores" in data and isinstance(data["scores"], dict):
+                        valid_scores = [
+                            v for v in data["scores"].values()
+                            if v is not None and isinstance(v, (int, float))
+                        ]
+                        if valid_scores:
+                            if "best_score_kcal_mol" not in metrics:
+                                metrics["best_score_kcal_mol"] = min(valid_scores)
+                            if "n_poses_generated" not in metrics:
+                                metrics["n_poses_generated"] = len(valid_scores)
+
                     if metrics:
                         log.debug(
                             f"[QC] Docking: best_score={metrics.get('best_score_kcal_mol')} kcal/mol, "
