@@ -1,0 +1,994 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-03-04",
+  "description": "BioMate QC threshold database — evidence-graded thresholds for bioinformatics QC gates",
+  "license": "MIT",
+  "citation": "BioMate QC Governance Framework (2026). bioRxiv. https://doi.org/10.1101/XXXXXX",
+  "governance_layers": {
+    "RED_LINE": "Absolute bounds enforced even when user overrides are active. Overrides that cross a red line are clamped to the bound and recorded in the audit log.",
+    "GOLD": "Mandated by ENCODE4 or GATK Best Practices. Cannot be relaxed via qc_overrides. Changes require a platform-level code review with a new evidence citation.",
+    "SILVER": "Strongly recommended by major consortia or peer-reviewed guidelines. Can be relaxed via qc_overrides.",
+    "BRONZE": "Community practice or expert consensus without a single authoritative citation. Overridable; flagged as advisory when evidence is weak.",
+    "ADVISORY": "Non-blocking informational gate. Workflow proceeds; metrics surfaced for operator awareness."
+  },
+  "red_lines": {
+    "reads_surviving_pct": {
+      "bound": 50.0,
+      "direction": "min",
+      "unit": "percent",
+      "rationale": "> 50% loss = adapter-dominated library; downstream analysis is invalid"
+    },
+    "fit_quality": {
+      "bound": 0.5,
+      "direction": "min",
+      "unit": "score (0-1)",
+      "rationale": "CTF estimation completely failed; particle picking results are invalid"
+    },
+    "mito_fraction_pct": {
+      "bound": 80.0,
+      "direction": "max",
+      "unit": "percent",
+      "rationale": "Dead-cell lysates, not transcriptomes; results are biologically meaningless"
+    },
+    "alignment_rate": {
+      "bound": 5.0,
+      "direction": "min",
+      "unit": "percent",
+      "rationale": "< 5% alignment = species/sample swap; halt unconditionally"
+    }
+  },
+  "gold_metrics": [
+    "mapped_pct",
+    "tss_enrichment",
+    "nrf_score"
+  ],
+  "thresholds": {
+    "rnaseq": {
+      "alignment_rate": {
+        "silver": 70.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ENCODE post-2020 standards; STAR/HISAT2 alignment to reference genome",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Critical sub-threshold < 25% indicates species/genome mismatch (fixed, not overridable). Values 25-70% trigger warning."
+      },
+      "reads_surviving_pct": {
+        "silver": 70.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "FASTP / TrimGalore adapter trimming survival rate",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Red line at 50% (hard floor). Values below 70% suggest adapter-dominated or low-quality library."
+      },
+      "q30_pct": {
+        "silver": 75.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Illumina Q30 base quality score threshold; standard NGS QC practice",
+        "evidence_grade": "SILVER",
+        "unit": "percent"
+      },
+      "assigned_reads_pct": {
+        "silver": 50.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "featureCounts / HTSeq-count gene assignment rate",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Fraction of reads assigned to annotated genomic features."
+      },
+      "mapping_rate": {
+        "silver": 50.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Salmon / Kallisto quasi-mapping rate to transcriptome",
+        "evidence_grade": "SILVER",
+        "unit": "percent"
+      }
+    },
+    "scrna_seq": {
+      "cells_detected": {
+        "bronze": 200,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "10x Genomics Cell Ranger v7 default; community practice",
+        "evidence_grade": "BRONZE",
+        "unit": "count",
+        "notes": "Minimum viable cell count for downstream clustering analysis."
+      },
+      "median_genes_per_cell": {
+        "bronze": 500,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "10x Genomics Cell Ranger documentation; Luecken & Theis 2019 MSB",
+        "evidence_grade": "BRONZE",
+        "unit": "count",
+        "notes": "Profile-adjustable: neuronal profile lowers to 300 (inhibitory interneurons)."
+      },
+      "mito_fraction_pct": {
+        "bronze": 20.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Luecken & Theis 2019 Mol Syst Biol e8746; Osorio & Cai 2021 Bioinformatics PMC8599307",
+        "evidence_grade": "BRONZE",
+        "unit": "percent",
+        "notes": "Red line at 80%. Near-threshold warning at 10-20%. Cardiac profile raises to 40%; neuronal profile raises to 30%. Tissue-specific thresholds recommended (5% mouse, 10% human ideal)."
+      }
+    },
+    "atac_seq": {
+      "tss_enrichment": {
+        "gold": 5.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ENCODE4 ATAC-seq 2022 standards: >= 7 high quality, >= 5 acceptable",
+        "evidence_grade": "GOLD",
+        "unit": "score",
+        "notes": "GOLD metric — cannot be overridden via qc_overrides. Values < 5.0 are failing; < 3.0 are critical. Near-threshold warning at 5.0-6.0."
+      },
+      "frip_score": {
+        "bronze": 0.2,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ENCODE4 ATAC-seq 2022: > 0.3 ideal, > 0.2 acceptable. EN-TEx tissue samples exempt.",
+        "evidence_grade": "BRONZE",
+        "unit": "fraction (0-1)",
+        "notes": "Gate at 0.2 (acceptable floor). Ideal is >= 0.3 per ENCODE4."
+      },
+      "nrf_score": {
+        "gold": 0.9,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ENCODE4 ATAC-seq 2022: NRF >= 0.9 required (DistinctReadPairs / TotalReadPairs)",
+        "evidence_grade": "GOLD",
+        "unit": "fraction (0-1)",
+        "notes": "GOLD metric — cannot be overridden. NRF measures library complexity. < 0.5 is critical."
+      }
+    },
+    "chip_seq": {
+      "peaks_called": {
+        "bronze": 1000,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "MACS2/3 peak calling; nf-core/chipseq pipeline defaults",
+        "evidence_grade": "BRONZE",
+        "unit": "count"
+      },
+      "frip_score": {
+        "advisory": 0.01,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ENCODE4 ChIP-seq: no hard FRiP threshold defined. Historical 1% from Landt et al. 2012 ENCODE2/3 only.",
+        "evidence_grade": "ADVISORY",
+        "unit": "fraction (0-1)",
+        "notes": "ADVISORY only (non-blocking). ENCODE4 explicitly states FRiP is collected without defined thresholds."
+      }
+    },
+    "wgs": {
+      "mapped_pct": {
+        "gold": 70.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "GATK Best Practices — FLAGSTAT mapped >= 70%",
+        "evidence_grade": "GOLD",
+        "unit": "percent",
+        "notes": "GOLD metric — cannot be overridden."
+      },
+      "duplicate_pct": {
+        "bronze": 40.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "GATK Best Practices (WGS <= 20-30%); domain-aware: skip for rna_seq, atac_seq, chip_seq, cut_and_run",
+        "evidence_grade": "BRONZE",
+        "unit": "percent",
+        "notes": "Skip domains: rna_seq, rnaseq, rna, scrna_seq, single_cell, atac_seq, atacseq, chip_seq, chipseq, cut_and_run, cutandrun, hic, hic_seq, hi_c"
+      },
+      "mean_coverage": {
+        "bronze": 30.0,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "GATK Best Practices — WGS >= 30X germline (Sims et al. 2014 Nature Rev Genet)",
+        "evidence_grade": "BRONZE",
+        "unit": "X (fold coverage)"
+      }
+    },
+    "wes": {
+      "mean_coverage": {
+        "bronze": 80.0,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "GATK Best Practices WES germline >= 80X; ACMG 2016 NGS Technical Standards",
+        "evidence_grade": "BRONZE",
+        "unit": "X (fold coverage)",
+        "notes": "Applies to domains: wes, whole_exome, exome_seq, exome, targeted_seq, targeted. wes_research profile relaxes to 50X."
+      },
+      "mapped_pct": {
+        "gold": 70.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "GATK Best Practices — same as WGS",
+        "evidence_grade": "GOLD",
+        "unit": "percent"
+      }
+    },
+    "cryo_em": {
+      "total_drift_angstrom": {
+        "bronze": 50.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "CryoSPARC v4 documentation; community practice (MotionCor2 default)",
+        "evidence_grade": "BRONZE",
+        "unit": "Angstrom",
+        "notes": "Membrane protein profile raises to 80 Ang; in-situ cryo-ET profile raises to 150 Ang."
+      },
+      "correlation_score": {
+        "bronze": 0.5,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "MotionCor2 cross-correlation score between frames; community practice",
+        "evidence_grade": "BRONZE",
+        "unit": "score (0-1)"
+      },
+      "fit_quality": {
+        "bronze": 0.7,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "CTFFIND4 fit score threshold; CryoSPARC v4 default",
+        "evidence_grade": "BRONZE",
+        "unit": "score (0-1)",
+        "notes": "Red line at 0.5. Membrane protein profile relaxes to 0.65; phase plate profile relaxes to 0.65; in-situ cryo-ET relaxes to 0.5 (red line floor)."
+      },
+      "astigmatism_angstrom": {
+        "advisory": 1000,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "CryoSPARC v4 documentation; community practice. No published consensus threshold.",
+        "evidence_grade": "ADVISORY",
+        "unit": "Angstrom",
+        "notes": "ADVISORY (non-blocking). fit_quality is the primary CTF gate. High astigmatism may indicate lens contamination, coma, or specimen charging."
+      },
+      "particles_picked": {
+        "bronze": 1000,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Community practice — minimum particle count for meaningful 2D classification",
+        "evidence_grade": "BRONZE",
+        "unit": "count"
+      },
+      "duplicate_fraction_picking": {
+        "bronze": 0.2,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Particle picking NMS overlap threshold; community practice",
+        "evidence_grade": "BRONZE",
+        "unit": "fraction (0-1)"
+      },
+      "junk_class_fraction": {
+        "advisory": 0.5,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Community heuristic: < 50% good classes indicates poor particle quality or ice contamination",
+        "evidence_grade": "ADVISORY",
+        "unit": "fraction (0-1)",
+        "notes": "ADVISORY (non-blocking). Derived from num_good_classes / num_classes in class2d_report.json. > 0.70 is a separate higher-severity advisory."
+      },
+      "fsc_resolution_angstrom": {
+        "gold": 10.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Henderson et al. 2012 gold-standard FSC 0.143 criterion; < 10 Ang required for drug discovery targets",
+        "evidence_grade": "GOLD",
+        "unit": "Angstrom",
+        "notes": "Lower value = better resolution. Gate fires when resolution > 10 Ang (coarser than 10 Ang is not interpretable for drug discovery)."
+      },
+      "bfactor_angstrom_squared": {
+        "advisory_min": -300.0,
+        "advisory_max": 0.0,
+        "evidence": "Rosenthal & Henderson 2003 JMB 333:721; Terwilliger et al. 2018 Acta Cryst D74:545",
+        "evidence_grade": "ADVISORY",
+        "unit": "Angstrom squared",
+        "notes": "ADVISORY (non-blocking). Expected range: -50 to -200 Ang^2. B > 0 = unusual blurring; B < -300 = over-sharpening."
+      },
+      "local_resolution_std_spread": {
+        "advisory": 3.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Vilas et al. 2018 Structure 26:337 (MonoRes)",
+        "evidence_grade": "ADVISORY",
+        "unit": "Angstrom",
+        "notes": "Standard deviation of local resolution distribution. > 3 Ang indicates high conformational disorder."
+      },
+      "avg_phase_shift_rad_min": {
+        "advisory": 0.2,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Danev & Bharat 2018 Trends Cell Biol; CryoSPARC VPP tutorial 2023",
+        "evidence_grade": "ADVISORY",
+        "unit": "radians",
+        "notes": "Volta Phase Plate gate. Applies only when phase plate data present (avg_phase_shift_rad metric). < 0.2 rad = VPP depleted."
+      },
+      "avg_phase_shift_rad_max": {
+        "advisory": 1.5,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Danev & Bharat 2018 Trends Cell Biol; CryoSPARC VPP tutorial 2023",
+        "evidence_grade": "ADVISORY",
+        "unit": "radians",
+        "notes": "> 1.5 rad = VPP over-charged. Near-threshold warnings at 0.20-0.22 rad (approaching depletion) and 1.35-1.50 rad (approaching over-charge)."
+      },
+      "ramachandran_outliers_pct": {
+        "advisory": 2.0,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "MolProbity guidelines (Chen et al. 2010 Acta Cryst D66:12)",
+        "evidence_grade": "ADVISORY",
+        "unit": "percent"
+      },
+      "rotamer_outliers_pct": {
+        "advisory": 5.0,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "MolProbity guidelines",
+        "evidence_grade": "ADVISORY",
+        "unit": "percent"
+      },
+      "clashscore": {
+        "advisory": 20.0,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "MolProbity guidelines; < 20 expected for well-refined cryo-EM models",
+        "evidence_grade": "ADVISORY",
+        "unit": "clashes per 1000 atoms"
+      },
+      "emringer_score": {
+        "advisory": 1.0,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Barad BA et al. 2015 Nat Methods 12(10):943-946",
+        "evidence_grade": "ADVISORY",
+        "unit": "score",
+        "notes": "Scores > 1.0 indicate good side-chain-to-density fit."
+      }
+    },
+    "metagenomics": {
+      "classified_pct_critical": {
+        "bronze": 30.0,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Wood, Lu & Langmead 2019 Genome Biology 20:257 (Kraken2); QIIME2 community standards",
+        "evidence_grade": "BRONZE",
+        "unit": "percent",
+        "notes": "Profile-adjustable: human_gut raises to 50%, soil lowers to 3%, marine lowers to 4%, clinical_pathogen raises to 60%."
+      },
+      "classified_pct_warning": {
+        "bronze": 60.0,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Environmental metagenomics practice; novel environments 40-80% is normal",
+        "evidence_grade": "BRONZE",
+        "unit": "percent",
+        "notes": "Warning tier (not critical). Profile-adjustable: soil lowers to 8%, marine lowers to 10%, clinical_pathogen raises to 70%."
+      }
+    },
+    "drug_discovery": {
+      "psm_fdr_pct": {
+        "gold": 1.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Elias & Gygi 2007 Nature Methods (8000+ citations) — target-decoy FDR < 1%",
+        "evidence_grade": "GOLD",
+        "unit": "percent"
+      },
+      "protein_fdr_pct": {
+        "gold": 1.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Elias & Gygi 2007 Nature Methods — protein-level FDR < 1%",
+        "evidence_grade": "GOLD",
+        "unit": "percent"
+      },
+      "missed_cleavage_pct": {
+        "silver": 20.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "EuBIC 2018 proteomics QC community standards",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Phospho profile raises to 30% (phosphopeptides resist tryptic digestion)."
+      },
+      "cv_pct": {
+        "silver": 20.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "EuBIC 2018 community standards; DIA community < 15% (Stenbratt et al. 2021)",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "DDA default 20%; DIA-NN/Spectronaut default 15%. Plasma biomarker profile tightens to 15%; phospho profile relaxes to 25%."
+      },
+      "phosphosite_localization_score": {
+        "silver": 0.75,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Beausoleil et al. 2006 Nature Biotechnology",
+        "evidence_grade": "SILVER",
+        "unit": "score (0-1)",
+        "notes": "Applies only when phosphosite localization data is present (phospho enrichment experiments)."
+      },
+      "psm_count": {
+        "advisory": 1000,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Community practice — minimum PSM count for standard cell lysate",
+        "evidence_grade": "ADVISORY",
+        "unit": "count",
+        "notes": "ADVISORY (non-blocking). Pulldown/phospho experiments expected to have lower PSM counts. Pulldown profile lowers to 200; phospho profile lowers to 500."
+      },
+      "missing_value_pct": {
+        "silver": 30.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Geyer et al. 2017 Cell Systems — plasma DIA proteomics standards",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Only enforced when plasma_biomarker profile is active."
+      },
+      "median_enrichment_ratio": {
+        "silver": 3.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ABPP community practice — prey/input enrichment ratio > 3x",
+        "evidence_grade": "SILVER",
+        "unit": "fold enrichment",
+        "notes": "Chemoproteomics/pulldown experiments. < 3x = bead coupling failure or insufficient drug loading."
+      },
+      "prey_protein_count": {
+        "advisory": 50,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "ABPP community practice",
+        "evidence_grade": "ADVISORY",
+        "unit": "count"
+      },
+      "crapome_contamination_fraction": {
+        "advisory": 0.5,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "CRAPome database (crapome.org); Mellacheruvu et al. 2013 Nature Methods",
+        "evidence_grade": "ADVISORY",
+        "unit": "fraction (0-1)"
+      },
+      "herg_ic50_high_risk_uM": {
+        "gold": 1.0,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Sanguinetti & Tristani-Firouzi 2006 Nature 440:463; FDA E14 guidance 2005",
+        "evidence_grade": "GOLD",
+        "unit": "micromolar",
+        "notes": "hERG IC50 < 1 uM = high-risk QT prolongation / TdP risk. GOLD blocking."
+      },
+      "herg_ic50_medium_risk_uM": {
+        "silver": 10.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Sanguinetti & Tristani-Firouzi 2006; ICH S7B cardiac safety guideline",
+        "evidence_grade": "SILVER",
+        "unit": "micromolar",
+        "notes": "hERG IC50 1-10 uM = medium risk. SILVER advisory."
+      },
+      "herg_inhibition_prob_threshold": {
+        "gold": 0.9,
+        "silver": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">=",
+        "evidence": "ML model high-confidence threshold (when no experimental IC50 available)",
+        "evidence_grade": "GOLD",
+        "unit": "probability (0-1)"
+      },
+      "dili_probability_threshold": {
+        "silver": 0.7,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">=",
+        "evidence": "Chen et al. 2016 Drug Metabolism and Disposition 44:1717; FDA DILIrank database",
+        "evidence_grade": "SILVER",
+        "unit": "probability (0-1)",
+        "notes": "dili_probability >= 0.8 = GOLD blocking; 0.7-0.8 = SILVER advisory. dili_risk='high' = GOLD blocking."
+      },
+      "ames_probability_threshold": {
+        "silver": 0.7,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">=",
+        "evidence": "ICH S2(R1) guideline — Ames test required for all new drug substances before first-in-human dosing",
+        "evidence_grade": "SILVER",
+        "unit": "probability (0-1)"
+      },
+      "clintox_probability_threshold": {
+        "silver": 0.8,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">=",
+        "evidence": "Wu et al. 2018 Mol Pharm 15:2362 — DeepPurpose ClinTox model",
+        "evidence_grade": "SILVER",
+        "unit": "probability (0-1)"
+      },
+      "compound_mw_limit": {
+        "bronze": 900.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Standard ADMET model applicability domain; drug-like space community practice",
+        "evidence_grade": "BRONZE",
+        "unit": "Dalton",
+        "notes": "Profile-adjustable: compound_druglike lowers to 500 Da (Lipinski Ro5); compound_natural_product raises to 1000 Da."
+      },
+      "auc_extrap_pct_max": {
+        "silver": 20.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "FDA Guidance on PK studies 2018; Gabrielsson & Weiner 2006",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "AUC extrapolated beyond last timepoint should be < 20% of AUCinf."
+      },
+      "pgx_min_coverage": {
+        "gold": 30,
+        "silver": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "CPIC guidelines (cpicpgx.org) — 30x minimum for Tier 1 PGx genes",
+        "evidence_grade": "GOLD",
+        "unit": "X (fold coverage)",
+        "notes": "Genes checked: CYP2D6, CYP2C19, CYP3A4, CYP3A5, CYP2C9, CYP1A2, DPYD, TPMT, NUDT15, SLCO1B1, UGT1A1, VKORC1. pgx_research profile lowers to 15x."
+      }
+    },
+    "crispr_screen": {
+      "guide_library_coverage_pct": {
+        "silver": 70.0,
+        "gold": null,
+        "bronze": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Replogle JM et al. 2022 Cell 185(14):2559-2575 (Perturb-seq genome-wide) Supp Methods",
+        "evidence_grade": "SILVER",
+        "unit": "percent",
+        "notes": "Fraction of guide library represented in the cell pool. Low coverage reduces statistical power for hit calling."
+      },
+      "transfection_efficiency_pct": {
+        "advisory": 30.0,
+        "silver": null,
+        "gold": null,
+        "direction": "min",
+        "operator": "<",
+        "evidence": "Community practice from Perturb-seq and CROP-seq protocols",
+        "evidence_grade": "ADVISORY",
+        "unit": "percent",
+        "notes": "ADVISORY (non-blocking). Acceptable for pilot screens. Low efficiency increases unperturbed cell fraction."
+      },
+      "max_doublet_fraction_pct": {
+        "advisory": 10.0,
+        "silver": null,
+        "gold": null,
+        "direction": "max",
+        "operator": ">",
+        "evidence": "Norman TM et al. 2019 Science 365(6455):786-793; Datlinger P et al. 2021 Nat Methods",
+        "evidence_grade": "ADVISORY",
+        "unit": "percent",
+        "notes": "ADVISORY (non-blocking). High doublet rate inflates guide co-occurrence and confounds perturbation effects."
+      }
+    }
+  },
+  "named_profiles": {
+    "rnaseq_polya_standard": {
+      "description": "Standard polyA-selected RNA-seq (default). No adjustments from platform defaults.",
+      "domain_hint": "rnaseq",
+      "overrides": {},
+      "references": ["nf-core/rnaseq v3.14 defaults"]
+    },
+    "rnaseq_ribodepleted": {
+      "description": "Total RNA with ribosomal depletion (RiboZero / RiboMinus). Lowered alignment rate and read survival thresholds to account for intronic read abundance.",
+      "domain_hint": "rnaseq",
+      "overrides": {
+        "alignment_rate": 50.0,
+        "reads_surviving_pct": 65.0,
+        "assigned_reads_pct": 40.0
+      },
+      "references": ["Zhao S et al. 2020 RNA Biol 17(8):1105-1118"]
+    },
+    "rnaseq_ffpe": {
+      "description": "FFPE-preserved tissue RNA-seq. RNA is highly fragmented, resulting in lower alignment rates, reduced Q30 scores, and more trimming failures.",
+      "domain_hint": "rnaseq",
+      "overrides": {
+        "alignment_rate": 45.0,
+        "reads_surviving_pct": 60.0,
+        "q30_pct": 65.0
+      },
+      "references": ["Sinicropi D et al. 2012 PLoS ONE 7(5):e38396"]
+    },
+    "rnaseq_single_nucleus": {
+      "description": "Single-nucleus RNA-seq (snRNA-seq). Intronic reads dominate; alignment to spliced mRNA reference is fundamentally lower.",
+      "domain_hint": "rnaseq",
+      "overrides": {
+        "alignment_rate": 50.0
+      },
+      "references": ["10x Genomics snRNA-seq Reagent Kit User Guide v2.0 (2023)"]
+    },
+    "rnaseq_nonmodel_organism": {
+      "description": "Non-model organism RNA-seq with an incomplete or draft genome/annotation.",
+      "domain_hint": "rnaseq",
+      "overrides": {
+        "alignment_rate": 40.0,
+        "assigned_reads_pct": 30.0
+      },
+      "references": ["[BRONZE] community practice — no formal guideline"]
+    },
+    "wgs_germline_standard": {
+      "description": "Standard germline WGS (default). 30X minimum coverage per GATK Best Practices.",
+      "domain_hint": "wgs",
+      "overrides": {},
+      "references": ["GATK Best Practices — Germline SNP/Indel calling (2023)"]
+    },
+    "wgs_germline_lowpass": {
+      "description": "Low-pass WGS (0.5-10X) for population genetics, imputation, and polygenic score studies.",
+      "domain_hint": "wgs",
+      "overrides": {
+        "mean_coverage": 4.0,
+        "duplicate_pct": 60.0
+      },
+      "references": ["Rubinacci S et al. 2021 Nat Genet 53:120-126 (UK Biobank)"]
+    },
+    "wgs_somatic_tumor_only": {
+      "description": "Somatic tumor-only WGS without a matched normal. 80X for GATK Mutect2.",
+      "domain_hint": "wgs",
+      "overrides": {
+        "mean_coverage": 80.0,
+        "duplicate_pct": 50.0
+      },
+      "references": ["GATK Mutect2 Best Practices — Tumor-Only (2023)"]
+    },
+    "wgs_ffpe": {
+      "description": "FFPE-derived WGS. High PCR bias substantially increases duplicate rates.",
+      "domain_hint": "wgs",
+      "overrides": {
+        "mean_coverage": 30.0,
+        "duplicate_pct": 65.0
+      },
+      "references": ["Robbe P et al. 2018 Nat Med 24:1555-1563"]
+    },
+    "wes_research": {
+      "description": "Research-grade whole-exome sequencing. 50X for germline variant discovery.",
+      "domain_hint": "wes",
+      "overrides": {
+        "mean_coverage": 50.0
+      },
+      "references": ["nf-core/sarek v3 WES defaults"]
+    },
+    "wes_clinical_germline": {
+      "description": "Clinical-grade WES for germline diagnostic reporting. 80X minimum per ACMG 2016.",
+      "domain_hint": "wes",
+      "overrides": {
+        "mean_coverage": 80.0
+      },
+      "references": ["ACMG/AMP 2016 Standards and Guidelines for NGS Diagnostics"]
+    },
+    "scrna_standard": {
+      "description": "Standard single-cell RNA-seq (10x Genomics Chromium, default).",
+      "domain_hint": "scrna_seq",
+      "overrides": {},
+      "references": ["10x Genomics Cell Ranger v7 defaults"]
+    },
+    "scrna_cardiac": {
+      "description": "scRNA-seq from cardiac or skeletal muscle tissue. Cardiomyocytes are mitochondria-rich; 30-40% mito fraction is biologically expected.",
+      "domain_hint": "scrna_seq",
+      "overrides": {
+        "mito_fraction_pct": 40.0,
+        "mito_fraction_pct_warning": 25.0
+      },
+      "references": [
+        "Simonson B et al. 2023 Circ Res 132(9):1174-1193",
+        "Kuppe C et al. 2022 Nature 605(7909):319-326 (cardiac cell atlas)"
+      ]
+    },
+    "scrna_neuronal": {
+      "description": "scRNA-seq from brain / neuronal tissue. Neurons have elevated mitochondrial content; 30% mito is appropriate.",
+      "domain_hint": "scrna_seq",
+      "overrides": {
+        "mito_fraction_pct": 30.0,
+        "mito_fraction_pct_warning": 20.0,
+        "median_genes_per_cell": 300
+      },
+      "references": [
+        "[BRONZE] Allen Brain Atlas scRNA-seq QC guidelines (community practice)",
+        "Bakken TE et al. 2021 Nature 598:86-102 (Human Brain Cell Atlas)"
+      ]
+    },
+    "scrna_perturbation": {
+      "description": "scRNA-seq with CRISPR perturbation (Perturb-seq, CROP-seq, CRISPRi screens). Adds guide library coverage, transfection efficiency, and doublet detection gates.",
+      "domain_hint": "scrna_seq",
+      "overrides": {
+        "guide_library_coverage_pct": 70.0,
+        "transfection_efficiency_pct": 30.0,
+        "max_doublet_fraction_pct": 10.0
+      },
+      "references": [
+        "Replogle JM et al. 2022 Cell 185(14):2559-2575",
+        "Datlinger P et al. 2021 Nat Methods 18(6):688-693",
+        "Norman TM et al. 2019 Science 365(6455):786-793"
+      ]
+    },
+    "metagenomics_human_gut": {
+      "description": "Human gut metagenomics with comprehensive database. 50% classification is the HMP empirical floor.",
+      "domain_hint": "metagenomics",
+      "overrides": {
+        "classified_pct_critical": 50.0,
+        "classified_pct_warning": 60.0
+      },
+      "references": ["HMP Consortium 2012 Nature 486:207-214"]
+    },
+    "metagenomics_soil": {
+      "description": "Soil metagenomics — high microbial dark matter fraction. Critical gate suppressed to 3%.",
+      "domain_hint": "metagenomics",
+      "overrides": {
+        "classified_pct_critical": 3.0,
+        "classified_pct_warning": 8.0
+      },
+      "references": [
+        "Bahram M et al. 2018 Nature 560(7717):233-237",
+        "Delgado-Baquerizo M et al. 2018 Science 359(6373):320-325"
+      ]
+    },
+    "metagenomics_marine": {
+      "description": "Marine metagenomics — reference databases cover ocean microbiota poorly.",
+      "domain_hint": "metagenomics",
+      "overrides": {
+        "classified_pct_critical": 4.0,
+        "classified_pct_warning": 10.0
+      },
+      "references": ["Sunagawa S et al. 2015 Science 348(6237):1261359 (TARA Oceans)"]
+    },
+    "metagenomics_clinical_pathogen": {
+      "description": "Clinical metagenomics for pathogen detection (bloodstream infection, CSF). Very low classification warrants investigation.",
+      "domain_hint": "metagenomics",
+      "overrides": {
+        "classified_pct_critical": 60.0,
+        "classified_pct_warning": 70.0
+      },
+      "references": ["[BRONZE] IDSA clinical metagenomics guidance (2024)"]
+    },
+    "cryoem_spa_purified": {
+      "description": "Standard single-particle analysis of purified protein complexes (default).",
+      "domain_hint": "cryo_em",
+      "overrides": {},
+      "references": ["EMPIAR deposition standards; EMDB validation report (2024)"]
+    },
+    "cryoem_spa_membrane": {
+      "description": "SPA of membrane proteins (GPCRs, channels, transporters). Higher beam-induced motion; 80 Ang drift threshold.",
+      "domain_hint": "cryo_em",
+      "overrides": {
+        "total_drift_angstrom": 80.0,
+        "fit_quality": 0.65
+      },
+      "references": ["[BRONZE] Membrane protein cryo-EM community practice (2024)"]
+    },
+    "cryoem_spa_phase_plate": {
+      "description": "SPA with Volta Phase Plate (VPP). CTF fit quality thresholds relaxed; phase shift advisory gates activated.",
+      "domain_hint": "cryo_em",
+      "overrides": {
+        "fit_quality": 0.65,
+        "avg_phase_shift_rad_min": 0.2,
+        "avg_phase_shift_rad_max": 1.5
+      },
+      "references": [
+        "[BRONZE] Danev & Bharat 2018 Trends Cell Biol — phase shift 0.4-0.8 pi rad optimal",
+        "[BRONZE] CryoSPARC VPP tutorial (2023)"
+      ]
+    },
+    "cryoem_tomo_in_situ": {
+      "description": "Cryo-electron tomography of cellular lamellae prepared by FIB-SEM milling. High drift expected.",
+      "domain_hint": "cryo_em",
+      "overrides": {
+        "total_drift_angstrom": 150.0,
+        "fit_quality": 0.5,
+        "correlation_score": 0.3
+      },
+      "references": ["[BRONZE] FIB-SEM cryo-ET community practice; Bharat & Bharat 2024"]
+    },
+    "proteomics_standard": {
+      "description": "Standard label-free DDA proteomics of cell lysate (default). GOLD PSM/protein FDR gate; SILVER missed cleavage/CV gates.",
+      "domain_hint": "proteomics",
+      "overrides": {},
+      "references": [
+        "[GOLD] Elias & Gygi 2007, Nature Methods — PSM/protein FDR < 1%",
+        "[SILVER] EuBIC 2018 community standards — missed cleavage < 20%, CV < 20%"
+      ]
+    },
+    "proteomics_phospho": {
+      "description": "Phosphopeptide enrichment proteomics (TiO2, IMAC, Fe-NTA). PSM count, missed cleavage, and CV gates relaxed.",
+      "domain_hint": "proteomics",
+      "overrides": {
+        "psm_count": 500,
+        "missed_cleavage_pct": 30.0,
+        "cv_pct": 25.0
+      },
+      "references": [
+        "[SILVER] Beausoleil et al. 2006, Nature Biotechnology — localization score > 0.75",
+        "[BRONZE] EuBIC 2018 phosphoproteomics community practice"
+      ]
+    },
+    "proteomics_plasma_biomarker": {
+      "description": "Depleted plasma DIA/DDA proteomics for biomarker discovery. Tighter CV gate (< 15%); missing value fraction gate applied.",
+      "domain_hint": "proteomics",
+      "overrides": {
+        "cv_pct": 15.0,
+        "missing_value_pct": 30.0
+      },
+      "references": [
+        "[SILVER] Geyer et al. 2017, Cell Systems — plasma DIA proteomics CV standards",
+        "[SILVER] EuBIC 2018 — depleted plasma QC community practice"
+      ]
+    },
+    "proteomics_chemoproteomics": {
+      "description": "Affinity proteomics / chemoproteomics pulldown (ABPP, drug bead pulldown). Enrichment ratio gate is primary QC indicator.",
+      "domain_hint": "proteomics",
+      "overrides": {
+        "psm_count": 200
+      },
+      "references": [
+        "[GOLD] Elias & Gygi 2007 — protein FDR < 1% (unchanged)",
+        "[SILVER] ABPP community practice — enrichment ratio > 3x input proteome"
+      ]
+    },
+    "compound_druglike": {
+      "description": "Standard drug-like compound library QC applying Lipinski's Rule of Five (Ro5): MW <= 500 Da, logP <= 5, HBD <= 5, HBA <= 10.",
+      "domain_hint": "cheminformatics",
+      "overrides": {
+        "compound_mw_limit": 500.0,
+        "logp_limit": 5.0,
+        "hbd_limit": 5,
+        "hba_limit": 10
+      },
+      "references": [
+        "[GOLD] Lipinski et al. (2001) Adv Drug Deliv Rev — Rule of Five",
+        "[SILVER] Veber et al. (2002) J Med Chem — oral bioavailability descriptors"
+      ]
+    },
+    "compound_natural_product": {
+      "description": "Natural product and natural-product-inspired compound QC. Relaxed MW gate (<=1000 Da); no logP limit.",
+      "domain_hint": "cheminformatics",
+      "overrides": {
+        "compound_mw_limit": 1000.0,
+        "logp_limit": null
+      },
+      "references": [
+        "[SILVER] Newman & Cragg (2020) J Nat Prod — natural products in drug discovery",
+        "[BRONZE] Rodrigues et al. (2016) J Med Chem — NP-likeness beyond Ro5"
+      ]
+    },
+    "compound_peptidomimetic": {
+      "description": "Peptidomimetic and stapled peptide compound QC. MW gate relaxed to <= 900 Da; higher HBD/HBA counts accepted.",
+      "domain_hint": "cheminformatics",
+      "overrides": {
+        "compound_mw_limit": 900.0,
+        "hbd_limit": 10,
+        "hba_limit": 15
+      },
+      "references": [
+        "[SILVER] Giordanetto & Kihlberg (2014) J Med Chem — beyond Ro5 for peptides",
+        "[BRONZE] Doak et al. (2016) J Med Chem — macrocycle oral bioavailability"
+      ]
+    },
+    "pgx_clinical": {
+      "description": "Clinical pharmacogenomics (PGx) WGS QC — CPIC-compliant. Requires >= 30x coverage on each CPIC Tier 1 PGx gene.",
+      "domain_hint": "pharmacogenomics",
+      "overrides": {
+        "pgx_min_coverage": 30
+      },
+      "references": [
+        "[GOLD] CPIC guidelines (cpicpgx.org) — 30x minimum for tier 1 genes",
+        "[GOLD] GATK Best Practices — VQSR PASS rate > 95%",
+        "[SILVER] PharmVar — CYP2D6 copy number detection requirements"
+      ]
+    },
+    "pgx_research": {
+      "description": "Research-grade pharmacogenomics WGS QC. Accepts >= 15x per-gene coverage with low-confidence calls flagged as advisory.",
+      "domain_hint": "pharmacogenomics",
+      "overrides": {
+        "pgx_min_coverage": 15
+      },
+      "references": [
+        "[SILVER] CPIC guidelines — 15x minimum for tier 2 research use"
+      ]
+    }
+  }
+}
