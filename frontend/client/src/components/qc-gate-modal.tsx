@@ -238,6 +238,98 @@ const TROUBLESHOOTING_STEPS: Record<string, string[]> = {
     "Set --pg-level 2 for global protein FDR estimation across the full experiment",
     "Verify spectral library species matches your sample — a mismatch is the most common cause of poor identification",
   ],
+  // Coverage / depth
+  MOSDEPTH: [
+    "Low coverage: check that the BAM file is properly aligned and sorted before coverage calculation",
+    "For WGS: verify the genome build matches the reference used for alignment",
+    "For WES/targeted: confirm the BED file covers the expected target regions",
+    "Check for library complexity issues — PCR duplicates reduce effective depth",
+  ],
+  SAMTOOLS_COVERAGE: [
+    "Low coverage: verify alignment rate is acceptable before investigating depth",
+    "Check that the reference genome FASTA matches the genome index used for alignment",
+  ],
+  // ATAC-seq
+  ATAC_QC: [
+    "Low TSS enrichment: verify the TSS annotation file matches the genome build (hg38 vs hg19)",
+    "Ensure reads are from properly sized nucleosome-free (< 200 bp) and mono-nucleosome fragments",
+    "Check transposase insertion efficiency — low library complexity reduces TSS enrichment",
+    "Confirm Tn5 shift correction: reads should be shifted +4/-5 bp to center on cut sites",
+  ],
+  TSS_ENRICH: [
+    "Low TSS enrichment: verify the TSS annotation file matches the genome build (hg38 vs hg19)",
+    "Ensure reads are from properly sized nucleosome-free (< 200 bp) and mono-nucleosome fragments",
+    "Check transposase insertion efficiency — low library complexity reduces TSS enrichment",
+  ],
+  // ChIP-seq / peak calling
+  MACS2: [
+    "Low FRiP: verify that IP and Input samples are correctly labelled (swap is a common error)",
+    "Ensure the genome size parameter (gsize) matches your organism — default is human",
+    "Check that the peak calling mode matches your data: --nomodel for narrow peaks, -f BAMPE for paired-end",
+    "Low signal may indicate antibody inefficiency — check IP efficiency with qPCR before WGS",
+  ],
+  MACS2_CALLPEAK: [
+    "Low FRiP: verify that IP and Input samples are correctly labelled (swap is a common error)",
+    "Ensure the genome size parameter (gsize) matches your organism — default is human",
+    "Check that the peak calling mode matches your data: --nomodel for narrow peaks, -f BAMPE for paired-end",
+  ],
+  // Transcript quantification
+  SALMON: [
+    "Low mapping rate: ensure the decoy-aware index was built with the correct transcriptome FASTA",
+    "Verify library type matches your protocol (--libType A for auto-detection is recommended)",
+    "For < 50% mapping: check for rRNA contamination or adapter content in the raw FASTQ",
+    "Quasi-mapping uses only transcriptome, not genome — intronic reads are unmapped by design",
+  ],
+  SALMON_QUANT: [
+    "Low mapping rate: ensure the decoy-aware index was built with the correct transcriptome FASTA",
+    "Verify library type matches your protocol (--libType A for auto-detection is recommended)",
+  ],
+  KALLISTO: [
+    "Low pseudo-alignment rate: rebuild the index from the correct transcriptome FASTA for your species",
+    "Verify the --single / --rf-stranded / --fr-stranded flag matches your library prep",
+  ],
+  // Single-cell
+  CELLRANGER: [
+    "Low cell detection: verify chemistry version matches the kit used (3' v3, v3.1 etc.)",
+    "Check sequencing depth — Cell Ranger requires a minimum of ~20,000 reads per cell",
+    "Verify the reference transcriptome matches the organism and genome build of your experiment",
+    "High empty droplet fraction: consider adjusting --expect-cells based on loaded cell count",
+  ],
+  CELLRANGER_COUNT: [
+    "Low cell detection: verify chemistry version matches the kit used (3' v3, v3.1 etc.)",
+    "Check sequencing depth — Cell Ranger requires a minimum of ~20,000 reads per cell",
+    "Verify the reference transcriptome matches the organism and genome build of your experiment",
+  ],
+  // CRISPR screens
+  MAGECK_COUNT: [
+    "Low mapping rate: verify gRNA library FASTA is correct — even one mismatch in the constant region causes major losses",
+    "Check trim-5-length and trim-3-length settings — untrimmed sequencing adapters cause zero-mapping",
+    "Ensure the library file uses the exact gRNA spacer sequence without the PAM site",
+  ],
+  MAGECK_MLE: [
+    "Non-convergent model: ensure negative control gRNAs are properly defined in the control-sgrna file",
+    "Low gene coverage after filtering: reduce --remove-zero-threshold or check sequencing depth",
+    "Verify the day0 vs. treatment comparison is correctly specified in the design matrix",
+  ],
+  // PK/PD
+  NLMIXR2_POPULATION_PK: [
+    "Model convergence failure: simplify from 2-compartment to 1-compartment model as starting point",
+    "Check for extreme parameter values — unrealistic Vd or CL estimates suggest structural model misspecification",
+    "Verify dosing records and observation times are in consistent units (hours vs. days)",
+    "Increase FOCE iterations or switch to SAEM algorithm if FOCE fails to converge",
+  ],
+  NCA_PKNCA: [
+    "Low AUC quality: verify sampling times cover at least 3 half-lives for accurate AUC(0–∞) extrapolation",
+    "Check dose column units match concentration column units (ng/mL, μg/mL, etc.)",
+    "Ensure time=0 samples are included — missing pre-dose baseline affects extrapolated Cmax",
+  ],
+  // Structure validation
+  MOLPROBITY: [
+    "High Ramachandran outliers: check for model building errors in helix capping or loop regions",
+    "Use COOT Real-space refinement (RSR) for individual residues with high all-atom contacts",
+    "Run phenix.refine or REFMAC5 with weight optimization before final structure deposition",
+    "For cryo-EM: verify the map resolution justifies atomic detail — over-fitted maps at low resolution inflate clashscore",
+  ],
 }
 
 interface QCMetric {
