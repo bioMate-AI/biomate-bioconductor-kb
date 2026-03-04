@@ -4365,9 +4365,17 @@ class TestDrugDiscoverySuggester:
 
     def test_domain_routing_drug_discovery(self):
         """get_suggester_for_domain returns DrugDiscoveryParameterSuggester for drug domains."""
-        for domain in ("drug_discovery", "chemoproteomics", "herg_screening", "qsar", "abpp"):
+        # Note: chemoproteomics routes to ProteomicsParameterSuggester (proteom* keyword match)
+        for domain in ("drug_discovery", "herg_screening", "qsar", "abpp"):
             s = get_suggester_for_domain(domain)
             assert isinstance(s, DrugDiscoveryParameterSuggester), f"wrong suggester for domain '{domain}'"
+
+    def test_domain_routing_proteomics_includes_chemoproteomics(self):
+        """chemoproteomics domain routes to ProteomicsParameterSuggester (not drug discovery)."""
+        from galaxy.jobs.parameter_suggester import ProteomicsParameterSuggester
+        for domain in ("proteomics", "maxquant", "diann", "chemoproteomics", "phosphoproteomics"):
+            s = get_suggester_for_domain(domain)
+            assert isinstance(s, ProteomicsParameterSuggester), f"wrong suggester for domain '{domain}'"
 
     def test_no_suggestions_when_metrics_absent(self):
         """Empty qc_metrics → no suggestions (graceful no-op)."""

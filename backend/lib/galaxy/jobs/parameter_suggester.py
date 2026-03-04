@@ -673,6 +673,134 @@ class MetagenomicsParameterSuggester(BaseParameterSuggester):
         return suggestions
 
 
+class ProteomicsParameterSuggester(BaseParameterSuggester):
+    """Parameter suggester for proteomics workflows (MaxQuant, DIA-NN, etc.)."""
+
+    def suggest(
+        self,
+        process_name: str,
+        qc_metrics: Dict[str, Any],
+        current_parameters: Dict[str, Any],
+        failures: List[str]
+    ) -> List[ParameterSuggestion]:
+        suggestions = []
+        process_upper = process_name.upper()
+
+        if any(k in process_upper for k in ('MAXQUANT', 'ANDROMEDA')):
+            suggestions.extend(self._suggest_maxquant(qc_metrics, current_parameters))
+        elif any(k in process_upper for k in ('DIANN', 'SPECTRONAUT')):
+            suggestions.extend(self._suggest_diann(qc_metrics, current_parameters))
+
+        return suggestions
+
+    def _suggest_maxquant(
+        self,
+        qc_metrics: Dict[str, Any],
+        current_params: Dict[str, Any]
+    ) -> List[ParameterSuggestion]:
+        suggestions = []
+
+        psm_fdr = qc_metrics.get('psm_fdr_pct')
+        protein_fdr = qc_metrics.get('protein_fdr_pct')
+        if (psm_fdr is not None and psm_fdr > 1.0) or (protein_fdr is not None and protein_fdr > 1.0):
+            current_tol = current_params.get('main_search_tol', 4.5)
+            if current_tol > 3.0:
+                suggestions.append(ParameterSuggestion(
+                    parameter='main_search_tol',
+                    current_value=current_tol,
+                    suggested_value=2.0,
+                    reason=('High FDR can result from a loose mass tolerance producing more random matches. '
+                            'Tightening to 2 ppm (from {:.1f} ppm) reduces the search space '
+                            'and typically improves FDR control.'.format(current_tol)),
+                    confidence=0.75,
+                    source="literature"  # Elias & Gygi (2007) Nature Methods
+                ))
+            current_mc = current_params.get('max_missed_cleavages', 2)
+            if current_mc > 1:
+                suggestions.append(ParameterSuggestion(
+                    parameter='max_missed_cleavages',
+                    current_value=current_mc,
+                    suggested_value=1,
+                    reason=('Reducing allowed missed cleavages from {} to 1 shrinks the '
+                            'search space, which can lower FDR at the cost of recovering '
+                            'fewer partially cleaved peptides.'.format(current_mc)),
+                    confidence=0.68
+                ))
+
+        mc_pct = qc_metrics.get('missed_cleavage_pct')
+        if mc_pct is not None and mc_pct > 20.0:
+            suggestions.append(ParameterSuggestion(
+                parameter='digestion_time_min',
+                current_value=current_params.get('digestion_time_min', 120),
+                suggested_value=240,
+                reason=(f'Missed cleavage rate {mc_pct:.1f}% > 20%. Extending digestion from '
+                        f'{current_params.get("digestion_time_min", 120)} min to 240 min '
+                        f'typically reduces incomplete digestion.'),
+                confidence=0.72
+            ))
+            current_ratio = current_params.get('enzyme_to_protein_ratio', 50)
+            if current_ratio < 100:
+                suggestions.append(ParameterSuggestion(
+                    parameter='enzyme_to_protein_ratio',
+                    current_value=current_ratio,
+                    suggested_value=100,
+                    reason=(f'High missed cleavage ({mc_pct:.1f}%). Increasing trypsin '
+                            f'enzyme-to-protein ratio from 1:{current_ratio} to 1:100 '
+                            f'improves digestion completeness.'),
+                    confidence=0.70
+                ))
+
+        loc_score = qc_metrics.get('phosphosite_localization_score')
+        if loc_score is not None and loc_score < 0.75:
+            suggestions.append(ParameterSuggestion(
+                parameter='phospho_localization_algorithm',
+                current_value=current_params.get('phospho_localization_algorithm', 'default'),
+                suggested_value='ptmRS',
+                reason=(f'Phosphosite localization score {loc_score:.2f} < 0.75. '
+                        f'ptmRS (successor to PhosphoRS) provides superior site '
+                        f'localization probabilities for multiply phosphorylated peptides.'),
+                confidence=0.78,
+                source="literature"  # Taus et al. (2011) J Proteome Res (PhosphoRS)
+            ))
+
+        return suggestions
+
+    def _suggest_diann(
+        self,
+        qc_metrics: Dict[str, Any],
+        current_params: Dict[str, Any]
+    ) -> List[ParameterSuggestion]:
+        suggestions = []
+
+        protein_fdr = qc_metrics.get('protein_fdr_pct')
+        if protein_fdr is not None and protein_fdr > 1.0:
+            current_qvalue = current_params.get('protein_q_value', 0.01)
+            if current_qvalue > 0.005:
+                suggestions.append(ParameterSuggestion(
+                    parameter='protein_q_value',
+                    current_value=current_qvalue,
+                    suggested_value=0.005,
+                    reason=(f'Protein FDR {protein_fdr:.2f}% > 1%. Tightening protein Q-value '
+                            f'threshold from {current_qvalue:.3f} to 0.005 enforces stricter '
+                            f'protein-level FDR control.'),
+                    confidence=0.78,
+                    source="literature"  # Demichev et al. (2020) Nature Methods
+                ))
+            current_pg = current_params.get('pg_level', 1)
+            if current_pg < 2:
+                suggestions.append(ParameterSuggestion(
+                    parameter='pg_level',
+                    current_value=current_pg,
+                    suggested_value=2,
+                    reason=('Setting --pg-level 2 in DIA-NN enables global protein FDR estimation '
+                            'across the full experiment, which is more conservative than per-run FDR.'),
+                    confidence=0.72,
+                    source="literature"  # Demichev et al. (2020) Nature Methods
+                ))
+
+        return suggestions
+
+
 class DrugDiscoveryParameterSuggester(BaseParameterSuggester):
     """Parameter suggester for drug discovery / cheminformatics workflows."""
 
@@ -821,6 +949,8 @@ def get_suggester_for_domain(domain: str, logger: Optional[logging.Logger] = Non
         return ChIPSeqParameterSuggester(logger)
     elif any(k in domain_lower for k in ('metagenomic', 'metagenom', 'microbiom', 'kraken', 'metaphlan')):
         return MetagenomicsParameterSuggester(logger)
+    elif any(k in domain_lower for k in ('proteomics', 'proteome', 'maxquant', 'diann', 'spectronaut', 'mass_spec', 'lc_ms', 'lcms', 'phosphoproteom')):
+        return ProteomicsParameterSuggester(logger)
     elif any(k in domain_lower for k in ('drug', 'chemo', 'chemoproteom', 'herg', 'dili', 'ames', 'qsar', 'pulldown', 'abpp', 'pharmacol', 'compound', 'ligand', 'smiles', 'admet')):
         return DrugDiscoveryParameterSuggester(logger)
     elif any(k in domain_lower for k in ('dna', 'genomic', 'variant', 'wgs', 'wes', 'exome', 'bwa', 'gatk')):
