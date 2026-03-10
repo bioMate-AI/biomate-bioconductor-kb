@@ -1,13 +1,20 @@
 import { useState } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Copy, RotateCcw, Workflow, Download, FileJson } from "lucide-react"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
+import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { WorkflowRationale } from "./workflow-rationale"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -32,6 +39,8 @@ interface ChatMessageProps {
   onRunWorkflow?: (workflow: any, steps: any[]) => void
   onRequestPrereqRecovery?: () => void
   onStopWorkflow?: () => void
+  onPauseWorkflow?: () => void
+  onResumeWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   onSuggestionClick?: (suggestion: string, message: Message) => void
   isWorkflowRunning?: boolean
@@ -53,6 +62,8 @@ export function ChatMessage({
   onRunWorkflow,
   onRequestPrereqRecovery,
   onStopWorkflow,
+  onPauseWorkflow,
+  onResumeWorkflow,
   onParameterChange,
   onSuggestionClick = () => {},
   isWorkflowRunning = false,
@@ -141,9 +152,20 @@ export function ChatMessage({
               ? "bg-primary text-primary-foreground ml-auto"
               : "bg-card"
           )}>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.content}
-            </p>
+            {isUser ? (
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            ) : (
+              <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
+                prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+                prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5
+                prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:rounded
+                prose-pre:bg-muted prose-pre:text-xs prose-pre:overflow-x-auto
+                prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
+                prose-hr:my-3">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ''}</ReactMarkdown>
+              </div>
+            )}
           </Card>
 
           {/* Thinking Display - Show AI reasoning process */}
@@ -197,9 +219,11 @@ export function ChatMessage({
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
-              const viewerStatus: 'idle' | 'running' | 'completed' | 'failed' =
+              const viewerStatus: 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
                 executionStatus === 'completed'
                   ? 'completed'
+                  : executionStatus === 'paused'
+                  ? 'paused'
                   : executionStatus === 'failed' || executionStatus === 'cancelled'
                   ? 'failed'
                   : executionStatus === 'running'
@@ -275,11 +299,15 @@ export function ChatMessage({
                               message.metadata?.tool_installation?.success !== false,
                           },
                           __executionOverrides: params?.__executionOverrides || undefined,
+                          __qcConfig: params?.__qcConfig || undefined,
                         },
                         message.metadata?.steps || []
                       )
                     }
                     onParameterChange={(id, value) => onParameterChange?.(id, { value })}
+                    onPause={onPauseWorkflow}
+                    onResume={onResumeWorkflow}
+                    onCancel={onStopWorkflow}
                     onRequestPrereqRecovery={onRequestPrereqRecovery}
                     sessionId={sessionId}
                     runId={currentExecutionRun?.id}
@@ -287,6 +315,11 @@ export function ChatMessage({
                 </div>
               );
             })()
+          )}
+
+          {/* Scientific Rationale — collapsed by default, shown for generated workflows */}
+          {isWorkflowMessage && message.metadata?.rationale && (
+            <WorkflowRationale rationale={message.metadata.rationale} />
           )}
 
           {/* Output Attachments - Show when workflow execution completes */}
@@ -297,6 +330,8 @@ export function ChatMessage({
               runId={currentExecutionRun?.id}
               executionStatus={currentExecutionRun?.execution?.status}
               errorMessage={currentExecutionRun?.execution?.errorMessage}
+              artifactReadiness={currentExecutionRun?.execution?.nextflowStatus?.artifactReadiness}
+              nextflowStatus={currentExecutionRun?.execution?.nextflowStatus}
             />
           )}
         </div>
@@ -321,6 +356,43 @@ export function ChatMessage({
             >
               <Copy className="h-4 w-4" />
             </Button>
+            {/* Save response as file */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Save response as file"
+                  aria-label="Save response as file"
+                  data-testid="button-save-response"
+                >
+                  <FileDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  onClick={() => downloadAsTxt(message.content || '', message.content)}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Save as .txt
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => downloadAsMd(message.content || '', message.content)}
+                  className="gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Save as .md
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => downloadAsDocx(message.content || '', message.content)}
+                  className="gap-2"
+                >
+                  <FileDown className="h-4 w-4" />
+                  Save as .docx
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="ghost"
               size="icon"

@@ -56,6 +56,8 @@ interface ChatInterfaceProps {
   onRunWorkflow?: (workflow: any, steps: any[]) => void
   onRequestPrereqRecovery?: () => void
   onStopWorkflow?: () => void
+  onPauseWorkflow?: () => void
+  onResumeWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
@@ -80,6 +82,8 @@ export function ChatInterface({
   onRunWorkflow,
   onRequestPrereqRecovery,
   onStopWorkflow,
+  onPauseWorkflow,
+  onResumeWorkflow,
   onParameterChange,
   isWorkflowRunning = false,
   workflowProgress = 0,
@@ -105,7 +109,10 @@ export function ChatInterface({
   
   // Use messages from chat session or empty array if no session
   const displayMessages = chatSession?.messages || []
-  const displayTyping = isTyping || isTypingLocal
+  // Hide typing indicator once streaming content has started appearing in the placeholder
+  const lastMsg = displayMessages[displayMessages.length - 1]
+  const streamingHasContent = (isTyping || isTypingLocal) && lastMsg?.role === 'assistant' && !!lastMsg?.content?.trim()
+  const displayTyping = (isTyping || isTypingLocal) && !streamingHasContent
   const latestAssistantMessageId = [...displayMessages]
     .reverse()
     .find((msg) => msg.role !== "user")?.id
@@ -229,33 +236,102 @@ export function ChatInterface({
     }
   }, [displayMessages, chatSession, showCompressionDialog, compressionDismissed])
 
+  interface ChatRequestPayload {
+    content: string
+    sessionId: string
+    placeholderId: string
+  }
+
+  const updateMessageInSession = (sessionId: string, messageId: string, updates: Partial<Message>) => {
+    const session = chatHistoryService.getSession(sessionId)
+    if (!session) return
+    const updatedMessages = session.messages.map((msg) =>
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    )
+    const updatedSession = chatHistoryService.updateSession(sessionId, { messages: updatedMessages })
+    if (updatedSession && onChatUpdated) {
+      onChatUpdated(updatedSession)
+    }
+  }
+
   // Galaxy Chat API integration with full hybrid intelligence
   // Uses /api/chat which provides: intent analysis, tool search, dataset RAG, workflow generation
   const chatMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const response = await fetch('/api/chat', {
+    mutationFn: async ({ content, sessionId, placeholderId }: ChatRequestPayload) => {
+      const session = chatHistoryService.getSession(sessionId)
+      const previousMessages = (session?.messages || [])
+        .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
+        .slice(-4)
+        .map((m) => ({ role: m.role, content: m.content }))
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: content,
+          stream: true,
           context: {
-            previousMessages: displayMessages.slice(-10).map(m => ({
-              role: m.role,
-              content: m.content
-            })),
+            previousMessages,
             // Include session ID for memory integration
-            ...(chatSession?.id && { memorySessionId: chatSession.id }),
+            ...(sessionId && { memorySessionId: sessionId }),
           }
         })
       })
       if (!response.ok) {
         throw new Error(`Chat API error: ${response.statusText}`)
       }
-      return await response.json()
+      if (!response.body) {
+        throw new Error('Streaming response body unavailable')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let accumulatedText = ''
+      let finalPayload: any = null
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        while (true) {
+          const eventBoundary = buffer.indexOf('\n\n')
+          if (eventBoundary === -1) break
+
+          const rawEvent = buffer.slice(0, eventBoundary)
+          buffer = buffer.slice(eventBoundary + 2)
+
+          const lines = rawEvent.split('\n')
+          let eventName = 'message'
+          const dataLines: string[] = []
+          for (const line of lines) {
+            if (line.startsWith('event:')) eventName = line.slice(6).trim()
+            if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
+          }
+
+          const payloadText = dataLines.join('\n')
+          if (!payloadText) continue
+          const payload = JSON.parse(payloadText)
+
+          if (eventName === 'delta' && typeof payload.text === 'string') {
+            accumulatedText += payload.text
+            updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
+          } else if (eventName === 'final') {
+            finalPayload = payload
+          } else if (eventName === 'error') {
+            throw new Error(payload.message || 'Streaming chat failed')
+          }
+        }
+      }
+
+      if (!finalPayload) {
+        throw new Error('No final payload received from stream')
+      }
+      return finalPayload
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, variables) => {
       console.log('[ChatInterface] API Response:', data)
 
       // Handle /api/chat response format (full hybrid intelligence)
@@ -285,6 +361,14 @@ export function ChatInterface({
       // Use the natural language response from /api/chat
       // This includes tool recommendations, dataset suggestions, etc.
       let workflowInfo: string = data.response || '';
+      const diagnostics = data.metadata?.workflowGenerationDiagnostics;
+      const hasFailureDiagnostics = !!diagnostics?.failed;
+      const failureNarrativePattern =
+        /workflow generation failed|could not build (a|the) runnable workflow|domain alignment|recovery plan|targeted follow-up questions/i;
+      const looksLikeNarrativeFailure =
+        typeof data.response === 'string' && failureNarrativePattern.test(data.response);
+      const shouldRenderCollaborativeFailure =
+        !workflowSuccess && (!!data.workflow || hasFailureDiagnostics || looksLikeNarrativeFailure);
 
       // If workflow was generated, append workflow-specific info
       if (workflowSuccess && workflowData) {
@@ -298,8 +382,24 @@ export function ChatInterface({
         if (data.workflow?.needs_user_feedback) {
           workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
         }
-      } else if (data.workflow && !workflowSuccess) {
-        workflowInfo = (data.response || '') + `\n\n⚠️ **Note:** Real workflow generation failed. No demo workflow is shown.`;
+      } else if (shouldRenderCollaborativeFailure) {
+        const reasons = Array.isArray(diagnostics?.likelyReasons) ? diagnostics.likelyReasons : [];
+        const actions = Array.isArray(diagnostics?.recommendedActions) ? diagnostics.recommendedActions : [];
+        const followUps = Array.isArray(diagnostics?.followUpQuestions) ? diagnostics.followUpQuestions : [];
+        const reasonText = reasons.length > 0 ? `\n\nLikely reasons:\n- ${reasons.join('\n- ')}` : '';
+        const actionText = actions.length > 0 ? `\n\nSuggested next actions:\n- ${actions.join('\n- ')}` : '';
+        const followUpText =
+          followUps.length > 0
+            ? `\n\nTo continue collaboratively, please answer:\n- ${followUps.join('\n- ')}`
+            : '';
+        const baseFailureText = /workflow generation is currently unavailable/i.test(data.response || '')
+          ? (data.response || '')
+          : `${data.response || ''}\n\n⚠️ **Workflow generation is currently unavailable for this request.**`;
+        workflowInfo =
+          baseFailureText +
+          reasonText +
+          actionText +
+          followUpText;
       } else if (!workflowInfo) {
         workflowInfo = 'I can help you with bioinformatics analysis!';
       }
@@ -315,7 +415,7 @@ export function ChatInterface({
       console.log('[ChatInterface] Steps array:', stepsArray)
 
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: variables.placeholderId,
         content: workflowInfo,
         role: "assistant",
         timestamp: new Date(),
@@ -326,9 +426,11 @@ export function ChatInterface({
           ? ["This domain looks correct", "Use different domain/tools", "Regenerate with stricter constraints", "Show alternative workflows"]
           : workflowSuccess
           ? ["Open in Workflow Builder", "Show details", "Generate another"]
-          : ["Try again with different request", "Check server status", "Build workflow"]),
+          : data.metadata?.workflowGenerationDiagnostics?.followUpQuestions?.slice?.(0, 3) ||
+            ["Try again with different request", "Provide required inputs/formats", "Regenerate with tighter constraints"]),
         metadata: {
-          type: workflowSuccess ? 'workflow' : 'text',
+          type: workflowSuccess ? 'workflow' : (data.researchResponse ? 'research_response' : 'text'),
+          research_response: data.researchResponse || null,
           workflow: workflowData,
           steps: stepsArray,
           confidence: data.workflow?.confidence || data.metadata?.workflowSuggestion?.confidence,
@@ -370,10 +472,9 @@ export function ChatInterface({
       })
 
       // Add message to chat session (create one if it doesn't exist)
-      if (chatSession) {
-        console.log('[ChatInterface] Adding message to existing session:', chatSession.id)
-        const updatedSession = chatHistoryService.addMessage(chatSession.id, aiMessage)
-        console.log('[ChatInterface] Updated session:', updatedSession?.messages.length, 'messages')
+      if (variables.sessionId) {
+        console.log('[ChatInterface] Updating streaming placeholder:', variables.placeholderId)
+        updateMessageInSession(variables.sessionId, variables.placeholderId, aiMessage)
 
         // Also add workflow to session.workflows if workflow was generated
         if (workflowSuccess && workflowData && stepsArray.length > 0) {
@@ -390,11 +491,7 @@ export function ChatInterface({
             inputs: [],
             outputs: [],
           }))
-          chatHistoryService.addWorkflow(chatSession.id, workflowSteps)
-        }
-
-        if (updatedSession && onChatUpdated) {
-          onChatUpdated(updatedSession)
+          chatHistoryService.addWorkflow(variables.sessionId, workflowSteps)
         }
       } else {
         console.log('[ChatInterface] No session, creating new one')
@@ -437,7 +534,7 @@ export function ChatInterface({
         onWorkflowGenerated(workflowData)
       }
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('[ChatInterface] API Error:', error)
       console.error('[ChatInterface] Error details:', {
         message: error.message,
@@ -473,11 +570,8 @@ export function ChatInterface({
       })
 
       // Add error message to chat session
-      if (chatSession) {
-        const updatedSession = chatHistoryService.addMessage(chatSession.id, aiMessage)
-        if (updatedSession && onChatUpdated) {
-          onChatUpdated(updatedSession)
-        }
+      if (variables?.sessionId && variables?.placeholderId) {
+        updateMessageInSession(variables.sessionId, variables.placeholderId, aiMessage)
       }
       setIsTypingLocal(false)
 
@@ -832,14 +926,61 @@ export function ChatInterface({
     }
   }
 
-  const handleSendMessage = (content: string, files?: File[]) => {
-    // Handle attached files if present
+  const handleSendMessage = async (content: string, files?: File[]) => {
+    // Handle attached files: upload to backend and include dataset IDs in prompt context.
     if (files && files.length > 0) {
-      console.log('[ChatInterface] Files attached:', files.map(f => f.name))
-      // TODO: Upload files to Galaxy and include dataset IDs in the message
-      // For now, mention files in the message content
-      const fileNames = files.map(f => f.name).join(', ')
-      content = content + (content ? '\n\n' : '') + `[Attached files: ${fileNames}]`
+      console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
+      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string }> = []
+      const failedUploads: string[] = []
+
+      for (const file of files) {
+        try {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('description', 'Uploaded from BioMate chat composer')
+
+          const response = await fetch('/api/datasets/upload', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include',
+          })
+
+          if (!response.ok) {
+            failedUploads.push(`${file.name} (HTTP ${response.status})`)
+            continue
+          }
+
+          const result = await response.json()
+          uploaded.push({
+            name: file.name,
+            datasetId: result.dataset_id,
+            galaxyDatasetId: result.galaxy_dataset_id,
+          })
+        } catch {
+          failedUploads.push(file.name)
+        }
+      }
+
+      const fileNames = files.map((f) => f.name).join(', ')
+      const uploadedContext =
+        uploaded.length > 0
+          ? uploaded
+              .map(
+                (f) =>
+                  `${f.name}: dataset_id=${f.datasetId || 'n/a'}${
+                    f.galaxyDatasetId ? `, galaxy_dataset_id=${f.galaxyDatasetId}` : ''
+                  }`
+              )
+              .join('; ')
+          : ''
+      const failedContext = failedUploads.length > 0 ? failedUploads.join(', ') : ''
+
+      content =
+        content +
+        (content ? '\n\n' : '') +
+        `[Attached files: ${fileNames}]` +
+        (uploadedContext ? `\n[Uploaded datasets: ${uploadedContext}]` : '') +
+        (failedContext ? `\n[Upload warnings: ${failedContext}]` : '')
     }
 
     // Create user message
@@ -851,19 +992,27 @@ export function ChatInterface({
     }
 
     // Add user message to chat session (create one if it doesn't exist)
-    if (chatSession) {
-      const updatedSession = chatHistoryService.addMessage(chatSession.id, userMessage)
-      if (updatedSession && onChatUpdated) {
-        onChatUpdated(updatedSession)
-      }
-    } else {
-      // Auto-create session if it doesn't exist (e.g., in test environment)
-      const newSession = chatHistoryService.createNewSession()
-      chatHistoryService.addMessage(newSession.id, userMessage)
-      const updatedSession = chatHistoryService.getSession(newSession.id)
-      if (updatedSession && onChatUpdated) {
-        onChatUpdated(updatedSession)
-      }
+    const sessionId = chatSession?.id || chatHistoryService.createNewSession().id
+    const updatedSession = chatHistoryService.addMessage(sessionId, userMessage)
+    if (updatedSession && onChatUpdated) {
+      onChatUpdated(updatedSession)
+    }
+
+    // Add placeholder assistant message for streaming UX
+    const placeholderId = `assistant-stream-${Date.now()}`
+    const placeholderMessage: Message = {
+      id: placeholderId,
+      content: "",
+      role: "assistant",
+      timestamp: new Date(),
+      suggestions: [],
+      metadata: {
+        type: "text",
+      },
+    }
+    const withPlaceholder = chatHistoryService.addMessage(sessionId, placeholderMessage)
+    if (withPlaceholder && onChatUpdated) {
+      onChatUpdated(withPlaceholder)
     }
 
     setIsTypingLocal(true)
@@ -871,7 +1020,7 @@ export function ChatInterface({
     analytics.track('query_sent', { query_length: content.length })
 
     // Call Galaxy API (always, regardless of session)
-    chatMutation.mutate(content)
+    chatMutation.mutate({ content, sessionId, placeholderId })
 
     onSendMessage(content)
   }
@@ -884,6 +1033,12 @@ export function ChatInterface({
   const handleSuggestionClick = (suggestion: string, message: Message) => {
     const normalized = suggestion.toLowerCase().trim()
     console.log("[ChatInterface] Suggestion clicked:", suggestion)
+
+    // "Continue" — request continuation of a truncated response
+    if (normalized === 'continue') {
+      handleSendMessage('Please continue from where you left off.')
+      return
+    }
 
     if (normalized.includes("try again")) {
       const lastUserMessage = [...displayMessages].reverse().find((m) => m.role === "user" && m.content?.trim())
@@ -1042,7 +1197,9 @@ export function ChatInterface({
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
         <div className="space-y-4">
-          {displayMessages.map((message) => (
+          {displayMessages
+            .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
+            .map((message) => (
             <ChatMessage
               key={message.id}
               message={message}
@@ -1058,6 +1215,8 @@ export function ChatInterface({
               onRunWorkflow={onRunWorkflow}
               onRequestPrereqRecovery={onRequestPrereqRecovery}
               onStopWorkflow={onStopWorkflow}
+              onPauseWorkflow={onPauseWorkflow}
+              onResumeWorkflow={onResumeWorkflow}
               onParameterChange={onParameterChange}
               onSuggestionClick={handleSuggestionClick}
               isWorkflowRunning={isWorkflowRunning}
@@ -1174,7 +1333,7 @@ export function ChatInterface({
         >
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Generating response... this can take 10-60 seconds for complex workflows.</span>
+            <span>Analyzing request... response will stream in as soon as it's ready.</span>
           </div>
         </div>
       )}

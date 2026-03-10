@@ -385,6 +385,314 @@ def _auto_install_host_modules(modules: list[str]) -> list[str]:
     return still_missing
 
 
+def _check_pipeline_constraints(
+    nf_path: Path, params: dict, compute: dict
+) -> Optional[Dict[str, Any]]:
+    """
+    Pre-flight check: detect pipelines that cannot run on this host and explain why.
+    Returns None if OK to proceed, or a dict with blocking details.
+
+    Currently detects:
+      - CryoSPARC pipelines running with mock_mode=false on ARM64 without AWS Batch
+    """
+    executor = compute.get("executor", "local")
+    if executor != "local":
+        # Non-local executors run on remote infra; skip local constraint checks.
+        return None
+
+    host_arch = _host_arch()
+    if host_arch == "amd64":
+        return None  # x86_64 host can run anything
+
+    try:
+        text = nf_path.read_text(errors="replace")
+    except OSError:
+        return None
+
+    # Detect CryoSPARC pipelines
+    is_cryosparc = (
+        "use_cryosparc" in text
+        or "cryosparc" in nf_path.as_posix().lower()
+    )
+    if not is_cryosparc:
+        return None
+
+    # Determine effective mock_mode
+    # Priority: explicit param > pipeline default
+    mock_from_params = params.get("mock_mode", None)
+    if mock_from_params is not None:
+        will_mock = bool(mock_from_params)
+    else:
+        # Check pipeline default: `params.mock_mode = true|false`
+        m = re.search(r"params\.mock_mode\s*=\s*(true|false)", text, re.IGNORECASE)
+        will_mock = (m is None) or (m.group(1).lower() == "true")
+
+    if will_mock:
+        return None  # mock_mode=true runs pure Python; ARM is fine
+
+    return {
+        "blocked": True,
+        "reason": (
+            f"CryoSPARC requires x86_64 hardware (this host is {host_arch}). "
+            "CryoSPARC binaries and Docker images are not available for ARM."
+        ),
+        "suggestion": (
+            "Option A: pass mock_mode=true to run the full pipeline with synthetic data.\n"
+            "Option B: configure AWS Batch in Settings → Compute to run on x86_64 cloud."
+        ),
+        "mock_mode_available": True,
+    }
+
+
+_INPUT_SIZE_LIMIT_BYTES = 10 * 1024 ** 3  # 10 GB
+
+
+def _is_path_param(key: str, value: Any) -> bool:
+    """Heuristic: is this param likely a local file or directory path?"""
+    if not isinstance(value, str):
+        return False
+    path_keywords = (
+        "path", "input", "reads", "file", "dir", "movies", "sample",
+        "samplesheet", "fasta", "fastq", "bam", "csv", "tsv", "mrc",
+        "tif", "tiff", "mdoc", "ref", "genome",
+    )
+    key_l = key.lower()
+    val = value.strip()
+    # Skip empty strings, booleans, numbers, URLs already handled separately
+    if not val or val.lower() in ("true", "false", "null", "none"):
+        return False
+    if val.startswith("s3://") or val.startswith("http"):
+        return False
+    # Key name suggests a path, or value looks like a filesystem path
+    return any(kw in key_l for kw in path_keywords) or val.startswith("/")
+
+
+def _local_path_size(p: Path) -> int:
+    """Return total size in bytes of a file or directory tree."""
+    if p.is_file():
+        return p.stat().st_size
+    total = 0
+    for child in p.rglob("*"):
+        if child.is_file():
+            try:
+                total += child.stat().st_size
+            except OSError:
+                pass
+    return total
+
+
+def _validate_input_paths(params: dict) -> None:
+    """
+    Validate all input path parameters before launching Nextflow.
+
+    Checks:
+    1. Every local path param exists (file or directory).
+    2. Total local input size does not exceed 10 GB.
+
+    S3 paths are accessibility-checked by _validate_s3_url; size is not
+    computed for S3 (listing could be expensive and is not needed for the cap).
+
+    Raises HTTPException(422) on any violation.
+    """
+    missing: list[str] = []
+    total_bytes = 0
+    large_items: list[str] = []
+
+    for key, value in params.items():
+        if key == "outdir":
+            continue  # output, not input — validated elsewhere
+        if not _is_path_param(key, value):
+            continue
+
+        p = Path(value)
+        if not p.exists():
+            missing.append(f"--{key} '{value}': path does not exist")
+            continue
+
+        size = _local_path_size(p)
+        total_bytes += size
+        if size > _INPUT_SIZE_LIMIT_BYTES:
+            gb = size / 1024 ** 3
+            large_items.append(f"--{key} '{value}' ({gb:.1f} GB)")
+
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "Input path(s) not found",
+                "missing": missing,
+                "suggestion": "Check that all --input / --reads / --movies_path values exist on disk.",
+            },
+        )
+
+    if total_bytes > _INPUT_SIZE_LIMIT_BYTES:
+        total_gb = total_bytes / 1024 ** 3
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "Input data exceeds the 10 GB per-run limit",
+                "total_gb": round(total_gb, 2),
+                "limit_gb": 10,
+                "large_inputs": large_items or ["(combined total)"],
+                "suggestion": (
+                    "Split your data into batches of ≤ 10 GB, or stage large inputs "
+                    "directly to S3 and pass an s3:// path instead."
+                ),
+            },
+        )
+
+
+def _validate_s3_url(s3_url: str) -> None:
+    """
+    Validate an s3:// URL is accessible before launching Nextflow.
+
+    Raises HTTPException(422) with a human-readable reason if not.
+    s3_url must start with 's3://'.
+    """
+    try:
+        import boto3
+        from botocore.exceptions import ClientError, NoCredentialsError
+    except ImportError:
+        log.warning("[Nextflow] boto3 not installed — skipping S3 validation")
+        return
+
+    parts = s3_url[len("s3://"):].split("/", 1)
+    bucket = parts[0]
+    if not bucket:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": f"Invalid S3 URL '{s3_url}': no bucket name"},
+        )
+
+    try:
+        boto3.client("s3").head_bucket(Bucket=bucket)
+    except NoCredentialsError:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "AWS credentials not configured",
+                "bucket": bucket,
+                "suggestion": (
+                    "Run 'aws configure' or set the AWS_ACCESS_KEY_ID / "
+                    "AWS_SECRET_ACCESS_KEY environment variables."
+                ),
+            },
+        )
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code", "")
+        if code in ("403", "AccessDenied"):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": f"Access denied to S3 bucket '{bucket}'",
+                    "bucket": bucket,
+                    "suggestion": (
+                        "Ensure the IAM role/user has s3:GetObject, "
+                        "s3:PutObject, and s3:ListBucket on this bucket."
+                    ),
+                },
+            )
+        if code in ("404", "NoSuchBucket"):
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": f"S3 bucket '{bucket}' does not exist",
+                    "bucket": bucket,
+                    "suggestion": f"Create it with: aws s3 mb s3://{bucket} --region <region>",
+                },
+            )
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": f"Cannot access S3 bucket '{bucket}': {exc}",
+                "bucket": bucket,
+            },
+        )
+
+
+def _generate_executor_config(compute: dict, config_dir: Path) -> Optional[Path]:
+    """
+    Generate a temporary nextflow.config for non-local executors.
+
+    Nextflow reads executor from nextflow.config, NOT from environment variables.
+    NXF_EXECUTOR is not a real Nextflow env var — this function replaces the
+    previous (broken) NXF_EXECUTOR approach.
+
+    Returns path to generated config file, or None for local execution.
+    """
+    executor = compute.get("executor", "local")
+    if executor not in ("awsbatch", "slurm"):
+        return None
+
+    config_path = config_dir / "biomate_executor_override.config"
+
+    if executor == "awsbatch":
+        queue = (
+            compute.get("aws_batch_queue")
+            or os.environ.get("AWS_BATCH_QUEUE", "galaxy-cloud-queue")
+        )
+        region = (
+            compute.get("aws_region")
+            or os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
+        )
+        s3_bucket = (
+            compute.get("s3_bucket")
+            or os.environ.get("NEXTFLOW_S3_BUCKET", "biomate-nextflow-work")
+        )
+        # Container for tasks. Default to a public image that has Python 3 and
+        # nothing else — mock pipelines only need the stdlib.
+        # Do NOT use biomate/biomni-tools:latest — that ECR repo is empty.
+        # Do NOT set cliPath: the default python images have no AWS CLI, so let
+        # Nextflow use its built-in Java S3 client for file staging.
+        container = compute.get("container") or os.environ.get(
+            "NEXTFLOW_BATCH_CONTAINER", "python:3.11-slim"
+        )
+
+        lines = [
+            "process {",
+            "    executor = 'awsbatch'",
+        ]
+        if queue:
+            lines.append(f"    queue = '{queue}'")
+        lines += [
+            f"    container = '{container}'",
+            "}",
+            f"aws {{",
+            f"    region = '{region}'",
+            "    client {",
+            "        maxConnections = 20",
+            "        uploadChunkSize = 104857600",   # 100 MB chunks
+            "    }",
+            "}",
+            "docker.enabled = true",
+            f"workDir = 's3://{s3_bucket}/nextflow/work'",
+        ]
+
+        if not queue:
+            log.warning(
+                "[Nextflow] AWS Batch executor: no queue name. "
+                "Set AWS_BATCH_QUEUE env var or compute_config.aws_batch_queue."
+            )
+
+    elif executor == "slurm":
+        partition = compute.get("slurm_partition") or "compute"
+        qos = compute.get("slurm_qos") or ""
+        cluster_opts = f"--partition={partition}"
+        if qos:
+            cluster_opts += f" --qos={qos}"
+
+        lines = [
+            "process {",
+            "    executor = 'slurm'",
+            f"    clusterOptions = '{cluster_opts}'",
+            "}",
+        ]
+
+    config_path.write_text("\n".join(lines) + "\n")
+    log.info(f"[Nextflow] Generated executor config: {config_path}")
+    return config_path
+
+
 def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[str, Any]:
     """
     Choose execution strategy:
@@ -459,19 +767,66 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     }
 
 
+def _parse_trace_progress(trace_path: Path) -> dict:
+    """Parse Nextflow trace file and return task-level progress counts."""
+    if not trace_path.exists():
+        return {}
+    try:
+        lines = trace_path.read_text(errors="replace").splitlines()
+    except OSError:
+        return {}
+
+    completed = failed = running = 0
+    processes = []
+    seen_tasks: Dict[str, str] = {}  # task_id → latest status
+
+    for line in lines[1:]:  # skip header row
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) < 5:
+            continue
+        task_id = parts[0].strip()
+        process_name = parts[3].strip()
+        status = parts[4].strip()
+        seen_tasks[task_id] = status
+        processes.append({"id": task_id, "name": process_name, "status": status})
+
+    for s in seen_tasks.values():
+        if s == "COMPLETED":
+            completed += 1
+        elif s == "FAILED":
+            failed += 1
+        elif s in ("RUNNING", "SUBMITTED"):
+            running += 1
+
+    total = len(seen_tasks)
+    return {
+        "completedTasks": completed,
+        "failedTasks": failed,
+        "runningTasks": running,
+        "totalTasks": total,
+        "progressPercent": int(completed * 100 / max(total, 1)) if total > 0 else 0,
+        "processes": processes,
+    }
+
+
 def _start_qc_monitor(
     invocation_id: str,
     work_dir: Path,
     qc_overrides: Dict[str, Any],
     workflow_domain: str,
     qc_profile: Optional[str] = None,
+    trace_path: Optional[Path] = None,
+    is_batch: bool = False,
 ) -> None:
     """
     Spawn a background thread that polls the Nextflow trace file and fires
     QC gate / warning events via SSE inject for the direct-executor path.
 
     The thread exits gracefully once the process finishes (no more trace updates
-    for 120 s with a COMPLETED/FAILED final status) or after a 12-hour hard cap.
+    for 120 s local / 1800 s Batch with a COMPLETED/FAILED final status)
+    or after a 12-hour hard cap.
     """
     try:
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
@@ -519,10 +874,10 @@ def _start_qc_monitor(
 
     def _poll() -> None:
         import time as _time
-        trace_file = work_dir / "workflow-trace.txt"
+        trace_file = trace_path if trace_path is not None else (work_dir / "workflow-trace.txt")
         seen_tasks: set = set()
         idle_seconds = 0
-        max_idle = 120  # seconds without new trace lines before giving up
+        max_idle = 1800 if is_batch else 120  # 30 min for Batch cold-start; 2 min local
         hard_cap = 12 * 3600  # 12-hour hard stop
 
         deadline = _time.monotonic() + hard_cap
@@ -626,17 +981,67 @@ def execute_nextflow(
             detail=str(exc)
         )
 
+    # Pre-flight: check if this pipeline can run on this host with these settings.
+    params = dict(request.parameters or {})
+    compute = dict(request.compute_config or {})
+
+    # Auto-detect S3 outdir → route to AWS Batch automatically.
+    # If the caller passes outdir=s3://..., we treat that as an implicit request
+    # for cloud execution — no separate compute_config.executor needed.
+    effective_outdir = params.get("outdir", "")
+    is_s3 = str(effective_outdir).startswith("s3://")
+
+    if is_s3:
+        # Validate the bucket is reachable before launching anything.
+        _validate_s3_url(effective_outdir)
+
+        # Auto-upgrade to AWS Batch unless an explicit executor was already given.
+        if not compute.get("executor"):
+            compute["executor"] = "awsbatch"
+            log.info(
+                f"[Nextflow] S3 outdir '{effective_outdir}' detected — "
+                "auto-selecting AWS Batch executor"
+            )
+
+        # Propagate bucket name so _generate_executor_config can set workDir.
+        if not compute.get("s3_bucket"):
+            compute["s3_bucket"] = effective_outdir.split("/")[2]  # s3://BUCKET/...
+
+    # Validate all input paths exist and total size ≤ 10 GB.
+    _validate_input_paths(params)
+
+    constraint = _check_pipeline_constraints(nf_path, params, compute)
+    if constraint and constraint.get("blocked"):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "Pipeline cannot run locally on this host",
+                "reason": constraint["reason"],
+                "suggestion": constraint["suggestion"],
+                "mock_mode_available": constraint.get("mock_mode_available", False),
+            },
+        )
+
     # Generate unique IDs
     run_id = str(uuid.uuid4())
     invocation_id = str(uuid.uuid4())
 
-    # Work / output directory
+    # Work / output directory (local staging area for logs and config files).
     work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
-    outdir = work_base / run_id / "output"
-    work_dir = work_base / run_id / "work"
     log_dir = work_base / run_id
-    outdir.mkdir(parents=True, exist_ok=True)
-    work_dir.mkdir(parents=True, exist_ok=True)
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    if is_s3:
+        # S3 mode: outputs go to S3; local work_dir only used by Nextflow head process.
+        outdir = effective_outdir   # pass through as-is
+        work_dir = log_dir / "work"
+        work_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        outdir_path = work_base / run_id / "output"
+        work_dir = work_base / run_id / "work"
+        outdir_path.mkdir(parents=True, exist_ok=True)
+        work_dir.mkdir(parents=True, exist_ok=True)
+        outdir = str(outdir_path)
 
     # Build nextflow command
     try:
@@ -672,13 +1077,16 @@ def execute_nextflow(
     # Work directory
     cmd += ["-w", str(work_dir)]
 
-    # Output dir param (most nf-core pipelines use --outdir)
-    cmd += ["--outdir", str(outdir)]
+    # Output dir: add --outdir once.
+    # If the user passed outdir in params we use theirs; otherwise the local default.
+    if "outdir" not in params:
+        cmd += ["--outdir", str(outdir)]
 
-    # Additional parameters
-    params = request.parameters or {}
+    # Additional parameters — skip outdir since it was handled above.
     for key, value in params.items():
-        if isinstance(value, bool):
+        if key == "outdir":
+            cmd += ["--outdir", str(value)]
+        elif isinstance(value, bool):
             cmd += [f"--{key}", "true" if value else "false"]
         else:
             cmd += [f"--{key}", str(value)]
@@ -689,6 +1097,8 @@ def execute_nextflow(
         log.info(f"[Nextflow run {run_id}] entry: {selected_entry}")
 
     log_path = log_dir / "nextflow.log"
+    trace_path = log_dir / "workflow-trace.txt"
+    cmd += ["-with-trace", str(trace_path)]
 
     # Environment
     env = os.environ.copy()
@@ -696,14 +1106,11 @@ def execute_nextflow(
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
 
-    # Compute config overrides
-    compute = request.compute_config or {}
-    if compute.get("executor") == "slurm":
-        env["NXF_EXECUTOR"] = "slurm"
-    elif compute.get("executor") == "awsbatch":
-        env["NXF_EXECUTOR"] = "awsbatch"
-        if compute.get("s3_bucket"):
-            env["NXF_WORK"] = f"s3://{compute['s3_bucket']}/nextflow/{run_id}"
+    # Compute config overrides: generate a real nextflow.config for non-local executors.
+    # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
+    executor_config_path = _generate_executor_config(compute, log_dir)
+    if executor_config_path:
+        cmd += ["-c", str(executor_config_path)]
 
     try:
         process = subprocess.Popen(
@@ -741,6 +1148,8 @@ def execute_nextflow(
     except ImportError:
         log.warning("[QC] QC gate handler not available — skipping override/profile validation")
 
+    _is_batch = compute.get("executor") == "awsbatch"
+
     # Register run
     with _runs_lock:
         _runs[run_id] = {
@@ -750,6 +1159,7 @@ def execute_nextflow(
             "returncode": None,
             "outdir": str(outdir),
             "log_path": str(log_path),
+            "trace_path": str(trace_path),
             "nextflow_path": str(nf_path),
             "profile": profile,
             "qc_overrides": qc_overrides,
@@ -763,6 +1173,7 @@ def execute_nextflow(
             "missing_modules": strategy["missing_modules"],
             "host_arch": strategy.get("host_arch"),
             "image_arch": strategy.get("image_arch"),
+            "is_batch": _is_batch,
         }
 
     # Stream logs in background
@@ -781,6 +1192,8 @@ def execute_nextflow(
         qc_overrides=qc_overrides,
         workflow_domain=workflow_domain,
         qc_profile=qc_profile,
+        trace_path=trace_path,
+        is_batch=_is_batch,
     )
 
     return {
@@ -827,6 +1240,10 @@ def get_nextflow_status(
         except Exception:
             pass
 
+    # Parse trace file for task-level progress
+    trace_path = Path(info.get("trace_path", ""))
+    progress = _parse_trace_progress(trace_path)
+
     return {
         "run_id": run_id,
         "invocation_id": info["invocation_id"],
@@ -834,6 +1251,8 @@ def get_nextflow_status(
         "returncode": info["returncode"],
         "outdir": info["outdir"],
         "log_tail": log_tail,
+        "is_batch": info.get("is_batch", False),
+        **progress,
     }
 
 
@@ -1490,3 +1909,58 @@ def export_qc_report(
         raise HTTPException(status_code=500, detail=f"HTML rendering failed: {exc}")
 
     return HTMLResponse(content=html_content, status_code=200)
+
+
+# ---------------------------------------------------------------------------
+# Pipeline Manifest
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/api/nextflow/invocations/{invocation_id}/manifest",
+    summary="Get pipeline output manifest for a completed invocation",
+)
+def get_invocation_manifest(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """
+    Return the workflow_outputs.json manifest written by the PIPELINE_MANIFEST
+    Nextflow process at pipeline completion.
+
+    Returns 404 if the invocation is unknown or the manifest file has not yet
+    been written (pipeline still running / manifest step not reached).
+    """
+    import json as _json
+
+    # Locate outdir for this invocation from the in-process run registry
+    outdir: Optional[Path] = None
+    with _runs_lock:
+        for run_info in _runs.values():
+            if run_info.get("invocation_id") == invocation_id:
+                raw = run_info.get("outdir")
+                outdir = Path(raw) if raw else None
+                break
+
+    if outdir is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Invocation '{invocation_id}' not found.",
+        )
+
+    manifest_path = outdir / "workflow_outputs.json"
+    if not manifest_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Manifest not yet available for invocation '{invocation_id}'. "
+                "The pipeline may still be running or the PIPELINE_MANIFEST step has not completed."
+            ),
+        )
+
+    try:
+        manifest = _json.loads(manifest_path.read_text())
+    except Exception as exc:
+        log.error(f"[Manifest] Failed to read manifest for {invocation_id}: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to read manifest: {exc}")
+
+    return manifest

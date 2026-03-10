@@ -106,8 +106,8 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'claude-haiku-4-5',       // Haiku: same 94% accuracy, 2x faster, 11.5x cheaper
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: 1.4x faster for ranking
-  responseModel: 'claude-sonnet-4-5',    // Keep sonnet for quality
-  enableThinking: true,
+  responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
+  enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
 };
 
@@ -346,7 +346,8 @@ export class GalaxyAssistant {
    */
   async processMessage(
     message: string,
-    context: ChatContext = {}
+    context: ChatContext = {},
+    onResponseDelta?: (chunk: string) => void
   ): Promise<GalaxyAssistantResponse> {
     const startTime = Date.now();
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
@@ -361,7 +362,7 @@ export class GalaxyAssistant {
 
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
-      return this.processMultiIntent(decomposition, message, context, startTime);
+      return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta);
     }
 
     // Single-intent path: unchanged from original pipeline
@@ -430,7 +431,8 @@ export class GalaxyAssistant {
           generatedWorkflow = await this.generateWorkflow(
             workflowSuggestion.userIntent,
             recommendedDatasets.map(d => d.dataset),
-            intent.inlineParameters
+            intent.inlineParameters,
+            context
           );
           workflowGenerated = !!(
             generatedWorkflow?.success &&
@@ -498,7 +500,8 @@ export class GalaxyAssistant {
       generatedWorkflow,
       context,
       researchResponse,
-      benchmarkEvidence
+      benchmarkEvidence,
+      onResponseDelta
     );
     log('Step 6 complete');
 
@@ -539,6 +542,7 @@ export class GalaxyAssistant {
       researchResponse,
       benchmarkEvidence,
       isMultiIntent: false,
+      truncated: response.truncated || false,
       suggestions,
       sources: {
         toolSearchUsed,
@@ -559,7 +563,8 @@ export class GalaxyAssistant {
     decomposition: IntentDecomposition,
     message: string,
     context: ChatContext,
-    startTime: number
+    startTime: number,
+    onResponseDelta?: (chunk: string) => void
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
@@ -639,7 +644,8 @@ export class GalaxyAssistant {
       workflowResult?.generatedWorkflow || null,
       context,
       researchResult?.researchResponse,
-      benchmarkResult?.benchmarkEvidence
+      benchmarkResult?.benchmarkEvidence,
+      onResponseDelta
     );
     log('Multi-intent Step 6 complete');
 
@@ -738,7 +744,8 @@ export class GalaxyAssistant {
           const workflow = await this.generateWorkflow(
             workflowSuggestion.userIntent,
             recommendedDatasets.map(d => d.dataset),
-            intent.inlineParameters
+            intent.inlineParameters,
+            context
           );
           baseResult.generatedWorkflow = workflow;
           if (!baseResult.recommendedTools) baseResult.recommendedTools = recommendedTools;
@@ -1430,18 +1437,85 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
   private async generateWorkflow(
     userIntent: string,
     datasets: BioMNIDataset[],
-    inlineParameters?: Record<string, string>
+    inlineParameters?: Record<string, string>,
+    context?: ChatContext
   ): Promise<any> {
+    const inferDomainHint = (): string | undefined => {
+      // Domain classifier: returns 'cryo_em' | 'rna_seq' | 'other' | undefined
+      // 'other' means a recognised non-restricted domain (pharmacology, single-cell, etc.)
+      // undefined means genuinely ambiguous — caller treats as generic (no restriction)
+      const classifyText = (text: string): 'cryo_em' | 'rna_seq' | 'other' | undefined => {
+        const t = text.toLowerCase();
+        if (['cryo-em','cryo em','cryoem','cryosparc','single-particle','micrograph',
+             'particle picking','ctf estimation','3d refinement','tilt series'].some(kw => t.includes(kw)))
+          return 'cryo_em';
+        if (['rna-seq','rnaseq','differential expression','deseq2','edger','limma',
+             'salmon','kallisto','star aligner','transcript quantif','gene expression'].some(kw => t.includes(kw))
+            || /\bfastq\b/.test(t))
+          return 'rna_seq';
+        // Recognised domains that should NOT be restricted — return 'other' so callers
+        // know the topic changed and should not inherit a prior cryo_em/rna_seq hint.
+        if (['admet','herg','dili','docking','pharmacokinetic','nca','pknca','qsar',
+             'single-cell','scrna','scrnaseq','cellranger','seurat','scanpy','umap',
+             'variant calling','gatk','somatic','tumor-normal','whole exome',
+             'proteomics','mass spec','dia-nn','maxquant',
+             'methylation','bisulfite','metagenom','16s','microbiome',
+             'chip-seq','atacseq','epigenome',
+             'alphafold','docking','ligand','scaffold hopping'].some(kw => t.includes(kw)))
+          return 'other';
+        return undefined;
+      };
+
+      // Level 1 — current message (highest priority, always wins)
+      const currentDomain = classifyText(userIntent);
+      if (currentDomain === 'cryo_em') return 'cryo_em';
+      if (currentDomain === 'rna_seq') return 'rna_seq';
+      if (currentDomain === 'other') return undefined; // topic is something else, no restriction
+
+      // Level 2 — currently active workflow in context
+      const currentWorkflowText = String(
+        context?.currentWorkflow?.workflowDefinition?.name ||
+          context?.currentWorkflow?.workflowDefinition?.nextflow_path ||
+          context?.currentWorkflow?.name ||
+          context?.currentWorkflow?.nextflow_path ||
+          ''
+      );
+      const workflowDomain = classifyText(currentWorkflowText);
+      if (workflowDomain === 'cryo_em') return 'cryo_em';
+      if (workflowDomain === 'rna_seq') return 'rna_seq';
+      if (workflowDomain === 'other') return undefined;
+
+      // Level 3 — last 2 turns of the CURRENT session only (not full history)
+      // This handles continuation messages ("add a step", "what's next?") without
+      // carrying over topics from previous unrelated sessions.
+      const recentTurns = (context?.previousMessages || []).slice(-2)
+        .map((m) => String(m.content || ''));
+      for (const turn of recentTurns) {
+        const turnDomain = classifyText(turn);
+        if (turnDomain === 'cryo_em') return 'cryo_em';
+        if (turnDomain === 'rna_seq') return 'rna_seq';
+        if (turnDomain === 'other') return undefined; // topic changed, no restriction
+      }
+
+      return undefined;
+    };
+
+    const domainHint = inferDomainHint();
+    const mergedInlineParameters = {
+      ...(inlineParameters || {}),
+      ...(domainHint ? { domain_hint: domainHint } : {}),
+    };
+
     console.log('[GalaxyAssistant] ========================================');
     console.log('[GalaxyAssistant] Generating workflow using Unified AI');
     console.log('[GalaxyAssistant] User intent:', userIntent);
     console.log('[GalaxyAssistant] Available datasets:', datasets.length);
-    console.log('[GalaxyAssistant] Inline parameters:', JSON.stringify(inlineParameters || {}));
+    console.log('[GalaxyAssistant] Inline parameters:', JSON.stringify(mergedInlineParameters));
 
     const response = await this.galaxyAPI.generateWorkflow({
       user_intent: userIntent,
       max_tools_search: 30,
-      inline_parameters: inlineParameters || {},
+      inline_parameters: mergedInlineParameters,
       datasets: datasets.map((d) => ({
         id: d.id,
         name: d.name,
@@ -1479,32 +1553,71 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     generatedWorkflow: any,
     context: ChatContext,
     researchResponse?: any,
-    benchmarkEvidence?: any
-  ): Promise<{ message: string; thinking?: ThinkingDetectionResult }> {
-    const systemPrompt = `You are BioMate, an expert bioinformatics AI assistant powered by Galaxy.
+    benchmarkEvidence?: any,
+    onResponseDelta?: (chunk: string) => void
+  ): Promise<{ message: string; thinking?: ThinkingDetectionResult; truncated?: boolean }> {
+    const lowerMessage = (message || '').toLowerCase();
+    const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
+      lowerMessage
+    );
+    const runnableWorkflow = !!(
+      generatedWorkflow?.success &&
+      !generatedWorkflow?.error &&
+      (generatedWorkflow?.workflow_ga || generatedWorkflow?.nextflow_path)
+    );
+    const workflowGenerationFailed = !!generatedWorkflow && !runnableWorkflow;
+    const workflowFailureSignals = workflowGenerationFailed
+      ? {
+          error: generatedWorkflow?.error || null,
+          message: generatedWorkflow?.message || null,
+          source: generatedWorkflow?.source || null,
+          confidence: generatedWorkflow?.confidence ?? null,
+          templateMatchScore: generatedWorkflow?.template_match_score ?? null,
+          validationIssues: generatedWorkflow?.validation?.issues || [],
+          failedTools: generatedWorkflow?.tool_installation?.failed_tools || [],
+        }
+      : null;
+
+    const isResearchIntent = !!researchResponse;
+    const systemPrompt = isResearchIntent
+      ? `You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+
+Your role:
+- Provide accurate, evidence-based answers to scientific questions
+- Cite specific papers using [N] inline notation matching the numbered reference list provided
+- Only cite papers from the provided list — never fabricate citations
+- Structure answers clearly with headings and bullet points
+- End with a ## References section listing only the papers you cited`
+      : `You are BioMate, an expert bioinformatics AI assistant.
 
 Your capabilities:
-- Access to 2,177 Galaxy tools (real-time search)
+- Access to 2,177 bioinformatics tools (real-time search)
 - Access to 100+ GB BioMNI dataset catalog
 - Workflow generation with automatic tool/dataset selection
 
 IMPORTANT RULES:
 - NEVER compute or calculate results yourself (e.g., reverse complement, sequence alignment, etc.)
-- ALWAYS recommend running the appropriate Galaxy tool or workflow instead
-- If a workflow was generated, explain it and encourage the user to click "Run"
+- ALWAYS recommend running the appropriate BioMate tool or workflow instead
+- If a runnable workflow was generated, explain it and encourage the user to click "Run"
+- If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
+- If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
 - If no workflow but tools were found, explain which tool to use and suggest creating a workflow
 - Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?")
+${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
+${isDrugDevelopmentQuery ? `- For drug-development failures, include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions` : ''}
 
 Style guide:
 - Be concise and practical
 - Recommend specific tools and datasets
 - Explain workflow steps clearly
 - Highlight key parameters and considerations
+${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases", "Decision gates", "Required inputs", and "Next step"` : ''}
 
 Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
-${generatedWorkflow ? '- Workflow generated successfully - user can click Run to execute' : ''}`;
+${runnableWorkflow ? '- Runnable workflow generated successfully - user can click Run to execute' : ''}
+${workflowGenerationFailed ? '- Workflow generation attempt failed and needs collaborative recovery' : ''}`;
 
     // Build research/benchmark context sections
     const researchSection = researchResponse
@@ -1520,17 +1633,25 @@ ${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.to
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
 
-${generatedWorkflow ? '\nA workflow has been generated and is ready to run.' : ''}${researchSection}${benchmarkSection}
+${runnableWorkflow ? '\nA runnable workflow has been generated and is ready to run.' : ''}
+${workflowGenerationFailed ? `\nWorkflow generation diagnostics:\n${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 1600)}` : ''}${researchSection}${benchmarkSection}
 
 Provide a helpful response that:
-1. ${generatedWorkflow ? 'Explains the generated workflow and tells the user to click "Run" to execute it' : researchResponse ? 'Presents the research findings with citations' : benchmarkEvidence ? 'Presents the benchmark comparison with evidence' : tools.length > 0 ? 'Recommends the relevant tool(s) and explains how they will help' : 'Explains what tools or data would be needed'}
+1. ${runnableWorkflow ? 'Explains the generated workflow and tells the user to click "Run" to execute it' : workflowGenerationFailed ? 'Explains why generation likely failed using the provided diagnostics and context' : researchResponse ? 'Presents the research findings with citations' : benchmarkEvidence ? 'Presents the benchmark comparison with evidence' : tools.length > 0 ? 'Recommends the relevant tool(s) and explains how they will help' : 'Explains what tools or data would be needed'}
 2. ${tools.length > 0 ? 'References the specific tools found and their capabilities' : researchResponse ? 'Includes relevant citations and sources' : benchmarkEvidence ? 'Provides structured comparison data' : 'Suggests what the user could search for or ask about'}
-3. ${generatedWorkflow ? 'Describes what output to expect after running' : 'Suggests creating a workflow to accomplish the task'}
-4. DO NOT compute or calculate any results yourself - always recommend using Galaxy tools`;
+3. ${runnableWorkflow ? 'Describes what output to expect after running' : workflowGenerationFailed ? 'Asks 2-4 targeted follow-up questions and gives a concrete recovery plan the user can confirm or edit' : 'Suggests creating a workflow to accomplish the task'}
+4. DO NOT compute or calculate any results yourself - always recommend using BioMate tools
+${isDrugDevelopmentQuery ? `
+5. If drug-development related:
+   - Include at least 2 concrete workflow phases (e.g., target prep, docking, ADMET, hERG, PK/NCA).
+   - Include at least 1 decision gate/criterion (e.g., ranking/cutoff/risk flag) or explicitly state why criterion cannot be provided.
+   - If generation fails, provide at least 2 blocker categories plus at least 2 follow-up questions.` : ''}`;
 
     try {
-      // Convert context messages to Claude format
-      const previousMessages = (context.previousMessages || []).map((msg) => ({
+      // Convert context messages to Claude format (trim to recent turns for latency)
+      const previousMessages = (context.previousMessages || [])
+        .slice(-6)
+        .map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       }));
@@ -1573,19 +1694,45 @@ Provide a helpful response that:
         apiOptions.temperature = 0.7;
       }
 
-      const completion = await this.claude.messages.create(apiOptions);
+      let rawResponse = '';
+      let lastStopReason: string | null = null;
+      if (onResponseDelta) {
+        const stream = await this.claude.messages.create({
+          ...apiOptions,
+          stream: true,
+        } as any);
+        for await (const event of stream as any) {
+          if (event?.type === 'content_block_delta' && event?.delta?.type === 'text_delta') {
+            const text = String(event.delta.text || '');
+            if (text) {
+              rawResponse += text;
+              onResponseDelta(text);
+            }
+          } else if (event?.type === 'message_stop') {
+            lastStopReason = String(event?.message?.stop_reason || '');
+          }
+        }
+        console.log('[GalaxyAssistant] Response stream complete:', {
+          model: this.modelConfig.responseModel,
+          time_ms: Date.now() - apiStartTime,
+          stop_reason: lastStopReason,
+          streamed_chars: rawResponse.length,
+        });
+      } else {
+        const completion = await this.claude.messages.create(apiOptions);
 
-      console.log('[GalaxyAssistant] Response API response:', {
-        model: this.modelConfig.responseModel,
-        time_ms: Date.now() - apiStartTime,
-        usage: completion.usage,
-        stop_reason: completion.stop_reason,
-        content_blocks: completion.content.length
-      });
+        console.log('[GalaxyAssistant] Response API response:', {
+          model: this.modelConfig.responseModel,
+          time_ms: Date.now() - apiStartTime,
+          usage: completion.usage,
+          stop_reason: completion.stop_reason,
+          content_blocks: completion.content.length
+        });
 
-      // Find the text content block (thinking mode returns [thinking, text])
-      const textContent = completion.content.find(c => c.type === 'text');
-      const rawResponse = textContent && textContent.type === 'text' ? textContent.text : 'I can help you with that!';
+        // Find the text content block (thinking mode returns [thinking, text])
+        const textContent = completion.content.find(c => c.type === 'text');
+        rawResponse = textContent && textContent.type === 'text' ? textContent.text : 'I can help you with that!';
+      }
 
       // Detect and parse thinking content
       const thinkingResult = thinkingDetector.detectThinking(rawResponse);
@@ -1596,9 +1743,19 @@ Provide a helpful response that:
         thinkingWords: thinkingResult.thinkingWordCount
       });
 
+      const qualityEnforcedMessage = this.enforceDrugDevelopmentResponseQuality({
+        userMessage: message,
+        assistantMessage: thinkingResult.answerContent,
+        runnableWorkflow,
+        workflowGenerationFailed,
+        workflowFailureSignals,
+      });
+
+      const wasTruncated = lastStopReason === 'max_tokens';
       return {
-        message: thinkingResult.answerContent,
-        thinking: thinkingResult.hasThinking ? thinkingResult : undefined
+        message: qualityEnforcedMessage,
+        thinking: thinkingResult.hasThinking ? thinkingResult : undefined,
+        truncated: wasTruncated,
       };
     } catch (error) {
       console.error('[GalaxyAssistant] Response generation failed:', error);
@@ -1606,6 +1763,87 @@ Provide a helpful response that:
         message: 'I found some relevant tools and datasets for your analysis. How would you like to proceed?'
       };
     }
+  }
+
+  private enforceDrugDevelopmentResponseQuality(params: {
+    userMessage: string;
+    assistantMessage: string;
+    runnableWorkflow: boolean;
+    workflowGenerationFailed: boolean;
+    workflowFailureSignals: any;
+  }): string {
+    const { userMessage, assistantMessage, runnableWorkflow, workflowGenerationFailed, workflowFailureSignals } = params;
+    const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
+      userMessage || ''
+    );
+    if (!isDrugDevelopmentQuery) {
+      return assistantMessage;
+    }
+
+    const text = assistantMessage || '';
+    const lower = text.toLowerCase();
+    const additions: string[] = [];
+
+    const hasWorkflowPhases = /(workflow phases|phase|target prep|docking|admet|herg|pk\/nca|nca)/i.test(lower);
+    const hasDecisionGates = /(decision gate|gating|cutoff|threshold|risk flag|go\/no-go|go-no-go)/i.test(lower);
+    const hasRequiredInputs = /(required inputs|input files|you provide|input data)/i.test(lower);
+    const hasNextStep = /(next step|next steps|confirm or edit|please confirm|follow-up)/i.test(lower);
+
+    if (!hasWorkflowPhases) {
+      additions.push(
+        '### Workflow phases\n- Target/assay context and data intake\n- Core analysis phase (e.g., docking, ADMET, or PK/NCA)\n- QC/safety review and report handoff'
+      );
+    }
+    if (!hasDecisionGates) {
+      additions.push(
+        '### Decision gates\n- Define explicit cutoffs/thresholds for risk ranking (for example: toxicity risk flag, hERG gate, or PK acceptability criteria)\n- Use these gates as go/no-go checkpoints before advancing candidates'
+      );
+    }
+    if (!hasRequiredInputs) {
+      additions.push(
+        '### Required inputs\n- Input data files (e.g., structures/SMILES, assay data, or concentration-time table)\n- Basic study metadata (condition, units, and endpoint definitions)'
+      );
+    }
+    if (!hasNextStep) {
+      additions.push('### Next step\n- Confirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.');
+    }
+
+    if (workflowGenerationFailed) {
+      const errorBlob = JSON.stringify(workflowFailureSignals || {}).toLowerCase();
+      const hasToolGap = /(not found|missing|unavailable|failed_tools|none found|tool)/i.test(errorBlob);
+      const hasInputGap = /(input|dataset|file|required)/i.test(errorBlob);
+      const hasDomainMismatch = /(domain|alignment|incompatible|mismatch)/i.test(errorBlob);
+
+      const blockers: string[] = [];
+      blockers.push(hasToolGap ? '- Tool gap: one or more required capabilities are missing or unavailable in the current runtime.' : '- Tool gap: verify that required tools are installed and accessible.');
+      blockers.push(hasInputGap ? '- Input gap: required input files/datasets are missing or not yet mapped for execution.' : '- Input gap: provide required input files and metadata before execution.');
+      if (hasDomainMismatch || (!hasToolGap && !hasInputGap)) {
+        blockers.push('- Domain mismatch: the requested combined workflow spans incompatible domains and should be split into staged workflows.');
+      }
+
+      if (!/why generation failed|workflow generation failed|blocked/i.test(lower)) {
+        additions.push(`### Why generation failed\n${blockers.join('\n')}`);
+      } else if (!/tool gap|input gap|domain mismatch|incompatible/i.test(lower)) {
+        additions.push(`### Blocker categories\n${blockers.join('\n')}`);
+      }
+
+      if (!/follow-up questions|please answer|which analysis|what input|confirm or edit/i.test(lower)) {
+        additions.push(
+          '### Targeted follow-up questions\n1. Which analysis should be prioritized first (docking, ADMET, or PK/NCA)?\n2. What exact input files do you have now (format + example filenames)?'
+        );
+      }
+    }
+
+    if (additions.length === 0) {
+      return text;
+    }
+
+    console.log('[GalaxyAssistant] Applied drug-development quality guard:', {
+      additions: additions.length,
+      runnableWorkflow,
+      workflowGenerationFailed,
+    });
+    return `${text}\n\n${additions.join('\n\n')}`;
   }
 
   /**
