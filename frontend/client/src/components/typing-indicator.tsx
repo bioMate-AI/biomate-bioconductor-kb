@@ -17,7 +17,7 @@ export function TypingIndicator() {
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
             <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
-          <span className="text-xs text-muted-foreground ml-2">AI is typing...</span>
+          <span className="text-xs text-muted-foreground ml-2">BioMate is thinking...</span>
         </div>
       </Card>
     </div>

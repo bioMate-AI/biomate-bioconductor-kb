@@ -1,6 +1,43 @@
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
+
+/**
+ * Pre-processes assistant markdown to:
+ * 1. Convert inline [N] citations → clickable [[N]](#ref-N) links
+ * 2. Add <span id="ref-N"> anchors to each References list entry
+ * 3. Make bare URLs in the References section into proper markdown links
+ */
+function addCitationLinks(text: string): string {
+  if (!text) return text;
+
+  // Split at the ## References / # References heading (case-insensitive)
+  const refMatch = text.match(/^(#{1,3}\s*References?\s*)$/im);
+  if (!refMatch || refMatch.index === undefined) {
+    // No references section: just linkify inline citations to a #references hash
+    return text.replace(/\[(\d+)\](?!\()/g, (_, n) => `[[${n}]](#references)`);
+  }
+
+  const bodyEnd = refMatch.index;
+  const body = text.slice(0, bodyEnd);
+  const refs = text.slice(bodyEnd);
+
+  // Body: [N] → [[N]](#ref-N)  (don't replace already-linked [N](...))
+  const linkedBody = body.replace(/\[(\d+)\](?!\()/g, (_, n) => `[[${n}]](#ref-${n})`);
+
+  // References section:
+  //   Lines starting with [N] text → inject HTML anchor before the number
+  //   Bare URLs at end of line → convert to markdown links
+  const linkedRefs = refs
+    .replace(/^\[(\d+)\]/gm, (_, n) => `<span id="ref-${n}"></span>[${n}]`)
+    .replace(
+      /(https?:\/\/[^\s)\]]+)/g,
+      (url) => `[${url}](${url})`,
+    );
+
+  return linkedBody + linkedRefs;
+}
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -163,7 +200,24 @@ export function ChatMessage({
                 prose-pre:bg-muted prose-pre:text-xs prose-pre:overflow-x-auto
                 prose-blockquote:border-l-4 prose-blockquote:pl-3 prose-blockquote:italic prose-blockquote:text-muted-foreground
                 prose-hr:my-3">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content || ''}</ReactMarkdown>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={{
+                    a: ({ href, children, ...props }) => (
+                      <a
+                        href={href}
+                        target={href?.startsWith('#') ? '_self' : '_blank'}
+                        rel={href?.startsWith('#') ? undefined : 'noopener noreferrer'}
+                        {...props}
+                      >
+                        {children}
+                      </a>
+                    ),
+                  }}
+                >
+                  {addCitationLinks(message.content || '')}
+                </ReactMarkdown>
               </div>
             )}
           </Card>

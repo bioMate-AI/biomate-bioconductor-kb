@@ -1637,11 +1637,11 @@ ${runnableWorkflow ? '\nA runnable workflow has been generated and is ready to r
 ${workflowGenerationFailed ? `\nWorkflow generation diagnostics:\n${JSON.stringify(workflowFailureSignals, null, 2).slice(0, 1600)}` : ''}${researchSection}${benchmarkSection}
 
 Provide a helpful response that:
-1. ${runnableWorkflow ? 'Explains the generated workflow and tells the user to click "Run" to execute it' : workflowGenerationFailed ? 'Explains why generation likely failed using the provided diagnostics and context' : researchResponse ? 'Presents the research findings with citations' : benchmarkEvidence ? 'Presents the benchmark comparison with evidence' : tools.length > 0 ? 'Recommends the relevant tool(s) and explains how they will help' : 'Explains what tools or data would be needed'}
+1. ${runnableWorkflow ? 'Briefly describes the generated workflow (steps, inputs, expected outputs). Do NOT say "click Run" — the Run button is already visible in the workflow panel rendered separately' : workflowGenerationFailed ? 'Explains why generation likely failed using the provided diagnostics and context' : researchResponse ? 'Presents the research findings with inline [N] citations referencing the numbered list' : benchmarkEvidence ? 'Presents the benchmark comparison with evidence' : tools.length > 0 ? 'Recommends the relevant tool(s) and explains how they will help' : 'Explains what tools or data would be needed'}
 2. ${tools.length > 0 ? 'References the specific tools found and their capabilities' : researchResponse ? 'Includes relevant citations and sources' : benchmarkEvidence ? 'Provides structured comparison data' : 'Suggests what the user could search for or ask about'}
-3. ${runnableWorkflow ? 'Describes what output to expect after running' : workflowGenerationFailed ? 'Asks 2-4 targeted follow-up questions and gives a concrete recovery plan the user can confirm or edit' : 'Suggests creating a workflow to accomplish the task'}
-4. DO NOT compute or calculate any results yourself - always recommend using BioMate tools
-${isDrugDevelopmentQuery ? `
+3. ${runnableWorkflow ? 'Describes what output to expect after running' : workflowGenerationFailed ? 'Asks 2-4 targeted follow-up questions and gives a concrete recovery plan the user can confirm or edit' : researchResponse ? 'Ends with a ## References section listing only the papers cited (numbered, with authors, title, journal, year, and URL/DOI where available)' : 'Suggests creating a workflow to accomplish the task'}
+4. ${isResearchIntent ? 'Focus on scientific accuracy — only cite papers from the provided list, never fabricate citations' : 'DO NOT compute or calculate any results yourself - always recommend using BioMate tools'}
+${isDrugDevelopmentQuery && !isResearchIntent ? `
 5. If drug-development related:
    - Include at least 2 concrete workflow phases (e.g., target prep, docking, ADMET, hERG, PK/NCA).
    - Include at least 1 decision gate/criterion (e.g., ranking/cutoff/risk flag) or explicitly state why criterion cannot be provided.
