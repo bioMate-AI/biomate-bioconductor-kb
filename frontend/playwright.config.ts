@@ -19,16 +19,19 @@ export default defineConfig({
     ['list'],
   ],
 
+  // Per-test timeout: 10 minutes. Drug-dev workflows use the full AI pipeline (~30-180s each).
+  timeout: 600000,
+
   use: {
     baseURL: process.env.BIOMATE_URL || 'http://localhost:5000',
-    trace: 'on', // Collect trace for all tests
-    screenshot: 'on', // Capture screenshots
+    trace: 'retain-on-failure',
+    screenshot: 'on', // Capture screenshots for every test — audit trail
     video: {
-      mode: 'on', // Record video for all tests
+      mode: 'on', // Record video for every test — audit trail
       size: { width: 1920, height: 1080 },
     },
-    actionTimeout: 30000,
-    navigationTimeout: 60000,
+    actionTimeout: 60000,
+    navigationTimeout: 90000,
   },
 
   // Output directories (override for isolated runs via PW_OUTPUT_DIR)

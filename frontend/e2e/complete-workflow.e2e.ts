@@ -2,23 +2,30 @@
  * Complete Workflow E2E Test
  *
  * Tests the ENTIRE flow from asking for a workflow to downloading output:
- * 1. User asks for workflow
+ * 1. User registers and logs in
  * 2. AI generates workflow with steps (WorkflowArtifact renders)
  * 3. User clicks "Run Workflow"
- * 4. Progress is tracked
+ * 4. Progress is tracked against real backend
  * 5. Output is available for download
+ *
+ * NO page.route() mocks — all calls hit the live BioMate backend.
  */
 
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import {
+  BASE_URL,
+  setupTestUser,
+  sendMessageAndWaitForResponse,
+  clickRunAndWaitForTerminal,
+} from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots', 'complete-workflow');
 
 if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -28,6 +35,7 @@ test.use({
   screenshot: 'on',
   trace: 'on',
   viewport: { width: 1920, height: 1080 },
+  storageState: { cookies: [], origins: [] },
 });
 
 test.setTimeout(300000); // 5 minutes for complete workflow
@@ -79,50 +87,29 @@ test.describe('Complete Workflow E2E', () => {
       const timestamp = Date.now() - testStartTime;
       await page.screenshot({
         path: `${SCREENSHOT_DIR}/${String(timestamp).padStart(6, '0')}_${name}.png`,
-        fullPage: true
+        fullPage: true,
       });
       console.log(`[Screenshot] ${name} at ${timestamp}ms`);
     };
 
-    // ===== STEP 1: Navigate to app =====
-    console.log('[Test] Step 1: Navigate to app');
-    await page.goto(BASE_URL);
-    await page.waitForLoadState('networkidle');
+    // ===== STEP 1: Register and navigate to app =====
+    console.log('[Test] Step 1: Register test user and navigate to app');
+    await setupTestUser(page, 'cwf');
     await page.waitForTimeout(2000);
     await saveScreenshot('01_initial');
 
     // ===== STEP 2: Ask for a workflow =====
     console.log('[Test] Step 2: Ask for workflow');
-    const chatInput = page.locator('textarea').first();
-    await expect(chatInput).toBeVisible({ timeout: 10000 });
-
-    // Use a specific request that should trigger workflow generation
-    // Use a request that consistently returns a real executable workflow card.
     const workflowRequest = 'Build me a quality control workflow for RNA-seq FASTQ files';
-    await chatInput.fill(workflowRequest);
-    await chatInput.press('Enter');
+    const foundWorkflow = await sendMessageAndWaitForResponse(page, workflowRequest);
     console.log(`[Test] Sent: "${workflowRequest}"`);
-    await saveScreenshot('02_message_sent');
-
-    // ===== STEP 3: Wait for AI response to COMPLETE =====
-    console.log('[Test] Step 3: Waiting for AI response to complete...');
-
-    // First wait for typing indicator to appear
-    await page.waitForSelector('text=AI is typing', { timeout: 10000 }).catch(() => {
-      console.log('[Test] No typing indicator found, response may already be complete');
-    });
-
-    // Then wait for typing indicator to DISAPPEAR (response complete)
-    await page.waitForSelector('text=AI is typing', { state: 'hidden', timeout: 120000 }).catch(() => {
-      console.log('[Test] Typing indicator did not disappear within 2 minutes');
-    });
 
     // Additional wait for rendering
     await page.waitForTimeout(3000);
-    await saveScreenshot('03_response_complete');
+    await saveScreenshot('02_response_complete');
 
-    // ===== STEP 4: Check for WorkflowArtifact =====
-    console.log('[Test] Step 4: Looking for WorkflowArtifact...');
+    // ===== STEP 3: Check for WorkflowArtifact =====
+    console.log('[Test] Step 3: Looking for WorkflowArtifact...');
 
     // Look for workflow artifact indicators
     const workflowIndicators = [
@@ -132,54 +119,55 @@ test.describe('Complete Workflow E2E', () => {
       '[data-testid="workflow-artifact"]',
       'text=RNA STARSolo',
       'text=MultiQC',
+      'text=FastQC',
     ];
 
-    let foundWorkflow = false;
-    for (const indicator of workflowIndicators) {
-      const element = page.locator(indicator).first();
-      if (await element.isVisible().catch(() => false)) {
-        console.log(`[Test] Found workflow indicator: ${indicator}`);
-        foundWorkflow = true;
-        break;
+    let detectedWorkflow = foundWorkflow;
+    if (!detectedWorkflow) {
+      for (const indicator of workflowIndicators) {
+        const element = page.locator(indicator).first();
+        if (await element.isVisible().catch(() => false)) {
+          console.log(`[Test] Found workflow indicator: ${indicator}`);
+          detectedWorkflow = true;
+          break;
+        }
       }
     }
 
-    await saveScreenshot('04_workflow_check');
+    await saveScreenshot('03_workflow_check');
 
-    if (!foundWorkflow) {
+    if (!detectedWorkflow) {
       console.log('[Test] WorkflowArtifact NOT found! Checking page content...');
       const pageContent = await page.textContent('body');
       console.log('[Test] Page contains "workflow":', pageContent?.toLowerCase().includes('workflow'));
       console.log('[Test] Page contains "step":', pageContent?.toLowerCase().includes('step'));
 
-      // Check if there's an error message
       const hasError = pageContent?.toLowerCase().includes('error') ||
                        pageContent?.toLowerCase().includes('failed');
       console.log('[Test] Page contains error:', hasError);
 
-      // Save the full page HTML for debugging
       const html = await page.content();
       fs.writeFileSync(`${SCREENSHOT_DIR}/debug_page.html`, html);
       console.log('[Test] Saved page HTML to debug_page.html');
     }
 
-    // ===== STEP 5: Click execution button if available =====
-    // Some workflow cards use "Execute"/"Start"/"Run Workflow" instead of literal "Run".
+    // ===== STEP 4: Handle disabled Run button with prerequisite recovery =====
+    const chatInput = page.locator('textarea').first();
     const runButtonCandidates = [
-      page.getByRole('button', { name: /run workflow/i }).last(),
-      page.getByRole('button', { name: /^run$/i }).last(),
-      page.getByRole('button', { name: /execute/i }).last(),
-      page.getByRole('button', { name: /start/i }).last(),
-      page.locator('button:has-text("▶ Run")').last(),
-      page.locator('button:has-text("Run")').last(),
+      page.getByTestId('button-run-workflow-panel').first(),
+      page.getByRole('button', { name: /run workflow/i }).first(),
+      page.getByRole('button', { name: /^run$/i }).first(),
+      page.getByRole('button', { name: /execute/i }).first(),
     ];
-    let runButton = runButtonCandidates[runButtonCandidates.length - 1];
+
+    let runButton = runButtonCandidates[0];
     for (const candidate of runButtonCandidates) {
       if (await candidate.isVisible().catch(() => false)) {
         runButton = candidate;
         break;
       }
     }
+
     let executionRunId: string | null = null;
     let executeApiRunId: string | null = null;
     let backendTerminalStatus: string | null = null;
@@ -189,9 +177,7 @@ test.describe('Complete Workflow E2E', () => {
     let outputDownloadable = false;
 
     page.on('response', async (resp) => {
-      if (!resp.url().includes('/api/workflows/execute')) {
-        return;
-      }
+      if (!resp.url().includes('/api/workflows/execute')) return;
       try {
         const payload = await resp.json();
         executeApiRunId =
@@ -219,9 +205,9 @@ test.describe('Complete Workflow E2E', () => {
         }
         await page.waitForSelector('text=AI is typing', { state: 'hidden', timeout: 120000 }).catch(() => {});
         await page.waitForTimeout(3000);
-        await saveScreenshot('04b_prereq_recovery_response');
+        await saveScreenshot('03b_prereq_recovery_response');
 
-        // Re-resolve run button after recovery turn.
+        // Re-resolve run button after recovery turn
         for (const candidate of runButtonCandidates) {
           if (await candidate.isVisible().catch(() => false)) {
             runButton = candidate;
@@ -232,12 +218,12 @@ test.describe('Complete Workflow E2E', () => {
       }
 
       expect(runEnabled, 'Run button remains disabled after prerequisite recovery').toBe(true);
-      console.log('[Test] Step 5: Clicking Run button...');
+      console.log('[Test] Step 4: Clicking Run button...');
       await runButton.click();
       await page.waitForTimeout(2000);
-      await saveScreenshot('05_workflow_running');
+      await saveScreenshot('04_workflow_running');
 
-      // Capture the run id emitted by frontend log.
+      // Capture the run id emitted by frontend log
       for (let i = 0; i < 15; i++) {
         const runLog = [...consoleLogs].reverse().find((log) =>
           log.text.includes('Workflow execution started:')
@@ -259,53 +245,64 @@ test.describe('Complete Workflow E2E', () => {
         console.log('[Test] Could not capture execution run ID from logs/API; continuing with UI checks.');
       }
 
-      // ===== STEP 6: Monitor execution progress =====
-      console.log('[Test] Step 6: Monitoring execution progress...');
+      // ===== STEP 5: Monitor execution progress =====
+      console.log('[Test] Step 5: Monitoring execution progress...');
 
       for (let i = 0; i < 60; i++) { // Up to 2 minutes
         await page.waitForTimeout(2000);
 
         const pageText = await page.textContent('body');
 
-        // Check for progress indicators
         if (pageText?.includes('Executing') || pageText?.includes('Running') || pageText?.includes('%')) {
           console.log(`[Test] Execution in progress (iteration ${i})`);
           if (i % 10 === 0) {
-            await saveScreenshot(`06_progress_${i}`);
+            await saveScreenshot(`05_progress_${i}`);
           }
         }
 
-        // Check for completion
-        if (pageText?.includes('Complete') || pageText?.includes('Success') || pageText?.includes('Finished')) {
+        if (
+          pageText?.includes('Complete') ||
+          pageText?.includes('COMPLETED') ||
+          pageText?.includes('Success') ||
+          pageText?.includes('Finished')
+        ) {
           console.log(`[Test] Execution complete at iteration ${i}`);
           executionComplete = true;
-          await saveScreenshot('07_execution_complete');
+          await saveScreenshot('06_execution_complete');
           break;
         }
 
-        // Check for errors
         if (pageText?.includes('Failed') || pageText?.includes('Error:')) {
           console.log(`[Test] Execution error at iteration ${i}`);
-          await saveScreenshot('07_execution_error');
+          await saveScreenshot('06_execution_error');
           break;
         }
       }
 
-      // ===== STEP 6b: Backend-truth check for terminal state =====
-      console.log('[Test] Step 6b: Poll backend run status for terminal state...');
+      // ===== STEP 5b: Backend-truth check for terminal state =====
+      console.log('[Test] Step 5b: Poll backend run status for terminal state...');
       const terminalStatuses = new Set(['completed', 'failed', 'error', 'cancelled']);
       let statusPayload: RunStatusResponse | null = null;
 
       if (executionRunId) {
         for (let i = 0; i < 45; i++) { // Up to ~90s for status/artifact-readiness convergence
           await page.waitForTimeout(2000);
-          const response = await page.request.get(`${BASE_URL}/api/workflows/runs/${executionRunId}/status`);
-          if (!response.ok()) {
-            console.log(`[Test] Backend poll ${i}: HTTP ${response.status()}`);
+          const result = await page.evaluate(async (url: string) => {
+            try {
+              const r = await fetch(url);
+              if (!r.ok) return { ok: false, status: r.status, body: null };
+              return { ok: true, status: r.status, body: await r.json() };
+            } catch {
+              return { ok: false, status: 0, body: null };
+            }
+          }, `/api/workflows/runs/${executionRunId}/status?includeSteps=true`);
+
+          if (!result.ok) {
+            console.log(`[Test] Backend poll ${i}: HTTP ${result.status}`);
             continue;
           }
 
-          statusPayload = (await response.json()) as RunStatusResponse;
+          statusPayload = result.body as RunStatusResponse;
           const status = (statusPayload.status || '').toLowerCase();
           const nfStatus = (statusPayload.nextflowStatus?.status || '').toLowerCase();
           const nfCompleted = !!statusPayload.nextflowStatus?.completed;
@@ -318,19 +315,17 @@ test.describe('Complete Workflow E2E', () => {
           }
 
           if (terminalStatuses.has(status)) {
-          backendTerminalStatus = status;
-          // For successful completion, keep polling briefly until artifact-readiness
-          // contract is satisfied to avoid failing on persistence lag.
-          if (status !== 'completed' || statusPayload?.artifactReadiness?.meetsContract) {
-            break;
-          }
+            backendTerminalStatus = status;
+            if (status !== 'completed' || statusPayload?.artifactReadiness?.meetsContract) {
+              break;
+            }
           }
 
           if (nfCompleted && (status === 'running' || status === 'pending')) {
-          backendTerminalStatus = 'completed';
-          if (statusPayload?.artifactReadiness?.meetsContract) {
-            break;
-          }
+            backendTerminalStatus = 'completed';
+            if (statusPayload?.artifactReadiness?.meetsContract) {
+              break;
+            }
           }
         }
 
@@ -346,18 +341,36 @@ test.describe('Complete Workflow E2E', () => {
 
         executionComplete = true;
       }
-      await saveScreenshot('07_backend_terminal_complete');
+      await saveScreenshot('06b_backend_terminal_complete');
 
-      // ===== STEP 7: Check for output/download =====
+      // ===== STEP 6: Check for output/download =====
       if (executionComplete) {
-        console.log('[Test] Step 7: Checking for output...');
+        console.log('[Test] Step 6: Checking for output...');
+        await page.waitForTimeout(3000);
+        await saveScreenshot('07_before_output_check');
 
-        // Post-run feedback modal can steal focus and mark background controls inert.
-        // Dismiss it before validating output affordances.
+        // Dismiss the post-run survey if present
+        const surveyDialog = page.getByTestId('post-run-survey-dialog');
+        if (await surveyDialog.isVisible().catch(() => false)) {
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(300);
+        }
+
+        // Dismiss post-run feedback modal before validating output affordances
         const feedbackSkip = page.getByRole('button', { name: /^skip$/i }).first();
         if (await feedbackSkip.isVisible().catch(() => false)) {
           await feedbackSkip.click().catch(() => {});
           await page.waitForTimeout(300);
+        }
+
+        // Scroll to output section if View Results button is visible
+        const viewResultsBtnVisible = await page.getByRole('button', { name: /hide results/i }).first().isVisible().catch(() => false);
+        if (!viewResultsBtnVisible) {
+          const viewBtn = page.getByRole('button', { name: /view results/i }).first();
+          if (await viewBtn.isVisible().catch(() => false) && await viewBtn.isEnabled().catch(() => false)) {
+            await viewBtn.click();
+            await page.waitForTimeout(1000);
+          }
         }
 
         const outputStateBadge = page.getByTestId('output-result-state-badge').first();
@@ -372,15 +385,11 @@ test.describe('Complete Workflow E2E', () => {
           console.log(
             `[Test] Output evidence found: outputCards=${hasOutputCards}, runtimeArtifacts=${hasRuntimeArtifacts}, emptyMessage=${hasEmptyOutputsMessage}`
           );
-          await saveScreenshot('08_output_available');
+          await saveScreenshot('07_output_available');
         }
 
-        // Enforce frontend completion standard:
-        // 1) output should be visualizable
-        // 2) output should be downloadable
+        // Check visualizability
         const reportButton = page.getByRole('button', { name: /^report$/i }).first();
-        const downloadButton = page.getByRole('button', { name: /^download$/i }).first();
-
         if (hasOutputCards && !hasEmptyOutputsMessage && await reportButton.isVisible().catch(() => false)) {
           outputVisualizable = await reportButton.isEnabled().catch(() => false);
           console.log(`[Test] Report button visible, enabled=${outputVisualizable}`);
@@ -406,6 +415,7 @@ test.describe('Complete Workflow E2E', () => {
           );
         }
 
+        // Check downloadability
         if (hasOutputCards && !hasEmptyOutputsMessage) {
           for (let attempt = 0; attempt < 20 && !outputDownloadable; attempt++) {
             const outputDownloadCandidates = page.getByRole('button', { name: /download/i });
@@ -413,9 +423,7 @@ test.describe('Complete Workflow E2E', () => {
             for (let idx = 0; idx < candidateCount; idx++) {
               const candidate = outputDownloadCandidates.nth(idx);
               const visible = await candidate.isVisible().catch(() => false);
-              if (!visible) {
-                continue;
-              }
+              if (!visible) continue;
               const enabled = await candidate.isEnabled().catch(() => false);
               if (enabled) {
                 outputDownloadable = true;
@@ -426,7 +434,8 @@ test.describe('Complete Workflow E2E', () => {
               await page.waitForTimeout(1000);
             }
           }
-          // Legacy fallback for explicit Download button if present.
+
+          const downloadButton = page.getByRole('button', { name: /^download$/i }).first();
           if (!outputDownloadable && await downloadButton.isVisible().catch(() => false)) {
             outputDownloadable = await downloadButton.isEnabled().catch(() => false);
           }
@@ -454,12 +463,11 @@ test.describe('Complete Workflow E2E', () => {
                 }
               }
             } catch {
-              // Keep UI-based result if API probe fails.
+              // Keep UI-based result if API probe fails
             }
           }
           console.log(`[Test] Output download control enabled=${outputDownloadable}`);
         } else {
-          // No output cards means no concrete downloadable dataset materialized in UI.
           outputDownloadable = false;
           console.log(
             `[Test] Dataset download controls not found (hasOutputCards=${hasOutputCards}, emptyMessage=${hasEmptyOutputsMessage})`
@@ -467,22 +475,22 @@ test.describe('Complete Workflow E2E', () => {
         }
 
         if (outputVisualizable && outputDownloadable) {
-          await saveScreenshot('09_output_visualizable_and_downloadable');
+          await saveScreenshot('08_output_visualizable_and_downloadable');
         }
       }
     } else {
       console.log('[Test] No Run button found in WorkflowArtifact');
     }
 
-    // Hard requirements for real E2E success.
-    expect(foundWorkflow, 'Workflow artifact was not rendered').toBe(true);
+    // Hard requirements for real E2E success
+    expect(detectedWorkflow, 'Workflow artifact was not rendered').toBe(true);
     expect(executionComplete, 'Execution did not complete successfully').toBe(true);
     expect(outputFound, 'No output indicators were found after completion').toBe(true);
     expect(outputVisualizable, 'Output is not visualizable from frontend').toBe(true);
     expect(outputDownloadable, 'Output is not downloadable from frontend').toBe(true);
 
-    // ===== STEP 8: Check Workflow History =====
-    console.log('[Test] Step 8: Checking Workflow History...');
+    // ===== STEP 7: Check Workflow History =====
+    console.log('[Test] Step 7: Checking Workflow History...');
     const myWorkflowsButton = page.getByRole('button', { name: 'My Workflows' });
     if (await myWorkflowsButton.isVisible()) {
       await myWorkflowsButton.click();
@@ -497,12 +505,10 @@ test.describe('Complete Workflow E2E', () => {
     // ===== Final screenshot and logs =====
     await saveScreenshot('10_final_state');
 
-    // Save console logs
     const logsPath = `${SCREENSHOT_DIR}/console_logs_${Date.now()}.json`;
     fs.writeFileSync(logsPath, JSON.stringify(consoleLogs, null, 2));
     console.log(`[Test] Console logs saved to: ${logsPath}`);
 
-    // Filter important logs
     const importantLogs = consoleLogs.filter(log =>
       log.text.includes('ChatInterface') ||
       log.text.includes('workflow') ||
@@ -517,9 +523,8 @@ test.describe('Complete Workflow E2E', () => {
       console.log(`  [${log.type}] ${log.text.substring(0, 200)}`);
     });
 
-    // Summary
     console.log('\n[Test] === Test Summary ===');
-    console.log(`  Workflow artifact found: ${foundWorkflow}`);
+    console.log(`  Workflow artifact found: ${detectedWorkflow}`);
     console.log(`  Total duration: ${Date.now() - testStartTime}ms`);
   });
 });
