@@ -1,0 +1,130 @@
+name: AWS Release Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Branch or commit to release (for example release/aws-20260311-r1)"
+        required: true
+        type: string
+      release_tag:
+        description: "Patch tag to create (for example aws-v2026.03.11-r2)"
+        required: true
+        type: string
+      create_tag:
+        description: "Create and push release tag after gates pass"
+        required: false
+        default: false
+        type: boolean
+      run_live_contract:
+        description: "Run strict live execute contract against BIOMATE_URL"
+        required: false
+        default: false
+        type: boolean
+      biomate_url:
+        description: "Base URL for strict live contract (for example https://staging.biomate.ai)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aws-release-update-${{ github.event.inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Run release server tests
+        run: npm run test -- server/execution-env-policy.test.ts server/workflow-execution.test.ts
+
+  validate-live-contract:
+    needs: validate-core
+    if: inputs.run_live_contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Validate BIOMATE_URL input
+        run: |
+          if [ -z "${BIOMATE_URL}" ]; then
+            echo "BIOMATE_URL is required when run_live_contract=true"
+            exit 1
+          fi
+        env:
+          BIOMATE_URL: ${{ inputs.biomate_url }}
+
+      - name: Run strict live execute contract
+        env:
+          BIOMATE_URL: ${{ inputs.biomate_url }}
+          RUN_LIVE_EXECUTE_CONTRACT: "1"
+          REQUIRE_AWS_EXEC_200: "1"
+        run: npm run test:live:execute-contract:strict
+
+  create-release-tag:
+    needs: [validate-core, validate-live-contract]
+    if: always() && inputs.create_tag && needs.validate-core.result == 'success' && (needs.validate-live-contract.result == 'success' || needs.validate-live-contract.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Validate release tag format
+        run: |
+          if ! echo "${RELEASE_TAG}" | grep -Eq '^aws-v'; then
+            echo "release_tag must start with 'aws-v' (received: ${RELEASE_TAG})"
+            exit 1
+          fi
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+
+      - name: Create and push tag
+        run: |
+          git tag -a "${RELEASE_TAG}" -m "AWS release update ${RELEASE_TAG}"
+          git push origin "${RELEASE_TAG}"
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}

@@ -1,0 +1,83 @@
+name: AWS Release Gate
+
+on:
+  pull_request:
+    branches:
+      - "release/**"
+    paths:
+      - ".github/workflows/aws-release-gate.yml"
+      - "frontend/**"
+      - "docs/QC/20260311_AWS_RELEASE_EXECUTION_GATE_AND_VALIDATION_RUNBOOK.md"
+      - "docs/QC/20260311_AWS_RELEASE_SIGNOFF_RECORD.md"
+      - "docs/QC/20260311_AWS_IMMEDIATE_RELEASE_PARALLEL_PLAN.md"
+  workflow_dispatch:
+    inputs:
+      run_live_contract:
+        description: "Run strict live execute contract against BIOMATE_URL"
+        required: false
+        default: false
+        type: boolean
+      biomate_url:
+        description: "Base URL for live contract test (for example http://127.0.0.1:5000)"
+        required: false
+        type: string
+
+concurrency:
+  group: aws-release-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Run release server tests
+        run: npm run test -- server/execution-env-policy.test.ts server/workflow-execution.test.ts
+
+  live-contract-strict:
+    needs: core-gates
+    if: github.event_name == 'workflow_dispatch' && inputs.run_live_contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run strict live execute contract
+        env:
+          BIOMATE_URL: ${{ inputs.biomate_url }}
+          RUN_LIVE_EXECUTE_CONTRACT: "1"
+          REQUIRE_AWS_EXEC_200: "1"
+        run: npm run test:live:execute-contract:strict
