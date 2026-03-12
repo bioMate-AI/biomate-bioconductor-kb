@@ -689,6 +689,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/telemetry/cost-summary", async (req, res) => {
+    try {
+      const from = typeof req.query?.from === "string" ? req.query.from : undefined;
+      const to = typeof req.query?.to === "string" ? req.query.to : undefined;
+      const summary = await telemetryService.getCostSummary({ from, to });
+      res.json(summary);
+    } catch (error: any) {
+      console.error("[Telemetry] Failed to fetch cost summary:", error);
+      res.status(500).json({ error: "TelemetryCostSummaryError", message: error?.message || String(error) });
+    }
+  });
+
   app.get("/api/telemetry/confusion-triage", async (req, res) => {
     try {
       const from = typeof req.query?.from === "string" ? req.query.from : undefined;
@@ -1844,7 +1856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           job_id: job.id,
           tool_id: tool_id,
           state: job.state || 'queued',
-          started_at: new Date().toISOString()
+          started_at: new Date().toISOString(),
+          invocationId: req.body.invocation_id || undefined,
         };
       }
 
@@ -1876,17 +1889,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get job status from Galaxy
       const job = await galaxyAPIProxy.getJob(jobInfo.job_id);
+      const prevState = jobInfo.state;
 
       // Update session with latest state
       if (req.session?.workflowJobs?.[step_id]) {
         req.session.workflowJobs[step_id].state = job.state;
       }
 
+      // When a step transitions to 'ok' for the first time, register its outputs
+      const justCompleted = job.state === 'ok' && prevState !== 'ok';
+      if (justCompleted && Array.isArray(job.outputs) && job.outputs.length > 0) {
+        const invocationId: string | undefined = (jobInfo as any).invocationId;
+        for (const galaxyOutput of job.outputs as any[]) {
+          if (!galaxyOutput?.id) continue;
+          try {
+            const ext = String(galaxyOutput.extension || galaxyOutput.file_ext || 'bin').replace(/^\./, '');
+            const fileType = classifyFileType(ext);
+            await storage.addOutput({
+              invocationId: invocationId || '',
+              stepId: step_id,
+              galaxyDatasetId: galaxyOutput.id,
+              name: galaxyOutput.name || `${step_id}_output`,
+              extension: ext,
+              size: galaxyOutput.file_size || 0,
+              fileType,
+              isVisualizable: isVisualizable(ext),
+              previewAvailable: fileType === 'table' || fileType === 'text' || fileType === 'image',
+              metadata: { source: 'galaxy_step', dataType: galaxyOutput.data_type },
+            });
+          } catch (e) {
+            console.warn(`[StepStatus] Failed to register output for step ${step_id}:`, e);
+          }
+        }
+      }
+
+      // Return registered step outputs alongside raw Galaxy outputs
+      const invocationId: string | undefined = (jobInfo as any).invocationId;
+      const registeredOutputs = invocationId
+        ? await storage.getStepOutputs(invocationId, step_id)
+        : [];
+
       res.json({
         step_id,
         job_id: jobInfo.job_id,
         state: job.state,
         outputs: job.outputs || [],
+        registered_outputs: registeredOutputs,
         started_at: jobInfo.started_at
       });
     } catch (error: any) {
@@ -1994,6 +2042,83 @@ Only include parameters that actually change. Preserve all other parameters from
       res.json({ updatedParams: mergedParams, explanation: result.explanation });
     } catch (error: any) {
       console.error('[AdjustParams] Error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * Resolve uploaded S3 files to the correct Nextflow parameter names.
+   * Reads the workflow's main.nf to detect param declarations (input, reads,
+   * movies_path, samplesheet, etc.) and maps uploaded S3 keys to them by
+   * file extension + param name heuristics.
+   */
+  app.post("/api/workflow/resolve-inputs", authenticateToken, async (req, res) => {
+    try {
+      const { workflowPath, uploadedFiles } = req.body as {
+        workflowPath?: string;
+        uploadedFiles?: Array<{ s3Key: string; originalName: string }>;
+      };
+      if (!uploadedFiles?.length) return res.json({ params: {} });
+
+      // Read workflow file to detect declared param names.
+      let nfText = "";
+      if (workflowPath) {
+        try {
+          const { readFile } = await import("fs/promises");
+          nfText = await readFile(workflowPath, "utf8");
+        } catch { /* file not readable — fall through to heuristics */ }
+      }
+
+      // Extract param names from `params.X = ...` declarations.
+      const declaredParams = new Set<string>();
+      for (const m of nfText.matchAll(/params\.(\w+)\s*=/g)) {
+        declaredParams.add(m[1].toLowerCase());
+      }
+
+      // Heuristic map: file extension → likely param names (ordered by priority).
+      const EXT_PARAM_MAP: Record<string, string[]> = {
+        fastq: ["input", "reads", "samplesheet"],
+        "fastq.gz": ["input", "reads", "samplesheet"],
+        fq: ["input", "reads"],
+        bam: ["input", "bam"],
+        cram: ["input", "cram"],
+        vcf: ["input", "vcf"],
+        mrc: ["movies_path", "input"],
+        tif: ["movies_path", "input"],
+        tiff: ["movies_path", "input"],
+        mrcs: ["movies_path", "particles"],
+        pdb: ["structure", "input"],
+        cif: ["structure", "input"],
+        smi: ["smiles_file", "input"],
+        csv: ["samplesheet", "input"],
+        tsv: ["samplesheet", "input"],
+      };
+
+      const params: Record<string, string> = {};
+
+      for (const { s3Key, originalName } of uploadedFiles) {
+        const s3Uri = `s3://${s3Key}`;   // caller passes bucket/key already joined
+        const lower = originalName.toLowerCase();
+
+        // Find matching param name: prefer declared params, fall back to heuristics.
+        let paramName: string | null = null;
+        for (const [ext, candidates] of Object.entries(EXT_PARAM_MAP)) {
+          if (lower.endsWith(`.${ext}`)) {
+            paramName = candidates.find((c) => declaredParams.has(c)) ?? candidates[0];
+            break;
+          }
+        }
+        if (!paramName) paramName = declaredParams.has("input") ? "input" : "input";
+
+        // First file wins for each param; later files could be paired reads etc.
+        if (!(paramName in params)) {
+          params[paramName] = s3Uri;
+        }
+      }
+
+      res.json({ params });
+    } catch (error: any) {
+      console.error("[ResolveInputs] Error:", error.message);
       res.status(500).json({ error: error.message });
     }
   });
@@ -2345,15 +2470,33 @@ Only include parameters that actually change. Preserve all other parameters from
     res.json({ ok: true });
   });
 
+  // In-memory cache for QC profiles (static data, changes only on deploy)
+  let _qcProfilesCache: { data: any; expireAt: number } | null = null;
+
   // Public QC profiles endpoint — returns named threshold profiles, no user auth required
   app.get("/api/qc/profiles", async (_req: any, res: any) => {
+    // Return from cache if still valid (5-minute TTL)
+    if (_qcProfilesCache && Date.now() < _qcProfilesCache.expireAt) {
+      return res.json(_qcProfilesCache.data);
+    }
     try {
       const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
       const apiKey = process.env.GALAXY_API_KEY || "";
-      const response = await globalThis.fetch(`${galaxyUrl}/api/qc/profiles`, {
-        headers: { "x-api-key": apiKey },
-      });
+      // Allow up to 3 minutes on first cold call (thread-pool contention during AI calls)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 180_000);
+      let response: Response;
+      try {
+        response = await globalThis.fetch(`${galaxyUrl}/api/qc/profiles`, {
+          headers: { "x-api-key": apiKey },
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       const data = await response.json();
+      // Cache for 5 minutes — warm for subsequent tests in the same suite run
+      _qcProfilesCache = { data, expireAt: Date.now() + 5 * 60 * 1000 };
       return res.status(response.status).json(data);
     } catch (err: any) {
       return res.status(502).json({ error: "QC profiles unavailable", profiles: [], count: 0 });
@@ -2639,7 +2782,12 @@ Only include parameters that actually change. Preserve all other parameters from
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
+        (
+          // Valid Nextflow path (catalog or absolute)
+          (workflowPayload?.nextflow_path && String(workflowPayload.nextflow_path).toLowerCase().endsWith('.nf')) ||
+          // Galaxy workflow with actual steps (not an empty placeholder)
+          (workflowPayload?.workflow_ga?.steps && Object.keys(workflowPayload.workflow_ga.steps).length > 0)
+        )
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
       const unresolvedWorkflowState = !runnableWorkflow;
@@ -2794,6 +2942,7 @@ Only include parameters that actually change. Preserve all other parameters from
         response: assistantMessage,
         suggestions,
         workflow: assistantResponse.generatedWorkflow,
+        additionalWorkflows: assistantResponse.additionalWorkflows || [],
 
         // Pre-execution validation (if workflow was generated)
         prerequisitesValidation,
@@ -2948,7 +3097,10 @@ Only include parameters that actually change. Preserve all other parameters from
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
+        (
+          (workflowPayload?.nextflow_path && String(workflowPayload.nextflow_path).toLowerCase().endsWith('.nf')) ||
+          (workflowPayload?.workflow_ga?.steps && Object.keys(workflowPayload.workflow_ga.steps).length > 0)
+        )
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
       const unresolvedWorkflowState = !runnableWorkflow;
@@ -3041,6 +3193,7 @@ Only include parameters that actually change. Preserve all other parameters from
         response: assistantMessage,
         suggestions,
         workflow: assistantResponse.generatedWorkflow,
+        additionalWorkflows: assistantResponse.additionalWorkflows || [],
         prerequisitesValidation,
         thinking_content: assistantResponse.thinking_content,
         thinking_level: assistantResponse.thinking_level,
@@ -3057,6 +3210,26 @@ Only include parameters that actually change. Preserve all other parameters from
         researchResponse: assistantResponse.researchResponse,
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
       };
+
+      // Persist cost estimate for audit trail (fire-and-forget)
+      try {
+        const inCount = tokenCounter.countText(String(message || "")).tokens;
+        const outCount = tokenCounter.countText(String(assistantMessage || "")).tokens;
+        const pricing = tokenCounter.estimateCost([
+          { role: "user", content: String(message || "") },
+          { role: "assistant", content: String(assistantMessage || "") },
+        ]);
+        telemetryService.create("cost.chat.estimated", new Date(), {
+          userId: req.user ? String(req.user.id) : "anonymous",
+          provider: "anthropic",
+          model: galaxyAssistant?.getModelConfig?.()?.responseModel || "claude-sonnet-4-6",
+          inputTokensEstimated: inCount,
+          outputTokensEstimated: outCount,
+          estimatedCostUsd: Number((pricing.total || 0).toFixed(8)),
+          estimationMethod: "token_counter_heuristic",
+          endpoint: "chat_stream",
+        }).catch(() => {});
+      } catch { /* non-blocking */ }
 
       sendEvent("final", responsePayload);
       sendEvent("done", { ok: true });
@@ -4321,21 +4494,48 @@ Only include parameters that actually change. Preserve all other parameters from
         return res.status(400).json({ error: "Invocation is missing Galaxy identifiers" });
       }
 
-      // Proxy to Galaxy backend Nextflow status endpoint
-      const response = await fetch(
-        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${invocation.galaxyInvocationId}/nextflow/status`,
-        {
+      // CryoSPARC runs store the cryosparc run_id as galaxyInvocationId.
+      // Detect by checking executionEngine on the linked ExecutionRun.
+      const executionRun = await storage.getExecutionRunByGalaxyId(invocation.galaxyInvocationId).catch(() => null);
+      const isCryoSPARCRun = executionRun?.execution?.executionEngine === 'cryosparc';
+
+      let statusUrl: string;
+      if (isCryoSPARCRun) {
+        statusUrl = `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${invocation.galaxyInvocationId}`;
+      } else {
+        statusUrl = `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${invocation.galaxyInvocationId}`;
+      }
+
+      // Proxy to Galaxy backend status endpoint
+      const response = await fetch(statusUrl, {
           method: 'GET',
           headers: {
             'x-api-key': process.env.GALAXY_API_KEY || '',
           },
-        }
-      );
+        });
 
       const data = await response.json();
       res.status(response.status).json(data);
     } catch (error: any) {
       console.error("[Invocation Nextflow] Error fetching status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Proxy CryoSPARC run status to Galaxy backend
+  app.get("/api/cryosparc/status/:runId", async (req, res) => {
+    try {
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${req.params.runId}`,
+        {
+          method: 'GET',
+          headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
+        }
+      );
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error: any) {
+      console.error("[CryoSPARC] Error fetching status:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -4389,6 +4589,37 @@ Only include parameters that actually change. Preserve all other parameters from
           } catch {
             // Ignore non-existing or inaccessible artifact paths.
           }
+        }
+      };
+
+      // Register S3 output files from a completed Batch job so they appear in the
+      // output list and can be downloaded via the presigned-URL download endpoint.
+      const addS3OutputFiles = async (invocationId: string, runId: string, s3Files: any[]) => {
+        if (!Array.isArray(s3Files) || s3Files.length === 0) return;
+        const existing = await storage.getInvocationOutputs(invocationId);
+        const existingS3Keys = new Set(
+          existing.map((o: any) => String(o?.metadata?.s3Uri || "")).filter(Boolean)
+        );
+        for (const f of s3Files) {
+          if (!f?.s3_uri || existingS3Keys.has(f.s3_uri)) continue;
+          const ext = (f.extension || "").toLowerCase() || "bin";
+          const fileType = classifyFileType(ext);
+          await storage.addOutput({
+            invocationId,
+            galaxyDatasetId: "",
+            name: f.name,
+            extension: ext,
+            size: f.size || 0,
+            fileType,
+            isVisualizable: isVisualizable(ext) || fileType === "text" || fileType === "table",
+            previewAvailable: fileType === "text" || fileType === "table",
+            metadata: {
+              source: "nextflow_s3_output",
+              s3Uri: f.s3_uri,
+              runId,
+            },
+          });
+          existingS3Keys.add(f.s3_uri);
         }
       };
 
@@ -4475,6 +4706,10 @@ Only include parameters that actually change. Preserve all other parameters from
                 }
               }
 
+              // S3 outputs (from completed Batch runs) take priority — register them first.
+              if (Array.isArray(nextflowStatus.s3_output_files) && nextflowStatus.s3_output_files.length > 0) {
+                await addS3OutputFiles(invocation.id, nextflowStatus.run_id || "", nextflowStatus.s3_output_files);
+              }
               await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
               outputs = await storage.getInvocationOutputs(invocation.id);
               if (outputs.length === 0) {
@@ -4611,23 +4846,30 @@ Only include parameters that actually change. Preserve all other parameters from
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy or local runtime artifact fallback.
-      let fileStream: any;
+      // Fetch file from Galaxy, S3 presigned URL, or local runtime artifact.
+      const s3Uri = String((output as any)?.metadata?.s3Uri || "");
       const localPath = String((output as any)?.metadata?.localPath || "");
+      const runId = String((output as any)?.metadata?.runId || "");
+
       if (output.galaxyDatasetId) {
-        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+        const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
+        res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        fileStream.pipe(res);
+      } else if (s3Uri && runId) {
+        // Redirect to a presigned S3 URL — browser downloads directly from S3.
+        const backendBase = process.env.GALAXY_API_URL || "http://localhost:8080";
+        const presignedEndpoint = `${backendBase}/api/nextflow/outputs/download?` +
+          `s3_uri=${encodeURIComponent(s3Uri)}&run_id=${encodeURIComponent(runId)}`;
+        return res.redirect(302, presignedEndpoint);
       } else if (localPath) {
-        fileStream = createReadStream(localPath);
+        const fileStream = createReadStream(localPath);
+        res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        fileStream.pipe(res);
       } else {
         return res.status(404).json({ error: "Output has no downloadable source" });
       }
-
-      // Set appropriate headers
-      res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
-      res.setHeader('Content-Type', 'application/octet-stream');
-
-      // Pipe the stream to response
-      fileStream.pipe(res);
     } catch (error: any) {
       console.error("Error downloading output:", error);
       res.status(500).json({ error: error.message });
@@ -5251,6 +5493,120 @@ Only include parameters that actually change. Preserve all other parameters from
             sampledIds: sampledInputs.map((i: any) => i.id),
           }
         });
+      }
+
+      // ==================== CRYOSPARC DIRECT EXECUTION ====================
+      // CryoSPARC SPA pipeline routes to the real GPU instance, not Nextflow.
+      const isCryoSPARC = (request.workflowDefinition.nextflow_path || '').includes('cryosparc') &&
+        request.workflowDefinition.workflow_type === 'nextflow';
+
+      if (isCryoSPARC) {
+        console.log('[CryoSPARC Direct] Detected CryoSPARC SPA workflow');
+        console.log('[CryoSPARC Direct] Parameters:', request.workflowDefinition.parameters);
+
+        try {
+          // Build parameters by merging all available sources:
+          // 1. generated_parameters (array of {tool_id, parameters}) → flatten
+          // 2. inline_parameters (flat dict extracted from user message)
+          // 3. parameters (explicit flat dict)
+          const genParams: Record<string, any> = {};
+          const genParamsList = Array.isArray(request.workflowDefinition.generated_parameters)
+            ? request.workflowDefinition.generated_parameters : [];
+          for (const entry of genParamsList) {
+            if (entry?.parameters && typeof entry.parameters === 'object') {
+              Object.assign(genParams, entry.parameters);
+            }
+          }
+          const allParams = {
+            ...genParams,
+            ...(request.workflowDefinition.inline_parameters || {}),
+            ...(request.workflowDefinition.parameters || {}),
+          };
+
+          const csResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/execute`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Key': process.env.GALAXY_API_KEY || '',
+            },
+            body: JSON.stringify({
+              parameters: allParams,
+              history_id: galaxyHistoryId,
+              user_id: (req as any).user?.id ? String((req as any).user.id) : undefined,
+            }),
+          });
+
+          if (!csResponse.ok) {
+            const errBody = await csResponse.text().catch(() => csResponse.statusText);
+            throw new Error(`CryoSPARC execution failed (${csResponse.status}): ${errBody}`);
+          }
+
+          const csData = await csResponse.json();
+          console.log('[CryoSPARC Direct] Execution result:', csData);
+
+          const backendRunId = csData.run_id || '';
+
+          await storage.updateExecutionRun(executionRun.id, {
+            execution: {
+              ...executionRun.execution,
+              galaxyInvocationId: backendRunId,
+              galaxyHistoryId: galaxyHistoryId,
+              status: csData.success ? 'running' : 'failed',
+              startedAt: new Date(),
+              executionEngine: 'cryosparc',
+              nextflowRunId: backendRunId,
+            }
+          });
+
+          await storage.createInvocation({
+            userId: req.user?.id,
+            workflowName: executionRun.workflowName,
+            workflowDefinition: request.workflowDefinition,
+            galaxyInvocationId: backendRunId,
+            galaxyHistoryId: galaxyHistoryId,
+            galaxyWorkflowId: '',
+            inputDatasets: [],
+            totalSteps: executionRun.progress.totalSteps,
+            status: csData.success ? 'ok' : 'error',
+          });
+
+          registerInvocationNotifications({
+            invocationId: backendRunId,
+            req,
+            workflowName: executionRun.workflowName,
+            workflowId: 'cryosparc-direct',
+            source: 'api/workflows/execute[cryosparc-direct]',
+          });
+
+          return res.json({
+            runId: executionRun.id,
+            galaxyInvocationId: backendRunId,
+            galaxyHistoryId: galaxyHistoryId,
+            executionEngine: 'cryosparc',
+            nextflowRunId: backendRunId,
+            status: csData.success ? 'running' : 'failed',
+            message: csData.message || `CryoSPARC SPA pipeline queued (run_id: ${backendRunId})`,
+          });
+
+        } catch (error) {
+          console.error('[CryoSPARC Direct] Execution error:', error);
+
+          if (executionRun) {
+            await storage.updateExecutionRun(executionRun.id, {
+              execution: {
+                ...executionRun.execution,
+                status: 'failed',
+                error: error instanceof Error ? error.message : String(error)
+              }
+            });
+          }
+
+          return res.status(500).json({
+            error: 'cryosparc_execution_failed',
+            message: error instanceof Error ? error.message : String(error),
+            runId: executionRun?.id
+          });
+        }
       }
 
       // ==================== NEXTFLOW DIRECT EXECUTION ====================

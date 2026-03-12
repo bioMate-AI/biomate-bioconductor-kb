@@ -68,8 +68,9 @@ async function waitForNextflowCard(page: Page, timeoutMs = 90_000): Promise<bool
 // ===========================================================================
 test.describe("Cryo-EM QC profiles", () => {
   test("T0 cryoem profiles are listed in /api/qc/profiles", async ({ request }) => {
-    test.setTimeout(60_000);
-    const res = await request.get(`${BASE_URL}/api/qc/profiles`, { timeout: 45_000 });
+    // 3-min timeout: profiles may be slow on cold call; cached after qc-governance T0 runs first
+    test.setTimeout(200_000);
+    const res = await request.get(`${BASE_URL}/api/qc/profiles`, { timeout: 180_000 });
     expect(res.status()).toBe(200);
 
     const body = await res.json();

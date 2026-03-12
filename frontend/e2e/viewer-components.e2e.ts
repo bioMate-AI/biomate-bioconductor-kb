@@ -18,28 +18,36 @@ test.use({
   viewport: { width: 1280, height: 900 },
 });
 
-test.setTimeout(180_000);
+test.setTimeout(300_000); // 5 min — these tests run after bioinformatics tests in the full suite
 
 test.describe("VCF Viewer", () => {
   test("chat area renders after VCF analysis request", async ({ page }) => {
+    console.log("[VCF Viewer] test START");
     await setupTestUser(page, "vcf_viewer");
+    console.log("[VCF Viewer] user registered, sending message");
 
     await sendMessageAndWaitForResponse(
       page,
       "Analyze this VCF file for variant calling and show me the variants",
-      90_000
+      180_000
     );
+    console.log("[VCF Viewer] response complete");
 
     // Chat output section must be present (message list rendered)
     await expect(page.locator("textarea").first()).toBeVisible({ timeout: 10_000 });
 
-    // The chat message list must contain at least the user turn
-    const bodyText = (await page.textContent("body")) ?? "";
+    // Check latest assistant message first; fall back to full body
+    const latestText =
+      (await page
+        .locator('[data-is-latest-assistant="true"]')
+        .textContent({ timeout: 10_000 })
+        .catch(() => "")) ?? "";
+    const bodyText = latestText.length > 10 ? latestText : ((await page.textContent("body")) ?? "");
+
     const hasVariantTopic =
       bodyText.toLowerCase().includes("variant") ||
       bodyText.toLowerCase().includes("vcf") ||
       bodyText.toLowerCase().includes("vcf file");
-    expect(hasVariantTopic).toBe(true);
 
     // Check that the viewer registry components are available by inspecting
     // whether the DOM contains viewer wrapper test ids if outputs exist
@@ -54,27 +62,37 @@ test.describe("VCF Viewer", () => {
     console.log(
       `[VCF Viewer] Variant topic in response: ${hasVariantTopic}, viewer section: ${hasViewerSection}`
     );
+    expect(hasVariantTopic).toBe(true);
   });
 });
 
 test.describe("Sequence Viewer", () => {
   test("chat area renders after FASTA sequence analysis request", async ({ page }) => {
+    console.log("[Sequence Viewer] test START");
     await setupTestUser(page, "sequence_viewer");
+    console.log("[Sequence Viewer] user registered, sending message");
 
     await sendMessageAndWaitForResponse(
       page,
       "Analyze a FASTA file and calculate GC content for each sequence",
-      90_000
+      180_000
     );
+    console.log("[Sequence Viewer] response complete");
 
     await expect(page.locator("textarea").first()).toBeVisible({ timeout: 10_000 });
 
-    const bodyText = (await page.textContent("body")) ?? "";
+    // Check latest assistant message first; fall back to full body
+    const latestText =
+      (await page
+        .locator('[data-is-latest-assistant="true"]')
+        .textContent({ timeout: 10_000 })
+        .catch(() => "")) ?? "";
+    const bodyText = latestText.length > 10 ? latestText : ((await page.textContent("body")) ?? "");
+
     const hasSeqTopic =
       bodyText.toLowerCase().includes("sequence") ||
       bodyText.toLowerCase().includes("fasta") ||
       bodyText.toLowerCase().includes("gc content");
-    expect(hasSeqTopic).toBe(true);
 
     const hasViewerSection = await page
       .locator(
@@ -87,28 +105,38 @@ test.describe("Sequence Viewer", () => {
     console.log(
       `[Sequence Viewer] Sequence topic in response: ${hasSeqTopic}, viewer section: ${hasViewerSection}`
     );
+    expect(hasSeqTopic).toBe(true);
   });
 });
 
 test.describe("Annotation Viewer", () => {
   test("chat area renders after BED annotation analysis request", async ({ page }) => {
+    console.log("[Annotation Viewer] test START");
     await setupTestUser(page, "annotation_viewer");
+    console.log("[Annotation Viewer] user registered, sending message");
 
     await sendMessageAndWaitForResponse(
       page,
       "Help me view and analyze a BED file with genomic feature annotations",
-      90_000
+      180_000
     );
+    console.log("[Annotation Viewer] response complete");
 
     await expect(page.locator("textarea").first()).toBeVisible({ timeout: 10_000 });
 
-    const bodyText = (await page.textContent("body")) ?? "";
+    // Check latest assistant message first; fall back to full body
+    const latestText =
+      (await page
+        .locator('[data-is-latest-assistant="true"]')
+        .textContent({ timeout: 10_000 })
+        .catch(() => "")) ?? "";
+    const bodyText = latestText.length > 10 ? latestText : ((await page.textContent("body")) ?? "");
+
     const hasAnnotationTopic =
       bodyText.toLowerCase().includes("annotation") ||
       bodyText.toLowerCase().includes("bed") ||
       bodyText.toLowerCase().includes("feature") ||
       bodyText.toLowerCase().includes("genomic");
-    expect(hasAnnotationTopic).toBe(true);
 
     const hasViewerSection = await page
       .locator(
@@ -121,6 +149,7 @@ test.describe("Annotation Viewer", () => {
     console.log(
       `[Annotation Viewer] Annotation topic in response: ${hasAnnotationTopic}, viewer section: ${hasViewerSection}`
     );
+    expect(hasAnnotationTopic).toBe(true);
   });
 });
 

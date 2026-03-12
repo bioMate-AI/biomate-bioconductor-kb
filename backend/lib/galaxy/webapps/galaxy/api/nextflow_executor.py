@@ -53,6 +53,7 @@ class NextflowExecuteRequest(BaseModel):
     qc_overrides: Optional[Dict[str, Any]] = None
     qc_profile: Optional[str] = None
     workflow_domain: Optional[str] = None
+    user_id: Optional[str] = None  # billing: propagated to Batch job env vars
 
 
 class NextflowStatusRequest(BaseModel):
@@ -396,8 +397,19 @@ def _check_pipeline_constraints(
       - CryoSPARC pipelines running with mock_mode=false on ARM64 without AWS Batch
     """
     executor = compute.get("executor", "local")
+    if executor == "awsbatch":
+        # Prevent mock_mode=true on real cloud hardware — mock simulations waste
+        # EC2 compute time and incur unnecessary billing without producing real data.
+        if params.get("mock_mode", False):
+            log.warning(
+                "[Nextflow] mock_mode=true override: forcing mock_mode=false for "
+                "awsbatch executor — real container images will run on Batch."
+            )
+            params["mock_mode"] = False
+        return None  # skip local constraint checks for cloud executor
+
     if executor != "local":
-        # Non-local executors run on remote infra; skip local constraint checks.
+        # Other non-local executors (slurm, etc.); skip local constraint checks.
         return None
 
     host_arch = _host_arch()
@@ -488,9 +500,7 @@ def _validate_input_paths(params: dict) -> None:
     Checks:
     1. Every local path param exists (file or directory).
     2. Total local input size does not exceed 10 GB.
-
-    S3 paths are accessibility-checked by _validate_s3_url; size is not
-    computed for S3 (listing could be expensive and is not needed for the cap).
+    3. Every S3 input path is accessible (bucket reachable + object exists).
 
     Raises HTTPException(422) on any violation.
     """
@@ -501,6 +511,10 @@ def _validate_input_paths(params: dict) -> None:
     for key, value in params.items():
         if key == "outdir":
             continue  # output, not input — validated elsewhere
+        if isinstance(value, str) and value.startswith("s3://"):
+            # Pre-flight: validate S3 input is accessible before job starts.
+            _validate_s3_url(value, check_object=True)
+            continue
         if not _is_path_param(key, value):
             continue
 
@@ -542,12 +556,17 @@ def _validate_input_paths(params: dict) -> None:
         )
 
 
-def _validate_s3_url(s3_url: str) -> None:
+def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
     """
     Validate an s3:// URL is accessible before launching Nextflow.
 
+    Args:
+        s3_url:       Must start with 's3://'.
+        check_object: If True and the URL has a key component, verify the
+                      object exists with head_object (used for input files).
+                      Skipped for bucket-only or directory-prefix URLs.
+
     Raises HTTPException(422) with a human-readable reason if not.
-    s3_url must start with 's3://'.
     """
     try:
         import boto3
@@ -558,14 +577,16 @@ def _validate_s3_url(s3_url: str) -> None:
 
     parts = s3_url[len("s3://"):].split("/", 1)
     bucket = parts[0]
+    key = parts[1] if len(parts) > 1 else ""
     if not bucket:
         raise HTTPException(
             status_code=422,
             detail={"error": f"Invalid S3 URL '{s3_url}': no bucket name"},
         )
 
+    s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     try:
-        boto3.client("s3").head_bucket(Bucket=bucket)
+        s3.head_bucket(Bucket=bucket)
     except NoCredentialsError:
         raise HTTPException(
             status_code=422,
@@ -609,8 +630,40 @@ def _validate_s3_url(s3_url: str) -> None:
             },
         )
 
+    # Optional: verify the specific object exists (for input file paths).
+    # Skip for directory-style prefixes (key ends with '/') or bucket-only URLs.
+    if check_object and key and not key.endswith("/"):
+        try:
+            s3.head_object(Bucket=bucket, Key=key)
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code in ("404", "NoSuchKey"):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": f"S3 input object not found: s3://{bucket}/{key}",
+                        "bucket": bucket,
+                        "key": key,
+                        "suggestion": (
+                            "Upload your input file first, or check the S3 path for typos. "
+                            f"List available files with: aws s3 ls s3://{bucket}/{'/'.join(key.split('/')[:-1])}/"
+                        ),
+                    },
+                )
+            # Access denied on object but bucket was reachable — different IAM policy.
+            if code in ("403", "AccessDenied"):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": f"Access denied to S3 object s3://{bucket}/{key}",
+                        "suggestion": "Ensure the IAM role has s3:GetObject on this key.",
+                    },
+                )
 
-def _generate_executor_config(compute: dict, config_dir: Path) -> Optional[Path]:
+
+def _generate_executor_config(
+    compute: dict, config_dir: Path, *, user_id: str = "unknown", run_id: str = "unknown"
+) -> Optional[Path]:
     """
     Generate a temporary nextflow.config for non-local executors.
 
@@ -629,7 +682,7 @@ def _generate_executor_config(compute: dict, config_dir: Path) -> Optional[Path]
     if executor == "awsbatch":
         queue = (
             compute.get("aws_batch_queue")
-            or os.environ.get("AWS_BATCH_QUEUE", "galaxy-cloud-queue")
+            or os.environ.get("AWS_BATCH_QUEUE", "biomate-nextflow-queue")
         )
         region = (
             compute.get("aws_region")
@@ -639,13 +692,13 @@ def _generate_executor_config(compute: dict, config_dir: Path) -> Optional[Path]
             compute.get("s3_bucket")
             or os.environ.get("NEXTFLOW_S3_BUCKET", "biomate-nextflow-work")
         )
-        # Container for tasks. Default to a public image that has Python 3 and
-        # nothing else — mock pipelines only need the stdlib.
-        # Do NOT use biomate/biomni-tools:latest — that ECR repo is empty.
-        # Do NOT set cliPath: the default python images have no AWS CLI, so let
-        # Nextflow use its built-in Java S3 client for file staging.
+        # Container for tasks. MUST have both Python 3 and the AWS CLI.
+        # Nextflow injects an nxf_s3_upload() shell function into every task's
+        # .command.run that calls `aws s3 cp` — if the container lacks the aws
+        # binary, the task exits with code 127 immediately.
+        # civitaspo/python-awscli:latest = Python 3 + AWS CLI v2 (verified working).
         container = compute.get("container") or os.environ.get(
-            "NEXTFLOW_BATCH_CONTAINER", "python:3.11-slim"
+            "NEXTFLOW_BATCH_CONTAINER", "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest"
         )
 
         lines = [
@@ -656,6 +709,12 @@ def _generate_executor_config(compute: dict, config_dir: Path) -> Optional[Path]
             lines.append(f"    queue = '{queue}'")
         lines += [
             f"    container = '{container}'",
+            # Inject billing context into every Batch task container so the
+            # billing Lambda can read user_id from container.environment.
+            "    environment = [",
+            f"        BIOMATE_USER_ID: '{user_id}',",
+            f"        BIOMATE_RUN_ID: '{run_id}',",
+            "    ]",
             "}",
             f"aws {{",
             f"    region = '{region}'",
@@ -940,6 +999,47 @@ def _start_qc_monitor(
     )
 
 
+def _list_s3_output_files(s3_uri: str) -> list:
+    """
+    List output files in an S3 prefix after a workflow completes.
+    Returns list of dicts: {key, name, size, extension}.
+    Skips Nextflow internal files (work/, .nextflow/, trace).
+    """
+    try:
+        import boto3
+    except ImportError:
+        return []
+    try:
+        parts = s3_uri[len("s3://"):].split("/", 1)
+        bucket = parts[0]
+        prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/"
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        paginator = s3.get_paginator("list_objects_v2")
+        skip_prefixes = ("/work/", "/.nextflow/", "/trace.", "/timeline.", "/dag.", "/report.")
+        results = []
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                # Skip Nextflow internals
+                if any(p in key for p in skip_prefixes):
+                    continue
+                name = key.split("/")[-1]
+                if not name:
+                    continue
+                ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                results.append({
+                    "s3_uri": f"s3://{bucket}/{key}",
+                    "name": name,
+                    "size": obj["Size"],
+                    "extension": ext,
+                })
+        log.info(f"[Nextflow] Listed {len(results)} S3 output files from {s3_uri}")
+        return results
+    except Exception as exc:
+        log.warning(f"[Nextflow] S3 output listing failed for {s3_uri}: {exc}")
+        return []
+
+
 def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
     """Stream stdout+stderr to a log file and update run status when done."""
     try:
@@ -953,6 +1053,11 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             if run_id in _runs:
                 _runs[run_id]["status"] = "succeeded" if returncode == 0 else "failed"
                 _runs[run_id]["returncode"] = returncode
+                # On success, enumerate S3 output files so the frontend can list/download them.
+                if returncode == 0:
+                    outdir = _runs[run_id].get("outdir", "")
+                    if str(outdir).startswith("s3://"):
+                        _runs[run_id]["s3_output_files"] = _list_s3_output_files(outdir)
         log.info(f"[Nextflow run {run_id}] finished with exit code {returncode}")
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] log streaming error: {exc}")
@@ -1006,6 +1111,36 @@ def execute_nextflow(
         # Propagate bucket name so _generate_executor_config can set workDir.
         if not compute.get("s3_bucket"):
             compute["s3_bucket"] = effective_outdir.split("/")[2]  # s3://BUCKET/...
+
+    # Auto-detect S3 inputs → also route to AWS Batch.
+    # Nextflow stages S3 inputs natively on awsbatch; local executor cannot
+    # reliably access S3 paths without the nf-amazon plugin + S3 workDir.
+    s3_inputs = [
+        v for k, v in params.items()
+        if k != "outdir" and isinstance(v, str) and v.startswith("s3://")
+    ]
+    if s3_inputs:
+        if not compute.get("executor"):
+            compute["executor"] = "awsbatch"
+            log.info(
+                f"[Nextflow] S3 input(s) detected ({len(s3_inputs)}) — "
+                "auto-selecting AWS Batch executor"
+            )
+        # Ensure outdir is also S3 when inputs are S3: Batch containers cannot
+        # write publishDir to a local path on the head node.
+        if not is_s3:
+            s3_bucket_from_input = s3_inputs[0].split("/")[2]
+            effective_outdir = (
+                f"s3://{s3_bucket_from_input}/nextflow/outputs/"
+                + str(uuid.uuid4())[:8]
+            )
+            is_s3 = True
+            params["outdir"] = effective_outdir
+            if not compute.get("s3_bucket"):
+                compute["s3_bucket"] = s3_bucket_from_input
+            log.info(
+                f"[Nextflow] Auto-setting S3 outdir for S3 inputs: {effective_outdir}"
+            )
 
     # Validate all input paths exist and total size ≤ 10 GB.
     _validate_input_paths(params)
@@ -1108,7 +1243,10 @@ def execute_nextflow(
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
-    executor_config_path = _generate_executor_config(compute, log_dir)
+    billing_user_id = request.user_id or "unknown"
+    executor_config_path = _generate_executor_config(
+        compute, log_dir, user_id=billing_user_id, run_id=run_id
+    )
     if executor_config_path:
         cmd += ["-c", str(executor_config_path)]
 
@@ -1252,12 +1390,59 @@ def get_nextflow_status(
         "outdir": info["outdir"],
         "log_tail": log_tail,
         "is_batch": info.get("is_batch", False),
+        "s3_output_files": info.get("s3_output_files", []),
         **progress,
     }
 
 
+@router.get("/api/nextflow/outputs/download", summary="Generate presigned download URL for S3 output")
+def download_s3_output(
+    s3_uri: str,
+    run_id: str,
+) -> Any:
+    """
+    Generate a presigned S3 GET URL for a workflow output file.
+
+    Security: the requested s3_uri must belong to the outdir of the given run_id.
+    Returns a 302 redirect to the presigned URL (15-minute expiry).
+    """
+    from starlette.responses import RedirectResponse
+
+    with _runs_lock:
+        info = _runs.get(run_id)
+    if info is None:
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    outdir = str(info.get("outdir", ""))
+    if not outdir.startswith("s3://"):
+        raise HTTPException(status_code=400, detail="This run does not have S3 outputs.")
+
+    # Auth guard: requested key must be within this run's outdir.
+    if not s3_uri.startswith(outdir.rstrip("/") + "/"):
+        raise HTTPException(
+            status_code=403,
+            detail="Requested S3 key is not within this run's output directory.",
+        )
+
+    try:
+        import boto3
+        parts = s3_uri[len("s3://"):].split("/", 1)
+        bucket, key = parts[0], parts[1]
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        url = s3.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=900,  # 15 minutes
+        )
+        return RedirectResponse(url, status_code=302)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="boto3 not installed — S3 downloads unavailable.")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to generate presigned URL: {exc}")
+
+
 @router.get("/api/qc/profiles", summary="List available named QC profiles")
-def list_qc_profiles() -> Dict[str, Any]:
+async def list_qc_profiles() -> Dict[str, Any]:
     """
     Return all available named QC profiles (Layer 3 — curated threshold sets).
 
@@ -1267,6 +1452,9 @@ def list_qc_profiles() -> Dict[str, Any]:
       - domain_hint: str  — primary workflow domain
       - overrides:   dict — threshold keys and values applied when profile is selected
       - references:  list — primary literature / guideline citations
+
+    This is an async endpoint so it runs in the event loop (not the thread pool),
+    ensuring it responds quickly even when worker threads are busy with AI calls.
     """
     try:
         from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler
@@ -1964,3 +2152,66 @@ def get_invocation_manifest(
         raise HTTPException(status_code=500, detail=f"Failed to read manifest: {exc}")
 
     return manifest
+
+
+# ---------------------------------------------------------------------------
+# CryoSPARC direct execution routes
+# ---------------------------------------------------------------------------
+
+class CryoSPARCExecuteRequest(BaseModel):
+    parameters: Optional[Dict[str, Any]] = None
+    user_id: Optional[str] = None
+    history_id: Optional[str] = None
+
+
+@router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline")
+def execute_cryosparc(
+    request: CryoSPARCExecuteRequest,
+) -> Dict[str, Any]:
+    """
+    Submit a CryoSPARC SPA job on the dedicated GPU instance (us-east-1).
+    Starts the EC2 instance automatically if stopped (~3-5 min cold start).
+    Returns run_id immediately; execution continues in a background thread.
+
+    Required parameter: movie_dir — path to EER/TIFF/MRC movies on the CryoSPARC host.
+    Optional parameters: pixel_size, voltage, cs, amplitude_contrast, particle_diameter,
+                         symmetry, num_movies, total_dose.
+    """
+    try:
+        from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"CryoSPARC executor not available: {exc}")
+
+    run_id = str(uuid.uuid4())
+    params = dict(request.parameters or {})
+
+    cs_exec.execute_spa_pipeline(
+        run_id=run_id,
+        params=params,
+        user_id=request.user_id or "",
+    )
+
+    log.info("[CryoSPARC Route] Queued run %s with params %s", run_id, list(params.keys()))
+
+    return {
+        "success": True,
+        "run_id": run_id,
+        "invocation_id": run_id,
+        "executor": "cryosparc",
+        "message": "CryoSPARC SPA pipeline queued — GPU instance starting if stopped",
+    }
+
+
+@router.get("/api/cryosparc/status/{run_id}", summary="Get CryoSPARC run status")
+def get_cryosparc_status(run_id: str) -> Dict[str, Any]:
+    """Return current status of a CryoSPARC run."""
+    try:
+        from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"CryoSPARC executor not available: {exc}")
+
+    status = cs_exec.get_run_status(run_id)
+    if status is None:
+        raise HTTPException(status_code=404, detail=f"CryoSPARC run not found: {run_id}")
+
+    return status
