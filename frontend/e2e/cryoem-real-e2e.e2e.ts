@@ -97,12 +97,9 @@ test.describe("Cryo-EM QC profiles", () => {
 // ===========================================================================
 // T1–T5 — Full user story: EMPIAR-10028 β-galactosidase
 // ===========================================================================
+test.use({ viewport: { width: 1920, height: 1080 } });
+
 test.describe("Cryo-EM real E2E — EMPIAR-10028", () => {
-  test.use({ viewport: { width: 1920, height: 1080 } });
-  test.use({
-    video: { mode: "on", size: { width: 1920, height: 1080 } },
-    trace: "retain-on-failure",
-  });
 
   test("Full cryo-EM SPA workflow: query → pilot banner → QC settings → execute", async ({ page }) => {
     test.setTimeout(600_000); // 10 minutes for AWS Batch cold-start

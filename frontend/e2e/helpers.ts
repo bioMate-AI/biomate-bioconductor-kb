@@ -73,33 +73,48 @@ export async function waitForResponseComplete(
   page: Page,
   timeoutMs = 120_000
 ): Promise<boolean> {
+  // Primary selectors from actual DOM (data-testid beats text matches)
   const thinkingSelectors = [
-    "text=AI is typing",
+    "[data-testid='chat-response-pending']",
+    "[data-testid='chat-analysis-status']",
     "text=BioMate is thinking",
     "text=Analyzing request",
-    "[data-testid='chat-response-pending']",
-    "text=response will stream",
+    "text=AI is typing",
   ];
-  // Wait for any thinking indicator to appear (confirms request is in-flight)
+
+  // Wait for ANY thinking indicator to appear (confirms request is in-flight)
   await Promise.race(
     thinkingSelectors.map((sel) =>
       page.waitForSelector(sel, { state: "visible", timeout: 30_000 }).catch(() => null)
     )
   );
-  // Wait for all of them to disappear (response complete)
+
+  // Wait for ALL thinking indicators to disappear
   await Promise.all(
     thinkingSelectors.map((sel) =>
       page.waitForSelector(sel, { state: "hidden", timeout: timeoutMs }).catch(() => null)
     )
   );
-  await page.waitForTimeout(1500);
 
-  // Confirm a non-empty assistant message is visible
+  // Wait for the latest assistant message to have real content (not spinner text)
   await page
-    .locator('[data-role="assistant"], [class*="assistant-message"]')
-    .last()
-    .waitFor({ state: "visible", timeout: 10_000 })
+    .waitForFunction(
+      () => {
+        const latest = document.querySelector('[data-is-latest-assistant="true"]');
+        if (!latest) return false;
+        const text = latest.textContent ?? "";
+        return (
+          text.trim().length > 30 &&
+          !text.includes("BioMate is thinking") &&
+          !text.includes("Analyzing request") &&
+          !text.includes("AI is typing")
+        );
+      },
+      { timeout: timeoutMs }
+    )
     .catch(() => {});
+
+  await page.waitForTimeout(500);
 
   return page
     .getByTestId("button-run-workflow-panel")
@@ -124,15 +139,16 @@ export async function sendMessageAndWaitForResponse(
 ): Promise<boolean> {
   await sendChatMessage(page, message);
 
-  // The app uses several possible thinking/typing indicator texts.
-  // Wait for any one of them to appear (confirms request is in-flight).
+  // Primary selectors from actual DOM (data-testid beats text matches)
   const thinkingSelectors = [
-    "text=AI is typing",
+    "[data-testid='chat-response-pending']",
+    "[data-testid='chat-analysis-status']",
     "text=BioMate is thinking",
     "text=Analyzing request",
-    "[data-testid='chat-response-pending']",
-    "text=response will stream",
+    "text=AI is typing",
   ];
+
+  // Wait for any one of them to appear (confirms request is in-flight).
   await Promise.race(
     thinkingSelectors.map((sel) =>
       page.waitForSelector(sel, { state: "visible", timeout: 30_000 }).catch(() => null)
@@ -146,14 +162,23 @@ export async function sendMessageAndWaitForResponse(
     )
   );
 
-  // Give React one extra render cycle after streaming finishes.
-  await page.waitForTimeout(1500);
-
-  // Confirm a non-empty assistant message is actually visible in the DOM.
-  const assistantMsg = page
-    .locator('[data-role="assistant"], [class*="assistant-message"], [class*="AssistantMessage"]')
-    .last();
-  await assistantMsg.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+  // Wait for the latest assistant message to have real content (not spinner text)
+  await page
+    .waitForFunction(
+      () => {
+        const latest = document.querySelector('[data-is-latest-assistant="true"]');
+        if (!latest) return false;
+        const text = latest.textContent ?? "";
+        return (
+          text.trim().length > 30 &&
+          !text.includes("BioMate is thinking") &&
+          !text.includes("Analyzing request") &&
+          !text.includes("AI is typing")
+        );
+      },
+      { timeout: timeoutMs }
+    )
+    .catch(() => {});
 
   // Did a workflow card appear?
   return page

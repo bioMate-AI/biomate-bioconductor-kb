@@ -4,6 +4,7 @@ set -e
 cd /home/yzhang/biomate/backend
 
 # Core Galaxy settings
+export ANTHROPIC_API_KEY=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
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT=true
 export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
@@ -23,5 +24,5 @@ exec .venv/bin/gunicorn \
   --pythonpath lib \
   -k uvicorn.workers.UvicornWorker \
   -b 127.0.0.1:8081 \
-  --workers 1 \
+  --workers 4 \
   --log-level info

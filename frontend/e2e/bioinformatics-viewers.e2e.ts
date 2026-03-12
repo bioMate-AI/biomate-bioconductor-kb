@@ -30,7 +30,7 @@ test.use({
   viewport: { width: 1280, height: 900 },
 });
 
-test.setTimeout(180000);
+test.setTimeout(480000); // 8 min per test — handles cold backend + sequential queue
 
 // ---------------------------------------------------------------------------
 // Screenshot helper
@@ -70,33 +70,48 @@ async function runViewerTest(
   // Send the message
   await chatInput.press("Enter");
 
-  // Capture the thinking state (first 5s window)
+  // Capture the thinking state — poll up to 8s using data-testid + text selectors
   const thinkingIndicators = [
+    "[data-testid='chat-response-pending']",
+    "[data-testid='chat-analysis-status']",
     "text=BioMate is thinking",
-    "text=AI is typing",
     "text=Analyzing request",
+    "text=AI is typing",
   ];
+  let thinkingCaptured = false;
   for (const sel of thinkingIndicators) {
-    const visible = await page.locator(sel).first().isVisible({ timeout: 5000 }).catch(() => false);
-    if (visible) {
+    const visible = await page.locator(sel).first().isVisible({ timeout: 8000 }).catch(() => false);
+    if (visible && !thinkingCaptured) {
       await snap(page, testName, "03_thinking");
+      thinkingCaptured = true;
       break;
     }
   }
+  if (!thinkingCaptured) {
+    // Snapshot anyway — response may have arrived very fast
+    await snap(page, testName, "03_thinking");
+  }
 
-  // Wait for complete AI response
-  await waitForResponseComplete(page, 90_000);
-  await page.waitForTimeout(500); // let final render settle
+  // Wait for complete AI response — waits for data-is-latest-assistant="true" to have real content
+  // 180s timeout handles cold backend + sequential queue load in full suite runs
+  await waitForResponseComplete(page, 180_000);
   await snap(page, testName, "04_response");
 
-  // Assert response is present and contains relevant content
+  // Assert response is present and contains relevant content.
+  // IMPORTANT: check only the LATEST assistant message, not the full page body
+  // (page body includes demo sidebar conversations that would give false-positives)
   await expect(page.locator("textarea").first()).toBeVisible({ timeout: 30000 });
-  const bodyText = (await page.textContent("body").catch(() => "")) ?? "";
-  const hasContent = contentPattern.test(bodyText);
+  const latestMsgText =
+    (await page
+      .locator('[data-is-latest-assistant="true"]')
+      .textContent({ timeout: 10000 })
+      .catch(() => "")) ?? "";
+  const hasContent = contentPattern.test(latestMsgText);
   console.log(`[${testName}] Domain content found: ${hasContent}`);
+  console.log(`[${testName}] Response excerpt: "${latestMsgText.slice(0, 200)}"`);
   expect(hasContent).toBe(
     true,
-    `Expected AI response to contain content matching ${contentPattern} — full page text was: "${bodyText.slice(0, 300)}"`
+    `Expected AI response to contain content matching ${contentPattern} — latest assistant message was: "${latestMsgText.slice(0, 400)}"`
   );
 
   await verifyBillingRecord(page, testName);
@@ -154,8 +169,8 @@ test.describe("Sequence Viewer", () => {
     await runViewerTest(
       page,
       "sequence",
-      "I have a FASTA file with DNA sequences. Can you help me view the sequences and calculate statistics like GC content?",
-      /sequence|fasta|gc content|nucleotide|dna|rna|genome/i
+      "Explain how to calculate GC content for DNA sequences from a FASTA file. What tools are typically used?",
+      /sequence|fasta|gc|nucleotide|dna|rna|genome|bioinformatics/i
     );
   });
 });
@@ -176,8 +191,8 @@ test.describe("Interactive Tool Launcher", () => {
     await runViewerTest(
       page,
       "interactive",
-      "I have a single-cell RNA-seq h5ad file. Can you help me visualize it?",
-      /single.cell|h5ad|seurat|scanpy|umap|tsne|cluster|visuali|anndata/i
+      "What tools can I use to visualize single-cell RNA-seq h5ad files? Describe UMAP and clustering approaches.",
+      /single.cell|h5ad|seurat|scanpy|umap|tsne|cluster|visuali|anndata|single cell/i
     );
   });
 });

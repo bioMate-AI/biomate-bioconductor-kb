@@ -30,9 +30,42 @@ test.use({ trace: "retain-on-failure" });
 // ---------------------------------------------------------------------------
 
 /** Wait for a workflow artifact card to appear in the chat. */
-async function waitForWorkflowCard(page: Page, timeoutMs = 60_000): Promise<boolean> {
+async function waitForWorkflowCard(page: Page, timeoutMs = 180_000): Promise<boolean> {
+  // Use the same multi-selector strategy as waitForResponseComplete
+  const thinkingSelectors = [
+    "[data-testid='chat-response-pending']",
+    "[data-testid='chat-analysis-status']",
+    "text=BioMate is thinking",
+    "text=Analyzing request",
+    "text=AI is typing",
+  ];
+  // Wait for any indicator to appear
+  await Promise.race(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "visible", timeout: 30_000 }).catch(() => null)
+    )
+  );
+  // Wait for all to disappear
+  await Promise.all(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "hidden", timeout: timeoutMs }).catch(() => null)
+    )
+  );
+  // Wait for actual content in latest assistant message
   await page
-    .waitForSelector("text=AI is typing", { state: "hidden", timeout: timeoutMs })
+    .waitForFunction(
+      () => {
+        const latest = document.querySelector('[data-is-latest-assistant="true"]');
+        if (!latest) return false;
+        const text = latest.textContent ?? "";
+        return (
+          text.trim().length > 30 &&
+          !text.includes("BioMate is thinking") &&
+          !text.includes("Analyzing request")
+        );
+      },
+      { timeout: timeoutMs }
+    )
     .catch(() => {});
   await page.waitForTimeout(1500);
   return page
@@ -49,11 +82,11 @@ test.describe("QC profiles API", () => {
   test("GET /api/qc/profiles returns ≥ 30 profiles with required fields", async ({
     request,
   }) => {
-    // 120s timeout — the profiles endpoint may be slow if the backend is
+    // 180s timeout — the profiles endpoint may be slow if the backend is
     // warming up from prior AI calls in the same test run.
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     const response = await request.get(`${BASE_URL}/api/qc/profiles`, {
-      timeout: 90_000,
+      timeout: 150_000,
     });
     expect(response.status()).toBe(200);
 
