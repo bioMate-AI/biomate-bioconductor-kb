@@ -1,0 +1,122 @@
+[
+  {
+    "type": "debug",
+    "text": "[vite] connecting...",
+    "timestamp": "2026-03-06T00:27:05.941Z"
+  },
+  {
+    "type": "debug",
+    "text": "[vite] connected.",
+    "timestamp": "2026-03-06T00:27:05.952Z"
+  },
+  {
+    "type": "info",
+    "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+    "timestamp": "2026-03-06T00:27:06.025Z"
+  },
+  {
+    "type": "debug",
+    "text": "[analytics] page_viewed {page: /register, userId: undefined, timestamp: 2026-03-06T00:27:06.091Z, platform: web}",
+    "timestamp": "2026-03-06T00:27:06.093Z"
+  },
+  {
+    "type": "network-error",
+    "text": "POST http://localhost:5000/api/telemetry/event - net::ERR_ABORTED",
+    "timestamp": "2026-03-06T00:27:06.135Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+    "timestamp": "2026-03-06T00:27:07.019Z"
+  },
+  {
+    "type": "debug",
+    "text": "[vite] connecting...",
+    "timestamp": "2026-03-06T00:27:09.041Z"
+  },
+  {
+    "type": "debug",
+    "text": "[vite] connected.",
+    "timestamp": "2026-03-06T00:27:09.095Z"
+  },
+  {
+    "type": "info",
+    "text": "%cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold",
+    "timestamp": "2026-03-06T00:27:09.155Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 0",
+    "timestamp": "2026-03-06T00:27:09.228Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: []",
+    "timestamp": "2026-03-06T00:27:09.229Z"
+  },
+  {
+    "type": "debug",
+    "text": "[analytics] page_viewed {page: /, userId: undefined, timestamp: 2026-03-06T00:27:09.228Z, platform: web}",
+    "timestamp": "2026-03-06T00:27:09.230Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 3",
+    "timestamp": "2026-03-06T00:27:09.277Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3]",
+    "timestamp": "2026-03-06T00:27:09.277Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 3}",
+    "timestamp": "2026-03-06T00:27:09.279Z"
+  },
+  {
+    "type": "network-error",
+    "text": "POST http://localhost:5000/api/telemetry/event - net::ERR_ABORTED",
+    "timestamp": "2026-03-06T00:27:09.293Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-06T00:27:11.948Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-06T00:27:11.949Z"
+  },
+  {
+    "type": "debug",
+    "text": "[analytics] query_sent {query_length: 68, userId: undefined, timestamp: 2026-03-06T00:27:11.948Z, platform: web}",
+    "timestamp": "2026-03-06T00:27:11.949Z"
+  },
+  {
+    "type": "log",
+    "text": "Send message: Create a simple workflow to analyze VCF variant files using bcftools",
+    "timestamp": "2026-03-06T00:27:11.950Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-03-06T00:27:11.959Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772756831947, assistant-stream-1772756831948]",
+    "timestamp": "2026-03-06T00:27:11.959Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-03-06T00:27:11.959Z"
+  },
+  {
+    "type": "network-error",
+    "text": "POST http://localhost:5000/api/telemetry/event - net::ERR_ABORTED",
+    "timestamp": "2026-03-06T00:27:11.989Z"
+  }
+]

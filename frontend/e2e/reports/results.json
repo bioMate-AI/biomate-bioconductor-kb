@@ -1,0 +1,344 @@
+{
+  "config": {
+    "configFile": "/home/yzhang/biomate/frontend/playwright.config.ts",
+    "rootDir": "/home/yzhang/biomate/frontend/e2e",
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "e2e/reports"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "e2e/reports/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/yzhang/biomate/frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "complete-workflow.e2e.ts",
+      "file": "complete-workflow.e2e.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Complete Workflow E2E",
+          "file": "complete-workflow.e2e.ts",
+          "line": 235,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should generate workflow, execute it, and provide output",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 300000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 43679,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Test] Step 1: Navigate to app\n"
+                        },
+                        {
+                          "text": "[Screenshot] 01_initial at 3038ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 2: Ask for workflow\n"
+                        },
+                        {
+                          "text": "[Test] Sent: \"Build me a quality control workflow for RNA-seq FASTQ files\"\n"
+                        },
+                        {
+                          "text": "[Screenshot] 02_message_sent at 3248ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 3: Waiting for AI response to complete...\n"
+                        },
+                        {
+                          "text": "[Test] No typing indicator found, response may already be complete\n"
+                        },
+                        {
+                          "text": "[Screenshot] 03_response_complete at 16458ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 4: Looking for WorkflowArtifact...\n"
+                        },
+                        {
+                          "text": "[Test] Found workflow indicator: button:has-text(\"Run\")\n"
+                        },
+                        {
+                          "text": "[Screenshot] 04_workflow_check at 16561ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 5: Clicking Run button...\n"
+                        },
+                        {
+                          "text": "[Screenshot] 05_workflow_running at 18792ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 6: Monitoring execution progress...\n"
+                        },
+                        {
+                          "text": "[Test] Execution in progress (iteration 0)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 06_progress_0 at 36046ms\n"
+                        },
+                        {
+                          "text": "[Test] Execution complete at iteration 0\n"
+                        },
+                        {
+                          "text": "[Screenshot] 07_execution_complete at 36153ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 6b: Poll backend run status for terminal state...\n"
+                        },
+                        {
+                          "text": "[Test] Backend poll 0: status=completed, nfStatus=completed, nfCompleted=true, progress=3/3\n"
+                        },
+                        {
+                          "text": "[Screenshot] 07_backend_terminal_complete at 38300ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 7: Checking for output...\n"
+                        },
+                        {
+                          "text": "[Screenshot] 08_before_output_check at 41422ms\n"
+                        },
+                        {
+                          "text": "[Test] Output evidence found: outputCards=true, runtimeArtifacts=true, emptyMessage=false\n"
+                        },
+                        {
+                          "text": "[Screenshot] 08_output_available at 42326ms\n"
+                        },
+                        {
+                          "text": "[Test] Visualization indicator visible=true (hasOutputCards=true, emptyMessage=false)\n"
+                        },
+                        {
+                          "text": "[Test] Output download control enabled=true\n"
+                        },
+                        {
+                          "text": "[Screenshot] 09_output_visualizable_and_downloadable at 42516ms\n"
+                        },
+                        {
+                          "text": "[Test] Step 8: Checking Workflow History...\n"
+                        },
+                        {
+                          "text": "[Screenshot] 10_final_state at 42623ms\n"
+                        },
+                        {
+                          "text": "[Test] Console logs saved to: /home/yzhang/biomate/frontend/e2e/screenshots/complete-workflow/console_logs_1773195342868.json\n"
+                        },
+                        {
+                          "text": "\n[Test] === Important Console Logs ===\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Created AI message: {id: assistant-stream-1773195303380, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Updating streaming placeholder: assistant-stream-1773195303380\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Extracting workflow to session.workflows\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] workflow.generated {sessionId: chat-1, invocationId: undefined}\n"
+                        },
+                        {
+                          "text": "  [log] ChatWithArtifacts: New workflow generated: {name: RNA QC Workflow, workflow_type: nextflow, format: nextflow, nextflow_path: mock/rna_qc/main.nf, steps: Object}\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1773195303378, assistant-stream-1773195303380]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
+                        },
+                        {
+                          "text": "  [error] Failed to load resource: the server responded with a status of 401 (Unauthorized)\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] workflow.run_clicked {workflowId: undefined, invocationId: undefined, sessionId: sess_1773195316888_y9zu6pau4}\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] workflow.run_clicked {sessionId: chat-1, workflowId: RNA QC Workflow}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Running workflow: RNA QC Workflow\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Steps: 1\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow format: nextflow\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Preparing Nextflow workflow for unified execution\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Executing workflow via unified API\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow execution complete\n"
+                        },
+                        {
+                          "text": "  [debug] [analytics] workflow_completed {invocation_id: mock-inv-mock-run-cw, userId: undefined, timestamp: 2026-03-11T02:15:16.940Z, platform: web}\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] workflow.status_changed {runId: mock-run-cw, workflowId: undefined, invocationId: mock-inv-mock-run-cw, status: completed, sessionId: sess_1773195316888_y9zu6pau4}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Workflow execution started: mock-run-cw\n"
+                        },
+                        {
+                          "text": "  [debug] [analytics] workflow_started {domain: undefined, workflow_steps: 1, execution_engine: nextflow, qc_profile: undefined, total_samples: undefined}\n"
+                        },
+                        {
+                          "text": "  [log] [ChatWithArtifacts] Updating message with invocation ID: mock-inv-mock-run-cw\n"
+                        },
+                        {
+                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1773195303378, assistant-stream-1773195303380]\n"
+                        },
+                        {
+                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] output.panel_opened {invocationId: mock-inv-mock-run-cw, outputCount: 2, sessionId: sess_1773195316888_y9zu6pau4}\n"
+                        },
+                        {
+                          "text": "  [debug] [UX Telemetry] output.panel_opened {invocationId: mock-inv-mock-run-cw, outputCount: 2, sessionId: sess_1773195316888_y9zu6pau4}\n"
+                        },
+                        {
+                          "text": "\n[Test] === Test Summary ===\n"
+                        },
+                        {
+                          "text": "  Workflow artifact found: true\n"
+                        },
+                        {
+                          "text": "  Total duration: 42704ms\n"
+                        }
+                      ],
+                      "stderr": [
+                        {
+                          "text": "(node:1427319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+                        }
+                      ],
+                      "retry": 0,
+                      "startTime": "2026-03-11T02:15:00.068Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "388d2b322faee0ffd25c-e083c404c26097ea8c04",
+              "file": "complete-workflow.e2e.ts",
+              "line": 236,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-11T02:14:59.526Z",
+    "duration": 45359.014,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

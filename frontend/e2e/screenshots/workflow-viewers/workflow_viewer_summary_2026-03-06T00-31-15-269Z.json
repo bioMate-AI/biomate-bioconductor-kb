@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-03-06T00:31:15.269Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Workflow Output Viewer Tests",
+  "tests": [
+    "VCF Viewer",
+    "Sequence Viewer",
+    "Annotation Viewer"
+  ],
+  "note": "These tests mock workflow outputs to trigger viewer rendering"
+}

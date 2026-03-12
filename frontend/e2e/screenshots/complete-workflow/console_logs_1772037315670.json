@@ -1,0 +1,217 @@
+[
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 0",
+    "timestamp": "2026-02-25T16:31:57.014Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: []",
+    "timestamp": "2026-02-25T16:31:57.014Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 3",
+    "timestamp": "2026-02-25T16:31:57.023Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3]",
+    "timestamp": "2026-02-25T16:31:57.023Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 3}",
+    "timestamp": "2026-02-25T16:31:57.025Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:31:57.027Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:31:59.763Z"
+  },
+  {
+    "type": "log",
+    "text": "Send message: Build me a quality control workflow for RNA-seq FASTQ files",
+    "timestamp": "2026-02-25T16:31:59.764Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 4",
+    "timestamp": "2026-02-25T16:31:59.774Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037119760]",
+    "timestamp": "2026-02-25T16:31:59.774Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 4}",
+    "timestamp": "2026-02-25T16:31:59.777Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:32:01.779Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:32:01.780Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:32:01.781Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] API Response: {response: Great! I've generated an RNA-seq quality control w…s!\n\n**Click \"Run\" now to start the QC workflow!**, workflow: Object, prerequisitesValidation: Object, metadata: Object, isMultiIntent: false}",
+    "timestamp": "2026-02-25T16:33:08.576Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Steps array: []",
+    "timestamp": "2026-02-25T16:33:08.576Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Created AI message: {id: 1772037188575, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}",
+    "timestamp": "2026-02-25T16:33:08.576Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Adding message to existing session: chat-1",
+    "timestamp": "2026-02-25T16:33:08.576Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Updated session: 5 messages",
+    "timestamp": "2026-02-25T16:33:08.577Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:33:08.577Z"
+  },
+  {
+    "type": "log",
+    "text": "ChatWithArtifacts: New workflow generated: {name: nf-core/fastq_qc_trim_filter_setstrandedness, description: Performs linting, quality control, trimming, filte…TQ files, preparing them for downstream analysis., annotation: Performs linting, quality control, trimming, filte…TQ files, preparing them for downstream analysis., tags: Array(8), format: nextflow}",
+    "timestamp": "2026-02-25T16:33:08.577Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:33:08.577Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-02-25T16:33:08.603Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037119760, 1772037188575]",
+    "timestamp": "2026-02-25T16:33:08.603Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-02-25T16:33:08.604Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:33:10.592Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:33:10.592Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:33:10.592Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Running workflow: nf-core/fastq_qc_trim_filter_setstrandedness",
+    "timestamp": "2026-02-25T16:33:12.037Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Steps: 0",
+    "timestamp": "2026-02-25T16:33:12.037Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow format: nextflow",
+    "timestamp": "2026-02-25T16:33:12.038Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Preparing Nextflow workflow for unified execution",
+    "timestamp": "2026-02-25T16:33:12.038Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Executing workflow via unified API",
+    "timestamp": "2026-02-25T16:33:12.038Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Inputs: 0",
+    "timestamp": "2026-02-25T16:33:12.038Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow execution started: 06862f98-cb4d-4cfb-b4e6-1b0fd1ae0f8a",
+    "timestamp": "2026-02-25T16:33:12.104Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Updating message with run ID: 06862f98-cb4d-4cfb-b4e6-1b0fd1ae0f8a",
+    "timestamp": "2026-02-25T16:33:12.104Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:33:12.105Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-02-25T16:33:12.110Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037119760, 1772037188575]",
+    "timestamp": "2026-02-25T16:33:12.110Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-02-25T16:33:12.111Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:33:14.141Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:33:14.142Z"
+  },
+  {
+    "type": "error",
+    "text": "[ChatHistory] Failed to sync session chat-1: TypeError: s.timestamp.toISOString is not a function\n    at http://localhost:5300/assets/index-pL1JiqQU.js:610:10896\n    at Array.map (<anonymous>)\n    at $_.convertToBackendFormat (http://localhost:5300/assets/index-pL1JiqQU.js:610:10819)\n    at $_.syncSessionToBackend (http://localhost:5300/assets/index-pL1JiqQU.js:610:10147)\n    at async $_.flushSyncQueue (http://localhost:5300/assets/index-pL1JiqQU.js:610:9736)\n    at async http://localhost:5300/assets/index-pL1JiqQU.js:610:9566",
+    "timestamp": "2026-02-25T16:33:14.142Z"
+  }
+]

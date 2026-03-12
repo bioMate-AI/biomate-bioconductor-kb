@@ -1,3 +1,4 @@
+import { setupTestUser } from "./helpers.js";
 /**
  * Realistic User Flow E2E Test
  *
@@ -64,6 +65,7 @@ async function saveScreenshot(page: any, name: string, startTime: number) {
 test.describe('Realistic User Flow', () => {
 
   test('Multi-turn: Request workflow → Handle prerequisites → Execute', async ({ page }) => {
+    await setupTestUser(page, "real_flow");
     const testStart = Date.now();
     const testName = 'MultiTurn';
 
@@ -204,6 +206,7 @@ test.describe('Realistic User Flow', () => {
   });
 
   test('Simple query: Database lookup (no file inputs)', async ({ page }) => {
+    await setupTestUser(page, "real_flow");
     const testStart = Date.now();
     const testName = 'SimpleQuery';
 

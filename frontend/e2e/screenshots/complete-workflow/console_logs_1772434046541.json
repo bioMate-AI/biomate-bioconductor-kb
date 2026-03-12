@@ -1,0 +1,257 @@
+[
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 0",
+    "timestamp": "2026-03-02T06:45:14.228Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: []",
+    "timestamp": "2026-03-02T06:45:14.228Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 3",
+    "timestamp": "2026-03-02T06:45:14.242Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3]",
+    "timestamp": "2026-03-02T06:45:14.242Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 3}",
+    "timestamp": "2026-03-02T06:45:14.244Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:45:16.979Z"
+  },
+  {
+    "type": "log",
+    "text": "Send message: Build me a quality control workflow for RNA-seq FASTQ files",
+    "timestamp": "2026-03-02T06:45:16.979Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 4",
+    "timestamp": "2026-03-02T06:45:16.985Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772433916976]",
+    "timestamp": "2026-03-02T06:45:16.986Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 4}",
+    "timestamp": "2026-03-02T06:45:16.986Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] API Response: {response: Great! I've generated a quality control workflow f…e details (paired/single-end, number of samples)?, suggestions: Array(4), workflow: Object, prerequisitesValidation: Object, metadata: Object}",
+    "timestamp": "2026-03-02T06:46:08.934Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Steps array: []",
+    "timestamp": "2026-03-02T06:46:08.934Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Created AI message: {id: 1772433968934, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}",
+    "timestamp": "2026-03-02T06:46:08.934Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Adding message to existing session: chat-1",
+    "timestamp": "2026-03-02T06:46:08.934Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Updated session: 5 messages",
+    "timestamp": "2026-03-02T06:46:08.935Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:46:08.935Z"
+  },
+  {
+    "type": "log",
+    "text": "ChatWithArtifacts: New workflow generated: {name: Get Rna Seq Archs4, description: Biomni Nextflow genomics subworkflow, annotation: Biomni Nextflow genomics subworkflow, tags: Array(3), format: nextflow}",
+    "timestamp": "2026-03-02T06:46:08.936Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:46:08.936Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-03-02T06:46:08.961Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772433916976, 1772433968934]",
+    "timestamp": "2026-03-02T06:46:08.961Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-03-02T06:46:08.961Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:46:12.637Z"
+  },
+  {
+    "type": "log",
+    "text": "Send message: My current workflow run is blocked by missing prerequisites. Please generate a runnable demo path with sample/test inputs and a workflow variant that can produce one visualizable report and downloadable outputs.",
+    "timestamp": "2026-03-02T06:46:12.637Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 6",
+    "timestamp": "2026-03-02T06:46:12.643Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772433916976, 1772433968934, 1772433972632]",
+    "timestamp": "2026-03-02T06:46:12.643Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 6}",
+    "timestamp": "2026-03-02T06:46:12.649Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] API Response: {response: Perfect! I've generated a **runnable demo workflow…TQ files.\n\nReady to proceed? Click **\"Run\"** now!, suggestions: Array(4), workflow: Object, prerequisitesValidation: Object, metadata: Object}",
+    "timestamp": "2026-03-02T06:47:12.207Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Steps array: []",
+    "timestamp": "2026-03-02T06:47:12.207Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Created AI message: {id: 1772434032207, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}",
+    "timestamp": "2026-03-02T06:47:12.207Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Adding message to existing session: chat-1",
+    "timestamp": "2026-03-02T06:47:12.207Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Updated session: 7 messages",
+    "timestamp": "2026-03-02T06:47:12.211Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:47:12.211Z"
+  },
+  {
+    "type": "log",
+    "text": "ChatWithArtifacts: New workflow generated: {name: Get Rna Seq Archs4, description: Biomni Nextflow genomics subworkflow, annotation: Biomni Nextflow genomics subworkflow, tags: Array(3), format: nextflow}",
+    "timestamp": "2026-03-02T06:47:12.212Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:47:12.212Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 7",
+    "timestamp": "2026-03-02T06:47:12.226Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772433916976, 1772433968934, 1772433972632, 1772434032207]",
+    "timestamp": "2026-03-02T06:47:12.226Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 7}",
+    "timestamp": "2026-03-02T06:47:12.227Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Running workflow: Get Rna Seq Archs4",
+    "timestamp": "2026-03-02T06:47:15.673Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Steps: 0",
+    "timestamp": "2026-03-02T06:47:15.673Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow format: nextflow",
+    "timestamp": "2026-03-02T06:47:15.674Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Preparing Nextflow workflow for unified execution",
+    "timestamp": "2026-03-02T06:47:15.674Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Executing workflow via unified API",
+    "timestamp": "2026-03-02T06:47:15.674Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Inputs: 0",
+    "timestamp": "2026-03-02T06:47:15.674Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow execution started: 8b86594a-61ab-4eba-a2bc-5f8c50c2a028",
+    "timestamp": "2026-03-02T06:47:17.323Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Updating message with invocation ID: 1074e7b4-6885-426a-a728-fdb88a5f0173",
+    "timestamp": "2026-03-02T06:47:17.323Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-03-02T06:47:17.324Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 7",
+    "timestamp": "2026-03-02T06:47:17.331Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772433916976, 1772433968934, 1772433972632, 1772434032207]",
+    "timestamp": "2026-03-02T06:47:17.331Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 7}",
+    "timestamp": "2026-03-02T06:47:17.331Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow execution complete",
+    "timestamp": "2026-03-02T06:47:23.324Z"
+  },
+  {
+    "type": "warning",
+    "text": "Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.",
+    "timestamp": "2026-03-02T06:47:23.328Z"
+  }
+]

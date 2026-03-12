@@ -1,3 +1,4 @@
+import { setupTestUser } from "./helpers.js";
 /**
  * Query-Based Workflow E2E Test
  *
@@ -35,6 +36,7 @@ test.setTimeout(180000); // 3 minutes
 test.describe('Query-Based Workflow E2E', () => {
 
   test('should generate and potentially execute a database query workflow', async ({ page }) => {
+    await setupTestUser(page, "qw");
     const testStartTime = Date.now();
 
     const saveScreenshot = async (name: string) => {
@@ -207,6 +209,7 @@ test.describe('Query-Based Workflow E2E', () => {
   });
 
   test('should handle protein structure prediction query', async ({ page }) => {
+    await setupTestUser(page, "qw");
     const testStartTime = Date.now();
 
     const saveScreenshot = async (name: string) => {

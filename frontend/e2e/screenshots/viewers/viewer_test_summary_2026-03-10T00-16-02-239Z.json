@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-03-10T00:16:02.239Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Viewer Component Tests",
+  "tests": [
+    "VCF Viewer",
+    "Sequence Viewer",
+    "Annotation Viewer"
+  ],
+  "note": "These tests mock the output API to render viewer components"
+}

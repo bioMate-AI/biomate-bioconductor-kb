@@ -1,0 +1,182 @@
+[
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 0",
+    "timestamp": "2026-02-25T16:43:33.177Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: []",
+    "timestamp": "2026-02-25T16:43:33.177Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 3",
+    "timestamp": "2026-02-25T16:43:33.188Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3]",
+    "timestamp": "2026-02-25T16:43:33.188Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 3}",
+    "timestamp": "2026-02-25T16:43:33.190Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:43:33.193Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:43:35.917Z"
+  },
+  {
+    "type": "log",
+    "text": "Send message: Build me a quality control workflow for RNA-seq FASTQ files",
+    "timestamp": "2026-02-25T16:43:35.919Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 4",
+    "timestamp": "2026-02-25T16:43:35.928Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037815915]",
+    "timestamp": "2026-02-25T16:43:35.928Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 4}",
+    "timestamp": "2026-02-25T16:43:35.928Z"
+  },
+  {
+    "type": "error",
+    "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+    "timestamp": "2026-02-25T16:43:37.935Z"
+  },
+  {
+    "type": "warning",
+    "text": "[ChatHistory] Backend sync disabled: authentication required",
+    "timestamp": "2026-02-25T16:43:37.935Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] API Response: {response: Great! I've generated a quality control workflow f… process your input files through these QC steps., workflow: Object, prerequisitesValidation: Object, metadata: Object, isMultiIntent: false}",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Steps array: []",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Created AI message: {id: 1772037880421, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Adding message to existing session: chat-1",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Updated session: 5 messages",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "ChatWithArtifacts: New workflow generated: {name: nf-core/fastq_qc_trim_filter_setstrandedness, description: Performs linting, quality control, trimming, filte…TQ files, preparing them for downstream analysis., annotation: Performs linting, quality control, trimming, filte…TQ files, preparing them for downstream analysis., tags: Array(8), format: nextflow}",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:44:40.421Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-02-25T16:44:40.446Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037815915, 1772037880421]",
+    "timestamp": "2026-02-25T16:44:40.446Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-02-25T16:44:40.446Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Running workflow: nf-core/fastq_qc_trim_filter_setstrandedness",
+    "timestamp": "2026-02-25T16:44:44.172Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Steps: 0",
+    "timestamp": "2026-02-25T16:44:44.173Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow format: nextflow",
+    "timestamp": "2026-02-25T16:44:44.173Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Preparing Nextflow workflow for unified execution",
+    "timestamp": "2026-02-25T16:44:44.173Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Executing workflow via unified API",
+    "timestamp": "2026-02-25T16:44:44.173Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Inputs: 0",
+    "timestamp": "2026-02-25T16:44:44.173Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Workflow execution started: 0d1c40fd-927a-4fa2-8005-6b3c91259fba",
+    "timestamp": "2026-02-25T16:44:44.241Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatWithArtifacts] Updating message with run ID: 0d1c40fd-927a-4fa2-8005-6b3c91259fba",
+    "timestamp": "2026-02-25T16:44:44.241Z"
+  },
+  {
+    "type": "log",
+    "text": "App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]",
+    "timestamp": "2026-02-25T16:44:44.244Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages count: 5",
+    "timestamp": "2026-02-25T16:44:44.252Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1772037815915, 1772037880421]",
+    "timestamp": "2026-02-25T16:44:44.252Z"
+  },
+  {
+    "type": "log",
+    "text": "[ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}",
+    "timestamp": "2026-02-25T16:44:44.253Z"
+  }
+]

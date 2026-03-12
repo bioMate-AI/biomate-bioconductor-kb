@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-03-10T01:37:27.189Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Real E2E — no mocks — live AI responses",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-dev",
+  "scenarios": [
+    {
+      "name": "ADMET Screening",
+      "asserts": [
+        "hERG/DILI/toxicity in response",
+        "workflow generated",
+        "rationale panel present"
+      ]
+    },
+    {
+      "name": "Structure Prediction + Docking",
+      "asserts": [
+        "structure/binding content",
+        "AlphaFold/docking tools mentioned",
+        "rationale panel"
+      ]
+    },
+    {
+      "name": "PK/NCA Analysis",
+      "asserts": [
+        "AUC/Cmax/pharmacokinetic terms",
+        "workflow generated",
+        "rationale panel"
+      ]
+    },
+    {
+      "name": "CSV Table Viewer",
+      "asserts": [
+        "workflow runs to completion",
+        "CSV preview API responds",
+        "table viewer renders"
+      ]
+    }
+  ],
+  "notes": [
+    "Tests use real server at http://localhost:5000",
+    "AI responses are live — not mocked",
+    "Screenshots capture actual UI state after AI responds",
+    "Videos auto-recorded to e2e/test-results/"
+  ]
+}

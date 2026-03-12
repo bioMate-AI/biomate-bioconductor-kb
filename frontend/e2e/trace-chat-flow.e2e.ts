@@ -1,3 +1,4 @@
+import { setupTestUser } from "./helpers.js";
 /**
  * Detailed Chat Flow Trace
  *
@@ -27,6 +28,7 @@ interface TraceStep {
 
 test.describe('Trace Chat Flow', () => {
   test('trace every step with timing', async ({ page }) => {
+    await setupTestUser(page, "trace");
     const startTime = Date.now();
     const steps: TraceStep[] = [];
 
