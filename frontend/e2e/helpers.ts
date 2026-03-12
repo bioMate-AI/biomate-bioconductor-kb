@@ -64,7 +64,57 @@ export async function sendChatMessage(
 }
 
 /**
+ * Wait for a previously-sent AI response to fully render.
+ * Use this when you have already sent the message (e.g. after pressing Enter
+ * manually) and only need to wait for the AI to finish.
+ * Returns true if a workflow Run button appeared.
+ */
+export async function waitForResponseComplete(
+  page: Page,
+  timeoutMs = 120_000
+): Promise<boolean> {
+  const thinkingSelectors = [
+    "text=AI is typing",
+    "text=BioMate is thinking",
+    "text=Analyzing request",
+    "[data-testid='chat-response-pending']",
+    "text=response will stream",
+  ];
+  // Wait for any thinking indicator to appear (confirms request is in-flight)
+  await Promise.race(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "visible", timeout: 30_000 }).catch(() => null)
+    )
+  );
+  // Wait for all of them to disappear (response complete)
+  await Promise.all(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "hidden", timeout: timeoutMs }).catch(() => null)
+    )
+  );
+  await page.waitForTimeout(1500);
+
+  // Confirm a non-empty assistant message is visible
+  await page
+    .locator('[data-role="assistant"], [class*="assistant-message"]')
+    .last()
+    .waitFor({ state: "visible", timeout: 10_000 })
+    .catch(() => {});
+
+  return page
+    .getByTestId("button-run-workflow-panel")
+    .first()
+    .isVisible({ timeout: 5000 })
+    .catch(() => false);
+}
+
+/**
  * Send a chat message and wait for the AI to finish responding.
+ *
+ * Waits for ANY of the known thinking/typing indicators to appear, then
+ * waits for ALL of them to be gone (response fully rendered).  After that,
+ * waits up to 10s for a non-empty assistant message to be visible.
+ *
  * Returns true if a workflow Run button appeared in the response.
  */
 export async function sendMessageAndWaitForResponse(
@@ -73,15 +123,37 @@ export async function sendMessageAndWaitForResponse(
   timeoutMs = 120_000
 ): Promise<boolean> {
   await sendChatMessage(page, message);
-  // Wait for the typing indicator to appear…
-  await page
-    .waitForSelector("text=AI is typing", { state: "visible", timeout: 30_000 })
-    .catch(() => {});
-  // …then disappear
-  await page
-    .waitForSelector("text=AI is typing", { state: "hidden", timeout: timeoutMs })
-    .catch(() => {});
-  await page.waitForTimeout(1000);
+
+  // The app uses several possible thinking/typing indicator texts.
+  // Wait for any one of them to appear (confirms request is in-flight).
+  const thinkingSelectors = [
+    "text=AI is typing",
+    "text=BioMate is thinking",
+    "text=Analyzing request",
+    "[data-testid='chat-response-pending']",
+    "text=response will stream",
+  ];
+  await Promise.race(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "visible", timeout: 30_000 }).catch(() => null)
+    )
+  );
+
+  // Now wait for ALL thinking indicators to be gone (response complete).
+  await Promise.all(
+    thinkingSelectors.map((sel) =>
+      page.waitForSelector(sel, { state: "hidden", timeout: timeoutMs }).catch(() => null)
+    )
+  );
+
+  // Give React one extra render cycle after streaming finishes.
+  await page.waitForTimeout(1500);
+
+  // Confirm a non-empty assistant message is actually visible in the DOM.
+  const assistantMsg = page
+    .locator('[data-role="assistant"], [class*="assistant-message"], [class*="AssistantMessage"]')
+    .last();
+  await assistantMsg.waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
 
   // Did a workflow card appear?
   return page
