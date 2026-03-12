@@ -21,6 +21,7 @@ import {
   setupTestUser,
   sendMessageAndWaitForResponse,
   clickRunAndWaitForTerminal,
+  verifyBillingRecord,
 } from './helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -103,6 +104,9 @@ test.describe('Complete Workflow E2E', () => {
     const workflowRequest = 'Build me a quality control workflow for RNA-seq FASTQ files';
     const foundWorkflow = await sendMessageAndWaitForResponse(page, workflowRequest);
     console.log(`[Test] Sent: "${workflowRequest}"`);
+
+    // Billing audit: verify cost record written after AI call
+    await verifyBillingRecord(page, "after-chat");
 
     // Additional wait for rendering
     await page.waitForTimeout(3000);

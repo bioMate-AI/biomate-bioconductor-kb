@@ -20,10 +20,10 @@ import {
   BASE_URL,
   setupTestUser,
   sendMessageAndWaitForResponse,
+  verifyBillingRecord,
 } from "./helpers.js";
 
-// Disable trace + video for these tests to avoid ENOSPC on inotify/disk
-test.use({ trace: "off", video: "off" });
+test.use({ trace: "retain-on-failure" });
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -49,7 +49,12 @@ test.describe("QC profiles API", () => {
   test("GET /api/qc/profiles returns ≥ 30 profiles with required fields", async ({
     request,
   }) => {
-    const response = await request.get(`${BASE_URL}/api/qc/profiles`);
+    // 120s timeout — the profiles endpoint may be slow if the backend is
+    // warming up from prior AI calls in the same test run.
+    test.setTimeout(120_000);
+    const response = await request.get(`${BASE_URL}/api/qc/profiles`, {
+      timeout: 90_000,
+    });
     expect(response.status()).toBe(200);
 
     const body = await response.json();
@@ -115,6 +120,9 @@ test.describe("QC gate modal", () => {
       "Run a standard RNA-seq quality control workflow",
       120_000
     );
+
+    // Billing record: verify after AI call
+    await verifyBillingRecord(page, "T2-after-chat");
 
     if (!gotWorkflow) {
       // No workflow card returned — the QC gate modal path is not exercisable

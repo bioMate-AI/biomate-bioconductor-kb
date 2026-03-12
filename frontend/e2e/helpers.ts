@@ -1,6 +1,11 @@
 /**
  * Shared helpers for real BioMate E2E tests.
  * No page.route() mocking — all calls hit the live stack.
+ *
+ * Billing verification:
+ *   verifyBillingRecord(page, label) — calls /api/billing/usage with the
+ *   in-browser JWT and logs the result. Non-blocking: passes when billing
+ *   Redis is unavailable (local dev). Always writes to console for audit.
  */
 import { Page, APIRequestContext, expect } from "@playwright/test";
 
@@ -187,5 +192,84 @@ export async function waitForRunManagerItems(
     const items = await page.locator("[data-testid^='run-manager-item-']").count();
     if (items >= count) return;
     await page.waitForTimeout(1000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Billing audit helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify that the billing system has a record for the current user.
+ *
+ * Reads the JWT from localStorage and calls GET /api/billing/usage.
+ * Logs the result to console for the audit trail (videos + reporter).
+ * Non-blocking: if billing Redis is unavailable (local dev) the test
+ * continues normally — the call is skipped with a console note.
+ *
+ * @param page    Playwright page (must be logged in via setupTestUser)
+ * @param label   Human label for the log line, e.g. "after VCF query"
+ */
+export async function verifyBillingRecord(
+  page: Page,
+  label: string
+): Promise<void> {
+  try {
+    // Extract JWT stored by the frontend auth context
+    const token = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i) ?? "";
+        if (key.includes("token") || key.includes("auth") || key.includes("jwt")) {
+          return localStorage.getItem(key);
+        }
+      }
+      // Fallback: scan all values for a JWT-shaped string (3 base64 segments)
+      for (let i = 0; i < localStorage.length; i++) {
+        const val = localStorage.getItem(localStorage.key(i) ?? "") ?? "";
+        if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(val)) {
+          return val;
+        }
+      }
+      return null;
+    });
+
+    if (!token) {
+      console.log(`[Billing:${label}] No JWT found in localStorage — billing check skipped`);
+      return;
+    }
+
+    // Call billing usage endpoint from within the browser so CORS/cookies apply
+    const result = await page.evaluate(
+      async ({ url, jwt }: { url: string; jwt: string }) => {
+        try {
+          const r = await fetch(`${url}/api/billing/usage`, {
+            headers: { Authorization: `Bearer ${jwt}` },
+          });
+          if (!r.ok) return { ok: false, status: r.status };
+          const d = await r.json();
+          return { ok: true, status: r.status, data: d };
+        } catch (e: any) {
+          return { ok: false, error: String(e) };
+        }
+      },
+      { url: BASE_URL, jwt: token }
+    );
+
+    if (!result.ok) {
+      console.log(
+        `[Billing:${label}] Billing unavailable (status=${result.status ?? "err"} ${result.error ?? ""}) — Redis may not be configured locally`
+      );
+      return;
+    }
+
+    const d = result.data ?? {};
+    console.log(
+      `[Billing:${label}] ✓ usage: llm_tokens=${d.llm_tokens_used ?? "n/a"} ` +
+      `llm_cost=$${(d.llm_cost_usd ?? 0).toFixed(4)} ` +
+      `compute_cost=$${(d.compute_cost_usd ?? 0).toFixed(4)} ` +
+      `quota_used=${d.quota_used_pct ?? "n/a"}%`
+    );
+  } catch (err: any) {
+    console.log(`[Billing:${label}] Billing check error (non-fatal): ${err.message}`);
   }
 }

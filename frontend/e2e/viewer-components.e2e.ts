@@ -14,8 +14,7 @@ import {
 } from "./helpers.js";
 
 test.use({
-  trace: "off",
-  video: "off",
+  trace: "retain-on-failure",
   viewport: { width: 1280, height: 900 },
 });
 

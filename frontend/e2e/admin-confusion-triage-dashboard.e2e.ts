@@ -9,7 +9,7 @@
 import { test, expect } from "@playwright/test";
 import { BASE_URL, setupTestUser } from "./helpers.js";
 
-test.use({ trace: "off", video: "off" });
+test.use({ trace: "retain-on-failure" });
 
 test.describe("Admin Confusion Triage Dashboard", () => {
   test("admin dashboard route loads without error", async ({ page }) => {

@@ -9,8 +9,7 @@ import { test, expect } from "@playwright/test";
 import { BASE_URL, setupTestUser, sendMessageAndWaitForResponse } from "./helpers.js";
 
 test.use({
-  trace: "off",
-  video: "off",
+  trace: "retain-on-failure",
   viewport: { width: 1280, height: 900 },
 });
 
