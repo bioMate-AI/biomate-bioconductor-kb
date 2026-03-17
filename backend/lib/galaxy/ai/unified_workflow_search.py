@@ -32,18 +32,21 @@ log = logging.getLogger(__name__)
 # Database path
 DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
 
-# Source priority (higher = preferred)
+# Source priority for the workflows table (higher = preferred).
+# Individual tools (nf-core modules, Bioconductor packages) live in the
+# tools table and are ranked by UnifiedToolSearch, not here.
 SOURCE_PRIORITY = {
-    "nfcore":         100,  # nf-core full pipelines (CI-tested community standard)
-    "nfcore_subwf":    95,  # nf-core composite subworkflows (nf-core-modules/subworkflows/)
-    "nfcore_module":   90,  # nf-core individual tool modules (nf-core-modules/modules/)
-    "nfcore_converted": 88, # nf-core converted to Galaxy format
-    "biomni_nextflow":  85,  # BioMate domain analysis workflows (tested, Docker-native)
-    "bioconductor":    75,  # Bioconductor R-package nf-core module wrappers
-    "galaxy_local":    40,  # Kept for backward compat — galaxy format copies of nf-core subwf
-    "galaxy_biomni":   35,  # Unique BioMate Galaxy workflows pending NF conversion
-    "unknown":         30,  # Unknown-source Galaxy workflows
-    "biomni":           5,  # Legacy Biomni Galaxy format — fully superseded
+    "nfcore":          100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
+    "nfcore_subwf":     95,  # nf-core composite subworkflows (multi-tool analysis steps)
+    "biomni_nextflow":  85,  # BioMate domain analysis workflows (Python, Docker-native)
+    "galaxy_biomni":    35,  # Unique BioMate Galaxy workflows pending NF conversion
+    # legacy / compat
+    "nfcore_converted": 88,
+    "galaxy_local":     30,
+    "unknown":          20,
+    "bioconductor":     10,  # Should be in tools table; low priority if found here
+    "nfcore_module":    10,  # Should be in tools table; low priority if found here
+    "biomni":            5,  # Fully superseded legacy
 }
 
 
