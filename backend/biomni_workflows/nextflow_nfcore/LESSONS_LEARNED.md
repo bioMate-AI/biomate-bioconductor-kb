@@ -777,29 +777,29 @@ if not hasattr(collections, 'Sequence'):
 | detect_and_characterize_structural_variations | samtools |
 
 ### Category 4: Parameter/Function Signature Mismatches
-| Workflow | Wrong Parameter |
-|----------|----------------|
-| get_coding_sequences | refseq_id |
-| is_region_fully_covered | covered_regions |
-| apply_vcog_grade | symptom |
-| find_orfs_in_frame | dna_sequence |
-| default_whole_cell_model | t |
-| dimerization_odes | t |
-| first_order | k |
-| norm_chr | x |
-| is_position_covered | pos |
+| Workflow | Wrong Parameter | Fix Applied (2026-03-10) |
+|----------|----------------|--------------------------|
+| get_coding_sequences | refseq_id | Added `params.refseq_id`; function fetches from NCBI when provided ✅ |
+| is_region_fully_covered | covered_regions | Added `params.covered_regions` alias for `regions` ✅ |
+| apply_vcog_grade | symptom | Added `params.symptom` alias for `event_type` ✅ |
+| find_orfs_in_frame | dna_sequence | Added `params.dna_sequence` alias for `sequence` ✅ |
+| default_whole_cell_model | t | Function now accepts `t, y, params` as optional kwargs ✅ |
+| dimerization_odes | t | Added optional `t` param (accepted, returns instantaneous rates) ✅ |
+| first_order | k | Added `params.k` alias for `k1` ✅ |
+| norm_chr | x | Added `params.x` alias for `chrom` ✅ |
+| is_position_covered | pos | Added `params.pos` alias for `position` ✅ |
 
 ### Category 5: Implementation Bugs
-| Workflow | Error Type |
-|----------|-----------|
-| simulate_microbial_population_dynamics | list vs int |
-| model_protein_dimerization_network | list has no keys |
-| optimize_codons_for_heterologous_expression | float has no get |
-| cosinor_model | NoneType operations |
-| michaelis_menten | NoneType operations |
-| get_hpo_names | parse_hpo_obo not defined |
-| analyze_bifurcation_diagram | len() of unsized object |
-| simulate_protein_signaling_network | unpacking error |
+| Workflow | Error Type | Fix Applied (2026-03-10) |
+|----------|-----------|--------------------------|
+| simulate_microbial_population_dynamics | list vs int | Robust `_to_int()` helper handles list/None for max_time/num_simulations/time_points ✅ |
+| model_protein_dimerization_network | list has no keys | Added `isinstance(dict)` guard + defaults for all 3 dict inputs ✅ |
+| optimize_codons_for_heterologous_expression | float has no get | isinstance dict guard confirmed present ✅ |
+| cosinor_model | NoneType operations | None guards confirmed present ✅ |
+| michaelis_menten | NoneType operations | None guards confirmed present ✅ |
+| get_hpo_names | parse_hpo_obo not defined | Function already defined; added None guards for hpo_terms + data_lake_path ✅ |
+| analyze_bifurcation_diagram | len() of unsized object | Added None checks + `np.asarray(..., dtype=float)` + reshape for 1D/0D inputs ✅ |
+| simulate_protein_signaling_network | unpacking error | Added None/type guards; fixed regulator unpacking loop to use `entry[0], entry[1]` ✅ |
 
 ### Category 6: Permission Issues
 | Workflow | Issue |
@@ -808,4 +808,4 @@ if not hasattr(collections, 'Sequence'):
 
 ---
 
-*Document last updated: 2026-01-26*
+*Document last updated: 2026-03-10*

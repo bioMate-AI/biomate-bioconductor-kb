@@ -12,6 +12,7 @@ nextflow.enable.dsl = 2
 params.outdir = './results'
 // Demo: chromosome name to normalize (can be chr1, 1, Chr1, chrX, 23, etc.)
 params.chrom = 'chr17'
+params.x = null  // alias for chrom
 
 process NORM_CHR {
     tag "$meta.id"
@@ -19,7 +20,7 @@ process NORM_CHR {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -33,7 +34,7 @@ process NORM_CHR {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
         # Export parameters as environment variables
-    export PARAM_CHROM="${params.chrom?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_CHROM="${(params.x != null ? params.x : params.chrom)?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 
     python3 << 'PYEOF'

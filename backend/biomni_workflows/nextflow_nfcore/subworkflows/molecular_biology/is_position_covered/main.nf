@@ -12,6 +12,7 @@ nextflow.enable.dsl = 2
 params.outdir = './results'
 // Demo: Check if position 50 is covered by specified regions
 params.position = 50
+params.pos = null  // alias for position
 params.regions = '[[0, 100], [200, 300]]'
 
 process IS_POSITION_COVERED {
@@ -20,7 +21,7 @@ process IS_POSITION_COVERED {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -34,7 +35,7 @@ process IS_POSITION_COVERED {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
         # Export parameters as environment variables
-    export PARAM_POSITION="${params.position?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_POSITION="${(params.pos != null ? params.pos : params.position)?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_REGIONS="${params.regions?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 

@@ -22,7 +22,7 @@ process ANALYZE_BIFURCATION_DIAGRAM {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -107,9 +107,22 @@ def analyze_bifurcation_diagram(time_series_data, parameter_values, system_name=
     import numpy as np
     from scipy.signal import find_peaks
 
-    # Convert inputs to numpy arrays if they aren't already
-    time_series_data = np.asarray(time_series_data)
-    parameter_values = np.asarray(parameter_values)
+    # Validate and convert inputs
+    if time_series_data is None:
+        return "Error: time_series_data is required"
+    if parameter_values is None:
+        return "Error: parameter_values is required"
+    if system_name is None:
+        system_name = "Dynamical System"
+    if output_dir is None:
+        output_dir = "./"
+    time_series_data = np.asarray(time_series_data, dtype=float)
+    parameter_values = np.asarray(parameter_values, dtype=float)
+    # Ensure 2D
+    if time_series_data.ndim == 1:
+        time_series_data = time_series_data.reshape(1, -1)
+    if parameter_values.ndim == 0:
+        parameter_values = parameter_values.reshape(1)
 
     # Create output directory if it doesn't exist
     if not os.path.exists(output_dir):

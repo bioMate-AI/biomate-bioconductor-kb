@@ -12,6 +12,7 @@ nextflow.enable.dsl = 2
 params.outdir = './results'
 // Demo: Anemia grading in veterinary patient (VCOG-CTCAE criteria)
 params.event_type = 'anemia'
+params.symptom = null  // alias for event_type
 params.severity_value = '8.5'
 params.species = 'canine'
 
@@ -21,7 +22,7 @@ process APPLY_VCOG_GRADE {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -35,7 +36,7 @@ process APPLY_VCOG_GRADE {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
         # Export parameters as environment variables
-    export PARAM_EVENT_TYPE="${params.event_type?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_EVENT_TYPE="${(params.symptom != null ? params.symptom : params.event_type)?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SEVERITY_VALUE="${params.severity_value?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SPECIES="${params.species?.toString()?.replace('"', '\\"') ?: 'null'}"
 

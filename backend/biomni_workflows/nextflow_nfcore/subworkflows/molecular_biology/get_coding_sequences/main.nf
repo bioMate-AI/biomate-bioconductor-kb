@@ -10,7 +10,9 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Demo: DNA sequence containing coding sequences (GFP gene)
+// Provide either a refseq_id (e.g. 'NM_001234') to fetch from NCBI,
+// or a direct DNA sequence. refseq_id takes priority when both are given.
+params.refseq_id = null
 params.sequence = 'ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCTTCGGCTACGGCCTGATGTGCTTTGCCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACACGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCACCCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA'
 params.min_length = 100
 
@@ -20,7 +22,7 @@ process GET_CODING_SEQUENCES {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -33,7 +35,8 @@ process GET_CODING_SEQUENCES {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-        # Export parameters as environment variables
+    # Export parameters as environment variables
+    export PARAM_REFSEQ_ID="${params.refseq_id?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MIN_LENGTH="${params.min_length?.toString()?.replace('"', '\\"') ?: 'null'}"
 
@@ -73,10 +76,25 @@ def auto_convert(val):
 
 
 
-def get_coding_sequences(sequence, min_length=100):
+def fetch_sequence_from_ncbi(refseq_id):
+    '''Fetch nucleotide sequence from NCBI Entrez by RefSeq accession.'''
+    from Bio import Entrez, SeqIO
+    Entrez.email = 'biomni@biomate.ai'
+    handle = Entrez.efetch(db='nucleotide', id=refseq_id, rettype='gb', retmode='text')
+    record = SeqIO.read(handle, 'genbank')
+    handle.close()
+    return str(record.seq)
+
+def get_coding_sequences(sequence=None, min_length=100, refseq_id=None):
     '''Extract all potential coding sequences (ORFs).
-    Args: sequence: DNA, min_length: minimum CDS length
+    Args: sequence: DNA string (direct input), refseq_id: NCBI accession to fetch,
+          min_length: minimum CDS length in bp
+    When refseq_id is provided, sequence is fetched automatically from NCBI.
     '''
+    if refseq_id and refseq_id != 'null':
+        sequence = fetch_sequence_from_ncbi(refseq_id)
+    if not sequence or sequence == 'null':
+        return {'error': 'Provide either sequence or refseq_id', 'coding_sequences': [], 'count': 0}
     seq = sequence.upper()
     cds_list = []
     start_codon = "ATG"
@@ -99,6 +117,7 @@ def get_coding_sequences(sequence, min_length=100):
 # Execute the function
 try:
     result = get_coding_sequences(
+        refseq_id=auto_convert(os.environ.get("PARAM_REFSEQ_ID", "")),
         sequence=auto_convert(os.environ.get("PARAM_SEQUENCE", "")),
         min_length=auto_convert(os.environ.get("PARAM_MIN_LENGTH", "")),
     )

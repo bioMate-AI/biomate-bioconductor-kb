@@ -14,6 +14,7 @@ params.outdir = './results'
 params.query_start = 10
 params.query_end = 50
 params.regions = '[[0, 100], [200, 300]]'
+params.covered_regions = null  // alias for regions
 
 process IS_REGION_FULLY_COVERED {
     tag "$meta.id"
@@ -21,7 +22,7 @@ process IS_REGION_FULLY_COVERED {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -37,7 +38,7 @@ process IS_REGION_FULLY_COVERED {
         # Export parameters as environment variables
     export PARAM_QUERY_START="${params.query_start?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_QUERY_END="${params.query_end?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_REGIONS="${params.regions?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_REGIONS="${(params.covered_regions != null ? params.covered_regions : params.regions)?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 
     python3 << 'PYEOF'

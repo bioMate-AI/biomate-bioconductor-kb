@@ -12,6 +12,7 @@ nextflow.enable.dsl = 2
 params.outdir = './results'
 // Demo: Find ORFs in a specific reading frame
 params.sequence = 'ATGAAATTTGGGCCCTAGATGCCCAAATGAGGGGGGGGTAAATGCCCAAATAG'
+params.dna_sequence = null  // alias for sequence
 params.frame = 1
 params.min_length = 9
 
@@ -21,7 +22,7 @@ process FIND_ORFS_IN_FRAME {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -35,7 +36,7 @@ process FIND_ORFS_IN_FRAME {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
         # Export parameters as environment variables
-    export PARAM_SEQUENCE="${params.sequence?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SEQUENCE="${(params.dna_sequence != null ? params.dna_sequence : params.sequence)?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_FRAME="${params.frame?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_MIN_LENGTH="${params.min_length?.toString()?.replace('"', '\\"') ?: 'null'}"
 

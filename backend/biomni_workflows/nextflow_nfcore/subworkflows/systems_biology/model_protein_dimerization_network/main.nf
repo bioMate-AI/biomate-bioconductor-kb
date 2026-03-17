@@ -21,7 +21,7 @@ process MODEL_PROTEIN_DIMERIZATION_NETWORK {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -96,6 +96,16 @@ def model_protein_dimerization_network(monomer_concentrations, dimerization_affi
 
     import numpy as np
     from scipy.integrate import solve_ivp
+
+    # Validate and normalise inputs
+    if monomer_concentrations is None or not isinstance(monomer_concentrations, dict):
+        monomer_concentrations = {"ProteinA": 10.0, "ProteinB": 8.0, "ProteinC": 5.0}
+    if dimerization_affinities is None or not isinstance(dimerization_affinities, dict):
+        dimerization_affinities = {"ProteinA-ProteinB": 1.5, "ProteinB-ProteinC": 2.0, "ProteinA-ProteinA": 0.8}
+    if network_topology is None or not isinstance(network_topology, list):
+        network_topology = [["ProteinA", "ProteinB"], ["ProteinB", "ProteinC"], ["ProteinA", "ProteinA"]]
+    # Ensure each topology entry is a list/tuple of 2 elements
+    network_topology = [list(pair) for pair in network_topology if len(pair) >= 2]
 
     # Start timing
     start_time = time.time()

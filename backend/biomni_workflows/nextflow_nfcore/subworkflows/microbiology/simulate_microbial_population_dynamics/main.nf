@@ -25,7 +25,7 @@ process SIMULATE_MICROBIAL_POPULATION_DYNAMICS {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-microbiology:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -136,9 +136,18 @@ def simulate_microbial_population_dynamics(
         carrying_capacities = [1000] * len(initial_populations)
     if not isinstance(carrying_capacities, list):
         carrying_capacities = [carrying_capacities]
-    max_time = int(max_time) if max_time else 100
-    num_simulations = int(num_simulations) if num_simulations else 100
-    time_points = int(time_points) if time_points else 100
+    def _to_int(val, default):
+        if val is None:
+            return default
+        if isinstance(val, list):
+            val = val[0] if val else default
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            return default
+    max_time = _to_int(max_time, 100)
+    num_simulations = _to_int(num_simulations, 100)
+    time_points = _to_int(time_points, 100)
 
     # Validate inputs
     num_species = len(initial_populations)

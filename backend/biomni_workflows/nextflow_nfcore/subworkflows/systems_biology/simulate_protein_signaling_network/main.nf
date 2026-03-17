@@ -25,7 +25,7 @@ process SIMULATE_PROTEIN_SIGNALING_NETWORK {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -116,11 +116,43 @@ def simulate_protein_signaling_network(
     import numpy as np
     from scipy.integrate import solve_ivp
 
+    # Validate inputs
+    if network_structure is None or not isinstance(network_structure, dict):
+        network_structure = {
+            "Receptor": [["Ligand", 1]],
+            "Kinase": [["Receptor", 1]],
+            "Effector": [["Kinase", 1]],
+        }
+    if reaction_params is None or not isinstance(reaction_params, dict):
+        reaction_params = {
+            "Ligand_Receptor": {"W": 1.0, "n": 2, "EC50": 0.5},
+            "Receptor_Kinase":  {"W": 1.0, "n": 2, "EC50": 0.3},
+            "Kinase_Effector":  {"W": 1.0, "n": 2, "EC50": 0.4},
+        }
+    if species_params is None or not isinstance(species_params, dict):
+        species_params = {
+            "Ligand":   {"tau": 1.0,  "y0": 1.0,  "ymax": 1.0},
+            "Receptor": {"tau": 5.0,  "y0": 0.1,  "ymax": 1.0},
+            "Kinase":   {"tau": 10.0, "y0": 0.05, "ymax": 1.0},
+            "Effector": {"tau": 15.0, "y0": 0.02, "ymax": 1.0},
+        }
+    if simulation_time is None:
+        simulation_time = 100
+    if isinstance(simulation_time, list):
+        simulation_time = simulation_time[0]
+    simulation_time = float(simulation_time)
+    if time_points is None:
+        time_points = 1000
+    if isinstance(time_points, list):
+        time_points = time_points[0]
+    time_points = int(time_points)
+
     # Extract all unique protein species
     all_proteins = set(network_structure.keys())
     for _target, regulators in network_structure.items():
-        for regulator, _ in regulators:
-            all_proteins.add(regulator)
+        for entry in regulators:
+            if isinstance(entry, (list, tuple)) and len(entry) >= 1:
+                all_proteins.add(entry[0])
 
     # Create ordered list of proteins for indexing
     proteins = sorted(all_proteins)
@@ -136,11 +168,14 @@ def simulate_protein_signaling_network(
 
         for target, regulators in network_structure.items():
             target_idx = protein_indices[target]
-            target_params = species_params[target]
+            target_params = species_params.get(target, {"tau": 10.0, "y0": 0.0, "ymax": 1.0})
 
             # Calculate regulation term for each regulator
             regulation_terms = []
-            for regulator, reg_type in regulators:
+            for entry in regulators:
+                if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+                    continue
+                regulator, reg_type = entry[0], entry[1]
                 regulator_idx = protein_indices[regulator]
                 # Support both tuple keys and string keys (e.g., "Ligand_Receptor")
                 params = reaction_params.get((regulator, target), reaction_params.get(f"{regulator}_{target}", {}))

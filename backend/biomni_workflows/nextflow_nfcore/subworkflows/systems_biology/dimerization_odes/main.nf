@@ -15,6 +15,7 @@ params.monomer = '10.0'
 params.dimer = '0.0'
 params.kon = '0.1'
 params.koff = '0.01'
+params.t = null  // optional time point (ignored for instantaneous rate computation)
 
 process DIMERIZATION_ODES {
     tag "$meta.id"
@@ -22,7 +23,7 @@ process DIMERIZATION_ODES {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -40,6 +41,7 @@ process DIMERIZATION_ODES {
     export PARAM_DIMER="${params.dimer?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_KON="${params.kon?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_KOFF="${params.koff?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 
     python3 << 'PYEOF'
@@ -77,9 +79,10 @@ def auto_convert(val):
 
 
 
-def dimerization_odes(monomer, dimer, kon, koff):
-    '''Dimerization: 2M <-> D with kon, koff
-    Args: monomer: M conc, dimer: D conc, kon: association rate, koff: dissociation rate
+def dimerization_odes(monomer, dimer, kon, koff, t=None):
+    '''Dimerization: 2M <-> D with kon, koff. Returns instantaneous rates dM/dt and dD/dt.
+    Args: monomer: M conc, dimer: D conc, kon: association rate, koff: dissociation rate,
+          t: time point (accepted but not used for instantaneous rate computation)
     '''
     # Validate inputs - use defaults if None
     if monomer is None:
@@ -104,6 +107,7 @@ try:
         dimer=auto_convert(os.environ.get("PARAM_DIMER", "")),
         kon=auto_convert(os.environ.get("PARAM_KON", "")),
         koff=auto_convert(os.environ.get("PARAM_KOFF", "")),
+        t=auto_convert(os.environ.get("PARAM_T", "")),
     )
     success = True
     error_msg = None

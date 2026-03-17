@@ -13,6 +13,7 @@ params.outdir = './results'
 // Demo: First-order drug release kinetics parameters
 params.t = '10.0'
 params.k1 = '0.1'
+params.k = null   // alias for k1
 params.q0 = '100.0'
 
 process FIRST_ORDER {
@@ -21,7 +22,7 @@ process FIRST_ORDER {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -36,7 +37,7 @@ process FIRST_ORDER {
     """
         # Export parameters as environment variables
     export PARAM_T="${params.t?.toString()?.replace('"', '\\"') ?: 'null'}"
-    export PARAM_K1="${params.k1?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_K1="${(params.k != null ? params.k : params.k1)?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_Q0="${params.q0?.toString()?.replace('"', '\\"') ?: 'null'}"
 
 

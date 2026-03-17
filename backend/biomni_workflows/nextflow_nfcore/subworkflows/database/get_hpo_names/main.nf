@@ -20,7 +20,7 @@ process GET_HPO_NAMES {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -99,22 +99,30 @@ def auto_convert(val):
 
 
 
-def get_hpo_names(hpo_terms: list[str], data_lake_path: str) -> list[str]:
+def get_hpo_names(hpo_terms, data_lake_path='/data/hpo'):
     '''Retrieve the names of given HPO terms.
 
     Args:
-        hpo_terms (List[str]): A list of HPO terms (e.g., ['HP:0001250']).
-        data_lake_path (str): Path to the data lake containing hp.obo file.
+        hpo_terms: A list of HPO terms (e.g., ['HP:0001250']).
+        data_lake_path: Path to the data lake containing hp.obo file.
 
     Returns:
-        List[str]: A list of corresponding HPO term names.
-
+        List of corresponding HPO term names (or 'Unknown term: X' if not found).
     '''
+    if hpo_terms is None:
+        return []
+    if isinstance(hpo_terms, str):
+        hpo_terms = [hpo_terms]
+    if not isinstance(hpo_terms, list):
+        hpo_terms = list(hpo_terms)
+    if data_lake_path is None or data_lake_path == 'null':
+        data_lake_path = '/data/hpo'
+
     hp_dict = parse_hpo_obo(data_lake_path + "/hp.obo")
 
     hpo_names = []
     for term in hpo_terms:
-        name = hp_dict.get(term, f"Unknown term: {term}")
+        name = hp_dict.get(str(term), f"Unknown term: {term}")
         hpo_names.append(name)
     return hpo_names
 

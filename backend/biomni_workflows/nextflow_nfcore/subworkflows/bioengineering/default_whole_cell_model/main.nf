@@ -21,7 +21,7 @@ process DEFAULT_WHOLE_CELL_MODEL {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -74,8 +74,9 @@ def auto_convert(val):
 
 
 
-def default_whole_cell_model():
+def default_whole_cell_model(t=None, y=None, params=None, **kwargs):
     '''Return default whole cell model parameters.
+    Args t, y, params are accepted but ignored (function returns constants).
     '''
     return {
         "cell_volume": 1e-15,  # L (1 fL)
@@ -90,7 +91,11 @@ def default_whole_cell_model():
 
 # Execute the function
 try:
-    result = default_whole_cell_model()
+    result = default_whole_cell_model(
+        t=auto_convert(os.environ.get("PARAM_T", "")),
+        y=auto_convert(os.environ.get("PARAM_Y", "")),
+        params=auto_convert(os.environ.get("PARAM_PARAMS", "")),
+    )
     success = True
     error_msg = None
 except Exception as e:
