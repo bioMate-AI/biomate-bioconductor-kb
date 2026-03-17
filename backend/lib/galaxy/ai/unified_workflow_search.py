@@ -34,12 +34,12 @@ DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_t
 
 # Source priority (higher = preferred)
 SOURCE_PRIORITY = {
-    "nfcore": 100,  # Prefer nf-core (well-tested, community standard)
-    "nfcore_converted": 95,  # nf-core converted to Galaxy format
-    "galaxy_local": 80,  # Local Galaxy workflows
-    "unknown": 70,  # Galaxy community workflows (often high quality)
-    "biomni": 50,  # Biomni Galaxy subworkflows
-    "biomni_nextflow": 40,  # Biomni Nextflow (less mature)
+    "nfcore": 100,          # nf-core full pipelines (community standard, CI-tested)
+    "nfcore_converted": 95, # nf-core converted to Galaxy format
+    "biomni_nextflow": 85,  # Biomni Nextflow subworkflows (tested, Docker-native)
+    "galaxy_local": 60,     # Galaxy community .ga workflows
+    "unknown": 50,          # Unknown-source Galaxy workflows
+    "biomni": 10,           # Legacy Biomni Galaxy format (superseded by Nextflow)
 }
 
 
@@ -140,6 +140,24 @@ class UnifiedWorkflowSearch:
             'electron': 2.0, 'microscopy': 2.0,
             'resolution': 2.0, 'map': 1.5, 'density': 1.5,
             'sharpening': 2.5, 'fsc': 2.5,
+
+            # Drug discovery / Pharmacology / ADMET
+            'admet': 3.0, 'herg': 3.0, 'dili': 3.0,
+            'toxicity': 2.5, 'cardiotoxicity': 3.0, 'hepatotoxicity': 2.5,
+            'ames': 2.5, 'mutagenicity': 2.5, 'clintox': 2.5,
+            'drug': 2.0, 'compound': 2.0, 'molecule': 1.5,
+            'smiles': 2.5, 'ligand': 2.5, 'scaffold': 2.5,
+            'pharmacology': 3.0, 'pharmacokinetics': 3.0, 'pharmacokinetic': 3.0,
+            'absorption': 2.0, 'distribution': 1.5, 'metabolism': 2.0, 'excretion': 2.0,
+            'bioavailability': 2.5, 'permeability': 2.0, 'bbb': 2.5,
+            'docking': 3.0, 'binding': 2.0, 'affinity': 2.0,
+            'alphafold': 2.5, 'alphafold3': 3.0, 'diffdock': 3.0, 'autodock': 2.5, 'vina': 2.5,
+            'nca': 3.0, 'pknca': 3.0, 'nlmixr2': 3.0,
+            'auc': 2.5, 'cmax': 2.5, 'tmax': 2.0, 'half-life': 2.5,
+            'qsar': 3.0, 'rdkit': 2.5, 'mordred': 2.5,
+            'scaffold-hopping': 3.0, 'mmp': 2.5, 'recap': 2.5,
+            'drug-like': 2.5, 'druglikeness': 2.5, 'lipinski': 2.0,
+            'solubility': 2.0, 'logp': 2.0, 'psa': 2.0,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
@@ -316,6 +334,14 @@ class UnifiedWorkflowSearch:
         if any(token in q for token in ['rna-seq', 'rnaseq', 'deseq2', 'differential expression', 'transcriptome']):
             preferred.update({'transcriptomics'})
 
+        # Drug discovery / pharmacology / structural biology
+        drug_tokens = ['docking', 'autodock', 'vina', 'diffdock', 'alphafold', 'structure prediction',
+                       'binding affinity', 'admet', 'herg', 'dili', 'pharmacokinetic', 'nca', 'pknca',
+                       'drug', 'ligand', 'scaffold', 'smiles', 'molecular docking']
+        if any(tok in q for tok in drug_tokens):
+            preferred.update({'pharmacology', 'drug_discovery', 'biochemistry', 'structural_biology'})
+            penalized.update({'microbiology', 'metagenomics', 'transcriptomics'})
+
         return preferred, penalized
 
     def _build_fts_query(self, query: str) -> str:
@@ -400,6 +426,13 @@ class UnifiedWorkflowSearch:
         'rna-seq', 'rnaseq', 'rna seq', 'chip-seq', 'chipseq', 'atac-seq', 'atacseq',
         'single cell', 'single-cell', 'methylation', 'assembly', 'alignment',
         'fastq', 'fasta', 'bam', 'vcf', 'proteomics', 'metabolomics',
+        # Drug discovery / pharmacology
+        'admet', 'admet pred', 'predict admet', 'toxicity screening',
+        'herg', 'dili', 'drug safety', 'drug combination',
+        'structure prediction', 'docking', 'binding affinity',
+        'pharmacokinetic', 'nca', 'pknca', 'nlmixr',
+        'scaffold hopping', 'qsar', 'drug like',
+        'molecular docking', 'alphafold', 'diffdock', 'autodock',
     ]
 
     def _calculate_score(self,

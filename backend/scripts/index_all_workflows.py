@@ -2,31 +2,43 @@
 """
 Unified Workflow Indexer
 
-Indexes all workflow sources into a single searchable database:
-1. Galaxy .ga workflows from /backend/galaxy_workflows/
-2. Biomni Galaxy subworkflows from /backend/biomni_workflows/galaxy/subworkflows/
-3. Biomni Nextflow subworkflows from /backend/biomni_workflows/nextflow/subworkflows/
-4. Existing JSON workflows (951 files)
+Indexes all workflow sources into the galaxy_ai_tools.db:
+1. nf-core pipelines  (source=nfcore, format=nextflow)
+2. Biomni Nextflow subworkflows from nextflow_nfcore/subworkflows/
+   (source=biomni_nextflow, format=nextflow)  — preferred over Galaxy
+3. Galaxy .ga workflows from galaxy_workflows/  (source=galaxy_local, format=galaxy_ga)
+
+Galaxy-format biomni workflows (source=biomni) are no longer indexed;
+use the Nextflow equivalents instead.
+
+Usage:
+    python scripts/index_all_workflows.py [--db-path PATH] [--no-bioconductor]
+    python scripts/index_all_workflows.py --rebuild          # wipe biomni/biomni_nextflow and re-index
 
 Author: BioMate Team
-Date: 2024-12-31
+Updated: 2026-03-10
 """
 
+import argparse
 import json
+import re
 import sqlite3
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Any
-import re
+from typing import Dict, List, Optional
 
-# Paths
+# ── Paths ──────────────────────────────────────────────────────────────────
 BACKEND_PATH = Path(__file__).parent.parent
 DB_PATH = BACKEND_PATH / "database" / "galaxy_ai_tools.db"
+
+# Galaxy community workflows (nf-core Galaxy wrappers)
 GALAXY_WORKFLOWS_PATH = BACKEND_PATH / "galaxy_workflows"
-BIOMNI_GALAXY_SUBWORKFLOWS = BACKEND_PATH / "biomni_workflows" / "galaxy" / "subworkflows"
-BIOMNI_NEXTFLOW_SUBWORKFLOWS = BACKEND_PATH / "biomni_workflows" / "nextflow" / "subworkflows"
-JSON_WORKFLOWS_PATH = BACKEND_PATH / "lib" / "galaxy" / "ai" / "data" / "workflows"
+
+# Biomni Nextflow subworkflows  ← CORRECT path
+BIOMNI_NF_PATH = BACKEND_PATH / "biomni_workflows" / "nextflow_nfcore" / "subworkflows"
+
+# nf-core full pipelines
 NFCORE_WORKFLOWS_PATH = BACKEND_PATH / "nf-core-workflows"
 
 # nf-core pipeline metadata
@@ -83,416 +95,359 @@ NFCORE_PIPELINES = {
 }
 
 
-def create_unified_schema(conn: sqlite3.Connection):
-    """Extend workflows table with unified fields."""
-    cursor = conn.cursor()
+# ── Helpers ────────────────────────────────────────────────────────────────
 
-    # Check if columns exist, add if not
-    cursor.execute("PRAGMA table_info(workflows)")
-    columns = {col[1] for col in cursor.fetchall()}
-
-    new_columns = {
-        "source": "TEXT DEFAULT 'unknown'",  # galaxy_community, biomni, nfcore, user
-        "format": "TEXT DEFAULT 'galaxy_ga'",  # galaxy_ga, nextflow, json
-        "executable": "INTEGER DEFAULT 1",  # 1=yes, 0=no
-        "docker_image": "TEXT",  # Docker image for execution
-        "category": "TEXT",  # biochemistry, genomics, etc.
-        "workflow_hash": "TEXT",  # For deduplication (can't add UNIQUE via ALTER)
-        "indexed_at": "TEXT",
-    }
-
-    for col_name, col_def in new_columns.items():
-        if col_name not in columns:
-            try:
-                cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col_name} {col_def}")
-                print(f"  Added column: {col_name}")
-            except sqlite3.OperationalError as e:
-                if "duplicate column" not in str(e).lower():
-                    raise
-
-    conn.commit()
-
-
-def compute_workflow_hash(content: str) -> str:
-    """Compute hash for deduplication."""
+def compute_hash(content: str) -> str:
     return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
 def extract_tools_from_ga(workflow_json: Dict) -> List[str]:
-    """Extract tool IDs from Galaxy workflow JSON."""
     tools = []
-    steps = workflow_json.get("steps", {})
-
-    for step_id, step in steps.items():
-        if isinstance(step, dict):
-            tool_id = step.get("tool_id")
-            if tool_id:
-                # Clean tool ID
-                clean_id = tool_id.split("/")[-1].lower()
-                tools.append(clean_id)
-
+    for step in workflow_json.get("steps", {}).values():
+        tool_id = step.get("tool_id") if isinstance(step, dict) else None
+        if tool_id:
+            tools.append(tool_id.split("/")[-1].lower())
     return list(set(tools))
 
 
-def infer_domain(name: str, description: str, tools: List[str]) -> str:
-    """Infer domain from workflow metadata."""
-    text = f"{name} {description} {' '.join(tools)}".lower()
+def extract_nf_metadata(content: str) -> Dict:
+    """Extract name, description, processes, and params from a main.nf file."""
+    # Top-level comment block for description
+    header_match = re.search(r'/\*\s*\n(.*?)\*/\s*\n', content, re.DOTALL)
+    description = ""
+    if header_match:
+        desc_lines = [
+            ln.strip().lstrip('* ').strip()
+            for ln in header_match.group(1).splitlines()
+            if ln.strip() and ln.strip() not in ('*', '/*', '*/')
+        ]
+        description = ' '.join(desc_lines)[:500]
 
-    domain_keywords = {
-        "variant_calling": ["variant", "snp", "indel", "gatk", "freebayes", "vcf"],
-        "transcriptomics": ["rna", "rnaseq", "expression", "deseq", "salmon", "kallisto"],
-        "genomics": ["genome", "assembly", "alignment", "bwa", "bowtie", "mapping"],
-        "proteomics": ["protein", "proteom", "mass spec", "peptide", "dia", "dda"],
-        "metagenomics": ["metagen", "microbiome", "16s", "kraken", "metaphlan"],
-        "epigenomics": ["chip", "atac", "methylation", "histone", "peak"],
-        "imaging": ["image", "segment", "cell", "microscop"],
+    # Process names
+    processes = re.findall(r'process\s+([A-Z][A-Z0-9_]+)', content)
+
+    # Container image
+    container_match = re.search(r"container\s+'([^']+)'", content)
+    docker = container_match.group(1) if container_match else ""
+
+    return {
+        "description": description,
+        "processes": processes,
+        "docker": docker,
     }
 
-    for domain, keywords in domain_keywords.items():
-        if any(kw in text for kw in keywords):
-            return domain
 
-    return "general"
+def wf_name_from_path(domain: str, wf_dir: str) -> str:
+    """Convert directory name to human-readable workflow name."""
+    return wf_dir.replace("_", " ").title()
 
 
-def index_galaxy_workflows(conn: sqlite3.Connection) -> int:
-    """Index .ga workflows from galaxy_workflows directory."""
+# ── Schema ─────────────────────────────────────────────────────────────────
+
+def ensure_schema(conn: sqlite3.Connection):
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(workflows)")
+    columns = {col[1] for col in cursor.fetchall()}
+    new_cols = {
+        "source": "TEXT DEFAULT 'unknown'",
+        "format": "TEXT DEFAULT 'galaxy_ga'",
+        "executable": "INTEGER DEFAULT 1",
+        "docker_image": "TEXT",
+        "category": "TEXT",
+        "workflow_hash": "TEXT",
+        "indexed_at": "TEXT",
+    }
+    for col, defn in new_cols.items():
+        if col not in columns:
+            try:
+                cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {defn}")
+            except sqlite3.OperationalError as e:
+                if "duplicate column" not in str(e).lower():
+                    raise
+    conn.commit()
+
+
+# ── Indexers ───────────────────────────────────────────────────────────────
+
+def _insert_workflow(cursor, *, name, filename, description, annotation, tags,
+                     domain, workflow_json, step_count, tools_used,
+                     source, format_, executable=1, docker_image="",
+                     category="", workflow_hash, indexed_at):
+    cursor.execute("""
+        INSERT INTO workflows (
+            name, filename, description, annotation, tags, domain,
+            workflow_json, step_count, tools_used, source, format,
+            executable, docker_image, category, workflow_hash, indexed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        name, filename, description, annotation, tags, domain,
+        workflow_json, step_count, tools_used,
+        source, format_, executable, docker_image, category,
+        workflow_hash, indexed_at,
+    ))
+
+
+def index_biomni_nextflow(conn: sqlite3.Connection,
+                          skip_bioconductor: bool = True) -> int:
+    """
+    Index Biomni Nextflow subworkflows from nextflow_nfcore/subworkflows/.
+    Structure: <domain>/<workflow_name>/main.nf
+    """
+    cursor = conn.cursor()
+    indexed = skipped = 0
+    now = datetime.now().isoformat()
+
+    if not BIOMNI_NF_PATH.exists():
+        print(f"  Path not found: {BIOMNI_NF_PATH}")
+        return 0
+
+    for domain_dir in sorted(BIOMNI_NF_PATH.iterdir()):
+        if not domain_dir.is_dir():
+            continue
+        domain = domain_dir.name
+
+        if skip_bioconductor and domain == "bioconductor":
+            skipped_count = sum(1 for _ in domain_dir.iterdir() if _.is_dir())
+            print(f"    Skipping bioconductor ({skipped_count} workflows, use --include-bioconductor)")
+            continue
+
+        for wf_dir in sorted(domain_dir.iterdir()):
+            if not wf_dir.is_dir():
+                continue
+            main_nf = wf_dir / "main.nf"
+            if not main_nf.exists():
+                continue
+
+            try:
+                content = main_nf.read_text()
+                wf_hash = compute_hash(content)
+
+                cursor.execute("SELECT id FROM workflows WHERE workflow_hash=?", (wf_hash,))
+                if cursor.fetchone():
+                    continue
+
+                meta = extract_nf_metadata(content)
+                wf_name = wf_name_from_path(domain, wf_dir.name)
+                description = meta["description"] or f"Biomni {domain} Nextflow workflow: {wf_dir.name}"
+                tags = json.dumps([domain, "biomni", "nextflow", wf_dir.name])
+
+                _insert_workflow(
+                    cursor,
+                    name=wf_name,
+                    filename=f"nextflow_nfcore/{domain}/{wf_dir.name}/main.nf",
+                    description=description[:500],
+                    annotation=description,
+                    tags=tags,
+                    domain=domain,
+                    workflow_json=content,
+                    step_count=len(meta["processes"]),
+                    tools_used=json.dumps(meta["processes"]),
+                    source="biomni_nextflow",
+                    format_="nextflow",
+                    docker_image=meta["docker"],
+                    category=domain,
+                    workflow_hash=wf_hash,
+                    indexed_at=now,
+                )
+                indexed += 1
+
+            except Exception as e:
+                print(f"    Error indexing {wf_dir}: {e}")
+
+    conn.commit()
+    return indexed
+
+
+def index_galaxy_local(conn: sqlite3.Connection) -> int:
+    """Index nf-core community Galaxy wrappers from galaxy_workflows/."""
     cursor = conn.cursor()
     indexed = 0
+    now = datetime.now().isoformat()
 
     if not GALAXY_WORKFLOWS_PATH.exists():
         print(f"  Path not found: {GALAXY_WORKFLOWS_PATH}")
         return 0
 
-    for ga_file in GALAXY_WORKFLOWS_PATH.glob("*.ga"):
+    for ga_file in sorted(GALAXY_WORKFLOWS_PATH.glob("*.ga")):
         try:
-            with open(ga_file, 'r') as f:
-                content = f.read()
-                workflow_json = json.loads(content)
+            content = ga_file.read_text()
+            wf_json = json.loads(content)
+            wf_hash = compute_hash(content)
 
-            workflow_hash = compute_workflow_hash(content)
-
-            # Check if already indexed
-            cursor.execute("SELECT id FROM workflows WHERE workflow_hash = ?", (workflow_hash,))
+            cursor.execute("SELECT id FROM workflows WHERE workflow_hash=?", (wf_hash,))
             if cursor.fetchone():
                 continue
 
-            name = workflow_json.get("name", ga_file.stem)
-            annotation = workflow_json.get("annotation", "")
-            tags = json.dumps(workflow_json.get("tags", []))
-            tools = extract_tools_from_ga(workflow_json)
-            domain = infer_domain(name, annotation, tools)
-            step_count = len(workflow_json.get("steps", {}))
+            name = wf_json.get("name", ga_file.stem)
+            annotation = wf_json.get("annotation", "")
+            tools = extract_tools_from_ga(wf_json)
+            tags = json.dumps(wf_json.get("tags", []))
 
-            cursor.execute("""
-                INSERT INTO workflows (
-                    name, filename, description, annotation, tags, domain,
-                    workflow_json, step_count, tools_used, source, format,
-                    executable, workflow_hash, indexed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                name,
-                ga_file.name,
-                annotation[:500] if annotation else "",
-                annotation,
-                tags,
-                domain,
-                content,
-                step_count,
-                json.dumps(tools),
-                "galaxy_local",
-                "galaxy_ga",
-                1,
-                workflow_hash,
-                datetime.now().isoformat()
-            ))
+            _insert_workflow(
+                cursor,
+                name=name,
+                filename=ga_file.name,
+                description=annotation[:500],
+                annotation=annotation,
+                tags=tags,
+                domain="general",
+                workflow_json=content,
+                step_count=len(wf_json.get("steps", {})),
+                tools_used=json.dumps(tools),
+                source="galaxy_local",
+                format_="galaxy_ga",
+                workflow_hash=wf_hash,
+                indexed_at=now,
+            )
             indexed += 1
 
         except Exception as e:
-            print(f"  Error indexing {ga_file.name}: {e}")
+            print(f"    Error indexing {ga_file.name}: {e}")
 
     conn.commit()
     return indexed
 
 
-def index_biomni_galaxy_subworkflows(conn: sqlite3.Connection) -> int:
-    """Index Biomni Galaxy subworkflows."""
+def index_nfcore(conn: sqlite3.Connection) -> int:
+    """Index nf-core full pipelines."""
     cursor = conn.cursor()
     indexed = 0
+    now = datetime.now().isoformat()
 
-    if not BIOMNI_GALAXY_SUBWORKFLOWS.exists():
-        print(f"  Path not found: {BIOMNI_GALAXY_SUBWORKFLOWS}")
-        return 0
-
-    for domain_dir in BIOMNI_GALAXY_SUBWORKFLOWS.iterdir():
-        if not domain_dir.is_dir():
-            continue
-
-        domain = domain_dir.name
-
-        for ga_file in domain_dir.glob("*.ga"):
-            try:
-                with open(ga_file, 'r') as f:
-                    content = f.read()
-                    workflow_json = json.loads(content)
-
-                workflow_hash = compute_workflow_hash(content)
-
-                # Check if already indexed
-                cursor.execute("SELECT id FROM workflows WHERE workflow_hash = ?", (workflow_hash,))
-                if cursor.fetchone():
-                    continue
-
-                name = workflow_json.get("name", ga_file.stem)
-                annotation = workflow_json.get("annotation", "")
-                tags = json.dumps(workflow_json.get("tags", []) + [domain, "biomni"])
-                tools = extract_tools_from_ga(workflow_json)
-                step_count = len(workflow_json.get("steps", {}))
-
-                cursor.execute("""
-                    INSERT INTO workflows (
-                        name, filename, description, annotation, tags, domain,
-                        workflow_json, step_count, tools_used, source, format,
-                        executable, category, workflow_hash, indexed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    name,
-                    f"biomni/{domain}/{ga_file.name}",
-                    annotation[:500] if annotation else f"Biomni {domain} subworkflow",
-                    annotation,
-                    tags,
-                    domain,
-                    content,
-                    step_count,
-                    json.dumps(tools),
-                    "biomni",
-                    "galaxy_ga",
-                    1,
-                    domain,
-                    workflow_hash,
-                    datetime.now().isoformat()
-                ))
-                indexed += 1
-
-            except Exception as e:
-                print(f"  Error indexing {ga_file}: {e}")
-
-    conn.commit()
-    return indexed
-
-
-def index_biomni_nextflow_subworkflows(conn: sqlite3.Connection) -> int:
-    """Index Biomni Nextflow subworkflows."""
-    cursor = conn.cursor()
-    indexed = 0
-
-    if not BIOMNI_NEXTFLOW_SUBWORKFLOWS.exists():
-        print(f"  Path not found: {BIOMNI_NEXTFLOW_SUBWORKFLOWS}")
-        return 0
-
-    for domain_dir in BIOMNI_NEXTFLOW_SUBWORKFLOWS.iterdir():
-        if not domain_dir.is_dir():
-            continue
-
-        domain = domain_dir.name
-
-        for nf_file in domain_dir.glob("*.nf"):
-            try:
-                with open(nf_file, 'r') as f:
-                    content = f.read()
-
-                workflow_hash = compute_workflow_hash(content)
-
-                # Check if already indexed
-                cursor.execute("SELECT id FROM workflows WHERE workflow_hash = ?", (workflow_hash,))
-                if cursor.fetchone():
-                    continue
-
-                name = nf_file.stem.replace("_", " ").title()
-
-                # Extract processes from Nextflow
-                processes = re.findall(r'process\s+(\w+)', content)
-
-                cursor.execute("""
-                    INSERT INTO workflows (
-                        name, filename, description, annotation, tags, domain,
-                        workflow_json, step_count, tools_used, source, format,
-                        executable, category, workflow_hash, indexed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    name,
-                    f"biomni_nf/{domain}/{nf_file.name}",
-                    f"Biomni Nextflow {domain} subworkflow",
-                    "",
-                    json.dumps([domain, "biomni", "nextflow"]),
-                    domain,
-                    content,  # Store Nextflow code as workflow_json
-                    len(processes),
-                    json.dumps(processes),
-                    "biomni_nextflow",
-                    "nextflow",
-                    1,
-                    domain,
-                    workflow_hash,
-                    datetime.now().isoformat()
-                ))
-                indexed += 1
-
-            except Exception as e:
-                print(f"  Error indexing {nf_file}: {e}")
-
-    conn.commit()
-    return indexed
-
-
-def index_nfcore_workflows(conn: sqlite3.Connection) -> int:
-    """Index nf-core pipelines."""
-    cursor = conn.cursor()
-    indexed = 0
-
-    for pipeline_name, metadata in NFCORE_PIPELINES.items():
-        pipeline_dir = NFCORE_WORKFLOWS_PATH / pipeline_name
-
-        if not pipeline_dir.exists():
-            print(f"  Pipeline not found: {pipeline_name}")
-            continue
-
-        main_nf = pipeline_dir / "main.nf"
+    for pipeline_name, meta in NFCORE_PIPELINES.items():
+        main_nf = NFCORE_WORKFLOWS_PATH / pipeline_name / "main.nf"
         if not main_nf.exists():
             continue
-
         try:
-            with open(main_nf, 'r') as f:
-                content = f.read()
-
-            workflow_hash = compute_workflow_hash(content)
-
-            # Check if already indexed
-            cursor.execute("SELECT id FROM workflows WHERE workflow_hash = ?", (workflow_hash,))
+            content = main_nf.read_text()
+            wf_hash = compute_hash(content)
+            cursor.execute("SELECT id FROM workflows WHERE workflow_hash=?", (wf_hash,))
             if cursor.fetchone():
                 continue
 
-            cursor.execute("""
-                INSERT INTO workflows (
-                    name, filename, description, annotation, tags, domain,
-                    workflow_json, step_count, tools_used, source, format,
-                    executable, docker_image, category, workflow_hash, indexed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                metadata["name"],
-                f"nfcore/{pipeline_name}/main.nf",
-                metadata["description"],
-                metadata["description"],
-                json.dumps(["nf-core", pipeline_name, metadata["domain"]]),
-                metadata["domain"],
-                content,
-                len(metadata["tools"]),
-                json.dumps(metadata["tools"]),
-                "nfcore",
-                "nextflow",
-                1,
-                metadata["docker"],
-                metadata["domain"],
-                workflow_hash,
-                datetime.now().isoformat()
-            ))
+            _insert_workflow(
+                cursor,
+                name=meta["name"],
+                filename=f"nfcore/{pipeline_name}/main.nf",
+                description=meta["description"],
+                annotation=meta["description"],
+                tags=json.dumps(["nf-core", pipeline_name, meta["domain"]]),
+                domain=meta["domain"],
+                workflow_json=content,
+                step_count=len(meta["tools"]),
+                tools_used=json.dumps(meta["tools"]),
+                source="nfcore",
+                format_="nextflow",
+                docker_image=meta.get("docker", ""),
+                category=meta["domain"],
+                workflow_hash=wf_hash,
+                indexed_at=now,
+            )
             indexed += 1
-            print(f"  Indexed: {metadata['name']}")
+            print(f"    Indexed: {meta['name']}")
 
         except Exception as e:
-            print(f"  Error indexing {pipeline_name}: {e}")
+            print(f"    Error indexing {pipeline_name}: {e}")
 
     conn.commit()
     return indexed
 
 
-def get_stats(conn: sqlite3.Connection) -> Dict[str, Any]:
-    """Get workflow index statistics."""
-    cursor = conn.cursor()
+# ── Stats ──────────────────────────────────────────────────────────────────
 
-    cursor.execute("SELECT COUNT(*) FROM workflows")
-    total = cursor.fetchone()[0]
+def get_stats(conn: sqlite3.Connection) -> Dict:
+    cur = conn.cursor()
+    total = cur.execute("SELECT COUNT(*) FROM workflows").fetchone()[0]
+    by_source = dict(cur.execute("SELECT source, COUNT(*) FROM workflows GROUP BY source").fetchall())
+    by_format = dict(cur.execute("SELECT format, COUNT(*) FROM workflows GROUP BY format").fetchall())
+    top_domains = dict(cur.execute(
+        "SELECT domain, COUNT(*) FROM workflows GROUP BY domain ORDER BY COUNT(*) DESC LIMIT 12"
+    ).fetchall())
+    return {"total": total, "by_source": by_source, "by_format": by_format, "top_domains": top_domains}
 
-    cursor.execute("SELECT source, COUNT(*) FROM workflows GROUP BY source")
-    by_source = dict(cursor.fetchall())
 
-    cursor.execute("SELECT format, COUNT(*) FROM workflows GROUP BY format")
-    by_format = dict(cursor.fetchall())
+def remove_old_galaxy_biomni(conn: sqlite3.Connection) -> int:
+    """Remove old Galaxy-format biomni entries (now superseded by Nextflow)."""
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM workflows WHERE source='biomni' AND format='galaxy_ga'")
+    count = cur.fetchone()[0]
+    if count:
+        cur.execute("DELETE FROM workflows WHERE source='biomni' AND format='galaxy_ga'")
+        conn.commit()
+        print(f"    Removed {count} old biomni Galaxy entries")
+    return count
 
-    cursor.execute("SELECT domain, COUNT(*) FROM workflows GROUP BY domain ORDER BY COUNT(*) DESC LIMIT 10")
-    by_domain = dict(cursor.fetchall())
 
-    return {
-        "total": total,
-        "by_source": by_source,
-        "by_format": by_format,
-        "by_domain": by_domain
-    }
+def remove_old_biomni_nextflow(conn: sqlite3.Connection) -> int:
+    """Remove stale biomni_nextflow entries (were indexed from wrong path)."""
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM workflows WHERE source='biomni_nextflow'")
+    count = cur.fetchone()[0]
+    if count:
+        cur.execute("DELETE FROM workflows WHERE source='biomni_nextflow'")
+        conn.commit()
+        print(f"    Removed {count} stale biomni_nextflow entries (wrong path)")
+    return count
 
+
+# ── Main ───────────────────────────────────────────────────────────────────
 
 def main():
+    parser = argparse.ArgumentParser(description="Unified Workflow Indexer")
+    parser.add_argument("--db-path", default=str(DB_PATH))
+    parser.add_argument("--rebuild", action="store_true",
+                        help="Remove old biomni Galaxy + stale NF entries, then re-index")
+    parser.add_argument("--include-bioconductor", action="store_true",
+                        help="Also index the 1800+ Bioconductor R-package workflows")
+    args = parser.parse_args()
+
+    db_path = args.db_path
+    skip_bioc = not args.include_bioconductor
+
     print("=" * 60)
     print("Unified Workflow Indexer")
     print("=" * 60)
-    print()
 
-    if not DB_PATH.exists():
-        print(f"ERROR: Database not found at {DB_PATH}")
+    if not Path(db_path).exists():
+        print(f"ERROR: Database not found at {db_path}")
         return 1
 
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(db_path)
 
     try:
-        # Extend schema FIRST
-        print("Phase 1: Extending schema...")
-        create_unified_schema(conn)
-        print()
+        print("\nPhase 0: Ensuring schema...")
+        ensure_schema(conn)
 
-        # Get initial stats (after schema extension)
-        print("Initial state:")
-        initial_stats = get_stats(conn)
-        print(f"  Total workflows: {initial_stats['total']}")
-        print()
+        stats = get_stats(conn)
+        print(f"\nInitial state: {stats['total']} workflows")
+        print(f"  By source: {stats['by_source']}")
 
-        # Index Galaxy workflows
-        print("Phase 2: Indexing Galaxy .ga workflows...")
-        galaxy_count = index_galaxy_workflows(conn)
-        print(f"  Indexed: {galaxy_count}")
-        print()
+        if args.rebuild:
+            print("\nPhase 1: Removing old entries...")
+            remove_old_galaxy_biomni(conn)
+            remove_old_biomni_nextflow(conn)
 
-        # Index Biomni Galaxy subworkflows
-        print("Phase 3: Indexing Biomni Galaxy subworkflows...")
-        biomni_galaxy_count = index_biomni_galaxy_subworkflows(conn)
-        print(f"  Indexed: {biomni_galaxy_count}")
-        print()
+        print(f"\nPhase 2: Indexing Biomni Nextflow from nextflow_nfcore/subworkflows/")
+        print(f"  Path: {BIOMNI_NF_PATH}")
+        nf_count = index_biomni_nextflow(conn, skip_bioconductor=skip_bioc)
+        print(f"  Indexed: {nf_count} new Nextflow workflows")
 
-        # Index Biomni Nextflow subworkflows
-        print("Phase 4: Indexing Biomni Nextflow subworkflows...")
-        biomni_nf_count = index_biomni_nextflow_subworkflows(conn)
-        print(f"  Indexed: {biomni_nf_count}")
-        print()
+        print("\nPhase 3: Indexing Galaxy community workflows from galaxy_workflows/")
+        ga_count = index_galaxy_local(conn)
+        print(f"  Indexed: {ga_count}")
 
-        # Index nf-core pipelines
-        print("Phase 5: Indexing nf-core pipelines...")
-        nfcore_count = index_nfcore_workflows(conn)
+        print("\nPhase 4: Indexing nf-core full pipelines")
+        nfcore_count = index_nfcore(conn)
         print(f"  Indexed: {nfcore_count}")
-        print()
 
-        # Final stats
-        print("Final state:")
-        final_stats = get_stats(conn)
-        print(f"  Total workflows: {final_stats['total']}")
-        print(f"  By source: {final_stats['by_source']}")
-        print(f"  By format: {final_stats['by_format']}")
-        print()
+        final = get_stats(conn)
+        print(f"\nFinal state: {final['total']} workflows")
+        print(f"  By source: {final['by_source']}")
+        print(f"  By format: {final['by_format']}")
+        print(f"  Top domains: {final['top_domains']}")
 
-        print("=" * 60)
-        total_new = galaxy_count + biomni_galaxy_count + biomni_nf_count + nfcore_count
-        print(f"Summary: Indexed {total_new} new workflows")
-        print(f"  - Galaxy local: {galaxy_count}")
-        print(f"  - Biomni Galaxy: {biomni_galaxy_count}")
-        print(f"  - Biomni Nextflow: {biomni_nf_count}")
-        print(f"  - nf-core: {nfcore_count}")
+        total_new = nf_count + ga_count + nfcore_count
+        print(f"\nSummary: added {total_new} new entries")
         print("=" * 60)
 
     finally:
