@@ -26,7 +26,7 @@ import sqlite3
 import hashlib
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 BACKEND_PATH = Path(__file__).parent.parent
@@ -185,6 +185,127 @@ def _insert_workflow(cursor, *, name, filename, description, annotation, tags,
         source, format_, executable, docker_image, category,
         workflow_hash, indexed_at,
     ))
+
+
+def extract_bioc_metadata(content: str, pkg_name: str) -> Dict:
+    """Parse metadata from a Bioconductor module main.nf header comment block."""
+    description, upstream, downstream, source_url, install_cmd = "", "", "", "", ""
+
+    header = re.search(r'// ={10,}\n(.*?)// ={10,}', content, re.DOTALL)
+    if header:
+        for line in header.group(1).splitlines():
+            line = line.lstrip("/ ").strip()
+            if line.startswith("Bioconductor module:"):
+                pass  # package name
+            elif line.startswith("//") or not line:
+                continue
+            elif re.match(r'^(Estimate|Differential|Analyse|Compute|Test|Fit|Model|Provide|Perform|Implement|Detect|Identify|Run)', line):
+                description = line[:500]
+            elif line.startswith("Source"):
+                source_url = line.split(":", 1)[-1].strip()[:200]
+            elif line.startswith("Upstream"):
+                upstream = line.split(":", 1)[-1].strip()
+            elif line.startswith("Downstream"):
+                downstream = line.split(":", 1)[-1].strip()
+            elif line.startswith("Install"):
+                install_cmd = line.split(":", 1)[-1].strip()
+
+    # Container image
+    docker_match = re.search(r"'quay\.io/[^']+bioconductor-([^:]+:[^']+)'", content)
+    docker = docker_match.group(0).strip("'") if docker_match else f"quay.io/biocontainers/bioconductor-{pkg_name}:latest"
+
+    return {
+        "description": description or f"Bioconductor R package: {pkg_name}",
+        "upstream": upstream,
+        "downstream": downstream,
+        "source_url": source_url,
+        "install_cmd": install_cmd,
+        "docker": docker,
+    }
+
+
+def index_bioconductor(conn: sqlite3.Connection,
+                       skip_overlaps: bool = True) -> Tuple[int, List[str]]:
+    """
+    Index Bioconductor R-package module wrappers.
+    Returns (indexed_count, skipped_overlap_names).
+    """
+    bioc_path = BIOMNI_NF_PATH / "bioconductor"
+    cursor = conn.cursor()
+    indexed = 0
+    overlaps: List[str] = []
+    now = datetime.now().isoformat()
+
+    if not bioc_path.exists():
+        print(f"  Path not found: {bioc_path}")
+        return 0, []
+
+    # Build set of existing workflow names (other domains) for overlap detection
+    cursor.execute("SELECT LOWER(name) FROM workflows WHERE source='biomni_nextflow'")
+    existing_names = {row[0] for row in cursor.fetchall()}
+    cursor.execute("SELECT LOWER(name) FROM workflows WHERE source='nfcore'")
+    nfcore_names = {row[0] for row in cursor.fetchall()}
+
+    for pkg_dir in sorted(bioc_path.iterdir()):
+        if not pkg_dir.is_dir():
+            continue
+        main_nf = pkg_dir / "main.nf"
+        if not main_nf.exists():
+            continue
+
+        pkg_name = pkg_dir.name
+        # Check overlap with other indexed workflows
+        normalized = pkg_name.lower().replace("_", " ")
+        if skip_overlaps and (normalized in existing_names or normalized in nfcore_names):
+            overlaps.append(pkg_name)
+            continue
+
+        try:
+            content = main_nf.read_text()
+            wf_hash = compute_hash(content)
+
+            cursor.execute("SELECT id FROM workflows WHERE workflow_hash=?", (wf_hash,))
+            if cursor.fetchone():
+                continue
+
+            meta = extract_bioc_metadata(content, pkg_name)
+            display_name = f"Bioconductor/{pkg_name}"
+            description = meta["description"]
+            annotation = description
+            if meta["upstream"]:
+                annotation += f" | Upstream: {meta['upstream']}"
+            if meta["downstream"]:
+                annotation += f" | Downstream: {meta['downstream']}"
+
+            tags_list = ["bioconductor", "R", pkg_name]
+            if meta["upstream"]:
+                tags_list += [t.strip() for t in meta["upstream"].split(",")][:3]
+
+            _insert_workflow(
+                cursor,
+                name=display_name,
+                filename=f"nextflow_nfcore/bioconductor/{pkg_name}/main.nf",
+                description=description[:500],
+                annotation=annotation[:1000],
+                tags=json.dumps(tags_list),
+                domain="bioconductor",
+                workflow_json=content,
+                step_count=1,
+                tools_used=json.dumps([pkg_name]),
+                source="bioconductor",
+                format_="nextflow",
+                docker_image=meta["docker"][:300],
+                category="bioconductor",
+                workflow_hash=wf_hash,
+                indexed_at=now,
+            )
+            indexed += 1
+
+        except Exception as e:
+            print(f"    Error indexing bioconductor/{pkg_name}: {e}")
+
+    conn.commit()
+    return indexed, overlaps
 
 
 def index_biomni_nextflow(conn: sqlite3.Connection,
@@ -390,6 +511,18 @@ def remove_old_biomni_nextflow(conn: sqlite3.Connection) -> int:
     return count
 
 
+def remove_old_bioconductor(conn: sqlite3.Connection) -> int:
+    """Remove existing bioconductor entries (for clean re-index)."""
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM workflows WHERE source='bioconductor'")
+    count = cur.fetchone()[0]
+    if count:
+        cur.execute("DELETE FROM workflows WHERE source='bioconductor'")
+        conn.commit()
+        print(f"    Removed {count} existing bioconductor entries")
+    return count
+
+
 # ── Main ───────────────────────────────────────────────────────────────────
 
 def main():
@@ -399,6 +532,8 @@ def main():
                         help="Remove old biomni Galaxy + stale NF entries, then re-index")
     parser.add_argument("--include-bioconductor", action="store_true",
                         help="Also index the 1800+ Bioconductor R-package workflows")
+    parser.add_argument("--rebuild-bioconductor", action="store_true",
+                        help="Remove existing bioconductor entries and re-index them")
     args = parser.parse_args()
 
     db_path = args.db_path
@@ -427,9 +562,13 @@ def main():
             remove_old_galaxy_biomni(conn)
             remove_old_biomni_nextflow(conn)
 
+        if args.rebuild_bioconductor:
+            print("\nPhase 1b: Removing old bioconductor entries...")
+            remove_old_bioconductor(conn)
+
         print(f"\nPhase 2: Indexing Biomni Nextflow from nextflow_nfcore/subworkflows/")
         print(f"  Path: {BIOMNI_NF_PATH}")
-        nf_count = index_biomni_nextflow(conn, skip_bioconductor=skip_bioc)
+        nf_count = index_biomni_nextflow(conn, skip_bioconductor=True)
         print(f"  Indexed: {nf_count} new Nextflow workflows")
 
         print("\nPhase 3: Indexing Galaxy community workflows from galaxy_workflows/")
@@ -440,14 +579,25 @@ def main():
         nfcore_count = index_nfcore(conn)
         print(f"  Indexed: {nfcore_count}")
 
+        bioc_count = 0
+        bioc_overlaps: List[str] = []
+        if args.include_bioconductor or args.rebuild_bioconductor:
+            print("\nPhase 5: Indexing Bioconductor R-package modules")
+            bioc_count, bioc_overlaps = index_bioconductor(conn, skip_overlaps=True)
+            print(f"  Indexed: {bioc_count} unique Bioconductor modules")
+            if bioc_overlaps:
+                print(f"  Skipped (overlap with nfcore/biomni): {', '.join(bioc_overlaps)}")
+
         final = get_stats(conn)
         print(f"\nFinal state: {final['total']} workflows")
         print(f"  By source: {final['by_source']}")
         print(f"  By format: {final['by_format']}")
         print(f"  Top domains: {final['top_domains']}")
 
-        total_new = nf_count + ga_count + nfcore_count
+        total_new = nf_count + ga_count + nfcore_count + bioc_count
         print(f"\nSummary: added {total_new} new entries")
+        if bioc_overlaps:
+            print(f"  ({len(bioc_overlaps)} bioconductor packages skipped as duplicates of nfcore/biomni tools)")
         print("=" * 60)
 
     finally:

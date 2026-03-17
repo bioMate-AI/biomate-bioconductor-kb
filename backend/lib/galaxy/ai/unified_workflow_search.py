@@ -37,6 +37,7 @@ SOURCE_PRIORITY = {
     "nfcore": 100,          # nf-core full pipelines (community standard, CI-tested)
     "nfcore_converted": 95, # nf-core converted to Galaxy format
     "biomni_nextflow": 85,  # Biomni Nextflow subworkflows (tested, Docker-native)
+    "bioconductor": 75,     # Bioconductor R-package nf-core module wrappers
     "galaxy_local": 60,     # Galaxy community .ga workflows
     "unknown": 50,          # Unknown-source Galaxy workflows
     "biomni": 10,           # Legacy Biomni Galaxy format (superseded by Nextflow)
