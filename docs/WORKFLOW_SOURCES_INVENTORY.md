@@ -8,230 +8,205 @@
 
 ```
 backend/
+├── nf-core-modules/                       ← Community nf-core library (git clone)
+│   ├── modules/nf-core/                   │  1,651 individual tool modules
+│   │   └── <tool>/[<subcommand>/]main.nf  │  (samtools/sort, star/align, …)
+│   └── subworkflows/nf-core/              │  94 composite subworkflows
+│       └── <name>/main.nf                 │  (bam_sort_stats_samtools, …)
+│
+├── nf-core-workflows/                     ← Full nf-core pipelines (git clone)
+│   ├── rnaseq/                            │  STAR/Salmon RNA-seq
+│   ├── sarek/                             │  germline/somatic variant calling
+│   ├── chipseq/                           │  ChIP-seq peak calling
+│   ├── methylseq/                         │  bisulfite methylation
+│   ├── diaproteomics/                     │  DIA proteomics
+│   ├── proteomicslfq/                     │  LFQ proteomics
+│   └── differentialabundance/             │  differential abundance
+│
 ├── biomni_workflows/
 │   ├── nextflow_nfcore/
-│   │   └── subworkflows/          ← PRIMARY source for execution
-│   │       ├── biochemistry/      (9 workflows)
-│   │       ├── bioconductor/      (1818 R-package modules)
-│   │       ├── bioengineering/    (13 workflows)
-│   │       ├── bioimaging/        (22 workflows)
-│   │       ├── biophysics/        (2 workflows)
-│   │       ├── cancer_biology/    (7 workflows)
-│   │       ├── cell_biology/      (5 workflows)
-│   │       ├── cryo_em/           (15 workflows)  ← NF-only, no Galaxy source
-│   │       ├── cryo_et/           (5 workflows)   ← NF-only, no Galaxy source
-│   │       ├── database/          (5 workflows)
-│   │       ├── drug_discovery/    (3 workflows)   ← NF-only, no Galaxy source
-│   │       ├── genetics/          (11 workflows)
-│   │       ├── genomics/          (30 workflows)
-│   │       ├── glycoengineering/  (3 workflows)
-│   │       ├── immunology/        (13 workflows)
-│   │       ├── lab_automation/    (6 workflows)
-│   │       ├── literature/        (4 workflows)
-│   │       ├── microbiology/      (16 workflows)
-│   │       ├── molecular_biology/ (26 workflows)
-│   │       ├── pathology/         (7 workflows)
-│   │       ├── pharmacology/      (29 workflows)
-│   │       ├── physiology/        (14 workflows)
-│   │       ├── proteomics/        (1 workflow)    ← NF-only, no Galaxy source
-│   │       ├── synthetic_biology/ (10 workflows)
-│   │       └── systems_biology/   (12 workflows)
+│   │   └── subworkflows/                  ← PRIMARY BioMate analysis workflows
+│   │       ├── biochemistry/   (9)
+│   │       ├── bioconductor/   (1818)     ← Bioconductor R-package modules
+│   │       ├── bioengineering/ (13)
+│   │       ├── bioimaging/     (22)       ← NF-only (no Galaxy predecessor)
+│   │       ├── biophysics/     (2)
+│   │       ├── cancer_biology/ (7)
+│   │       ├── cell_biology/   (5)
+│   │       ├── cryo_em/        (15)       ← NF-only
+│   │       ├── cryo_et/        (5)        ← NF-only
+│   │       ├── database/       (5)
+│   │       ├── drug_discovery/ (3)        ← NF-only
+│   │       ├── genetics/       (11)
+│   │       ├── genomics/       (30)
+│   │       ├── glycoengineering/(3)
+│   │       ├── immunology/     (13)
+│   │       ├── lab_automation/ (6)
+│   │       ├── literature/     (4)
+│   │       ├── microbiology/   (16)
+│   │       ├── molecular_biology/(26)
+│   │       ├── pathology/      (7)
+│   │       ├── pharmacology/   (29)
+│   │       ├── physiology/     (14)
+│   │       ├── proteomics/     (1)        ← NF-only
+│   │       ├── synthetic_biology/(10)
+│   │       └── systems_biology/(12)
 │   │
 │   └── galaxy/
-│       ├── workflows/             ← ORIGINAL Galaxy .ga source (122 files)
-│       │   └── <domain>/<name>.ga
-│       └── subworkflows/          ← EXPANDED Galaxy .ga source (227 files)
-│           └── <domain>/<name>.ga
-│
-├── nf-core-workflows/             ← Full nf-core pipelines (community)
-│   ├── rnaseq/
-│   ├── chipseq/
-│   ├── sarek/
-│   └── ...
-│
-└── galaxy_workflows/              ← nf-core Galaxy wrappers (93 .ga files)
+│       ├── workflows/          (122 .ga)  ← Original Galaxy conversion set
+│       └── subworkflows/       (227 .ga)  ← Expanded Galaxy set
+│           ← NOTE: NOT indexed — superseded by nextflow_nfcore/ above
+│           ← EXCEPT: 2 unique items with no NF equivalent (see §4)
 ```
 
 ---
 
-## 2. Workflow Source Inventory
+## 2. Workflow Index — Current State
 
-| Source | Format | Count | Search Priority | Description |
-|--------|--------|------:|:---------------:|-------------|
-| `nfcore` | nextflow | 100 | **100** (highest) | Full community nf-core pipelines (rnaseq, sarek, chipseq, …) |
-| `biomni_nextflow` | nextflow | 268 | **85** | BioMate's domain-specific Python analysis workflows, Docker-native |
-| `bioconductor` | nextflow | 1817 | **75** | Individual Bioconductor R-package nf-core module wrappers |
-| `galaxy_local` | galaxy_ga | 93 | **60** | nf-core community workflows in Galaxy format |
-| `biomni` (legacy) | galaxy_ga | 0 | **10** | Old Galaxy-format BioMate workflows — **removed**, superseded by `biomni_nextflow` |
-| **Total** | | **2278** | | |
+The search index (`backend/database/galaxy_ai_tools.db`) holds **3,923 workflows**:
+
+| Source | Format | Count | Search Priority | What it is |
+|--------|--------|------:|:---:|---|
+| `nfcore` | nextflow | 100 | **100** | Full nf-core pipelines (rnaseq, sarek, chipseq, …) |
+| `nfcore_subwf` | nextflow | 93 | **95** | nf-core composite subworkflows (`nf-core-modules/subworkflows/`) |
+| `nfcore_module` | nextflow | 1,645 | **90** | nf-core individual tool modules (`nf-core-modules/modules/`) |
+| `biomni_nextflow` | nextflow | 268 | **85** | BioMate domain analysis workflows (Python, Docker-native) |
+| `bioconductor` | nextflow | 1,812 | **75** | Bioconductor R-package nf-core process wrappers |
+| `galaxy_biomni` | galaxy_ga | **2** | **35** | Unique BioMate Galaxy workflows — **no NF equivalent yet** |
+| ~~`galaxy_local`~~ | — | 0 | — | **Removed** — were Galaxy-format copies of `nfcore_subwf` (redundant) |
+| ~~`biomni`~~ | — | 0 | — | **Removed** — legacy Galaxy BioMate, superseded by `biomni_nextflow` |
+| **Total** | | **3,923** | | |
 
 ---
 
-## 3. BioMate Nextflow Workflows — Galaxy Origin
+## 3. Where the Galaxy Files Fit
 
-The 268 `biomni_nextflow` workflows descend from Galaxy `.ga` files through two
-conversion stages:
+### `galaxy_workflows/` (94 `.ga` files, formerly `galaxy_local`)
 
-```
-Galaxy .ga  →  galaxy/subworkflows/  →  nextflow_nfcore/subworkflows/
-```
+These are **Galaxy-format conversions of the 94 nf-core community subworkflows**.
+The names are identical to those in `nf-core-modules/subworkflows/nf-core/`.
+They are **no longer indexed** — the authoritative Nextflow originals from
+`nf-core-modules/subworkflows/nf-core/` are indexed as `nfcore_subwf` instead.
 
-### Conversion coverage
+### `galaxy/subworkflows/` (227 `.ga`) and `galaxy/workflows/` (122 `.ga`)
 
-| Galaxy source | Total .ga files | With NF equivalent | Missing NF equivalent |
+These are the BioMate-authored Galaxy workflows. **Not indexed** — their
+Nextflow equivalents in `nextflow_nfcore/subworkflows/` are indexed as
+`biomni_nextflow`. Only the 2 with no Nextflow equivalent are retained.
+
+---
+
+## 4. BioMate Galaxy Workflows Without a Nextflow Equivalent
+
+Two BioMate-authored Galaxy workflows have not yet been converted to Nextflow.
+They are indexed as `galaxy_biomni` (priority 35) as a fallback:
+
+| Domain | Workflow | Function | Status |
+|--------|----------|----------|--------|
+| `synthetic_biology` | `identify_fas_functional_domains` | Identifies functional domains in a Fatty Acid Synthase (FAS) sequence | Pending NF conversion |
+| `biophysics` | `predict_protein_disorder_regions` | Predicts intrinsically disordered regions (IDRs) via IUPred2A | Pending NF conversion |
+
+Additionally, 9 `support_tools/` Galaxy utilities (REPL, plot capture, Synapse download)
+have no Nextflow equivalent **by design** — they are internal Galaxy executor helpers.
+
+---
+
+## 5. NF-Only BioMate Workflows (No Galaxy Predecessor)
+
+50 workflows in `biomni_nextflow` were written directly in Nextflow for domains
+added after the Galaxy conversion sprint:
+
+| Domain | Count | Notable workflows |
+|--------|------:|---|
+| `bioimaging` | 17 | nnUNet segmentation, image registration, NIfTI tools |
+| `cryo_em` | 15 | CryoSPARC SPA, helical/filament refinement, topaz pick/train |
+| `cryo_et` | 5 | Full ET pipeline, tiltseries import, subtomogram averaging |
+| `drug_discovery` | 3 | Structure prediction + docking, scaffold hopping, PKNCA NCA |
+| `genomics` | 5 | GEO data connector, Perturb-seq, trajectory inference, GATK germline WGS |
+| `pharmacology` | 4 | IVIVE, nlmixr2 PopPK, QSAR random forest, NCA |
+| `proteomics` | 1 | Chemoproteomics pull-down |
+| **Total** | **50** | |
+
+---
+
+## 6. Overlap Analysis
+
+### nf-core subworkflows ↔ galaxy_workflows (now removed)
+
+All 93–94 entries in `galaxy_workflows/` were exact Galaxy-format copies of
+`nf-core-modules/subworkflows/nf-core/`. The Galaxy versions are no longer needed.
+
+### BioMate Nextflow ↔ Galaxy subworkflows
+
+| Galaxy source | Total | With NF equivalent | Without NF equiv |
 |---|---:|---:|---:|
 | `galaxy/subworkflows/` | 227 | 217 (96%) | 10 (4%) |
 | `galaxy/workflows/` | 122 | 121 (99%) | 1 (1%) |
 
-> Note: `galaxy/workflows/` is a subset of `galaxy/subworkflows/`. The two directories
-> are not identical — `subworkflows/` has additional domains (`glycoengineering`,
-> `lab_automation`, `literature`, `support_tools`) that `workflows/` does not.
+The 10 missing from `subworkflows/`: 8 are `support_tools` internals; 2 are listed in §4.
 
----
+### Bioconductor ↔ other sources (6 packages skipped)
 
-## 4. Galaxy Workflows WITHOUT a Nextflow Equivalent
+Bioconductor packages that overlap with already-indexed nfcore/biomni tools
+are **skipped** during indexing to avoid duplicates:
 
-These Galaxy files have no corresponding `main.nf` in `nextflow_nfcore/subworkflows/`
-and are therefore **not executable** through the Nextflow engine.
+| Package | Overlaps with |
+|---------|--------------|
+| `cafe` | nfcore_module |
+| `muscle` | nfcore_module |
+| `mygene` | nfcore_module or nfcore_subwf |
+| `scds` | nfcore_module |
+| `sparsesignatures` | nfcore_module |
+| + 1 more | — |
 
-### From `galaxy/subworkflows/` (10 files)
+The 3 key statistical tools (DESeq2, edgeR, limma) are **not** duplicated:
+- The `nfcore_module` entries cover them as tool modules
+- The `bioconductor` versions provide R-package-level wrappers with upstream/downstream metadata
 
-| Domain | Workflow | Reason |
-|--------|----------|--------|
-| `biophysics` | `predict_protein_disorder_regions` | Conversion pending |
-| `support_tools` | `clear_captured_plots` | Internal utility — not user-facing |
-| `support_tools` | `download_synapse_data` | Internal utility |
-| `support_tools` | `execute_in_repl` | Internal utility |
-| `support_tools` | `get_captured_plots` | Internal utility |
-| `support_tools` | `read_function_source_code` | Internal utility |
-| `support_tools` | `run_python_repl` | Internal utility |
-| `support_tools` | `savefig_with_capture` | Internal utility |
-| `support_tools` | `show_with_capture` | Internal utility |
-| `synthetic_biology` | `identify_fas_functional_domains` | Conversion pending |
-
-### From `galaxy/workflows/` (1 file)
-
-| Domain | Workflow | Reason |
-|--------|----------|--------|
-| `synthetic_biology` | `identify_fas_functional_domains` | Same as above (also in subworkflows) |
-
-**Action items:**
-- `predict_protein_disorder_regions` and `identify_fas_functional_domains` need Nextflow wrappers.
-- The 8 `support_tools/` entries are Python REPL / figure-capture utilities used internally by
-  the Galaxy executor; they have no Nextflow equivalent by design.
-
----
-
-## 5. Nextflow-Only Workflows (No Galaxy Source)
-
-These 50 workflows exist **only** in `nextflow_nfcore/subworkflows/` and were written
-directly in Nextflow without a Galaxy predecessor. They cover domains BioMate added
-after the initial Galaxy-to-Nextflow conversion sprint.
-
-| Domain | Count | Workflows |
-|--------|------:|-----------|
-| `bioimaging` | 17 | `check_model_files_exist`, `command_iteration`, `create_affine_transform`, `create_deformable_transform`, `create_rigid_transform`, `create_segmentation_visualization`, `load_image`, `patched_torch_load`, `prepare_input_for_nnunet`, `preprocess_image`, `register_images`, `save_image`, `segment_with_nn_unet`, `setup_nnunet_environment`, `setup_registration_method`, `split_modalities`, `verify_nifti_input` |
-| `cryo_em` | 15 | `3d_variability_analysis`, `3d_variability_pipeline`, `cryosparc_standard_spa`, `filament_tracer`, `focused_refinement_pipeline`, `global_ctf_refinement`, `helical_refinement`, `helical_spa_pipeline`, `import_micrographs`, `import_particles`, `local_refinement`, `particle_subtraction`, `symmetry_expansion`, `topaz_extract`, `topaz_train` |
-| `cryo_et` | 5 | `et_full_pipeline`, `import_tiltseries`, `subtomogram_averaging`, `tilt_alignment`, `tomogram_reconstruction` |
-| `drug_discovery` | 3 | `nca_pknca`, `scaffold_hopping`, `structure_prediction_docking` |
-| `genomics` | 5 | `geo_data_connector`, `perturb_seq_analysis`, `trajectory_inference`, `transcriptomic_biomarker`, `wgs_germline_gatk` |
-| `pharmacology` | 4 | `ivive_hepatic_clearance`, `nca_pknca`, `nlmixr2_population_pk`, `qsar_rf_model` |
-| `proteomics` | 1 | `chemoproteomics_pulldown` |
-| **Total** | **50** | |
-
-> These are all production-ready Nextflow workflows. The absence of a Galaxy source
-> is by design — they were developed directly for the Nextflow engine.
-
----
-
-## 6. Bioconductor Modules
-
-### What they are
-
-The 1818 workflows in `nextflow_nfcore/subworkflows/bioconductor/` are **nf-core module
-wrappers** for individual Bioconductor R packages. Each provides:
-- A `process BIOC_<PKG>` Nextflow process
-- Official Bioconductor/Singularity container
-- Documented upstream/downstream package dependencies
-- Stub Rscript illustrating key function calls
-
-They are **building blocks** for larger workflows, not standalone analyses.
-
-### Coverage
-
-| Metric | Count |
-|--------|------:|
-| Total Bioconductor packages wrapped | 1818 |
-| Unique (indexed in DB) | **1817** |
-| Skipped — overlap with `biomni_nextflow` | 1 (`target`) |
-
-### Overlaps with other sources
-
-#### Bioconductor ↔ nf-core tools (3 tools used in both)
-
-These three packages appear as **tools inside nf-core pipelines** AND have standalone
-Bioconductor module wrappers. In the search index the full nf-core pipeline is returned
-(priority 100 > 75) when the user asks about an end-to-end pipeline; the Bioconductor
-module wrapper is returned when the user asks for the specific package.
-
-| Bioconductor package | Appears in nf-core pipelines |
-|----------------------|------------------------------|
-| `deseq2` | `nf-core/rnaseq`, `nf-core/differentialabundance` |
-| `edger` | `nf-core/differentialabundance` |
-| `limma` | `nf-core/differentialabundance` |
-
-#### Bioconductor ↔ biomni_nextflow (1 overlap)
-
-| Bioconductor package | biomni_nextflow workflow | Resolution |
-|---|---|---|
-| `target` | `lab_automation/target` | `biomni_nextflow` version kept (priority 85 > 75); Bioconductor version skipped during indexing |
+In practice the nf-core full pipeline (priority 100) or nfcore_module (90) is
+served when the user asks for an end-to-end workflow; the Bioconductor module
+(75) is served when the user explicitly requests the R package.
 
 ---
 
 ## 7. Source Priority and Dispatch Logic
 
-When a user asks BioMate to run an analysis, `UnifiedWorkflowSearch` scores all
-candidate workflows and returns the highest-priority match:
-
 ```
-nfcore (100)  →  biomni_nextflow (85)  →  bioconductor (75)  →  galaxy_local (60)
+nfcore (100) → nfcore_subwf (95) → nfcore_module (90) → biomni_nextflow (85)
+→ bioconductor (75) → galaxy_biomni (35, fallback only)
 ```
 
-**Example scenarios:**
-
-| User request | Source selected | Reason |
+| User request | Served from | Reason |
 |---|---|---|
 | "Run RNA-seq on my FASTQs" | `nfcore/rnaseq` | Full pipeline, highest priority |
-| "Run DESeq2 on my count matrix" | `biomni_nextflow/genomics` | BioMate analysis workflow; DESeq2 is also in nf-core but only as a tool |
-| "Use the edgeR Bioconductor module" | `bioconductor/edger` | Explicit package request |
-| "Analyse microbial population dynamics" | `biomni_nextflow/microbiology` | No nf-core equivalent |
-| "Run CryoSPARC SPA pipeline" | `biomni_nextflow/cryo_em` | NF-only; no nf-core equivalent |
+| "Sort and QC a BAM file" | `nfcore_subwf/bam_sort_stats_samtools` | Composite subworkflow |
+| "Align reads with STAR" | `nfcore_module/star/align` | Individual tool module |
+| "Model microbial dynamics" | `biomni_nextflow/microbiology` | No nf-core equivalent |
+| "Run DESeq2" | `nfcore_module` → `bioconductor/deseq2` | Both exist; nfcore_module wins |
+| "CryoSPARC SPA pipeline" | `biomni_nextflow/cryo_em` | NF-only domain |
+| "Identify FAS domains" | `galaxy_biomni/synthetic_biology` | No NF equivalent yet |
 
 ---
 
 ## 8. Re-indexing
 
-The workflow index is stored in `backend/database/galaxy_ai_tools.db` (git-ignored).
-Run the following to rebuild it:
-
 ```bash
 # Standard rebuild (no bioconductor — fast, ~2s)
 python3 backend/scripts/index_all_workflows.py --rebuild
 
-# Full rebuild including bioconductor (~5s)
+# Full rebuild including all Bioconductor modules (~10s)
 python3 backend/scripts/index_all_workflows.py --rebuild --include-bioconductor
 
-# Add/refresh bioconductor only (without removing other sources)
-python3 backend/scripts/index_all_workflows.py --rebuild-bioconductor
+# Incremental — only add workflows not yet in DB
+python3 backend/scripts/index_all_workflows.py
 ```
 
 ---
 
 ## 9. Outstanding Gaps
 
-| Gap | Priority | Notes |
-|-----|:--------:|-------|
-| NF wrapper for `synthetic_biology/identify_fas_functional_domains` | High | Galaxy .ga exists in both `workflows/` and `subworkflows/` |
-| NF wrapper for `biophysics/predict_protein_disorder_regions` | Medium | Galaxy .ga in `subworkflows/` only |
-| `support_tools` Galaxy utilities | Low | REPL/plot capture — not needed in Nextflow |
-| Bioconductor modules not yet in `nf-core/rnaseq` or similar | — | 1817 individual package wrappers available as building blocks |
+| Item | Priority | Action needed |
+|------|:--------:|---|
+| Convert `synthetic_biology/identify_fas_functional_domains` to Nextflow | High | Write `main.nf` in `nextflow_nfcore/subworkflows/synthetic_biology/` |
+| Convert `biophysics/predict_protein_disorder_regions` to Nextflow | Medium | Write `main.nf` in `nextflow_nfcore/subworkflows/biophysics/` |
+| Add more nf-core full pipelines (atac-seq, ampliseq, mag, …) | Low | Clone pipelines to `nf-core-workflows/`, update `NFCORE_PIPELINES` dict |

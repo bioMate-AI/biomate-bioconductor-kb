@@ -34,13 +34,16 @@ DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_t
 
 # Source priority (higher = preferred)
 SOURCE_PRIORITY = {
-    "nfcore": 100,          # nf-core full pipelines (community standard, CI-tested)
-    "nfcore_converted": 95, # nf-core converted to Galaxy format
-    "biomni_nextflow": 85,  # Biomni Nextflow subworkflows (tested, Docker-native)
-    "bioconductor": 75,     # Bioconductor R-package nf-core module wrappers
-    "galaxy_local": 60,     # Galaxy community .ga workflows
-    "unknown": 50,          # Unknown-source Galaxy workflows
-    "biomni": 10,           # Legacy Biomni Galaxy format (superseded by Nextflow)
+    "nfcore":         100,  # nf-core full pipelines (CI-tested community standard)
+    "nfcore_subwf":    95,  # nf-core composite subworkflows (nf-core-modules/subworkflows/)
+    "nfcore_module":   90,  # nf-core individual tool modules (nf-core-modules/modules/)
+    "nfcore_converted": 88, # nf-core converted to Galaxy format
+    "biomni_nextflow":  85,  # BioMate domain analysis workflows (tested, Docker-native)
+    "bioconductor":    75,  # Bioconductor R-package nf-core module wrappers
+    "galaxy_local":    40,  # Kept for backward compat — galaxy format copies of nf-core subwf
+    "galaxy_biomni":   35,  # Unique BioMate Galaxy workflows pending NF conversion
+    "unknown":         30,  # Unknown-source Galaxy workflows
+    "biomni":           5,  # Legacy Biomni Galaxy format — fully superseded
 }
 
 
