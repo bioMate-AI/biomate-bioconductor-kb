@@ -1,0 +1,160 @@
+# Workflow Parameter Validation Configuration
+# 工作流参数验证配置 - 通用架构
+#
+# 说明：
+# - 所有 workflow 的验证规则都通过配置定义，不硬编码
+# - 新增 workflow 只需添加配置，不修改代码
+# - 支持正则匹配，灵活扩展
+
+# 默认验证规则（所有 workflow 共享）
+default:
+  required_params:
+    - input
+
+  file_params:
+    - input
+    - fasta
+    - gtf
+    - genome_fasta
+    - gene_bed
+    - transcript_fasta
+
+  reference_genome_check:
+    enabled: true
+    rules:
+      - condition: "no_genome_and_no_fasta"
+        error: "必须指定参考基因组（genome）或 FASTA 文件"
+        field: genome
+      - condition: "has_gtf_but_no_fasta"
+        warning: "指定了 GTF 文件但没有 FASTA 文件，可能导致问题"
+        field: fasta
+
+# nf-core/clipseq 特定规则
+nfcore/clipseq:
+  extends: default
+
+  required_params:
+    - input
+    - genome
+
+  recommended_params:
+    gtf:
+      warning: "CLIP-Seq 分析建议提供 GTF 注释文件"
+
+  param_constraints:
+    input:
+      type: file
+      formats: [".csv", ".tsv"]
+      description: "Samplesheet 文件"
+
+    genome:
+      type: select
+      allowed_values: ["GRCh38", "GRCh37", "GRCm39", "mm10"]
+      description: "参考基因组版本"
+
+    gtf:
+      type: file
+      formats: [".gtf", ".gtf.gz", ".gff", ".gff.gz"]
+      description: "基因注释文件"
+
+    fasta:
+      type: file
+      formats: [".fa", ".fasta", ".fa.gz", ".fasta.gz"]
+      description: "参考基因组序列"
+
+# nf-core/rnaseq 特定规则
+nfcore/rnaseq:
+  extends: default
+
+  required_params:
+    - input
+    - genome
+
+  recommended_params:
+    gtf:
+      warning: "RNA-Seq 分析建议提供 GTF 注释文件"
+
+    transcript_fasta:
+      warning: "建议提供转录本 FASTA 文件用于定量分析"
+
+  param_constraints:
+    input:
+      type: file
+      formats: [".csv", ".tsv"]
+      description: "Samplesheet 文件"
+
+    genome:
+      type: select
+      allowed_values: ["GRCh38", "GRCh37", "GRCm39", "mm10"]
+      description: "参考基因组版本"
+
+# nf-core/chipseq 特定规则
+nfcore/chipseq:
+  extends: default
+
+  required_params:
+    - input
+    - genome
+
+  recommended_params:
+    gene_bed:
+      warning: "ChIP-Seq 分析建议提供基因 BED 文件"
+
+  param_constraints:
+    input:
+      type: file
+      formats: [".csv", ".tsv"]
+      description: "Samplesheet 文件"
+
+    gene_bed:
+      type: file
+      formats: [".bed", ".bed.gz"]
+      description: "基因区域 BED 文件"
+
+# nf-core/atacseq 特定规则
+nfcore/atacseq:
+  extends: default
+
+  required_params:
+    - input
+    - genome
+
+  param_constraints:
+    input:
+      type: file
+      formats: [".csv", ".tsv"]
+      description: "Samplesheet 文件"
+
+# 通配符规则：匹配所有 nf-core workflow
+"nfcore/*":
+  extends: default
+
+  required_params:
+    - input
+
+  file_params:
+    - input
+    - fasta
+    - gtf
+    - genome_fasta
+
+# 通配符规则：匹配所有包含 "seq" 的 workflow
+"*seq":
+  extends: default
+
+  required_params:
+    - input
+    - genome
+
+# 未知 workflow 的 fallback 规则
+unknown:
+  required_params:
+    - input
+
+  file_params:
+    - input
+    - fasta
+    - gtf
+
+  reference_genome_check:
+    enabled: false

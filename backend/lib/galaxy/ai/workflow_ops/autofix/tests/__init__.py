@@ -1,0 +1,3 @@
+"""
+Auto-Fix Framework Tests
+"""

@@ -1,0 +1,99 @@
+# Workflow Parameter Validation Configuration
+# 混合配置架构 - 只配置 Galaxy 特定业务规则
+#
+# 说明：
+# - 🎉 nf-core workflows 自动从 nextflow_schema.json 读取（零配置）
+# - 此文件只需配置 Galaxy 特定的业务规则
+# - 新增 nf-core workflow 无需修改此文件！
+
+# 全局配置（所有 workflow 共享）
+_global:
+  # Galaxy 特定验证（自动应用到所有 workflow）
+  custom_validations:
+    - type: galaxy_dataset_check
+      description: "验证 Galaxy dataset 是否存在"
+      enabled: true
+
+    - type: s3_path_format
+      description: "验证 S3 路径格式"
+      enabled: true
+
+    - type: local_path_check
+      description: "验证本地文件路径（可选）"
+      enabled: false  # 默认关闭，避免权限问题
+
+  # Galaxy 支持的额外路径格式
+  supported_path_formats:
+    - "dataset_id:*"  # Galaxy dataset ID
+    - "s3://*"        # S3 路径
+    - "/*"            # 本地绝对路径
+
+# 默认规则（fallback，当没有 nextflow_schema.json 时使用）
+default:
+  required_params:
+    - input
+
+  file_params:
+    - input
+    - fasta
+    - gtf
+    - genome_fasta
+    - gene_bed
+    - transcript_fasta
+
+  reference_genome_check:
+    enabled: true
+    rules:
+      - condition: "no_genome_and_no_fasta"
+        error: "必须指定参考基因组（genome）或 FASTA 文件"
+        field: genome
+
+      - condition: "has_gtf_but_no_fasta"
+        warning: "指定了 GTF 文件但没有 FASTA 文件，可能导致问题"
+        field: fasta
+
+# ============================================
+# nf-core workflows (自动从 schema 读取)
+# ============================================
+
+# nf-core/rnaseq - 无需配置！✅
+# 自动从 nextflow_schema.json 读取所有参数定义
+
+# nf-core/clipseq - 无需配置！✅
+# 自动从 nextflow_schema.json 读取所有参数定义
+
+# nf-core/atacseq - 无需配置！✅
+# 自动从 nextflow_schema.json 读取所有参数定义
+
+# nf-core/chipseq - 无需配置！✅
+# 自动从 nextflow_schema.json 读取所有参数定义
+
+# nf-core/sarek - 无需配置！✅
+# 自动从 nextflow_schema.json 读取所有参数定义
+
+# ============================================
+# 通配符规则
+# ============================================
+
+# 匹配所有 nf-core workflows
+"nfcore/*":
+  extends: default
+
+# 匹配所有包含 "seq" 的 workflows
+"*seq":
+  extends: default
+
+# ============================================
+# 未知 workflow 的 fallback
+# ============================================
+unknown:
+  required_params:
+    - input
+
+  file_params:
+    - input
+    - fasta
+    - gtf
+
+  reference_genome_check:
+    enabled: false
