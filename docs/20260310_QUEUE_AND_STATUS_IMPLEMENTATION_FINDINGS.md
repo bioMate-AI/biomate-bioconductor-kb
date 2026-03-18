@@ -1,7 +1,119 @@
 # Query Queue & Active-Runs Status — Implementation Findings
 
 **Date:** 2026-03-10  
-**Status:** Implemented, TypeScript-clean (1 pre-existing error in App.tsx unrelated to changes)
+**Status:** Implemented, TypeScript-clean (1 pre-existing error in App.tsx unrelated to changes)  
+**Plan document:** `docs/20260310_QUERY_QUEUE_AND_MULTI_TASK_PLAN.md`
+
+---
+
+## Background: Design Questions & Decisions
+
+This section records the Q&A that shaped the implementation, so the rationale is
+self-contained alongside the findings.
+
+---
+
+### Q1: If a workflow is running, should the user be notified when it finishes, and can new queries run at the same time?
+
+**Answer:**
+
+Yes on both. There are two distinct time scales that the original design conflated:
+
+1. **AI response time** (~3–10 s) — generating the workflow plan from the user's text.
+   The chat input was previously hard-locked (`disabled={displayTyping}`) during this
+   window. This lock is correct in principle (query N+1 often depends on the AI's answer
+   to N), but the lock should be *soft*: allow typing and submit to a queue, not block
+   entirely.
+
+2. **Nextflow execution time** (minutes to hours) — actually running the pipeline.
+   Multiple Nextflow invocations already run concurrently at the Galaxy level. No backend
+   change is needed. What was missing was visibility: users had no way to see that two
+   pipelines were running simultaneously.
+
+**What the front page needed:**  
+An always-visible **active-runs status bar** between the header and the chat area, showing
+running/queued/failed counts and individual run pills with status labels and elapsed time.
+This replaces the need to dig through the hidden Run Manager panel.
+
+**Notification:**  
+`WorkflowNotificationService` already sends email on completion. Added in-app toast
+notifications that fire on every `running → completed` or `running → failed` status
+transition detected by the existing 10 s poll cycle.
+
+---
+
+### Q2: Should there be a progress bar for the most recent run?
+
+**Answer: No.**
+
+Nextflow execution time is non-deterministic. The only way to compute a percentage
+would be to poll `workflow-trace.txt` constantly, count completed tasks vs. total,
+and treat all tasks as equal duration — none of which is accurate. A single 30-minute
+alignment step is not "50% done" when the clock reaches 15 minutes.
+
+A stale or wrong percentage is more confusing than no bar at all.
+
+**Decision:** Show **status label** (`running` / `queued` / `completed` / `failed`) and
+**elapsed time** (`running · 4 min`) only. Updated in both the plan document and this
+implementation.
+
+---
+
+### Q3: When a user clicks "View results" or "View & fix" on a toast — what actually happens?
+
+This was flagged as vague in the original plan. The concrete answer, based on reading
+the actual component code:
+
+#### "View results" (workflow completed toast)
+
+The chat message that started the workflow already contains a `ChatOutputAttachments`
+component that polls `/api/invocations/{id}/outputs` during execution and renders all
+output files with download buttons and inline viewers (VCF, CSV, sequence, annotation,
+structure) once they arrive.
+
+Clicking "View results" does **one thing only**: scrolls the chat to that message.
+The outputs are already loaded. No new page, no separate results view.
+
+```typescript
+const scrollToInvocation = (invocationId: string) => {
+  const el = document.querySelector(`[data-invocation-id="${invocationId}"]`);
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+};
+```
+
+#### "View & fix" (workflow failed toast)
+
+`workflow-artifact.tsx` already has a fully functional "Run AutoFix" button that:
+1. POSTs to `/api/galaxy/workflows/{workflowId}/invocations/{id}/autofix3/run`
+   with `auto_apply: false` — proposes fixes, does not apply without user confirmation.
+2. Displays session ID, termination reason, and number of fix attempts.
+3. Shows "AutoFix history" button for previous attempts.
+
+Clicking "View & fix" does two things:
+1. Scrolls to that chat message (same scroll-to-invocation as above).
+2. Opens the Run Manager panel focused on that run (`setShowRunManager(true)` +
+   `setFocusedRunId(run.id)`), where the "Run AutoFix" button is immediately visible.
+
+The AutoFix button is already functional. The toast only saves the user from hunting
+through the Run Manager to find the failed run.
+
+---
+
+### Q4: What is the concurrent execution model?
+
+Workflows **already** run concurrently at the backend level. Each Nextflow invocation
+is an independent process. The Galaxy `JobHandlerQueue` schedules individual tool steps
+across invocations without coordination.
+
+The new UI changes make this *visible* — users can now see "2 workflows running
+simultaneously" in the status bar with elapsed-time counters. This makes concurrent
+execution expected and understandable rather than invisible.
+
+The only sequential constraint is **AI query generation within a single chat session**:
+query N+1 is queued behind query N's AI response (because the answer to N often
+determines what N+1 should be). Once the AI responds and the workflow starts executing,
+the next queued query is submitted and the new workflow runs concurrently with the
+existing one.
 
 ---
 
