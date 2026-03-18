@@ -1,5 +1,12 @@
+> **SUPERSEDED** — This document is kept for historical reference only.  
+> The current plan is in [`20260310_QUERY_QUEUE_AND_MULTI_TASK_PLAN.md`](./20260310_QUERY_QUEUE_AND_MULTI_TASK_PLAN.md).  
+> Key changes: progress bars removed, toast click behaviour specified, AutoFix chaining added,
+> tiered clarification scoped to whole pipeline, L0/L2 per sub-task documented.
+
+---
+
 # BioMate: Query Queuing & Multi-Step Request Handling
-## Current State + Implementation Plan
+## Current State + Implementation Plan (original, 2026-03-18)
 
 **Date:** 2026-03-18  
 **Author:** Engineering  

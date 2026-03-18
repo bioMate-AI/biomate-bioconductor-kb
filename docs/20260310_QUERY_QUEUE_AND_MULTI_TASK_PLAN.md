@@ -60,7 +60,7 @@ available from the RunManager's `runList` state + the SSE workflow-state events.
 ```
 frontend/client/src/components/chat-with-artifacts.tsx
   - Promote RunManager summary to always-visible top bar (not hidden behind button)
-  - Show: active count badge, progress of the most-recently-started run
+  - Show: active count badge, workflow name, status label, elapsed time
   - "View all runs" expands the full RunManager panel
 
 frontend/client/src/components/execution-control-panel.tsx
