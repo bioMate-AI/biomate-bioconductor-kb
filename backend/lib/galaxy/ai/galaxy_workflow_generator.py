@@ -341,6 +341,15 @@ class GalaxyWorkflowGenerator:
                     except:
                         scientific_context = {}
 
+                # best_practice_functions: ordered function sequence with I/O
+                # (98% coverage for Bioconductor, 14% for Galaxy ToolShed)
+                best_practice_functions = tool.get('best_practice_functions', {})
+                if isinstance(best_practice_functions, str):
+                    try:
+                        best_practice_functions = json.loads(best_practice_functions)
+                    except Exception:
+                        best_practice_functions = {}
+
                 formatted_tools.append({
                     'tool_id': tool['tool_id'],
                     'name': tool['name'],
@@ -350,13 +359,16 @@ class GalaxyWorkflowGenerator:
                     'keywords': tool.get('keywords', ''),
                     'repo_owner': tool.get('repo_owner', ''),
                     'repo_name': tool.get('repo_name', ''),
-                    'relevance_score': tool.get('rrf_score', 0),  # Include relevance from fusion
+                    'relevance_score': tool.get('rrf_score', 0),
+                    'wrapper_path': tool.get('wrapper_path', ''),  # path to .nf file if available
+                    'language': tool.get('language', ''),
                     # Rich metadata for LLM parameter generation
                     'parameters': parameters,
                     'help_text': help_text,
                     'examples': examples,
                     'scientific_context': scientific_context,
-                    'usage_guide': tool.get('usage_guide', '')
+                    'usage_guide': tool.get('usage_guide', ''),
+                    'best_practice_functions': best_practice_functions,
                 })
 
             return formatted_tools
@@ -478,7 +490,7 @@ Return ONLY the FTS5 query string, nothing else."""
         # Build tool catalog for LLM
         tool_catalog = self._build_tool_catalog(available_tools)
 
-        system_prompt = f"""You are an expert bioinformatics workflow architect for the Galaxy platform.
+        system_prompt = f"""You are an expert bioinformatics workflow architect for BioMate.
 
 Your task is to design COMPLETE, INTELLIGENT workflows that fully satisfy user needs.
 
@@ -650,52 +662,97 @@ Return valid JSON only - no additional text.
             return {"error": str(e)}
 
     def _build_tool_catalog(self, tools: List[Dict[str, Any]]) -> str:
-        """Build a rich tool catalog with parameters for LLM context."""
+        """
+        Build a rich tool catalog for LLM workflow design.
+
+        Includes:
+        - wrapper_path: indicates a .nf file exists on disk (use include{})
+        - best_practice_functions: ordered step sequence with I/O typing
+        - scientific_context: primary omics/applicability
+        - usage_guide: R/Python code snippets
+        - parameters: Galaxy tool parameters (when available)
+        """
         catalog = ""
         for i, tool in enumerate(tools, 1):
-            keywords = tool.get('keywords', '')
-            category = tool.get('category', 'Unknown')
-            parameters = tool.get('parameters', [])
             tool_id = tool['tool_id']
+            category = tool.get('category', 'Unknown')
+            keywords = tool.get('keywords', '')
+            wrapper_path = tool.get('wrapper_path', '')
+            language = tool.get('language', '')
 
-            # Use availability_status from database for source indication
-            availability = tool.get('availability_status', 'installable')
-            if availability in ('ready', 'docker', 'api'):
-                source_tag = "[LOCAL]"
-            elif availability == 'dataset':
-                source_tag = "[DATA]"
-            else:  # 'installable' or unknown
-                source_tag = "[REQUIRES_INSTALL]"
+            # Tag: NF-WRAPPER means an .nf file exists and can be included directly
+            if wrapper_path:
+                source_tag = "[NF-WRAPPER]"
+            elif language in ('nextflow', 'r', 'python'):
+                source_tag = f"[{language.upper()}]"
+            else:
+                availability = tool.get('availability_status', 'installable')
+                source_tag = "[LOCAL]" if availability in ('ready', 'docker', 'api') else "[INSTALL]"
 
             catalog += f"{i}. {source_tag} {tool['name']}\n"
-            catalog += f"   Tool ID: {tool['tool_id']}\n"
+            catalog += f"   Tool ID : {tool_id}\n"
             catalog += f"   Category: {category}\n"
-            catalog += f"   Availability: {availability}\n"
+
+            desc = tool.get('description', '')
+            if desc:
+                catalog += f"   Desc    : {desc[:200]}\n"
 
             if keywords:
                 catalog += f"   Keywords: {keywords}\n"
 
-            # Include parameter information for informed workflow design
+            # .nf wrapper — show the include directive the LLM should emit
+            if wrapper_path:
+                catalog += f"   NF path : {wrapper_path}\n"
+                catalog += f"   Usage   : include {{ PROCESS }} from '<path>/{wrapper_path}'\n"
+
+            # best_practice_functions — step-by-step function sequence with I/O
+            bpf = tool.get('best_practice_functions', {})
+            if bpf and isinstance(bpf, dict):
+                steps_shown = 0
+                seen_steps: set = set()
+                catalog += "   Steps   :\n"
+                for fn_name, fn_meta in bpf.items():
+                    if steps_shown >= 5:
+                        catalog += f"             ... and {len(bpf) - steps_shown} more functions\n"
+                        break
+                    step_label = fn_meta.get('step', '')
+                    if step_label in seen_steps:
+                        continue
+                    seen_steps.add(step_label)
+                    inp = fn_meta.get('inputs', [])
+                    out = fn_meta.get('outputs', [])
+                    io = f"{' → '.join(inp)} → {' → '.join(out)}" if (inp or out) else ""
+                    catalog += f"             [{step_label}] {fn_name}({io})\n"
+                    steps_shown += 1
+
+            # scientific_context — primary omics applicability
+            sci_ctx = tool.get('scientific_context', {})
+            if isinstance(sci_ctx, dict):
+                omics = sci_ctx.get('omics_applicability', {}).get('primary_omics', [])
+                if omics:
+                    catalog += f"   Omics   : {', '.join(omics)}\n"
+
+            # Galaxy parameters (when available; empty for most Bioconductor entries)
+            parameters = tool.get('parameters', [])
             if parameters:
-                catalog += "   Parameters:\n"
-                for param in parameters[:5]:  # Limit to first 5 params for brevity
-                    param_name = param.get('name', 'unknown')
-                    param_type = param.get('type', '')
-                    param_help = param.get('help', '')[:100] if param.get('help') else ''
-                    optional = "optional" if param.get('optional', False) else "required"
+                catalog += "   Params  :\n"
+                for param in parameters[:4]:
+                    p_name = param.get('name', 'unknown')
+                    p_type = param.get('type', '')
+                    p_help = (param.get('help', '') or '')[:80]
+                    optional = "opt" if param.get('optional', False) else "req"
+                    catalog += f"             - {p_name} ({p_type},{optional})"
+                    if p_help:
+                        catalog += f": {p_help}"
+                    catalog += "\n"
+                if len(parameters) > 4:
+                    catalog += f"             ... +{len(parameters) - 4} more\n"
 
-                    if param_help:
-                        catalog += f"     - {param_name} ({param_type}, {optional}): {param_help}\n"
-                    else:
-                        catalog += f"     - {param_name} ({param_type}, {optional})\n"
-
-                if len(parameters) > 5:
-                    catalog += f"     ... and {len(parameters) - 5} more parameters\n"
-
-            # Include usage guidance if available
+            # Usage guide (code snippet)
             usage_guide = tool.get('usage_guide', '')
             if usage_guide:
-                catalog += f"   Usage: {usage_guide[:150]}...\n" if len(usage_guide) > 150 else f"   Usage: {usage_guide}\n"
+                snippet = usage_guide[:150]
+                catalog += f"   Guide   : {snippet}{'...' if len(usage_guide) > 150 else ''}\n"
 
             catalog += "\n"
         return catalog

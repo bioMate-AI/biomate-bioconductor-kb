@@ -8,6 +8,8 @@ import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pathlib import Path
+import sqlite3
+import re
 
 from .types import (
     UserRequest, AIResponse, Task, Tool, ToolRecommendation,
@@ -75,6 +77,7 @@ class AIAssistant:
         self._tool_search = None  # Lazy-loaded UnifiedToolSearch
         self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
+        self._nextflow_composer = None  # Lazy-loaded NextflowComposer
 
         # Lazy-load other components only when needed
         self._workflow_generator = None  # EnhancedWorkflowGenerator - lazy loaded
@@ -145,6 +148,15 @@ class AIAssistant:
             self._task_decomposer = TaskDecomposer(self.config)
             log.info("TaskDecomposer loaded on-demand")
         return self._task_decomposer
+
+    @property
+    def nextflow_composer(self):
+        """Lazy-load NextflowComposer for Nextflow-native workflow generation."""
+        if self._nextflow_composer is None:
+            from .nextflow_composer import NextflowComposer
+            self._nextflow_composer = NextflowComposer(config=self.config)
+            log.info("NextflowComposer loaded on-demand")
+        return self._nextflow_composer
 
     @property
     def tool_recommender(self):
@@ -434,7 +446,17 @@ class AIAssistant:
             "handler": "research_agent",
             "answer": response.answer,
             "citations": [
-                {"title": c.title, "doi": c.doi, "year": c.year}
+                {
+                    "title": c.title,
+                    "authors": c.authors,
+                    "year": c.year,
+                    "journal": c.journal,
+                    "doi": c.doi,
+                    "pmid": c.pmid,
+                    "url": getattr(c, 'url', None),
+                    "source": getattr(c, 'source', None),
+                    "citation_count": getattr(c, 'citation_count', 0),
+                }
                 for c in response.citations
             ],
             "benchmark_evidence": response.benchmark_evidence,
@@ -1544,6 +1566,146 @@ class AIAssistant:
                 return match
         return None
 
+    def _parse_memory_gb(self, value: Any) -> Optional[float]:
+        """Parse memory declarations like '16GB' or numeric values into GB."""
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+        text = str(value).strip().lower()
+        if not text:
+            return None
+        match = re.search(r"(\d+(?:\.\d+)?)", text)
+        if not match:
+            return None
+        try:
+            return float(match.group(1))
+        except (TypeError, ValueError):
+            return None
+
+    def _collect_workflow_hardware_requirements(self, workflow_tools: List[str]) -> Optional[Dict[str, Any]]:
+        """
+        Aggregate hardware/runtime hints for workflow tools from galaxy_ai_tools.db.
+
+        Returns a compact summary used by frontend/Nextflow execution gating.
+        """
+        tools = [str(t).strip() for t in (workflow_tools or []) if str(t).strip()]
+        if not tools:
+            return None
+
+        db_path = Path(__file__).resolve().parents[3] / "database" / "galaxy_ai_tools.db"
+        if not db_path.exists():
+            return None
+
+        gpu_required = False
+        max_memory_gb = 0.0
+        tool_runtime_hints: List[Dict[str, Any]] = []
+        seen_tool_ids: set[str] = set()
+
+        conn = None
+        try:
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            for tool_ref in tools:
+                candidates = [tool_ref]
+                if "/" in tool_ref:
+                    candidates.append(tool_ref.split("/")[-1])
+                pattern = f"%{tool_ref}%"
+
+                row = None
+                for cand in candidates:
+                    cursor.execute(
+                        """
+                        SELECT tool_id, name, execution_info
+                        FROM tools
+                        WHERE LOWER(tool_id) = LOWER(?)
+                           OR LOWER(name) = LOWER(?)
+                        LIMIT 1
+                        """,
+                        (cand, cand),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        break
+
+                if not row:
+                    cursor.execute(
+                        """
+                        SELECT tool_id, name, execution_info
+                        FROM tools
+                        WHERE LOWER(tool_id) LIKE LOWER(?)
+                           OR LOWER(name) LIKE LOWER(?)
+                        ORDER BY CASE
+                          WHEN LOWER(tool_id) LIKE LOWER(?) THEN 0
+                          ELSE 1
+                        END
+                        LIMIT 1
+                        """,
+                        (pattern, pattern, pattern),
+                    )
+                    row = cursor.fetchone()
+
+                if not row:
+                    continue
+
+                tool_id = str(row["tool_id"] or "").strip()
+                if not tool_id or tool_id in seen_tool_ids:
+                    continue
+                seen_tool_ids.add(tool_id)
+
+                raw_info = row["execution_info"]
+                if not raw_info:
+                    continue
+                try:
+                    exec_info = json.loads(raw_info) if isinstance(raw_info, str) else raw_info
+                except Exception:
+                    continue
+                if not isinstance(exec_info, dict):
+                    continue
+
+                requires_gpu = bool(exec_info.get("gpu", False))
+                memory_gb = self._parse_memory_gb(exec_info.get("memory"))
+                if requires_gpu:
+                    gpu_required = True
+                if memory_gb is not None:
+                    max_memory_gb = max(max_memory_gb, memory_gb)
+
+                tool_runtime_hints.append(
+                    {
+                        "tool_id": tool_id,
+                        "tool_name": row["name"] or tool_id,
+                        "gpu": requires_gpu,
+                        "memory_gb": memory_gb,
+                        "container_image": exec_info.get("image"),
+                        "runtime_type": exec_info.get("type"),
+                    }
+                )
+        except Exception as exc:
+            log.warning(f"[HardwareRequirements] Failed to read tool runtime hints: {exc}")
+            return None
+        finally:
+            try:
+                if conn is not None:
+                    conn.close()
+            except Exception:
+                pass
+
+        if not tool_runtime_hints:
+            return None
+
+        return {
+            "gpu_required": gpu_required,
+            "min_memory_gb": round(max_memory_gb, 2) if max_memory_gb > 0 else None,
+            "tools_analyzed": len(tool_runtime_hints),
+            "tool_runtime_hints": tool_runtime_hints[:12],
+            "source": "ai_tool_db.execution_info",
+        }
+
     def _build_intent_trials(self, user_intent: str) -> List[str]:
         """
         Build iterative retrieval trials from a user intent.
@@ -1564,6 +1726,14 @@ class AIAssistant:
             trials.append("RNA-seq differential expression DESeq2 quantification QC")
         if any(t in q for t in ["microbiome", "metagenomics", "16s"]):
             trials.append("metagenomics microbiome taxonomic profiling kraken2 metaphlan")
+        if any(t in q for t in ["admet", "herg", "dili", "toxicity", "cardiotoxicity", "ames mutagenicity", "clintox"]):
+            trials.append("ADMET toxicity screening hERG DILI drug safety pharmacology compound")
+        if any(t in q for t in ["docking", "binding affinity", "alphafold", "structure prediction", "diffdock", "autodock", "vina"]):
+            trials.append("structure prediction docking AlphaFold3 DiffDock AutoDock binding affinity drug discovery")
+        if any(t in q for t in ["nca", "pharmacokinetic", "pk analysis", "pknca", "auc", "cmax", "nlmixr"]):
+            trials.append("NCA pharmacokinetics PKNCA AUC Cmax half-life drug exposure")
+        if any(t in q for t in ["qsar", "scaffold hop", "scaffold-hop", "mmp", "drug-like", "lipinski", "smiles"]):
+            trials.append("QSAR scaffold hopping drug-like compounds RDKit molecular properties")
 
         # De-duplicate while preserving order.
         seen = set()
@@ -1700,6 +1870,7 @@ class AIAssistant:
                             f"[UnifiedWorkflowGeneration] Scientific rationale built for "
                             f"{scientific_rationale.get('tools_used', [])}"
                         )
+                    hardware_requirements = self._collect_workflow_hardware_requirements(best_match.tools)
 
                     # Return Nextflow workflow format for direct execution
                     _qc_profile = self._infer_qc_profile(
@@ -1717,6 +1888,7 @@ class AIAssistant:
                         'note': f'Found Nextflow workflow with {best_match.step_count} step(s)',
                         'execution_engine': 'nextflow',
                         'format': 'nextflow',
+                        'hardware_requirements': hardware_requirements,
                         **({'qc_profile': _qc_profile} if _qc_profile else {}),
                         # Scientific rationale from Bioconductor knowledge base
                         'scientific_rationale': scientific_rationale,
@@ -1733,6 +1905,7 @@ class AIAssistant:
                             'workflow_type': 'nextflow',
                             'steps': {},  # Nextflow steps are in the .nf file, not here
                             'scientific_rationale': scientific_rationale,
+                            'hardware_requirements': hardware_requirements,
                         },
                         'datasets_assigned': False,  # Nextflow handles inputs via parameters
                         'generated_parameters': [],
@@ -1787,11 +1960,77 @@ class AIAssistant:
                 message = f"Reused existing workflow: {best_match.name}"
 
             elif match_type == "medium_confidence":
-                # Medium confidence - adapt template using enhanced generator
-                log.info("[UnifiedWorkflowGeneration] Medium confidence - adapting template")
+                # Medium confidence — best_match exists (score 6–11).
+                # If the match is already a Nextflow workflow, return it directly
+                # (same code path as high_confidence, but flagged for user review).
+                # Only fall back to the legacy Galaxy generator for galaxy_ga matches.
+                log.info("[UnifiedWorkflowGeneration] Medium confidence match")
                 source = 'template_adapt'
 
-                # Use enhanced generator (multi-strategy)
+                nf_formats = {'nextflow', 'bioconductor_nf'}
+                if best_match and getattr(best_match, 'format', '') in nf_formats:
+                    log.info(
+                        f"[UnifiedWorkflowGeneration] Medium confidence Nextflow match "
+                        f"({best_match.format}): {best_match.filename} — returning for execution with review flag"
+                    )
+                    scientific_rationale = self._build_scientific_rationale(
+                        best_match.filename, best_match.name,
+                        workflow_tools=best_match.tools,
+                    )
+                    hardware_requirements = self._collect_workflow_hardware_requirements(best_match.tools)
+                    _qc_profile = self._infer_qc_profile(
+                        best_match.domain, best_match.tags, best_match.name
+                    )
+                    return {
+                        'success': True,
+                        'nextflow_path': best_match.filename,
+                        'workflow_name': best_match.name,
+                        'workflow_type': 'nextflow',
+                        'source': 'template_adapt',
+                        'confidence': int(score),
+                        'template_match_score': int(score),
+                        'needs_user_feedback': True,
+                        'feedback_prompt': (
+                            f"I found a Nextflow workflow that partially matches your request "
+                            f"(confidence {int(score)}/12): '{best_match.name}'. "
+                            f"Please confirm it meets your needs or provide corrections."
+                        ),
+                        'message': f"Best available Nextflow workflow (medium confidence): {best_match.name}",
+                        'note': f'Found Nextflow workflow with {best_match.step_count} step(s) — medium confidence match',
+                        'execution_engine': 'nextflow',
+                        'format': 'nextflow',
+                        'hardware_requirements': hardware_requirements,
+                        **({'qc_profile': _qc_profile} if _qc_profile else {}),
+                        'scientific_rationale': scientific_rationale,
+                        'workflow_ga': {
+                            'name': best_match.name,
+                            'description': best_match.description,
+                            'annotation': best_match.description,
+                            'tags': best_match.tags,
+                            'format': 'nextflow',
+                            'nextflow_path': best_match.filename,
+                            'workflow_type': 'nextflow',
+                            'steps': {},
+                            'scientific_rationale': scientific_rationale,
+                            'hardware_requirements': hardware_requirements,
+                        },
+                        'datasets_assigned': False,
+                        'generated_parameters': [],
+                        'validation': {'is_valid': True, 'issues': [], 'warnings': [
+                            'Medium confidence match — please verify tool selection is appropriate'
+                        ], 'suggestions': []},
+                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
+                        'selected_trial': selected_trial,
+                        'trial_count': len(trials),
+                        'candidate_workflows': [
+                            {'name': m.name, 'domain': m.domain, 'source': m.source,
+                             'score': m.score, 'format': m.format}
+                            for m in (search_results or [])[:3]
+                        ],
+                    }
+
+                # Galaxy .ga format medium-confidence match — adapt with EnhancedWorkflowGenerator
+                log.info("[UnifiedWorkflowGeneration] Medium confidence Galaxy match — adapting template")
                 user_request_obj = UserRequest(
                     request_id=str(uuid.uuid4()),
                     request_text=user_intent,
@@ -1805,7 +2044,6 @@ class AIAssistant:
                     workflow_data = workflow_result.get('workflow', {})
                     workflow_steps = workflow_data.get('steps', [])
 
-                    # Add dataset assignment (enhanced generator doesn't do this)
                     log.info("[UnifiedWorkflowGeneration] Assigning datasets to adapted workflow...")
                     dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
                         workflow={'steps': workflow_steps},
@@ -1819,23 +2057,99 @@ class AIAssistant:
                     raise Exception(f"Enhanced generator failed: {workflow_result.get('error')}")
 
             else:
-                # Low confidence - generate from scratch with tool constraint
-                log.info("[UnifiedWorkflowGeneration] Low confidence - generating from scratch with tool constraint")
-                source = 'tool_constrained'
+                # Low confidence / no match — compose a Nextflow workflow from tool search.
+                # Uses NextflowComposer which:
+                #   1. Searches the full tools table (12 k+ entries: Galaxy ToolShed,
+                #      nf-core modules, Bioconductor, BioMate data lake)
+                #   2. Enriches each tool with best_practice_functions, wrapper_path,
+                #      scientific_context — so the LLM understands step sequences
+                #   3. Emits include{} directives for the 3 k+ tools with existing .nf
+                #      wrappers and generates minimal process blocks for the rest
+                #   4. Writes a runnable DSL2 main.nf to nextflow_generated/ and
+                #      returns its path for Nextflow execution
+                log.info("[UnifiedWorkflowGeneration] Low/no confidence — composing Nextflow workflow from tools")
+                source = 'nextflow_composed'
 
-                # Use constrained generator (prevents hallucinated tools)
-                result = self.constrained_generator.generate_workflow(
+                composed = self.nextflow_composer.compose_workflow(
                     user_intent=user_intent,
-                    max_tools_search=30
+                    reference_match=best_match,   # may be None for no_match
+                    max_tools=30,
                 )
 
-                if result['success']:
-                    workflow_ga = result['workflow_ga']
-                    datasets_assigned = True  # Constrained generator includes dataset assignment
-                    generated_parameters = result.get('generated_parameters', [])  # Get LLM-generated parameters
-                    message = f"Generated new workflow with {len(result['workflow_structure']['steps'])} steps (tool-constrained)"
+                if composed['success']:
+                    log.info(
+                        f"[UnifiedWorkflowGeneration] Nextflow composed: "
+                        f"{composed['composable_count']} include{{}} + "
+                        f"{composed['adhoc_count']} generated processes"
+                    )
+                    return {
+                        'success': True,
+                        'nextflow_path': composed['nextflow_path'],
+                        'workflow_name': composed['workflow_name'],
+                        'workflow_type': 'nextflow',
+                        'source': 'nextflow_composed',
+                        'confidence': int(score) if score > 0 else 2,
+                        'template_match_score': int(score) if score > 0 else 0,
+                        'needs_user_feedback': True,
+                        'feedback_prompt': (
+                            "I composed a Nextflow workflow by searching the tool library and "
+                            "chaining relevant tools. Please review the tool selection and "
+                            "step order before running."
+                        ),
+                        'message': composed['message'],
+                        'note': (
+                            f"Composed from {composed['composable_count']} existing .nf modules "
+                            f"+ {composed['adhoc_count']} generated process blocks"
+                        ),
+                        'execution_engine': 'nextflow',
+                        'format': 'nextflow',
+                        'workflow_ga': {
+                            'name': composed['workflow_name'],
+                            'description': f"Composed Nextflow workflow for: {user_intent}",
+                            'format': 'nextflow',
+                            'nextflow_path': composed['nextflow_path'],
+                            'workflow_type': 'nextflow',
+                            'steps': {},
+                            'tools_used': composed['tools_used'],
+                        },
+                        'datasets_assigned': False,
+                        'generated_parameters': [],
+                        'tools_used': composed['tools_used'],
+                        'validation': {
+                            'is_valid': True, 'issues': [], 'warnings': [
+                                'Generated workflow — please verify tool selection and step order'
+                            ], 'suggestions': []
+                        },
+                        'tool_installation': {
+                            'success': True, 'message': 'Nextflow containerised workflow',
+                            'failed_tools': []
+                        },
+                        'selected_trial': selected_trial,
+                        'trial_count': len(trials),
+                        'candidate_workflows': [
+                            {'name': m.name, 'domain': m.domain, 'source': m.source,
+                             'score': m.score, 'format': m.format}
+                            for m in (search_results or [])[:3]
+                        ],
+                    }
                 else:
-                    raise Exception(f"Constrained generator failed: {result['error']}")
+                    # Final fallback: legacy Galaxy constrained generator
+                    log.warning(
+                        f"[UnifiedWorkflowGeneration] NextflowComposer failed ({composed.get('error')}), "
+                        "falling back to Galaxy generator"
+                    )
+                    result = self.constrained_generator.generate_workflow(
+                        user_intent=user_intent,
+                        max_tools_search=30,
+                    )
+                    if result['success']:
+                        workflow_ga = result['workflow_ga']
+                        datasets_assigned = True
+                        generated_parameters = result.get('generated_parameters', [])
+                        message = f"Generated Galaxy workflow (NF composer unavailable): {len(result['workflow_structure']['steps'])} steps"
+                        source = 'tool_constrained_galaxy_fallback'
+                    else:
+                        raise Exception(f"Both Nextflow composer and Galaxy generator failed: {result['error']}")
 
             # Step 3: Validate and install tools for ALL paths
             log.info("[UnifiedWorkflowGeneration] Step 3: Validating and installing tools...")
