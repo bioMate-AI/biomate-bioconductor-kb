@@ -135,30 +135,72 @@ Subscribe to the SSE `workflow_completed` event (already fired by `workflow-sse.
 
 ```typescript
 useEffect(() => {
-  // Already subscribed to SSE — just handle workflow_completed event
   const handleWorkflowCompleted = (event: WorkflowSSEEvent) => {
     if (event.type === 'workflow_completed') {
       toast({
-        title: `✓ Workflow complete`,
+        title: `Workflow complete`,
         description: `${event.workflowName} finished successfully.`,
-        action: <ToastAction onClick={() => openRunDetail(event.invocationId)}>View results</ToastAction>,
+        action: (
+          <ToastAction onClick={() => scrollToInvocation(event.invocationId)}>
+            View results
+          </ToastAction>
+        ),
         duration: 8000,
       });
     } else if (event.type === 'error') {
       toast({
         variant: 'destructive',
-        title: `✗ Workflow failed`,
-        description: `${event.workflowName}: ${event.error}`,
-        action: <ToastAction onClick={() => openAutofix(event.invocationId)}>View & auto-fix</ToastAction>,
-        duration: 0,  // stays until dismissed
+        title: `Workflow failed`,
+        description: `${event.workflowName} failed.`,
+        action: (
+          <ToastAction onClick={() => scrollToInvocationAndExpandAutofix(event.invocationId)}>
+            View & fix
+          </ToastAction>
+        ),
+        duration: 0,  // stays until dismissed — failure requires action
       });
     }
   };
 }, []);
 ```
 
-On workflow failure, the toast links directly to the AutoFix panel
-(connects to the `workflow_ai_realtime.py` Gap 3 fix from the tracing plan).
+#### What "View results" does when clicked
+
+The chat message that generated the workflow already contains a `ChatOutputAttachments`
+component. It polls `/api/invocations/{id}/outputs` and renders all output files with
+download and inline preview (VCF, CSV, sequence, annotation, structure viewers).
+
+Clicking "View results" simply **scrolls to that chat message** — outputs are already
+loaded inside it. No new page or separate results view.
+
+```typescript
+const scrollToInvocation = (invocationId: string) => {
+  const el = document.querySelector(`[data-invocation-id="${invocationId}"]`);
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+```
+
+#### What "View & fix" does when clicked
+
+`workflow-artifact.tsx` already has a "Run AutoFix" button that:
+1. POSTs to `/api/galaxy/workflows/{workflowId}/invocations/{id}/autofix3/run`
+   with `auto_apply: false` — proposes fixes, does not apply without user confirmation
+2. Displays: session ID, termination reason, number of fix attempts made
+3. Shows an "AutoFix history" button for previous attempts
+
+Clicking "View & fix" **scrolls to that chat message** and **expands the autofix panel**
+(already rendered but collapsed). The user then clicks "Run AutoFix" themselves.
+
+```typescript
+const scrollToInvocationAndExpandAutofix = (invocationId: string) => {
+  const el = document.querySelector(`[data-invocation-id="${invocationId}"]`);
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setExpandedAutofixInvocation(invocationId); // lifts state to expand the panel
+};
+```
+
+The AutoFix button is already functional — the toast just replaces the need for the
+user to manually find the failed run in the RunManager and locate the button.
 
 ---
 
