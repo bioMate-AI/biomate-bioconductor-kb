@@ -32,6 +32,7 @@ From `frontend/`:
 
 Script location:
 - `frontend/scripts/run-pm-test-wire.sh`
+- `backend/scripts/run_qc_regression_in_galaxy_backend.sh` (docker-backed backend QC helper)
 - Report output:
   - `frontend/test-results/pm-wire-report.txt`
 - CI workflow:
@@ -48,7 +49,7 @@ Script location:
 | Research Routing (offline) | Intent-to-action mapping | `npx tsx server/test-information-needs.ts` | Yes |
 | Harness Wiring (live model) | LLM model comparison harness | `PM_WIRE_RUN_HARNESS=1 npx tsx server/model-test-harness.ts` | Conditional |
 | Research E2E (live stack) | Real `/api/chat` flow + DB persistence checks | `npx tsx server/test-e2e-flexible-intents.ts` | Pre-release |
-| Backend QC Regression | Python QC domain/edge behavior | `pytest backend/tests/test_qc_e2e_domains.py backend/tests/test_qc_edge_cases.py -q` | Pre-release |
+| Backend QC Regression | Python QC domain/edge behavior | `PM_WIRE_BACKEND_GATE_MODE=docker bash backend/scripts/run_qc_regression_in_galaxy_backend.sh` (invoked by PM wire in `full`) | Pre-release |
 
 ---
 
@@ -66,7 +67,8 @@ Script location:
   - `TEST_BASE_URL` set (default is not assumed reliable for CI)
   - frontend/backend/DB running
 - For backend QC regression:
-  - `pytest` available in environment
+  - Preferred: Docker available (`PM_WIRE_BACKEND_GATE_MODE=docker`, default is `auto`)
+  - Local fallback mode: `pytest` plus Python modules such as `pulsar` and `sqlalchemy`
 
 ---
 

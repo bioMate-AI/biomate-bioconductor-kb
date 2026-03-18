@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-03-12T19:19:13.177Z",
+  "suiteStartedAt": "2026-03-12T19:14:07.945Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Full E2E — no mocks — real AI + real execution",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/full-e2e",
+  "billingCost": {
+    "eventCount": 7,
+    "totalEstimatedCostUsd": 0.02862,
+    "totalInputTokensEstimated": 142,
+    "totalOutputTokensEstimated": 4042,
+    "byModel": {
+      "claude-sonnet-4-6": {
+        "count": 7,
+        "costUsd": 0.028620000000000003
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "name": "ADMET Full Execution Flow",
+      "asserts": [
+        "AWAITING REVIEW badge visible",
+        "Confirm & Run button present + enabled",
+        "Workflow completion banner appears",
+        "Results section auto-opens",
+        "Download All button enabled after completion",
+        "CSV preview API responds with data"
+      ]
+    },
+    {
+      "name": "AWAITING REVIEW UX",
+      "asserts": [
+        "pending_review state shows AWAITING REVIEW badge",
+        "Scientific Rationale panel present",
+        "No raw Python dict params displayed"
+      ]
+    }
+  ],
+  "notes": [
+    "Tests use real server at http://localhost:5000",
+    "AI responses are live — not mocked",
+    "Execution uses real Nextflow/Galaxy backend",
+    "Screenshots capture actual UI state",
+    "billingCost.totalEstimatedCostUsd is heuristic from token counting"
+  ]
+}

@@ -17,6 +17,16 @@ Welcome to the Biomate platform documentation. This guide helps you navigate the
 | Understand frontend components | [Frontend Components](02-frontend/COMPONENTS.md) |
 | Understand backend services | [Backend Services](04-backend/SERVICES.md) |
 | Look up an API endpoint | [REST API Reference](03-api/REST_API_REFERENCE.md) |
+| Run AWS release preflight and validation | [AWS Execution Gate Runbook](QC/20260311_AWS_RELEASE_EXECUTION_GATE_AND_VALIDATION_RUNBOOK.md) |
+| Execute immediate AWS release with parallel owners | [AWS Immediate Release Parallel Plan](QC/20260311_AWS_IMMEDIATE_RELEASE_PARALLEL_PLAN.md) |
+| Start first AWS release execution board | [First AWS Release Parallel Execution Board](QC/20260311_FIRST_AWS_RELEASE_PARALLEL_EXECUTION_BOARD.md) |
+| Send team kickoff assignment for R1 | [First AWS Release Team Assignment Message](QC/20260311_FIRST_AWS_RELEASE_TEAM_ASSIGNMENT_MESSAGE.md) |
+| Check AWS release sign-off status | [AWS Release Sign-Off Record](QC/20260311_AWS_RELEASE_SIGNOFF_RECORD.md) |
+| Run CI/CD gate for release branches | [AWS Release Gate Workflow](../.github/workflows/aws-release-gate.yml) |
+| Run CI/CD patch update flow | [AWS Release Update Workflow](../.github/workflows/aws-release-update.yml) |
+| Deploy without GitHub runners (S3 -> EC2 Docker) | [EC2 Docker S3 Release Runbook](QC/20260312_EC2_DOCKER_S3_RELEASE_RUNBOOK.md) |
+| Switch workflow execution environment (AWS/local/SLURM) | [Execution Environment Switching](user/04_execution_environment_switching.md) |
+| Run and monitor workflows end-to-end | [Run a Workflow](user/02_run_a_workflow.md) |
 | **See Galaxy capabilities** | [**Galaxy Capabilities Analysis**](03-api/20260113_GALAXY_CAPABILITIES_ANALYSIS.md) |
 | **Fix system issues** | [**System Audit Plan**](../20260112_SYSTEM_AUDIT_AND_IMPROVEMENT_PLAN.md) |
 

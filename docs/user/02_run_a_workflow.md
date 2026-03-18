@@ -100,19 +100,22 @@ A notification appears in the chat when the workflow completes or if a QC gate f
 
 ## Compute Settings
 
-By default, BioMate runs workflows on the local compute node. For large datasets you can
-switch to a cluster or cloud backend.
+For Nextflow workflows, BioMate defaults to AWS Batch execution in production-oriented deployments.
+You can still switch to local or HPC execution when needed.
 
 To configure compute settings: open **Settings** (top-right menu) → **Compute** tab.
 
 | Executor | When to use |
 |---|---|
-| `local` | Development, small datasets (< 20 samples), single-node servers |
-| `slurm` | HPC clusters managed by SLURM; configure queue, CPUs, and memory limits |
 | `awsbatch` | AWS cloud execution; requires an S3 bucket and an AWS Batch compute environment |
+| `local` | Development, small datasets (< 20 samples), single-node servers |
+| `slurm` | HPC clusters managed by SLURM; configure partition/QoS and cluster policies |
 
 Per-run overrides are also accepted: if your system administrator provides a
 `compute_config` block, it can be passed with the workflow execution request via the API.
+
+For full switching examples (UI + API), see:
+[Execution Environment Switching Guide](04_execution_environment_switching.md).
 
 ---
 

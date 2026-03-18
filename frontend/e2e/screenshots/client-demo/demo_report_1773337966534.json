@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-03-12T17:52:46.534Z",
+  "userEmail": "demo_client_1773337383858@biomate.ai",
+  "scenarios": {
+    "admet": {
+      "panelOpened": true,
+      "executed": true,
+      "awaitingReview": false
+    },
+    "rnaseq": {
+      "panelOpened": true,
+      "executed": false,
+      "awaitingReview": false
+    },
+    "cryoem": {
+      "panelOpened": true,
+      "executed": false,
+      "awaitingReview": false
+    }
+  },
+  "newUXConfirmed": {
+    "AWAITING REVIEW badge": false,
+    "Confirm & Run button": true,
+    "Adjust via Chat": false,
+    "Scientific Rationale": true,
+    "QC Settings section": true,
+    "Pilot run banner": false
+  },
+  "screenshots": 25
+}
