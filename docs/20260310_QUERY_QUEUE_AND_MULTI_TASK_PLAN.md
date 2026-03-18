@@ -44,11 +44,17 @@ A persistent **"Active Runs" status bar** at the top of the chat page (not behin
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  ▶ 2 workflows running   ✓ 1 completed today   ✗ 0 failed       │
-│  [RNA-seq analysis ████░░ 60%]  [Drug docking ░░░░ queued]      │
+│  RNA-seq analysis [running]   Drug docking [queued]             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-This is a collapsed summary by default, expanding on click. Uses data already available from the RunManager's `runList` state + the SSE workflow-state events.
+No progress bar — Nextflow execution time is non-deterministic and there is no
+reliable percentage to show without constant expensive trace-file polling.
+Instead, show a simple **status label** (running / queued / completed / failed)
+with an **elapsed time** counter (`running for 4 min`).
+
+This is a collapsed summary by default, expanding on click. Uses data already
+available from the RunManager's `runList` state + the SSE workflow-state events.
 
 **File changes:**
 ```
@@ -162,8 +168,10 @@ Workflows already run concurrently at the Galaxy/Nextflow level — each invocat
 is an independent process. No backend change needed.
 
 What is missing is a **UI affordance** to make this clear to the user. The updated
-active runs bar (1A) provides this: seeing "2 workflows running simultaneously" makes
-concurrent execution visible and expected.
+active runs bar (1A) provides this: seeing "2 workflows running simultaneously" with
+elapsed-time counters makes concurrent execution visible and expected.
+No progress bars — status labels and elapsed time are the only reliable signals
+from an asynchronous Nextflow process.
 
 The only constraint: AI query generation is sequential within a single chat session
 (because query N+1 may depend on the answer to query N). The queue in 1B handles this
@@ -308,10 +316,12 @@ The active-runs status bar (Part 1A) should show sub-task breakdown for compound
 
 ```
 Pipeline: "RNA-seq end-to-end" (3 sub-tasks)
-  ✓ Sub-task 1: QC & trimming   [completed 3 min ago]
-  ▶ Sub-task 2: DE analysis     [running  ████░░ 60%]
-  ○ Sub-task 3: CSV export       [waiting]
+  ✓ Sub-task 1: QC & trimming       [completed · 8 min]
+  ▶ Sub-task 2: DE analysis         [running · 4 min elapsed]
+  ○ Sub-task 3: CSV export          [waiting]
 ```
+
+No progress bar — status label + elapsed time only.
 
 ---
 
