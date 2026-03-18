@@ -40,6 +40,7 @@ import {
   Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 interface ToolItem {
@@ -262,6 +263,37 @@ export function AppSidebar({
   activeProjectId,
   chatSessions = []
 }: AppSidebarProps) {
+  // Map chatSessionId → status dot ('running' | 'completed' | 'failed' | undefined).
+  // Fetched from the run list API independently so no state lifting is needed.
+  const [sessionStatusMap, setSessionStatusMap] = useState<Map<string, 'running' | 'completed' | 'failed'>>(new Map())
+  const fetchSessionStatuses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/workflows/runs?limit=50')
+      if (!res.ok) return
+      const runs: Array<{ id: string; chatSessionId?: string; execution?: { status?: string } }> = await res.json()
+      const map = new Map<string, 'running' | 'completed' | 'failed'>()
+      for (const run of runs) {
+        if (!run.chatSessionId) continue
+        const s = run.execution?.status ?? ''
+        const bucket: 'running' | 'completed' | 'failed' =
+          ['running', 'configuring', 'queued'].some(v => s.includes(v)) ? 'running'
+          : ['failed', 'error'].some(v => s.includes(v)) ? 'failed'
+          : s === 'completed' ? 'completed'
+          : 'completed'
+        // Prefer 'running' > 'failed' > 'completed' for a session with multiple runs
+        const existing = map.get(run.chatSessionId)
+        if (!existing || bucket === 'running' || (bucket === 'failed' && existing === 'completed')) {
+          map.set(run.chatSessionId, bucket)
+        }
+      }
+      setSessionStatusMap(map)
+    } catch { /* ignore */ }
+  }, [])
+  useEffect(() => {
+    fetchSessionStatuses()
+    const id = setInterval(fetchSessionStatuses, 15000)
+    return () => clearInterval(id)
+  }, [fetchSessionStatuses])
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [projectsExpanded, setProjectsExpanded] = useState(false);
   const [chatsExpanded, setChatsExpanded] = useState(true);
@@ -270,7 +302,8 @@ export function AppSidebar({
   const [showStarredDialog, setShowStarredDialog] = useState(false);
   const [showRecentToolsDialog, setShowRecentToolsDialog] = useState(false);
   const [, setLocation] = useLocation();
-  
+  const { user } = useAuth();
+
   // Get recent projects
   const recentProjects = projectService.getAllProjects().slice(0, 5);
 
@@ -415,23 +448,44 @@ export function AppSidebar({
             <CollapsibleContent>
               <ScrollArea className="h-[200px]">
                 <div className="space-y-1">
-                  {recentChats.map((chat) => (
-                    <Button
-                      key={chat.id}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start text-left h-auto p-2",
-                        activeChatId === chat.id && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                      onClick={() => onChatSelect(chat.id)}
-                      data-testid={`button-chat-${chat.id}`}
-                    >
-                      <MessageCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate text-sm">{chat.title}</div>
-                      </div>
-                    </Button>
-                  ))}
+                  {recentChats.map((chat) => {
+                    const dotStatus = sessionStatusMap.get(chat.id)
+                    return (
+                      <Button
+                        key={chat.id}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start text-left h-auto p-2",
+                          activeChatId === chat.id && "bg-sidebar-accent text-sidebar-accent-foreground"
+                        )}
+                        onClick={() => onChatSelect(chat.id)}
+                        data-testid={`button-chat-${chat.id}`}
+                      >
+                        <MessageCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate text-sm">{chat.title}</div>
+                        </div>
+                        {dotStatus === 'running' && (
+                          <span
+                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500 animate-pulse"
+                            title="Workflow running"
+                          />
+                        )}
+                        {dotStatus === 'failed' && (
+                          <span
+                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"
+                            title="Workflow failed — needs attention"
+                          />
+                        )}
+                        {dotStatus === 'completed' && activeChatId !== chat.id && (
+                          <span
+                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-green-500"
+                            title="Workflow completed"
+                          />
+                        )}
+                      </Button>
+                    )
+                  })}
                 </div>
               </ScrollArea>
             </CollapsibleContent>
@@ -572,11 +626,11 @@ export function AppSidebar({
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarImage src={userAvatar} alt="User" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback>{user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-card-foreground">John Doe</p>
-              <p className="text-xs text-muted-foreground">Researcher</p>
+              <p className="text-sm font-medium text-card-foreground truncate">{user?.name || user?.email?.split('@')[0] || 'Researcher'}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || 'researcher@biomate.ai'}</p>
             </div>
           </div>
         </Card>

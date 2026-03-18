@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { TypingIndicator } from "./typing-indicator"
@@ -95,6 +95,12 @@ export function ChatInterface({
   runAnchorRequestId = 0,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
+  // Soft query queue: messages submitted while AI is responding are held here
+  // and auto-submitted one-at-a-time once each response completes.
+  const [pendingMessages, setPendingMessages] = useState<string[]>([])
+  const pendingMessagesRef = useRef<string[]>([])
+  pendingMessagesRef.current = pendingMessages
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
@@ -1025,6 +1031,29 @@ export function ChatInterface({
     onSendMessage(content)
   }
 
+  /**
+   * Soft-queue wrapper around handleSendMessage.
+   * Text-only messages submitted while the AI is responding are held in
+   * pendingMessages and auto-submitted as soon as each response completes.
+   * Messages with file attachments bypass the queue and go immediately.
+   */
+  const handleSendOrQueue = useCallback((content: string, files?: File[]) => {
+    if (displayTyping && !files?.length && content.trim()) {
+      setPendingMessages(prev => [...prev, content.trim()])
+      return
+    }
+    handleSendMessage(content, files)
+  }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-submit the next queued message once the AI finishes responding.
+  useEffect(() => {
+    if (!displayTyping && pendingMessagesRef.current.length > 0) {
+      const [next, ...rest] = pendingMessagesRef.current
+      setPendingMessages(rest)
+      handleSendMessage(next)
+    }
+  }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleToolClick = (tool: any) => {
     console.log('Tool clicked:', tool)
     // Future: Navigate to tool details or add to workflow
@@ -1321,20 +1350,32 @@ export function ChatInterface({
       )}
 
       <ChatInput
-        onSend={handleSendMessage}
-        disabled={displayTyping}
+        onSend={handleSendOrQueue}
+        pendingCount={pendingMessages.length}
       />
       {displayTyping && (
         <div
           className="border-t bg-muted/40 px-4 py-2 text-sm"
           role="status"
           aria-live="polite"
-          data-testid="chat-response-pending"
+          data-testid="chat-analysis-status"
         >
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Analyzing request... response will stream in as soon as it's ready.</span>
+            <span>Analyzing request… response will stream in as soon as it&apos;s ready.</span>
           </div>
+          {pendingMessages.length > 0 && (
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+              <Clock className="h-3 w-3" />
+              <span>{pendingMessages.length} message{pendingMessages.length > 1 ? 's' : ''} queued</span>
+              <button
+                className="ml-1 underline underline-offset-2 hover:no-underline"
+                onClick={() => setPendingMessages([])}
+              >
+                clear
+              </button>
+            </div>
+          )}
         </div>
       )}
 

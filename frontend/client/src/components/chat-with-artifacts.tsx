@@ -7,12 +7,23 @@ import { emitUxEvent } from "@/lib/ux-telemetry"
 import { useNetworkStatus } from "@/lib/network-status"
 import { getExecutionAsyncGuidance } from "@/lib/async-guidance"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
-import { AlertTriangle, MessageCircle, Layers, RefreshCw } from "lucide-react"
+import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
 import { analytics } from "@/lib/analytics"
+import {
+  getOutputReadinessHint,
+  getRunPrimaryCta,
+  isRunNeedsAttention,
+  mapRunBucket,
+  runUpdatedAtMs,
+  type RunBucket,
+  type RunListItem,
+} from "./run-manager-utils"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
   if (!status) return null
@@ -26,59 +37,8 @@ interface ChatWithArtifactsProps {
   currentChatSession: ChatSession | null
   onChatUpdated: (session: ChatSession) => void
 }
-
-interface RunListItem {
-  id: string
-  workflowName: string
-  mode?: 'sandbox' | 'production'
-  execution?: {
-    status?: string
-    galaxyInvocationId?: string
-    galaxyWorkflowId?: string
-    artifactReadiness?: {
-      hasOutputs?: boolean
-      visualizableCount?: number
-      downloadableCount?: number
-      totalOutputs?: number
-      meetsContract?: boolean
-    }
-    nextflowStatus?: {
-      artifactReadiness?: {
-        hasOutputs?: boolean
-        visualizableCount?: number
-        downloadableCount?: number
-        totalOutputs?: number
-        meetsContract?: boolean
-      }
-      outputs?: unknown[]
-      results?: unknown[]
-      output_files?: unknown[]
-    }
-  }
-  updatedAt?: string
-  createdAt?: string
-}
-
-type RunBucket = 'running' | 'queued' | 'failed' | 'completed'
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
-
-function mapRunBucket(status?: string): RunBucket {
-  switch (status) {
-    case 'running':
-      return 'running'
-    case 'configuring':
-    case 'queued':
-    case 'paused':
-      return 'queued'
-    case 'failed':
-      return 'failed'
-    case 'completed':
-    case 'cancelled':
-    default:
-      return 'completed'
-  }
-}
 
 function formatRunTime(raw?: string): string {
   if (!raw) return "n/a"
@@ -106,42 +66,19 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
   return `${prefix}${short}`
 }
 
-function getOutputReadinessHint(run: RunListItem): string | null {
-  const readiness = run.execution?.artifactReadiness || run.execution?.nextflowStatus?.artifactReadiness
-  if (readiness) {
-    if (readiness.meetsContract === true) {
-      return `outputs ready (${readiness.visualizableCount ?? 0} viz / ${readiness.downloadableCount ?? 0} dl)`
-    }
-    if (readiness.hasOutputs) {
-      return `partial outputs (${readiness.totalOutputs ?? 0})`
-    }
-    if (readiness.meetsContract === false) {
-      return "outputs not ready"
-    }
-  }
-
-  const outputCount =
-    (Array.isArray(run.execution?.nextflowStatus?.outputs) ? run.execution?.nextflowStatus?.outputs.length : 0) +
-    (Array.isArray(run.execution?.nextflowStatus?.results) ? run.execution?.nextflowStatus?.results.length : 0) +
-    (Array.isArray(run.execution?.nextflowStatus?.output_files) ? run.execution?.nextflowStatus?.output_files.length : 0)
-
-  if (outputCount > 0) return `outputs detected (${outputCount})`
-  if (run.execution?.status === "completed") return "completed; check artifacts"
-  return null
-}
-
-function runUpdatedAtMs(run: RunListItem): number {
-  const value = run.updatedAt || run.createdAt
-  if (!value) return 0
-  const ms = new Date(value).getTime()
-  return Number.isFinite(ms) ? ms : 0
-}
-
 /**
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWithArtifactsProps) {
+  const { toast } = useToast()
+  // Track run statuses to detect transitions (running→completed, running→failed).
+  // We only fire a toast on the transition, not on every poll.
+  const prevRunStatusesRef = useRef<Map<string, string>>(new Map())
+  // Track start time per run for elapsed-time display
+  const runStartTimesRef = useRef<Map<string, number>>(new Map())
+  const [elapsedTick, setElapsedTick] = useState(0)
+
   const [isWorkflowRunning, setIsWorkflowRunning] = useState(false)
   const [workflowProgress, setWorkflowProgress] = useState(0)
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(null)
@@ -169,7 +106,20 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const pulseShownForSession = useRef<Set<string>>(new Set())
   const recentRunSwitchesRef = useRef<number[]>([])
   const recentErrorCountsRef = useRef<Map<string, { count: number; windowStartMs: number }>>(new Map())
+  const outputDeadEndSignalRunsRef = useRef<Set<string>>(new Set())
+  const retryWithoutProgressRef = useRef<Map<string, { count: number; baselineProgress: number; windowStartMs: number }>>(new Map())
   const runListRequestSeqRef = useRef(0)
+  const buildRunLineageContext = () => {
+    const runId = currentRun?.id
+    if (!runId) return {}
+    const rootRunId = currentRun?.parentRunId || runId
+    return {
+      runId,
+      rootRunId,
+      parentRunId: currentRun?.parentRunId,
+      runSequence: currentRun?.runSequence ?? 1,
+    }
+  }
 
   // Unified workflow execution hook (with input validation)
   const {
@@ -179,6 +129,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     isComplete,
     isRunning,
     executeWorkflow,
+    pauseRun,
+    resumeRun,
     cancelRun,
     loadRun,
   } = useUnifiedExecution()
@@ -236,6 +188,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setRunListError(null)
     try {
       const params = new URLSearchParams({ limit: "50" })
+      params.set("offset", "0")
       if (runManagerScope === "current_chat" && currentChatSession?.id) {
         params.set("chatSessionId", currentChatSession.id)
       }
@@ -267,6 +220,70 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     const intervalId = setInterval(fetchRunList, 10000)
     return () => clearInterval(intervalId)
   }, [currentChatSession?.id, runManagerScope])
+
+  // Elapsed-time ticker — updates every 30 s so status bar re-renders.
+  useEffect(() => {
+    const id = setInterval(() => setElapsedTick(t => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Watch runList for status transitions → fire in-app toast.
+  useEffect(() => {
+    const prev = prevRunStatusesRef.current
+    for (const run of runList) {
+      const bucket = mapRunBucket(run.execution?.status)
+      const prevBucket = prev.get(run.id)
+
+      // Track start time when a run goes running
+      if (bucket === "running" && !runStartTimesRef.current.has(run.id)) {
+        runStartTimesRef.current.set(run.id, Date.now())
+      }
+
+      if (prevBucket && prevBucket !== bucket) {
+        if (bucket === "completed") {
+          toast({
+            title: "Workflow complete",
+            description: run.workflowName || "Your workflow finished successfully.",
+            action: (
+              <ToastAction
+                altText="View results"
+                onClick={() => {
+                  const invId = run.execution?.galaxyInvocationId || run.id
+                  const el = document.querySelector(`[data-invocation-id="${invId}"]`)
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }}
+              >
+                View results
+              </ToastAction>
+            ),
+            duration: 8000,
+          })
+        } else if (bucket === "failed") {
+          toast({
+            variant: "destructive",
+            title: "Workflow failed",
+            description: run.workflowName || "A workflow encountered an error.",
+            action: (
+              <ToastAction
+                altText="View & fix"
+                onClick={() => {
+                  const invId = run.execution?.galaxyInvocationId || run.id
+                  const el = document.querySelector(`[data-invocation-id="${invId}"]`)
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" })
+                  setFocusedRunId(run.id)
+                  setShowRunManager(true)
+                }}
+              >
+                View & fix
+              </ToastAction>
+            ),
+            duration: 0,
+          })
+        }
+      }
+      prev.set(run.id, bucket)
+    }
+  }, [runList]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Post-run micro-survey: trigger once per run when status is completed/failed/cancelled
   useEffect(() => {
@@ -315,6 +332,34 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       setIsWorkflowRunning(false)
     }
   }, [executionError, currentChatSession?.id, currentRun?.id])
+
+  // Detect output dead-ends (terminal completion without artifact readiness contract).
+  useEffect(() => {
+    const runId = currentRun?.id
+    const status = currentRun?.execution?.status
+    const readiness = currentRun?.execution?.nextflowStatus?.artifactReadiness
+    if (!runId || status !== "completed" || !readiness) return
+    if (readiness.meetsContract !== false) return
+    if (outputDeadEndSignalRunsRef.current.has(runId)) return
+
+    outputDeadEndSignalRunsRef.current.add(runId)
+    const lineage = buildRunLineageContext()
+    emitUxEvent("workflow.confusion_signal", {
+      sessionId: currentChatSession?.id,
+      ...lineage,
+      signal: "output_dead_end",
+      severity: readiness.hasOutputs ? "medium" : "high",
+      hasOutputs: !!readiness.hasOutputs,
+      totalOutputs: readiness.totalOutputs ?? 0,
+      visualizableCount: readiness.visualizableCount ?? 0,
+      downloadableCount: readiness.downloadableCount ?? 0,
+    })
+  }, [
+    currentRun?.id,
+    currentRun?.execution?.status,
+    currentRun?.execution?.nextflowStatus?.artifactReadiness,
+    currentChatSession?.id,
+  ])
 
   // Session-end pulse: show once per chat session after post-run survey is dismissed.
   useEffect(() => {
@@ -542,6 +587,30 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     }
   };
 
+  const handlePauseWorkflow = async () => {
+    try {
+      await pauseRun("Paused from chat execution controls")
+      emitUxEvent("workflow.pause_clicked", {
+        sessionId: currentChatSession?.id,
+        runId: currentRun?.id,
+      })
+    } catch (error) {
+      console.error("[ChatWithArtifacts] Failed to pause workflow:", error)
+    }
+  }
+
+  const handleResumeWorkflow = async () => {
+    try {
+      await resumeRun()
+      emitUxEvent("workflow.resume_clicked", {
+        sessionId: currentChatSession?.id,
+        runId: currentRun?.id,
+      })
+    } catch (error) {
+      console.error("[ChatWithArtifacts] Failed to resume workflow:", error)
+    }
+  }
+
   const handleParameterChange = (stepId: string, params: Record<string, any>) => {
     console.log('ChatWithArtifacts: Parameter changed for step', stepId, params);
 
@@ -577,6 +646,37 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       .find((msg) => msg.metadata?.type === "workflow" && msg.metadata?.workflow);
 
     if (!lastWorkflowMessage?.metadata?.workflow) return;
+
+    const now = Date.now()
+    const currentProgress = currentRun?.progress?.percentComplete ?? 0
+    const retryChainKey =
+      currentRun?.parentRunId ||
+      currentRun?.id ||
+      `${currentChatSession.id}:${lastWorkflowMessage.metadata?.workflow?.name || "workflow"}`
+    const existing = retryWithoutProgressRef.current.get(retryChainKey)
+    const withinWindow = existing && now - existing.windowStartMs <= 180000
+    const sameOrWorseProgress = existing ? currentProgress <= existing.baselineProgress : false
+    const count = withinWindow && sameOrWorseProgress ? existing.count + 1 : 1
+    retryWithoutProgressRef.current.set(retryChainKey, {
+      count,
+      baselineProgress: Math.max(existing?.baselineProgress ?? currentProgress, currentProgress),
+      windowStartMs: withinWindow ? existing!.windowStartMs : now,
+    })
+
+    if (count >= 2) {
+      const lineage = buildRunLineageContext()
+      emitUxEvent("workflow.confusion_signal", {
+        sessionId: currentChatSession.id,
+        ...lineage,
+        signal: "retry_without_progress",
+        severity: "high",
+        progressPercent: currentProgress,
+        count,
+        retryChainKey,
+        baselineProgressPercent: retryWithoutProgressRef.current.get(retryChainKey)?.baselineProgress ?? currentProgress,
+        windowMs: 180000,
+      })
+    }
 
     emitUxEvent("async.retry_clicked", {
       sessionId: currentChatSession.id,
@@ -653,6 +753,29 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     currentRun?.execution?.nextflowStatus?.autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes((autofixState || "").toLowerCase())
   const runningCount = runList.filter((run) => mapRunBucket(run.execution?.status) === "running").length
+  const queuedCount  = runList.filter((run) => mapRunBucket(run.execution?.status) === "queued").length
+  const completedTodayCount = runList.filter((run) => {
+    if (mapRunBucket(run.execution?.status) !== "completed") return false
+    const updatedAt = run.updatedAt ? new Date(run.updatedAt).getTime() : 0
+    return Date.now() - updatedAt < 86400000
+  }).length
+  const failedCount  = runList.filter((run) => mapRunBucket(run.execution?.status) === "failed").length
+
+  // Format elapsed time for status bar (e.g. "4 min")
+  const formatElapsed = (runId: string): string => {
+    const started = runStartTimesRef.current.get(runId)
+    if (!started) return ""
+    const mins = Math.floor((Date.now() - started) / 60000)
+    if (mins < 1) return "< 1 min"
+    return `${mins} min`
+  }
+
+  // Active runs for status bar (running + queued, most recent first)
+  const activeRuns = useMemo(() => runList
+    .filter(r => ["running", "queued"].includes(mapRunBucket(r.execution?.status)))
+    .slice(0, 3), // show at most 3 in the bar
+    [runList] // eslint-disable-line react-hooks/exhaustive-deps
+  )
   const filteredSortedRuns = useMemo(() => {
     const normalizedQuery = runSearchQuery.trim().toLowerCase()
     const filtered = runList.filter((run) => {
@@ -660,8 +783,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         normalizedQuery.length === 0 ||
         (run.workflowName || "").toLowerCase().includes(normalizedQuery) ||
         run.id.toLowerCase().includes(normalizedQuery)
-      const bucket = mapRunBucket(run.execution?.status)
-      const matchesStatus = runStatusFilter === "all" || bucket === runStatusFilter
+      const matchesStatus =
+        runStatusFilter === "all" ||
+        (runStatusFilter === "needs_attention"
+          ? isRunNeedsAttention(run)
+          : mapRunBucket(run.execution?.status) === runStatusFilter)
       return matchesQuery && matchesStatus
     })
 
@@ -673,7 +799,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       return [...filtered].sort(byUpdatedAtDesc)
     }
 
-    const priorityByBucket: Record<RunBucket, number> =
+    const priorityByBucket: Record<Exclude<RunBucket, "needs_attention">, number> =
       runSort === "running_first"
         ? { running: 0, queued: 1, failed: 2, completed: 3 }
         : { failed: 0, running: 1, queued: 2, completed: 3 }
@@ -687,6 +813,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     })
   }, [runList, runSearchQuery, runStatusFilter, runSort])
   const runBuckets: Record<RunBucket, RunListItem[]> = {
+    needs_attention: filteredSortedRuns.filter((run) => isRunNeedsAttention(run)),
     running: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "running"),
     queued: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "queued"),
     failed: filteredSortedRuns.filter((run) => mapRunBucket(run.execution?.status) === "failed"),
@@ -733,6 +860,75 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           </div>
         </div>
       </div>
+
+      {/* Always-visible active-runs status bar */}
+      {(runningCount > 0 || queuedCount > 0 || failedCount > 0) && (
+        <div
+          className="border-b bg-muted/30 px-4 py-1.5 text-xs"
+          data-testid="active-runs-status-bar"
+          // eslint-disable-next-line react/no-unknown-property
+          suppressHydrationWarning
+        >
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {/* Counts */}
+            <div className="flex items-center gap-3 text-muted-foreground">
+              {runningCount > 0 && (
+                <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                  <Play className="h-3 w-3" />
+                  {runningCount} running
+                </span>
+              )}
+              {queuedCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {queuedCount} queued
+                </span>
+              )}
+              {completedTodayCount > 0 && (
+                <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {completedTodayCount} done today
+                </span>
+              )}
+              {failedCount > 0 && (
+                <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                  <XCircle className="h-3 w-3" />
+                  {failedCount} failed
+                </span>
+              )}
+            </div>
+
+            {/* Individual active runs (up to 3) */}
+            {activeRuns.map(run => {
+              const bucket = mapRunBucket(run.execution?.status)
+              const elapsed = formatElapsed(run.id)
+              return (
+                <span
+                  key={run.id}
+                  className="flex items-center gap-1 rounded-full border bg-background px-2 py-0.5 text-xs"
+                  title={run.workflowName || run.id}
+                >
+                  {bucket === "running"
+                    ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />}
+                  <span className="max-w-[120px] truncate">{run.workflowName || "workflow"}</span>
+                  <span className="text-muted-foreground">
+                    [{bucket}{elapsed ? ` · ${elapsed}` : ""}]
+                  </span>
+                </span>
+              )
+            })}
+
+            {/* Expand full Run Manager */}
+            <button
+              className="ml-auto text-xs text-muted-foreground underline underline-offset-2 hover:no-underline"
+              onClick={() => setShowRunManager(prev => !prev)}
+            >
+              {showRunManager ? "hide" : "all runs"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showRunManager && (
         <div className="border-b bg-muted/20 px-4 py-3" data-testid="run-manager-panel">
@@ -784,6 +980,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
                 className="h-8 rounded-md border bg-background px-2 text-xs"
               >
                 <option value="all">All statuses</option>
+                <option value="needs_attention">Needs Attention</option>
                 <option value="running">Running</option>
                 <option value="queued">Queued</option>
                 <option value="failed">Failed</option>
@@ -801,8 +998,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {(["running", "queued", "failed", "completed"] as RunBucket[]).map((bucket) => (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {(["needs_attention", "running", "queued", "failed", "completed"] as RunBucket[]).map((bucket) => (
               <div
                 key={bucket}
                 className="rounded-md border bg-background p-2"
@@ -810,7 +1007,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
               >
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {bucket}
+                    {bucket === "needs_attention" ? "Needs Attention" : bucket}
                   </p>
                   <span
                     className="text-xs text-muted-foreground"
@@ -843,6 +1040,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
                             {shortenId(run.id, "run ")}
                             {run.execution?.galaxyInvocationId ? ` · ${shortenId(run.execution.galaxyInvocationId, "inv ")}` : ""}
                             {` · ${formatFreshness(run.updatedAt || run.createdAt)}`}
+                          </p>
+                          <p
+                            className="mt-1 inline-flex rounded border border-border px-1.5 py-0.5 text-[11px] font-medium text-foreground/90"
+                            data-testid={`run-manager-item-cta-${run.id}`}
+                          >
+                            {getRunPrimaryCta(run)}
                           </p>
                           {readinessHint && (
                             <p className="text-[11px] text-muted-foreground">{readinessHint}</p>
@@ -886,11 +1089,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
                 Executing workflow... {workflowProgress}%
               </span>
             </div>
-            {currentWorkflowId && (
-              <span className="text-xs text-muted-foreground font-mono">
-                ID: {currentWorkflowId}
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground">
+              Live execution updates enabled
+            </span>
           </div>
           <div className="mt-2 h-1 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
             <div
@@ -1040,6 +1241,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           onRunWorkflow={handleRunWorkflow}
           onRequestPrereqRecovery={handlePrereqRecoveryRequest}
           onStopWorkflow={handleStopWorkflow}
+          onPauseWorkflow={handlePauseWorkflow}
+          onResumeWorkflow={handleResumeWorkflow}
           onParameterChange={handleParameterChange}
           isWorkflowRunning={isWorkflowRunning}
           workflowProgress={workflowProgress}
