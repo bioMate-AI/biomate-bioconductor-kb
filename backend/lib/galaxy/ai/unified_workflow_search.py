@@ -33,20 +33,21 @@ log = logging.getLogger(__name__)
 DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
 
 # Source priority for the workflows table (higher = preferred).
-# Individual tools (nf-core modules, Bioconductor packages) live in the
-# tools table and are ranked by UnifiedToolSearch, not here.
+# Both the workflows table AND the tools table contain Bioconductor entries:
+#   tools table      → package metadata, vignette steps, function lists (tool-level search)
+#   workflows table  → the runnable .nf workflow files (workflow-level search, ~1818 entries)
 SOURCE_PRIORITY = {
-    "nfcore":          100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
-    "nfcore_subwf":     95,  # nf-core composite subworkflows (multi-tool analysis steps)
-    "biomni_nextflow":  85,  # BioMate domain analysis workflows (Python, Docker-native)
-    "galaxy_biomni":    35,  # Unique BioMate Galaxy workflows pending NF conversion
+    "nfcore":           100,  # Full nf-core pipelines (rnaseq, sarek, chipseq, …)
+    "nfcore_subwf":      95,  # nf-core composite subworkflows (multi-tool analysis steps)
+    "biomni_nextflow":   85,  # BioMate domain analysis workflows (Python, Docker-native)
+    "bioconductor":      75,  # Bioconductor R package Nextflow workflows (~1818 .nf files)
+    "galaxy_biomni":     35,  # Unique BioMate Galaxy workflows pending NF conversion
     # legacy / compat
-    "nfcore_converted": 88,
-    "galaxy_local":     30,
-    "unknown":          20,
-    "bioconductor":     10,  # Should be in tools table; low priority if found here
-    "nfcore_module":    10,  # Should be in tools table; low priority if found here
-    "biomni":            5,  # Fully superseded legacy
+    "nfcore_converted":  88,
+    "galaxy_local":      30,
+    "unknown":           20,
+    "nfcore_module":     10,  # Should be in tools table; low priority if found here
+    "biomni":             5,  # Fully superseded legacy
 }
 
 

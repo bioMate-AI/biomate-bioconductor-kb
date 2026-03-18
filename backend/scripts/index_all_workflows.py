@@ -7,21 +7,23 @@ Correct table split:
   tools table      — individual executors (single tool/package wrappers)
 
 workflows table sources (in priority order):
-  nfcore       (100) — Full nf-core pipelines (rnaseq, sarek, chipseq, …)
-  nfcore_subwf  (95) — nf-core composite subworkflows (nf-core-modules/subworkflows/)
+  nfcore        (100) — Full nf-core pipelines (rnaseq, sarek, chipseq, …)
+  nfcore_subwf   (95) — nf-core composite subworkflows (nf-core-modules/subworkflows/)
   biomni_nextflow(85) — BioMate domain analysis workflows (nextflow_nfcore/subworkflows/)
+  bioconductor   (75) — Bioconductor R package Nextflow workflows (~1818 on-disk .nf files)
+                        Each file has a process + workflow block; these ARE runnable workflows.
   galaxy_biomni  (35) — Unique BioMate Galaxy workflows with NO Nextflow equivalent (2 items)
 
 tools table additions (on top of 10 k+ existing Galaxy ToolShed entries):
   nfcore_module      — nf-core individual tool modules (nf-core-modules/modules/)
                        e.g. star/align, samtools/sort, gatk4/haplotypecaller
-  (bioconductor entries already exist in tools — 2241 entries, do not re-add)
+  bioconductor       — Bioconductor package metadata (2273 entries; rich vignette/function info)
+                       Kept in tools for tool-level lookups; the runnable .nf goes in workflows.
 
 NOT indexed any more:
   galaxy_local        — Removed: Galaxy copies of nfcore subworkflows (redundant)
   biomni (legacy)     — Removed: superseded by biomni_nextflow
   nfcore_module in workflows — Wrong table; moved to tools
-  bioconductor in workflows  — Wrong table; already in tools (2241 entries)
 
 Usage:
     python scripts/index_all_workflows.py              # incremental
@@ -512,6 +514,114 @@ def index_nfcore_modules_as_tools(conn: sqlite3.Connection) -> int:
     return indexed
 
 
+def index_bioconductor_as_workflows(conn: sqlite3.Connection) -> int:
+    """
+    Index Bioconductor Nextflow workflow files (.nf) into the workflows table.
+
+    Each on-disk Bioconductor .nf file is a complete Nextflow workflow containing
+    both a `process BIOC_<PKG>` block and a `workflow BIOC_<PKG>_WORKFLOW` block
+    with proper I/O specs, container/conda directives, and an R analysis script.
+    These are runnable pipelines — analogous to nfcore_subwf — not mere tool stubs.
+
+    Architecture:
+      tools table      → Bioconductor package metadata for tool-level search
+      workflows table  → The runnable .nf workflow file for workflow discovery
+
+    Returns count of newly indexed workflows.
+    """
+    bioc_nf_path = BIOMNI_NF_PATH / "bioconductor"
+    if not bioc_nf_path.exists():
+        print(f"  Path not found: {bioc_nf_path}")
+        return 0
+
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+
+    # Pre-load rich metadata from tools table (description, step count, topics)
+    tools_meta: Dict[str, Dict] = {}
+    for tool_id, name, description, meta_json, topics, category in cursor.execute(
+        "SELECT tool_id, name, description, nfcore_metadata, topics, category "
+        "FROM tools WHERE tool_id LIKE 'bioconductor/%'"
+    ).fetchall():
+        tools_meta[tool_id] = {
+            "name": name,
+            "description": description,
+            "nfcore_metadata": meta_json,
+            "topics": topics or "",
+            "category": category or "",
+        }
+
+    indexed = 0
+    for pkg_dir in sorted(bioc_nf_path.iterdir()):
+        if not pkg_dir.is_dir():
+            continue
+        main_nf = pkg_dir / "main.nf"
+        if not main_nf.exists():
+            continue
+
+        pkg = pkg_dir.name
+        tool_id = f"bioconductor/{pkg}"
+        content = main_nf.read_text()
+        wf_hash = compute_hash(content)
+
+        if _wf_exists(cursor, wf_hash):
+            continue
+
+        tm = tools_meta.get(tool_id, {})
+        name = tm.get("name") or pkg.capitalize()
+        description = tm.get("description") or f"Bioconductor R workflow: {pkg}"
+
+        # Total step count from vignette workflows in tools metadata
+        step_count = 0
+        meta_str = tm.get("nfcore_metadata") or ""
+        if meta_str:
+            try:
+                mj = json.loads(meta_str)
+                vw = mj.get("vignette_workflows", [])
+                step_count = sum(v.get("total_steps", 0) for v in vw)
+            except Exception:
+                pass
+        if step_count == 0:
+            step_count = len(re.findall(r'\bprocess\s+[A-Z]', content))
+
+        # Domain from description + package topics
+        domain_text = (description or "") + " " + tm.get("topics", "") + " " + tm.get("category", "")
+        domain = infer_domain(domain_text)
+
+        # Upstream dependencies from file header
+        upstream_m = re.search(r'//\s*Upstream\s*:\s*(.+)', content)
+        deps = []
+        if upstream_m:
+            deps = [t.strip() for t in upstream_m.group(1).split(",")
+                    if t.strip() and t.strip().lower() != "none"]
+        tools_used = [tool_id] + [f"bioconductor/{d.lower()}" for d in deps]
+
+        tags = json.dumps([pkg, "bioconductor", "nextflow", "R", domain])
+
+        try:
+            _wf_insert(cursor,
+                name=name,
+                filename=f"nextflow_nfcore/bioconductor/{pkg}/main.nf",
+                description=description,
+                annotation=description,
+                tags=tags,
+                domain=domain,
+                workflow_json=content,
+                step_count=step_count,
+                tools_used=json.dumps(tools_used),
+                source="bioconductor",
+                format_="bioconductor_nf",
+                category=domain,
+                workflow_hash=wf_hash,
+                indexed_at=now)
+            indexed += 1
+        except Exception as e:
+            print(f"    Error {pkg}: {e}")
+
+    conn.commit()
+    return indexed
+
+
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 def get_stats(conn: sqlite3.Connection) -> Dict:
@@ -613,12 +723,16 @@ def main():
         n4 = index_galaxy_biomni_unique(conn)
         print(f"  Added: {n4}")
 
-        # ── TOOLS TABLE ──────────────────────────────────────────────────────
-        print("\nPhase 6 [tools]: nf-core individual modules → tools table")
-        n5 = index_nfcore_modules_as_tools(conn)
+        print("\nPhase 6 [workflows]: Bioconductor Nextflow workflows (~1818 .nf files)")
+        n5 = index_bioconductor_as_workflows(conn)
         print(f"  Added: {n5}")
 
-        print("\nPhase 7 [tools]: Link Bioconductor NF wrappers to tools table entries")
+        # ── TOOLS TABLE ──────────────────────────────────────────────────────
+        print("\nPhase 7 [tools]: nf-core individual modules → tools table")
+        n6 = index_nfcore_modules_as_tools(conn)
+        print(f"  Added: {n6}")
+
+        print("\nPhase 8 [tools]: Link Bioconductor NF wrappers to tools table entries")
         bioc_upd, bioc_ins = link_bioconductor_nf_wrappers(conn)
         print(f"  wrapper_path linked: {bioc_upd}  |  new entries: {bioc_ins}")
 
@@ -626,7 +740,7 @@ def main():
         print(f"\nFinal:")
         print(f"  workflows: {s2['workflows']}  by source: {s2['wf_by_source']}")
         print(f"  tools:     {s2['tools']}  (nfcore={s2['tools_nfcore']}, bioconductor={s2['tools_bioconductor']})")
-        print(f"\n  workflows added: {n1+n2+n3+n4}   tools added: {n5}+{bioc_ins}(bioc)   bioc linked: {bioc_upd}")
+        print(f"\n  workflows added: {n1+n2+n3+n4+n5}   tools added: {n6}+{bioc_ins}(bioc)   bioc linked: {bioc_upd}")
         print("=" * 60)
 
     finally:

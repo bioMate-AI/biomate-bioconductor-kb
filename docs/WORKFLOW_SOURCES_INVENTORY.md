@@ -1,6 +1,6 @@
 # BioMate Workflow Sources — Inventory, Locations & Overlap Analysis
 
-*Last updated: 2026-03-10*
+*Last updated: 2026-03-10 (rev 2 — Bioconductor workflows moved to workflows table)*
 
 ---
 
@@ -41,8 +41,8 @@ backend/
 │   ├── nextflow_nfcore/
 │   │   └── subworkflows/                    ← BioMate analysis workflows → workflows table
 │   │       ├── biochemistry/   (9)
-│   │       ├── bioconductor/   (1818)       ← Bioconductor R modules (NOT indexed here;
-│   │       │                                    2241 entries already in tools table)
+│   │       ├── bioconductor/   (1818)       ← Bioconductor R Nextflow workflows
+│   │       │                                    → workflows table (source=bioconductor)
 │   │       ├── bioimaging/     (22)
 │   │       ├── cancer_biology/ (7)
 │   │       ├── cryo_em/        (15)  NF-only
@@ -62,28 +62,33 @@ backend/
 
 ## 3. Current Index State
 
-### `workflows` table — 466 total
+### `workflows` table — 2,284 total
 
 | Source | Count | Priority | What |
 |--------|------:|:---:|---|
 | `nfcore` | 100 | **100** | Full nf-core pipelines (rnaseq, sarek, chipseq, …) |
 | `nfcore_subwf` | 93 | **95** | nf-core composite subworkflows (multi-tool analysis steps) |
 | `biomni_nextflow` | 268 | **85** | BioMate domain analysis workflows (Python, Docker-native) |
+| `bioconductor` | 1,818 | **75** | Bioconductor R package Nextflow workflows (.nf files with process + workflow blocks) |
 | `galaxy_biomni` | 2 | **35** | Unique BioMate Galaxy workflows — **no NF equivalent yet** |
 
-### `tools` table — 12,514 total
+### `tools` table — 12,274 total
 
 | Type | Count | `wrapper_path` set | Description |
 |------|------:|:---:|---|
-| Galaxy ToolShed | ~10,821 | — | Community Galaxy tools (CLI, R, Python) |
+| Galaxy ToolShed | ~7,630 | — | Community Galaxy tools (CLI, R, Python) |
 | nf-core modules | 1,645 | ✅ all | Individual tool wrappers (`star/align`, `samtools/sort`, …) |
-| Bioconductor | 2,273 | ✅ 1,818 | R package entries; 1,818 linked to `.nf` file on disk; 455 have embedded `nextflow_process_template` in `nfcore_metadata` JSON instead |
+| Bioconductor | 2,273 | ✅ 1,818 | R package metadata; rich vignette/function info for tool-level search |
+| Galaxy nf-core wrappers | 231 | — | Galaxy wrappers of nf-core CLI tools |
+| BioMate data lake | 726 | — | Reference datasets (DepMap, BindingDB, DisGeNET, …) |
 
-**Bioconductor NF wrapper files on disk:**
-`backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/<pkg>/main.nf` (1,818 files)
-→ linked via `tools.wrapper_path = "nextflow_nfcore/bioconductor/<pkg>/main.nf"` for 1,818 entries.
-The 455 tools entries with no `.nf` file on disk still contain an equivalent `nextflow_process_template`
-embedded in their `nfcore_metadata` JSON column, generated from the Bioconductor vignette scrape.
+**Bioconductor dual-table representation:**
+- `workflows` table: 1,818 runnable `.nf` files (`source=bioconductor`, `format=bioconductor_nf`)
+  - Each file has a `process BIOC_<PKG>` + `workflow BIOC_<PKG>_WORKFLOW` block
+  - `step_count` = total steps from vignette analysis (median 9, max 384)
+- `tools` table: 2,273 package metadata entries for tool-level lookups
+  - Rich vignette steps, function lists, container/conda specs
+  - `wrapper_path` links 1,818 of these to their on-disk `.nf` file
 
 ---
 
@@ -98,9 +103,12 @@ compose multiple modules into a meaningful multi-step operation (e.g.
 `bam_sort_stats_samtools` = sort + index + stats + flagstat + idxstats). They are
 **composite pipelines** and belong in the `workflows` table.
 
-**Bioconductor modules** are single R-package process wrappers. They were already
-correctly indexed in the `tools` table (2,241 entries with `tool_id LIKE 'bioconductor/%'`)
-before this work. They are **not** re-added to `workflows`.
+**Bioconductor `.nf` files** are complete Nextflow workflows — each has both a
+`process BIOC_<PKG>` block (with I/O specs, container/conda, and an R analysis script
+derived from the package vignette) AND a `workflow BIOC_<PKG>_WORKFLOW` block.
+These are directly analogous to `nfcore_subwf` entries and belong in the `workflows` table.
+They are **also** kept in the `tools` table for tool-level discovery (rich package metadata,
+function lists, vignette step breakdown) since both search paths serve different needs.
 
 ---
 
@@ -153,10 +161,10 @@ The `galaxy_workflows/` directory (94 files) contained Galaxy-format copies of
 
 ```
 WORKFLOW search (UnifiedWorkflowSearch):
-  nfcore (100) → nfcore_subwf (95) → biomni_nextflow (85) → galaxy_biomni (35)
+  nfcore (100) → nfcore_subwf (95) → biomni_nextflow (85) → bioconductor (75) → galaxy_biomni (35)
 
 TOOL search (UnifiedToolSearch):
-  10821 Galaxy ToolShed + 1645 nf-core modules + 2241 Bioconductor = 14707 tools
+  7630 Galaxy ToolShed + 1645 nf-core modules + 2273 Bioconductor + 726 data lake = 12274 tools
 ```
 
 | User request | Result |
@@ -164,7 +172,8 @@ TOOL search (UnifiedToolSearch):
 | "Run RNA-seq end-to-end" | workflow: `nfcore/rnaseq` |
 | "Sort and QC a BAM file" | workflow: `nfcore_subwf/bam_sort_stats_samtools` |
 | "Align reads with STAR" | tool: `nfcore/star/align` |
-| "Run DESeq2 on my counts" | tool: `bioconductor/deseq2` |
+| "Run DESeq2 differential analysis" | workflow: `bioconductor/deseq2` (from workflows) |
+| "What R packages do DESeq2 analysis?" | tool: `bioconductor/deseq2` (from tools) |
 | "Model microbial dynamics" | workflow: `biomni_nextflow/microbiology` |
 | "Identify FAS domains" | workflow: `galaxy_biomni/synthetic_biology` (fallback) |
 
