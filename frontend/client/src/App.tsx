@@ -38,6 +38,7 @@ import TermsPage from "@/pages/terms";
 import ContactPage from "@/pages/contact";
 import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
+import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -292,6 +293,12 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
+      <Route path="/admin/feedback-dashboard">
+        <AuthenticatedPageLayout>
+          <AdminFeedbackDashboardPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
       {/* Platform (existing chat interface with sidebar) */}
       <Route path="/">
         <PlatformLayout
@@ -350,13 +357,13 @@ function App() {
     analytics.track('page_viewed', { page: location })
   }, [location])
 
-  // Initialize chat history on mount
+  // Load chat history list on mount, but start with a fresh empty session
+  // so users always land on a clean chat (previous sessions accessible in sidebar)
   useEffect(() => {
     const sessions = chatHistoryService.getAllSessions()
     setChatSessions(sessions)
-    if (sessions.length > 0) {
-      setCurrentChatSession(sessions[0]) // Load most recent chat
-    }
+    // Do not auto-load the last session — the user sees an empty welcome state
+    // and can pick a previous conversation from the sidebar if needed
   }, [])
 
   const handleNewChat = () => {

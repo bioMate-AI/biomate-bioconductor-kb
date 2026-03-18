@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
+import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
 import { CompressionDialog, CompressionStatusBadge } from "./compression-dialog"
@@ -101,10 +102,21 @@ export function ChatInterface({
   const pendingMessagesRef = useRef<string[]>([])
   pendingMessagesRef.current = pendingMessages
 
+  const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
+
+  // Stop dialog state
+  const [showStopDialog, setShowStopDialog] = useState(false)
+  // Snapshot of queue length at the moment stop was clicked (avoids stale reactive read)
+  const [stopDialogQueueCount, setStopDialogQueueCount] = useState(0)
+
+  // LangGraph task tracking
+  const [langgraphTasks, setLanggraphTasks] = useState<TaskItem[]>([])
+  const langgraphTasksRef = useRef<TaskItem[]>([])
+  langgraphTasksRef.current = langgraphTasks
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -269,8 +281,10 @@ export function ChatInterface({
         .filter((m) => (m.role === "user" || m.role === "assistant") && !!m.content?.trim())
         .slice(-4)
         .map((m) => ({ role: m.role, content: m.content }))
+      abortControllerRef.current = new AbortController()
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
+        signal: abortControllerRef.current.signal,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -297,39 +311,47 @@ export function ChatInterface({
       let accumulatedText = ''
       let finalPayload: any = null
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-
+      try {
         while (true) {
-          const eventBoundary = buffer.indexOf('\n\n')
-          if (eventBoundary === -1) break
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
 
-          const rawEvent = buffer.slice(0, eventBoundary)
-          buffer = buffer.slice(eventBoundary + 2)
+          while (true) {
+            const eventBoundary = buffer.indexOf('\n\n')
+            if (eventBoundary === -1) break
 
-          const lines = rawEvent.split('\n')
-          let eventName = 'message'
-          const dataLines: string[] = []
-          for (const line of lines) {
-            if (line.startsWith('event:')) eventName = line.slice(6).trim()
-            if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
-          }
+            const rawEvent = buffer.slice(0, eventBoundary)
+            buffer = buffer.slice(eventBoundary + 2)
 
-          const payloadText = dataLines.join('\n')
-          if (!payloadText) continue
-          const payload = JSON.parse(payloadText)
+            const lines = rawEvent.split('\n')
+            let eventName = 'message'
+            const dataLines: string[] = []
+            for (const line of lines) {
+              if (line.startsWith('event:')) eventName = line.slice(6).trim()
+              if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
+            }
 
-          if (eventName === 'delta' && typeof payload.text === 'string') {
-            accumulatedText += payload.text
-            updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
-          } else if (eventName === 'final') {
-            finalPayload = payload
-          } else if (eventName === 'error') {
-            throw new Error(payload.message || 'Streaming chat failed')
+            const payloadText = dataLines.join('\n')
+            if (!payloadText) continue
+            const payload = JSON.parse(payloadText)
+
+            if (eventName === 'delta' && typeof payload.text === 'string') {
+              accumulatedText += payload.text
+              updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
+            } else if (eventName === 'final') {
+              finalPayload = payload
+            } else if (eventName === 'error') {
+              throw new Error(payload.message || 'Streaming chat failed')
+            }
           }
         }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          // Stream was stopped by user — not an error, just return what we have
+          return finalPayload ?? { message: accumulatedText, aborted: true }
+        }
+        throw err
       }
 
       if (!finalPayload) {
@@ -1045,6 +1067,17 @@ export function ChatInterface({
     handleSendMessage(content, files)
   }, [displayTyping]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const stopStreaming = useCallback(() => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setIsTypingLocal(false)
+    const queuedCount = pendingMessagesRef.current.length
+    if (queuedCount > 0) {
+      setStopDialogQueueCount(queuedCount)
+      setShowStopDialog(true)
+    }
+  }, [])
+
   // Auto-submit the next queued message once the AI finishes responding.
   useEffect(() => {
     if (!displayTyping && pendingMessagesRef.current.length > 0) {
@@ -1192,6 +1225,40 @@ export function ChatInterface({
       setCompressionDismissed(false)
     }, 10 * 60 * 1000)
   }
+
+  // Listen for LangGraph task updates dispatched via custom DOM events from SSE handlers
+  useEffect(() => {
+    const handler = (e: CustomEvent<{ task_id: string; status: TaskStatus; description?: string; elapsed_ms?: number }>) => {
+      const { task_id, status, description, elapsed_ms } = e.detail
+      setLanggraphTasks(prev => {
+        const existing = prev.find(t => t.id === task_id)
+        if (existing) {
+          return prev.map(t =>
+            t.id === task_id ? { ...t, status, elapsedMs: elapsed_ms } : t
+          )
+        }
+        return [...prev, { id: task_id, description: description || task_id, status, elapsedMs: elapsed_ms }]
+      })
+    }
+    window.addEventListener('langgraphTaskUpdate', handler as EventListener)
+    return () => window.removeEventListener('langgraphTaskUpdate', handler as EventListener)
+  }, [])
+
+  const handleStopTask = useCallback((taskId: string) => {
+    setLanggraphTasks(prev =>
+      prev.map(t => t.id === taskId ? { ...t, status: 'stopped' as TaskStatus } : t)
+    )
+  }, [])
+
+  const handleRetryTask = useCallback((taskId: string) => {
+    setLanggraphTasks(prev =>
+      prev.map(t => t.id === taskId ? { ...t, status: 'pending' as TaskStatus } : t)
+    )
+  }, [])
+
+  const handleRemoveTask = useCallback((taskId: string) => {
+    setLanggraphTasks(prev => prev.filter(t => t.id !== taskId))
+  }, [])
 
   useEffect(() => {
     if (!externalPromptRequest) return
@@ -1349,9 +1416,52 @@ export function ChatInterface({
         </div>
       )}
 
+      {(langgraphTasks.length > 0 || pendingMessages.length > 0) && (
+        <div className="px-4 pb-2">
+          <TaskList
+            tasks={langgraphTasks}
+            queuedMessages={pendingMessages}
+            onStopTask={handleStopTask}
+            onRemoveTask={handleRemoveTask}
+            onRetryTask={handleRetryTask}
+            onRemoveMessage={(i) => setPendingMessages(prev => prev.filter((_, idx) => idx !== i))}
+          />
+        </div>
+      )}
+      {showStopDialog && (
+        <div
+          className="mx-4 mb-2 rounded-lg border bg-background shadow-md p-3 text-sm"
+          data-testid="stop-dialog"
+        >
+          <p className="font-medium mb-2 text-foreground">
+            Reply stopped. What should happen to your {stopDialogQueueCount} queued message{stopDialogQueueCount !== 1 ? 's' : ''}?
+          </p>
+          <div className="flex gap-2">
+            <button
+              className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted"
+              data-testid="stop-reply-only"
+              onClick={() => setShowStopDialog(false)}
+            >
+              Keep queued ({stopDialogQueueCount})
+            </button>
+            <button
+              className="rounded bg-destructive text-destructive-foreground px-3 py-1.5 text-xs hover:bg-destructive/90"
+              data-testid="stop-and-clear-queue"
+              onClick={() => {
+                setPendingMessages([])
+                setShowStopDialog(false)
+              }}
+            >
+              Clear all queued
+            </button>
+          </div>
+        </div>
+      )}
       <ChatInput
         onSend={handleSendOrQueue}
         pendingCount={pendingMessages.length}
+        isStreaming={displayTyping}
+        onStop={stopStreaming}
       />
       {displayTyping && (
         <div
@@ -1364,18 +1474,6 @@ export function ChatInterface({
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Analyzing request… response will stream in as soon as it&apos;s ready.</span>
           </div>
-          {pendingMessages.length > 0 && (
-            <div className="mt-1 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-              <Clock className="h-3 w-3" />
-              <span>{pendingMessages.length} message{pendingMessages.length > 1 ? 's' : ''} queued</span>
-              <button
-                className="ml-1 underline underline-offset-2 hover:no-underline"
-                onClick={() => setPendingMessages([])}
-              >
-                clear
-              </button>
-            </div>
-          )}
         </div>
       )}
 

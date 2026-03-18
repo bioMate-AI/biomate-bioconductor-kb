@@ -689,18 +689,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/telemetry/cost-summary", async (req, res) => {
-    try {
-      const from = typeof req.query?.from === "string" ? req.query.from : undefined;
-      const to = typeof req.query?.to === "string" ? req.query.to : undefined;
-      const summary = await telemetryService.getCostSummary({ from, to });
-      res.json(summary);
-    } catch (error: any) {
-      console.error("[Telemetry] Failed to fetch cost summary:", error);
-      res.status(500).json({ error: "TelemetryCostSummaryError", message: error?.message || String(error) });
-    }
-  });
-
   app.get("/api/telemetry/confusion-triage", async (req, res) => {
     try {
       const from = typeof req.query?.from === "string" ? req.query.from : undefined;
@@ -1856,8 +1844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           job_id: job.id,
           tool_id: tool_id,
           state: job.state || 'queued',
-          started_at: new Date().toISOString(),
-          invocationId: req.body.invocation_id || undefined,
+          started_at: new Date().toISOString()
         };
       }
 
@@ -1889,52 +1876,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get job status from Galaxy
       const job = await galaxyAPIProxy.getJob(jobInfo.job_id);
-      const prevState = jobInfo.state;
 
       // Update session with latest state
       if (req.session?.workflowJobs?.[step_id]) {
         req.session.workflowJobs[step_id].state = job.state;
       }
 
-      // When a step transitions to 'ok' for the first time, register its outputs
-      const justCompleted = job.state === 'ok' && prevState !== 'ok';
-      if (justCompleted && Array.isArray(job.outputs) && job.outputs.length > 0) {
-        const invocationId: string | undefined = (jobInfo as any).invocationId;
-        for (const galaxyOutput of job.outputs as any[]) {
-          if (!galaxyOutput?.id) continue;
-          try {
-            const ext = String(galaxyOutput.extension || galaxyOutput.file_ext || 'bin').replace(/^\./, '');
-            const fileType = classifyFileType(ext);
-            await storage.addOutput({
-              invocationId: invocationId || '',
-              stepId: step_id,
-              galaxyDatasetId: galaxyOutput.id,
-              name: galaxyOutput.name || `${step_id}_output`,
-              extension: ext,
-              size: galaxyOutput.file_size || 0,
-              fileType,
-              isVisualizable: isVisualizable(ext),
-              previewAvailable: fileType === 'table' || fileType === 'text' || fileType === 'image',
-              metadata: { source: 'galaxy_step', dataType: galaxyOutput.data_type },
-            });
-          } catch (e) {
-            console.warn(`[StepStatus] Failed to register output for step ${step_id}:`, e);
-          }
-        }
-      }
-
-      // Return registered step outputs alongside raw Galaxy outputs
-      const invocationId: string | undefined = (jobInfo as any).invocationId;
-      const registeredOutputs = invocationId
-        ? await storage.getStepOutputs(invocationId, step_id)
-        : [];
-
       res.json({
         step_id,
         job_id: jobInfo.job_id,
         state: job.state,
         outputs: job.outputs || [],
-        registered_outputs: registeredOutputs,
         started_at: jobInfo.started_at
       });
     } catch (error: any) {
@@ -1995,131 +1947,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.error || 'WorkflowCreationError',
         message: error.message || 'Failed to create workflow',
       });
-    }
-  });
-
-  /**
-   * Workflow parameter adjustment endpoint
-   * Accepts a natural-language message and current params, returns updated params via LLM
-   */
-  app.post("/api/workflow/adjust-params", authenticateToken, async (req, res) => {
-    try {
-      const { message, currentParams, workflowName } = req.body;
-      if (!message) return res.status(400).json({ error: 'message is required' });
-
-      const anthropicKey = process.env.ANTHROPIC_API_KEY;
-      if (!anthropicKey) {
-        // Fallback: return params unchanged with a note
-        return res.json({ updatedParams: currentParams || {}, explanation: 'Parameter adjustment service not available.' });
-      }
-
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: anthropicKey });
-
-      const response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
-        system: `You are a workflow parameter adjustment assistant for a bioinformatics platform.
-Given a workflow's current parameters and a user's natural-language adjustment request, return the minimal updated parameters and a brief explanation.
-Respond ONLY with valid JSON: {"updatedParams": {...}, "explanation": "one sentence"}
-Only include parameters that actually change. Preserve all other parameters from currentParams unchanged.`,
-        messages: [{
-          role: 'user',
-          content: `Workflow: ${workflowName || 'workflow'}\nCurrent parameters: ${JSON.stringify(currentParams || {})}\nUser request: ${message}`
-        }]
-      });
-
-      const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
-      let result: { updatedParams: Record<string, any>; explanation: string };
-      try {
-        result = JSON.parse(text.replace(/^```json\n?|\n?```$/g, '').trim());
-      } catch {
-        result = { updatedParams: currentParams || {}, explanation: text.slice(0, 200) || 'Parameters updated.' };
-      }
-
-      // Merge: keep existing params, apply updates on top
-      const mergedParams = { ...(currentParams || {}), ...result.updatedParams };
-      res.json({ updatedParams: mergedParams, explanation: result.explanation });
-    } catch (error: any) {
-      console.error('[AdjustParams] Error:', error.message);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * Resolve uploaded S3 files to the correct Nextflow parameter names.
-   * Reads the workflow's main.nf to detect param declarations (input, reads,
-   * movies_path, samplesheet, etc.) and maps uploaded S3 keys to them by
-   * file extension + param name heuristics.
-   */
-  app.post("/api/workflow/resolve-inputs", authenticateToken, async (req, res) => {
-    try {
-      const { workflowPath, uploadedFiles } = req.body as {
-        workflowPath?: string;
-        uploadedFiles?: Array<{ s3Key: string; originalName: string }>;
-      };
-      if (!uploadedFiles?.length) return res.json({ params: {} });
-
-      // Read workflow file to detect declared param names.
-      let nfText = "";
-      if (workflowPath) {
-        try {
-          const { readFile } = await import("fs/promises");
-          nfText = await readFile(workflowPath, "utf8");
-        } catch { /* file not readable — fall through to heuristics */ }
-      }
-
-      // Extract param names from `params.X = ...` declarations.
-      const declaredParams = new Set<string>();
-      for (const m of nfText.matchAll(/params\.(\w+)\s*=/g)) {
-        declaredParams.add(m[1].toLowerCase());
-      }
-
-      // Heuristic map: file extension → likely param names (ordered by priority).
-      const EXT_PARAM_MAP: Record<string, string[]> = {
-        fastq: ["input", "reads", "samplesheet"],
-        "fastq.gz": ["input", "reads", "samplesheet"],
-        fq: ["input", "reads"],
-        bam: ["input", "bam"],
-        cram: ["input", "cram"],
-        vcf: ["input", "vcf"],
-        mrc: ["movies_path", "input"],
-        tif: ["movies_path", "input"],
-        tiff: ["movies_path", "input"],
-        mrcs: ["movies_path", "particles"],
-        pdb: ["structure", "input"],
-        cif: ["structure", "input"],
-        smi: ["smiles_file", "input"],
-        csv: ["samplesheet", "input"],
-        tsv: ["samplesheet", "input"],
-      };
-
-      const params: Record<string, string> = {};
-
-      for (const { s3Key, originalName } of uploadedFiles) {
-        const s3Uri = `s3://${s3Key}`;   // caller passes bucket/key already joined
-        const lower = originalName.toLowerCase();
-
-        // Find matching param name: prefer declared params, fall back to heuristics.
-        let paramName: string | null = null;
-        for (const [ext, candidates] of Object.entries(EXT_PARAM_MAP)) {
-          if (lower.endsWith(`.${ext}`)) {
-            paramName = candidates.find((c) => declaredParams.has(c)) ?? candidates[0];
-            break;
-          }
-        }
-        if (!paramName) paramName = declaredParams.has("input") ? "input" : "input";
-
-        // First file wins for each param; later files could be paired reads etc.
-        if (!(paramName in params)) {
-          params[paramName] = s3Uri;
-        }
-      }
-
-      res.json({ params });
-    } catch (error: any) {
-      console.error("[ResolveInputs] Error:", error.message);
-      res.status(500).json({ error: error.message });
     }
   });
 
@@ -2459,6 +2286,46 @@ Only include parameters that actually change. Preserve all other parameters from
     sseManager.handleConnectionByInvocationId(req, res);
   });
 
+  // SSE endpoint for LangGraph pipeline task-status events.
+  // The Python backend publishes to Redis channel biomate:pipeline:{id};
+  // this endpoint relays those events to the browser.
+  app.get("/api/pipelines/:pipelineId/events", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    // Send a ready event immediately so the client knows the channel is open
+    res.write(`event: ready\ndata: {"ok":true}\n\n`);
+
+    // If Redis is available, subscribe to the pipeline channel
+    let redisSub: any = null;
+    try {
+      const { getRedisClient } = require('./redis-session');
+      const client = getRedisClient?.();
+      if (client) {
+        redisSub = client.duplicate();
+        redisSub.subscribe(`biomate:pipeline:${req.params.pipelineId}`);
+        redisSub.on("message", (_chan: string, msg: string) => {
+          res.write(`data: ${msg}\n\n`);
+        });
+      }
+    } catch (e) {
+      console.warn('[PipelineSSE] Redis not available, events will not relay:', e);
+    }
+
+    // Heartbeat every 30 s to keep connection alive through proxies
+    const heartbeat = setInterval(() => {
+      res.write(`: heartbeat\n\n`);
+    }, 30000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      redisSub?.quit?.();
+    });
+  });
+
   // Internal endpoint: Python backend POSTs here to push QC gate / phase events
   // to SSE clients.  Not authenticated — only reachable from localhost.
   app.post("/internal/sse-inject", (req: any, res: any) => {
@@ -2468,39 +2335,6 @@ Only include parameters that actually change. Preserve all other parameters from
     }
     sseManager.injectRawEvent(String(invocation_id), String(event_type), data);
     res.json({ ok: true });
-  });
-
-  // In-memory cache for QC profiles (static data, changes only on deploy)
-  let _qcProfilesCache: { data: any; expireAt: number } | null = null;
-
-  // Public QC profiles endpoint — returns named threshold profiles, no user auth required
-  app.get("/api/qc/profiles", async (_req: any, res: any) => {
-    // Return from cache if still valid (5-minute TTL)
-    if (_qcProfilesCache && Date.now() < _qcProfilesCache.expireAt) {
-      return res.json(_qcProfilesCache.data);
-    }
-    try {
-      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-      const apiKey = process.env.GALAXY_API_KEY || "";
-      // Allow up to 3 minutes on first cold call (thread-pool contention during AI calls)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 180_000);
-      let response: Response;
-      try {
-        response = await globalThis.fetch(`${galaxyUrl}/api/qc/profiles`, {
-          headers: { "x-api-key": apiKey },
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-      const data = await response.json();
-      // Cache for 5 minutes — warm for subsequent tests in the same suite run
-      _qcProfilesCache = { data, expireAt: Date.now() + 5 * 60 * 1000 };
-      return res.status(response.status).json(data);
-    } catch (err: any) {
-      return res.status(502).json({ error: "QC profiles unavailable", profiles: [], count: 0 });
-    }
   });
 
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
@@ -2782,12 +2616,7 @@ Only include parameters that actually change. Preserve all other parameters from
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
-        (
-          // Valid Nextflow path (catalog or absolute)
-          (workflowPayload?.nextflow_path && String(workflowPayload.nextflow_path).toLowerCase().endsWith('.nf')) ||
-          // Galaxy workflow with actual steps (not an empty placeholder)
-          (workflowPayload?.workflow_ga?.steps && Object.keys(workflowPayload.workflow_ga.steps).length > 0)
-        )
+        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
       const unresolvedWorkflowState = !runnableWorkflow;
@@ -2942,7 +2771,6 @@ Only include parameters that actually change. Preserve all other parameters from
         response: assistantMessage,
         suggestions,
         workflow: assistantResponse.generatedWorkflow,
-        additionalWorkflows: assistantResponse.additionalWorkflows || [],
 
         // Pre-execution validation (if workflow was generated)
         prerequisitesValidation,
@@ -3097,10 +2925,7 @@ Only include parameters that actually change. Preserve all other parameters from
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
-        (
-          (workflowPayload?.nextflow_path && String(workflowPayload.nextflow_path).toLowerCase().endsWith('.nf')) ||
-          (workflowPayload?.workflow_ga?.steps && Object.keys(workflowPayload.workflow_ga.steps).length > 0)
-        )
+        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
       const unresolvedWorkflowState = !runnableWorkflow;
@@ -3193,7 +3018,6 @@ Only include parameters that actually change. Preserve all other parameters from
         response: assistantMessage,
         suggestions,
         workflow: assistantResponse.generatedWorkflow,
-        additionalWorkflows: assistantResponse.additionalWorkflows || [],
         prerequisitesValidation,
         thinking_content: assistantResponse.thinking_content,
         thinking_level: assistantResponse.thinking_level,
@@ -3210,26 +3034,6 @@ Only include parameters that actually change. Preserve all other parameters from
         researchResponse: assistantResponse.researchResponse,
         benchmarkEvidence: assistantResponse.benchmarkEvidence,
       };
-
-      // Persist cost estimate for audit trail (fire-and-forget)
-      try {
-        const inCount = tokenCounter.countText(String(message || "")).tokens;
-        const outCount = tokenCounter.countText(String(assistantMessage || "")).tokens;
-        const pricing = tokenCounter.estimateCost([
-          { role: "user", content: String(message || "") },
-          { role: "assistant", content: String(assistantMessage || "") },
-        ]);
-        telemetryService.create("cost.chat.estimated", new Date(), {
-          userId: req.user ? String(req.user.id) : "anonymous",
-          provider: "anthropic",
-          model: galaxyAssistant?.getModelConfig?.()?.responseModel || "claude-sonnet-4-6",
-          inputTokensEstimated: inCount,
-          outputTokensEstimated: outCount,
-          estimatedCostUsd: Number((pricing.total || 0).toFixed(8)),
-          estimationMethod: "token_counter_heuristic",
-          endpoint: "chat_stream",
-        }).catch(() => {});
-      } catch { /* non-blocking */ }
 
       sendEvent("final", responsePayload);
       sendEvent("done", { ok: true });
@@ -4494,48 +4298,21 @@ Only include parameters that actually change. Preserve all other parameters from
         return res.status(400).json({ error: "Invocation is missing Galaxy identifiers" });
       }
 
-      // CryoSPARC runs store the cryosparc run_id as galaxyInvocationId.
-      // Detect by checking executionEngine on the linked ExecutionRun.
-      const executionRun = await storage.getExecutionRunByGalaxyId(invocation.galaxyInvocationId).catch(() => null);
-      const isCryoSPARCRun = executionRun?.execution?.executionEngine === 'cryosparc';
-
-      let statusUrl: string;
-      if (isCryoSPARCRun) {
-        statusUrl = `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${invocation.galaxyInvocationId}`;
-      } else {
-        statusUrl = `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${invocation.galaxyInvocationId}`;
-      }
-
-      // Proxy to Galaxy backend status endpoint
-      const response = await fetch(statusUrl, {
+      // Proxy to Galaxy backend Nextflow status endpoint
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${invocation.galaxyInvocationId}/nextflow/status`,
+        {
           method: 'GET',
           headers: {
             'x-api-key': process.env.GALAXY_API_KEY || '',
           },
-        });
+        }
+      );
 
       const data = await response.json();
       res.status(response.status).json(data);
     } catch (error: any) {
       console.error("[Invocation Nextflow] Error fetching status:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Proxy CryoSPARC run status to Galaxy backend
-  app.get("/api/cryosparc/status/:runId", async (req, res) => {
-    try {
-      const response = await fetch(
-        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${req.params.runId}`,
-        {
-          method: 'GET',
-          headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
-        }
-      );
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (error: any) {
-      console.error("[CryoSPARC] Error fetching status:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -4589,37 +4366,6 @@ Only include parameters that actually change. Preserve all other parameters from
           } catch {
             // Ignore non-existing or inaccessible artifact paths.
           }
-        }
-      };
-
-      // Register S3 output files from a completed Batch job so they appear in the
-      // output list and can be downloaded via the presigned-URL download endpoint.
-      const addS3OutputFiles = async (invocationId: string, runId: string, s3Files: any[]) => {
-        if (!Array.isArray(s3Files) || s3Files.length === 0) return;
-        const existing = await storage.getInvocationOutputs(invocationId);
-        const existingS3Keys = new Set(
-          existing.map((o: any) => String(o?.metadata?.s3Uri || "")).filter(Boolean)
-        );
-        for (const f of s3Files) {
-          if (!f?.s3_uri || existingS3Keys.has(f.s3_uri)) continue;
-          const ext = (f.extension || "").toLowerCase() || "bin";
-          const fileType = classifyFileType(ext);
-          await storage.addOutput({
-            invocationId,
-            galaxyDatasetId: "",
-            name: f.name,
-            extension: ext,
-            size: f.size || 0,
-            fileType,
-            isVisualizable: isVisualizable(ext) || fileType === "text" || fileType === "table",
-            previewAvailable: fileType === "text" || fileType === "table",
-            metadata: {
-              source: "nextflow_s3_output",
-              s3Uri: f.s3_uri,
-              runId,
-            },
-          });
-          existingS3Keys.add(f.s3_uri);
         }
       };
 
@@ -4706,10 +4452,6 @@ Only include parameters that actually change. Preserve all other parameters from
                 }
               }
 
-              // S3 outputs (from completed Batch runs) take priority — register them first.
-              if (Array.isArray(nextflowStatus.s3_output_files) && nextflowStatus.s3_output_files.length > 0) {
-                await addS3OutputFiles(invocation.id, nextflowStatus.run_id || "", nextflowStatus.s3_output_files);
-              }
               await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
               outputs = await storage.getInvocationOutputs(invocation.id);
               if (outputs.length === 0) {
@@ -4846,30 +4588,23 @@ Only include parameters that actually change. Preserve all other parameters from
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy, S3 presigned URL, or local runtime artifact.
-      const s3Uri = String((output as any)?.metadata?.s3Uri || "");
+      // Fetch file from Galaxy or local runtime artifact fallback.
+      let fileStream: any;
       const localPath = String((output as any)?.metadata?.localPath || "");
-      const runId = String((output as any)?.metadata?.runId || "");
-
       if (output.galaxyDatasetId) {
-        const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
-        res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        fileStream.pipe(res);
-      } else if (s3Uri && runId) {
-        // Redirect to a presigned S3 URL — browser downloads directly from S3.
-        const backendBase = process.env.GALAXY_API_URL || "http://localhost:8080";
-        const presignedEndpoint = `${backendBase}/api/nextflow/outputs/download?` +
-          `s3_uri=${encodeURIComponent(s3Uri)}&run_id=${encodeURIComponent(runId)}`;
-        return res.redirect(302, presignedEndpoint);
+        fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
       } else if (localPath) {
-        const fileStream = createReadStream(localPath);
-        res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
-        res.setHeader('Content-Type', 'application/octet-stream');
-        fileStream.pipe(res);
+        fileStream = createReadStream(localPath);
       } else {
         return res.status(404).json({ error: "Output has no downloadable source" });
       }
+
+      // Set appropriate headers
+      res.setHeader('Content-Disposition', `attachment; filename="${output.name}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+
+      // Pipe the stream to response
+      fileStream.pipe(res);
     } catch (error: any) {
       console.error("Error downloading output:", error);
       res.status(500).json({ error: error.message });
@@ -5495,120 +5230,6 @@ Only include parameters that actually change. Preserve all other parameters from
         });
       }
 
-      // ==================== CRYOSPARC DIRECT EXECUTION ====================
-      // CryoSPARC SPA pipeline routes to the real GPU instance, not Nextflow.
-      const isCryoSPARC = (request.workflowDefinition.nextflow_path || '').includes('cryosparc') &&
-        request.workflowDefinition.workflow_type === 'nextflow';
-
-      if (isCryoSPARC) {
-        console.log('[CryoSPARC Direct] Detected CryoSPARC SPA workflow');
-        console.log('[CryoSPARC Direct] Parameters:', request.workflowDefinition.parameters);
-
-        try {
-          // Build parameters by merging all available sources:
-          // 1. generated_parameters (array of {tool_id, parameters}) → flatten
-          // 2. inline_parameters (flat dict extracted from user message)
-          // 3. parameters (explicit flat dict)
-          const genParams: Record<string, any> = {};
-          const genParamsList = Array.isArray(request.workflowDefinition.generated_parameters)
-            ? request.workflowDefinition.generated_parameters : [];
-          for (const entry of genParamsList) {
-            if (entry?.parameters && typeof entry.parameters === 'object') {
-              Object.assign(genParams, entry.parameters);
-            }
-          }
-          const allParams = {
-            ...genParams,
-            ...(request.workflowDefinition.inline_parameters || {}),
-            ...(request.workflowDefinition.parameters || {}),
-          };
-
-          const csResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/execute`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-Key': process.env.GALAXY_API_KEY || '',
-            },
-            body: JSON.stringify({
-              parameters: allParams,
-              history_id: galaxyHistoryId,
-              user_id: (req as any).user?.id ? String((req as any).user.id) : undefined,
-            }),
-          });
-
-          if (!csResponse.ok) {
-            const errBody = await csResponse.text().catch(() => csResponse.statusText);
-            throw new Error(`CryoSPARC execution failed (${csResponse.status}): ${errBody}`);
-          }
-
-          const csData = await csResponse.json();
-          console.log('[CryoSPARC Direct] Execution result:', csData);
-
-          const backendRunId = csData.run_id || '';
-
-          await storage.updateExecutionRun(executionRun.id, {
-            execution: {
-              ...executionRun.execution,
-              galaxyInvocationId: backendRunId,
-              galaxyHistoryId: galaxyHistoryId,
-              status: csData.success ? 'running' : 'failed',
-              startedAt: new Date(),
-              executionEngine: 'cryosparc',
-              nextflowRunId: backendRunId,
-            }
-          });
-
-          await storage.createInvocation({
-            userId: req.user?.id,
-            workflowName: executionRun.workflowName,
-            workflowDefinition: request.workflowDefinition,
-            galaxyInvocationId: backendRunId,
-            galaxyHistoryId: galaxyHistoryId,
-            galaxyWorkflowId: '',
-            inputDatasets: [],
-            totalSteps: executionRun.progress.totalSteps,
-            status: csData.success ? 'ok' : 'error',
-          });
-
-          registerInvocationNotifications({
-            invocationId: backendRunId,
-            req,
-            workflowName: executionRun.workflowName,
-            workflowId: 'cryosparc-direct',
-            source: 'api/workflows/execute[cryosparc-direct]',
-          });
-
-          return res.json({
-            runId: executionRun.id,
-            galaxyInvocationId: backendRunId,
-            galaxyHistoryId: galaxyHistoryId,
-            executionEngine: 'cryosparc',
-            nextflowRunId: backendRunId,
-            status: csData.success ? 'running' : 'failed',
-            message: csData.message || `CryoSPARC SPA pipeline queued (run_id: ${backendRunId})`,
-          });
-
-        } catch (error) {
-          console.error('[CryoSPARC Direct] Execution error:', error);
-
-          if (executionRun) {
-            await storage.updateExecutionRun(executionRun.id, {
-              execution: {
-                ...executionRun.execution,
-                status: 'failed',
-                error: error instanceof Error ? error.message : String(error)
-              }
-            });
-          }
-
-          return res.status(500).json({
-            error: 'cryosparc_execution_failed',
-            message: error instanceof Error ? error.message : String(error),
-            runId: executionRun?.id
-          });
-        }
-      }
-
       // ==================== NEXTFLOW DIRECT EXECUTION ====================
       // Check if this is a DIRECT Nextflow workflow (new format from NextflowWorkflowGenerator)
       if (request.workflowDefinition.workflow_type === 'nextflow') {
@@ -5625,6 +5246,37 @@ Only include parameters that actually change. Preserve all other parameters from
             hardwareRequirements
           );
 
+          // Fetch user credentials for tools this workflow requires and inject into execute
+          const _nfCredentials: Record<string, any> = {};
+          try {
+            const _userApiKey = (req as any).user?.galaxyApiKey || process.env.GALAXY_API_KEY || '';
+            const _galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
+            const _licResp = await fetch(
+              `${_galaxyBase}/api/workflows/license-requirements?nextflow_path=${encodeURIComponent(request.workflowDefinition.nextflow_path)}`,
+              { headers: { 'X-API-Key': _userApiKey } }
+            );
+            if (_licResp.ok) {
+              const _licData = await _licResp.json().catch(() => ({ requirements: [] }));
+              for (const _req of (_licData.requirements || [])) {
+                if (_req.source !== 'none') {
+                  // Fetch actual credential value for injection into Nextflow config
+                  const _valResp = await fetch(
+                    `${_galaxyBase}/api/users/credentials/${encodeURIComponent(_req.tool_id)}/value`,
+                    { headers: { 'X-API-Key': _userApiKey } }
+                  );
+                  if (_valResp.ok) {
+                    const _valData = await _valResp.json().catch(() => null);
+                    if (_valData?.data) {
+                      _nfCredentials[_req.tool_id] = _valData.data;
+                    }
+                  }
+                }
+              }
+            }
+          } catch {
+            // Non-blocking — proceed without credentials if lookup fails
+          }
+
           const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
             method: 'POST',
             headers: {
@@ -5634,13 +5286,17 @@ Only include parameters that actually change. Preserve all other parameters from
             body: JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
-              parameters: request.workflowDefinition.parameters || {},
+              parameters: {
+                ...(request.workflowDefinition.parameters || {}),
+                ...(request.workflowDefinition.inline_parameters || {}),
+              },
               profile: request.executionConfig?.nextflow_profile || 'standard',
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
                   : undefined,
               user_id: (req as any).user?.id ? String((req as any).user.id) : undefined,
+              ...(Object.keys(_nfCredentials).length > 0 ? { credentials: _nfCredentials } : {}),
             })
           });
 
@@ -7341,6 +6997,82 @@ Only include parameters that actually change. Preserve all other parameters from
   });
 
   // ============================================================================
+  // Credential endpoints — proxy to Galaxy backend with per-user API key
+  // ============================================================================
+
+  const galaxyBackendUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+  const adminApiKey = process.env.GALAXY_API_KEY || '';
+
+  // Helper: pick the right API key (user's own key > admin key)
+  const galaxyKeyFor = (req: express.Request) =>
+    (req.user as any)?.galaxyApiKey || adminApiKey;
+
+  // GET /api/workflows/license-requirements?nextflow_path=...
+  app.get('/api/workflows/license-requirements', optionalAuth, async (req, res) => {
+    try {
+      const nextflow_path = req.query.nextflow_path as string;
+      if (!nextflow_path) return res.status(400).json({ error: 'nextflow_path required' });
+      const resp = await fetch(
+        `${galaxyBackendUrl}/api/workflows/license-requirements?nextflow_path=${encodeURIComponent(nextflow_path)}`,
+        { headers: { 'X-API-Key': galaxyKeyFor(req) } }
+      );
+      const data = await resp.json().catch(() => ({ requirements: [] }));
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      // On error return empty requirements so UI doesn't block execution
+      res.json({ requirements: [] });
+    }
+  });
+
+  // GET /api/users/credentials?tool=...
+  app.get('/api/users/credentials', authenticateToken, async (req, res) => {
+    try {
+      const tool = req.query.tool as string;
+      if (!tool) return res.status(400).json({ error: 'tool required' });
+      const resp = await fetch(
+        `${galaxyBackendUrl}/api/users/credentials?tool=${encodeURIComponent(tool)}`,
+        { headers: { 'X-API-Key': galaxyKeyFor(req) } }
+      );
+      const data = await resp.json().catch(() => ({}));
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST /api/users/credentials
+  app.post('/api/users/credentials', authenticateToken, async (req, res) => {
+    try {
+      const resp = await fetch(`${galaxyBackendUrl}/api/users/credentials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': galaxyKeyFor(req),
+        },
+        body: JSON.stringify(req.body),
+      });
+      const data = await resp.json().catch(() => ({}));
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // DELETE /api/users/credentials/:tool_id
+  app.delete('/api/users/credentials/:tool_id', authenticateToken, async (req, res) => {
+    try {
+      const resp = await fetch(
+        `${galaxyBackendUrl}/api/users/credentials/${encodeURIComponent(req.params.tool_id)}`,
+        { method: 'DELETE', headers: { 'X-API-Key': galaxyKeyFor(req) } }
+      );
+      const data = await resp.json().catch(() => ({}));
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
 
   // Error rate tracking middleware (must be last, after all routes)
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -7660,33 +7392,23 @@ function validateDatasets(datasets: any): { valid: boolean; error?: string } {
 }
 
 // Helper function to classify file type from extension
-function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' | 'structure' | 'density_map' | 'singlecell' {
+function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' {
   const ext = extension.toLowerCase();
 
   const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp'];
-  const tableExts = ['tsv', 'csv', 'tabular', 'bed', 'gtf', 'gff', 'vcf'];
+  const tableExts = ['tsv', 'csv', 'tabular', 'txt', 'bed', 'gtf', 'gff', 'vcf'];
   const interactiveExts = ['html', 'htm'];
   const textExts = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml'];
-  const structureExts = ['pdb', 'cif', 'mmcif', 'ent'];
-  const densityExts = ['mrc', 'map', 'ccp4', 'rec'];
-  const singlecellExts = ['h5ad', 'loom'];
 
   if (imageExts.includes(ext)) return 'image';
   if (tableExts.includes(ext)) return 'table';
   if (interactiveExts.includes(ext)) return 'interactive';
   if (textExts.includes(ext)) return 'text';
-  if (structureExts.includes(ext)) return 'structure';
-  if (densityExts.includes(ext)) return 'density_map';
-  if (singlecellExts.includes(ext)) return 'singlecell';
   return 'binary';
 }
 
 function isVisualizable(extension: string): boolean {
-  const visualizableExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm',
-    'pdb', 'cif', 'mmcif', 'ent',       // structure viewer
-    'mrc', 'map', 'ccp4', 'rec',         // density map viewer
-    'h5ad', 'loom',                       // single-cell viewer
-    'csv', 'tsv', 'vcf', 'bed'];          // table viewer
+  const visualizableExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm'];
   return visualizableExts.includes(extension.toLowerCase());
 }
 

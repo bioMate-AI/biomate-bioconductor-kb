@@ -14,6 +14,7 @@ import {
   Square,
   Settings2,
   CheckCircle2,
+  CheckCircle,
   Clock,
   AlertCircle,
   Loader2,
@@ -192,6 +193,8 @@ export function WorkflowArtifact({
 
   // QC Gate modal state (Gap 3)
   const [showQCGateModal, setShowQCGateModal] = useState(false)
+  // Inline QC gate review panel (replaces modal)
+  const [showQcInline, setShowQcInline] = useState(false)
   const [qcGateData, setQCGateData] = useState<{
     processName: string
     qcMetrics: Record<string, number>
@@ -232,6 +235,10 @@ export function WorkflowArtifact({
   qcGateDataRef.current = qcGateData
   // US-4.2 — pauseAtQcFailures ref updated when execution config is submitted
   const pauseAtQcRef = useRef(true)
+  // Gap 6 — progress milestone timeline
+  const [milestones, setMilestones] = useState<Array<{label: string; ts: string}>>([])
+  // Gap 3 — AI realtime status (polled every 5s while running)
+  const [aiRealtimeStatus, setAiRealtimeStatus] = useState<any>(null)
 
   // Determine if we should show the pilot suggestion banner prominently
   const showPilotBanner = pilotRunSuggested && !pilotBannerDismissed && !isRunning && pilotReasons.length > 0
@@ -333,7 +340,7 @@ export function WorkflowArtifact({
             // continue workflow
             if (onRun) void onRun(workflow, normalizedSteps)
           } else {
-            setShowQCGateModal(true)
+            setShowQcInline(true)
           }
         } catch (error) {
           console.error("[QC Gate] Failed to parse event:", error)
@@ -373,6 +380,19 @@ export function WorkflowArtifact({
         }
       })
 
+      // Gap 6 — progress_milestone → append to milestone timeline
+      es.addEventListener("progress_milestone", (event) => {
+        try {
+          const update = JSON.parse(event.data)
+          setMilestones(prev => [...prev, {
+            label: update.data?.milestone || update.data?.message || String(update.data),
+            ts: update.data?.timestamp || new Date().toISOString(),
+          }])
+        } catch (error) {
+          console.error("[Progress Milestone] Failed to parse event:", error)
+        }
+      })
+
       es.onerror = () => {
         es.close()
         sseRef.current = null
@@ -406,6 +426,20 @@ export function WorkflowArtifact({
       .then(data => { if (data) setQCReport(data) })
       .catch(() => {}) // non-critical; summary section simply won't show
   }, [isCompleted, invocationId])
+
+  // Gap 3: Poll AI realtime status every 5s while workflow is running
+  useEffect(() => {
+    if (!sseInvocationId || !isRunning) return
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/workflows/${sseInvocationId}/realtime/status`)
+        if (res.ok) setAiRealtimeStatus(await res.json())
+      } catch { /* silent — non-critical enrichment */ }
+    }
+    const id = setInterval(poll, 5000)
+    poll() // immediate first call
+    return () => clearInterval(id)
+  }, [sseInvocationId, isRunning])
 
   const toggleStepExpanded = (stepId: string) => {
     setExpandedSteps(prev => {
@@ -523,7 +557,7 @@ export function WorkflowArtifact({
         }
       }
 
-      setShowQCGateModal(false)
+      setShowQcInline(false)
       setQCGateData(null)
 
       if (onRun) {
@@ -557,7 +591,7 @@ export function WorkflowArtifact({
     if (qcGateData) {
       annotateQCStep(qcGateData.processName, qcGateData.failures, "failed")
     }
-    setShowQCGateModal(false)
+    setShowQcInline(false)
     setQCGateData(null)
   }
 
@@ -566,7 +600,7 @@ export function WorkflowArtifact({
     if (qcGateData) {
       annotateQCStep(qcGateData.processName, qcGateData.failures, "failed")
     }
-    setShowQCGateModal(false)
+    setShowQcInline(false)
     setQCGateData(null)
     if (onStop) {
       onStop()
@@ -678,8 +712,13 @@ export function WorkflowArtifact({
 
             {nextflowStatus && (
               <div className="mt-3 rounded-md border border-blue-200/60 bg-blue-50/40 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200">
+                {nextflowStatus.is_batch && (nextflowStatus.completedTasks ?? 0) === 0 && (
+                  <div className="mb-2 text-blue-600 dark:text-blue-400">
+                    Running on AWS Batch — provisioning instances (first job may take 5–8 min). You can close this panel and continue chatting.
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-3">
-                  <span>Nextflow progress: {nextflowStatus.progressPercent ?? 0}%</span>
+                  <span>Pipeline progress: {nextflowStatus.progressPercent ?? 0}%</span>
                   <span>Completed: {nextflowStatus.completedTasks ?? 0}/{nextflowStatus.totalTasks ?? 0}</span>
                   <span>Running: {nextflowStatus.runningTasks ?? 0}</span>
                   <span>Failed: {nextflowStatus.failedTasks ?? 0}</span>
@@ -707,6 +746,47 @@ export function WorkflowArtifact({
                           </div>
                         )}
                       </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gap 6 — Progress milestone timeline */}
+            {milestones.length > 0 && (
+              <div className="mt-2 space-y-1" data-testid="milestone-timeline">
+                {milestones.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />
+                    <span>{m.label}</span>
+                    <span className="ml-auto opacity-60">{new Date(m.ts).toLocaleTimeString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Gap 3 — AI realtime analysis panel */}
+            {aiRealtimeStatus?.issues?.length > 0 && (
+              <div className="mt-3 space-y-2" data-testid="ai-realtime-panel">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">AI Analysis</div>
+                {aiRealtimeStatus.issues.map((issue: any, i: number) => (
+                  <div key={i} className={`rounded-md border px-3 py-2 text-xs ${
+                    issue.severity === 'error' ? 'border-red-300 bg-red-50 dark:bg-red-950/20' :
+                    issue.severity === 'warning' ? 'border-amber-300 bg-amber-50 dark:bg-amber-950/20' :
+                    'border-border bg-muted/30'
+                  }`}>
+                    <div className="font-medium">{issue.message || issue.description}</div>
+                    {issue.suggestion && <div className="mt-1 text-muted-foreground">{issue.suggestion}</div>}
+                    {issue.auto_fixable && (
+                      <div className="mt-1 text-green-600 dark:text-green-400">Auto-fixable</div>
+                    )}
+                  </div>
+                ))}
+                {aiRealtimeStatus.autofix?.fixes_applied > 0 && (
+                  <div className="rounded-md border border-green-300 bg-green-50 dark:bg-green-950/20 px-3 py-2 text-xs">
+                    AutoFix applied {aiRealtimeStatus.autofix.fixes_applied} fix(es)
+                    {aiRealtimeStatus.restart_info?.new_invocation_id && (
+                      <span> — workflow restarted</span>
                     )}
                   </div>
                 )}
@@ -923,6 +1003,74 @@ export function WorkflowArtifact({
                   )}
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* Inline QC Gate Review (replaces full-screen modal) */}
+            {showQcInline && qcGateData && (
+              <div
+                data-testid="qc-gate-inline"
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3"
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-semibold text-sm text-amber-800 dark:text-amber-300">
+                      QC Gate — {
+                        qcGateData.processName.includes(":")
+                          ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
+                          : qcGateData.processName.replace(/_/g, " ")
+                      } — Review Required
+                    </p>
+                    {qcGateData.failures.length > 0 && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                        {typeof qcGateData.failures[0] === 'string'
+                          ? qcGateData.failures[0]
+                          : qcGateData.failures[0].message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {qcGateData.suggestions.length > 0 && (
+                  <div className="mb-2 space-y-1">
+                    {qcGateData.suggestions.map((s, i) => (
+                      <div key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                        <span>•</span>
+                        <span>
+                          {s.parameter}: {JSON.stringify(s.currentValue)} → {JSON.stringify(s.suggestedValue)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2 flex-wrap">
+                  {qcGateData.suggestions.length > 0 && (
+                    <button
+                      data-testid="qc-gate-apply"
+                      className="rounded bg-amber-600 text-white px-3 py-1.5 text-xs hover:bg-amber-700 disabled:opacity-50"
+                      onClick={() => { void handleRetryWithSuggestions() }}
+                      disabled={isApplyingSuggestions}
+                    >
+                      {isApplyingSuggestions ? "Applying…" : "Apply suggestions"}
+                    </button>
+                  )}
+                  <button
+                    data-testid="qc-gate-keep"
+                    className="rounded border border-amber-300 dark:border-amber-700 px-3 py-1.5 text-xs hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                    onClick={handleProceedAnyway}
+                  >
+                    Keep current
+                  </button>
+                  <button
+                    data-testid="qc-gate-cancel-run"
+                    className="rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-950/30"
+                    onClick={handleCancelWorkflow}
+                  >
+                    Cancel run
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Prominent Pilot Run Suggestion Banner */}
@@ -1429,21 +1577,21 @@ export function WorkflowArtifact({
         />
       )}
 
-      {/* QC Gate Modal (Gap 3) */}
-      {showQCGateModal && qcGateData && (
+      {/* QC Gate Modal (Gap 3) — kept for restoration; replaced by inline panel above */}
+      {false && showQCGateModal && qcGateData && (
         <QCGateModal
           open={showQCGateModal}
           onOpenChange={setShowQCGateModal}
-          processName={qcGateData.processName}
-          metrics={Object.entries(qcGateData.qcMetrics || {}).map(([name, value]) => {
+          processName={qcGateData!.processName}
+          metrics={Object.entries(qcGateData!.qcMetrics || {}).map(([name, value]) => {
             // Use structured failure object when available (exact metric match),
             // fall back to plain-string scan only if backend sent legacy format.
-            const structuredFailure = qcGateData.failures.find(
+            const structuredFailure = qcGateData!.failures.find(
               (f): f is { metric: string; value: number; threshold: number; operator: string; message: string } =>
                 typeof f === 'object' && (f as any).metric === name
             )
             const passed = !structuredFailure &&
-              !qcGateData.failures.some(f =>
+              !qcGateData!.failures.some(f =>
                 typeof f === 'string' && f.toLowerCase().includes(name.replace(/_/g, ' ').toLowerCase())
               )
             const threshold = structuredFailure?.threshold ?? 0
@@ -1456,15 +1604,15 @@ export function WorkflowArtifact({
               unit: name.includes('angstrom') ? 'Å' : undefined
             }
           })}
-          failures={qcGateData.failures.map(f => typeof f === 'string' ? f : f.message)}
-          suggestions={qcGateData.suggestions}
+          failures={qcGateData!.failures.map(f => typeof f === 'string' ? f : f.message)}
+          suggestions={qcGateData!.suggestions}
           onRetryWithSuggested={handleRetryWithSuggestions}
           onProceedAnyway={handleProceedAnyway}
           onCancel={handleCancelWorkflow}
           isApplying={isApplyingSuggestions}
-          retryCount={(qcRetryCount[qcGateData.processName] ?? 1) - 1}
-          previousMetrics={qcPreviousMetrics[qcGateData.processName]}
-          qcMetrics={qcGateData.qcMetrics}
+          retryCount={(qcRetryCount[qcGateData!.processName] ?? 1) - 1}
+          previousMetrics={qcPreviousMetrics[qcGateData!.processName]}
+          qcMetrics={qcGateData!.qcMetrics}
         />
       )}
     </>

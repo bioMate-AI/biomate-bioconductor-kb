@@ -368,6 +368,10 @@ class AIAssistant:
         Returns:
             Response from the appropriate handler
         """
+        # Step 0: Multi-task detection — surface clarification as plain text reply
+        if self._looks_like_multi_task(query):
+            return await self._handle_multi_task_clarification(query, context or {})
+
         # Step 1: Classify intent
         classification = self.classify_intent(query, context)
 
@@ -422,6 +426,107 @@ class AIAssistant:
             "confidence": result.get('confidence'),
             "message": result.get('message')
         }
+
+    # ------------------------------------------------------------------
+    # Multi-task detection (Phase D)
+    # ------------------------------------------------------------------
+
+    def _looks_like_multi_task(self, query: str) -> bool:
+        """
+        Quick heuristic check: does this query contain multiple distinct workflow intents?
+        If yes, route to TaskDecomposer. If no, use the fast single-task path.
+        """
+        multi_task_signals = [
+            ' then ', ' and then ', ', then ',
+            'first.*then', 'step 1', 'step 2',
+            'followed by', 'after that', 'next,',
+            'also run', 'also do', 'additionally',
+        ]
+        query_lower = query.lower()
+        signal_count = sum(1 for s in multi_task_signals if s in query_lower)
+        return signal_count >= 1
+
+    async def _handle_multi_task_clarification(self, query: str, context: dict) -> dict:
+        """
+        For multi-task queries: decompose into tasks, check what's missing,
+        and return either a clarification question OR proceed to generation.
+        Clarification surfaces as a normal text response — no special UI needed.
+        """
+        import uuid as uuid_mod
+        pipeline_id = str(uuid_mod.uuid4())
+
+        try:
+            from .task_decomposer import TaskDecomposer
+            from .types import UserRequest, IntentType
+
+            decomposer = self.task_decomposer
+            user_request = UserRequest(
+                user_id=context.get('userId', 'anon'),
+                request_text=query,
+                context=context,
+            )
+
+            # Parse intent and decompose
+            parsed_intent = decomposer.parse_intent(query)
+            tasks = decomposer.decompose_request(user_request, parsed_intent)
+
+            if not tasks:
+                return await self._handle_workflow_generation(query, context)
+
+            # Check for missing required context
+            missing = self._find_missing_context(tasks, context)
+
+            if missing:
+                questions_text = '\n'.join(f'{i+1}. {q}' for i, q in enumerate(missing))
+                clarification_message = (
+                    f"Before I prepare your {len(tasks)}-step workflow, I have a few questions:\n\n"
+                    f"{questions_text}\n\n"
+                    f"Once you answer, I'll get started right away."
+                )
+                return {
+                    'message': clarification_message,
+                    'success': True,
+                    'needs_clarification': True,
+                    'pipeline_id': pipeline_id,
+                    'pending_tasks': [
+                        {'id': t.id, 'description': t.description, 'status': 'waiting_for_input'}
+                        for t in tasks
+                    ],
+                }
+
+            # No missing context — fall back to single-task generation for now.
+            # Full parallel dispatch (LangGraph + Celery) is Phase 1 of the main plan.
+            log.info(f"[MultiTask] {len(tasks)} tasks detected, generating sequentially for now")
+            return await self._handle_workflow_generation(query, context)
+
+        except Exception as e:
+            log.warning(f"[MultiTask] Decomposition failed ({e}), falling back to single-task")
+            return await self._handle_workflow_generation(query, context)
+
+    def _find_missing_context(self, tasks: list, context: dict) -> list:
+        """Return list of clarification questions for missing required parameters."""
+        missing = []
+        ctx = context or {}
+
+        has_organism = any(
+            k in ctx for k in ('organism', 'species', 'genome', 'reference')
+        ) or any(
+            k in str(ctx.get('accumulatedFacts', ''))
+            for k in ('organism', 'species', 'homo sapiens', 'mus musculus', 'human', 'mouse')
+        )
+
+        needs_seq = any(
+            any(kw in t.description.lower() for kw in ('rna', 'seq', 'fastq', 'align', 'mapping', 'qc'))
+            for t in tasks
+        )
+
+        if needs_seq and not has_organism:
+            missing.append("What organism are you working with? (e.g., Homo sapiens, Mus musculus)")
+
+        if needs_seq and 'read_type' not in ctx and 'paired' not in str(ctx.get('accumulatedFacts', '')):
+            missing.append("Are your reads paired-end or single-end?")
+
+        return missing
 
     async def _handle_research_query(
         self,

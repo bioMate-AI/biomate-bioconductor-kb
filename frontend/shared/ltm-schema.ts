@@ -445,6 +445,27 @@ export const conversationStateFacts = pgTable("conversation_state_facts", {
 }));
 
 // ============================================================================
+// Table 12: Pending Tasks (LangGraph pipeline task tracking)
+// ============================================================================
+
+export const pendingTasks = pgTable("pending_tasks", {
+  id:               uuid("id").primaryKey().defaultRandom(),
+  userId:           uuid("user_id"),
+  sessionId:        text("session_id"),
+  parentPipelineId: uuid("parent_pipeline_id"),
+  description:      text("description").notNull(),
+  taskType:         text("task_type"),
+  status:           text("status").default("pending"),
+  dependsOn:        uuid("depends_on").array().default([]),
+  celeryTaskId:     text("celery_task_id"),
+  resultPath:       text("result_path"),
+  errorMessage:     text("error_message"),
+  createdAt:        timestamp("created_at").defaultNow(),
+  startedAt:        timestamp("started_at"),
+  completedAt:      timestamp("completed_at"),
+});
+
+// ============================================================================
 // Relations
 // ============================================================================
 
@@ -575,6 +596,9 @@ export const selectProcedureSchema = createSelectSchema(projectProcedures);
 export const insertStateFactSchema = createInsertSchema(conversationStateFacts);
 export const selectStateFactSchema = createSelectSchema(conversationStateFacts);
 
+export const insertPendingTaskSchema = createInsertSchema(pendingTasks);
+export const selectPendingTaskSchema = createSelectSchema(pendingTasks);
+
 // ============================================================================
 // Type Exports
 // ============================================================================
@@ -611,3 +635,6 @@ export type InsertProjectProcedure = typeof projectProcedures.$inferInsert;
 
 export type ConversationStateFact = typeof conversationStateFacts.$inferSelect;
 export type InsertConversationStateFact = typeof conversationStateFacts.$inferInsert;
+
+export type PendingTask = typeof pendingTasks.$inferSelect;
+export type InsertPendingTask = typeof pendingTasks.$inferInsert;

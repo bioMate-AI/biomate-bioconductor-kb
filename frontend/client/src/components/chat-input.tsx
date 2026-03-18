@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Upload, Eye, Clock } from "lucide-react"
+import { Send, Plus, X, FileText, Upload, Eye, Clock, Square } from "lucide-react"
 
 interface AttachedFile {
   id: string
@@ -21,6 +21,8 @@ interface ChatInputProps {
   pendingCount?: number
   placeholder?: string
   onFilesSelected?: (files: File[]) => void
+  isStreaming?: boolean
+  onStop?: () => void
 }
 
 export function ChatInput({
@@ -28,7 +30,9 @@ export function ChatInput({
   disabled = false,
   pendingCount = 0,
   placeholder = "Type your message here...",
-  onFilesSelected
+  onFilesSelected,
+  isStreaming = false,
+  onStop,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
@@ -309,25 +313,43 @@ export function ChatInput({
           rows={1}
         />
 
-        <Button
-          data-testid="chat-send-button"
-          onClick={handleSend}
-          disabled={!message.trim() && attachedFiles.length === 0}
-          size="icon"
-          className="h-[44px] w-[44px] flex-shrink-0 relative"
-          title={pendingCount > 0 ? `${pendingCount} message${pendingCount > 1 ? 's' : ''} queued` : undefined}
-        >
-          {pendingCount > 0 ? (
-            <>
-              <Clock className="w-4 h-4" />
+        {isStreaming ? (
+          <Button
+            data-testid="chat-stop-button"
+            onClick={onStop}
+            size="icon"
+            variant="destructive"
+            className="h-[44px] w-[44px] flex-shrink-0 relative"
+            title="Stop reply"
+          >
+            {pendingCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
                 {pendingCount}
               </span>
-            </>
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-        </Button>
+            )}
+            <Square className="w-4 h-4 fill-current" />
+          </Button>
+        ) : (
+          <Button
+            data-testid="chat-send-button"
+            onClick={handleSend}
+            disabled={!message.trim() && attachedFiles.length === 0}
+            size="icon"
+            className="h-[44px] w-[44px] flex-shrink-0 relative"
+            title={pendingCount > 0 ? `${pendingCount} message${pendingCount > 1 ? 's' : ''} queued` : undefined}
+          >
+            {pendingCount > 0 ? (
+              <>
+                <Clock className="w-4 h-4" />
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                  {pendingCount}
+                </span>
+              </>
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        )}
       </div>
     </div>
   )
