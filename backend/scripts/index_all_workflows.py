@@ -366,6 +366,76 @@ def index_galaxy_biomni_unique(conn: sqlite3.Connection) -> int:
 
 # ── Tool indexers (tools table) ───────────────────────────────────────────────
 
+def link_bioconductor_nf_wrappers(conn: sqlite3.Connection) -> Tuple[int, int]:
+    """
+    Link the 1818 Bioconductor NF wrapper files to their tools table entries
+    by populating wrapper_path.  Also inserts the ~32 packages that have an
+    NF file but no existing tools entry.
+
+    The tools table already has 2241 rich Bioconductor entries (from Bioconductor
+    web scraping with vignette steps, function lists, container info, etc.).
+    This step simply connects those rows to the .nf files on disk.
+
+    Returns (updated, inserted).
+    """
+    bioc_nf_path = BIOMNI_NF_PATH / "bioconductor"
+    if not bioc_nf_path.exists():
+        return 0, 0
+
+    cursor = conn.cursor()
+    updated = inserted = 0
+    now = datetime.now().isoformat()
+
+    for pkg_dir in sorted(bioc_nf_path.iterdir()):
+        if not pkg_dir.is_dir():
+            continue
+        main_nf = pkg_dir / "main.nf"
+        if not main_nf.exists():
+            continue
+
+        pkg = pkg_dir.name
+        tool_id = f"bioconductor/{pkg}"
+        wrapper_path = f"nextflow_nfcore/bioconductor/{pkg}/main.nf"
+
+        row = cursor.execute(
+            "SELECT id, wrapper_path FROM tools WHERE tool_id=?", (tool_id,)
+        ).fetchone()
+
+        if row:
+            if not row[1]:
+                cursor.execute(
+                    "UPDATE tools SET wrapper_path=? WHERE tool_id=?",
+                    (wrapper_path, tool_id)
+                )
+                updated += 1
+        else:
+            content = main_nf.read_text()
+            header = re.search(r'// ={10,}\n(.*?)// ={10,}', content, re.DOTALL)
+            description = f"Bioconductor R package: {pkg}"
+            if header:
+                for line in header.group(1).splitlines():
+                    line = line.lstrip("/ ").strip()
+                    if re.match(r'^[A-Z]', line) and len(line) > 20:
+                        description = line[:500]
+                        break
+            docker_m = re.search(r"'quay\.io/[^']+bioconductor-([^:]+:[^']+)'", content)
+            container = docker_m.group(0).strip("'") if docker_m else ""
+
+            cursor.execute("""
+                INSERT OR IGNORE INTO tools (
+                    tool_id, name, description, language, category,
+                    wrapper_path, container_info, availability_status,
+                    auto_discovered, discovery_date
+                ) VALUES (?, ?, ?, 'nextflow', 'Bioconductor', ?, ?, 'available', 1, ?)
+            """, (tool_id, pkg, description[:500], wrapper_path,
+                  container[:300], now))
+            if cursor.rowcount:
+                inserted += 1
+
+    conn.commit()
+    return updated, inserted
+
+
 def index_nfcore_modules_as_tools(conn: sqlite3.Connection) -> int:
     """
     nf-core individual tool modules → tools table (NOT workflows table).
@@ -488,7 +558,11 @@ def rebuild_clean(conn: sqlite3.Connection):
         _remove_wf_source(conn, src)
     # Remove nf-core module entries from tools (will re-add)
     _remove_tools_like(conn, "nfcore/%")
-    # Do NOT remove bioconductor from tools — those 2241 entries are correct and already there
+    # Clear bioconductor wrapper_paths so link_bioconductor_nf_wrappers re-populates them
+    cur = conn.cursor()
+    cur.execute("UPDATE tools SET wrapper_path='' WHERE tool_id LIKE 'bioconductor/%'")
+    conn.commit()
+    print(f"    Cleared {cur.rowcount} bioconductor wrapper_path entries (will re-link)")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -544,11 +618,15 @@ def main():
         n5 = index_nfcore_modules_as_tools(conn)
         print(f"  Added: {n5}")
 
+        print("\nPhase 7 [tools]: Link Bioconductor NF wrappers to tools table entries")
+        bioc_upd, bioc_ins = link_bioconductor_nf_wrappers(conn)
+        print(f"  wrapper_path linked: {bioc_upd}  |  new entries: {bioc_ins}")
+
         s2 = get_stats(conn)
         print(f"\nFinal:")
         print(f"  workflows: {s2['workflows']}  by source: {s2['wf_by_source']}")
         print(f"  tools:     {s2['tools']}  (nfcore={s2['tools_nfcore']}, bioconductor={s2['tools_bioconductor']})")
-        print(f"\n  workflows added: {n1+n2+n3+n4}   tools added: {n5}")
+        print(f"\n  workflows added: {n1+n2+n3+n4}   tools added: {n5}+{bioc_ins}(bioc)   bioc linked: {bioc_upd}")
         print("=" * 60)
 
     finally:

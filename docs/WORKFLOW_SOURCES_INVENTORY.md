@@ -71,13 +71,19 @@ backend/
 | `biomni_nextflow` | 268 | **85** | BioMate domain analysis workflows (Python, Docker-native) |
 | `galaxy_biomni` | 2 | **35** | Unique BioMate Galaxy workflows — **no NF equivalent yet** |
 
-### `tools` table — 12,466 total
+### `tools` table — 12,514 total
 
-| Type | Count | Description |
-|------|------:|---|
-| Galaxy ToolShed | ~10,821 | Community Galaxy tools (CLI, R, Python) |
-| nf-core modules | **1,645** | Individual tool wrappers (`star/align`, `samtools/sort`, …) |
-| Bioconductor | 2,241 | R package wrappers (DESeq2, edgeR, limma, …) |
+| Type | Count | `wrapper_path` set | Description |
+|------|------:|:---:|---|
+| Galaxy ToolShed | ~10,821 | — | Community Galaxy tools (CLI, R, Python) |
+| nf-core modules | 1,645 | ✅ all | Individual tool wrappers (`star/align`, `samtools/sort`, …) |
+| Bioconductor | 2,273 | ✅ 1,818 | R package entries; 1,818 linked to `.nf` file on disk; 455 have embedded `nextflow_process_template` in `nfcore_metadata` JSON instead |
+
+**Bioconductor NF wrapper files on disk:**
+`backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/<pkg>/main.nf` (1,818 files)
+→ linked via `tools.wrapper_path = "nextflow_nfcore/bioconductor/<pkg>/main.nf"` for 1,818 entries.
+The 455 tools entries with no `.nf` file on disk still contain an equivalent `nextflow_process_template`
+embedded in their `nfcore_metadata` JSON column, generated from the Bioconductor vignette scrape.
 
 ---
 
