@@ -2029,32 +2029,69 @@ class AIAssistant:
                         ],
                     }
 
-                # Galaxy .ga format medium-confidence match — adapt with EnhancedWorkflowGenerator
-                log.info("[UnifiedWorkflowGeneration] Medium confidence Galaxy match — adapting template")
-                user_request_obj = UserRequest(
-                    request_id=str(uuid.uuid4()),
-                    request_text=user_intent,
-                    user_id="system",
-                    timestamp=datetime.now()
+                # Galaxy .ga format medium-confidence match — compose Nextflow via NextflowComposer
+                # using best_match as a structural reference (same path as low-confidence but with
+                # a reference guide, ensuring Nextflow output instead of Galaxy .ga).
+                log.info(
+                    "[UnifiedWorkflowGeneration] Medium confidence Galaxy match — "
+                    "composing Nextflow workflow with template as structural reference"
                 )
-
-                workflow_result = self.workflow_generator.generate_workflow(user_request_obj)
-
-                if workflow_result.get('success'):
-                    workflow_data = workflow_result.get('workflow', {})
-                    workflow_steps = workflow_data.get('steps', [])
-
-                    log.info("[UnifiedWorkflowGeneration] Assigning datasets to adapted workflow...")
-                    dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
-                        workflow={'steps': workflow_steps},
-                        user_intent=user_intent
+                source = 'nextflow_composed'
+                composed = self.nextflow_composer.compose_workflow(
+                    user_intent=user_intent,
+                    reference_match=best_match,
+                    max_tools=25,
+                )
+                if composed['success']:
+                    cache_note = " (cache hit)" if composed.get("cache_hit") else ""
+                    log.info(
+                        f"[UnifiedWorkflowGeneration] Composed Nextflow{cache_note}: "
+                        f"{composed['composable_count']} NF-WRAPPER + {composed['adhoc_count']} generated"
                     )
-
-                    workflow_ga = self._build_workflow_ga_from_generated(workflow_data, dataset_assignments)
-                    datasets_assigned = True
-                    message = f"Adapted workflow template with {len(workflow_steps)} steps"
+                    validation = composed.get('validation', {})
+                    return {
+                        'success': True,
+                        'nextflow_path': composed['nextflow_path'],
+                        'workflow_name': composed['workflow_name'],
+                        'workflow_type': 'nextflow',
+                        'source': composed['source'],
+                        'cache_hit': composed.get('cache_hit', False),
+                        'confidence': int(score),
+                        'template_match_score': int(score),
+                        'needs_user_feedback': True,
+                        'feedback_prompt': (
+                            f"I used a Galaxy reference template ('{best_match.name}', score {int(score)}/12) "
+                            "as a structural guide and composed a Nextflow workflow. "
+                            "Please review the tool selection before running."
+                        ),
+                        'message': composed['message'],
+                        'workflow_ga': {
+                            'name': composed['workflow_name'],
+                            'description': user_intent,
+                            'format': 'nextflow',
+                            'nextflow_path': composed['nextflow_path'],
+                            'workflow_type': 'nextflow',
+                            'steps': {},
+                        },
+                        'datasets_assigned': False,
+                        'generated_parameters': [],
+                        'validation': {
+                            'is_valid': validation.get('is_valid', True),
+                            'warnings': validation.get('warnings', []),
+                            'issues': validation.get('issues', []),
+                            'suggestions': validation.get('suggestions', []),
+                        },
+                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
+                        'selected_trial': selected_trial,
+                        'trial_count': len(trials),
+                        'candidate_workflows': [
+                            {'name': m.name, 'domain': m.domain, 'source': m.source,
+                             'score': m.score, 'format': m.format}
+                            for m in (search_results or [])[:3]
+                        ],
+                    }
                 else:
-                    raise Exception(f"Enhanced generator failed: {workflow_result.get('error')}")
+                    raise Exception(f"NextflowComposer failed on medium-confidence Galaxy match: {composed.get('error')}")
 
             else:
                 # Low confidence / no match — compose a Nextflow workflow from tool search.

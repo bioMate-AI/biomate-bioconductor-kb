@@ -3,30 +3,31 @@ NextflowComposer — LLM-driven Nextflow DSL2 workflow generator from tool searc
 
 Used as the fallback when no high/medium confidence workflow match is found.
 
-Strategy
---------
-1. Retrieve relevant tools from UnifiedToolSearch (uses all 12 k+ tools table entries).
-2. Enrich each tool's context with:
-   - ``wrapper_path``       — path to existing .nf file (include{} ready, 3,463 tools)
-   - ``best_practice_functions`` — ordered function/step sequence with I/O typing
-   - ``scientific_context`` — primary omics, suitable analysis designs
-3. Split tools into two buckets:
-   - *Composable* (has wrapper_path): emit ``include { } from`` directives
-   - *Ad-hoc*     (no wrapper_path):  LLM generates a minimal process block
-4. LLM writes a complete DSL2 ``main.nf`` that chains the tools in biological order.
-5. Write the file to ``biomni_workflows/nextflow_generated/<slug>/main.nf``.
-6. Return the relative path so the frontend / executor can run it with Nextflow.
+Strategy (latency-optimised — single LLM call in the hot path)
+--------------------------------------------------------------
+L0  SubworkflowLibrary cache lookup          ~1 ms   (JSON read, 0 LLM calls)
+L1  Tool retrieval from tools table          ~20 ms  (SQLite FTS)
+L2  Wrapper-path validation + substitution   ~10 ms  (disk stat, no LLM)
+    - NF-WRAPPER: wrapper_path file exists on disk → include{}  (preferred)
+    - GENERATE  : no wrapper_path → LLM writes minimal process block
+    - BAD-PATH  : wrapper_path set but file missing → substitute with
+                  next-best tool of same category from retrieved list
+L3  Single LLM call: generate full DSL2 .nf with pre-validated tool list
+L4  Syntax validation + write to disk
+    Store result in SubworkflowLibrary (non-blocking, for future cache hits)
 
 Author: BioMate Team
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
 import sqlite3
 import textwrap
+import threading
 import unicodedata
 from datetime import datetime
 from pathlib import Path
@@ -41,11 +42,17 @@ DB_PATH = BACKEND_ROOT / "database" / "galaxy_ai_tools.db"
 BIOC_NF_BASE = BACKEND_ROOT / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" / "bioconductor"
 NFCORE_MOD_BASE = BACKEND_ROOT / "nf-core-modules" / "modules" / "nf-core"
 GENERATED_BASE = BACKEND_ROOT / "biomni_workflows" / "nextflow_generated"
+LIBRARY_PATH   = BACKEND_ROOT / "database" / "subworkflow_library"
 
 # Relative path prefix used in include{} directives (relative to the generated workflow dir)
 _BIOC_INCLUDE_PREFIX    = "../../../nextflow_nfcore/subworkflows/bioconductor"
 _NFCORE_INCLUDE_PREFIX  = "../../../../nf-core-modules/modules/nf-core"
 _BIOMNI_INCLUDE_PREFIX  = "../../../nextflow_nfcore/subworkflows"
+
+# Cache quality threshold: only return cached workflows with this minimum score.
+_CACHE_MIN_QUALITY = 70.0
+# Structural similarity threshold for cache hits (Jaccard on tool IDs).
+_CACHE_MIN_JACCARD = 0.75
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -129,6 +136,14 @@ class _ToolContext:
         return bool(self.wrapper_path)
 
     @property
+    def wrapper_on_disk(self) -> bool:
+        """True iff wrapper_path is set AND the file actually exists on disk."""
+        if not self.wrapper_path:
+            return False
+        wp = self.wrapper_path.lstrip("/")
+        return (BACKEND_ROOT / wp).exists()
+
+    @property
     def process_name(self) -> str:
         if self.has_nf_wrapper:
             return _include_path_for(self.wrapper_path)[0]
@@ -192,18 +207,22 @@ class NextflowComposer:
     """
     Generates runnable Nextflow DSL2 workflows from tool search results.
 
-    This replaces the Galaxy .ga fallback path for medium- and low-confidence
-    cases.  All 12 k+ tools in the ``tools`` table are searchable; those with
-    a ``wrapper_path`` become ``include{}`` directives pointing at real .nf
-    files on disk.
+    Generation pipeline (single LLM call in the hot path):
+      L0  SubworkflowLibrary cache   → instant (0 LLM calls on hit)
+      L1  Tool retrieval             → SQLite FTS
+      L2  Wrapper-path validation    → disk stat, no LLM; bad paths substituted
+      L3  LLM generates full DSL2    → one call with pre-validated tool list
+      L4  Syntax validation + write
+          Store result in library (background thread, non-blocking)
     """
 
-    MAX_TOOLS = 25  # tools retrieved from index before LLM selection
+    MAX_TOOLS = 25
 
     def __init__(self, config=None):
         self.config = config
         self._tool_search = None
         self._llm = None
+        self._library = None
 
     # ── lazy init ────────────────────────────────────────────────────────────
 
@@ -219,6 +238,155 @@ class NextflowComposer:
             from .config import DEFAULT_AI_CONFIG
             self._llm = LLMClient(self.config or DEFAULT_AI_CONFIG)
         return self._llm
+
+    def _get_library(self):
+        """Lazy-load SubworkflowLibrary (creates database/subworkflow_library/ on first use)."""
+        if self._library is None:
+            try:
+                from .subworkflow_library import SubworkflowLibrary
+                self._library = SubworkflowLibrary(LIBRARY_PATH)
+            except Exception as e:
+                log.warning(f"[NextflowComposer] SubworkflowLibrary unavailable: {e}")
+        return self._library
+
+    # ── L0: SubworkflowLibrary cache ─────────────────────────────────────────
+
+    def _cache_key(self, user_intent: str, tools: List[_ToolContext]) -> str:
+        """Deterministic cache key: hash of normalised intent + sorted top-5 tool IDs."""
+        norm_intent = re.sub(r"\s+", " ", user_intent.lower().strip())
+        top_ids = sorted(t.tool_id for t in tools[:10])
+        raw = f"{norm_intent}|{'|'.join(top_ids)}"
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def _check_cache(self, user_intent: str, tools: List[_ToolContext]) -> Optional[Dict[str, Any]]:
+        """
+        L0 cache lookup.  Returns a compose_workflow-compatible dict on hit,
+        None on miss.  Uses structural (Jaccard) matching so near-identical
+        queries reuse the same cached workflow.
+        """
+        lib = self._get_library()
+        if lib is None:
+            return None
+        try:
+            tool_ids = [t.tool_id for t in tools]
+            matches = lib.find_structural_matches(tool_ids, top_k=3)
+            for pattern, similarity in matches:
+                if similarity >= _CACHE_MIN_JACCARD and pattern.quality_score >= _CACHE_MIN_QUALITY:
+                    cached_path = BACKEND_ROOT / pattern.nextflow_code  # stores rel path in nextflow_code
+                    if cached_path.exists():
+                        log.info(
+                            f"[NextflowComposer] L0 cache HIT — similarity={similarity:.2f}, "
+                            f"quality={pattern.quality_score}, pattern={pattern.name}"
+                        )
+                        rel_path = str(cached_path.relative_to(BACKEND_ROOT))
+                        return {
+                            "success": True,
+                            "nextflow_path": rel_path,
+                            "workflow_name": pattern.description or user_intent[:80],
+                            "workflow_type": "nextflow",
+                            "source": "subworkflow_library_cache",
+                            "cache_hit": True,
+                            "cache_similarity": round(similarity, 3),
+                            "tools_used": pattern.tools,
+                            "composable_count": len([t for t in tools if t.wrapper_on_disk]),
+                            "adhoc_count": 0,
+                            "needs_user_feedback": True,
+                            "validation": {"is_valid": True, "warnings": [], "missing_includes": [], "issues": [], "suggestions": []},
+                            "message": f"Returned cached Nextflow workflow (similarity {similarity:.0%}): {pattern.name}",
+                        }
+        except Exception as e:
+            log.debug(f"[NextflowComposer] Cache lookup error (non-fatal): {e}")
+        return None
+
+    def _store_in_library_async(
+        self,
+        user_intent: str,
+        tools: List[_ToolContext],
+        rel_path: str,
+        quality_score: float,
+    ) -> None:
+        """Store a generated workflow in the SubworkflowLibrary in a background thread."""
+        def _store():
+            lib = self._get_library()
+            if lib is None:
+                return
+            try:
+                composable = [t for t in tools if t.wrapper_on_disk]
+                categories = list({t.category for t in tools if t.category})
+                lib.add_pattern(
+                    name=_slugify(user_intent),
+                    description=user_intent[:200],
+                    biological_purpose=user_intent,
+                    tools=[t.tool_id for t in tools],
+                    nextflow_code=rel_path,   # store rel path, not the full NF source
+                    quality_score=quality_score,
+                    input_types=list({o for t in tools for o in t.primary_inputs()}),
+                    output_types=[],
+                    category=categories[0] if categories else "general",
+                )
+                log.debug(f"[NextflowComposer] Stored workflow in SubworkflowLibrary: {rel_path}")
+            except Exception as e:
+                log.debug(f"[NextflowComposer] Library store error (non-fatal): {e}")
+
+        threading.Thread(target=_store, daemon=True).start()
+
+    # ── L2: Tool-plan validation + substitution ───────────────────────────────
+
+    def _validate_and_filter_tools(self, tools: List[_ToolContext]) -> List[_ToolContext]:
+        """
+        L2: Pre-generation tool validation using disk stat only (no LLM, no network).
+
+        Classification:
+          NF-WRAPPER  wrapper_path set AND file exists on disk → use include{}
+          GENERATE    no wrapper_path                          → LLM writes process block
+          BAD-PATH    wrapper_path set BUT file missing        → substitute or demote to GENERATE
+
+        Substitution rule for BAD-PATH tools:
+          Find another tool in the retrieved list with the same ``category``
+          that is either NF-WRAPPER or GENERATE.  If found, keep the substitute
+          and drop the BAD-PATH tool (avoids hallucinated include{} at generation time).
+
+        Returns the filtered/substituted tool list (preserves order; composable first).
+        """
+        good: List[_ToolContext] = []
+        bad_paths: List[_ToolContext] = []
+        substituted = 0
+
+        for t in tools:
+            if not t.wrapper_path:
+                good.append(t)   # GENERATE — fine
+            elif t.wrapper_on_disk:
+                good.append(t)   # NF-WRAPPER — verified
+            else:
+                bad_paths.append(t)  # BAD-PATH
+
+        if bad_paths:
+            good_cats = {t.category: t for t in good}
+            for bt in bad_paths:
+                if bt.category in good_cats:
+                    # A same-category tool already in good list — just drop bt
+                    log.debug(
+                        f"[NextflowComposer] L2 BAD-PATH dropped: {bt.tool_id} "
+                        f"(substitute present: {good_cats[bt.category].tool_id})"
+                    )
+                    substituted += 1
+                else:
+                    # No substitute available — demote to GENERATE (clear wrapper_path)
+                    bt.wrapper_path = ""
+                    good.append(bt)
+                    log.debug(f"[NextflowComposer] L2 BAD-PATH demoted to GENERATE: {bt.tool_id}")
+
+            log.info(
+                f"[NextflowComposer] L2 validation: {len(good)} tools OK, "
+                f"{substituted} bad-path substituted/dropped, "
+                f"{len(bad_paths) - substituted} demoted to GENERATE"
+            )
+        else:
+            log.info(f"[NextflowComposer] L2 validation: all {len(good)} tools clean")
+
+        # Sort: composable (NF-WRAPPER with verified disk path) first
+        good.sort(key=lambda t: (0 if t.wrapper_on_disk else 1))
+        return good
 
     # ── DB tool enrichment ────────────────────────────────────────────────────
 
@@ -420,33 +588,43 @@ class NextflowComposer:
     def compose_workflow(
         self,
         user_intent: str,
-        reference_match=None,          # Optional: medium-confidence WorkflowMatch for context
+        reference_match=None,
         max_tools: int = 25,
     ) -> Dict[str, Any]:
         """
         Compose a Nextflow DSL2 workflow for the given user intent.
 
+        Pipeline (single LLM call in the hot path):
+          L0  Cache check            → 0 LLM calls on hit
+          L1  Tool retrieval         → SQLite FTS
+          L2  Wrapper-path validation→ disk stat, substitutes bad paths
+          L3  LLM generates DSL2     → one call with pre-validated tools
+          L4  Syntax validation + write to disk
+              Store in library (background thread)
+
         Args:
-            user_intent:      The user's analysis request (natural language).
-            reference_match:  Optional medium-confidence workflow match to use as context.
-            max_tools:        Number of tools to retrieve from the search index.
+            user_intent:     Natural language description of the analysis goal.
+            reference_match: Optional medium-confidence WorkflowMatch for structural context.
+            max_tools:       Number of tools retrieved from the index.
 
         Returns dict with keys:
-            success         : bool
-            nextflow_path   : str  — relative path to the generated main.nf
-            workflow_name   : str
-            workflow_type   : 'nextflow'
-            source          : 'nextflow_composed'
-            tools_used      : List[str]
-            composable_count: int  — tools with existing .nf wrappers
-            adhoc_count     : int  — tools with LLM-generated process blocks
-            message         : str
-            error           : str  (only on failure)
+            success          bool
+            nextflow_path    str   relative path to generated main.nf
+            workflow_name    str
+            workflow_type    'nextflow'
+            source           'nextflow_composed' | 'subworkflow_library_cache'
+            cache_hit        bool  (True when L0 served the response)
+            tools_used       List[str]
+            composable_count int   tools with verified .nf wrappers on disk
+            adhoc_count      int   tools that needed a generated process block
+            validation       dict
+            message          str
+            error            str  (only on failure)
         """
         self.MAX_TOOLS = max_tools
         log.info(f"[NextflowComposer] Composing workflow for: {user_intent}")
 
-        # 1. Retrieve tools
+        # L1: Retrieve tools from index (always needed; also used for cache key)
         tools = self._retrieve_tools(user_intent)
         if not tools:
             return {
@@ -455,25 +633,31 @@ class NextflowComposer:
                 "message": f"Could not find relevant tools for: {user_intent}",
             }
 
-        composable = [t for t in tools if t.has_nf_wrapper]
-        adhoc = [t for t in tools if not t.has_nf_wrapper]
+        # L0: Cache check (uses the retrieved tool list as part of the key)
+        cached = self._check_cache(user_intent, tools)
+        if cached:
+            return cached
+
+        # L2: Validate wrapper paths on disk; substitute/demote bad-path tools
+        tools = self._validate_and_filter_tools(tools)
+
+        composable = [t for t in tools if t.wrapper_on_disk]
+        adhoc      = [t for t in tools if not t.wrapper_on_disk]
         log.info(
-            f"[NextflowComposer] Tool split: {len(composable)} composable "
-            f"(include{{}}), {len(adhoc)} ad-hoc (generate process)"
+            f"[NextflowComposer] Tool split after L2: {len(composable)} NF-WRAPPER "
+            f"(verified on disk), {len(adhoc)} GENERATE"
         )
 
-        # 2. Build prompt — inject reference workflow context if available
+        # L3: Build prompt with pre-validated tool list and call LLM (single call)
         prompt = self._build_prompt(user_intent, tools)
         if reference_match:
-            ref_ctx = (
-                f"\n\n## REFERENCE WORKFLOW (medium-confidence match, use as structural guide)\n"
+            prompt += (
+                f"\n\n## REFERENCE WORKFLOW (medium-confidence match — use as structural guide)\n"
                 f"Name: {reference_match.name}\n"
                 f"Description: {reference_match.description}\n"
                 f"Tools used: {reference_match.tools}\n"
             )
-            prompt = prompt + ref_ctx
 
-        # 3. LLM generates DSL2 main.nf
         try:
             nf_content = self._call_llm(prompt)
         except Exception as e:
@@ -483,20 +667,25 @@ class NextflowComposer:
         if not nf_content or len(nf_content) < 100:
             return {"success": False, "error": "LLM returned empty workflow", "message": "Empty response from LLM"}
 
-        # 4. Validate before writing (check include paths, DSL2 marker, braces)
+        # L4: Syntax validation (include paths, DSL2 marker, brace balance)
         validation = self.validate_workflow(nf_content)
         if validation["missing_includes"]:
             log.warning(
-                f"[NextflowComposer] {len(validation['missing_includes'])} include paths not found on disk — "
-                "LLM may have invented module paths. Returning with warnings."
+                f"[NextflowComposer] {len(validation['missing_includes'])} include paths "
+                "still unresolved after L2 — LLM may have invented names outside the tool list."
             )
 
-        # 5. Write to disk
+        # Write to disk
         slug = _slugify(user_intent)
         nf_file = self._write_workflow(nf_content, slug)
-
-        # 6. Build relative path (relative to BACKEND_ROOT for executor)
         rel_path = str(nf_file.relative_to(BACKEND_ROOT))
+
+        # Quality score: 100 if all includes resolve, reduced by missing count
+        n_missing = len(validation["missing_includes"])
+        quality = max(40.0, 100.0 - n_missing * 15.0)
+
+        # Store in SubworkflowLibrary in the background (non-blocking)
+        self._store_in_library_async(user_intent, tools, rel_path, quality)
 
         return {
             "success": True,
@@ -504,27 +693,24 @@ class NextflowComposer:
             "workflow_name": user_intent[:80],
             "workflow_type": "nextflow",
             "source": "nextflow_composed",
+            "cache_hit": False,
             "tools_used": [t.tool_id for t in tools],
             "composable_count": len(composable),
             "adhoc_count": len(adhoc),
             "needs_user_feedback": True,
-            # Validation results: the equivalent of Galaxy's tool-install audit,
-            # but for Nextflow: checks include{} paths resolve to real files on disk.
-            # Tool availability is handled by container images, not installation.
             "validation": {
                 "is_valid": validation["valid"],
                 "warnings": validation["warnings"],
                 "missing_includes": validation["missing_includes"],
                 "issues": [f"Missing include: {p}" for p in validation["missing_includes"]],
                 "suggestions": (
-                    ["Consider using only tools marked [NF-WRAPPER] which have verified .nf files"]
+                    ["L2 substitution active — any missing includes were hallucinated by LLM outside the tool list"]
                     if validation["missing_includes"] else []
                 ),
             },
             "message": (
-                f"Composed Nextflow workflow using {len(composable)} existing .nf modules "
-                f"and {len(adhoc)} generated process blocks"
-                + (f" — {len(validation['missing_includes'])} include paths need review"
-                   if validation["missing_includes"] else "")
+                f"Composed Nextflow workflow: {len(composable)} verified NF-WRAPPER modules, "
+                f"{len(adhoc)} generated process blocks"
+                + (f" — {n_missing} include path(s) need review" if n_missing else "")
             ),
         }
