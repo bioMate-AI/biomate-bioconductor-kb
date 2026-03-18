@@ -44,7 +44,7 @@ import { Card } from "@/components/ui/card"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown } from "lucide-react"
+import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
@@ -80,12 +80,15 @@ interface ChatMessageProps {
   onResumeWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   onSuggestionClick?: (suggestion: string, message: Message) => void
+  onAdjustViaChat?: () => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
   isLatestAssistantMessage?: boolean
   isRunAnchorFocused?: boolean
   isRunAnchorHighlighted?: boolean
+  isInPanel?: boolean
+  onOpenInPanel?: () => void
 }
 
 export function ChatMessage({
@@ -103,12 +106,15 @@ export function ChatMessage({
   onResumeWorkflow,
   onParameterChange,
   onSuggestionClick = () => {},
+  onAdjustViaChat,
   isWorkflowRunning = false,
   workflowProgress = 0,
   currentExecutionRun,
   isLatestAssistantMessage = false,
   isRunAnchorFocused = false,
   isRunAnchorHighlighted = false,
+  isInPanel = false,
+  onOpenInPanel,
 }: ChatMessageProps) {
   const isUser = message.role === "user"
   const isWorkflowMessage = !isUser && message.metadata?.type === "workflow" && !!message.metadata?.workflow
@@ -214,6 +220,11 @@ export function ChatMessage({
                         {children}
                       </a>
                     ),
+                    table: ({ children, ...props }) => (
+                      <div className="overflow-x-auto my-2 max-w-full">
+                        <table className="w-full text-xs" {...props}>{children}</table>
+                      </div>
+                    ),
                   }}
                 >
                   {addCitationLinks(message.content || '')}
@@ -273,7 +284,7 @@ export function ChatMessage({
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
-              const viewerStatus: 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
+              const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
                 executionStatus === 'completed'
                   ? 'completed'
                   : executionStatus === 'paused'
@@ -315,10 +326,46 @@ export function ChatMessage({
               );
               const effectiveBlockedReason = executionBlockedReason;
 
+              // When this workflow is open in the right panel, show a compact pill instead
+              if (isInPanel) {
+                const workflowName = message.metadata?.workflow?.name || 'Generated Workflow';
+                const effectiveStatus: string = currentExecutionRun ? viewerStatus : (message.metadata?.workflowViewerStatus || viewerStatus)
+                const statusLabel =
+                  effectiveStatus === 'running' ? 'Running' :
+                  effectiveStatus === 'completed' ? 'Completed' :
+                  effectiveStatus === 'failed' ? 'Failed' :
+                  effectiveStatus === 'paused' ? 'Paused' :
+                  effectiveStatus === 'pending_review' ? 'Awaiting Review' :
+                  'Ready';
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                    data-invocation-id={effectiveInvocationId || undefined}
+                    data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
+                    data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
+                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm"
+                  >
+                    <FlaskConical className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    <span className="font-medium truncate flex-1">{workflowName}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">{statusLabel}</span>
+                    <button
+                      className="ml-auto flex items-center gap-1 text-xs text-primary hover:text-primary/80 flex-shrink-0"
+                      onClick={onOpenInPanel}
+                      title="View workflow in panel"
+                    >
+                      <PanelRight className="h-3 w-3" />
+                      View
+                    </button>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   id={`workflow-artifact-anchor-${message.id}`}
                   data-testid={`workflow-artifact-anchor-${message.id}`}
+                  data-invocation-id={effectiveInvocationId || undefined}
                   data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
                   data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
                   className={cn(
@@ -332,15 +379,24 @@ export function ChatMessage({
                     workflowId={message.metadata?.workflow?.id}
                     executionBlockedReason={effectiveBlockedReason}
                     prereqChecklist={prereqChecklist}
+                    dataVerification={message.metadata?.prerequisitesValidation?.dataVerification}
                     autofix={currentExecutionRun?.execution?.nextflowStatus?.autofix}
                     nextflowStatus={currentExecutionRun?.execution?.nextflowStatus}
-                    status={viewerStatus}
+                    status={currentExecutionRun ? viewerStatus : (message.metadata?.workflowViewerStatus || viewerStatus)}
                     errorMessage={currentExecutionRun?.execution?.errorMessage}
                     progress={workflowProgress}
-                    onExecute={(params) =>
+                    onAdjustViaChat={onAdjustViaChat}
+                    onExecute={(params) => {
+                      const userParams = Object.fromEntries(
+                        Object.entries(params || {}).filter(([k]) => !k.startsWith('__'))
+                      );
                       onRunWorkflow?.(
                         {
                           ...message.metadata?.workflow,
+                          inline_parameters: {
+                            ...(message.metadata?.workflow?.inline_parameters || {}),
+                            ...userParams,
+                          },
                           __generationAssessment: {
                             scientificConfidence: message.metadata?.confidence,
                             needsUserFeedback: !!message.metadata?.needsUserFeedback,
@@ -356,8 +412,8 @@ export function ChatMessage({
                           __qcConfig: params?.__qcConfig || undefined,
                         },
                         message.metadata?.steps || []
-                      )
-                    }
+                      );
+                    }}
                     onParameterChange={(id, value) => onParameterChange?.(id, { value })}
                     onPause={onPauseWorkflow}
                     onResume={onResumeWorkflow}
@@ -370,6 +426,45 @@ export function ChatMessage({
               );
             })()
           )}
+
+          {/* Additional parallel workflow cards for multi-intent queries (e.g. "RNA-seq AND ATAC-seq") */}
+          {(message.metadata?.additionalWorkflows || []).map((wf: any, idx: number) => {
+            const wfData = wf?.workflow_ga || wf;
+            if (!wfData) return null;
+            return (
+              <div key={idx} className="mt-3">
+                <NextflowWorkflowViewer
+                  workflowDefinition={wfData}
+                  status="pending_review"
+                  onExecute={(params) =>
+                    onRunWorkflow?.(
+                      {
+                        ...wfData,
+                        __generationAssessment: {
+                          scientificConfidence: message.metadata?.confidence,
+                          needsUserFeedback: false,
+                          feedbackPrompt: undefined,
+                          source: wf?.source || 'chat',
+                          domainGuardBlocked: false,
+                          domainGuardReason: undefined,
+                          candidateWorkflows: [],
+                          toolInstallationSuccess: true,
+                        },
+                        __executionOverrides: params?.__executionOverrides || undefined,
+                        __qcConfig: params?.__qcConfig || undefined,
+                      },
+                      Object.values(wfData.steps || {}).map((s: any) => ({
+                        name: s.name || s.tool_id || 'Unknown step',
+                        tool_id: s.tool_id || s.tool,
+                        annotation: s.annotation || s.description,
+                      }))
+                    )
+                  }
+                  sessionId={sessionId}
+                />
+              </div>
+            );
+          })}
 
           {/* Scientific Rationale — collapsed by default, shown for generated workflows */}
           {isWorkflowMessage && message.metadata?.rationale && (
@@ -502,21 +597,7 @@ export function ChatMessage({
           </div>
         )}
         
-        {message.suggestions && message.suggestions.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {message.suggestions.map((suggestion: string, index: number) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => onSuggestionClick(suggestion, message)}
-                data-testid={`button-suggestion-${index}`}
-              >
-                {suggestion}
-              </Button>
-            ))}
-          </div>
-        )}
+        {/* Suggestion buttons hidden per UX request */}
 
         {!isUser && message.metadata?.type === "error" && (
           <div className="flex flex-wrap items-center gap-2 mt-2">

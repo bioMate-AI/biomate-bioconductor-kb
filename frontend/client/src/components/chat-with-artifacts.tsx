@@ -759,7 +759,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     const updatedAt = run.updatedAt ? new Date(run.updatedAt).getTime() : 0
     return Date.now() - updatedAt < 86400000
   }).length
-  const failedCount  = runList.filter((run) => mapRunBucket(run.execution?.status) === "failed").length
+  // Only count failures from the last 24 h — stale historical failures should not
+  // keep the status bar permanently visible.
+  const failedCount  = runList.filter((run) => {
+    if (mapRunBucket(run.execution?.status) !== "failed") return false
+    const updatedAt = run.updatedAt ? new Date(run.updatedAt).getTime() : 0
+    return Date.now() - updatedAt < 86400000
+  }).length
 
   // Format elapsed time for status bar (e.g. "4 min")
   const formatElapsed = (runId: string): string => {
