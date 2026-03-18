@@ -346,6 +346,75 @@ class NextflowComposer:
         log.info(f"[NextflowComposer] Wrote generated workflow to {nf_file}")
         return nf_file
 
+    # ── Nextflow validation ───────────────────────────────────────────────────
+
+    def validate_workflow(self, nf_content: str) -> Dict[str, Any]:
+        """
+        Validate a generated Nextflow DSL2 workflow without executing it.
+
+        Checks performed:
+        1. Has nextflow.enable.dsl = 2
+        2. Has at least one workflow{} block
+        3. All include{} paths reference files that exist on disk
+        4. No obvious syntax errors (missing braces, etc.)
+
+        For Nextflow, tool availability is handled by container images — there is
+        no equivalent of Galaxy's ToolShed install step.  What matters is that
+        the included .nf module files are present on disk.
+
+        Returns dict with: valid (bool), warnings (list), missing_includes (list)
+        """
+        warnings: List[str] = []
+        missing_includes: List[str] = []
+
+        # 1. DSL2 marker
+        if "nextflow.enable.dsl" not in nf_content:
+            warnings.append("Missing 'nextflow.enable.dsl = 2' declaration")
+
+        # 2. Must have a workflow block
+        if not re.search(r'\bworkflow\s+\w*\s*\{', nf_content):
+            warnings.append("No 'workflow { }' block found")
+
+        # 3. Resolve every include{} path
+        include_pattern = re.compile(
+            r"include\s*\{[^}]+\}\s*from\s*['\"]([^'\"]+)['\"]"
+        )
+        wf_dir = GENERATED_BASE  # approximate; exact dir not known here
+        for m in include_pattern.finditer(nf_content):
+            raw_path = m.group(1)
+            # Convert relative path to absolute (relative to the generated wf dir)
+            if raw_path.startswith("."):
+                # Paths like ../../../nextflow_nfcore/bioconductor/deseq2/main.nf
+                # are relative to the workflow directory inside nextflow_generated/
+                candidate = (GENERATED_BASE / "dummy_slug" / raw_path).resolve()
+            else:
+                candidate = BACKEND_ROOT / raw_path
+            if not candidate.exists():
+                missing_includes.append(raw_path)
+                warnings.append(f"include path not found on disk: {raw_path}")
+
+        # 4. Balanced braces (rough check)
+        open_b = nf_content.count("{")
+        close_b = nf_content.count("}")
+        if abs(open_b - close_b) > 3:
+            warnings.append(
+                f"Possible unbalanced braces: {open_b} '{{' vs {close_b} '}}'"
+            )
+
+        is_valid = len(missing_includes) == 0 and not any(
+            "No 'workflow" in w for w in warnings
+        )
+
+        log.info(
+            f"[NextflowComposer] Validation: valid={is_valid}, "
+            f"warnings={len(warnings)}, missing_includes={len(missing_includes)}"
+        )
+        return {
+            "valid": is_valid,
+            "warnings": warnings,
+            "missing_includes": missing_includes,
+        }
+
     # ── Public API ────────────────────────────────────────────────────────────
 
     def compose_workflow(
@@ -414,11 +483,19 @@ class NextflowComposer:
         if not nf_content or len(nf_content) < 100:
             return {"success": False, "error": "LLM returned empty workflow", "message": "Empty response from LLM"}
 
-        # 4. Write to disk
+        # 4. Validate before writing (check include paths, DSL2 marker, braces)
+        validation = self.validate_workflow(nf_content)
+        if validation["missing_includes"]:
+            log.warning(
+                f"[NextflowComposer] {len(validation['missing_includes'])} include paths not found on disk — "
+                "LLM may have invented module paths. Returning with warnings."
+            )
+
+        # 5. Write to disk
         slug = _slugify(user_intent)
         nf_file = self._write_workflow(nf_content, slug)
 
-        # 5. Build relative path (relative to BACKEND_ROOT for executor)
+        # 6. Build relative path (relative to BACKEND_ROOT for executor)
         rel_path = str(nf_file.relative_to(BACKEND_ROOT))
 
         return {
@@ -431,8 +508,23 @@ class NextflowComposer:
             "composable_count": len(composable),
             "adhoc_count": len(adhoc),
             "needs_user_feedback": True,
+            # Validation results: the equivalent of Galaxy's tool-install audit,
+            # but for Nextflow: checks include{} paths resolve to real files on disk.
+            # Tool availability is handled by container images, not installation.
+            "validation": {
+                "is_valid": validation["valid"],
+                "warnings": validation["warnings"],
+                "missing_includes": validation["missing_includes"],
+                "issues": [f"Missing include: {p}" for p in validation["missing_includes"]],
+                "suggestions": (
+                    ["Consider using only tools marked [NF-WRAPPER] which have verified .nf files"]
+                    if validation["missing_includes"] else []
+                ),
+            },
             "message": (
                 f"Composed Nextflow workflow using {len(composable)} existing .nf modules "
                 f"and {len(adhoc)} generated process blocks"
+                + (f" — {len(validation['missing_includes'])} include paths need review"
+                   if validation["missing_includes"] else "")
             ),
         }

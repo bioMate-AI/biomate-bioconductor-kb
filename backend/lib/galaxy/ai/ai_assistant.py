@@ -2082,6 +2082,7 @@ class AIAssistant:
                         f"{composed['composable_count']} include{{}} + "
                         f"{composed['adhoc_count']} generated processes"
                     )
+                    validation = composed.get('validation', {})
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2115,14 +2116,13 @@ class AIAssistant:
                         'datasets_assigned': False,
                         'generated_parameters': [],
                         'tools_used': composed['tools_used'],
-                        'validation': {
-                            'is_valid': True, 'issues': [], 'warnings': [
-                                'Generated workflow — please verify tool selection and step order'
-                            ], 'suggestions': []
-                        },
+                        # Nextflow validation: checks include{} paths resolve on disk.
+                        # Tool availability is handled by container images, not installation.
+                        'validation': validation,
                         'tool_installation': {
-                            'success': True, 'message': 'Nextflow containerised workflow',
-                            'failed_tools': []
+                            'success': True,
+                            'message': 'Nextflow workflow — tools provided via container images',
+                            'failed_tools': [],
                         },
                         'selected_trial': selected_trial,
                         'trial_count': len(trials),
@@ -2133,32 +2133,22 @@ class AIAssistant:
                         ],
                     }
                 else:
-                    # Final fallback: legacy Galaxy constrained generator
-                    log.warning(
-                        f"[UnifiedWorkflowGeneration] NextflowComposer failed ({composed.get('error')}), "
-                        "falling back to Galaxy generator"
+                    raise Exception(
+                        f"[UnifiedWorkflowGeneration] NextflowComposer failed: {composed.get('error', 'unknown error')}"
                     )
-                    result = self.constrained_generator.generate_workflow(
-                        user_intent=user_intent,
-                        max_tools_search=30,
-                    )
-                    if result['success']:
-                        workflow_ga = result['workflow_ga']
-                        datasets_assigned = True
-                        generated_parameters = result.get('generated_parameters', [])
-                        message = f"Generated Galaxy workflow (NF composer unavailable): {len(result['workflow_structure']['steps'])} steps"
-                        source = 'tool_constrained_galaxy_fallback'
-                    else:
-                        raise Exception(f"Both Nextflow composer and Galaxy generator failed: {result['error']}")
 
-            # Step 3: Validate and install tools for ALL paths
-            log.info("[UnifiedWorkflowGeneration] Step 3: Validating and installing tools...")
+            # Step 3: Galaxy ToolShed tool validation (Galaxy .ga fallback path only)
+            # NOTE: All Nextflow paths (high/medium confidence NF, nextflow_composed)
+            # return EARLY before this point. This step is intentionally Galaxy-only:
+            # it checks whether Galaxy ToolShed tools are installed in the local Galaxy
+            # instance. Nextflow tool availability is handled by container images.
+            log.info("[UnifiedWorkflowGeneration] Step 3: Galaxy tool validation (fallback path only)...")
             tool_install_result = self._validate_and_install_tools(workflow_ga)
 
             if not tool_install_result['success']:
-                log.warning(f"[UnifiedWorkflowGeneration] Tool installation had issues: {tool_install_result['message']}")
+                log.warning(f"[UnifiedWorkflowGeneration] Galaxy tool validation had issues: {tool_install_result['message']}")
             else:
-                log.info(f"[UnifiedWorkflowGeneration] Tool installation successful: {tool_install_result['message']}")
+                log.info(f"[UnifiedWorkflowGeneration] Galaxy tool validation successful: {tool_install_result['message']}")
 
             # Return success response
             needs_user_feedback = match_type != "high_confidence"
