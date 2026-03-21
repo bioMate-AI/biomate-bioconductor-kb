@@ -430,6 +430,16 @@ export class SessionMemoryRepository {
   }
 
   /**
+   * C3b — Update session summary without closing the session.
+   * Used when context is compressed to store a rolling summary of older turns.
+   */
+  async updateSessionSummary(sessionId: string, summary: string): Promise<void> {
+    await db.update(ltmSchema.sessions)
+      .set({ summary })
+      .where(eq(ltmSchema.sessions.id, sessionId));
+  }
+
+  /**
    * Add message to session
    */
   async addMessage(data: InsertConversationMessage): Promise<ConversationMessage> {

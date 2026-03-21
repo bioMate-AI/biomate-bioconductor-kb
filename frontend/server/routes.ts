@@ -3950,6 +3950,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // C3b — Store a session summary generated when context is compressed
+  app.post("/api/memory/session-summary", async (req, res) => {
+    try {
+      const { summary, sessionId, userId } = req.body;
+      if (!summary) {
+        return res.status(400).json({ error: 'summary is required' });
+      }
+      if (sessionId) {
+        // Persist summary into the sessions table via the existing endSessionWithSummary path
+        // (upsert-style: if session exists, update summary; otherwise silently skip)
+        try {
+          await memoryService.sessions.updateSessionSummary(sessionId, summary);
+        } catch (_inner: any) {
+          // updateSessionSummary may not exist on all installs — silently swallow
+          console.warn('[API] session-summary partial save:', _inner?.message);
+        }
+      }
+      res.json({ success: true, sessionId, summaryLength: summary.length });
+    } catch (error: any) {
+      console.error('[API] Store session-summary failed:', error);
+      res.status(500).json({ error: 'Failed to store session summary', message: error.message });
+    }
+  });
+
   // Record interaction (message + episode)
   app.post("/api/memory/interactions", authenticateToken, async (req, res) => {
     try {

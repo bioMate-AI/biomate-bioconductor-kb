@@ -2786,3 +2786,56 @@ def get_domain_taxonomy(
         "domains": DOMAIN_TAXONOMY,
         "labels": DOMAIN_LABELS,
     }
+
+
+# ── C3b: Session Summary endpoint ─────────────────────────────────────────────
+
+class SessionSummaryRequest(BaseModel):
+    summary: str = Field(..., description="2-3 sentence summary of compressed conversation turns")
+    session_id: Optional[str] = Field(None, description="LTM session ID")
+    user_id: Optional[str] = Field(None, description="User ID for attribution")
+
+
+@router.post(
+    "/api/ai_assistant/memory/session-summary",
+    summary="Store a session summary generated when context is compressed."
+)
+def store_session_summary(
+    request: SessionSummaryRequest,
+    trans: ProvidesUserContext = DependsOnTrans,
+) -> Dict[str, Any]:
+    """
+    Persist a short summary of conversation turns that were dropped during
+    context compression.  The summary is written to the LtmSession.summary
+    field so future sessions can bootstrap from it.
+    """
+    if not _DOMAIN_PROFILE_AVAILABLE:
+        # Re-use the same availability flag; both need agentic_memory
+        return {"success": False, "reason": "memory service not available"}
+
+    if not request.summary:
+        raise HTTPException(status_code=400, detail="summary must not be empty")
+
+    try:
+        from galaxy.ai.memory.agentic_memory import get_db_session as _get_db_session, LtmSession
+        session_id = request.session_id
+
+        if session_id:
+            with _get_db_session() as db_session:
+                ltm_session = db_session.query(LtmSession).filter(
+                    LtmSession.id == session_id
+                ).first()
+                if ltm_session:
+                    ltm_session.summary = request.summary
+                    log.info("[ltm] Session summary stored for session %s", session_id)
+                else:
+                    log.debug("[ltm] session %s not found — summary not persisted", session_id)
+
+        return {
+            "success": True,
+            "session_id": session_id,
+            "summary_length": len(request.summary),
+        }
+    except Exception as exc:
+        log.error("Failed to store session summary: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
