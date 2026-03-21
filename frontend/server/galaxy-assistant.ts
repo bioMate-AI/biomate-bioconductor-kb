@@ -286,12 +286,16 @@ export interface GalaxyAssistantResponse {
   // Generated workflow (if requested)
   generatedWorkflow?: any;
 
+  // Additional parallel workflows for multi-intent queries (e.g. "RNA-seq AND ATAC-seq")
+  additionalWorkflows?: any[];
+
   // Suggested follow-up questions
   suggestions: string[];
 
   // Thinking mode support
   thinking_content?: string;
   thinking_level?: 'none' | 'brief' | 'detailed';
+  truncated?: boolean;
 
   // Multi-intent results (populated when message contains multiple distinct tasks)
   subIntentResults?: SubIntentResult[];
@@ -327,6 +331,100 @@ export class GalaxyAssistant {
   /** Get current model configuration (for testing/debugging) */
   getModelConfig(): ModelConfig {
     return { ...this.modelConfig };
+  }
+
+  /**
+   * Generate a contextual clarifying question using Claude Haiku.
+   * Falls back to the staticFallback string if the LLM call fails.
+   */
+  private async _generateClarificationQuestion(
+    userMessage: string,
+    ambiguityType: string,
+    staticFallback: string
+  ): Promise<string> {
+    try {
+      const resp = await this.claude.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        system: `You are a bioinformatics expert assistant. A user has sent a query that is ambiguous for workflow selection. Generate a single concise clarifying question tailored to their SPECIFIC query. Use **bold** for key options. Keep it under 70 words. Never repeat the user's exact phrasing verbatim.
+
+Ambiguity type → what to ask about:
+- variant_type: germline (inherited disease, single patient) vs somatic (tumor mutations, matched samples)
+- rnaseq_type: bulk RNA-seq (differential expression) vs single-cell RNA-seq (cell clustering)
+- assembly_type: de novo assembly (no reference) vs reference-guided assembly
+- peak_calling_type: ChIP-seq (antibody + input control) vs ATAC-seq (transposase, no antibody)
+- chip_target: transcription factor (narrow peaks) vs histone modification (broad peaks)
+- proteomics_type: DDA (MaxQuant) vs DIA (DIA-NN / Spectronaut)
+- cryoem_type: single-particle analysis (SPA, purified protein) vs cryo-ET (tomography, in-situ)
+- cryoem_sample: globular particle (standard) vs filamentous assembly (helical reconstruction)
+- somatic_paired: matched tumor-normal vs tumor-only (panel of normals)
+- metagenomics_type: 16S amplicon (QIIME2/DADA2) vs shotgun metagenomics (Kraken2/MetaPhlAn)
+- docking_type: blind docking (DiffDock) vs site-directed docking (AutoDock Vina)`,
+        messages: [{
+          role: 'user',
+          content: `User query: "${userMessage}"\nAmbiguity type: ${ambiguityType}\nGenerate the clarifying question:`
+        }]
+      });
+      const text = resp.content[0].type === 'text' ? resp.content[0].text.trim() : '';
+      return text || staticFallback;
+    } catch {
+      return staticFallback;
+    }
+  }
+
+  /**
+   * Infer the bioinformatics domain of a query using Claude Haiku.
+   * Returns a domain string like 'cryo_em', 'rna_seq', 'variant_calling_germline', etc.
+   * Returns undefined if the domain cannot be determined.
+   */
+  private async _inferDomainWithLLM(
+    userIntent: string,
+    currentWorkflowText?: string
+  ): Promise<string | undefined> {
+    const VALID_DOMAINS = [
+      'cryo_em', 'rna_seq', 'variant_calling_germline', 'variant_calling_somatic',
+      'single_cell', 'epigenomics_chip', 'epigenomics_atac', 'proteomics',
+      'drug_discovery', 'metagenomics_16s', 'metagenomics_shotgun',
+      'methylation', 'genome_assembly', 'structural_biology',
+    ];
+    try {
+      const contextLine = currentWorkflowText
+        ? `\nActive workflow context: "${currentWorkflowText}"`
+        : '';
+      const resp = await this.claude.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 30,
+        system: `Classify the bioinformatics domain of a query. Respond with ONLY one of these exact strings (no punctuation, no explanation):
+cryo_em | rna_seq | variant_calling_germline | variant_calling_somatic | single_cell | epigenomics_chip | epigenomics_atac | proteomics | drug_discovery | metagenomics_16s | metagenomics_shotgun | methylation | genome_assembly | structural_biology | other | unknown
+
+Rules:
+- cryo_em: cryo-EM, CryoSPARC, RELION, SPA, micrograph, CTF, tomography, tilt series
+- rna_seq: RNA-seq, DESeq2, edgeR, limma, salmon, kallisto, STAR, transcriptomics (bulk, not single-cell)
+- variant_calling_germline: germline, inherited disease, rare disease, HaplotypeCaller, no tumor
+- variant_calling_somatic: somatic, tumor-normal, MuTect2, cancer mutations, matched tumor
+- single_cell: scRNA-seq, Seurat, Scanpy, 10x Genomics, cell atlas, UMAP clustering
+- epigenomics_chip: ChIP-seq, histone modification, transcription factor binding, MACS2
+- epigenomics_atac: ATAC-seq, chromatin accessibility, open chromatin
+- proteomics: mass spectrometry, DIA-NN, MaxQuant, proteome, TMT
+- drug_discovery: ADMET, docking, DiffDock, AutoDock, pharmacokinetics, NCA, SMILES, HERG, DILI
+- metagenomics_16s: 16S rRNA, amplicon, QIIME2, DADA2, OTU, taxonomic profiling
+- metagenomics_shotgun: shotgun metagenomics, Kraken2, MetaPhlAn, whole metagenome
+- methylation: bisulfite, WGBS, RRBS, DNA methylation, methylseq
+- genome_assembly: de novo assembly, SPAdes, Flye, genome sequencing assembly
+- structural_biology: AlphaFold, protein structure prediction, molecular dynamics (non-cryo-EM)
+- other: recognised bioinformatics domain not listed above
+- unknown: insufficient information`,
+        messages: [{
+          role: 'user',
+          content: `Query: "${userIntent}"${contextLine}`
+        }]
+      });
+      const domain = resp.content[0].type === 'text' ? resp.content[0].text.trim() : 'unknown';
+      if (VALID_DOMAINS.includes(domain)) return domain;
+      return undefined; // 'other' or 'unknown' → no restriction
+    } catch {
+      return undefined;
+    }
   }
 
   /** Update model configuration at runtime */
@@ -414,6 +512,88 @@ export class GalaxyAssistant {
     let researchResponse: any = undefined;
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
+
+    // If the intent is ambiguous, return a clarifying question before generating
+    const ambiguity = (intent as any).workflowAmbiguity;
+    if (ambiguity && actions.needsWorkflowGeneration) {
+      // Static fallback questions (used if Haiku call fails)
+      const CLARIFICATION_FALLBACKS: Record<string, string> = {
+        variant_type:
+          "To generate the right workflow: is this **germline** variant calling " +
+          "(inherited variants, single sample) or **somatic** variant calling " +
+          "(tumor mutations — requires matched tumor + normal BAM)?",
+        assembly_type:
+          "For genome assembly: is this **de novo assembly** (no reference, e.g. SPAdes/Flye) " +
+          "or **reference-guided assembly** (mapping reads to an existing reference)?",
+        rnaseq_type:
+          "To select the right pipeline: is this **bulk RNA-seq** (differential expression, e.g. DESeq2) " +
+          "or **single-cell RNA-seq** (cell population profiling, e.g. Seurat/Scanpy)?",
+        scrna_type:
+          "For single-cell analysis: is this a **perturbation screen** (CRISPR KO library) " +
+          "or a standard **cell atlas / clustering** analysis?",
+        peak_calling_type:
+          "For chromatin analysis: is this **ChIP-seq** (antibody + input control) or " +
+          "**ATAC-seq** (transposase-accessible chromatin — no antibody needed)?",
+        chip_target:
+          "For ChIP-seq: are you profiling a **transcription factor** (narrow peaks) " +
+          "or a **histone modification** (broad peaks, e.g. H3K27me3)?",
+        rnaseq_focus:
+          "For RNA analysis: is this **mRNA / differential expression** (bulk RNA-seq, DESeq2/edgeR) " +
+          "or **small RNA / miRNA** (miRDeep2 — different library prep and references)?",
+        flow_cytometry_type:
+          "For flow cytometry: is the goal **immunophenotyping** (gating cell populations), " +
+          "**cell sorting**, or **unsupervised clustering** (e.g. flowSOM)?",
+        proteomics_type:
+          "For proteomics: is this **DDA** (data-dependent acquisition, e.g. MaxQuant) or " +
+          "**DIA** (data-independent acquisition, e.g. DIA-NN / Spectronaut)?",
+        cryoem_type:
+          "For cryo-EM: is this **single-particle analysis (SPA)** (purified protein → 3D reconstruction) " +
+          "or **cryo-ET** (tomography — in-situ structures inside cells)?",
+        cryoem_sample:
+          "For cryo-EM SPA: is your sample a **globular particle** (standard CryoSPARC/RELION pipeline) " +
+          "or a **filamentous assembly** (helical reconstruction needed)?",
+        somatic_paired:
+          "For somatic variant calling: do you have a **matched normal sample** " +
+          "(tumor + normal BAM) or is this **tumor-only** calling (panel of normals)?",
+        metagenomics_type:
+          "For microbiome analysis: is this **16S amplicon sequencing** (QIIME2/DADA2) " +
+          "or **shotgun metagenomics** (Kraken2/MetaPhlAn)?",
+        docking_type:
+          "For molecular docking: is this **blind docking** (binding site unknown, DiffDock) " +
+          "or **site-directed docking** (known binding pocket, AutoDock Vina)?",
+      };
+      const fallback = CLARIFICATION_FALLBACKS[ambiguity];
+      // Generate a contextual question with Haiku (falls back to static string on failure)
+      const question = fallback
+        ? await this._generateClarificationQuestion(message, ambiguity, fallback)
+        : undefined;
+      if (question) {
+        log(`Step 4: Returning clarification question for ambiguity="${ambiguity}"`);
+        // Return early — workflow generation deferred until user clarifies
+        return {
+          message: question,
+          intentType: intent.type,
+          intentConfidence: intent.confidence,
+          recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+          recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+          workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0,
+            reasoning: `Ambiguity "${ambiguity}" requires clarification before workflow generation` },
+          generatedWorkflow: null,
+          researchResponse: undefined,
+          benchmarkEvidence: undefined,
+          truncated: false,
+          suggestions: [],
+          sources: {
+            toolSearchUsed: false,
+            datasetRAGUsed: false,
+            workflowGenerated: false,
+            thinkingUsed: false,
+            researchAgentUsed: false,
+            benchmarkAgentUsed: false,
+          },
+        };
+      }
+    }
 
     // Workflow generation / modification
     if (actions.needsWorkflowGeneration || actions.needsWorkflowModification) {
@@ -621,11 +801,32 @@ export class GalaxyAssistant {
     );
     log(`Multi-intent Steps 4-5 complete: ${subIntentResults.length} results`);
 
-    // Collect workflow and research/benchmark results
-    const workflowResult = subIntentResults.find(r => r.generatedWorkflow);
+    // Collect workflow and research/benchmark results.
+    // Prefer sub-intents that returned a *runnable* workflow (valid .nf path or non-empty steps)
+    // over ones that returned a junk galaxy_ga placeholder with empty steps.
+    const isRunnableWf = (wf: any) => !!(
+      wf?.success && !wf?.error && (
+        (wf?.nextflow_path && String(wf.nextflow_path).toLowerCase().endsWith('.nf')) ||
+        (wf?.workflow_ga?.steps && Object.keys(wf.workflow_ga.steps).length > 0)
+      )
+    );
+    const workflowResult =
+      subIntentResults.find(r => isRunnableWf(r.generatedWorkflow)) ??
+      subIntentResults.find(r => r.generatedWorkflow);
     const researchResult = subIntentResults.find(r => r.researchResponse);
     const benchmarkResult = subIntentResults.find(r => r.benchmarkEvidence);
     const workflowGenerated = !!workflowResult?.generatedWorkflow;
+
+    // Collect all ADDITIONAL runnable workflows (unique by nextflow_path or workflow_name)
+    const primaryWfPath = workflowResult?.generatedWorkflow?.nextflow_path;
+    const additionalWorkflows = subIntentResults
+      .filter(r => r !== workflowResult && isRunnableWf(r.generatedWorkflow))
+      .filter((r, i, arr) => {
+        // deduplicate by path
+        const p = r.generatedWorkflow?.nextflow_path;
+        return p !== primaryWfPath && arr.findIndex(x => x.generatedWorkflow?.nextflow_path === p) === i;
+      })
+      .map(r => r.generatedWorkflow);
 
     // Step 6: Generate synthesized response
     log('Multi-intent Step 6: Generating synthesized response');
@@ -689,6 +890,7 @@ export class GalaxyAssistant {
         reasoning: `Multi-intent processing: ${decomposition.intents.map(i => i.type).join(', ')}`,
       },
       generatedWorkflow: workflowResult?.generatedWorkflow || null,
+      additionalWorkflows: additionalWorkflows.length > 0 ? additionalWorkflows : undefined,
       researchResponse: researchResult?.researchResponse,
       benchmarkEvidence: benchmarkResult?.benchmarkEvidence,
       subIntentResults,
@@ -741,8 +943,15 @@ export class GalaxyAssistant {
           recommendedTools
         );
         if (workflowSuggestion.shouldGenerate && workflowSuggestion.confidence > 0.7) {
+          // When this sub-intent is part of a multi-intent query, use the original full message
+          // as the workflow intent so domain preference (e.g. drug/docking tokens) is preserved.
+          // This prevents e.g. a "predict structure" sub-intent from losing the "docking/drug"
+          // context that the full query carries, which would otherwise pick a microbiology tool.
+          const effectiveIntent = (originalMessage && originalMessage !== intent.subQuery)
+            ? originalMessage
+            : workflowSuggestion.userIntent;
           const workflow = await this.generateWorkflow(
-            workflowSuggestion.userIntent,
+            effectiveIntent,
             recommendedDatasets.map(d => d.dataset),
             intent.inlineParameters,
             context
@@ -891,6 +1100,81 @@ ${(() => {
   const lines = context.accumulatedFacts.map(f => `- [id=${f.id}] ${f.category}: "${f.value}"`);
   return '\n## Existing Facts from Prior Turns\n' + lines.join('\n') + '\n';
 })()}
+## Ambiguity Detection
+
+GENERAL RULE: When a workflow request could map to two or more pipelines with fundamentally
+different inputs, tools, or scientific purposes — and the user has not provided enough context
+to distinguish them — return "workflowAmbiguity" with the appropriate type. DO NOT guess.
+Return null only when the user's message already contains enough specificity.
+
+Known fork points (use the exact type string listed):
+
+GENOMICS
+- "variant_type": "variant calling" / "mutation analysis" / "SNP detection" without
+  specifying "germline" (inherited, single sample → GATK HaplotypeCaller) vs
+  "somatic" (tumor mutations, tumor+normal BAMs → GATK Mutect2)
+- "assembly_type": "genome assembly" / "de novo assembly" without specifying
+  "de novo" (no reference, e.g. SPAdes/Flye) vs "reference-guided" (e.g. GATK or BWA + polishing)
+
+RNA-SEQ
+- "rnaseq_type": "RNA-seq" / "transcriptomics" without specifying
+  "bulk RNA-seq" (differential expression, DESeq2/edgeR) vs
+  "single-cell RNA-seq" (cell clustering, Seurat/Scanpy)
+- "scrna_type": single-cell RNA-seq without specifying
+  "standard atlas/clustering" vs "perturbation screen" (CRISPR KO library, mixscape)
+
+EPIGENOMICS
+- "peak_calling_type": "peak calling" / "chromatin analysis" / "open chromatin" without
+  specifying the assay — "ChIP-seq" (requires IP sample + input control, profiles specific
+  proteins) vs "ATAC-seq" (transposase-based, no antibody, profiles accessible regions)
+- "chip_target": "ChIP-seq" confirmed but target not specified:
+  "transcription factor" (sharp peaks, MACS2 narrow) vs
+  "histone modification" (broad peaks, e.g. H3K27me3, H3K4me1)
+
+PROTEOMICS
+- "proteomics_type": "proteomics" / "mass spectrometry" without specifying
+  "DDA" (data-dependent acquisition, MaxQuant) vs "DIA" (data-independent, DIA-NN)
+
+STRUCTURAL BIOLOGY
+- "cryoem_type": "cryo-EM" / "electron microscopy" without specifying
+  "single-particle analysis (SPA)" (isolated protein) vs
+  "cryo-ET" (tomography, in-situ structures in cells)
+- "cryoem_sample": cryo-EM SPA without specifying whether the sample is
+  "globular particle" (standard SPA — CryoSPARC / RELION standard pipeline) vs
+  "filamentous assembly" (actin, amyloid, microtubule, viral tube — requires
+   helical reconstruction with rise/twist symmetry parameters)
+  Only ask if the user mentioned a protein type that could be either.
+
+GENOMICS (somatic sub-type)
+- "somatic_paired": somatic variant calling requested but no indication whether
+  "paired tumor+normal" (matched normal eliminates germline background, higher specificity) vs
+  "tumor-only" (no matched normal, uses panel of normals — higher false-positive rate)
+
+RNA-SEQ (sub-type)
+- "rnaseq_focus": "RNA-seq" / "transcriptomics" but unclear if the goal is
+  "mRNA / differential expression" (standard bulk pipeline, DESeq2/edgeR) vs
+  "miRNA / small RNA" (miRDeep2/miRBase, completely different tools and reference databases)
+  Only ask if the user mentioned "small RNA", "non-coding", "miRNA", or "regulatory RNA".
+
+CELL BIOLOGY
+- "flow_cytometry_type": "flow cytometry" / "FACS analysis" / "cell populations" without
+  specifying the goal:
+  "immunophenotyping / gating" (population statistics on cell subsets, % T/B cells) vs
+  "cell sorting" (physical enrichment of cell fractions) vs
+  "unsupervised clustering" (dimensionality reduction, flowSOM/flowMeans — no predefined gates)
+
+METAGENOMICS
+- "metagenomics_type": "metagenomics" / "microbiome" without specifying
+  "16S amplicon" (amplicon sequencing, QIIME2/DADA2) vs
+  "shotgun metagenomics" (whole-metagenome sequencing, Kraken2/MetaPhlAn)
+
+DRUG DISCOVERY
+- "docking_type": "molecular docking" without specifying
+  "blind docking" (no binding site known, DiffDock) vs
+  "site-directed docking" (known binding site, AutoDock Vina)
+
+Return null if the user already specifies enough to unambiguously select one pipeline.
+
 ## Response Format
 
 For SINGLE-intent messages (the common case), respond with a single JSON object:
@@ -913,7 +1197,8 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "facts": [
     {"category": "sequence", "value": "ATGCGATCG", "confidence": 1.0},
     {"category": "analysis_goal", "value": "reverse complement", "confidence": 0.95}
-  ]
+  ],
+  "workflowAmbiguity": null
 }
 
 For MULTI-intent messages, respond with an "intents" array:
@@ -1162,7 +1447,8 @@ For MULTI-intent messages, respond with an "intents" array:
         console.log('[GalaxyAssistant] Tool search query:', query);
 
         // Search Galaxy tool index
-        toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 100);
+        // limit=20 for performance — limit=100 triggers a Galaxy DB bottleneck (~3 min)
+        toolSearchResponse = await this.galaxyAPI.searchTools(query, undefined, 20);
 
         console.log('[GalaxyAssistant] Raw Galaxy API response:', {
           count: toolSearchResponse.count,
@@ -1440,67 +1726,24 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     inlineParameters?: Record<string, string>,
     context?: ChatContext
   ): Promise<any> {
-    const inferDomainHint = (): string | undefined => {
-      // Domain classifier: returns 'cryo_em' | 'rna_seq' | 'other' | undefined
-      // 'other' means a recognised non-restricted domain (pharmacology, single-cell, etc.)
-      // undefined means genuinely ambiguous — caller treats as generic (no restriction)
-      const classifyText = (text: string): 'cryo_em' | 'rna_seq' | 'other' | undefined => {
-        const t = text.toLowerCase();
-        if (['cryo-em','cryo em','cryoem','cryosparc','single-particle','micrograph',
-             'particle picking','ctf estimation','3d refinement','tilt series'].some(kw => t.includes(kw)))
-          return 'cryo_em';
-        if (['rna-seq','rnaseq','differential expression','deseq2','edger','limma',
-             'salmon','kallisto','star aligner','transcript quantif','gene expression'].some(kw => t.includes(kw))
-            || /\bfastq\b/.test(t))
-          return 'rna_seq';
-        // Recognised domains that should NOT be restricted — return 'other' so callers
-        // know the topic changed and should not inherit a prior cryo_em/rna_seq hint.
-        if (['admet','herg','dili','docking','pharmacokinetic','nca','pknca','qsar',
-             'single-cell','scrna','scrnaseq','cellranger','seurat','scanpy','umap',
-             'variant calling','gatk','somatic','tumor-normal','whole exome',
-             'proteomics','mass spec','dia-nn','maxquant',
-             'methylation','bisulfite','metagenom','16s','microbiome',
-             'chip-seq','atacseq','epigenome',
-             'alphafold','docking','ligand','scaffold hopping'].some(kw => t.includes(kw)))
-          return 'other';
-        return undefined;
-      };
+    // Build context text for domain inference (active workflow + recent turns)
+    const currentWorkflowText = String(
+      context?.currentWorkflow?.workflowDefinition?.name ||
+        context?.currentWorkflow?.workflowDefinition?.nextflow_path ||
+        context?.currentWorkflow?.name ||
+        context?.currentWorkflow?.nextflow_path ||
+        ''
+    );
+    const recentContext = (context?.previousMessages || [])
+      .slice(-2)
+      .map((m) => String(m.content || ''))
+      .join(' ');
+    const fullContextForDomain = [userIntent, currentWorkflowText, recentContext]
+      .filter(Boolean)
+      .join(' | ');
 
-      // Level 1 — current message (highest priority, always wins)
-      const currentDomain = classifyText(userIntent);
-      if (currentDomain === 'cryo_em') return 'cryo_em';
-      if (currentDomain === 'rna_seq') return 'rna_seq';
-      if (currentDomain === 'other') return undefined; // topic is something else, no restriction
-
-      // Level 2 — currently active workflow in context
-      const currentWorkflowText = String(
-        context?.currentWorkflow?.workflowDefinition?.name ||
-          context?.currentWorkflow?.workflowDefinition?.nextflow_path ||
-          context?.currentWorkflow?.name ||
-          context?.currentWorkflow?.nextflow_path ||
-          ''
-      );
-      const workflowDomain = classifyText(currentWorkflowText);
-      if (workflowDomain === 'cryo_em') return 'cryo_em';
-      if (workflowDomain === 'rna_seq') return 'rna_seq';
-      if (workflowDomain === 'other') return undefined;
-
-      // Level 3 — last 2 turns of the CURRENT session only (not full history)
-      // This handles continuation messages ("add a step", "what's next?") without
-      // carrying over topics from previous unrelated sessions.
-      const recentTurns = (context?.previousMessages || []).slice(-2)
-        .map((m) => String(m.content || ''));
-      for (const turn of recentTurns) {
-        const turnDomain = classifyText(turn);
-        if (turnDomain === 'cryo_em') return 'cryo_em';
-        if (turnDomain === 'rna_seq') return 'rna_seq';
-        if (turnDomain === 'other') return undefined; // topic changed, no restriction
-      }
-
-      return undefined;
-    };
-
-    const domainHint = inferDomainHint();
+    // LLM-based domain classification (Claude Haiku, cached per query)
+    const domainHint = await this._inferDomainWithLLM(userIntent, currentWorkflowText || recentContext || undefined);
     const mergedInlineParameters = {
       ...(inlineParameters || {}),
       ...(domainHint ? { domain_hint: domainHint } : {}),
@@ -1603,14 +1846,17 @@ IMPORTANT RULES:
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
 - If no workflow but tools were found, explain which tool to use and suggest creating a workflow
 - Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?")
+- When the user requests a workflow but has NOT mentioned any dataset (no file path, S3 URI, SRA/GSE/EMBL/PXD accession, or specific data file), ask what data they have and its format/location BEFORE generating the workflow — do NOT generate a workflow with empty input fields. Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it without requiring data.
+- When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". Use the galaxy_dataset_id values as the workflow input parameters (e.g. input_bam, reads, input_vcf). Do NOT ask the user for data again — proceed directly to workflow generation using those IDs.
+- When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development failures, include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions` : ''}
 
 Style guide:
 - Be concise and practical
-- Recommend specific tools and datasets
-- Explain workflow steps clearly
-- Highlight key parameters and considerations
+- When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
+- Explain workflow steps and expected outputs clearly
+- Do NOT include a "Next Steps After This Workflow" section — suggest follow-up steps only after the user confirms execution is complete
 ${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases", "Decision gates", "Required inputs", and "Next step"` : ''}
 
 Current context:
@@ -1629,7 +1875,7 @@ ${workflowGenerationFailed ? '- Workflow generation attempt failed and needs col
 
     const userPrompt = `User: ${message}
 
-${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} (${t.tool.tool_id}) - ${t.reasoning}`).join('\n')}` : ''}
+${tools.length > 0 ? `\nRelevant tools:\n${tools.map((t, i) => `${i + 1}. ${t.tool.name} - ${t.reasoning}`).join('\n')}` : ''}
 
 ${datasets.length > 0 ? `\nRelevant datasets:\n${datasets.map((d, i) => `${i + 1}. ${d.dataset.name} - ${d.reasoning}`).join('\n')}` : ''}
 
@@ -1649,12 +1895,23 @@ ${isDrugDevelopmentQuery && !isResearchIntent ? `
 
     try {
       // Convert context messages to Claude format (trim to recent turns for latency)
-      const previousMessages = (context.previousMessages || [])
-        .slice(-6)
+      const allPreviousMessages = context.previousMessages || [];
+      const CONTEXT_WINDOW = 6;
+      const compressionTriggered = allPreviousMessages.length > CONTEXT_WINDOW;
+      const previousMessages = allPreviousMessages
+        .slice(-CONTEXT_WINDOW)
         .map((msg) => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       }));
+
+      // C3 — When context is compressed, generate and store a session summary (fire-and-forget)
+      if (compressionTriggered && (context.sessionId || context.userId)) {
+        const compressedMessages = allPreviousMessages.slice(0, -CONTEXT_WINDOW);
+        this._triggerSessionSummary(compressedMessages, context.userId, context.sessionId).catch(
+          (err) => console.warn('[GalaxyAssistant] Session summary failed (non-fatal):', err)
+        );
+      }
 
       // Log what we're sending to Claude
       const apiStartTime = Date.now();
@@ -1884,5 +2141,54 @@ ${isDrugDevelopmentQuery && !isResearchIntent ? `
     }
 
     return suggestions.slice(0, 4);
+  }
+
+  /**
+   * C3 — When context is compressed (> CONTEXT_WINDOW messages), generate a 2-3 sentence
+   * summary of the dropped messages using Claude Haiku and store it via the session-summary API.
+   * This is always called fire-and-forget; errors are caught by the caller.
+   */
+  private async _triggerSessionSummary(
+    compressedMessages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    userId?: number,
+    sessionId?: string,
+  ): Promise<void> {
+    if (!compressedMessages.length) return;
+
+    const historyText = compressedMessages
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join('\n')
+      .slice(0, 4000); // Keep prompt compact for Haiku
+
+    const summaryResp = await this.claude.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 256,
+      messages: [
+        {
+          role: 'user',
+          content:
+            `Summarize the following conversation in 2-3 sentences, focusing on what the user was trying to accomplish and any decisions made:\n\n${historyText}`,
+        },
+      ],
+    });
+
+    const summary =
+      summaryResp.content[0]?.type === 'text' ? summaryResp.content[0].text.trim() : '';
+
+    if (!summary) return;
+
+    // POST to /api/memory/session-summary (non-blocking; this server calls Galaxy backend)
+    const body = JSON.stringify({ summary, sessionId, userId });
+    await fetch('http://localhost:8080/api/memory/session-summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    }).catch((err) => {
+      console.warn('[GalaxyAssistant] session-summary POST failed:', err.message);
+    });
+
+    console.log(
+      `[GalaxyAssistant] Session summary stored for session=${sessionId}, compressed ${compressedMessages.length} messages`,
+    );
   }
 }
