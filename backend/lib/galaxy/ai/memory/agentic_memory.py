@@ -818,6 +818,119 @@ class AgenticMemoryService:
             lessons_learned=reflection.get("lessons_learned") if reflection else None,
         )
 
+    # ── Domain Profile ────────────────────────────────────────────────────────
+
+    _DOMAIN_PROFILE_KEY = "domain_profile"
+
+    def update_domain_profile(self, user_id: str, domains: List[str], topics: List[str]) -> Dict[str, Any]:
+        """Store user research domain profile in UserPreference table."""
+        profile_value: Dict[str, Any] = {"domains": domains, "topics": topics}
+        return self.users.record_preference({
+            "user_id": user_id,
+            "preference_type": "domain_profile",
+            "preference_key": self._DOMAIN_PROFILE_KEY,
+            "preference_value": profile_value,
+            "learned_from": "user_explicit",
+            "confidence": 1.0,
+        })
+
+    def get_domain_profile(self, user_id: str) -> Dict[str, Any]:
+        """Get user domain profile. Returns {domains: [], topics: []} if not set."""
+        prefs = self.users.get_user_preferences(
+            user_id=user_id,
+            preference_type="domain_profile",
+        )
+        for pref in prefs:
+            if pref.get("preference_key") == self._DOMAIN_PROFILE_KEY:
+                value = pref.get("preference_value") or {}
+                return {
+                    "domains": value.get("domains", []),
+                    "topics": value.get("topics", []),
+                }
+        return {"domains": [], "topics": []}
+
+    # ── LTM Activation: Correction Retrieval ──────────────────────────────────
+
+    def get_recent_corrections(self, user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Fetch recent corrections this user made (tool/workflow choices they overrode).
+
+        Returns list of {original_suggestion, user_correction, tool_id, timestamp}.
+        """
+        with get_db_session() as session:
+            corrections = session.query(CorrectionLog).filter(
+                CorrectionLog.user_id == user_id
+            ).order_by(CorrectionLog.created_at.desc()).limit(limit).all()
+
+            result = []
+            for c in corrections:
+                suggested = c.suggested_approach or {}
+                corrected = c.corrected_approach or {}
+                # Extract human-readable labels from JSON blobs
+                original = (
+                    suggested.get("tool_id")
+                    or suggested.get("workflow")
+                    or suggested.get("name")
+                    or str(suggested)
+                )
+                correction = (
+                    corrected.get("tool_id")
+                    or corrected.get("workflow")
+                    or corrected.get("name")
+                    or str(corrected)
+                )
+                result.append({
+                    "original_suggestion": original,
+                    "user_correction": correction,
+                    "tool_id": suggested.get("tool_id") or corrected.get("tool_id"),
+                    "timestamp": c.created_at.isoformat() if c.created_at else None,
+                })
+            return result
+
+    # ── LTM Activation: Outcome Recording ─────────────────────────────────────
+
+    def record_workflow_outcome(
+        self,
+        user_id: str,
+        session_id: str,
+        query: str,
+        workflow_id: str,
+        outcome: str,
+        run_duration_s: Optional[int] = None,
+        autofix_count: int = 0,
+        error_type: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Record a workflow execution outcome for learning.
+
+        Delegates to record_episode() with the right fields mapped.
+        `outcome` should be 'success'/'succeeded' or 'failed'/'error'.
+        """
+        success = outcome in ("success", "succeeded", "completed")
+        tools_entry = [{"tool_id": workflow_id, "autofix_count": autofix_count}] if workflow_id else None
+        parameters: Optional[Dict[str, Any]] = (
+            {"run_duration_s": run_duration_s} if run_duration_s is not None else None
+        )
+        episode_data: Dict[str, Any] = {
+            "project_id": None,
+            "session_id": session_id,
+            "user_query": query or workflow_id or "workflow execution",
+            "assistant_response": f"Workflow {workflow_id} finished with outcome: {outcome}",
+            "user_intent": "workflow_execution",
+            "tools_used": tools_entry,
+            "workflow_generated": True,
+            "outcome_success": success,
+            "error_occurred": not success,
+            "error_type": error_type,
+            "parameters_set": parameters,
+            "importance_score": 0.6 if success else 0.8,
+        }
+        try:
+            return self.episodes.record_episode(episode_data)
+        except Exception as exc:
+            log.warning("[ltm] record_workflow_outcome episode insert failed: %s", exc)
+            return {}
+
 
 # Singleton instance
 agentic_memory = AgenticMemoryService()

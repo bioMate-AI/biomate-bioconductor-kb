@@ -25,7 +25,7 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher, get_close_matches
 
 log = logging.getLogger(__name__)
 
@@ -221,7 +221,8 @@ class UnifiedWorkflowSearch:
                source: Optional[str] = None,
                format: Optional[str] = None,
                limit: int = 10,
-               include_workflow_json: bool = False) -> List[WorkflowMatch]:
+               include_workflow_json: bool = False,
+               user_profile: Optional[Dict[str, Any]] = None) -> List[WorkflowMatch]:
         """
         Search for workflows matching the query.
 
@@ -232,6 +233,10 @@ class UnifiedWorkflowSearch:
             format: Filter by format (galaxy_ga, nextflow)
             limit: Maximum results to return
             include_workflow_json: Include full workflow JSON in results
+            user_profile: Optional user domain profile dict with keys
+                ``domains`` (list[str]) and ``topics`` (list[str]).
+                Used as a starting bias — profile domains are preferred
+                unless the query context overrides them.
 
         Returns:
             List of WorkflowMatch objects sorted by relevance
@@ -275,7 +280,7 @@ class UnifiedWorkflowSearch:
             # Re-rank with custom scoring
             results = []
             for row in rows:
-                match = self._create_match(row, query, include_workflow_json)
+                match = self._create_match(row, query, include_workflow_json, user_profile=user_profile)
                 results.append(match)
 
             # Sort by custom score (includes source priority)
@@ -285,7 +290,7 @@ class UnifiedWorkflowSearch:
 
         except sqlite3.OperationalError as e:
             log.warning(f"FTS search failed: {e}, falling back to LIKE search")
-            return self._fallback_search(query, domain, source, format, limit, include_workflow_json)
+            return self._fallback_search(query, domain, source, format, limit, include_workflow_json, user_profile=user_profile)
 
         finally:
             conn.close()
@@ -382,7 +387,8 @@ class UnifiedWorkflowSearch:
             return " OR ".join(unique_words)
         return query
 
-    def _create_match(self, row: tuple, query: str, include_json: bool) -> WorkflowMatch:
+    def _create_match(self, row: tuple, query: str, include_json: bool,
+                      user_profile: Optional[Dict[str, Any]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
         id_, name, description, domain, source, format_, step_count, tools_json, tags_json, filename, workflow_json, fts_score = row
 
@@ -398,7 +404,7 @@ class UnifiedWorkflowSearch:
             tags = []
 
         # Calculate custom score
-        score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score)
+        score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score, user_profile=user_profile)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -451,7 +457,8 @@ class UnifiedWorkflowSearch:
                          tags: List[str],
                          source: str,
                          workflow_domain: str,
-                         fts_score: float) -> float:
+                         fts_score: float,
+                         user_profile: Optional[Dict[str, Any]] = None) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
         # Expand abbreviations in query for keyword matching
@@ -494,6 +501,15 @@ class UnifiedWorkflowSearch:
         if domain_value in penalized_domains:
             score -= 4.0
 
+        # 7. User profile bias (starting bias; query context from step 6 takes precedence)
+        # Only applied when query doesn't already express a strong domain preference.
+        if user_profile:
+            profile_domains = [d.lower() for d in (user_profile.get("domains") or [])]
+            if profile_domains and not preferred_domains:
+                # Normalise domain key: "single_cell" → matches workflow_domain "single_cell" etc.
+                if domain_value in profile_domains:
+                    score += 2.0
+
         return round(score, 2)
 
     def _classify_match(self, score: float) -> str:
@@ -517,7 +533,8 @@ class UnifiedWorkflowSearch:
                          source: Optional[str],
                          format: Optional[str],
                          limit: int,
-                         include_json: bool) -> List[WorkflowMatch]:
+                         include_json: bool,
+                         user_profile: Optional[Dict[str, Any]] = None) -> List[WorkflowMatch]:
         """Fallback to LIKE search if FTS fails."""
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -552,7 +569,7 @@ class UnifiedWorkflowSearch:
 
             results = []
             for row in rows:
-                match = self._create_match(row, query, include_json)
+                match = self._create_match(row, query, include_json, user_profile=user_profile)
                 results.append(match)
 
             results.sort(key=lambda x: x.score, reverse=True)

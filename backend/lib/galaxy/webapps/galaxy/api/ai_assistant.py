@@ -5,9 +5,12 @@ RESTful API endpoints for the Galaxy AI Assistant functionality.
 Includes citation management, progressive tuning, and benchmark endpoints.
 """
 
+import ast as _ast
 import json
 import logging
 import uuid
+import sqlite3
+import re
 from datetime import datetime
 from pathlib import Path as FilePath
 from typing import Dict, List, Any, Optional
@@ -93,6 +96,194 @@ except Exception as _e:
     _workflow_search = None
     WORKFLOW_SEARCH_AVAILABLE = False
 
+# ── ToolKnowledgeProvider for scientific rationale ───────────────────────────
+try:
+    from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider as _ToolKnowledgeProvider
+    _TOOL_KNOWLEDGE_AVAILABLE = True
+except Exception as _e:
+    logging.warning(f"ToolKnowledgeProvider not available: {_e}")
+    _ToolKnowledgeProvider = None
+    _TOOL_KNOWLEDGE_AVAILABLE = False
+
+
+def _extract_scalar_param(v: Any) -> str:
+    """Return a clean scalar string from a parameter value (handles string-encoded dicts)."""
+    if isinstance(v, dict):
+        scalar = v.get("default") or v.get("value") or next(iter(v.values()), v)
+        return str(scalar)
+    if isinstance(v, str):
+        s = v.strip()
+        if s.startswith(("{", "[")):
+            try:
+                parsed = _ast.literal_eval(s)
+                if isinstance(parsed, dict):
+                    scalar = parsed.get("default") or parsed.get("value") or next(iter(parsed.values()), v)
+                    return str(scalar)
+                if isinstance(parsed, (list, tuple)) and parsed:
+                    return str(parsed[0])
+            except (ValueError, SyntaxError):
+                pass
+    return str(v)
+
+
+def _build_scientific_rationale_from_tools(workflow_tools: List[str]) -> Dict[str, Any]:
+    """Build scientific rationale dict from a workflow's tools_used list.
+
+    Returns an empty dict if no tool_knowledge entries are found with use_cases.
+    """
+    if not _TOOL_KNOWLEDGE_AVAILABLE or not _ToolKnowledgeProvider or not workflow_tools:
+        return {}
+    try:
+        provider = _ToolKnowledgeProvider()
+    except Exception:
+        return {}
+
+    seen_lower: set = set()
+    core_tools: List[str] = []
+    for raw_name in workflow_tools:
+        knowledge = provider.get_tool_knowledge(raw_name)
+        if (knowledge
+                and knowledge.use_cases
+                and knowledge.tool_name.lower() not in seen_lower):
+            core_tools.append(knowledge.tool_name)
+            seen_lower.add(knowledge.tool_name.lower())
+
+    if not core_tools:
+        return {}
+
+    rationale: Dict[str, Any] = {
+        "tools_used": [],
+        "when_to_use": [],
+        "do_not_use_when": [],
+        "data_requirements": {},
+        "key_assumptions": [],
+        "common_pitfalls": [],
+        "parameter_hints": [],
+    }
+
+    for tool_name in core_tools:
+        knowledge = provider.get_tool_knowledge(tool_name)
+        if knowledge:
+            rationale["tools_used"].append(knowledge.tool_name)
+            for uc in (knowledge.use_cases or [])[:3]:
+                if uc not in rationale["when_to_use"]:
+                    rationale["when_to_use"].append(uc)
+            for lim in (knowledge.limitations or [])[:3]:
+                if lim not in rationale["do_not_use_when"]:
+                    rationale["do_not_use_when"].append(lim)
+            for param_name, rec in list((knowledge.recommended_parameters or {}).items())[:6]:
+                if param_name.startswith('_'):  # skip internal metadata keys like _expert_guidance
+                    continue
+                rationale["parameter_hints"].append({
+                    "param": param_name,
+                    "recommended": _extract_scalar_param(rec.recommended_value),
+                    "rationale": rec.description or "",
+                    "tool": tool_name,
+                })
+
+    return rationale if rationale["tools_used"] else {}
+
+
+def _build_parameter_metadata_from_tools(
+    param_keys: List[str],
+    tool_ids: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Build parameter_metadata dict for use in workflow search / generation responses.
+
+    For each key in param_keys produces:
+        {label, type, help, optional, default}
+
+    Lookup order:
+    1. galaxy_ai_tools.db tools.parameters column (JSON list) for any tool_ids given.
+    2. Fallback: infer from the param key name.
+
+    Never raises — returns partial/empty dict on any error.
+    """
+    metadata: Dict[str, Any] = {}
+    if not param_keys:
+        return metadata
+
+    _TYPE_MAP = {
+        'data': 'file',
+        'data_collection': 'file',
+        'integer': 'integer',
+        'float': 'float',
+        'boolean': 'boolean',
+        'select': 'select',
+        'text': 'text',
+        'color': 'text',
+    }
+
+    try:
+        db_path = FilePath(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+        if db_path.exists() and tool_ids:
+            conn = sqlite3.connect(str(db_path))
+            try:
+                for tool_id in tool_ids:
+                    if not tool_id:
+                        continue
+                    row = conn.execute(
+                        "SELECT parameters FROM tools WHERE tool_id = ? LIMIT 1",
+                        (str(tool_id),)
+                    ).fetchone()
+                    if not row or not row[0]:
+                        short_name = str(tool_id).split('/')[-1]
+                        row = conn.execute(
+                            "SELECT parameters FROM tools WHERE LOWER(name) = LOWER(?) LIMIT 1",
+                            (short_name,)
+                        ).fetchone()
+                    if row and row[0]:
+                        try:
+                            params_list = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                            if isinstance(params_list, list):
+                                for p in params_list:
+                                    name = p.get('name', '')
+                                    if name and name not in metadata:
+                                        raw_type = p.get('type', 'text')
+                                        metadata[name] = {
+                                            'label': p.get('label', name.replace('_', ' ').replace('-', ' ').title()),
+                                            'type': _TYPE_MAP.get(raw_type, 'text'),
+                                            'help': p.get('help', ''),
+                                            'optional': bool(p.get('optional', True)),
+                                            'default': p.get('value', p.get('default', None)),
+                                        }
+                        except Exception:
+                            pass
+            finally:
+                conn.close()
+    except Exception:
+        pass
+
+    _REQUIRED_KW = ('input', 'output', 'reference', 'sample', 'file', 'genome', 'fasta', 'fastq', 'bam')
+    _INT_KW = ('threads', 'cpus', 'cores', 'jobs', 'count', 'num_', 'max_', 'min_', 'k_mer', 'length')
+    _FLOAT_KW = ('pvalue', 'p_value', 'fdr', 'threshold', 'ratio', 'fraction', 'rate', 'score')
+    _BOOL_KW = ('enable', 'disable', 'use_', 'skip_', 'paired', 'strand')
+    _FILE_KW = ('input', 'file', 'fasta', 'fastq', 'bam', 'reference', 'genome')
+    for key in param_keys:
+        if key not in metadata:
+            key_lower = key.lower()
+            is_required = any(kw in key_lower for kw in _REQUIRED_KW)
+            if any(kw in key_lower for kw in _INT_KW):
+                inferred_type = 'integer'
+            elif any(kw in key_lower for kw in _FLOAT_KW):
+                inferred_type = 'float'
+            elif any(kw in key_lower for kw in _BOOL_KW):
+                inferred_type = 'boolean'
+            elif any(kw in key_lower for kw in _FILE_KW):
+                inferred_type = 'file'
+            else:
+                inferred_type = 'text'
+            metadata[key] = {
+                'label': key.replace('_', ' ').replace('-', ' ').title(),
+                'type': inferred_type,
+                'help': '',
+                'optional': not is_required,
+                'default': None,
+            }
+
+    return metadata
+
 
 class NextflowSearchRequest(BaseModel):
     user_intent: Optional[str] = None
@@ -103,9 +294,16 @@ def _nextflow_workflow_key(filename: str) -> Optional[str]:
     path = (filename or "").strip().lower()
     if not path:
         return None
+    # biomni_nf/domain/workflow/main.nf
     if path.startswith("biomni_nf/"):
         parts = [p for p in path.split("/") if p]
         if len(parts) >= 3:
+            return f"{parts[1]}/{parts[2]}"
+    # nextflow_nfcore/domain/workflow/main.nf (newer path format for biomni workflows)
+    if path.startswith("nextflow_nfcore/"):
+        parts = [p for p in path.split("/") if p]
+        # Skip "nextflow_nfcore" prefix and "bioconductor" source (R packages, not runnable as nf)
+        if len(parts) >= 3 and parts[1] != "bioconductor":
             return f"{parts[1]}/{parts[2]}"
     marker = "/subworkflows/"
     if marker in path:
@@ -126,6 +324,320 @@ def _load_runnable_nextflow_keys() -> set[str]:
         return {ln for ln in lines if ln and "/" in ln}
     except OSError:
         return set()
+
+
+def _parse_memory_gb(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+    text = str(value).strip().lower()
+    if not text:
+        return None
+    match = re.search(r"(\d+(?:\.\d+)?)", text)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def _collect_workflow_hardware_requirements(workflow_tools: List[str]) -> Optional[Dict[str, Any]]:
+    tools = [str(t).strip() for t in (workflow_tools or []) if str(t).strip()]
+    if not tools:
+        return None
+
+    db_path = FilePath(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+    if not db_path.exists():
+        return None
+
+    conn = None
+    gpu_required = False
+    max_memory_gb = 0.0
+    tool_runtime_hints: List[Dict[str, Any]] = []
+    seen_tool_ids: set[str] = set()
+
+    try:
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        for tool_ref in tools:
+            candidates = [tool_ref]
+            if "/" in tool_ref:
+                candidates.append(tool_ref.split("/")[-1])
+            pattern = f"%{tool_ref}%"
+
+            row = None
+            for cand in candidates:
+                cursor.execute(
+                    """
+                    SELECT tool_id, name, execution_info
+                    FROM tools
+                    WHERE LOWER(tool_id) = LOWER(?)
+                       OR LOWER(name) = LOWER(?)
+                    LIMIT 1
+                    """,
+                    (cand, cand),
+                )
+                row = cursor.fetchone()
+                if row:
+                    break
+
+            if not row:
+                cursor.execute(
+                    """
+                    SELECT tool_id, name, execution_info
+                    FROM tools
+                    WHERE LOWER(tool_id) LIKE LOWER(?)
+                       OR LOWER(name) LIKE LOWER(?)
+                    ORDER BY CASE
+                      WHEN LOWER(tool_id) LIKE LOWER(?) THEN 0
+                      ELSE 1
+                    END
+                    LIMIT 1
+                    """,
+                    (pattern, pattern, pattern),
+                )
+                row = cursor.fetchone()
+
+            if not row:
+                continue
+
+            tool_id = str(row["tool_id"] or "").strip()
+            if not tool_id or tool_id in seen_tool_ids:
+                continue
+            seen_tool_ids.add(tool_id)
+
+            raw_info = row["execution_info"]
+            if not raw_info:
+                continue
+            try:
+                exec_info = json.loads(raw_info) if isinstance(raw_info, str) else raw_info
+            except Exception:
+                continue
+            if not isinstance(exec_info, dict):
+                continue
+
+            requires_gpu = bool(exec_info.get("gpu", False))
+            memory_gb = _parse_memory_gb(exec_info.get("memory"))
+            if requires_gpu:
+                gpu_required = True
+            if memory_gb is not None:
+                max_memory_gb = max(max_memory_gb, memory_gb)
+
+            tool_runtime_hints.append(
+                {
+                    "tool_id": tool_id,
+                    "tool_name": row["name"] or tool_id,
+                    "gpu": requires_gpu,
+                    "memory_gb": memory_gb,
+                    "container_image": exec_info.get("image"),
+                    "runtime_type": exec_info.get("type"),
+                }
+            )
+    except Exception as exc:
+        log.warning(f"[NextflowSearch] Hardware requirement lookup failed: {exc}")
+        return None
+    finally:
+        try:
+            if conn is not None:
+                conn.close()
+        except Exception:
+            pass
+
+    if not tool_runtime_hints:
+        return None
+
+    return {
+        "gpu_required": gpu_required,
+        "min_memory_gb": round(max_memory_gb, 2) if max_memory_gb > 0 else None,
+        "tools_analyzed": len(tool_runtime_hints),
+        "tool_runtime_hints": tool_runtime_hints[:12],
+        "source": "ai_tool_db.execution_info",
+    }
+
+
+def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
+    """Parse step names from a Nextflow .nf file for display in the workflow viewer.
+
+    Tries two strategies:
+    1. Comment header with numbered steps (e.g. ``* 1. Import Movies``)
+    2. UPPERCASE process calls in the workflow body
+    """
+    steps: Dict[str, Any] = {}
+    if not nf_filename:
+        return steps
+    try:
+        backend_root = FilePath(__file__).resolve().parents[5]
+        nf_path = FilePath(nf_filename)
+        if nf_path.is_absolute():
+            abs_path = nf_path
+        else:
+            # Try simple path first, then the same resolution hierarchy as _resolve_nextflow_path
+            candidates: list[FilePath] = [backend_root / nf_filename]
+            raw = str(nf_filename)
+            nfcore_root = backend_root / "biomni_workflows" / "nextflow_nfcore"
+            if raw.startswith("nextflow_nfcore/"):
+                rest = raw.split("nextflow_nfcore/", 1)[1].strip("/")
+                candidates += [
+                    nfcore_root / rest,
+                    nfcore_root / rest / "main.nf",
+                    nfcore_root / "subworkflows" / rest,
+                    nfcore_root / "subworkflows" / rest / "main.nf",
+                ]
+            else:
+                candidates += [
+                    nfcore_root / nf_filename,
+                    nfcore_root / "subworkflows" / nf_filename,
+                ]
+            abs_path = next((c for c in candidates if c.exists()), candidates[0])
+        if not abs_path.exists():
+            return steps
+        content = abs_path.read_text(encoding="utf-8", errors="replace")
+
+        # Strategy 1: numbered steps in comment block ("* 1. Import Movies")
+        comment_steps = re.findall(r'\*\s+(\d+)\.\s+(.+)', content)
+        if comment_steps:
+            for raw_num, raw_name in comment_steps:
+                idx = int(raw_num) - 1
+                clean = raw_name.strip().rstrip('*').strip()
+                if not clean:
+                    continue
+                tool_id = re.sub(r'[^A-Za-z0-9]+', '_', clean.upper()).strip('_')
+                steps[str(idx)] = {
+                    "id": str(idx),
+                    "name": clean,
+                    "tool_id": tool_id,
+                    "annotation": clean,
+                    "description": "",
+                    "type": "tool",
+                    "parameters": {},
+                    "inputs": {},
+                }
+            if steps:
+                return steps
+
+        # Strategy 2: UPPERCASE_CALL(...) process invocations in workflow body
+        in_workflow = False
+        idx = 0
+        for line in content.splitlines():
+            stripped = line.strip()
+            if re.match(r'^workflow\b', stripped):
+                in_workflow = True
+                continue
+            if in_workflow:
+                m = re.match(r'([A-Z][A-Z0-9_]+)\s*\(', stripped)
+                if m:
+                    proc = m.group(1)
+                    human = proc.replace('_', ' ').title()
+                    steps[str(idx)] = {
+                        "id": str(idx),
+                        "name": human,
+                        "tool_id": proc,
+                        "annotation": human,
+                        "description": "",
+                        "type": "tool",
+                        "parameters": {},
+                        "inputs": {},
+                    }
+                    idx += 1
+    except Exception as exc:
+        log.warning(f"[NextflowSteps] Failed to parse steps from {nf_filename}: {exc}")
+    return steps
+
+
+# Internal params to skip — not user-facing
+_NF_SKIP_PARAMS = {
+    "mock_mode", "use_cryosparc", "cryosparc_license", "cryosparc_host",
+    "cryosparc_port", "cryosparc_lane", "dose_per_frame",
+    "ctf_fitting_resolution_min", "ctf_fitting_resolution_max",
+    "particle_box_size", "outdir", "project_name", "sample_type",
+    "motion_correction_dose_weighting", "enable_low_memory_mode",
+}
+
+
+def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
+    """Parse user-facing params from a Nextflow .nf file.
+
+    Returns ``{"parameters": {name: value, ...}, "parameter_metadata": {name: {...}, ...}}``.
+    """
+    parameters: Dict[str, Any] = {}
+    parameter_metadata: Dict[str, Any] = {}
+    if not nf_filename:
+        return {"parameters": parameters, "parameter_metadata": parameter_metadata}
+    try:
+        backend_root = FilePath(__file__).resolve().parents[5]
+        abs_path = FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename
+        if not abs_path.exists():
+            return {"parameters": parameters, "parameter_metadata": parameter_metadata}
+        content = abs_path.read_text(encoding="utf-8", errors="replace")
+
+        # Match: params.name = value  // optional comment
+        param_re = re.compile(
+            r'^params\.([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^\n/]+?)\s*(?://\s*(.+))?$',
+            re.MULTILINE,
+        )
+        for m in param_re.finditer(content):
+            name = m.group(1).strip()
+            raw_val = m.group(2).strip()
+            comment = (m.group(3) or "").strip()
+
+            if name in _NF_SKIP_PARAMS:
+                continue
+
+            # Determine value and type
+            val: Any
+            ptype: str
+            if raw_val.lower() == "null":
+                val = None
+                if name.endswith("_path") or name.endswith("_ref"):
+                    ptype = "file"
+                else:
+                    ptype = "string"
+            elif raw_val.lower() in ("true", "false"):
+                val = raw_val.lower() == "true"
+                ptype = "boolean"
+            elif re.fullmatch(r"-?\d+", raw_val):
+                val = int(raw_val)
+                ptype = "integer"
+            elif re.fullmatch(r"-?\d+\.\d+", raw_val):
+                val = float(raw_val)
+                ptype = "float"
+            elif raw_val.startswith(("'", '"')):
+                val = raw_val.strip("'\"")
+                ptype = "string"
+            else:
+                val = raw_val
+                ptype = "string"
+
+            # Level
+            _REQUIRED_PARAMS = {"movies_path", "pixel_size", "voltage"}
+            _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
+            if name == "movies_path":
+                level = "required"
+            elif ptype == "file" and val is None:
+                level = "optional"
+            elif name in _REQUIRED_PARAMS:
+                level = "required"
+            elif name in _RECOMMENDED_PARAMS:
+                level = "recommended"
+            else:
+                level = "optional"
+
+            # Label: use comment or prettify key
+            label = comment if comment else name.replace("_", " ").title()
+
+            parameters[name] = val
+            parameter_metadata[name] = {"type": ptype, "label": label, "level": level}
+
+    except Exception as exc:
+        log.warning(f"[NextflowParams] Failed to parse params from {nf_filename}: {exc}")
+    return {"parameters": parameters, "parameter_metadata": parameter_metadata}
 
 
 @router.post(
@@ -205,6 +717,23 @@ def search_nextflow_workflow(
             if runnable_executable:
                 best = runnable_executable
 
+        workflow_tools = getattr(best, "tools", []) or []
+        hardware_requirements = _collect_workflow_hardware_requirements(workflow_tools)
+        scientific_rationale = _build_scientific_rationale_from_tools(workflow_tools)
+
+        # Build parameter_metadata from scientific_rationale parameter_hints
+        _search_param_keys = [
+            h.get("param", "")
+            for h in (scientific_rationale or {}).get("parameter_hints", [])
+            if h.get("param", "")
+        ]
+        _search_parameter_metadata = _build_parameter_metadata_from_tools(_search_param_keys)
+
+        # Parse user-facing params from the .nf file for Nextflow workflows
+        _nf_parsed = _parse_nextflow_params(best.filename) if best.format == "nextflow" and best.filename else {}
+        _wf_parameters = _nf_parsed.get("parameters", {})
+        _wf_parameter_metadata = _nf_parsed.get("parameter_metadata", None) or _search_parameter_metadata
+
         return {
             "success": True,
             "workflow_type": best.format,
@@ -217,6 +746,8 @@ def search_nextflow_workflow(
             "description": best.description,
             "domain": best.domain,
             "step_count": best.step_count,
+            "scientific_rationale": scientific_rationale,
+            "parameter_metadata": _wf_parameter_metadata,
             "workflow_ga": {
                 "name": best.name,
                 "description": best.description,
@@ -225,8 +756,13 @@ def search_nextflow_workflow(
                 "format": best.format,
                 "nextflow_path": best.filename if best.format == "nextflow" else None,
                 "workflow_type": best.format,
-                "steps": {}
+                "steps": _parse_nextflow_steps(best.filename) if best.format == "nextflow" and best.filename else {},
+                "parameters": _wf_parameters,
+                "parameter_metadata": _wf_parameter_metadata,
+                "hardware_requirements": hardware_requirements,
+                "scientific_rationale": scientific_rationale,
             },
+            "hardware_requirements": hardware_requirements,
             "datasets_assigned": False,
             "generated_parameters": [],
             "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
@@ -762,7 +1298,8 @@ def generate_workflow_unified(
         # Generate workflow using unified approach
         result = ai_assistant.generate_workflow_unified(
             user_intent=request.request_text,
-            uploaded_datasets=uploaded_datasets
+            uploaded_datasets=uploaded_datasets,
+            user_id=str(trans.user.id) if getattr(trans, "user", None) else None,
         )
 
         if result['success']:
@@ -845,6 +1382,29 @@ def generate_workflow_unified(
             if result.get('source') == 'from_scratch':
                 pilot_reasons.append("Workflow generated from scratch (no template match)")
 
+            # Reason 6: Large cryo-EM dataset (num_movies > 1000)
+            _num_movies = None
+            for _pd in result.get('generated_parameters', []):
+                for _key in ('num_movies', 'num_micrographs', 'movie_count'):
+                    if _key in _pd.get('parameters', {}):
+                        try:
+                            _num_movies = int(_pd['parameters'][_key])
+                        except (ValueError, TypeError):
+                            pass
+            if _num_movies is None and request.message:
+                import re as _re
+                _m = _re.search(r'\bnum_movies\s*=\s*(\d+)', request.message, _re.IGNORECASE)
+                if _m:
+                    try:
+                        _num_movies = int(_m.group(1))
+                    except (ValueError, TypeError):
+                        pass
+            if _num_movies and _num_movies > 1000:
+                pilot_reasons.append(
+                    f"Large cryo-EM dataset ({_num_movies:,} movies) — "
+                    f"pilot run on ~200 movies recommended before full processing"
+                )
+
             # Suggest pilot if ANY reason exists
             pilot_suggested = len(pilot_reasons) > 0
 
@@ -854,9 +1414,18 @@ def generate_workflow_unified(
                 pilot_message = "Pilot run recommended: " + "; ".join(pilot_reasons)
                 log.info(f"[PilotSuggestion] {pilot_message}")
 
+            # Pass through parameter_metadata from the AI assistant result (already built there).
+            # If the result doesn't carry it (e.g. generate_workflow_unified path),
+            # fall back to an empty dict — the frontend treats missing metadata gracefully.
+            _endpoint_parameter_metadata = result.get('parameter_metadata') or {}
+
             return {
                 'success': True,
                 'workflow_ga': result['workflow_ga'],
+                'workflow_type': result.get('workflow_type'),
+                'nextflow_path': result.get('nextflow_path'),
+                'execution_engine': result.get('execution_engine'),
+                'hardware_requirements': result.get('hardware_requirements'),
                 'source': result['source'],
                 'confidence': confidence,
                 'template_match_score': result.get('template_match_score', 0.0),
@@ -868,6 +1437,8 @@ def generate_workflow_unified(
                 'citations': [c.model_dump() for c in citations],
                 'methods_section': methods_section.model_dump() if methods_section else None,
                 'parameter_recommendations': {k: v.model_dump() for k, v in param_recommendations.items()},
+                # Parameter metadata for frontend required/optional UI
+                'parameter_metadata': _endpoint_parameter_metadata,
                 # Enhanced pilot suggestion
                 'pilot_run_suggested': pilot_suggested,
                 'pilot_reasons': pilot_reasons,
@@ -2013,8 +2584,17 @@ def answer_research_query(
                 "error": "Research agent not available"
             }
 
-        # Create ResearchAgent
-        research_agent = create_research_agent()
+        # Create ResearchAgent — build an LLMClient from the shared AI
+        # assistant's config so the same API key is used.
+        _research_llm = None
+        try:
+            _shared = get_ai_assistant(trans)
+            if _shared is not None:
+                from galaxy.ai.llm_client import LLMClient
+                _research_llm = LLMClient(_shared.config)
+        except Exception:
+            pass
+        research_agent = create_research_agent(llm_client=_research_llm)
 
         # Answer the question synchronously
         response = research_agent.answer_question_sync(
@@ -2108,3 +2688,101 @@ def get_available_skills(
 # Note: Unified Execution endpoints are implemented in frontend/server/routes.ts
 # using the /api/workflows/execute API. This avoids duplication and leverages
 # the existing storage layer, Galaxy state poller, and SSE infrastructure.
+
+
+# ── User Domain Profile endpoints ────────────────────────────────────────────
+
+try:
+    from galaxy.ai.memory.agentic_memory import get_memory_service as _get_memory_service
+    from galaxy.ai.domain_taxonomy import DOMAIN_TAXONOMY, DOMAIN_LABELS, get_topics_for_domains
+    _DOMAIN_PROFILE_AVAILABLE = True
+except Exception as _dp_err:
+    logging.warning(f"Domain profile components not available: {_dp_err}")
+    _DOMAIN_PROFILE_AVAILABLE = False
+
+
+class DomainProfileRequest(BaseModel):
+    domains: List[str] = Field(default_factory=list, description="Selected research domain keys")
+    topics: List[str] = Field(default_factory=list, description="Selected topic strings")
+
+
+@router.post(
+    "/api/user/domain-profile",
+    summary="Save the user's research domain profile."
+)
+def set_domain_profile(
+    request: DomainProfileRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Store user research domain and topic selections in LTM."""
+    if not _DOMAIN_PROFILE_AVAILABLE:
+        raise HTTPException(status_code=503, detail="Domain profile service not available")
+
+    user = getattr(trans, "user", None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    user_email = getattr(user, "email", None)
+    if not user_email:
+        raise HTTPException(status_code=400, detail="Cannot resolve user identity")
+
+    try:
+        memory = _get_memory_service()
+        ltm_user = memory.users.get_or_create_user(email=user_email)
+        memory.update_domain_profile(
+            user_id=ltm_user["id"],
+            domains=request.domains,
+            topics=request.topics,
+        )
+        return {
+            "success": True,
+            "domains": request.domains,
+            "topics": request.topics,
+        }
+    except Exception as exc:
+        log.error(f"Failed to save domain profile: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get(
+    "/api/user/domain-profile",
+    summary="Get the user's research domain profile."
+)
+def get_domain_profile(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Retrieve user research domain and topic selections from LTM."""
+    if not _DOMAIN_PROFILE_AVAILABLE:
+        return {"domains": [], "topics": []}
+
+    user = getattr(trans, "user", None)
+    if not user:
+        return {"domains": [], "topics": []}
+
+    user_email = getattr(user, "email", None)
+    if not user_email:
+        return {"domains": [], "topics": []}
+
+    try:
+        memory = _get_memory_service()
+        ltm_user = memory.users.get_or_create_user(email=user_email)
+        return memory.get_domain_profile(user_id=ltm_user["id"])
+    except Exception as exc:
+        log.error(f"Failed to get domain profile: {exc}")
+        return {"domains": [], "topics": []}
+
+
+@router.get(
+    "/api/user/domain-taxonomy",
+    summary="Get the full domain taxonomy for the domain profile selector."
+)
+def get_domain_taxonomy(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return the static domain taxonomy (domains + labels + topics)."""
+    if not _DOMAIN_PROFILE_AVAILABLE:
+        return {"domains": {}, "labels": {}}
+    return {
+        "domains": DOMAIN_TAXONOMY,
+        "labels": DOMAIN_LABELS,
+    }
