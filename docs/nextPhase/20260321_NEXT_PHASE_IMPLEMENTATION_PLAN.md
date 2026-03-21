@@ -6,19 +6,59 @@
 **Source documents:**
 - `docs/nextPhase/20260209_BIOMATE_ARCHITECTURE_REVIEW.md` — current system state
 - `docs/nextPhase/20260321_DEEPAGENTS_AGENTHARNESS_ANALYSIS.md` — DeepAgents analysis + domain profile design
+- `docs/pm/20260318_parallel_workstreams_plan.md` — existing Phase 1 workstream plan (T1–T4)
+- `docs/pm/20260318_workflow_architecture_findings_and_phase_plan.md` — Phase 1 / Phase 2 split definition
+- `docs/pm/license_registration_collection_plan.md` — license gate (COMPLETED 2026-03-19)
 
 ---
 
-## Overview
+## Relationship to docs/pm/ Phase Plan
 
-Four parallel workstreams. Each is independent and can be developed, tested, and merged separately without blocking others.
+The `docs/pm/` folder contains a detailed Phase 1 / Phase 2 split written 2026-03-18. **This document does NOT replace that plan** — it adds new workstreams on top.
+
+### What is ALREADY in docs/pm/ Phase 1 (ongoing)
+
+These were defined in `20260318_parallel_workstreams_plan.md` and are still in progress:
+
+| Item | Status | Owner |
+|---|---|---|
+| Indexer path bug fix + re-index 953 missing workflows | ⚠️ Pending | T1 |
+| 2-tier catalog (domain summary → scoped workflow list) | ⚠️ Pending | T1 |
+| WorkflowSession Redis model (multi-turn context) | ⚠️ Pending | T1 |
+| nextflow_schema.json parsing + tool_param_map table | ⚠️ Pending | T1 |
+| Pipeline list view UI (numbered recipe, no DAG) | ⚠️ Pending | T2 |
+| Multi-task chain execution (sequential A → B) | ⚠️ Pending | T2 |
+| LangGraph → Celery dispatch wiring | ⚠️ Pending | T2 |
+| pilot_analysis wired to preflight | ⚠️ Pending | T3 |
+| Data-dependent parameter auto-fill | ⚠️ Pending | T3 |
+| Parameter sweep + SweepResultsPanel | ⚠️ Pending | T3 |
+| Cost estimation, notifications, reproducibility export, error recovery UX, provenance | ⚠️ Pending | T4 |
+| License gate + credential store | ✅ Done (2026-03-19) | — |
+
+### What is docs/pm/ Phase 2 (not yet started)
+
+Defined explicitly in `20260318_workflow_architecture_findings_and_phase_plan.md` §Phase 2:
+
+| Item | In this plan? |
+|---|---|
+| P2.1 — Full Pipeline View UI (DAG view, inline catalog search, skip toggles) | ❌ Still Phase 2 |
+| P2.2 — Data Type System + Auto-wiring (input_types/output_types columns + compatibility matrix) | ❌ Still Phase 2 |
+| P2.3 — Parameter Sweep / Test Harness full integration | ❌ Still Phase 2 (foundation in T3 Phase 1) |
+| P2.4 — Parallel Branch Execution (LangGraph fan-out, Celery) | ⚠️ Partial — LangGraph StateGraph wrapper in Workstream A below; full Celery fan-out still Phase 2 |
+| P2.5 — Tool Substitution (swap entire workflow step, validate type compatibility) | ❌ Still Phase 2 |
+
+### What this document adds (NEW workstreams)
+
+Four new workstreams not covered by docs/pm/:
 
 | Workstream | Owner | Branch | Priority |
 |---|---|---|---|
 | **A — LangGraph State Machine** | Backend engineer | `feature/langgraph-stategraph` | P1 |
 | **B — User Domain Profile** | Full-stack engineer | `feature/user-domain-profile` | P1 |
 | **C — LTM Activation** | Backend engineer | `feature/ltm-activation` | P2 |
-| **D — Index Maintenance** | DevOps / any | `feature/nfcore-reindex` | P2 |
+| **D — Index Maintenance (nf-core reindex)** | DevOps / any | `feature/nfcore-reindex` | P2 |
+
+> **Note on D vs T1:** Workstream D here is a simple nf-core reindex (running the script). The deeper indexer fix (path bug, 953 missing workflows, input_types/output_types columns) is T1's job in the existing pm/ Phase 1 plan — coordinate to avoid duplication.
 
 ---
 
@@ -117,6 +157,8 @@ run_autofix → (max_attempts → END | retry → dispatch_execution)
 #### B1 — Domain + Topic Taxonomy
 **File:** `backend/lib/galaxy/ai/domain_taxonomy.py` (new file)
 
+**Static curated lists** — no dynamic generation from workflow index.
+
 ```python
 DOMAIN_TAXONOMY = {
     "genomics": ["variant calling", "WGS", "WES", "copy number", "structural variants", "population genetics"],
@@ -135,6 +177,8 @@ DOMAIN_TAXONOMY = {
     "bioimaging": ["cell segmentation", "fluorescence microscopy", "spatial omics imaging", "flow cytometry"],
 }
 ```
+
+Topic lists are **static and curated**. Dynamic generation from workflow index tags is deferred to Future Work.
 
 #### B2 — Backend: Store Profile in LTM
 **File:** `backend/lib/galaxy/ai/memory/agentic_memory.py`
@@ -196,9 +240,9 @@ DOMAIN_TAXONOMY = {
 | `frontend/server/galaxy-assistant.ts` | Modify — inject profile context |
 | `frontend/server/routes.ts` | Modify — proxy new profile endpoints |
 
-### Open Questions (needs decision before B3)
-- [ ] Override threshold: Option A (hard cutoff at N turns) vs B (decay weight) vs C (user toggle)?
-- [ ] Tier 2 topic lists: curated static per domain (as above) vs dynamically generated from workflow index tags?
+### Decisions Made
+- **Tier 2 topic lists:** Static curated lists (as above) — not dynamic.
+- **Override behavior:** Deferred to Future Work — see section below.
 
 ### Testing
 - Unit: `get_domain_profile` / `update_domain_profile` round-trip
@@ -327,9 +371,27 @@ All feature branches cut from `next-phase-planning`. PRs merge back to `next-pha
 ## Open Questions (requires product decision)
 
 - [ ] **LangSmith:** Is it acceptable for trace data to leave BioMate infrastructure? If not, use self-hosted LangSmith or skip A3 entirely.
-- [ ] **Domain profile override:** Option A (hard cutoff at N turns) / B (decay weight) / C (user toggle) — pick before B3
-- [ ] **Topic lists:** Curated static per domain vs dynamically generated from workflow index tags — pick before B1
 - [ ] **Phase 2 AutoFix subagent (from DeepAgents analysis):** Defer until A is stable. Pilot on staging only.
+
+---
+
+## Future Work (explicitly deferred)
+
+These are decided but not in scope for this workstream:
+
+### Domain Profile Override Behavior
+When user has a saved domain profile but the current conversation diverges from it, the profile weight should reduce. Three options exist (hard cutoff / decay / user toggle) — decision and implementation deferred. Current behavior: profile is always injected as a static bias; conversation context naturally takes precedence via LLM reasoning.
+
+### Dynamic Topic Lists
+Tier 2 topic lists are static for now. A future improvement would generate or augment them from the workflow index tags (`tags` column in `workflows` table), so newly indexed workflows automatically surface relevant topics. Defer until workflow index is stable post-T1 indexer fix.
+
+### Phase 2 Pipeline Composition (from docs/pm/)
+The following are explicitly Phase 2 per `docs/pm/20260318_workflow_architecture_findings_and_phase_plan.md`:
+- **P2.1** Full Pipeline View UI (DAG, inline catalog search, skip toggles)
+- **P2.2** Data Type System + Auto-wiring (input_types/output_types compatibility matrix)
+- **P2.3** Parameter Sweep full integration with Test Harness
+- **P2.4** Parallel Branch Execution (full LangGraph → Celery fan-out)
+- **P2.5** Tool Substitution (swap entire workflow step with type validation)
 
 ---
 

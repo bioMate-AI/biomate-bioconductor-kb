@@ -318,13 +318,12 @@ Current conversation context progressively overrides profile weight
   (as session accumulates evidence, profile prior diminishes naturally)
 ```
 
-### Override Behavior (Future Work)
+### Override Behavior (Future Work — deferred)
 
-The interaction between profile prior and session context needs a design decision:
+The interaction between profile prior and session context is intentionally not implemented now. Current behavior: profile is always injected as a static bias; LLM naturally prioritises current conversation context. Three options for future consideration:
 - Option A: Hard override — once session has N turns, profile is ignored entirely
 - Option B: Soft blend — profile weight decays per turn (e.g., weight = 1/(1+turns))
 - Option C: User-controlled — explicit "Apply my profile" toggle in UI
-- **Decision: confirm with user before implementing**
 
 ### UI Touchpoints
 
@@ -346,8 +345,9 @@ The interaction between profile prior and session context needs a design decisio
 - [ ] Is LangSmith monitoring acceptable (data leaves BioMate infrastructure)?
 - [ ] For Phase 2 AutoFix: use `deepagents` package OR implement matching pattern manually?
 - [ ] Priority order: LangGraph (observability) vs Domain Profile (user stickiness) vs Caching (latency)?
-- [ ] Domain profile override threshold: Option A (hard cutoff at N turns) vs B (decay weight) vs C (user toggle)?
-- [ ] Tier 2 topic lists: should these be curated static lists per domain, or dynamically generated from the workflow index?
+- [ ] LangSmith tracing: acceptable to have trace data leave BioMate infrastructure?
+- **Decided:** Tier 2 topic lists are static curated lists — not dynamically generated.
+- **Deferred:** Domain profile override threshold — see Future Work section in implementation plan.
 
 ---
 
