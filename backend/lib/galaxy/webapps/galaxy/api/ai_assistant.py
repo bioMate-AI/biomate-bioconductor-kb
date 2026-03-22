@@ -96,6 +96,16 @@ except Exception as _e:
     _workflow_search = None
     WORKFLOW_SEARCH_AVAILABLE = False
 
+# ── WorkflowSession Redis store ───────────────────────────────────────────────
+import os as _os
+try:
+    from galaxy.ai.workflow_session import WorkflowSessionStore as _WorkflowSessionStore
+    _session_store = _WorkflowSessionStore(redis_url=_os.getenv("REDIS_URL", "redis://localhost:6379"))
+    log.info("[WorkflowSessionStore] Initialized (Redis URL=%s)", _os.getenv("REDIS_URL", "redis://localhost:6379"))
+except Exception as _sess_err:
+    logging.warning(f"WorkflowSessionStore unavailable: {_sess_err}")
+    _session_store = None
+
 # ── ToolKnowledgeProvider for scientific rationale ───────────────────────────
 try:
     from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider as _ToolKnowledgeProvider
@@ -1399,7 +1409,6 @@ def generate_workflow_unified(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        import os as _os
         # Extract uploaded dataset IDs if provided
         uploaded_datasets = None
         if request.available_datasets:
@@ -1407,17 +1416,44 @@ def generate_workflow_unified(
 
         user_id = str(trans.user.id) if getattr(trans, "user", None) else None
 
+        # Extract session_id from request context (threaded from frontend via context.session_id)
+        session_id = (
+            (request.context or {}).get("session_id")
+            or user_id
+            or "anon"
+        )
+
+        # ── N4: WorkflowSession — inject prior session context into user_intent ─
+        # Load the active session for this user/session.  If prior steps exist,
+        # prepend a compact summary so the backend knows the active workflow state
+        # (enables "change the padj to 0.01" to find the right step without a
+        # full re-query from the frontend).
+        effective_intent = request.request_text
+        if _session_store:
+            try:
+                sess = _session_store.get(session_id)
+                if sess and sess.steps:
+                    last_step = sess.steps[-1]
+                    prior_ctx = (
+                        f"[Active pipeline: {last_step.workflow_name}, "
+                        f"step {last_step.index + 1}, status={last_step.status}, "
+                        f"params={list(last_step.params.keys())}] "
+                    )
+                    effective_intent = prior_ctx + request.request_text
+                    log.info(
+                        "[generate_workflow] Session %s has %d step(s); injected prior context",
+                        session_id, len(sess.steps),
+                    )
+            except Exception as _se:
+                log.debug("[generate_workflow] Session lookup failed (non-fatal): %s", _se)
+
         # Route through LangGraph pipeline when BIOMATE_USE_LANGGRAPH=true.
         # The pipeline wraps generate_workflow_unified with tracing + checkpointing.
         # Falls back transparently to direct call on any failure.
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:
-            session_id = (
-                getattr(request, "session_id", None)
-                or (user_id or "anon")
-            )
             result = ai_assistant.run_via_pipeline(
-                user_intent=request.request_text,
+                user_intent=effective_intent,
                 session_id=session_id,
                 user_id=user_id,
                 uploaded_datasets=uploaded_datasets,
@@ -1425,7 +1461,7 @@ def generate_workflow_unified(
         else:
             # Generate workflow using unified approach (default / stable path)
             result = ai_assistant.generate_workflow_unified(
-                user_intent=request.request_text,
+                user_intent=effective_intent,
                 uploaded_datasets=uploaded_datasets,
                 user_id=user_id,
             )
@@ -1572,6 +1608,34 @@ def generate_workflow_unified(
             # If the result doesn't carry it (e.g. generate_workflow_unified path),
             # fall back to an empty dict — the frontend treats missing metadata gracefully.
             _endpoint_parameter_metadata = result.get('parameter_metadata') or {}
+
+            # ── N4: Save workflow step to WorkflowSession ──────────────────────
+            if _session_store:
+                try:
+                    sess = _session_store.get_or_create(session_id, user_intent=request.request_text)
+                    wf_name = result.get('nextflow_path') or result.get('workflow_type', 'unknown')
+                    nf_path = result.get('nextflow_path', '')
+                    # Params: flatten generated_parameters into {tool_id: {params}}
+                    step_params: dict = {}
+                    for _pd in result.get('generated_parameters', []):
+                        step_params.update(_pd.get('parameters', {}))
+                    out_types = [
+                        p.get('output_type', '') for p in result.get('generated_parameters', [])
+                        if p.get('output_type')
+                    ]
+                    sess.add_step(
+                        workflow_name=wf_name,
+                        nextflow_path=nf_path,
+                        params=step_params,
+                        output_types=out_types or ['bam'],
+                    )
+                    _session_store.save(sess)
+                    log.info(
+                        "[generate_workflow] Saved step %d to session %s",
+                        len(sess.steps) - 1, session_id,
+                    )
+                except Exception as _se:
+                    log.debug("[generate_workflow] Session save failed (non-fatal): %s", _se)
 
             return {
                 'success': True,

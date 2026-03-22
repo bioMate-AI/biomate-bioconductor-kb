@@ -399,6 +399,7 @@ export interface WorkflowGenerationRequest {
   user_intent: string;
   max_tools_search?: number;
   inline_parameters?: Record<string, string>;
+  session_id?: string;
   datasets?: Array<{
     id: string;
     name: string;

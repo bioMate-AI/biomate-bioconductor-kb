@@ -1810,6 +1810,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       user_intent: userIntent,
       max_tools_search: 30,
       inline_parameters: mergedInlineParameters,
+      session_id: context?.sessionId,
       datasets: datasets.map((d) => ({
         id: d.id,
         name: d.name,

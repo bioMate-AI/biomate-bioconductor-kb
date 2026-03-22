@@ -662,7 +662,9 @@ export class GalaxyAPIProxy {
       const backendRequest = {
         request_text: request.user_intent,  // Backend expects 'request_text' not 'user_intent'
         available_datasets: request.datasets || [],
-        context: {},
+        context: {
+          ...(request.session_id ? { session_id: request.session_id } : {}),
+        },
         preferred_tools: [],
         constraints: {
           max_tools_search: request.max_tools_search || 30
