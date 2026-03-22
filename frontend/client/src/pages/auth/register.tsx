@@ -9,6 +9,7 @@ import { Loader2, Check, CreditCard, Lock, Shield, Zap } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
+import { DomainProfileSelector, type DomainProfile } from "@/components/domain-profile-selector"
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation()
@@ -19,8 +20,8 @@ export default function RegisterPage() {
   // Pre-fill invite code from ?invite=CODE query param
   const prefilledCode = new URLSearchParams(search).get('invite') || ''
 
-  // Two-step: "account" then "trial"
-  const [step, setStep] = useState<"account" | "trial">("account")
+  // Three-step: "account" → "domain" → "trial"
+  const [step, setStep] = useState<"account" | "domain" | "trial">("account")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -88,8 +89,8 @@ export default function RegisterPage() {
       localStorage.setItem('user', JSON.stringify(data.user))
       setAuthToken(data.token)
 
-      // Move to step 2
-      setStep("trial")
+      // Move to domain profile step before trial
+      setStep("domain")
     } catch (error) {
       toast({
         variant: "destructive",
@@ -101,7 +102,31 @@ export default function RegisterPage() {
     }
   }
 
-  // ── Step 2: start Stripe trial ─────────────────────────────────────────────
+  // ── Step 2: domain profile ────────────────────────────────────────────────
+
+  const handleSaveDomainProfile = async (profile: DomainProfile) => {
+    // Best-effort: save profile then proceed to trial regardless of outcome
+    try {
+      await fetch('/api/user/domain-profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify(profile),
+      })
+    } catch {
+      // Non-fatal — user can update profile later from settings
+    }
+    setStep("trial")
+  }
+
+  const handleSkipDomainProfile = () => {
+    setStep("trial")
+  }
+
+  // ── Step 3: start Stripe trial ─────────────────────────────────────────────
 
   const handleStartTrial = async () => {
     setIsLoading(true)
@@ -161,7 +186,22 @@ export default function RegisterPage() {
     }
   }
 
-  // ── Step 2 UI ──────────────────────────────────────────────────────────────
+  // ── Step 2 UI: domain profile ─────────────────────────────────────────────
+
+  if (step === "domain") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+        <div className="w-full max-w-2xl">
+          <DomainProfileSelector
+            onSave={handleSaveDomainProfile}
+            onSkip={handleSkipDomainProfile}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 3 UI: trial ──────────────────────────────────────────────────────
 
   if (step === "trial") {
     return (

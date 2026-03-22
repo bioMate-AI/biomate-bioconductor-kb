@@ -661,6 +661,46 @@ def search_nextflow_workflow(
         raise HTTPException(status_code=503, detail="Workflow search not available")
 
     try:
+        # ── Chain pre-check (Step 0) ─────────────────────────────────────────
+        # Before searching individual Nextflow workflows, check whether a
+        # curated multi-step chain matches the query.  Chains outrank any
+        # single-workflow match because they represent authoritative, vetted
+        # multi-tool pipelines for complex analyses.
+        # search_chains returns List[WorkflowChain] already filtered at ≥0.15;
+        # we only act when at least one chain is returned (score already enough
+        # to be meaningful — chain match is always preferred over single wf).
+        chain_candidates = _workflow_search.search_chains(user_intent)
+        if chain_candidates:
+            best_chain = chain_candidates[0]
+            log.info(
+                f"[search_nextflow_workflow] Chain match '{best_chain.name}' — returning chain payload"
+            )
+            return {
+                "success": True,
+                "workflow_type": "chain",
+                "chain_name": best_chain.name,
+                "chain_display_name": best_chain.display_name,
+                "chain_domain": best_chain.domain,
+                "chain_description": best_chain.description,
+                "chain_steps": best_chain.steps,   # already List[dict]
+                "chain_connections": best_chain.connections,
+                "required_inputs": best_chain.required_inputs,
+                "expected_outputs": best_chain.expected_outputs,
+                "all_chains": [
+                    {"name": c.name, "display_name": c.display_name}
+                    for c in chain_candidates[:5]
+                ],
+                "source": "chain_lookup",
+                "confidence": 9,
+                "message": f"Multi-step pipeline: {best_chain.display_name}",
+                "note": best_chain.description,
+                "execution_engine": "chain",
+                "citations": [],
+                "methods_section": None,
+                "parameter_recommendations": {},
+                "pilot_run_suggested": False,
+            }
+        # ── Individual Nextflow workflow search ──────────────────────────────
         results = _workflow_search.search(user_intent, limit=5, include_workflow_json=False)
         if not results:
             return {"success": False, "message": "No matching workflows found"}
