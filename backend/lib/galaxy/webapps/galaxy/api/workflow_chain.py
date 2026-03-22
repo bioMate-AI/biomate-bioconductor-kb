@@ -572,3 +572,80 @@ async def get_workflow_types(workflow_name: str) -> Dict[str, Any]:
         "output_types": out_types,
         "has_type_info": bool(in_types or out_types),
     }
+
+
+# ── Workflow chain catalog ─────────────────────────────────────────────────
+
+def _load_chain_row(row: tuple) -> Dict[str, Any]:
+    """Convert a workflow_chains DB row to a dict."""
+    cols = [
+        "id", "name", "display_name", "domain", "description",
+        "steps", "connections", "required_inputs", "expected_outputs",
+        "example_queries", "tags", "source", "usage_count", "success_rate",
+        "created_at", "updated_at",
+    ]
+    d = dict(zip(cols, row))
+    for field in ("steps", "connections", "required_inputs", "expected_outputs", "example_queries", "tags"):
+        try:
+            d[field] = json.loads(d[field] or "[]")
+        except (json.JSONDecodeError, TypeError):
+            d[field] = []
+    return d
+
+
+@router.get("/api/workflows/chains", summary="List curated workflow chains")
+async def list_workflow_chains(domain: Optional[str] = None) -> Dict[str, Any]:
+    """Return all curated workflow chains, optionally filtered by domain."""
+    try:
+        conn = sqlite3.connect(str(_DB_PATH))
+        try:
+            if domain:
+                rows = conn.execute(
+                    "SELECT * FROM workflow_chains WHERE domain=? ORDER BY usage_count DESC",
+                    (domain,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT * FROM workflow_chains ORDER BY usage_count DESC"
+                ).fetchall()
+        finally:
+            conn.close()
+        return {"chains": [_load_chain_row(r) for r in rows], "total": len(rows)}
+    except Exception as exc:
+        log.warning("list_workflow_chains failed: %s", exc)
+        return {"chains": [], "total": 0, "error": str(exc)}
+
+
+class RecordChainRunRequest(BaseModel):
+    chain_name: str
+    success: bool
+
+
+@router.post("/api/workflows/chains/record-run", summary="Record outcome of a chain run")
+async def record_chain_run(request: RecordChainRunRequest) -> Dict[str, Any]:
+    """Update usage_count and rolling success_rate for a named chain."""
+    try:
+        conn = sqlite3.connect(str(_DB_PATH))
+        try:
+            row = conn.execute(
+                "SELECT usage_count, success_rate FROM workflow_chains WHERE name=?",
+                (request.chain_name,),
+            ).fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail=f"Chain '{request.chain_name}' not found")
+            usage, rate = row
+            new_usage = usage + 1
+            new_rate = round((rate * usage + (1.0 if request.success else 0.0)) / new_usage, 4)
+            conn.execute(
+                "UPDATE workflow_chains SET usage_count=?, success_rate=?, updated_at=? WHERE name=?",
+                (new_usage, new_rate, datetime.now(timezone.utc).isoformat(), request.chain_name),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return {"chain_name": request.chain_name, "usage_count": new_usage, "success_rate": new_rate}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.warning("record_chain_run failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))

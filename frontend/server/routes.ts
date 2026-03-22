@@ -873,6 +873,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Workflow chain catalog
+  app.get('/api/workflows/chains', optionalAuth, async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const qs = req.query.domain ? `?domain=${encodeURIComponent(String(req.query.domain))}` : '';
+      const resp = await fetch(`${galaxyUrl}/api/workflows/chains${qs}`, { signal: AbortSignal.timeout(5000) });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ chains: [], total: 0, error: String(err?.message ?? err) });
+    }
+  });
+
+  app.post('/api/workflows/chains/record-run', optionalAuth, express.json(), async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyUrl}/api/workflows/chains/record-run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err) });
+    }
+  });
+
   // Error rate dashboard — returns 7-day rates for crash/timeout/5xx monitoring
   app.get('/api/admin/error-rates', async (req, res) => {
     try {

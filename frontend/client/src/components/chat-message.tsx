@@ -51,6 +51,7 @@ import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { WorkflowRationale } from "./workflow-rationale"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
@@ -359,6 +360,29 @@ export function ChatMessage({
                     </button>
                   </div>
                 );
+              }
+
+              // Chain plan — curated multi-step pipeline returned by workflow_chains lookup
+              const isChainWorkflow = message.metadata?.workflow?.workflow_type === 'chain'
+              if (isChainWorkflow) {
+                const wf = message.metadata.workflow
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                  >
+                    <WorkflowChainPlan
+                      chainName={wf.chain_name || wf.name || ''}
+                      displayName={wf.chain_display_name || wf.display_name || wf.name || 'Pipeline Plan'}
+                      domain={wf.chain_domain || wf.domain || ''}
+                      description={wf.chain_description || wf.description || ''}
+                      steps={wf.chain_steps || []}
+                      connections={wf.chain_connections || []}
+                      requiredInputs={wf.required_inputs || []}
+                      expectedOutputs={wf.expected_outputs || []}
+                    />
+                  </div>
+                )
               }
 
               return (
