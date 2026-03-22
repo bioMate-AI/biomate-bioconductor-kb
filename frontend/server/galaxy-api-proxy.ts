@@ -623,6 +623,10 @@ export class GalaxyAPIProxy {
         if (!payload || payload.success !== true) {
           return false;
         }
+        // Curated chain plans are always accepted — they render as WorkflowChainPlan
+        if (payload.workflow_type === 'chain') {
+          return true;
+        }
         const nextflowPath = payload.nextflow_path || payload.workflow_ga?.nextflow_path;
         if (isExecutableNextflowPath(nextflowPath)) {
           return true;

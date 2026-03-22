@@ -572,8 +572,14 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
         return {"parameters": parameters, "parameter_metadata": parameter_metadata}
     try:
         backend_root = FilePath(__file__).resolve().parents[5]
-        abs_path = FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename
-        if not abs_path.exists():
+        # Try multiple candidate paths (DB paths omit biomni_workflows/ prefix)
+        _candidates = [
+            FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename,
+            backend_root / "biomni_workflows" / nf_filename,
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / nf_filename,
+        ]
+        abs_path = next((c for c in _candidates if c.exists()), None)
+        if abs_path is None:
             return {"parameters": parameters, "parameter_metadata": parameter_metadata}
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
@@ -615,14 +621,9 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
                 val = raw_val
                 ptype = "string"
 
-            # Level
-            _REQUIRED_PARAMS = {"movies_path", "pixel_size", "voltage"}
+            # Level — any param with null value is required (user must supply it)
             _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
-            if name == "movies_path":
-                level = "required"
-            elif ptype == "file" and val is None:
-                level = "optional"
-            elif name in _REQUIRED_PARAMS:
+            if val is None:
                 level = "required"
             elif name in _RECOMMENDED_PARAMS:
                 level = "recommended"
@@ -674,6 +675,10 @@ def search_nextflow_workflow(
             # Exclude known non-entry nf-core subworkflow library paths.
             if filename.startswith("nfcore/subworkflows/"):
                 return False
+            if filename.startswith("nf-core-modules/"):
+                return False
+            if "nf-core-modules/subworkflows/" in filename:
+                return False
             if "/nf-core-modules/subworkflows/" in filename:
                 return False
             if "/nfcore/subworkflows/" in filename:
@@ -717,6 +722,32 @@ def search_nextflow_workflow(
             if runnable_executable:
                 best = runnable_executable
 
+        # Helper: resolve a DB filename to an absolute path, checking biomni_workflows/ prefix too
+        def _nf_file_exists(fname: str) -> bool:
+            if not fname:
+                return False
+            _root = FilePath(__file__).resolve().parents[5]
+            for candidate in [
+                FilePath(fname) if FilePath(fname).is_absolute() else _root / fname,
+                _root / "biomni_workflows" / fname,
+                _root / "biomni_workflows" / "nextflow_nfcore" / fname,
+            ]:
+                if candidate.exists():
+                    return True
+            return False
+
+        # Skip phantom DB entries whose .nf file doesn't exist on disk
+        if best.format == "nextflow" and best.filename and not _nf_file_exists(best.filename):
+            _disk_best = next(
+                (r for r in results if r is not best
+                 and _is_executable_nextflow_match(r)
+                 and getattr(r, "filename", "")
+                 and _nf_file_exists(r.filename)),
+                None,
+            )
+            if _disk_best:
+                best = _disk_best
+
         workflow_tools = getattr(best, "tools", []) or []
         hardware_requirements = _collect_workflow_hardware_requirements(workflow_tools)
         scientific_rationale = _build_scientific_rationale_from_tools(workflow_tools)
@@ -734,7 +765,38 @@ def search_nextflow_workflow(
         _wf_parameters = _nf_parsed.get("parameters", {})
         _wf_parameter_metadata = _nf_parsed.get("parameter_metadata", None) or _search_parameter_metadata
 
-        return {
+        # Build required/optional param lists consumed by nextflow-workflow-viewer.tsx
+        _req_params: list = []
+        _opt_params: list = []
+        for _pname, _pmeta in (_wf_parameter_metadata.items() if isinstance(_wf_parameter_metadata, dict) else []):
+            _entry = {
+                "name": _pname,
+                "label": _pmeta.get("label", _pname.replace("_", " ").title()),
+                "description": _pmeta.get("label", _pname.replace("_", " ").title()),
+                "default": _wf_parameters.get(_pname),
+            }
+            if _pmeta.get("level") == "required":
+                _req_params.append(_entry)
+            else:
+                _opt_params.append(_entry)
+
+        _prereq_validation = None
+        if _req_params:
+            _prereq_validation = {
+                "requirements": {
+                    "parameters": [
+                        {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
+                        for p in _req_params
+                    ]
+                },
+                "analysis": {
+                    "missingInputs": [],
+                    "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in _req_params],
+                    "inputMappings": [],
+                },
+            }
+
+        _return_dict: dict = {
             "success": True,
             "workflow_type": best.format,
             "nextflow_path": best.filename if best.format == "nextflow" else None,
@@ -748,6 +810,8 @@ def search_nextflow_workflow(
             "step_count": best.step_count,
             "scientific_rationale": scientific_rationale,
             "parameter_metadata": _wf_parameter_metadata,
+            "required_params": _req_params,
+            "optional_params": _opt_params,
             "workflow_ga": {
                 "name": best.name,
                 "description": best.description,
@@ -759,15 +823,20 @@ def search_nextflow_workflow(
                 "steps": _parse_nextflow_steps(best.filename) if best.format == "nextflow" and best.filename else {},
                 "parameters": _wf_parameters,
                 "parameter_metadata": _wf_parameter_metadata,
+                "required_params": _req_params,
+                "optional_params": _opt_params,
                 "hardware_requirements": hardware_requirements,
                 "scientific_rationale": scientific_rationale,
             },
             "hardware_requirements": hardware_requirements,
             "datasets_assigned": False,
-            "generated_parameters": [],
+            "generated_parameters": _req_params + _opt_params,
             "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
             "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
         }
+        if _prereq_validation:
+            _return_dict["prerequisitesValidation"] = _prereq_validation
+        return _return_dict
     except Exception as e:
         log.error(f"Nextflow workflow search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1301,6 +1370,32 @@ def generate_workflow_unified(
             uploaded_datasets=uploaded_datasets,
             user_id=str(trans.user.id) if getattr(trans, "user", None) else None,
         )
+
+        # Chain responses carry a different payload (no workflow_ga / citations).
+        # Return them directly so the frontend WorkflowChainPlan component can render.
+        if result.get('workflow_type') == 'chain':
+            return {
+                'success': True,
+                'workflow_type': 'chain',
+                'chain_name': result.get('chain_name'),
+                'chain_display_name': result.get('chain_display_name'),
+                'chain_domain': result.get('chain_domain'),
+                'chain_description': result.get('chain_description'),
+                'chain_steps': result.get('chain_steps', []),
+                'chain_connections': result.get('chain_connections', []),
+                'required_inputs': result.get('required_inputs', []),
+                'expected_outputs': result.get('expected_outputs', []),
+                'all_chains': result.get('all_chains', []),
+                'source': 'chain_lookup',
+                'confidence': result.get('confidence', 9),
+                'message': result.get('message', ''),
+                'note': result.get('note', ''),
+                'execution_engine': 'chain',
+                'citations': [],
+                'methods_section': None,
+                'parameter_recommendations': {},
+                'pilot_run_suggested': False,
+            }
 
         if result['success']:
             # Process citations from the result
