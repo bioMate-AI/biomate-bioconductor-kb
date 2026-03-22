@@ -34,7 +34,7 @@ export class GalaxyAPIProxy {
   private connectionError: string | null = null;
 
   constructor(galaxyUrl?: string, apiKey?: string) {
-    this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8080';
+    this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8081';
     this.apiKey = apiKey || process.env.GALAXY_API_KEY;
 
     // Warn if using default localhost

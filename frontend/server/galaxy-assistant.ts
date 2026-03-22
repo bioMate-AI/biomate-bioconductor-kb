@@ -343,7 +343,8 @@ export class GalaxyAssistant {
       return { domains: cached.domains, topics: cached.topics };
     }
     try {
-      const res = await fetch(`http://localhost:8080/api/user/domain-profile?user_id=${userId}`, {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const res = await fetch(`${galaxyUrl}/api/user/domain-profile?user_id=${userId}`, {
         headers: { 'Content-Type': 'application/json' },
       });
       if (!res.ok) return null;
@@ -2242,7 +2243,8 @@ ${isDrugDevelopmentQuery && !isResearchIntent ? `
 
     // POST to /api/memory/session-summary (non-blocking; this server calls Galaxy backend)
     const body = JSON.stringify({ summary, sessionId, userId });
-    await fetch('http://localhost:8080/api/memory/session-summary', {
+    const _galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    await fetch(`${_galaxyUrl}/api/memory/session-summary`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
