@@ -92,6 +92,10 @@ class AIAssistant:
 
         # ONLY initialize components needed for generate_workflow_unified()
         self.workflow_search = get_workflow_search()  # UnifiedWorkflowSearch with 951+ workflows
+        # N5: inject fast-LLM client into search for Pass-0 catalog browse (lazy — done after
+        # _fast_llm_client is built on first call, so we register it here with a placeholder
+        # and update after first use.  Actual injection happens in fast_llm_classify.)
+        # NOTE: injection happens lazily on first fast_llm_classify call (see _inject_search_llm).
         self._tool_search = None  # Lazy-loaded UnifiedToolSearch
         self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
@@ -546,6 +550,12 @@ class AIAssistant:
                 # Override only the model; keep all auth/endpoint settings unchanged
                 client.model = fast_model
             self._fast_llm_client = client
+            # N5: wire fast-LLM into the workflow search singleton for Pass-0 browse.
+            # Done exactly once here — when the client is first created.
+            try:
+                self.workflow_search.set_llm_client(self._fast_llm_client)
+            except Exception:
+                pass
 
         return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
 

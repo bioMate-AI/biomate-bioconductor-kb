@@ -22,6 +22,7 @@ import json
 import sqlite3
 import logging
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
@@ -69,6 +70,48 @@ class WorkflowMatch:
     workflow_json: Optional[str] = None
 
 
+@dataclass
+class WorkflowChain:
+    """A named, ordered composition of workflows for a research project type.
+
+    Chains are the unit of plan when a user submits a multi-step research
+    query.  A matching chain bypasses per-query LLM assembly and provides
+    a validated, curated execution plan with explicit data-flow connections.
+    """
+    id: int
+    name: str
+    display_name: str
+    domain: str
+    description: str
+    steps: List[Dict[str, Any]]        # [{order, workflow_name, role, params_template}]
+    connections: List[Dict[str, Any]]  # [{from_step, from_output, to_step, to_input}]
+    required_inputs: List[Dict[str, Any]]
+    expected_outputs: List[Dict[str, Any]]
+    example_queries: List[str]
+    tags: List[str]
+    source: str                        # 'curated' | 'learned' | 'user_defined'
+    usage_count: int
+    success_rate: float
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "display_name": self.display_name,
+            "domain": self.domain,
+            "description": self.description,
+            "steps": self.steps,
+            "connections": self.connections,
+            "required_inputs": self.required_inputs,
+            "expected_outputs": self.expected_outputs,
+            "example_queries": self.example_queries,
+            "tags": self.tags,
+            "source": self.source,
+            "usage_count": self.usage_count,
+            "success_rate": self.success_rate,
+        }
+
+
 class UnifiedWorkflowSearch:
     """
     Unified search across all indexed workflows.
@@ -84,6 +127,10 @@ class UnifiedWorkflowSearch:
         """Initialize with database connection."""
         self.db_path = db_path or DB_PATH
         self._ensure_fts_index()
+
+        # Optional fast-LLM client for Pass-0 catalog browse.
+        # Set via set_llm_client() from AIAssistant after construction.
+        self._llm_client: Optional[Any] = None
 
         # Keyword weights for scoring
         self.keyword_weights = {
@@ -166,17 +213,33 @@ class UnifiedWorkflowSearch:
             'scaffold-hopping': 3.0, 'mmp': 2.5, 'recap': 2.5,
             'drug-like': 2.5, 'druglikeness': 2.5, 'lipinski': 2.0,
             'solubility': 2.0, 'logp': 2.0, 'psa': 2.0,
-            # MD simulation + binding free energy
-            'gromacs': 3.5, 'molecular dynamics': 3.5, 'md simulation': 3.5,
-            'mm-gbsa': 3.5, 'mmgbsa': 3.5, 'binding free energy': 3.5,
-            'free energy': 2.5, 'deltag': 2.5, 'delta g': 2.5,
-            'post-docking': 3.0, 'ambertools': 2.5, 'gaff2': 2.5,
-            'rmsd': 2.0, 'rmsf': 2.0, 'trajectory': 2.0, 'equilibration': 2.5,
-            # Generative design
+
+            # MD simulation (AMBER / GROMACS)
+            'amber': 3.5, 'pmemd': 3.5, 'amber24': 3.5, 'ambertools': 3.0,
+            'gromacs': 3.5, 'gmx': 3.0, 'gromos': 3.0, 'gromacs md': 3.5,
+            'molecular dynamics': 3.5, 'md simulation': 3.5, 'explicit solvent md': 3.5,
+            'nvt': 2.5, 'npt': 2.5, 'equilibration': 2.5, 'gaff2': 3.0, 'tleap': 3.0,
+            'mm-gbsa': 3.5, 'mmgbsa': 3.5, 'mmpbsa': 3.5, 'binding free energy': 3.5,
+            'cpptraj': 3.0, 'rmsd trajectory': 3.0, 'protein stability': 3.0,
+
+            # Glide / Schrödinger
+            'glide': 3.5, 'schrodinger': 3.5, 'schrödinger': 3.5,
+            'glidescore': 3.5, 'htvs': 3.5, 'xp docking': 3.5, 'sp docking': 3.0,
+            'extra precision docking': 3.5, 'prepwiz': 3.0, 'ligprep': 2.5,
+            'virtual screening glide': 3.5, 'fep plus': 3.0, 'fep+': 3.0,
+
+            # MOE covalent docking
+            'moe': 3.5, 'moebatch': 3.5, 'covdock': 3.5, 'covalent docking': 3.5,
+            'covalent inhibitor': 3.5, 'warhead': 3.5, 'acrylamide': 3.0,
+            'chloroacetamide': 3.0, 'irreversible inhibitor': 3.5,
+            'gbvi': 3.0, 'gbvi wsa': 3.5, 'targeted covalent': 3.5,
+            'molecular operating environment': 3.5,
+
+            # Generative design (REINVENT4)
             'reinvent': 3.5, 'reinvent4': 3.5, 'generative design': 3.5,
-            'de novo': 3.5, 'de-novo': 3.5, 'lead generation': 3.0,
-            'scaffold decoration': 3.0, 'linker design': 3.0,
-            'molecular generation': 3.0, 'reinforcement learning drug': 3.0,
+            'de novo design': 3.5, 'de novo': 3.0, 'scaffold hopping': 3.5,
+            'lead generation': 3.0, 'lead optimization': 3.0,
+            'molecule optimization': 3.0, 'fragment decoration': 3.0,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
@@ -226,6 +289,105 @@ class UnifiedWorkflowSearch:
         conn.commit()
         log.info("FTS index created and populated")
 
+    # ------------------------------------------------------------------
+    # Pass-0: LLM-based catalog browse
+    # ------------------------------------------------------------------
+
+    def set_llm_client(self, client: Any) -> None:
+        """Inject a fast-LLM client to enable Pass-0 catalog browse.
+
+        The client must expose ``generate(prompt, max_tokens, temperature) -> str``.
+        Call this from ``AIAssistant.__init__()`` after construction so that
+        the singleton search instance gets LLM capability without requiring it
+        at import time.
+        """
+        self._llm_client = client
+        log.info("[UnifiedWorkflowSearch] LLM client set — Pass-0 browse enabled")
+
+    def _browse_catalog_with_llm(
+        self,
+        query: str,
+        broad_limit: int = 60,
+        output_limit: int = 10,
+    ) -> List[int]:
+        """Pass-0: Ask the LLM to identify the most relevant workflow IDs.
+
+        Algorithm
+        ---------
+        1. Fetch ``broad_limit`` workflows from the DB using a relaxed FTS
+           query (many terms OR-joined).  These are the candidates the LLM
+           will choose from.
+        2. Format them as a compact numbered list: ``<id>. <name>: <description>``.
+        3. Send to the fast LLM (Claude Haiku / GPT-3.5) with a structured
+           prompt asking it to return a JSON list of the top ``output_limit``
+           workflow IDs best matching the query.
+        4. Parse the JSON; return a list of integer IDs.  Returns ``[]`` on
+           any error so the caller can fall back to pure FTS.
+
+        This is intentionally lightweight:
+        - Uses the cheapest/fastest model.
+        - Max 128 output tokens (a short JSON array).
+        - Fails silently — never blocks the main search path.
+        """
+        if self._llm_client is None:
+            return []
+
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            fts_query = self._build_fts_query(query)
+            cursor.execute(
+                """
+                SELECT w.id, w.name, COALESCE(w.description, '') as description
+                FROM workflows w
+                JOIN workflows_fts ON w.id = workflows_fts.rowid
+                WHERE workflows_fts MATCH ?
+                ORDER BY bm25(workflows_fts)
+                LIMIT ?
+                """,
+                [fts_query, broad_limit],
+            )
+            rows = cursor.fetchall()
+        except Exception as _exc:
+            log.debug("[Pass-0] FTS broad fetch failed: %s", _exc)
+            return []
+        finally:
+            conn.close()
+
+        if not rows:
+            return []
+
+        # Format catalog for LLM
+        catalog_lines = []
+        for wf_id, name, desc in rows:
+            short_desc = (desc or "")[:120].replace("\n", " ")
+            catalog_lines.append(f"{wf_id}. {name}: {short_desc}")
+        catalog_text = "\n".join(catalog_lines)
+
+        prompt = (
+            f"You are a bioinformatics workflow recommender.\n"
+            f"User query: {query}\n\n"
+            f"Candidate workflows (id. name: description):\n{catalog_text}\n\n"
+            f"Return ONLY a JSON array of the {output_limit} workflow IDs (integers) "
+            f"that best match the user query, ordered by relevance (best first). "
+            f"Example: [42, 7, 15]. No explanation, just the JSON array."
+        )
+
+        try:
+            raw = self._llm_client.generate(prompt, max_tokens=128, temperature=0.0)
+            # Extract JSON array from the response (strip any surrounding text)
+            import re as _re
+            m = _re.search(r"\[[\d,\s]+\]", raw or "")
+            if not m:
+                log.debug("[Pass-0] LLM response has no JSON array: %r", raw)
+                return []
+            ids = [int(x) for x in m.group(0).strip("[]").split(",") if x.strip().isdigit()]
+            log.info("[Pass-0] LLM selected %d workflow IDs for query %r", len(ids), query[:60])
+            return ids[:output_limit]
+        except Exception as _exc:
+            log.debug("[Pass-0] LLM catalog browse failed: %s", _exc)
+            return []
+
     def search(self,
                query: str,
                domain: Optional[str] = None,
@@ -252,6 +414,14 @@ class UnifiedWorkflowSearch:
         Returns:
             List of WorkflowMatch objects sorted by relevance
         """
+        # ── Pass 0: LLM catalog browse ─────────────────────────────────────────
+        # Ask the fast LLM to pick the most semantically relevant workflow IDs
+        # from a broad FTS candidate set.  Returns [] when LLM is unavailable
+        # or any error occurs, so the rest of the search is unaffected.
+        # Preserve ranked order for graded boosting (rank 0 gets +3.0, rank 9 gets +0.3).
+        llm_ranked_ids: List[int] = self._browse_catalog_with_llm(query, broad_limit=60, output_limit=10)
+        llm_rank_map: Dict[int, int] = {wf_id: rank for rank, wf_id in enumerate(llm_ranked_ids)}
+
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -292,9 +462,30 @@ class UnifiedWorkflowSearch:
             results = []
             for row in rows:
                 match = self._create_match(row, query, include_workflow_json, user_profile=user_profile)
+                # ── Pass-0 boost: workflows the LLM ranked get a graded bonus ──
+                # rank 0 → +3.0, rank 1 → +2.7, ..., rank 9 → +0.3
+                if llm_rank_map and row[0] in llm_rank_map:
+                    rank = llm_rank_map[row[0]]
+                    rank_bonus = max(0.0, 3.0 - 0.3 * rank)
+                    match = WorkflowMatch(
+                        id=match.id,
+                        name=match.name,
+                        description=match.description,
+                        domain=match.domain,
+                        source=match.source,
+                        format=match.format,
+                        step_count=match.step_count,
+                        tools_used=match.tools_used,
+                        tags=match.tags,
+                        filename=match.filename,
+                        workflow_json=match.workflow_json,
+                        score=round(match.score + rank_bonus, 2),
+                        confidence=match.confidence,
+                        template_match_score=match.template_match_score,
+                    )
                 results.append(match)
 
-            # Sort by custom score (includes source priority)
+            # Sort by custom score (includes source priority + Pass-0 boost)
             results.sort(key=lambda x: x.score, reverse=True)
 
             return results[:limit]
@@ -613,6 +804,143 @@ class UnifiedWorkflowSearch:
         finally:
             conn.close()
 
+    # ── Workflow chain API ────────────────────────────────────────────────────
+
+    def _row_to_chain(self, row) -> "WorkflowChain":
+        """Convert a DB row to a WorkflowChain dataclass."""
+        return WorkflowChain(
+            id              = row[0],
+            name            = row[1],
+            display_name    = row[2],
+            domain          = row[3],
+            description     = row[4] or "",
+            steps           = json.loads(row[5] or "[]"),
+            connections     = json.loads(row[6] or "[]"),
+            required_inputs = json.loads(row[7] or "[]"),
+            expected_outputs= json.loads(row[8] or "[]"),
+            example_queries = json.loads(row[9] or "[]"),
+            tags            = json.loads(row[10] or "[]"),
+            source          = row[11] or "curated",
+            usage_count     = row[12] or 0,
+            success_rate    = row[13] or 0.0,
+        )
+
+    def _chain_select_cols(self) -> str:
+        return (
+            "id, name, display_name, domain, description, "
+            "steps, connections, required_inputs, expected_outputs, "
+            "example_queries, tags, source, usage_count, success_rate"
+        )
+
+    def search_chains(self, query: str, domain: Optional[str] = None,
+                      limit: int = 3) -> List["WorkflowChain"]:
+        """Return workflow chains whose example_queries or description match the query.
+
+        Scoring uses three signals:
+          1. Any example_query token overlap with the user query (primary)
+          2. Tag overlap with query tokens
+          3. Domain match bonus
+
+        A chain score ≥ 0.4 is considered a viable match.  The caller should
+        prefer chains over per-step LLM assembly when a match is found.
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                f"SELECT {self._chain_select_cols()} FROM workflow_chains"
+                + (" WHERE domain=?" if domain else ""),
+                ([domain] if domain else []),
+            )
+            rows = cursor.fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            return []
+
+        query_tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
+
+        scored: List[Tuple[float, "WorkflowChain"]] = []
+        for row in rows:
+            chain = self._row_to_chain(row)
+
+            # Token overlap across all example queries
+            chain_tokens: set = set()
+            for eq in chain.example_queries:
+                chain_tokens.update(re.findall(r"[a-z0-9]+", eq.lower()))
+            chain_tokens.update(re.findall(r"[a-z0-9]+", chain.description.lower()))
+            chain_tokens.update(t.lower() for t in chain.tags)
+
+            overlap = len(query_tokens & chain_tokens)
+            union   = len(query_tokens | chain_tokens) or 1
+            score   = overlap / union
+
+            # Keyword weight boost using same table as workflow search
+            kw_boost = sum(
+                self.keyword_weights.get(t, 0.0) for t in query_tokens & chain_tokens
+            ) * 0.05
+
+            scored.append((min(score + kw_boost, 1.0), chain))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        # Return chains with at least weak signal
+        return [c for s, c in scored[:limit] if s >= 0.15]
+
+    def get_chain(self, name: str) -> Optional["WorkflowChain"]:
+        """Fetch a chain by its unique name."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                f"SELECT {self._chain_select_cols()} FROM workflow_chains WHERE name=?",
+                (name,),
+            )
+            row = cursor.fetchone()
+            return self._row_to_chain(row) if row else None
+        finally:
+            conn.close()
+
+    def record_chain_run(self, chain_name: str, success: bool) -> None:
+        """Update usage_count and rolling success_rate for a chain after execution."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "SELECT usage_count, success_rate FROM workflow_chains WHERE name=?",
+                (chain_name,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return
+            old_count, old_rate = row
+            new_count = old_count + 1
+            # Exponential moving average with α=0.1 for stability
+            new_rate = old_rate * 0.9 + (1.0 if success else 0.0) * 0.1
+            cursor.execute(
+                "UPDATE workflow_chains SET usage_count=?, success_rate=?, updated_at=? WHERE name=?",
+                (new_count, new_rate, datetime.utcnow().isoformat(), chain_name),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def list_chains(self, domain: Optional[str] = None) -> List["WorkflowChain"]:
+        """List all curated chains, optionally filtered by domain."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            sql = f"SELECT {self._chain_select_cols()} FROM workflow_chains"
+            params: list = []
+            if domain:
+                sql += " WHERE domain=?"
+                params.append(domain)
+            sql += " ORDER BY usage_count DESC, name"
+            cursor.execute(sql, params)
+            return [self._row_to_chain(r) for r in cursor.fetchall()]
+        finally:
+            conn.close()
+
     def get_stats(self) -> Dict[str, Any]:
         """Get workflow index statistics."""
         conn = self._get_connection()
@@ -631,11 +959,22 @@ class UnifiedWorkflowSearch:
             cursor.execute("SELECT format, COUNT(*) FROM workflows GROUP BY format")
             by_format = dict(cursor.fetchall())
 
+            # Chain stats
+            try:
+                cursor.execute("SELECT COUNT(*) FROM workflow_chains")
+                chain_total = cursor.fetchone()[0]
+                cursor.execute("SELECT domain, COUNT(*) FROM workflow_chains GROUP BY domain")
+                chains_by_domain = dict(cursor.fetchall())
+            except sqlite3.OperationalError:
+                chain_total = 0
+                chains_by_domain = {}
+
             return {
                 "total": total,
                 "by_source": by_source,
                 "by_domain": by_domain,
-                "by_format": by_format
+                "by_format": by_format,
+                "chains": {"total": chain_total, "by_domain": chains_by_domain},
             }
 
         finally:
