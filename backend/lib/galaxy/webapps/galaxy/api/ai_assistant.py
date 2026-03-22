@@ -1399,17 +1399,36 @@ def generate_workflow_unified(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
+        import os as _os
         # Extract uploaded dataset IDs if provided
         uploaded_datasets = None
         if request.available_datasets:
             uploaded_datasets = [ds.get('id') for ds in request.available_datasets if ds.get('id')]
 
-        # Generate workflow using unified approach
-        result = ai_assistant.generate_workflow_unified(
-            user_intent=request.request_text,
-            uploaded_datasets=uploaded_datasets,
-            user_id=str(trans.user.id) if getattr(trans, "user", None) else None,
-        )
+        user_id = str(trans.user.id) if getattr(trans, "user", None) else None
+
+        # Route through LangGraph pipeline when BIOMATE_USE_LANGGRAPH=true.
+        # The pipeline wraps generate_workflow_unified with tracing + checkpointing.
+        # Falls back transparently to direct call on any failure.
+        use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
+        if use_langgraph:
+            session_id = (
+                getattr(request, "session_id", None)
+                or (user_id or "anon")
+            )
+            result = ai_assistant.run_via_pipeline(
+                user_intent=request.request_text,
+                session_id=session_id,
+                user_id=user_id,
+                uploaded_datasets=uploaded_datasets,
+            )
+        else:
+            # Generate workflow using unified approach (default / stable path)
+            result = ai_assistant.generate_workflow_unified(
+                user_intent=request.request_text,
+                uploaded_datasets=uploaded_datasets,
+                user_id=user_id,
+            )
 
         # Chain responses carry a different payload (no workflow_ga / citations).
         # Return them directly so the frontend WorkflowChainPlan component can render.

@@ -117,6 +117,17 @@ class AIAssistant:
         self._literature_client = None  # UnifiedLiteratureClient for citation retrieval
         self._fast_llm_client = None   # Cheap/fast LLMClient for classification tasks
 
+        # LangGraph pipeline — built lazily on first use; shared across requests.
+        # Enabled when BIOMATE_USE_LANGGRAPH=true (default: off, safe rollout).
+        self._langgraph_pipeline = None  # CompiledStateGraph | None
+
+        # Enable LangSmith tracing if API key is configured (no-op if not set)
+        try:
+            from galaxy.config.ai_config import configure_langsmith
+            configure_langsmith()
+        except Exception:
+            pass
+
         log.info("AIAssistant initialized (lightweight mode)")
         log.info(f"  - Workflow search: UnifiedWorkflowSearch (database-backed)")
 
@@ -1942,6 +1953,175 @@ class AIAssistant:
                 unique_trials.append(trial.strip())
         return unique_trials
 
+    # -------------------------------------------------------------------------
+    # Nextflow parameter extraction helpers
+    # -------------------------------------------------------------------------
+
+    _NEXTFLOW_INTERNAL_PARAMS = {
+        'mock_mode', 'outdir', 'sample_id', 'platform', 'library', 'genome',
+        'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
+        'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
+        'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
+    }
+
+    def _find_nf_file(self, filename: str) -> Optional[Any]:
+        """Resolve DB-stored filename to absolute .nf path using same walk-up as executor."""
+        from pathlib import Path as _Path
+        this_file = _Path(__file__).resolve()
+        backend_root = this_file.parent
+        for ancestor in list(this_file.parents):
+            if (ancestor / "biomni_workflows").is_dir():
+                backend_root = ancestor
+                break
+        candidates = [
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / filename,
+            backend_root / "biomni_workflows" / filename,
+            backend_root / filename,
+        ]
+        for c in candidates:
+            if c.exists():
+                return c
+        return None
+
+    def _parse_nextflow_params(self, filename: str) -> dict:
+        """Parse params.* lines from .nf file. Returns {"required": [...], "optional": [...]}."""
+        import re as _re
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return {"required": [], "optional": []}
+        try:
+            text = nf_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            return {"required": [], "optional": []}
+        required, optional = [], []
+        for m in _re.finditer(r"^\s*params\.(\w+)\s*=\s*(.+)$", text, _re.MULTILINE):
+            name = m.group(1)
+            # Strip inline comment (// ...) from value
+            raw = _re.sub(r'\s*//.*$', '', m.group(2)).strip()
+            val_raw = raw
+            if name in self._NEXTFLOW_INTERNAL_PARAMS:
+                continue
+            label = name.replace("_", " ").title()
+            description = f"Workflow parameter: {label}"
+            is_required = (val_raw == "null")
+            entry = {"name": name, "label": label, "description": description,
+                     "default": None if is_required else val_raw.strip("'\"")}
+            if is_required:
+                required.append(entry)
+            else:
+                optional.append(entry)
+        return {"required": required, "optional": optional}
+
+    def _build_prereq_validation(self, required_params: list) -> Optional[dict]:
+        """Build prerequisitesValidation payload consumed by prereq-normalizer.ts."""
+        if not required_params:
+            return None
+        return {
+            "requirements": {
+                "parameters": [
+                    {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
+                    for p in required_params
+                ]
+            },
+            "analysis": {
+                "missingInputs": [],
+                "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in required_params],
+                "inputMappings": [],
+            },
+        }
+
+    # ------------------------------------------------------------------
+    # LangGraph pipeline — observability wrapper around generate_workflow_unified
+    # ------------------------------------------------------------------
+
+    def _get_or_build_pipeline(self):
+        """Build (or return cached) the BioMate LangGraph CompiledStateGraph.
+
+        The graph wraps ``generate_workflow_unified`` in a single node so that:
+        - LangSmith traces every generation call automatically (when key is set).
+        - MemorySaver checkpoints the result keyed by ``session_id``, enabling
+          state recovery if the backend restarts mid-generation on a long job.
+
+        Returns None and logs a warning if the import fails.
+        """
+        if self._langgraph_pipeline is not None:
+            return self._langgraph_pipeline
+        try:
+            from .langgraph_pipeline import build_biomate_pipeline
+            self._langgraph_pipeline = build_biomate_pipeline(ai_assistant=self)
+            log.info("[AIAssistant] LangGraph pipeline built and cached")
+        except Exception as exc:
+            log.warning("[AIAssistant] Could not build LangGraph pipeline: %s", exc)
+            self._langgraph_pipeline = None
+        return self._langgraph_pipeline
+
+    def run_via_pipeline(
+        self,
+        user_intent: str,
+        session_id: str,
+        user_id: Optional[str] = None,
+        uploaded_datasets: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Invoke ``generate_workflow_unified`` through the LangGraph StateGraph.
+
+        Falls back to ``generate_workflow_unified`` directly if the pipeline
+        cannot be built or if invocation fails.
+
+        The pipeline:
+        1. ``classify_intent`` — intent type + clarification flag
+        2. ``check_clarification`` — routes to clarify or continue
+        3. ``search_workflows`` — populates ``workflow_candidates`` in state
+        4. ``generate_workflow`` — calls ``generate_workflow_unified()``
+        5. ``dispatch_execution`` — records execution_run_id (stub)
+
+        ``final_response`` in the terminal state is the full result dict
+        from ``generate_workflow_unified``, unchanged.
+        """
+        import os
+        pipeline = self._get_or_build_pipeline()
+        if pipeline is None:
+            log.warning("[run_via_pipeline] pipeline unavailable, falling back")
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+
+        initial_state = {
+            "query": user_intent,
+            "session_id": session_id,
+            "user_id": user_id or "",
+            "intent": None,
+            "confidence": None,
+            "clarification_needed": False,
+            "workflow_candidates": [],
+            "selected_workflow": None,
+            "parameters": None,
+            "execution_run_id": None,
+            "autofix_attempts": 0,
+            "error": None,
+            "final_response": None,
+        }
+        config = {"configurable": {"thread_id": session_id}}
+        try:
+            terminal_state = pipeline.invoke(initial_state, config=config)
+            result = terminal_state.get("final_response")
+            if result and isinstance(result, dict):
+                log.info("[run_via_pipeline] pipeline completed, source=%s", result.get("source"))
+                return result
+            # Clarification requested — return a structured response the
+            # endpoint can handle (success=False, message carries the question).
+            if terminal_state.get("clarification_needed"):
+                return {
+                    "success": False,
+                    "message": (
+                        terminal_state.get("final_response", {}).get("message")
+                        or "Please clarify your request."
+                    ),
+                    "source": "clarification",
+                }
+            log.warning("[run_via_pipeline] terminal state has no final_response, falling back")
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+        except Exception as exc:
+            log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+
     def generate_workflow_unified(
         self,
         user_intent: str,
@@ -2137,6 +2317,9 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params_tr = self._parse_nextflow_params(best_match.filename)
+                    _req_tr = _nf_params_tr['required']
+                    _opt_tr = _nf_params_tr['optional']
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2167,9 +2350,14 @@ class AIAssistant:
                             'steps': {},  # Nextflow steps are in the .nf file, not here
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req_tr,
+                            'optional_params': _opt_tr,
                         },
                         'datasets_assigned': False,  # Nextflow handles inputs via parameters
-                        'generated_parameters': [],
+                        'required_params': _req_tr,
+                        'optional_params': _opt_tr,
+                        'generated_parameters': _req_tr + _opt_tr,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_tr)} if _req_tr else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
                         'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
                         'needs_user_feedback': False,
@@ -2242,6 +2430,9 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params_ta = self._parse_nextflow_params(best_match.filename)
+                    _req_ta = _nf_params_ta['required']
+                    _opt_ta = _nf_params_ta['optional']
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2274,9 +2465,14 @@ class AIAssistant:
                             'steps': {},
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req_ta,
+                            'optional_params': _opt_ta,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_ta,
+                        'optional_params': _opt_ta,
+                        'generated_parameters': _req_ta + _opt_ta,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_ta)} if _req_ta else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [
                             'Medium confidence match — please verify tool selection is appropriate'
                         ], 'suggestions': []},
@@ -2310,6 +2506,9 @@ class AIAssistant:
                         f"{composed['composable_count']} NF-WRAPPER + {composed['adhoc_count']} generated"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params_mc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req_mc = _nf_params_mc['required']
+                    _opt_mc = _nf_params_mc['optional']
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2333,9 +2532,14 @@ class AIAssistant:
                             'nextflow_path': composed['nextflow_path'],
                             'workflow_type': 'nextflow',
                             'steps': {},
+                            'required_params': _req_mc,
+                            'optional_params': _opt_mc,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_mc,
+                        'optional_params': _opt_mc,
+                        'generated_parameters': _req_mc + _opt_mc,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_mc)} if _req_mc else {}),
                         'validation': {
                             'is_valid': validation.get('is_valid', True),
                             'warnings': validation.get('warnings', []),
@@ -2381,6 +2585,9 @@ class AIAssistant:
                         f"{composed['adhoc_count']} generated processes"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params_lc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req_lc = _nf_params_lc['required']
+                    _opt_lc = _nf_params_lc['optional']
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2410,9 +2617,14 @@ class AIAssistant:
                             'workflow_type': 'nextflow',
                             'steps': {},
                             'tools_used': composed['tools_used'],
+                            'required_params': _req_lc,
+                            'optional_params': _opt_lc,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_lc,
+                        'optional_params': _opt_lc,
+                        'generated_parameters': _req_lc + _opt_lc,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_lc)} if _req_lc else {}),
                         'tools_used': composed['tools_used'],
                         # Nextflow validation: checks include{} paths resolve on disk.
                         # Tool availability is handled by container images, not installation.
