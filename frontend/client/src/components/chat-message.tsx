@@ -365,7 +365,7 @@ export function ChatMessage({
               // Chain plan — curated multi-step pipeline returned by workflow_chains lookup
               const isChainWorkflow = message.metadata?.workflow?.workflow_type === 'chain'
               if (isChainWorkflow) {
-                const wf = message.metadata.workflow
+                const wf = message.metadata?.workflow
                 return (
                   <div
                     id={`workflow-artifact-anchor-${message.id}`}

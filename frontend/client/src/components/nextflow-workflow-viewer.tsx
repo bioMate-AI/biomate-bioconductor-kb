@@ -59,33 +59,53 @@ export function NextflowWorkflowViewer({
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
 
-  // Derive phases from workflow steps if available
-  const phases = workflowDefinition?.steps ? Object.values(workflowDefinition.steps).map((step: any, index: number) => ({
-    id: step.id || `step-${index}`,
-    name: step.name || step.label || step.tool_id || `Step ${index + 1}`,
-    status: 'pending', // Default status, should be updated based on execution state
-    description: step.annotation || step.description
-  })) : [
-    { id: 'setup', name: 'Setup & Input', status: 'completed' },
-    { id: 'process', name: 'Data Processing', status: 'running' },
-    { id: 'analysis', name: 'Statistical Analysis', status: 'pending' },
-    { id: 'report', name: 'Report Generation', status: 'pending' }
-  ];
+  // Prefer real Nextflow trace processes over simulated workflow steps.
+  // nextflowStatus.processes is populated by _parse_trace_progress() on the backend
+  // with actual task names, statuses, work_dir paths, and task_files per process.
+  const traceProcesses: any[] =
+    Array.isArray(nextflowStatus?.processes) && nextflowStatus.processes.length > 0
+      ? nextflowStatus.processes
+      : [];
 
-  // Update phase status based on global status (simple simulation for now)
-  // In a real implementation, we would map individual step statuses from the backend
-  const updatedPhases = phases.map((phase: any, index: number) => {
-    if (status === 'completed') return { ...phase, status: 'completed' };
-    if (status === 'running') {
-        // Simple progress simulation mapping
-        const totalPhases = phases.length;
-        const currentPhaseIndex = Math.floor((progress / 100) * totalPhases);
-        if (index < currentPhaseIndex) return { ...phase, status: 'completed' };
-        if (index === currentPhaseIndex) return { ...phase, status: 'running' };
-        return { ...phase, status: 'pending' };
-    }
-    return phase;
-  });
+  // Fallback: derive phases from the workflow definition (used before execution starts)
+  const definitionPhases = workflowDefinition?.steps
+    ? Object.values(workflowDefinition.steps).map((step: any, index: number) => ({
+        id: step.id || `step-${index}`,
+        name: step.name || step.label || step.tool_id || `Step ${index + 1}`,
+        status: 'pending' as const,
+        description: step.annotation || step.description,
+      }))
+    : [
+        { id: 'setup',    name: 'Setup & Input',        status: 'pending' as const },
+        { id: 'process',  name: 'Data Processing',      status: 'pending' as const },
+        { id: 'analysis', name: 'Statistical Analysis', status: 'pending' as const },
+        { id: 'report',   name: 'Report Generation',    status: 'pending' as const },
+      ];
+
+  // Build the phase list shown in the UI
+  const updatedPhases: any[] = traceProcesses.length > 0
+    // Real path: one card per Nextflow process from the trace
+    ? traceProcesses.map((proc: any, idx2: number) => ({
+        id: proc.id || `proc-${idx2}`,
+        name: proc.name,
+        processName: proc.name,
+        status: proc.status,       // raw Nextflow status — PhaseCard maps it
+        taskFiles: proc.task_files ?? [],
+        workDir: proc.work_dir ?? '',
+      }))
+    // Fallback: definition steps with simulated status from overall progress
+    : definitionPhases.map((phase: any, index: number) => {
+        if (status === 'completed') return { ...phase, status: 'completed' };
+        if (status === 'running') {
+          const total = definitionPhases.length;
+          const cur   = Math.floor((effectiveProgress / 100) * total);
+          return {
+            ...phase,
+            status: index < cur ? 'completed' : index === cur ? 'running' : 'pending',
+          };
+        }
+        return phase;
+      });
 
   const handleParamChange = (id: string, value: any) => {
     setParams((prev: any) => ({ ...prev, [id]: value }));

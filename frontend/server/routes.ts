@@ -4602,6 +4602,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return undefined;
       };
 
+      // Nextflow control files that should not surface as user outputs
+      const NF_INTERNAL_FILES = new Set([
+        ".command.sh", ".command.run", ".command.log", ".command.out",
+        ".command.err", ".command.env", ".command.trace", ".exitcode",
+        ".started", ".nf-params.json", "workflow-trace.txt",
+        "workflow-timeline.html",  // execution timeline (internal)
+      ]);
+      const NF_SKIP_DIRS = new Set(["work", ".nextflow"]);
+
+      /** Recursively collect real files from a local directory (max depth 4). */
+      const scanOutdir = async (dirPath: string, depth = 4): Promise<string[]> => {
+        if (depth <= 0) return [];
+        const results: string[] = [];
+        try {
+          const entries = await fs.readdir(dirPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (NF_INTERNAL_FILES.has(entry.name)) continue;
+            const full = path.join(dirPath, entry.name);
+            if (entry.isDirectory()) {
+              if (!NF_SKIP_DIRS.has(entry.name)) {
+                results.push(...await scanOutdir(full, depth - 1));
+              }
+            } else if (entry.isFile()) {
+              results.push(full);
+            }
+          }
+        } catch { /* permission / gone */ }
+        return results;
+      };
+
       const addRuntimeArtifactOutputs = async (invocationId: string, rawArtifacts: string[]) => {
         const existing = await storage.getInvocationOutputs(invocationId);
         const existingLocalPaths = new Set(
@@ -4610,27 +4640,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .filter((p: string) => p.length > 0)
         );
 
+        // Expand directory paths into individual files
+        const expandedFiles: string[] = [];
         for (const artifactPath of rawArtifacts) {
-          if (!artifactPath || existingLocalPaths.has(artifactPath)) continue;
+          if (!artifactPath) continue;
+          if (artifactPath.startsWith("s3://")) {
+            expandedFiles.push(artifactPath);
+            continue;
+          }
           try {
             const stat = await fs.stat(artifactPath);
-            if (!stat.isFile()) continue;
+            if (stat.isFile()) {
+              expandedFiles.push(artifactPath);
+            } else if (stat.isDirectory()) {
+              expandedFiles.push(...await scanOutdir(artifactPath));
+            }
+          } catch { /* path gone or inaccessible */ }
+        }
+
+        for (const artifactPath of expandedFiles) {
+          if (existingLocalPaths.has(artifactPath)) continue;
+          try {
             const ext = path.extname(artifactPath).replace(".", "").toLowerCase() || "txt";
             const fileType = classifyFileType(ext);
-            await storage.addOutput({
-              invocationId,
-              galaxyDatasetId: "",
-              name: path.basename(artifactPath),
-              extension: ext,
-              size: stat.size,
-              fileType,
-              isVisualizable: isVisualizable(ext) || fileType === "text" || fileType === "table",
-              previewAvailable: fileType === "text" || fileType === "table",
-              metadata: {
-                source: "nextflow_runtime_artifact",
-                localPath: artifactPath,
-              },
-            });
+
+            if (artifactPath.startsWith("s3://")) {
+              await storage.addOutput({
+                invocationId,
+                galaxyDatasetId: "",
+                name: path.basename(artifactPath),
+                extension: ext,
+                size: 0,
+                fileType,
+                isVisualizable: isVisualizable(ext),
+                previewAvailable: fileType === "text" || fileType === "table",
+                metadata: { source: "nextflow_s3_output", s3Uri: artifactPath },
+              });
+            } else {
+              const stat = await fs.stat(artifactPath);
+              if (!stat.isFile()) continue;
+              await storage.addOutput({
+                invocationId,
+                galaxyDatasetId: "",
+                name: path.basename(artifactPath),
+                extension: ext,
+                size: stat.size,
+                fileType,
+                isVisualizable: isVisualizable(ext) || fileType === "text" || fileType === "table",
+                previewAvailable: fileType === "text" || fileType === "table",
+                metadata: { source: "nextflow_runtime_artifact", localPath: artifactPath },
+              });
+            }
             existingLocalPaths.add(artifactPath);
           } catch {
             // Ignore non-existing or inaccessible artifact paths.
@@ -4966,13 +5026,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Output not found" });
       }
 
-      // Fetch file from Galaxy or local runtime artifact fallback.
+      // Fetch file from Galaxy, local path, or S3 presigned URL.
       let fileStream: any;
       const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri    = String((output as any)?.metadata?.s3Uri     || "");
       if (output.galaxyDatasetId) {
         fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
       } else if (localPath) {
         fileStream = createReadStream(localPath);
+      } else if (s3Uri) {
+        // Redirect to a presigned download URL for S3 objects
+        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
+        return res.redirect(302, presignUrl);
       } else {
         return res.status(404).json({ error: "Output has no display source" });
       }
