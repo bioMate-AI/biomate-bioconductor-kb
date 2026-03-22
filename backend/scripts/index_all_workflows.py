@@ -28,9 +28,10 @@ NOT indexed any more:
 Usage:
     python scripts/index_all_workflows.py              # incremental
     python scripts/index_all_workflows.py --rebuild    # wipe and re-index
+    python scripts/index_all_workflows.py --update-types  # backfill input/output types only
 
 Author: BioMate Team
-Updated: 2026-03-10
+Updated: 2026-03-18
 """
 
 import argparse
@@ -107,6 +108,143 @@ def infer_domain(text: str) -> str:
     return "general"
 
 
+# ── Input/Output Type Extraction ──────────────────────────────────────────────
+
+def _extract_process_input_block(content: str) -> str:
+    """Extract the input: block from a Nextflow process definition."""
+    m = re.search(
+        r'\bprocess\s+\w+\s*\{.*?\binput:\s*\n(.*?)(?:\n\s*output:|\n\s*when:|\n\s*script:)',
+        content, re.DOTALL
+    )
+    return m.group(1) if m else ""
+
+
+def _extract_process_output_block(content: str) -> str:
+    """Extract the output: block from a Nextflow process definition."""
+    m = re.search(
+        r'\bprocess\s+\w+\s*\{.*?\boutput:\s*\n(.*?)(?:\n\s*when:|\n\s*script:|\n\s*exec:)',
+        content, re.DOTALL
+    )
+    return m.group(1) if m else ""
+
+
+def _extract_take_block(content: str) -> str:
+    """Extract the take: block from a Nextflow workflow definition."""
+    m = re.search(r'\bworkflow\s+\w+\s*\{.*?\btake:\s*\n(.*?)(?:\n\s*main:|\n\s*emit:)',
+                  content, re.DOTALL)
+    return m.group(1) if m else ""
+
+
+def extract_bioc_input_output(content: str) -> Tuple[List[str], List[str]]:
+    """
+    Extract input/output types from a Bioconductor .nf file.
+
+    Input detection: looks for path() arguments in the process input block.
+    If none found, falls back to the take: block comment for channel type hints.
+
+    Output detection: extracts file extensions from path("...") in the output block,
+    excluding internal files like versions.yml.
+    """
+    inputs: List[str] = []
+    outputs: List[str] = []
+
+    try:
+        # ── inputs ──
+        input_block = _extract_process_input_block(content)
+        if input_block:
+            # e.g. path(count_data)  →  count_data
+            path_args = re.findall(r'\bpath\s*\(\s*(\w+)\s*\)', input_block)
+            inputs = [a for a in path_args if a not in ("meta", "versions")]
+
+        # Fallback: take: block channel type hint
+        if not inputs:
+            take_block = _extract_take_block(content)
+            if take_block:
+                # e.g. ch_input  // channel: [ val(meta), path(count_data) ]
+                hints = re.findall(r'path\((\w+)\)', take_block)
+                inputs = [h for h in hints if h not in ("meta", "versions")]
+
+        # ── outputs ──
+        output_block = _extract_process_output_block(content)
+        if output_block:
+            # Extract file extensions from quoted paths: path("${prefix}_out.csv")
+            exts = re.findall(r'path\s+"[^"]*\.(\w+)"', output_block)
+            # Also catch: path '*.<ext>'
+            exts += re.findall(r"path\s+'[^']*\.(\w+)'", output_block)
+            skip = {"yml", "yaml", "log", "txt", "json"}
+            outputs = list(dict.fromkeys(e for e in exts if e.lower() not in skip))
+
+    except Exception:
+        pass
+
+    return inputs, outputs
+
+
+def extract_biomni_input_output(content: str) -> Tuple[List[str], List[str]]:
+    """
+    Extract input/output types from a BioMate Nextflow workflow.
+
+    Inputs: params.* definitions (excluding outdir).
+    Outputs: file extensions from the process output block.
+    """
+    inputs: List[str] = []
+    outputs: List[str] = []
+
+    try:
+        # ── inputs: from params ──
+        param_names = re.findall(r'\bparams\.(\w+)\s*=', content)
+        skip_params = {"outdir", "publish_dir_mode", "enable_conda"}
+        inputs = list(dict.fromkeys(p for p in param_names if p not in skip_params))
+
+        # ── outputs: from process output block ──
+        output_block = _extract_process_output_block(content)
+        if output_block:
+            exts = re.findall(r'path\s+"[^"]*\.(\w+)"', output_block)
+            exts += re.findall(r"path\s+'[^']*\.(\w+)'", output_block)
+            skip_exts = {"yml", "yaml", "log"}
+            outputs = list(dict.fromkeys(e for e in exts if e.lower() not in skip_exts))
+
+    except Exception:
+        pass
+
+    return inputs, outputs
+
+
+def extract_nfcore_input_output(content: str, schema_path: Optional[Path] = None) -> Tuple[List[str], List[str]]:
+    """
+    Extract input/output types for nf-core full pipelines.
+
+    Tries nextflow_schema.json first; falls back to scanning main.nf params.
+    """
+    inputs: List[str] = []
+    outputs: List[str] = []
+
+    try:
+        if schema_path and schema_path.exists():
+            schema = json.loads(schema_path.read_text())
+            props = schema.get("definitions", {})
+            for group in props.values():
+                for pname, pdef in group.get("properties", {}).items():
+                    if pname in ("input", "samplesheet", "reads"):
+                        desc = pdef.get("description", "")
+                        fmt = pdef.get("format", "")
+                        val = pdef.get("pattern", "")
+                        hint = next((x for x in [desc, fmt, val] if x), pname)
+                        if hint not in inputs:
+                            inputs.append(pname)
+                    if pname == "outdir":
+                        outputs.append("results_dir")
+        if not inputs:
+            param_names = re.findall(r'\bparams\.(\w+)\s*=', content)
+            skip = {"outdir", "publish_dir_mode", "enable_conda", "help"}
+            inputs = list(dict.fromkeys(p for p in param_names if p not in skip))[:5]
+
+    except Exception:
+        pass
+
+    return inputs, outputs
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def compute_hash(content: str) -> str:
@@ -161,11 +299,14 @@ def ensure_schema(conn: sqlite3.Connection):
         "executable": "INTEGER DEFAULT 1",  "docker_image": "TEXT",
         "category": "TEXT",                 "workflow_hash": "TEXT",
         "indexed_at": "TEXT",
+        "input_types": "TEXT DEFAULT '[]'",
+        "output_types": "TEXT DEFAULT '[]'",
     }
     for col, defn in new_cols.items():
         if col not in cols:
             try:
                 cursor.execute(f"ALTER TABLE workflows ADD COLUMN {col} {defn}")
+                print(f"    Added column: {col}")
             except sqlite3.OperationalError as e:
                 if "duplicate column" not in str(e).lower():
                     raise
@@ -176,16 +317,21 @@ def ensure_schema(conn: sqlite3.Connection):
 
 def _wf_insert(cursor, *, name, filename, description, annotation, tags, domain,
                workflow_json, step_count, tools_used, source, format_,
-               executable=1, docker_image="", category="", workflow_hash, indexed_at):
+               executable=1, docker_image="", category="", workflow_hash, indexed_at,
+               input_types=None, output_types=None):
+    inp = json.dumps(input_types) if input_types is not None else "[]"
+    out = json.dumps(output_types) if output_types is not None else "[]"
     cursor.execute("""
         INSERT INTO workflows (
             name, filename, description, annotation, tags, domain,
             workflow_json, step_count, tools_used, source, format,
-            executable, docker_image, category, workflow_hash, indexed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            executable, docker_image, category, workflow_hash, indexed_at,
+            input_types, output_types
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (name, filename, description[:500], annotation, tags, domain,
           workflow_json, step_count, tools_used, source, format_,
-          executable, docker_image[:300], category, workflow_hash, indexed_at))
+          executable, docker_image[:300] if docker_image else "", category,
+          workflow_hash, indexed_at, inp, out))
 
 
 def _wf_exists(cursor, wf_hash: str) -> bool:
@@ -215,29 +361,74 @@ def _tool_insert(cursor, *, tool_id, name, category, description, language,
 
 # ── Workflow indexers ─────────────────────────────────────────────────────────
 
+def _parse_nfcore_schema(schema_path) -> dict:
+    """Parse nextflow_schema.json to extract description and parameter names."""
+    try:
+        schema = json.loads(schema_path.read_text())
+        desc = schema.get("description", "") or schema.get("title", "")
+        params = []
+        for group in schema.get("definitions", {}).values():
+            params.extend(group.get("properties", {}).keys())
+        # Also check top-level properties
+        params.extend(schema.get("properties", {}).keys())
+        return {"description": desc, "params": list(dict.fromkeys(params))[:20]}
+    except Exception:
+        return {"description": "", "params": []}
+
+
 def index_nfcore_pipelines(conn: sqlite3.Connection) -> int:
     cursor = conn.cursor()
     indexed = 0
     now = datetime.now().isoformat()
-    for pipeline_name, meta in NFCORE_PIPELINES.items():
-        main_nf = NFCORE_PIPELINES_PATH / pipeline_name / "main.nf"
+
+    # Discover all pipeline directories dynamically — curated metadata takes precedence
+    pipeline_dirs: dict = {}
+    if NFCORE_PIPELINES_PATH.exists():
+        for d in sorted(NFCORE_PIPELINES_PATH.iterdir()):
+            if d.is_dir() and not d.name.startswith('.') and d.name != "modules":
+                pipeline_dirs[d.name] = d
+
+    for pipeline_name, pipeline_dir in pipeline_dirs.items():
+        main_nf = pipeline_dir / "main.nf"
         if not main_nf.exists():
             continue
-        content = main_nf.read_text()
+        try:
+            content = main_nf.read_text(errors="replace")
+        except Exception:
+            continue
         wf_hash = compute_hash(content)
         if _wf_exists(cursor, wf_hash):
             continue
+
+        schema_path = pipeline_dir / "nextflow_schema.json"
+        inp, out = extract_nfcore_input_output(content, schema_path)
+
+        # Curated metadata for known pipelines; auto-generate for the rest
+        if pipeline_name in NFCORE_PIPELINES:
+            meta = NFCORE_PIPELINES[pipeline_name]
+            name = meta["name"]
+            description = meta["description"]
+            domain = meta["domain"]
+            tools = meta["tools"]
+        else:
+            schema_info = _parse_nfcore_schema(schema_path) if schema_path.exists() else {"description": "", "params": []}
+            description = schema_info["description"] or f"nf-core/{pipeline_name} analysis pipeline"
+            domain = infer_domain(pipeline_name + " " + description)
+            tools = schema_info["params"][:10]
+            name = f"nf-core/{pipeline_name}"
+
         try:
             _wf_insert(cursor,
-                name=meta["name"], filename=f"nfcore/{pipeline_name}/main.nf",
-                description=meta["description"], annotation=meta["description"],
-                tags=json.dumps(["nf-core", pipeline_name, meta["domain"]]),
-                domain=meta["domain"], workflow_json=content,
-                step_count=len(meta["tools"]), tools_used=json.dumps(meta["tools"]),
+                name=name, filename=f"nfcore/{pipeline_name}/main.nf",
+                description=description, annotation=description,
+                tags=json.dumps(["nf-core", pipeline_name, domain]),
+                domain=domain, workflow_json=content,
+                step_count=max(len(tools), 1), tools_used=json.dumps(tools),
                 source="nfcore", format_="nextflow",
-                category=meta["domain"], workflow_hash=wf_hash, indexed_at=now)
+                category=domain, workflow_hash=wf_hash, indexed_at=now,
+                input_types=inp, output_types=out)
             indexed += 1
-            print(f"    + {meta['name']}")
+            print(f"    + {name}")
         except Exception as e:
             print(f"    Error {pipeline_name}: {e}")
     conn.commit()
@@ -271,6 +462,7 @@ def index_nfcore_subworkflows(conn: sqlite3.Connection) -> int:
         keywords = meta.get("keywords", [])
         components = meta.get("components", [])
         domain = infer_domain(" ".join(keywords))
+        inp, out = extract_bioc_input_output(content)
         try:
             _wf_insert(cursor,
                 name=wf_name(name), filename=f"nf-core-modules/subworkflows/nf-core/{sw_dir.name}/main.nf",
@@ -279,7 +471,8 @@ def index_nfcore_subworkflows(conn: sqlite3.Connection) -> int:
                 domain=domain, workflow_json=content,
                 step_count=len(components), tools_used=json.dumps(components),
                 source="nfcore_subwf", format_="nextflow",
-                category=domain, workflow_hash=wf_hash, indexed_at=now)
+                category=domain, workflow_hash=wf_hash, indexed_at=now,
+                input_types=inp, output_types=out)
             indexed += 1
         except Exception as e:
             print(f"    Error {sw_dir.name}: {e}")
@@ -310,17 +503,19 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
                 continue
             meta = extract_nf_metadata(content)
             description = meta["description"] or f"BioMate {domain} workflow: {wf_dir.name}"
+            inp, out = extract_biomni_input_output(content)
             try:
                 _wf_insert(cursor,
                     name=wf_name(wf_dir.name),
-                    filename=f"nextflow_nfcore/{domain}/{wf_dir.name}/main.nf",
+                    filename=f"nextflow_nfcore/subworkflows/{domain}/{wf_dir.name}/main.nf",
                     description=description, annotation=description,
                     tags=json.dumps([domain, "biomni", "nextflow", wf_dir.name]),
                     domain=domain, workflow_json=content,
                     step_count=len(meta["processes"]), tools_used=json.dumps(meta["processes"]),
                     source="biomni_nextflow", format_="nextflow",
                     docker_image=meta["docker"], category=domain,
-                    workflow_hash=wf_hash, indexed_at=now)
+                    workflow_hash=wf_hash, indexed_at=now,
+                    input_types=inp, output_types=out)
                 indexed += 1
             except Exception as e:
                 print(f"    Error {domain}/{wf_dir.name}: {e}")
@@ -366,6 +561,175 @@ def index_galaxy_biomni_unique(conn: sqlite3.Connection) -> int:
     return indexed
 
 
+def index_bioconductor_as_workflows(conn: sqlite3.Connection) -> int:
+    """
+    Index Bioconductor Nextflow workflow files (.nf) into the workflows table.
+
+    Each on-disk Bioconductor .nf file is a complete Nextflow workflow containing
+    both a `process BIOC_<PKG>` block and a `workflow BIOC_<PKG>_WORKFLOW` block
+    with proper I/O specs, container/conda directives, and an R analysis script.
+    These are runnable pipelines — analogous to nfcore_subwf — not mere tool stubs.
+
+    Architecture:
+      tools table      → Bioconductor package metadata for tool-level search
+      workflows table  → The runnable .nf workflow file for workflow discovery
+
+    Returns count of newly indexed workflows.
+    """
+    bioc_nf_path = BIOMNI_NF_PATH / "bioconductor"
+    if not bioc_nf_path.exists():
+        print(f"  Path not found: {bioc_nf_path}")
+        return 0
+
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+
+    # Pre-load rich metadata from tools table (description, step count, topics)
+    tools_meta: Dict[str, Dict] = {}
+    for tool_id, name, description, meta_json, topics, category in cursor.execute(
+        "SELECT tool_id, name, description, nfcore_metadata, topics, category "
+        "FROM tools WHERE tool_id LIKE 'bioconductor/%'"
+    ).fetchall():
+        tools_meta[tool_id] = {
+            "name": name,
+            "description": description,
+            "nfcore_metadata": meta_json,
+            "topics": topics or "",
+            "category": category or "",
+        }
+
+    indexed = 0
+    for pkg_dir in sorted(bioc_nf_path.iterdir()):
+        if not pkg_dir.is_dir():
+            continue
+        main_nf = pkg_dir / "main.nf"
+        if not main_nf.exists():
+            continue
+
+        pkg = pkg_dir.name
+        tool_id = f"bioconductor/{pkg}"
+        content = main_nf.read_text()
+        wf_hash = compute_hash(content)
+
+        if _wf_exists(cursor, wf_hash):
+            continue
+
+        tm = tools_meta.get(tool_id, {})
+        name = tm.get("name") or pkg.capitalize()
+        description = tm.get("description") or f"Bioconductor R workflow: {pkg}"
+
+        # Total step count from vignette workflows in tools metadata
+        step_count = 0
+        meta_str = tm.get("nfcore_metadata") or ""
+        if meta_str:
+            try:
+                mj = json.loads(meta_str)
+                vw = mj.get("vignette_workflows", [])
+                step_count = sum(v.get("total_steps", 0) for v in vw)
+            except Exception:
+                pass
+        if step_count == 0:
+            step_count = len(re.findall(r'\bprocess\s+[A-Z]', content))
+
+        # Domain from description + package topics
+        domain_text = (description or "") + " " + tm.get("topics", "") + " " + tm.get("category", "")
+        domain = infer_domain(domain_text)
+
+        # Upstream dependencies from file header
+        upstream_m = re.search(r'//\s*Upstream\s*:\s*(.+)', content)
+        deps = []
+        if upstream_m:
+            deps = [t.strip() for t in upstream_m.group(1).split(",")
+                    if t.strip() and t.strip().lower() != "none"]
+        tools_used = [tool_id] + [f"bioconductor/{d.lower()}" for d in deps]
+
+        tags = json.dumps([pkg, "bioconductor", "nextflow", "R", domain])
+
+        inp, out = extract_bioc_input_output(content)
+
+        try:
+            _wf_insert(cursor,
+                name=name,
+                # FIX: include subworkflows/ in path to match on-disk location
+                filename=f"nextflow_nfcore/subworkflows/bioconductor/{pkg}/main.nf",
+                description=description,
+                annotation=description,
+                tags=tags,
+                domain=domain,
+                workflow_json=content,
+                step_count=step_count,
+                tools_used=json.dumps(tools_used),
+                source="bioconductor",
+                format_="bioconductor_nf",
+                category=domain,
+                workflow_hash=wf_hash,
+                indexed_at=now,
+                input_types=inp,
+                output_types=out)
+            indexed += 1
+        except Exception as e:
+            print(f"    Error {pkg}: {e}")
+
+    conn.commit()
+    return indexed
+
+
+# ── Backfill input/output types for existing rows ─────────────────────────────
+
+def backfill_input_output_types(conn: sqlite3.Connection) -> Tuple[int, int]:
+    """
+    Populate input_types / output_types for existing workflow rows that have
+    the default empty value '[]'.  Parses the stored workflow_json (nf content)
+    using the same logic as the live indexers.
+
+    Returns (rows_updated_input, rows_updated_output).
+    """
+    cursor = conn.cursor()
+
+    # Fetch rows missing either field
+    rows = cursor.execute("""
+        SELECT id, source, workflow_json
+        FROM workflows
+        WHERE (input_types IS NULL OR input_types = '[]' OR input_types = '')
+           OR (output_types IS NULL OR output_types = '[]' OR output_types = '')
+    """).fetchall()
+
+    updated_inp = updated_out = 0
+
+    for row_id, source, wf_content in rows:
+        if not wf_content:
+            continue
+        try:
+            if source == "bioconductor":
+                inp, out = extract_bioc_input_output(wf_content)
+            elif source == "biomni_nextflow":
+                inp, out = extract_biomni_input_output(wf_content)
+            elif source in ("nfcore", "nfcore_subwf"):
+                inp, out = extract_bioc_input_output(wf_content)
+            else:
+                continue
+
+            inp_json = json.dumps(inp) if inp else "[]"
+            out_json = json.dumps(out) if out else "[]"
+
+            cursor.execute("""
+                UPDATE workflows
+                SET input_types=?, output_types=?
+                WHERE id=?
+            """, (inp_json, out_json, row_id))
+
+            if inp:
+                updated_inp += 1
+            if out:
+                updated_out += 1
+
+        except Exception as e:
+            print(f"    Backfill error row {row_id}: {e}")
+
+    conn.commit()
+    return updated_inp, updated_out
+
+
 # ── Tool indexers (tools table) ───────────────────────────────────────────────
 
 def link_bioconductor_nf_wrappers(conn: sqlite3.Connection) -> Tuple[int, int]:
@@ -397,7 +761,7 @@ def link_bioconductor_nf_wrappers(conn: sqlite3.Connection) -> Tuple[int, int]:
 
         pkg = pkg_dir.name
         tool_id = f"bioconductor/{pkg}"
-        wrapper_path = f"nextflow_nfcore/bioconductor/{pkg}/main.nf"
+        wrapper_path = f"nextflow_nfcore/subworkflows/bioconductor/{pkg}/main.nf"
 
         row = cursor.execute(
             "SELECT id, wrapper_path FROM tools WHERE tool_id=?", (tool_id,)
@@ -514,114 +878,6 @@ def index_nfcore_modules_as_tools(conn: sqlite3.Connection) -> int:
     return indexed
 
 
-def index_bioconductor_as_workflows(conn: sqlite3.Connection) -> int:
-    """
-    Index Bioconductor Nextflow workflow files (.nf) into the workflows table.
-
-    Each on-disk Bioconductor .nf file is a complete Nextflow workflow containing
-    both a `process BIOC_<PKG>` block and a `workflow BIOC_<PKG>_WORKFLOW` block
-    with proper I/O specs, container/conda directives, and an R analysis script.
-    These are runnable pipelines — analogous to nfcore_subwf — not mere tool stubs.
-
-    Architecture:
-      tools table      → Bioconductor package metadata for tool-level search
-      workflows table  → The runnable .nf workflow file for workflow discovery
-
-    Returns count of newly indexed workflows.
-    """
-    bioc_nf_path = BIOMNI_NF_PATH / "bioconductor"
-    if not bioc_nf_path.exists():
-        print(f"  Path not found: {bioc_nf_path}")
-        return 0
-
-    cursor = conn.cursor()
-    now = datetime.now().isoformat()
-
-    # Pre-load rich metadata from tools table (description, step count, topics)
-    tools_meta: Dict[str, Dict] = {}
-    for tool_id, name, description, meta_json, topics, category in cursor.execute(
-        "SELECT tool_id, name, description, nfcore_metadata, topics, category "
-        "FROM tools WHERE tool_id LIKE 'bioconductor/%'"
-    ).fetchall():
-        tools_meta[tool_id] = {
-            "name": name,
-            "description": description,
-            "nfcore_metadata": meta_json,
-            "topics": topics or "",
-            "category": category or "",
-        }
-
-    indexed = 0
-    for pkg_dir in sorted(bioc_nf_path.iterdir()):
-        if not pkg_dir.is_dir():
-            continue
-        main_nf = pkg_dir / "main.nf"
-        if not main_nf.exists():
-            continue
-
-        pkg = pkg_dir.name
-        tool_id = f"bioconductor/{pkg}"
-        content = main_nf.read_text()
-        wf_hash = compute_hash(content)
-
-        if _wf_exists(cursor, wf_hash):
-            continue
-
-        tm = tools_meta.get(tool_id, {})
-        name = tm.get("name") or pkg.capitalize()
-        description = tm.get("description") or f"Bioconductor R workflow: {pkg}"
-
-        # Total step count from vignette workflows in tools metadata
-        step_count = 0
-        meta_str = tm.get("nfcore_metadata") or ""
-        if meta_str:
-            try:
-                mj = json.loads(meta_str)
-                vw = mj.get("vignette_workflows", [])
-                step_count = sum(v.get("total_steps", 0) for v in vw)
-            except Exception:
-                pass
-        if step_count == 0:
-            step_count = len(re.findall(r'\bprocess\s+[A-Z]', content))
-
-        # Domain from description + package topics
-        domain_text = (description or "") + " " + tm.get("topics", "") + " " + tm.get("category", "")
-        domain = infer_domain(domain_text)
-
-        # Upstream dependencies from file header
-        upstream_m = re.search(r'//\s*Upstream\s*:\s*(.+)', content)
-        deps = []
-        if upstream_m:
-            deps = [t.strip() for t in upstream_m.group(1).split(",")
-                    if t.strip() and t.strip().lower() != "none"]
-        tools_used = [tool_id] + [f"bioconductor/{d.lower()}" for d in deps]
-
-        tags = json.dumps([pkg, "bioconductor", "nextflow", "R", domain])
-
-        try:
-            _wf_insert(cursor,
-                name=name,
-                filename=f"nextflow_nfcore/bioconductor/{pkg}/main.nf",
-                description=description,
-                annotation=description,
-                tags=tags,
-                domain=domain,
-                workflow_json=content,
-                step_count=step_count,
-                tools_used=json.dumps(tools_used),
-                source="bioconductor",
-                format_="bioconductor_nf",
-                category=domain,
-                workflow_hash=wf_hash,
-                indexed_at=now)
-            indexed += 1
-        except Exception as e:
-            print(f"    Error {pkg}: {e}")
-
-    conn.commit()
-    return indexed
-
-
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
 def get_stats(conn: sqlite3.Connection) -> Dict:
@@ -631,9 +887,16 @@ def get_stats(conn: sqlite3.Connection) -> Dict:
     tool_total = cur.execute("SELECT COUNT(*) FROM tools").fetchone()[0]
     tool_nfcore = cur.execute("SELECT COUNT(*) FROM tools WHERE tool_id LIKE 'nfcore/%'").fetchone()[0]
     tool_bioc = cur.execute("SELECT COUNT(*) FROM tools WHERE tool_id LIKE 'bioconductor/%'").fetchone()[0]
+    wf_with_input = cur.execute(
+        "SELECT COUNT(*) FROM workflows WHERE input_types IS NOT NULL AND input_types != '[]' AND input_types != ''"
+    ).fetchone()[0]
+    wf_with_output = cur.execute(
+        "SELECT COUNT(*) FROM workflows WHERE output_types IS NOT NULL AND output_types != '[]' AND output_types != ''"
+    ).fetchone()[0]
     return {
         "workflows": wf_total, "wf_by_source": wf_by_src,
         "tools": tool_total, "tools_nfcore": tool_nfcore, "tools_bioconductor": tool_bioc,
+        "wf_with_input_types": wf_with_input, "wf_with_output_types": wf_with_output,
     }
 
 
@@ -682,6 +945,8 @@ def main():
     parser.add_argument("--db-path", default=str(DB_PATH))
     parser.add_argument("--rebuild", action="store_true",
                         help="Remove re-indexable entries and rebuild from scratch")
+    parser.add_argument("--update-types", action="store_true",
+                        help="Backfill input_types/output_types for existing rows only")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -700,7 +965,19 @@ def main():
         s = get_stats(conn)
         print(f"\nInitial: {s['workflows']} workflows | {s['tools']} tools")
         print(f"  workflows by source: {s['wf_by_source']}")
+        print(f"  input_types populated: {s['wf_with_input_types']}  output_types: {s['wf_with_output_types']}")
         print(f"  tools: {s['tools_nfcore']} nfcore | {s['tools_bioconductor']} bioconductor")
+
+        if args.update_types:
+            print("\n[--update-types] Backfilling input/output types for existing rows...")
+            inp_upd, out_upd = backfill_input_output_types(conn)
+            print(f"  input_types updated: {inp_upd}  |  output_types updated: {out_upd}")
+            s2 = get_stats(conn)
+            print(f"\nAfter backfill:")
+            print(f"  input_types populated: {s2['wf_with_input_types']}")
+            print(f"  output_types populated: {s2['wf_with_output_types']}")
+            print("=" * 60)
+            return 0
 
         if args.rebuild:
             print("\nPhase 1: Cleanup...")
@@ -727,6 +1004,11 @@ def main():
         n5 = index_bioconductor_as_workflows(conn)
         print(f"  Added: {n5}")
 
+        # Backfill types for any existing rows not yet updated
+        print("\nPhase 6b: Backfilling input/output types for existing rows...")
+        inp_upd, out_upd = backfill_input_output_types(conn)
+        print(f"  input_types updated: {inp_upd}  |  output_types updated: {out_upd}")
+
         # ── TOOLS TABLE ──────────────────────────────────────────────────────
         print("\nPhase 7 [tools]: nf-core individual modules → tools table")
         n6 = index_nfcore_modules_as_tools(conn)
@@ -739,6 +1021,7 @@ def main():
         s2 = get_stats(conn)
         print(f"\nFinal:")
         print(f"  workflows: {s2['workflows']}  by source: {s2['wf_by_source']}")
+        print(f"  input_types populated: {s2['wf_with_input_types']}  output_types: {s2['wf_with_output_types']}")
         print(f"  tools:     {s2['tools']}  (nfcore={s2['tools_nfcore']}, bioconductor={s2['tools_bioconductor']})")
         print(f"\n  workflows added: {n1+n2+n3+n4+n5}   tools added: {n6}+{bioc_ins}(bioc)   bioc linked: {bioc_upd}")
         print("=" * 60)
