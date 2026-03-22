@@ -56,14 +56,30 @@ interface PhaseCardProps {
     processName?: string;
     /** Local work directory path for this task */
     workDir?: string;
+    /** Run count (for step-level re-run tracking) */
+    runCount?: number;
+    /** Whether this step is executing */
+    isExecuting?: boolean;
+    /** Galaxy tool ID (required to enable step-level run button) */
+    toolId?: string;
   };
   onExecute?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  /** Step-level run handler (used in the per-step execution panel) */
+  onRun?: () => void;
+  runLabel?: string;
+  runDisabled?: boolean;
+  runLoading?: boolean;
+  runButtonTestId?: string;
   className?: string;
 }
 
-export function PhaseCard({ phase, onExecute, onPause, onResume, className }: PhaseCardProps) {
+export function PhaseCard({
+  phase, onExecute, onPause, onResume,
+  onRun, runLabel, runDisabled, runLoading, runButtonTestId,
+  className,
+}: PhaseCardProps) {
   const [filesExpanded, setFilesExpanded] = useState(false);
 
   const status = mapNfStatus(phase.status);
@@ -121,6 +137,21 @@ export function PhaseCard({ phase, onExecute, onPause, onResume, className }: Ph
           {status === 'paused' && onResume && (
             <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={onResume}>
               <Play className="h-3 w-3" />
+            </Button>
+          )}
+          {onRun && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={onRun}
+              disabled={runDisabled}
+              data-testid={runButtonTestId}
+            >
+              {runLoading
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <Play className="h-3 w-3" />}
+              {runLabel && <span className="ml-1">{runLabel}</span>}
             </Button>
           )}
         </div>

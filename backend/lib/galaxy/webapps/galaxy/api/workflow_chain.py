@@ -593,7 +593,7 @@ def _load_chain_row(row: tuple) -> Dict[str, Any]:
     return d
 
 
-@router.get("/api/workflows/chains", summary="List curated workflow chains")
+@router.get("/api/workflow-chains", summary="List curated workflow chains")
 async def list_workflow_chains(domain: Optional[str] = None) -> Dict[str, Any]:
     """Return all curated workflow chains, optionally filtered by domain."""
     try:
@@ -621,7 +621,7 @@ class RecordChainRunRequest(BaseModel):
     success: bool
 
 
-@router.post("/api/workflows/chains/record-run", summary="Record outcome of a chain run")
+@router.post("/api/workflow-chains/record-run", summary="Record outcome of a chain run")
 async def record_chain_run(request: RecordChainRunRequest) -> Dict[str, Any]:
     """Update usage_count and rolling success_rate for a named chain."""
     try:

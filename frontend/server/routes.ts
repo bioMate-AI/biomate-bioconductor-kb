@@ -874,11 +874,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Workflow chain catalog
-  app.get('/api/workflows/chains', optionalAuth, async (req, res) => {
+  app.get('/api/workflow-chains', optionalAuth, async (req, res) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const qs = req.query.domain ? `?domain=${encodeURIComponent(String(req.query.domain))}` : '';
-      const resp = await fetch(`${galaxyUrl}/api/workflows/chains${qs}`, { signal: AbortSignal.timeout(5000) });
+      const resp = await fetch(`${galaxyUrl}/api/workflow-chains${qs}`, { signal: AbortSignal.timeout(5000) });
       const data = await resp.json();
       res.status(resp.status).json(data);
     } catch (err: any) {
@@ -886,10 +886,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/workflows/chains/record-run', optionalAuth, express.json(), async (req, res) => {
+  app.post('/api/workflow-chains/record-run', optionalAuth, express.json(), async (req, res) => {
     try {
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const resp = await fetch(`${galaxyUrl}/api/workflows/chains/record-run`, {
+      const resp = await fetch(`${galaxyUrl}/api/workflow-chains/record-run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body),
