@@ -9,6 +9,53 @@ from typing import Dict, Any, Optional
 from galaxy.util import string_as_bool
 from ..ai.config import AIConfig
 
+# ---------------------------------------------------------------------------
+# LangSmith / LangChain tracing configuration
+# ---------------------------------------------------------------------------
+
+#: LangSmith API key.  Set LANGSMITH_API_KEY in the environment to enable
+#: tracing.  Defaults to None (tracing disabled).
+LANGSMITH_API_KEY: Optional[str] = os.getenv("LANGSMITH_API_KEY", None)
+
+#: Whether to enable LangChain v2 tracing (requires LANGSMITH_API_KEY).
+#: Set LANGCHAIN_TRACING_V2=true in the environment to enable.
+LANGCHAIN_TRACING_V2: bool = os.getenv("LANGCHAIN_TRACING_V2", "false").lower() in (
+    "1", "true", "yes", "on"
+)
+
+#: LangSmith project name used to group traces.
+LANGSMITH_PROJECT: str = os.getenv("LANGSMITH_PROJECT", "biomate")
+
+
+def configure_langsmith() -> bool:
+    """
+    Configure the process environment for LangSmith tracing.
+
+    Sets the ``LANGCHAIN_TRACING_V2``, ``LANGSMITH_API_KEY``, and
+    ``LANGSMITH_PROJECT`` environment variables so that any LangChain /
+    LangGraph calls made in this process are automatically traced.
+
+    This function is a no-op (and returns ``False``) when
+    ``LANGSMITH_API_KEY`` is not set, so it is safe to call unconditionally.
+
+    Returns
+    -------
+    bool
+        ``True`` if LangSmith tracing was activated, ``False`` otherwise.
+    """
+    if not LANGSMITH_API_KEY:
+        return False
+
+    os.environ["LANGSMITH_API_KEY"] = LANGSMITH_API_KEY
+    os.environ["LANGCHAIN_TRACING_V2"] = "true" if LANGCHAIN_TRACING_V2 else "false"
+    os.environ["LANGSMITH_PROJECT"] = LANGSMITH_PROJECT
+
+    import logging
+    logging.getLogger(__name__).info(
+        "LangSmith tracing enabled — project=%r", LANGSMITH_PROJECT
+    )
+    return True
+
 
 def configure_ai_assistant(
     raw_config: Dict[str, Any],
@@ -36,7 +83,13 @@ def configure_ai_assistant(
         _provider = 'anthropic'  # Default to anthropic (BioMate default)
     ai_config_dict['llm_provider'] = _provider
     _default_model = 'claude-sonnet-4-6' if _provider == 'anthropic' else 'gpt-4'
-    ai_config_dict['llm_model'] = raw_config.get('ai_llm_model', _default_model)
+    _configured_model = raw_config.get('ai_llm_model', _default_model)
+    # If provider is anthropic but model is a GPT model name (from schema defaults),
+    # fall back to the anthropic default model.
+    _openai_prefixes = ('gpt-', 'o1', 'o3', 'text-davinci')
+    if _provider == 'anthropic' and isinstance(_configured_model, str) and _configured_model.startswith(_openai_prefixes):
+        _configured_model = _default_model
+    ai_config_dict['llm_model'] = _configured_model
     ai_config_dict['llm_api_key'] = _api_key
     ai_config_dict['llm_base_url'] = raw_config.get('ai_llm_base_url')
     
