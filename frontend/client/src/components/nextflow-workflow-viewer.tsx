@@ -106,6 +106,19 @@ export function NextflowWorkflowViewer({
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
   const isPrereqBlocked = !!prereqChecklist && !prereqChecklist.canRun;
+
+  // Derive required/optional params from the workflow definition (populated by backend)
+  const requiredParams: Array<{name: string; label: string; description: string; default: string | null}> =
+    workflowDefinition?.required_params ?? [];
+  const optionalParams: Array<{name: string; label: string; description: string; default: string | null}> =
+    workflowDefinition?.optional_params ?? [];
+  const allWorkflowParams = [...requiredParams, ...optionalParams];
+
+  // Block run if any required param is still empty
+  const hasUnfilledRequired = requiredParams.some(
+    (p) => !params[p.name] || String(params[p.name]).trim() === ""
+  );
+
   const isAutofixActive =
     autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes(autofix?.state || "");
@@ -332,26 +345,52 @@ export function NextflowWorkflowViewer({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-4">
               <h3 className="text-lg font-semibold">Parameters</h3>
-              <ParameterGroup
-                id="main-params"
-                title="Workflow Parameters"
-                parameters={[
-                  { id: 'input', name: 'input', label: 'Input File', type: 'string', required: true },
-                  { id: 'output', name: 'output', label: 'Output Directory', type: 'string', required: true },
-                  { id: 'threads', name: 'threads', label: 'Threads', type: 'number', defaultValue: 4 }
-                ]}
-                onChange={handleParamChange}
-              />
-              <Button 
-                className="w-full" 
+              {allWorkflowParams.length > 0 ? (
+                <>
+                  <ParameterGroup
+                    id="nextflow-params"
+                    title="Workflow Parameters"
+                    parameters={allWorkflowParams.map((p) => ({
+                      id: p.name,
+                      name: p.name,
+                      label: p.label + (p.default === null ? ' *' : ''),
+                      type: 'string' as const,
+                      required: p.default === null,
+                      defaultValue: p.default ?? undefined,
+                      description: p.description,
+                      value: params[p.name] ?? p.default ?? '',
+                    }))}
+                    onChange={handleParamChange}
+                  />
+                  {hasUnfilledRequired && (
+                    <p className="text-xs text-destructive mt-1">
+                      Fill in all required parameters (*) before running.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <ParameterGroup
+                  id="main-params"
+                  title="Workflow Parameters"
+                  parameters={[
+                    { id: 'input', name: 'input', label: 'Input File', type: 'string' as const, required: true },
+                    { id: 'output', name: 'output', label: 'Output Directory', type: 'string' as const, required: true },
+                    { id: 'threads', name: 'threads', label: 'Threads', type: 'number' as const, defaultValue: 4 }
+                  ]}
+                  onChange={handleParamChange}
+                />
+              )}
+              <Button
+                className="w-full"
                 data-testid="button-run-workflow-panel"
-                onClick={handleExecute} 
+                onClick={handleExecute}
                 disabled={
                   status === 'running' ||
                   status === 'completed' ||
                   !!executionBlockedReason ||
                   isPrereqBlocked ||
-                  isAutofixActive
+                  isAutofixActive ||
+                  hasUnfilledRequired
                 }
               >
                 {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : status === 'completed' ? 'Completed' : 'Run Workflow'}

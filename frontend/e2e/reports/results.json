@@ -2,7 +2,7 @@
   "config": {
     "configFile": "/home/yzhang/biomate/frontend/playwright.config.ts",
     "rootDir": "/home/yzhang/biomate/frontend/e2e",
-    "forbidOnly": true,
+    "forbidOnly": false,
     "fullyParallel": false,
     "globalSetup": null,
     "globalTeardown": null,
@@ -41,7 +41,7 @@
       {
         "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
         "repeatEach": 1,
-        "retries": 1,
+        "retries": 0,
         "metadata": {
           "actualWorkers": 1
         },
@@ -52,7 +52,7 @@
         "testMatch": [
           "**/*.e2e.ts"
         ],
-        "timeout": 30000
+        "timeout": 600000
       }
     ],
     "shard": null,
@@ -65,25 +65,25 @@
   },
   "suites": [
     {
-      "title": "complete-workflow.e2e.ts",
-      "file": "complete-workflow.e2e.ts",
+      "title": "full-workflow-e2e.e2e.ts",
+      "file": "full-workflow-e2e.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Complete Workflow E2E",
-          "file": "complete-workflow.e2e.ts",
-          "line": 235,
+          "title": "ADMET Full Execution Flow",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 212,
           "column": 6,
           "specs": [
             {
-              "title": "should generate workflow, execute it, and provide output",
+              "title": "ADMET query → AWAITING REVIEW → Confirm & Run → completion banner → results → download",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 300000,
+                  "timeout": 1200000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
@@ -93,228 +93,93 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 43679,
+                      "duration": 95814,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "[Test] Step 1: Navigate to app\n"
+                          "text": "[Screenshot] 01_initial.png\n"
                         },
                         {
-                          "text": "[Screenshot] 01_initial at 3038ms\n"
+                          "text": "[ADMET-Full] Query sent\n"
                         },
                         {
-                          "text": "[Test] Step 2: Ask for workflow\n"
+                          "text": "[ADMET-Full] Waiting for AI response...\n"
                         },
                         {
-                          "text": "[Test] Sent: \"Build me a quality control workflow for RNA-seq FASTQ files\"\n"
+                          "text": "[ADMET-Full] Typing indicator not seen — response may already be arriving\n"
                         },
                         {
-                          "text": "[Screenshot] 02_message_sent at 3248ms\n"
+                          "text": "[ADMET-Full] AI asked clarification (1/3), answering with data\n"
                         },
                         {
-                          "text": "[Test] Step 3: Waiting for AI response to complete...\n"
+                          "text": "[ADMET-Full] Waiting for AI response...\n"
                         },
                         {
-                          "text": "[Test] No typing indicator found, response may already be complete\n"
+                          "text": "[ADMET-Full] Typing indicator not seen — response may already be arriving\n"
                         },
                         {
-                          "text": "[Screenshot] 03_response_complete at 16458ms\n"
+                          "text": "[ADMET-Full] Workflow card appeared (1 total)\n"
                         },
                         {
-                          "text": "[Test] Step 4: Looking for WorkflowArtifact...\n"
+                          "text": "[ADMET-Full] Workflow card found: \u001b[33mtrue\u001b[39m\n"
                         },
                         {
-                          "text": "[Test] Found workflow indicator: button:has-text(\"Run\")\n"
+                          "text": "[Screenshot] 02_workflow_card.png\n"
                         },
                         {
-                          "text": "[Screenshot] 04_workflow_check at 16561ms\n"
+                          "text": "[ADMET-Full] AWAITING REVIEW / Confirm & Run visible: \u001b[33mfalse\u001b[39m\n"
                         },
                         {
-                          "text": "[Test] Step 5: Clicking Run button...\n"
+                          "text": "[Screenshot] 03_awaiting_review.png\n"
                         },
                         {
-                          "text": "[Screenshot] 05_workflow_running at 18792ms\n"
+                          "text": "[ADMET-Full] Confirm & Run button visible: \u001b[33mfalse\u001b[39m\n"
                         },
                         {
-                          "text": "[Test] Step 6: Monitoring execution progress...\n"
+                          "text": "[ADMET-Full] Fallback run button found, enabled: \u001b[33mtrue\u001b[39m\n"
                         },
                         {
-                          "text": "[Test] Execution in progress (iteration 0)\n"
+                          "text": "[ADMET-Full] Execute response runId: d266d341-7e0d-4ccd-a06a-d24fe12da4b8\n"
                         },
                         {
-                          "text": "[Screenshot] 06_progress_0 at 36046ms\n"
+                          "text": "[Screenshot] 04_execution_started.png\n"
                         },
                         {
-                          "text": "[Test] Execution complete at iteration 0\n"
+                          "text": "[ADMET-Full] Run ID: d266d341-7e0d-4ccd-a06a-d24fe12da4b8\n"
                         },
                         {
-                          "text": "[Screenshot] 07_execution_complete at 36153ms\n"
+                          "text": "[ADMET-Full] Polling for completion...\n"
                         },
                         {
-                          "text": "[Test] Step 6b: Poll backend run status for terminal state...\n"
+                          "text": "[ADMET-Full] Poll 0: status=failed progress=0/0\n"
                         },
                         {
-                          "text": "[Test] Backend poll 0: status=completed, nfStatus=completed, nfCompleted=true, progress=3/3\n"
+                          "text": "[ADMET-Full] Terminal status: failed\n"
                         },
                         {
-                          "text": "[Screenshot] 07_backend_terminal_complete at 38300ms\n"
+                          "text": "[Screenshot] 05_terminal_status.png\n"
                         },
                         {
-                          "text": "[Test] Step 7: Checking for output...\n"
+                          "text": "[ADMET-Full] Run did not complete (status=failed) — skipping output assertions\n"
                         },
                         {
-                          "text": "[Screenshot] 08_before_output_check at 41422ms\n"
-                        },
-                        {
-                          "text": "[Test] Output evidence found: outputCards=true, runtimeArtifacts=true, emptyMessage=false\n"
-                        },
-                        {
-                          "text": "[Screenshot] 08_output_available at 42326ms\n"
-                        },
-                        {
-                          "text": "[Test] Visualization indicator visible=true (hasOutputCards=true, emptyMessage=false)\n"
-                        },
-                        {
-                          "text": "[Test] Output download control enabled=true\n"
-                        },
-                        {
-                          "text": "[Screenshot] 09_output_visualizable_and_downloadable at 42516ms\n"
-                        },
-                        {
-                          "text": "[Test] Step 8: Checking Workflow History...\n"
-                        },
-                        {
-                          "text": "[Screenshot] 10_final_state at 42623ms\n"
-                        },
-                        {
-                          "text": "[Test] Console logs saved to: /home/yzhang/biomate/frontend/e2e/screenshots/complete-workflow/console_logs_1773195342868.json\n"
-                        },
-                        {
-                          "text": "\n[Test] === Important Console Logs ===\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] Created AI message: {id: assistant-stream-1773195303380, invocationId: undefined, metadata: Object, hasWorkflow: true, metadataType: workflow}\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] Updating streaming placeholder: assistant-stream-1773195303380\n"
-                        },
-                        {
-                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object, Object, Object, Object]\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] Extracting workflow to session.workflows\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] workflow.generated {sessionId: chat-1, invocationId: undefined}\n"
-                        },
-                        {
-                          "text": "  [log] ChatWithArtifacts: New workflow generated: {name: RNA QC Workflow, workflow_type: nextflow, format: nextflow, nextflow_path: mock/rna_qc/main.nf, steps: Object}\n"
-                        },
-                        {
-                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object]\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1773195303378, assistant-stream-1773195303380]\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
-                        },
-                        {
-                          "text": "  [error] Failed to load resource: the server responded with a status of 401 (Unauthorized)\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] workflow.run_clicked {workflowId: undefined, invocationId: undefined, sessionId: sess_1773195316888_y9zu6pau4}\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] workflow.run_clicked {sessionId: chat-1, workflowId: RNA QC Workflow}\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Running workflow: RNA QC Workflow\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Steps: 1\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Workflow format: nextflow\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Preparing Nextflow workflow for unified execution\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Executing workflow via unified API\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Workflow execution complete\n"
-                        },
-                        {
-                          "text": "  [debug] [analytics] workflow_completed {invocation_id: mock-inv-mock-run-cw, userId: undefined, timestamp: 2026-03-11T02:15:16.940Z, platform: web}\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] workflow.status_changed {runId: mock-run-cw, workflowId: undefined, invocationId: mock-inv-mock-run-cw, status: completed, sessionId: sess_1773195316888_y9zu6pau4}\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Workflow execution started: mock-run-cw\n"
-                        },
-                        {
-                          "text": "  [debug] [analytics] workflow_started {domain: undefined, workflow_steps: 1, execution_engine: nextflow, qc_profile: undefined, total_samples: undefined}\n"
-                        },
-                        {
-                          "text": "  [log] [ChatWithArtifacts] Updating message with invocation ID: mock-inv-mock-run-cw\n"
-                        },
-                        {
-                          "text": "  [log] App: Updating chat session: chat-1 workflows: [Object]\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] displayMessages count: 5\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] displayMessages IDs: [msg-1-1, msg-1-2, msg-1-3, 1773195303378, assistant-stream-1773195303380]\n"
-                        },
-                        {
-                          "text": "  [log] [ChatInterface] Token monitoring: {sessionId: chat-1, tokenCount: 0, percentage: 0.0%, messageCount: 5}\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] output.panel_opened {invocationId: mock-inv-mock-run-cw, outputCount: 2, sessionId: sess_1773195316888_y9zu6pau4}\n"
-                        },
-                        {
-                          "text": "  [debug] [UX Telemetry] output.panel_opened {invocationId: mock-inv-mock-run-cw, outputCount: 2, sessionId: sess_1773195316888_y9zu6pau4}\n"
-                        },
-                        {
-                          "text": "\n[Test] === Test Summary ===\n"
-                        },
-                        {
-                          "text": "  Workflow artifact found: true\n"
-                        },
-                        {
-                          "text": "  Total duration: 42704ms\n"
+                          "text": "[Screenshot] 06_not_completed.png\n"
                         }
                       ],
-                      "stderr": [
-                        {
-                          "text": "(node:1427319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
-                        }
-                      ],
+                      "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-03-11T02:15:00.068Z",
+                      "startTime": "2026-03-22T01:48:22.514Z",
                       "annotations": [],
                       "attachments": [
                         {
                           "name": "screenshot",
                           "contentType": "image/png",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/test-finished-1.png"
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-A-62a49-banner-→-results-→-download-chromium/test-finished-1.png"
                         },
                         {
                           "name": "video",
                           "contentType": "video/webm",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/video.webm"
-                        },
-                        {
-                          "name": "trace",
-                          "contentType": "application/zip",
-                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/complete-workflow.e2e.ts-C-8daf8-ecute-it-and-provide-output-chromium/trace.zip"
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-A-62a49-banner-→-results-→-download-chromium/video.webm"
                         }
                       ]
                     }
@@ -322,9 +187,825 @@
                   "status": "expected"
                 }
               ],
-              "id": "388d2b322faee0ffd25c-e083c404c26097ea8c04",
-              "file": "complete-workflow.e2e.ts",
-              "line": 236,
+              "id": "feb188400a741825904e-f32be9957f3d7a29c269",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 213,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "AWAITING REVIEW UX",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 435,
+          "column": 6,
+          "specs": [
+            {
+              "title": "workflow card shows AWAITING REVIEW badge, rationale panel, Confirm & Run button",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 71122,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Screenshot] 20_review_initial.png\n"
+                        },
+                        {
+                          "text": "[Review-UX] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Review-UX] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[Review-UX] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[Review-UX] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Review-UX] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[Review-UX] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] 21_workflow_generated.png\n"
+                        },
+                        {
+                          "text": "[Review-UX] AWAITING REVIEW state visible: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "[Review-UX] Scientific Rationale panel visible: \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "[Review-UX] Raw dict params visible (should be false): \u001b[33mfalse\u001b[39m\n"
+                        },
+                        {
+                          "text": "[Screenshot] 23_review_complete.png\n"
+                        },
+                        {
+                          "text": "[Review-UX] ✓ Test complete\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:49:58.399Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-A-86db4-le-panel-Confirm-Run-button-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-A-86db4-le-panel-Confirm-Run-button-chromium/video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "feb188400a741825904e-5cfe1575e97c5488ca9b",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 436,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-3: Per-step output inspection",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 523,
+          "column": 6,
+          "specs": [
+            {
+              "title": "download_commands API returns correct shape; PhaseCards render after run",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 73547,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:533:19",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 25,
+                          "line": 512
+                        },
+                        "snippet": "  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 25,
+                            "line": 512
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n\n  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:533:19"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[UC3] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC3] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC3] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[UC3] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC3] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC3] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[UC3] Clicked Confirm & Run\n"
+                        },
+                        {
+                          "text": "[UC3] Execute API status=500 runId=53dee3c7-c966-41a8-a4f9-00ccca4f89de\n"
+                        },
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-52-23-252Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:51:09.535Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-301e9-PhaseCards-render-after-run-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-301e9-PhaseCards-render-after-run-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-301e9-PhaseCards-render-after-run-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-301e9-PhaseCards-render-after-run-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-301e9-PhaseCards-render-after-run-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 25,
+                        "line": 512
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-6816277ca3cf5d45159e",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 524,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-4: Continue from Checkpoint visibility",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 579,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Checkpoint button absent in non-failed states; resume API is wired",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 73200,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:595:19",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 25,
+                          "line": 512
+                        },
+                        "snippet": "  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 25,
+                            "line": 512
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n\n  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:595:19"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[UC4] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC4] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC4] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[UC4] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC4] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC4] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] uc4_pending_review.png\n"
+                        },
+                        {
+                          "text": "[UC4] ✓ Checkpoint button correctly absent in pending_review state\n"
+                        },
+                        {
+                          "text": "[UC4] Clicked Confirm & Run\n"
+                        },
+                        {
+                          "text": "[UC4] Execute API status=500 runId=85e34189-8bd9-41d6-903f-e674537b11e8\n"
+                        },
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-53-40-290Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:52:26.894Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-b22d1--states-resume-API-is-wired-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-b22d1--states-resume-API-is-wired-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-b22d1--states-resume-API-is-wired-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-b22d1--states-resume-API-is-wired-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-b22d1--states-resume-API-is-wired-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 25,
+                        "line": 512
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-a82086cb9c43fd702abd",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 580,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-5: Interactive tool launcher for Nextflow outputs",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 623,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Workflow artifact renders; all 4 generic PhaseCards present after run",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 73134,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:634:19",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 25,
+                          "line": 512
+                        },
+                        "snippet": "  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 25,
+                            "line": 512
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n\n  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:634:19"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[UC5] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC5] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC5] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[UC5] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC5] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC5] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] uc5_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[UC5] Clicked Confirm & Run\n"
+                        },
+                        {
+                          "text": "[UC5] Execute API status=500 runId=203b0915-a68e-4dcf-8f2a-d837e2ae0e95\n"
+                        },
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-54-57-316Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:53:43.963Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-95424-haseCards-present-after-run-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-95424-haseCards-present-after-run-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-95424-haseCards-present-after-run-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-95424-haseCards-present-after-run-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-95424-haseCards-present-after-run-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 25,
+                        "line": 512
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-2c6680b9fb9f1c83bcd3",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 624,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-6: Detach and Reconnect labels",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 659,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Nextflow workflow shows \"Detach\" / \"Reconnect\" labels after run starts",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 73402,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:669:19",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 25,
+                          "line": 512
+                        },
+                        "snippet": "  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 25,
+                            "line": 512
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n\n  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:669:19"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[UC6] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC6] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC6] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[UC6] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC6] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC6] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[UC6] Clicked Confirm & Run\n"
+                        },
+                        {
+                          "text": "[UC6] Execute API status=500 runId=14d9e6d6-b1cf-4d4e-a668-e1d3c189c94c\n"
+                        },
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-56-14-808Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:55:01.175Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-c45ed-ect-labels-after-run-starts-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-c45ed-ect-labels-after-run-starts-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-c45ed-ect-labels-after-run-starts-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-c45ed-ect-labels-after-run-starts-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-c45ed-ect-labels-after-run-starts-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 25,
+                        "line": 512
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-dc0e9e95cf82fa122630",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 660,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-7: Download Commands Panel",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 727,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Completed workflow: download_commands API correct; panel renders in UI",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 73242,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:737:19",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 25,
+                          "line": 512
+                        },
+                        "snippet": "  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 25,
+                            "line": 512
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m500\u001b[39m\n\n  510 |   const executeData = await executeResp.json().catch(() => ({})) as any;\n  511 |   console.log(`[${label}] Execute API status=${executeStatus} runId=${executeData.runId}`);\n> 512 |   expect(executeStatus).toBe(200); // FAIL with clear message if execute endpoint errored\n      |                         ^\n  513 |   const runId: string = executeData.runId || executeData.execution?.runId || '';\n  514 |   expect(runId).toBeTruthy(); // FAIL if execute API did not return a runId\n  515 |   console.log(`[${label}] Captured runId: ${runId}`);\n    at clickConfirmAndCaptureRunId (/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:512:25)\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:737:19"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[UC7] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC7] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC7] AI asked clarification (1/3), answering with data\n"
+                        },
+                        {
+                          "text": "[UC7] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[UC7] Typing indicator not seen — response may already be arriving\n"
+                        },
+                        {
+                          "text": "[UC7] Workflow card appeared (1 total)\n"
+                        },
+                        {
+                          "text": "[UC7] Clicked Confirm & Run\n"
+                        },
+                        {
+                          "text": "[UC7] Execute API status=500 runId=a9009b51-436b-4ac7-813f-b5d213fbdd16\n"
+                        },
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-57-31-948Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:56:18.524Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-4f98f-correct-panel-renders-in-UI-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-4f98f-correct-panel-renders-in-UI-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-4f98f-correct-panel-renders-in-UI-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-4f98f-correct-panel-renders-in-UI-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-4f98f-correct-panel-renders-in-UI-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 25,
+                        "line": 512
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-266ef8f02310dc3dcfbc",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 728,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "UC-2: Pilot Run panel as test harness",
+          "file": "full-workflow-e2e.e2e.ts",
+          "line": 777,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Pilot run banner shows Configure pilot button; preflight API responds",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 1200000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 64498,
+                      "error": {
+                        "message": "TimeoutError: apiRequestContext.post: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - → POST http://localhost:5000/api/workflows/preflight\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 177\u001b[22m\n",
+                        "stack": "TimeoutError: apiRequestContext.post: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - → POST http://localhost:5000/api/workflows/preflight\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 177\u001b[22m\n\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:782:46",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                          "column": 46,
+                          "line": 782
+                        },
+                        "snippet": "  780 |\n  781 |     // Verify preflight API endpoint is wired\n> 782 |     const preflightResp = await page.request.post(`${BASE_URL}/api/workflows/preflight`, {\n      |                                              ^\n  783 |       data: {\n  784 |         workflowDefinition: {\n  785 |           name: 'Test Workflow',"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                            "column": 46,
+                            "line": 782
+                          },
+                          "message": "TimeoutError: apiRequestContext.post: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - → POST http://localhost:5000/api/workflows/preflight\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - content-type: application/json\u001b[22m\n\u001b[2m    - content-length: 177\u001b[22m\n\n\n  780 |\n  781 |     // Verify preflight API endpoint is wired\n> 782 |     const preflightResp = await page.request.post(`${BASE_URL}/api/workflows/preflight`, {\n      |                                              ^\n  783 |       data: {\n  784 |         workflowDefinition: {\n  785 |           name: 'Test Workflow',\n    at /home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts:782:46"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/full-e2e/audit_2026-03-22T01-58-40-132Z.json\n"
+                        },
+                        {
+                          "text": "[Audit] Estimated API cost this run: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-22T01:57:35.430Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-52573-tton-preflight-API-responds-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-52573-tton-preflight-API-responds-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-52573-tton-preflight-API-responds-chromium/error-context.md"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-52573-tton-preflight-API-responds-chromium/test-failed-2.png"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/full-workflow-e2e.e2e.ts-U-52573-tton-preflight-API-responds-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/full-workflow-e2e.e2e.ts",
+                        "column": 46,
+                        "line": 782
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "feb188400a741825904e-e753ba327ef47eee6e0c",
+              "file": "full-workflow-e2e.e2e.ts",
+              "line": 778,
               "column": 3
             }
           ]
@@ -334,11 +1015,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-11T02:14:59.526Z",
-    "duration": 45359.014,
-    "expected": 1,
+    "startTime": "2026-03-22T01:48:21.930Z",
+    "duration": 618713.403,
+    "expected": 2,
     "skipped": 0,
-    "unexpected": 0,
+    "unexpected": 6,
     "flaky": 0
   }
 }

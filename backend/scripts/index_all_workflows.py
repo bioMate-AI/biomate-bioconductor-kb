@@ -74,6 +74,65 @@ NFCORE_PIPELINES = {
     "differentialabundance":{"name": "nf-core/differentialabundance","description": "Differential abundance analysis for count matrices from RNA-seq, ATAC-seq, etc.",                  "domain": "transcriptomics",  "tools": ["deseq2","limma","edger"]},
 }
 
+# ── Domain → canonical output types ──────────────────────────────────────────
+# Maps domain (or pipeline name keyword) to the file types it typically produces.
+# Used to populate output_types when schema doesn't provide explicit output info.
+DOMAIN_OUTPUT_TYPES: dict = {
+    "transcriptomics":    ["bam", "counts_matrix", "tpm_matrix", "multiqc_report", "bigwig"],
+    "variant_calling":    ["vcf", "bam", "bai", "multiqc_report"],
+    "epigenomics":        ["bam", "bigwig", "bed_peaks", "multiqc_report"],
+    "proteomics":         ["mzml", "tsv_peptides", "tsv_proteins", "pdf_report"],
+    "metagenomics":       ["fasta_bins", "tsv_taxonomy", "tsv_abundance", "multiqc_report"],
+    "genomics":           ["bam", "bai", "fasta_assembly", "multiqc_report"],
+    "single_cell":        ["h5ad", "loom", "tsv_barcodes", "multiqc_report"],
+    "structural_biology": ["pdb", "cif", "json_scores"],
+    "drug_discovery":     ["sdf", "csv_scores", "tsv_admet"],
+    "cryo_em":            ["mrcs", "star_particles", "mrc_map"],
+    "pharmacology":       ["tsv_pk", "pdf_report", "csv_nca"],
+    "systems_biology":    ["csv_simulation", "pdf_plot", "json_model"],
+    "synthetic_biology":  ["genbank", "fasta", "pdf_design"],
+    "imaging":            ["tiff", "csv_measurements", "pdf_report"],
+    "general":            ["results_dir"],
+}
+
+# Pipeline-name keyword → output type overrides (more specific than domain)
+_PIPELINE_OUTPUT_OVERRIDES: dict = {
+    "rnaseq":       ["bam", "counts_matrix", "tpm_matrix", "multiqc_report", "bigwig"],
+    "chipseq":      ["bam", "bigwig", "bed_peaks", "multiqc_report"],
+    "atacseq":      ["bam", "bigwig", "bed_peaks", "multiqc_report"],
+    "sarek":        ["vcf", "bam", "bai", "multiqc_report"],
+    "mag":          ["fasta_bins", "tsv_taxonomy", "multiqc_report"],
+    "ampliseq":     ["tsv_taxonomy", "biom", "multiqc_report"],
+    "methylseq":    ["bam", "bismark_report", "multiqc_report"],
+    "differentialabundance": ["tsv_deseq2", "html_report", "pdf_plots"],
+    "diaproteomics":["tsv_proteins", "pdf_report"],
+    "proteomicslfq":["tsv_proteins", "mzml"],
+    "taxprofiler":  ["tsv_taxonomy", "multiqc_report"],
+    "fetchngs":     ["fastq", "samplesheet_csv"],
+    "demultiplex":  ["fastq", "multiqc_report"],
+    "isoseq":       ["bam", "fasta_isoforms", "tsv_counts"],
+    "crisprseq":    ["tsv_editing", "bam", "multiqc_report"],
+    "hic":          ["cooler", "bedgraph", "multiqc_report"],
+    "hicar":        ["cooler", "bedgraph", "multiqc_report"],
+    "scrnaseq":     ["h5ad", "loom", "multiqc_report"],
+    "spatialvi":    ["h5ad", "pdf_plots"],
+    "nanoseq":      ["vcf", "bam", "multiqc_report"],
+    "viralrecon":   ["vcf", "bam", "multiqc_report"],
+    "eager":        ["bam", "tsv_damage", "multiqc_report"],
+    "bacass":       ["fasta_assembly", "multiqc_report"],
+    "bactmap":      ["vcf", "bam", "multiqc_report"],
+}
+
+
+def _infer_output_types(pipeline_name: str, domain: str) -> list:
+    """Return canonical output types for a pipeline based on name then domain."""
+    name_lower = pipeline_name.lower().replace("nf-core/", "")
+    for key, otypes in _PIPELINE_OUTPUT_OVERRIDES.items():
+        if key in name_lower:
+            return otypes
+    return DOMAIN_OUTPUT_TYPES.get(domain, DOMAIN_OUTPUT_TYPES["general"])
+
+
 # Domain inference from keyword text
 DOMAIN_KEYWORDS = [
     ("rna",         "transcriptomics"),
@@ -210,11 +269,20 @@ def extract_biomni_input_output(content: str) -> Tuple[List[str], List[str]]:
     return inputs, outputs
 
 
-def extract_nfcore_input_output(content: str, schema_path: Optional[Path] = None) -> Tuple[List[str], List[str]]:
+def extract_nfcore_input_output(
+    content: str,
+    schema_path: Optional[Path] = None,
+    pipeline_name: str = "",
+    domain: str = "general",
+) -> Tuple[List[str], List[str]]:
     """
     Extract input/output types for nf-core full pipelines.
 
-    Tries nextflow_schema.json first; falls back to scanning main.nf params.
+    Strategy:
+    1. Parse nextflow_schema.json for input param names.
+    2. For outputs: use pipeline-name/domain knowledge mapping (schema never
+       enumerates outputs explicitly — they are just written to outdir).
+    3. Fall back to scanning params in main.nf if schema has no input info.
     """
     inputs: List[str] = []
     outputs: List[str] = []
@@ -222,22 +290,25 @@ def extract_nfcore_input_output(content: str, schema_path: Optional[Path] = None
     try:
         if schema_path and schema_path.exists():
             schema = json.loads(schema_path.read_text())
-            props = schema.get("definitions", {})
-            for group in props.values():
+            # Support both $defs (newer nf-core) and definitions (older)
+            defs = schema.get("$defs", schema.get("definitions", {}))
+            for group in defs.values():
                 for pname, pdef in group.get("properties", {}).items():
-                    if pname in ("input", "samplesheet", "reads"):
-                        desc = pdef.get("description", "")
-                        fmt = pdef.get("format", "")
-                        val = pdef.get("pattern", "")
-                        hint = next((x for x in [desc, fmt, val] if x), pname)
-                        if hint not in inputs:
+                    pname_l = pname.lower()
+                    if pname_l in ("input", "samplesheet", "reads", "input_path",
+                                   "samples", "manifest", "bam", "fastq"):
+                        if pname not in inputs:
                             inputs.append(pname)
-                    if pname == "outdir":
-                        outputs.append("results_dir")
+
         if not inputs:
+            # Fallback: scan params block in main.nf
             param_names = re.findall(r'\bparams\.(\w+)\s*=', content)
-            skip = {"outdir", "publish_dir_mode", "enable_conda", "help"}
+            skip = {"outdir", "publish_dir_mode", "enable_conda", "help",
+                    "tracedir", "max_cpus", "max_memory", "max_time"}
             inputs = list(dict.fromkeys(p for p in param_names if p not in skip))[:5]
+
+        # Outputs: use domain-knowledge mapping (schema has no explicit output list)
+        outputs = _infer_output_types(pipeline_name, domain)
 
     except Exception:
         pass
@@ -401,7 +472,6 @@ def index_nfcore_pipelines(conn: sqlite3.Connection) -> int:
             continue
 
         schema_path = pipeline_dir / "nextflow_schema.json"
-        inp, out = extract_nfcore_input_output(content, schema_path)
 
         # Curated metadata for known pipelines; auto-generate for the rest
         if pipeline_name in NFCORE_PIPELINES:
@@ -416,6 +486,10 @@ def index_nfcore_pipelines(conn: sqlite3.Connection) -> int:
             domain = infer_domain(pipeline_name + " " + description)
             tools = schema_info["params"][:10]
             name = f"nf-core/{pipeline_name}"
+
+        inp, out = extract_nfcore_input_output(
+            content, schema_path, pipeline_name=pipeline_name, domain=domain
+        )
 
         try:
             _wf_insert(cursor,
@@ -696,6 +770,13 @@ def backfill_input_output_types(conn: sqlite3.Connection) -> Tuple[int, int]:
 
     updated_inp = updated_out = 0
 
+    # Pre-load nfcore name→domain mapping for backfill
+    nfcore_meta_map = {}
+    for row_id2, name2, domain2 in cursor.execute(
+        "SELECT id, name, domain FROM workflows WHERE source='nfcore'"
+    ).fetchall():
+        nfcore_meta_map[row_id2] = (name2, domain2)
+
     for row_id, source, wf_content in rows:
         if not wf_content:
             continue
@@ -704,7 +785,13 @@ def backfill_input_output_types(conn: sqlite3.Connection) -> Tuple[int, int]:
                 inp, out = extract_bioc_input_output(wf_content)
             elif source == "biomni_nextflow":
                 inp, out = extract_biomni_input_output(wf_content)
-            elif source in ("nfcore", "nfcore_subwf"):
+            elif source == "nfcore":
+                name, domain = nfcore_meta_map.get(row_id, ("", "general"))
+                pipeline_name = name.replace("nf-core/", "")
+                inp, out = extract_nfcore_input_output(
+                    wf_content, pipeline_name=pipeline_name, domain=domain
+                )
+            elif source == "nfcore_subwf":
                 inp, out = extract_bioc_input_output(wf_content)
             else:
                 continue

@@ -843,6 +843,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Pipeline type compatibility pre-flight check
+  app.post('/api/workflows/type-compatibility', optionalAuth, express.json(), async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyUrl}/api/workflows/type-compatibility`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ compatible: true, warnings: [], error: String(err?.message ?? err) });
+    }
+  });
+
+  // Workflow input/output type lookup
+  app.get('/api/workflows/:workflowName/types', optionalAuth, async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const name = encodeURIComponent(req.params.workflowName);
+      const resp = await fetch(`${galaxyUrl}/api/workflows/${name}/types`, { signal: AbortSignal.timeout(5000) });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ has_type_info: false, error: String(err?.message ?? err) });
+    }
+  });
+
   // Error rate dashboard — returns 7-day rates for crash/timeout/5xx monitoring
   app.get('/api/admin/error-rates', async (req, res) => {
     try {
@@ -2623,6 +2653,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           convState.phase = 'generated';
         }
 
+        // Track workflow steps in ConversationState for pipeline output→input wiring.
+        // When the AI returns a generated workflow, record it as a step so subsequent
+        // chained workflows can check type compatibility against it.
+        if (assistantResponse.generatedWorkflow && convState) {
+          const wf = assistantResponse.generatedWorkflow as any;
+          const workflowName: string = wf?.name || wf?.workflowName || wf?.nextflow_path || '';
+          if (workflowName) {
+            // Fetch type info from backend (fire-and-forget, don't block response)
+            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+            fetch(`${galaxyUrl}/api/workflows/${encodeURIComponent(workflowName)}/types`, {
+              signal: AbortSignal.timeout(3000),
+            })
+              .then(r => r.ok ? r.json() : null)
+              .then((typeInfo: any) => {
+                if (!typeInfo) return;
+                conversationStateManager.addWorkflowStep(convState!, {
+                  workflowId: String(wf?.id || ''),
+                  workflowName,
+                  domain: wf?.domain || typeInfo?.domain || 'general',
+                  inputTypes: typeInfo?.input_types ?? [],
+                  outputTypes: typeInfo?.output_types ?? [],
+                  status: 'planned',
+                  turnIndex: convState!.currentTurn,
+                });
+                conversationStateManager.saveState(convState!).catch(() => {});
+              })
+              .catch(() => {});
+          }
+        }
+
         // Create task arcs for multi-intent responses
         if (assistantResponse.isMultiIntent && assistantResponse.subIntentResults) {
           conversationStateManager.createTaskArcs(convState,
@@ -2963,6 +3023,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const dl = conversationStateManager.detectDoomLoop(convState);
             return dl.detected ? { suggestion: dl.suggestion } : undefined;
           })(),
+          // Pipeline chain state — surfaces type compatibility warnings to UI
+          pipelineSteps: convState.workflowSteps?.map(s => ({
+            stepIndex: s.stepIndex,
+            workflowName: s.workflowName,
+            status: s.status,
+            inputTypes: s.inputTypes,
+            outputTypes: s.outputTypes,
+            warnings: s.compatibilityWarnings,
+          })) ?? [],
+          pipelineWarnings: conversationStateManager.getPipelineWarnings(convState),
         } : undefined,
 
         // Clarification request (if system needs user input or doom loop detected)

@@ -4,7 +4,6 @@ Galaxy AI Assistant
 Main orchestrator that combines all AI components to provide intelligent research assistance.
 """
 
-import hashlib
 import uuid
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -62,23 +61,6 @@ except ImportError as e:
 
 log = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Module-level bounded cache for multi-task LLM classification results.
-# Keyed by MD5 of the lowercased query; evicts oldest entry when full.
-# ---------------------------------------------------------------------------
-_MULTI_TASK_CACHE: dict = {}
-_MULTI_TASK_CACHE_MAX = 128
-
-# Fastest/cheapest model per provider for lightweight classification calls.
-_FAST_CLASSIFICATION_MODELS: dict = {
-    'anthropic': 'claude-haiku-3-5',
-    'openai': 'gpt-3.5-turbo',
-    'gemini': 'gemini-1.5-flash',
-    'google': 'gemini-1.5-flash',
-    'deepseek': 'deepseek-chat',
-    'zhipu': 'glm-4-flash',
-    # ollama / local: keep configured model (already fast locally)
-}
 
 
 class AIAssistant:
@@ -115,7 +97,6 @@ class AIAssistant:
         self._skill_loader = None  # SkillLoader for claude-scientific-skills
         self._agentic_memory = None  # AgenticMemoryService for long-term memory
         self._literature_client = None  # UnifiedLiteratureClient for citation retrieval
-        self._fast_llm_client = None   # Cheap/fast LLMClient for classification tasks
 
         log.info("AIAssistant initialized (lightweight mode)")
         log.info(f"  - Workflow search: UnifiedWorkflowSearch (database-backed)")
@@ -452,91 +433,18 @@ class AIAssistant:
 
     def _looks_like_multi_task(self, query: str) -> bool:
         """
-        Use a fast LLM call to decide whether the query is requesting multiple
-        distinct workflow tasks.  Results are cached (up to _MULTI_TASK_CACHE_MAX
-        entries) so repeated queries never re-invoke the LLM.
-
-        Falls back to False (single-task path) on any LLM error so that the
-        system degrades gracefully rather than blocking the user.
+        Quick heuristic check: does this query contain multiple distinct workflow intents?
+        If yes, route to TaskDecomposer. If no, use the fast single-task path.
         """
-        cache_key = hashlib.md5(query.lower().strip().encode()).hexdigest()
-        if cache_key in _MULTI_TASK_CACHE:
-            cached = _MULTI_TASK_CACHE[cache_key]
-            log.debug(f"[MultiTask] Cache hit ({cached['reason']!r}): is_multi={cached['is_multi_task']}")
-            return cached['is_multi_task']
-
-        try:
-            result = self._classify_multi_task_llm(query)
-            # Evict oldest entry when the cache is full
-            if len(_MULTI_TASK_CACHE) >= _MULTI_TASK_CACHE_MAX:
-                oldest_key = next(iter(_MULTI_TASK_CACHE))
-                del _MULTI_TASK_CACHE[oldest_key]
-            _MULTI_TASK_CACHE[cache_key] = result
-            log.info(
-                "[MultiTask] Classified as %s-task (count=%d): %s",
-                "multi" if result['is_multi_task'] else "single",
-                result['task_count'],
-                result['reason'],
-            )
-            return result['is_multi_task']
-        except Exception as exc:
-            log.warning("[MultiTask] LLM classification failed (%s), defaulting to single-task", exc)
-            return False
-
-    def _classify_multi_task_llm(self, query: str) -> dict:
-        """
-        Single fast LLM call that returns a classification dict:
-            {'is_multi_task': bool, 'task_count': int, 'reason': str}
-        Raises on any LLM or JSON parse error (caller handles the fallback).
-        """
-        prompt = (
-            "You are a query classifier for a bioinformatics workflow system.\n\n"
-            "Determine whether the following user query requests MULTIPLE distinct "
-            "computational workflow steps that should be executed as separate tasks, "
-            "or a SINGLE workflow request.\n\n"
-            "A MULTI-TASK query explicitly chains several distinct analyses "
-            "(e.g., 'run QC, then alignment, then variant calling' — 3 tasks).\n"
-            "A SINGLE-TASK query asks for one thing, even if complex "
-            "(e.g., 'run differential expression on my RNA-seq data' — 1 task).\n\n"
-            "Respond with JSON only, no explanation outside the JSON:\n"
-            '{"is_multi_task": true|false, "task_count": <integer>, "reason": "<one sentence>"}\n\n'
-            f"Query: {query}"
-        )
-        response_text = self._call_llm_fast(prompt)
-
-        # Strip markdown code fences if the model wrapped the JSON
-        clean = response_text.strip()
-        if clean.startswith("```"):
-            parts = clean.split("```")
-            clean = parts[1] if len(parts) > 1 else clean
-            if clean.startswith("json"):
-                clean = clean[4:]
-        clean = clean.strip()
-
-        parsed = json.loads(clean)
-        return {
-            'is_multi_task': bool(parsed.get('is_multi_task', False)),
-            'task_count': int(parsed.get('task_count', 1)),
-            'reason': str(parsed.get('reason', '')),
-        }
-
-    def _call_llm_fast(self, prompt: str) -> str:
-        """
-        Synchronous single LLM call using the cheapest/fastest model available
-        for the configured provider.  The client is lazy-initialised and reused
-        across calls (no new HTTP connection overhead per classification).
-        """
-        if self._fast_llm_client is None:
-            from .llm_client import LLMClient
-            client = LLMClient(self.config)
-            provider = self.config.llm_provider.lower()
-            fast_model = _FAST_CLASSIFICATION_MODELS.get(provider)
-            if fast_model:
-                # Override only the model; keep all auth/endpoint settings unchanged
-                client.model = fast_model
-            self._fast_llm_client = client
-
-        return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
+        multi_task_signals = [
+            ' then ', ' and then ', ', then ',
+            'first.*then', 'step 1', 'step 2',
+            'followed by', 'after that', 'next,',
+            'also run', 'also do', 'additionally',
+        ]
+        query_lower = query.lower()
+        signal_count = sum(1 for s in multi_task_signals if s in query_lower)
+        return signal_count >= 1
 
     async def _handle_multi_task_clarification(self, query: str, context: dict) -> dict:
         """
@@ -1942,12 +1850,104 @@ class AIAssistant:
                 unique_trials.append(trial.strip())
         return unique_trials
 
-    def generate_workflow_unified(
-        self,
-        user_intent: str,
-        uploaded_datasets: Optional[List[str]] = None,
-        user_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    # ---------------------------------------------------------------------------
+    # Nextflow parameter helpers
+    # ---------------------------------------------------------------------------
+
+    _NEXTFLOW_INTERNAL_PARAMS = {
+        'mock_mode', 'outdir', 'sample_id', 'platform', 'library', 'genome',
+        'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
+        'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
+    }
+
+    def _find_nf_file(self, filename: str) -> Optional[Path]:
+        """Resolve a DB-stored filename (e.g. nfcore/subworkflows/…) to an absolute .nf path."""
+        this_file = Path(__file__).resolve()
+        backend_root = this_file.parent
+        for ancestor in list(this_file.parents):
+            if (ancestor / "biomni_workflows").is_dir():
+                backend_root = ancestor
+                break
+        raw = filename
+        if raw.startswith("nfcore/"):
+            rest = raw.split("nfcore/", 1)[1].strip("/")
+            variants = [Path(rest), Path(rest) / "main.nf"]
+        else:
+            variants = [Path(raw)]
+        roots = [
+            backend_root,
+            backend_root / "biomni_workflows",
+            backend_root / "biomni_workflows" / "nextflow_nfcore",
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows",
+        ]
+        for root in roots:
+            for v in variants:
+                p = (root / v).resolve()
+                if p.exists() and p.suffix == ".nf":
+                    return p
+        return None
+
+    def _parse_nextflow_params(self, filename: str) -> dict:
+        """
+        Parse params.* declarations from a .nf file.
+        Returns {"required": [...], "optional": [...]} where each entry is
+        {"name", "label", "description", "required", "default"}.
+        Params with default=null are required; internal params are skipped.
+        """
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return {"required": [], "optional": []}
+        try:
+            content = nf_path.read_text(errors="replace")
+        except OSError:
+            return {"required": [], "optional": []}
+        required = []
+        optional = []
+        seen: set = set()
+        for m in re.finditer(r'^[ \t]*params\.(\w+)\s*=\s*([^\n]+)', content, re.MULTILINE):
+            name = m.group(1)
+            if name in self._NEXTFLOW_INTERNAL_PARAMS or name in seen:
+                continue
+            seen.add(name)
+            raw_val = m.group(2).strip()
+            raw_val = re.sub(r'\s*//.*$', '', raw_val).strip()
+            is_null = raw_val in ("null", "")
+            entry = {
+                "name": name,
+                "label": name.replace("_", " ").title(),
+                "description": f"Nextflow parameter --{name}",
+                "required": is_null,
+                "default": None if is_null else raw_val.strip("'\""),
+            }
+            (required if is_null else optional).append(entry)
+        return {"required": required, "optional": optional}
+
+    def _build_prereq_validation(self, required_params: list) -> Optional[dict]:
+        """
+        Build a prerequisitesValidation payload so prereq-normalizer.ts shows
+        "Required parameters — MISSING" and blocks Confirm & Run until filled.
+        Returns None if there are no required params.
+        """
+        if not required_params:
+            return None
+        return {
+            "requirements": {
+                "parameters": [
+                    {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
+                    for p in required_params
+                ]
+            },
+            "analysis": {
+                "missingInputs": [],
+                "missingParameters": [
+                    {"stepId": "workflow", "paramName": p["name"]}
+                    for p in required_params
+                ],
+                "inputMappings": [],
+            },
+        }
+
+    def generate_workflow_unified(self, user_intent: str, uploaded_datasets: Optional[List[str]] = None) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
 
@@ -1961,7 +1961,6 @@ class AIAssistant:
         Args:
             user_intent: Natural language description of workflow goal
             uploaded_datasets: Optional list of user-uploaded dataset IDs
-            user_id: Optional user ID for LTM correction injection
 
         Returns:
             Dictionary containing:
@@ -1973,24 +1972,6 @@ class AIAssistant:
             - datasets_assigned: bool
         """
         log.info(f"[UnifiedWorkflowGeneration] Starting for intent: {user_intent}")
-
-        # C1b — Inject recent user corrections into the intent for personalized search/generation
-        if MEMORY_AVAILABLE and self.agentic_memory and user_id:
-            try:
-                corrections = self.agentic_memory.get_recent_corrections(user_id, limit=5)
-                if corrections:
-                    correction_text = "This user previously corrected:\n" + "\n".join(
-                        f"- Suggested: {c['original_suggestion']} → User chose: {c['user_correction']}"
-                        for c in corrections
-                    )
-                    user_intent = f"{user_intent}\n\n[Memory context] {correction_text}"
-                    log.info(
-                        "[UnifiedWorkflowGeneration] Injected %d correction(s) from LTM for user %s",
-                        len(corrections),
-                        user_id,
-                    )
-            except Exception as _ltm_err:
-                log.warning("[UnifiedWorkflowGeneration] LTM correction fetch failed: %s", _ltm_err)
 
         try:
             # Step 1: Iterative search trials until confidence is high.
@@ -2097,6 +2078,8 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params = self._parse_nextflow_params(best_match.filename)
+                    _req, _opt = _nf_params['required'], _nf_params['optional']
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2127,9 +2110,12 @@ class AIAssistant:
                             'steps': {},  # Nextflow steps are in the .nf file, not here
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req,
+                            'optional_params': _opt,
                         },
                         'datasets_assigned': False,  # Nextflow handles inputs via parameters
-                        'generated_parameters': [],
+                        'generated_parameters': _req + _opt,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req)} if _req else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
                         'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
                         'needs_user_feedback': False,
@@ -2202,6 +2188,8 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params = self._parse_nextflow_params(best_match.filename)
+                    _req, _opt = _nf_params['required'], _nf_params['optional']
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2234,9 +2222,12 @@ class AIAssistant:
                             'steps': {},
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req,
+                            'optional_params': _opt,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'generated_parameters': _req + _opt,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req)} if _req else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [
                             'Medium confidence match — please verify tool selection is appropriate'
                         ], 'suggestions': []},
@@ -2270,6 +2261,8 @@ class AIAssistant:
                         f"{composed['composable_count']} NF-WRAPPER + {composed['adhoc_count']} generated"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req, _opt = _nf_params['required'], _nf_params['optional']
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2293,9 +2286,12 @@ class AIAssistant:
                             'nextflow_path': composed['nextflow_path'],
                             'workflow_type': 'nextflow',
                             'steps': {},
+                            'required_params': _req,
+                            'optional_params': _opt,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'generated_parameters': _req + _opt,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req)} if _req else {}),
                         'validation': {
                             'is_valid': validation.get('is_valid', True),
                             'warnings': validation.get('warnings', []),
@@ -2341,6 +2337,8 @@ class AIAssistant:
                         f"{composed['adhoc_count']} generated processes"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req, _opt = _nf_params['required'], _nf_params['optional']
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2370,9 +2368,12 @@ class AIAssistant:
                             'workflow_type': 'nextflow',
                             'steps': {},
                             'tools_used': composed['tools_used'],
+                            'required_params': _req,
+                            'optional_params': _opt,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'generated_parameters': _req + _opt,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req)} if _req else {}),
                         'tools_used': composed['tools_used'],
                         # Nextflow validation: checks include{} paths resolve on disk.
                         # Tool availability is handled by container images, not installation.

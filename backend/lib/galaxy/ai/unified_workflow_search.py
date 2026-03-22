@@ -166,6 +166,17 @@ class UnifiedWorkflowSearch:
             'scaffold-hopping': 3.0, 'mmp': 2.5, 'recap': 2.5,
             'drug-like': 2.5, 'druglikeness': 2.5, 'lipinski': 2.0,
             'solubility': 2.0, 'logp': 2.0, 'psa': 2.0,
+            # MD simulation + binding free energy
+            'gromacs': 3.5, 'molecular dynamics': 3.5, 'md simulation': 3.5,
+            'mm-gbsa': 3.5, 'mmgbsa': 3.5, 'binding free energy': 3.5,
+            'free energy': 2.5, 'deltag': 2.5, 'delta g': 2.5,
+            'post-docking': 3.0, 'ambertools': 2.5, 'gaff2': 2.5,
+            'rmsd': 2.0, 'rmsf': 2.0, 'trajectory': 2.0, 'equilibration': 2.5,
+            # Generative design
+            'reinvent': 3.5, 'reinvent4': 3.5, 'generative design': 3.5,
+            'de novo': 3.5, 'de-novo': 3.5, 'lead generation': 3.0,
+            'scaffold decoration': 3.0, 'linker design': 3.0,
+            'molecular generation': 3.0, 'reinforcement learning drug': 3.0,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
