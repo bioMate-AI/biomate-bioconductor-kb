@@ -831,6 +831,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Index health — proxies to Galaxy backend; returns per-source counts + staleness flags
+  app.get('/api/admin/index-health', optionalAuth, async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyUrl}/api/admin/index-health`, { signal: AbortSignal.timeout(10000) });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ health: 'error', detail: String(err?.message ?? err) });
+    }
+  });
+
   // Error rate dashboard — returns 7-day rates for crash/timeout/5xx monitoring
   app.get('/api/admin/error-rates', async (req, res) => {
     try {

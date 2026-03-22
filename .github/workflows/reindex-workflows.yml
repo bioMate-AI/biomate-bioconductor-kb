@@ -1,0 +1,35 @@
+name: Reindex Workflows
+
+# Self-hosted crontab equivalent (add to crontab with: crontab -e):
+#   0 2 * * 0 cd /path/to/biomate && python backend/scripts/index_all_workflows.py >> /var/log/biomate-reindex.log 2>&1
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly, Sunday 2am UTC
+  workflow_dispatch:       # Allow manual trigger
+
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      - name: Run indexer
+        run: python backend/scripts/index_all_workflows.py
+      - name: Report counts
+        run: |
+          python3 -c "
+          import sqlite3
+          c = sqlite3.connect('backend/database/galaxy_ai_tools.db')
+          rows = c.execute('SELECT source, COUNT(*) FROM workflows GROUP BY source ORDER BY COUNT(*) DESC').fetchall()
+          print('=== Workflow counts after reindex ===')
+          for r in rows: print(f'{r[0]}: {r[1]}')
+          print(f'TOTAL: {sum(r[1] for r in rows)}')
+          "

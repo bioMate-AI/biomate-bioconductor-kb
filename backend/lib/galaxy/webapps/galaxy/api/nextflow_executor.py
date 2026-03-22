@@ -2388,3 +2388,63 @@ def get_cryosparc_status(run_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"CryoSPARC run not found: {run_id}")
 
     return status
+
+
+# ---------------------------------------------------------------------------
+# Index health check
+# ---------------------------------------------------------------------------
+
+@router.get("/api/admin/index-health", summary="Workflow index health by source")
+def get_index_health() -> Dict[str, Any]:
+    """Returns workflow index counts by source and staleness flags.
+
+    A source is considered stale if its most-recent ``indexed_at`` timestamp
+    is older than 7 days (or if no ``indexed_at`` value exists).
+    """
+    import sqlite3 as _sqlite3
+    from datetime import datetime as _dt, timedelta as _td
+
+    stale_threshold = _dt.utcnow() - _td(days=7)
+    db_path = Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+
+    if not db_path.exists():
+        raise HTTPException(status_code=503, detail=f"Workflow database not found at {db_path}")
+
+    try:
+        conn = _sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT source, COUNT(*), MAX(indexed_at) FROM workflows GROUP BY source ORDER BY COUNT(*) DESC"
+        ).fetchall()
+        conn.close()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"DB query failed: {exc}")
+
+    sources = []
+    any_stale = False
+    for source, count, last_indexed in rows:
+        if last_indexed:
+            try:
+                last_dt = _dt.fromisoformat(last_indexed.replace("Z", "+00:00").replace("+00:00", ""))
+            except ValueError:
+                last_dt = None
+        else:
+            last_dt = None
+
+        is_stale = (last_dt is None) or (last_dt < stale_threshold)
+        if is_stale:
+            any_stale = True
+
+        sources.append({
+            "source": source,
+            "count": count,
+            "last_indexed": last_indexed,
+            "is_stale": is_stale,
+        })
+
+    return {
+        "sources": sources,
+        "total": sum(s["count"] for s in sources),
+        "health": "stale" if any_stale else "ok",
+        "stale_threshold_days": 7,
+        "checked_at": _dt.utcnow().isoformat() + "Z",
+    }
