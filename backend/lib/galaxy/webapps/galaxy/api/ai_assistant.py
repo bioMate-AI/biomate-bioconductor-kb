@@ -1182,6 +1182,30 @@ def get_ai_status(
         }
 
 
+@router.get(
+    "/api/ai_assistant/workflow_catalog",
+    summary="Catalog statistics: workflow counts by source + chain count."
+)
+def workflow_catalog_stats(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return indexed workflow counts and chain count for health monitoring."""
+    try:
+        if not WORKFLOW_SEARCH_AVAILABLE or not _workflow_search:
+            return {"error": "Workflow search not available", "total_workflows": 0}
+        stats = _workflow_search.get_stats()
+        chain_count = stats.get("chains", {}).get("total", 0)
+        return {
+            "total_workflows": stats.get("total", 0),
+            "by_source": stats.get("by_source", {}),
+            "by_format": stats.get("by_format", {}),
+            "chain_count": chain_count,
+        }
+    except Exception as exc:
+        log.error("workflow_catalog_stats error: %s", exc)
+        return {"error": str(exc), "total_workflows": 0}
+
+
 @router.post(
     "/api/ai_assistant/process_request",
     summary="Process a natural language research request."
