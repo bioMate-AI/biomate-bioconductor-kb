@@ -359,7 +359,365 @@ def wf_name(s: str) -> str:
     return s.replace("_", " ").replace("/", " ").title()
 
 
+# ── Curated workflow chains ───────────────────────────────────────────────────
+#
+# Each entry describes a named, ordered composition of workflows that naturally
+# go together for a research project type.  The chain is the unit that maps a
+# high-level user query ("run a rare disease workup") to a concrete execution
+# plan, bypassing per-query LLM reassembly.
+#
+# steps:            ordered list of {order, workflow_name, role, params_template}
+# connections:      data flow between steps {from_step, from_output, to_step, to_input}
+# required_inputs:  what the user must supply at the start
+# expected_outputs: what the chain produces at the end
+# example_queries:  natural-language triggers used for semantic matching
+#
+CURATED_CHAINS = [
+    {
+        "name": "rare_disease_multimodal_workup",
+        "display_name": "Rare Disease Multi-Modal Workup",
+        "domain": "rare_disease",
+        "description": (
+            "End-to-end rare disease workup combining germline variant calling on "
+            "WGS/WES with transcriptomic outlier detection (aberrant expression and "
+            "splicing) on paired RNA-seq, producing a unified case report ready for "
+            "downstream variant prioritisation tools."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "nf-core/sarek",         "role": "germline_variant_calling",    "params_template": {"genome": "GRCh38", "tools": ["haplotypecaller"], "wes": False}},
+            {"order": 2, "workflow_name": "vep_annotation",         "role": "variant_annotation",          "params_template": {"species": "homo_sapiens", "assembly": "GRCh38"}},
+            {"order": 3, "workflow_name": "nf-core/rnaseq",         "role": "rna_alignment_quantification","params_template": {"aligner": "star_salmon", "genome": "GRCh38"}},
+            {"order": 4, "workflow_name": "nf-core/drop",           "role": "aberrant_expression_splicing","params_template": {"outrider": True, "fraser": True}},
+            {"order": 5, "workflow_name": "case_report_aggregation","role": "result_aggregation",          "params_template": {}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "vcf",  "to_step": 2, "to_input": "vcf"},
+            {"from_step": 3, "from_output": "bam",  "to_step": 4, "to_input": "bam"},
+            {"from_step": 2, "from_output": "annotated_vcf", "to_step": 5, "to_input": "variant_evidence"},
+            {"from_step": 4, "from_output": "outrider_results", "to_step": 5, "to_input": "expression_evidence"},
+            {"from_step": 4, "from_output": "fraser_results",   "to_step": 5, "to_input": "splicing_evidence"},
+        ],
+        "required_inputs": [
+            {"name": "wgs_fastq_or_bam", "type": "fastq|bam", "description": "WGS or WES reads for the patient (and parents for trio analysis)"},
+            {"name": "rna_fastq",        "type": "fastq",      "description": "RNA-seq reads from patient-matched sample"},
+        ],
+        "expected_outputs": [
+            {"name": "annotated_vcf",       "type": "vcf",  "description": "Germline variants with population frequency and consequence annotations"},
+            {"name": "outrider_results",    "type": "tsv",  "description": "Aberrant expression outlier genes"},
+            {"name": "fraser_results",      "type": "tsv",  "description": "Aberrant splicing junctions"},
+            {"name": "case_report",         "type": "html", "description": "Unified patient case report linking DNA and RNA evidence"},
+        ],
+        "example_queries": [
+            "Run a complete rare disease workup — I have WES and RNA-seq",
+            "Germline variant calling and transcriptomic outlier detection for a rare disease patient",
+            "Multi-modal rare disease analysis combining WGS and RNA-seq",
+            "Run OUTRIDER and FRASER on the RNA-seq paired with this patient's WGS",
+        ],
+        "tags": ["rare_disease", "WGS", "WES", "RNA-seq", "OUTRIDER", "FRASER", "germline", "variant_calling"],
+    },
+    {
+        "name": "bulk_rnaseq_de_analysis",
+        "display_name": "Bulk RNA-seq Differential Expression Analysis",
+        "domain": "transcriptomics",
+        "description": (
+            "Full bulk RNA-seq analysis pipeline: alignment and QC with nf-core/rnaseq, "
+            "differential expression with DESeq2, and gene set enrichment analysis."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "nf-core/rnaseq",              "role": "alignment_qc_quantification", "params_template": {"aligner": "star_salmon", "genome": "GRCh38"}},
+            {"order": 2, "workflow_name": "nf-core/differentialabundance","role": "differential_expression",     "params_template": {"method": "deseq2"}},
+            {"order": 3, "workflow_name": "gene_set_enrichment_analysis", "role": "pathway_enrichment",          "params_template": {"databases": ["GO", "KEGG", "Reactome"]}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "counts_matrix", "to_step": 2, "to_input": "counts"},
+            {"from_step": 2, "from_output": "de_results",    "to_step": 3, "to_input": "gene_list"},
+        ],
+        "required_inputs": [
+            {"name": "fastq_files",    "type": "fastq",    "description": "Raw RNA-seq reads"},
+            {"name": "sample_sheet",   "type": "csv",      "description": "Sample metadata with condition labels"},
+            {"name": "contrast",       "type": "string",   "description": "Comparison to run, e.g. treatment vs control"},
+        ],
+        "expected_outputs": [
+            {"name": "multiqc_report", "type": "html", "description": "QC summary across all samples"},
+            {"name": "de_results",     "type": "tsv",  "description": "Differential expression table with log2FC and adjusted p-values"},
+            {"name": "gsea_results",   "type": "tsv",  "description": "Enriched pathways and gene sets"},
+        ],
+        "example_queries": [
+            "Run RNA-seq analysis and differential expression",
+            "Align RNA-seq, run DESeq2, and do pathway enrichment",
+            "Bulk RNA-seq DE analysis with GO enrichment",
+            "Run nf-core rnaseq then differential expression and GSEA",
+        ],
+        "tags": ["RNA-seq", "DESeq2", "differential_expression", "GSEA", "GO", "pathway_enrichment"],
+    },
+    {
+        "name": "single_cell_multimodal_analysis",
+        "display_name": "Single-Cell RNA-seq Multi-Sample Analysis",
+        "domain": "single_cell",
+        "description": (
+            "Full downstream single-cell analysis from Cell Ranger output: "
+            "QC, normalization, batch-aware integration, clustering, reference-based "
+            "cell-type annotation, trajectory inference, and multi-sample differential "
+            "abundance testing accounting for donor as a random effect."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "scrna_qc_normalization",                   "role": "qc_and_normalization",          "params_template": {}},
+            {"order": 2, "workflow_name": "create_harmony_embeddings_scRNA",          "role": "batch_integration",             "params_template": {}},
+            {"order": 3, "workflow_name": "annotate_celltype_scRNA",                  "role": "clustering_and_annotation",     "params_template": {}},
+            {"order": 4, "workflow_name": "trajectory_inference",                     "role": "trajectory_analysis",           "params_template": {}},
+            {"order": 5, "workflow_name": "differential_abundance_random_effects",    "role": "differential_abundance",        "params_template": {"random_effect": "donor"}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "h5ad_filtered", "to_step": 2, "to_input": "h5ad"},
+            {"from_step": 2, "from_output": "h5ad_integrated","to_step": 3, "to_input": "h5ad"},
+            {"from_step": 3, "from_output": "h5ad_annotated", "to_step": 4, "to_input": "h5ad"},
+            {"from_step": 3, "from_output": "h5ad_annotated", "to_step": 5, "to_input": "h5ad"},
+        ],
+        "required_inputs": [
+            {"name": "cellranger_output", "type": "directory", "description": "Cell Ranger output directory (or equivalent h5ad/matrix)"},
+            {"name": "sample_metadata",   "type": "csv",       "description": "Sample metadata including donor ID and condition"},
+        ],
+        "expected_outputs": [
+            {"name": "h5ad_final",         "type": "h5ad", "description": "Annotated, integrated single-cell object"},
+            {"name": "cell_type_umap",     "type": "pdf",  "description": "UMAP coloured by cell type and condition"},
+            {"name": "da_results",         "type": "tsv",  "description": "Differential abundance results by cell type"},
+            {"name": "trajectory_plot",    "type": "pdf",  "description": "Pseudotime trajectory"},
+        ],
+        "example_queries": [
+            "Run single-cell analysis from Cell Ranger output",
+            "scRNA-seq clustering, annotation, and differential abundance across donors",
+            "Full downstream scRNA-seq analysis with donor batch correction",
+            "Annotate cell types and test differential abundance accounting for donor",
+        ],
+        "tags": ["scRNA-seq", "single_cell", "Harmony", "cell_type_annotation", "differential_abundance", "trajectory"],
+    },
+    {
+        "name": "cutandtag_chromatin_analysis",
+        "display_name": "CUT&Tag Chromatin Profiling",
+        "domain": "epigenomics",
+        "description": (
+            "CUT&Tag analysis pipeline: alignment with Bowtie2, spike-in normalisation, "
+            "peak calling with SEACR, and differential binding analysis between conditions."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "cutandtag_alignment_spikein", "role": "alignment_and_normalisation", "params_template": {"aligner": "bowtie2", "spikein_genome": "dm6"}},
+            {"order": 2, "workflow_name": "seacr_peak_calling",          "role": "peak_calling",               "params_template": {"mode": "non-stringent"}},
+            {"order": 3, "workflow_name": "differential_binding_analysis","role": "differential_binding",       "params_template": {"method": "DESeq2"}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "normalised_bam", "to_step": 2, "to_input": "bam"},
+            {"from_step": 2, "from_output": "peaks_bed",      "to_step": 3, "to_input": "peaks"},
+            {"from_step": 1, "from_output": "normalised_bam", "to_step": 3, "to_input": "bam"},
+        ],
+        "required_inputs": [
+            {"name": "fastq_files",    "type": "fastq",   "description": "CUT&Tag reads for target and IgG control"},
+            {"name": "sample_sheet",   "type": "csv",     "description": "Sample metadata with antibody target and condition"},
+            {"name": "spikein_genome", "type": "string",  "description": "Spike-in genome for normalisation (e.g. dm6 for Drosophila)"},
+        ],
+        "expected_outputs": [
+            {"name": "normalised_bigwig", "type": "bigwig", "description": "Spike-in normalised coverage tracks"},
+            {"name": "peaks_bed",         "type": "bed",    "description": "Called peaks per sample"},
+            {"name": "differential_peaks","type": "tsv",    "description": "Differentially bound regions between conditions"},
+        ],
+        "example_queries": [
+            "Run CUT&Tag analysis with spike-in normalisation",
+            "CUT&Tag alignment, peak calling with SEACR, and differential binding",
+            "Chromatin profiling analysis with IgG control and SEACR",
+            "Process CUT&Tag data and find differential peaks between conditions",
+        ],
+        "tags": ["CUT&Tag", "CUT&RUN", "SEACR", "chromatin", "spike-in", "differential_binding", "epigenomics"],
+    },
+    {
+        "name": "alternative_polyadenylation_analysis",
+        "display_name": "Alternative Polyadenylation Analysis (PolyAMiner-Bulk)",
+        "domain": "transcriptomics",
+        "description": (
+            "RNA-seq alignment followed by PolyAMiner-Bulk for alternative polyadenylation "
+            "detection, quantification of 3'UTR length changes, and visualisation of "
+            "differential APA genes between conditions."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "nf-core/rnaseq",    "role": "alignment",       "params_template": {"aligner": "star", "save_unaligned": False}},
+            {"order": 2, "workflow_name": "polyaminer_bulk",   "role": "apa_detection",   "params_template": {"clustering_mode": "softclipped_assisted"}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "bam", "to_step": 2, "to_input": "bam"},
+        ],
+        "required_inputs": [
+            {"name": "fastq_files",  "type": "fastq", "description": "Bulk RNA-seq reads"},
+            {"name": "sample_sheet", "type": "csv",   "description": "Sample metadata with condition labels"},
+            {"name": "genome",       "type": "string","description": "Reference genome (e.g. GRCh38, mm10)"},
+        ],
+        "expected_outputs": [
+            {"name": "apa_results",       "type": "tsv", "description": "Differential APA genes with PolyAIndex metric"},
+            {"name": "utr_length_plots",  "type": "pdf", "description": "Read density visualisations for top differential APA genes"},
+        ],
+        "example_queries": [
+            "Run PolyAMiner-Bulk on my RNA-seq data",
+            "Detect alternative polyadenylation from bulk RNA-seq",
+            "APA analysis comparing two conditions",
+            "Find 3'UTR length changes between treated and control samples",
+        ],
+        "tags": ["APA", "alternative_polyadenylation", "PolyAMiner", "3UTR", "RNA-seq"],
+    },
+    {
+        "name": "drug_discovery_screening",
+        "display_name": "Drug Discovery Screening Pipeline",
+        "domain": "drug_discovery",
+        "description": (
+            "Multi-phase drug discovery pipeline: ADMET screening, molecular docking, "
+            "structure-based binding affinity prediction, and compound prioritisation report."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "predict_admet_properties",           "role": "admet_screening",         "params_template": {}},
+            {"order": 2, "workflow_name": "structure_prediction_docking",       "role": "molecular_docking",       "params_template": {}},
+            {"order": 3, "workflow_name": "predict_binding_affinity_protein_1d_sequence", "role": "binding_affinity", "params_template": {}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "filtered_compounds", "to_step": 2, "to_input": "compounds"},
+            {"from_step": 2, "from_output": "docked_poses",       "to_step": 3, "to_input": "complexes"},
+        ],
+        "required_inputs": [
+            {"name": "compound_library", "type": "sdf|smiles", "description": "Compound structures to screen"},
+            {"name": "target_structure", "type": "pdb",        "description": "Target protein structure"},
+        ],
+        "expected_outputs": [
+            {"name": "admet_report",       "type": "tsv",  "description": "ADMET property predictions per compound"},
+            {"name": "docking_scores",     "type": "tsv",  "description": "Docking scores and binding poses"},
+            {"name": "priority_compounds", "type": "sdf",  "description": "Top-ranked compounds after all filters"},
+        ],
+        "example_queries": [
+            "Screen this compound library against the target and rank by ADMET and docking",
+            "Run ADMET screening then molecular docking",
+            "Drug discovery pipeline: filter by ADMET then dock",
+        ],
+        "tags": ["drug_discovery", "ADMET", "docking", "virtual_screening", "compound_prioritisation"],
+    },
+    {
+        "name": "drug_discovery_admet_gated_screening",
+        "display_name": "ADMET-Gated Virtual Screening",
+        "domain": "drug_discovery",
+        "description": (
+            "Compound library screening with upfront ADMET filtering before docking: "
+            "pharmacophore pre-screen → ADMET triage (hERG, DILI, Ames, ClinTox) → "
+            "AutoDock Vina docking → integrated ranking. Only ADMET-passing compounds "
+            "advance to the computationally expensive docking step."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "pharmacophore_filtering",   "role": "pharmacophore_prescreen",  "params_template": {"min_features": 3}},
+            {"order": 2, "workflow_name": "predict_admet_properties",  "role": "admet_triage",             "params_template": {"profile": "druglike_lead"}},
+            {"order": 3, "workflow_name": "structure_prediction_docking","role": "docking",                "params_template": {"docking_engine": "vina"}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "filtered_smiles",  "to_step": 2, "to_input": "smiles"},
+            {"from_step": 2, "from_output": "passed_compounds", "to_step": 3, "to_input": "ligand_sdf"},
+        ],
+        "required_inputs": [
+            {"name": "reference_actives", "type": "smiles",     "description": "Known active compounds to define pharmacophore"},
+            {"name": "library",           "type": "smiles|sdf", "description": "Compound library to screen"},
+            {"name": "target_structure",  "type": "pdb|fasta",  "description": "Target protein structure or sequence"},
+        ],
+        "expected_outputs": [
+            {"name": "ranked_compounds",  "type": "csv",  "description": "Final ranked compounds with docking and ADMET scores"},
+            {"name": "admet_report",      "type": "tsv",  "description": "ADMET flags per compound"},
+            {"name": "docking_poses",     "type": "sdf",  "description": "Top docking pose per compound"},
+        ],
+        "example_queries": [
+            "Screen this library against the target, filter by ADMET first, then dock",
+            "Run ADMET triage before docking to save compute",
+            "Pharmacophore pre-screen then ADMET then Vina docking",
+            "Virtual screening with upfront toxicity filtering",
+        ],
+        "tags": ["drug_discovery", "virtual_screening", "ADMET", "pharmacophore", "docking", "compound_triage"],
+    },
+    {
+        "name": "target_to_lead_full",
+        "display_name": "Full Target-to-Lead Pipeline",
+        "domain": "drug_discovery",
+        "description": (
+            "Complete computational pipeline from a novel target protein to ranked, "
+            "ADMET-filtered lead compounds with binding free energy validation: "
+            "pocket detection → pharmacophore screen → ADMET triage → docking → "
+            "MM-GBSA re-ranking → REINVENT4 analogues for top hits."
+        ),
+        "steps": [
+            {"order": 1, "workflow_name": "pocket_detection_druggability","role": "pocket_detection",    "params_template": {}},
+            {"order": 2, "workflow_name": "pharmacophore_filtering",       "role": "prescreen",          "params_template": {"min_features": 3}},
+            {"order": 3, "workflow_name": "predict_admet_properties",      "role": "admet_triage",       "params_template": {"profile": "druglike_lead"}},
+            {"order": 4, "workflow_name": "structure_prediction_docking",  "role": "docking",            "params_template": {}},
+            {"order": 5, "workflow_name": "GROMACS Protein-Ligand MD + MM-GBSA", "role": "fep_reranking","params_template": {"sim_ns": 10}},
+            {"order": 6, "workflow_name": "REINVENT4 Generative Lead Design",    "role": "lead_gen",    "params_template": {"n_compounds": 50}},
+        ],
+        "connections": [
+            {"from_step": 1, "from_output": "pocket_json",       "to_step": 4, "to_input": "pocket_coords"},
+            {"from_step": 2, "from_output": "filtered_smiles",   "to_step": 3, "to_input": "smiles"},
+            {"from_step": 3, "from_output": "passed_compounds",  "to_step": 4, "to_input": "ligand_sdf"},
+            {"from_step": 4, "from_output": "vina_poses",        "to_step": 5, "to_input": "docked_poses"},
+            {"from_step": 5, "from_output": "mmgbsa_scores",     "to_step": 6, "to_input": "seed_smiles"},
+        ],
+        "required_inputs": [
+            {"name": "target_fasta_or_pdb", "type": "fasta|pdb", "description": "Target protein sequence or structure"},
+            {"name": "compound_library",    "type": "smiles|sdf", "description": "Compound library to screen"},
+            {"name": "reference_actives",   "type": "smiles",     "description": "Known actives for pharmacophore (optional)"},
+        ],
+        "expected_outputs": [
+            {"name": "ranked_leads",       "type": "csv",  "description": "Final ranked leads after MM-GBSA"},
+            {"name": "generated_analogues","type": "sdf",  "description": "REINVENT4-generated analogues of top hits"},
+            {"name": "druggability_report","type": "json", "description": "Target pocket analysis"},
+        ],
+        "example_queries": [
+            "Run the full target-to-lead pipeline on this novel protein",
+            "From FASTA to ranked leads: pocket detection, ADMET, docking, and lead generation",
+            "Full computational drug discovery pipeline for a new target",
+            "End-to-end drug discovery starting from a protein sequence",
+        ],
+        "tags": ["drug_discovery", "target_to_lead", "pocket_detection", "ADMET", "docking", "MM-GBSA", "REINVENT4", "lead_optimisation"],
+    },
+]
+
+
 # ── Schema ────────────────────────────────────────────────────────────────────
+
+def _seed_workflow_chains(cursor: sqlite3.Cursor, conn: sqlite3.Connection):
+    """Insert or update curated workflow chains. Existing rows are updated in-place."""
+    now = datetime.utcnow().isoformat()
+    inserted = updated = 0
+    for chain in CURATED_CHAINS:
+        cursor.execute("SELECT id FROM workflow_chains WHERE name=?", (chain["name"],))
+        row = cursor.fetchone()
+        payload = dict(
+            display_name    = chain["display_name"],
+            domain          = chain["domain"],
+            description     = chain.get("description", ""),
+            steps           = json.dumps(chain.get("steps", [])),
+            connections     = json.dumps(chain.get("connections", [])),
+            required_inputs = json.dumps(chain.get("required_inputs", [])),
+            expected_outputs= json.dumps(chain.get("expected_outputs", [])),
+            example_queries = json.dumps(chain.get("example_queries", [])),
+            tags            = json.dumps(chain.get("tags", [])),
+            source          = chain.get("source", "curated"),
+            updated_at      = now,
+        )
+        if row:
+            sets = ", ".join(f"{k}=?" for k in payload)
+            cursor.execute(
+                f"UPDATE workflow_chains SET {sets} WHERE name=?",
+                [*payload.values(), chain["name"]],
+            )
+            updated += 1
+        else:
+            payload["name"]       = chain["name"]
+            payload["created_at"] = now
+            cols   = ", ".join(payload.keys())
+            marks  = ", ".join("?" * len(payload))
+            cursor.execute(
+                f"INSERT INTO workflow_chains ({cols}) VALUES ({marks})",
+                list(payload.values()),
+            )
+            inserted += 1
+    conn.commit()
+    print(f"    workflow_chains: {inserted} inserted, {updated} updated ({len(CURATED_CHAINS)} total)")
+
 
 def ensure_schema(conn: sqlite3.Connection):
     cursor = conn.cursor()
@@ -381,7 +739,52 @@ def ensure_schema(conn: sqlite3.Connection):
             except sqlite3.OperationalError as e:
                 if "duplicate column" not in str(e).lower():
                     raise
+
+    # ── workflow_chains table ─────────────────────────────────────────────────
+    # Stores expert-curated (and eventually learned) multi-step workflow
+    # compositions keyed by research project type.  The workflow generator
+    # checks this table first before falling back to LLM-driven assembly.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workflow_chains (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            name            TEXT NOT NULL UNIQUE,
+            display_name    TEXT NOT NULL,
+            domain          TEXT NOT NULL,
+            description     TEXT,
+
+            -- Ordered list of steps: JSON array of
+            --   {order, workflow_name, role, params_template}
+            steps           TEXT NOT NULL DEFAULT '[]',
+
+            -- Data-flow connections between steps: JSON array of
+            --   {from_step, from_output, to_step, to_input}
+            connections     TEXT NOT NULL DEFAULT '[]',
+
+            -- What the user must provide at chain start
+            required_inputs TEXT NOT NULL DEFAULT '[]',
+
+            -- What the chain produces at the end
+            expected_outputs TEXT NOT NULL DEFAULT '[]',
+
+            -- Natural-language queries used for semantic matching
+            example_queries TEXT NOT NULL DEFAULT '[]',
+
+            -- JSON array of keyword tags
+            tags            TEXT NOT NULL DEFAULT '[]',
+
+            -- 'curated' | 'learned' | 'user_defined'
+            source          TEXT NOT NULL DEFAULT 'curated',
+
+            -- Runtime telemetry (updated as chains are executed)
+            usage_count     INTEGER NOT NULL DEFAULT 0,
+            success_rate    REAL    NOT NULL DEFAULT 0.0,
+
+            created_at      TEXT,
+            updated_at      TEXT
+        )
+    """)
     conn.commit()
+    _seed_workflow_chains(cursor, conn)
 
 
 # ── Workflow insert ───────────────────────────────────────────────────────────
