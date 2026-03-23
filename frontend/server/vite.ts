@@ -26,6 +26,10 @@ export async function setupVite(app: Express, server: any) {
       hmr: {
         server,
       },
+      watch: {
+        usePolling: true,
+        interval: 1000,
+      },
     },
     appType: "custom",
   });

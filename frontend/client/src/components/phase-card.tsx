@@ -104,7 +104,7 @@ export function PhaseCard({
   }[status];
 
   return (
-    <Card className={cn("w-full transition-all duration-200", className)}>
+    <Card className={cn("w-full transition-all duration-200", className)} data-testid={`phase-card-${phase.id}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2 px-3">
         <div className="flex items-center gap-2 min-w-0">
           {statusIcon}

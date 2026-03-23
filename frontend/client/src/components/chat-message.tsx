@@ -445,6 +445,7 @@ export function ChatMessage({
                     onRequestPrereqRecovery={onRequestPrereqRecovery}
                     sessionId={sessionId}
                     runId={currentExecutionRun?.id}
+                    executionEngine={currentExecutionRun?.execution?.executionEngine}
                   />
                 </div>
               );
@@ -503,8 +504,6 @@ export function ChatMessage({
               runId={currentExecutionRun?.id}
               executionStatus={currentExecutionRun?.execution?.status}
               errorMessage={currentExecutionRun?.execution?.errorMessage}
-              artifactReadiness={currentExecutionRun?.execution?.nextflowStatus?.artifactReadiness}
-              nextflowStatus={currentExecutionRun?.execution?.nextflowStatus}
             />
           )}
         </div>
