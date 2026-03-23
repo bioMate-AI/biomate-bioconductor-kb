@@ -97,14 +97,29 @@ except Exception as _e:
     WORKFLOW_SEARCH_AVAILABLE = False
 
 # ── WorkflowSession Redis store ───────────────────────────────────────────────
+# Lazy singleton — initialized on first actual use, not at import time.
+# This avoids blocking the worker startup when Redis is unavailable.
 import os as _os
+_session_store = None
+_WorkflowSessionStore = None
 try:
     from galaxy.ai.workflow_session import WorkflowSessionStore as _WorkflowSessionStore
-    _session_store = _WorkflowSessionStore(redis_url=_os.getenv("REDIS_URL", "redis://localhost:6379"))
-    log.info("[WorkflowSessionStore] Initialized (Redis URL=%s)", _os.getenv("REDIS_URL", "redis://localhost:6379"))
-except Exception as _sess_err:
-    logging.warning(f"WorkflowSessionStore unavailable: {_sess_err}")
-    _session_store = None
+except Exception as _sess_import_err:
+    logging.warning(f"WorkflowSessionStore import failed: {_sess_import_err}")
+
+
+def _get_session_store():
+    """Return (and lazily create) the module-level WorkflowSessionStore."""
+    global _session_store
+    if _session_store is None and _WorkflowSessionStore is not None:
+        try:
+            _session_store = _WorkflowSessionStore(
+                redis_url=_os.getenv("REDIS_URL")  # None → in-memory fallback, no ping
+            )
+            log.info("[WorkflowSessionStore] Initialized (Redis=%s)", _os.getenv("REDIS_URL") or "in-memory")
+        except Exception as _se:
+            log.warning("[WorkflowSessionStore] Init failed, sessions disabled: %s", _se)
+    return _session_store
 
 # ── ToolKnowledgeProvider for scientific rationale ───────────────────────────
 try:
@@ -1610,9 +1625,10 @@ def generate_workflow_unified(
             _endpoint_parameter_metadata = result.get('parameter_metadata') or {}
 
             # ── N4: Save workflow step to WorkflowSession ──────────────────────
-            if _session_store:
+            _sess_store2 = _get_session_store()
+            if _sess_store2:
                 try:
-                    sess = _session_store.get_or_create(session_id, user_intent=request.request_text)
+                    sess = _sess_store2.get_or_create(session_id, user_intent=request.request_text)
                     wf_name = result.get('nextflow_path') or result.get('workflow_type', 'unknown')
                     nf_path = result.get('nextflow_path', '')
                     # Params: flatten generated_parameters into {tool_id: {params}}
@@ -1629,7 +1645,7 @@ def generate_workflow_unified(
                         params=step_params,
                         output_types=out_types or ['bam'],
                     )
-                    _session_store.save(sess)
+                    _sess_store2.save(sess)
                     log.info(
                         "[generate_workflow] Saved step %d to session %s",
                         len(sess.steps) - 1, session_id,

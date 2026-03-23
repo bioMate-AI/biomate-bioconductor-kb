@@ -475,13 +475,12 @@ class UnifiedWorkflowSearch:
                         source=match.source,
                         format=match.format,
                         step_count=match.step_count,
-                        tools_used=match.tools_used,
+                        tools=match.tools,
                         tags=match.tags,
                         filename=match.filename,
                         workflow_json=match.workflow_json,
                         score=round(match.score + rank_bonus, 2),
-                        confidence=match.confidence,
-                        template_match_score=match.template_match_score,
+                        match_type=match.match_type,
                     )
                 results.append(match)
 
