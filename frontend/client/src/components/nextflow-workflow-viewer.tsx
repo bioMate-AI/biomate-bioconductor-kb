@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -244,6 +244,34 @@ export function NextflowWorkflowViewer({
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
   const [qcOverrideKey, setQcOverrideKey] = useState('');
   const [qcOverrideValue, setQcOverrideValue] = useState('');
+
+  // C3: validate environment state
+  const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
+  const [validateLog, setValidateLog] = useState<string[]>([]);
+  const [validateLogOpen, setValidateLogOpen] = useState(false);
+
+  const handleValidateEnvironment = async () => {
+    const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath || '';
+    if (!nfPath) return;
+    setValidateStatus('running');
+    setValidateLog([]);
+    setValidateLogOpen(false);
+    try {
+      const resp = await fetch('/api/workflows/validate_profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nextflow_path: nfPath, profile: 'test', timeout_seconds: 120 }),
+      });
+      const data = await resp.json();
+      setValidateStatus(data.status ?? 'fail');
+      setValidateLog(data.log_tail ?? []);
+      if (data.status === 'fail' || data.status === 'timeout') setValidateLogOpen(true);
+    } catch {
+      setValidateStatus('fail');
+      setValidateLog(['Network error — could not reach backend']);
+      setValidateLogOpen(true);
+    }
+  };
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
   const stepPollersRef = React.useRef<Record<string, ReturnType<typeof setInterval>>>({});
@@ -921,6 +949,47 @@ export function NextflowWorkflowViewer({
                 onChange={handleParamChange}
               />
               <div className="space-y-2" data-testid="workflow-run-controls">
+                {/* C3: Validate environment button — only show for Nextflow workflows */}
+                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && status === 'pending' && (
+                  <div className="space-y-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      data-testid="button-validate-environment"
+                      onClick={handleValidateEnvironment}
+                      disabled={validateStatus === 'running'}
+                    >
+                      {validateStatus === 'running' ? (
+                        <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Validating environment…</>
+                      ) : validateStatus === 'pass' ? (
+                        <><CheckCircle2 className="mr-1.5 h-3 w-3 text-green-600" />Environment validated</>
+                      ) : validateStatus === 'fail' ? (
+                        <><XCircle className="mr-1.5 h-3 w-3 text-destructive" />Validation failed — see log</>
+                      ) : validateStatus === 'timeout' ? (
+                        <><AlertTriangle className="mr-1.5 h-3 w-3 text-amber-500" />Validation timed out</>
+                      ) : (
+                        <><ShieldCheck className="mr-1.5 h-3 w-3" />Validate Environment</>
+                      )}
+                    </Button>
+                    {validateLog.length > 0 && (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setValidateLogOpen(v => !v)}
+                          className="text-xs text-muted-foreground underline underline-offset-2"
+                        >
+                          {validateLogOpen ? 'Hide' : 'Show'} log ({validateLog.length} lines)
+                        </button>
+                        {validateLogOpen && (
+                          <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
+                            {validateLog.join('\n')}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <Button
                   className="w-full"
                   data-testid="button-run-workflow-panel"

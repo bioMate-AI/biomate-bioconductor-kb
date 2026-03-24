@@ -132,11 +132,6 @@ class UnifiedWorkflowSearch:
         # Set via set_llm_client() from AIAssistant after construction.
         self._llm_client: Optional[Any] = None
 
-        # Minimum score required for search_chains() results.
-        # 0.35 avoids weak-overlap false positives (e.g. "germline" matching
-        # "rare_disease_multimodal_workup" at Jaccard 0.15 via 2-3 shared tokens).
-        self.chain_min_score: float = 0.35
-
         # Keyword weights for scoring
         self.keyword_weights = {
             # RNA-seq & Differential Expression
@@ -149,6 +144,11 @@ class UnifiedWorkflowSearch:
             # RNA Velocity (separate from DE)
             'velocity': 2.5, 'velocyto': 3.0, 'scvelo': 3.0,
             'trajectory': 2.0, 'pseudotime': 2.0,
+
+            # Canonical pipeline name anchors — high weight so exact name matches win
+            'sarek': 4.0, 'rnaseq': 3.0, 'chipseq': 4.0, 'atacseq': 4.0,
+            'raredisease': 4.0, 'taxprofiler': 4.0, 'methylseq': 4.0,
+            'scrnaseq': 4.0, 'differentialabundance': 4.0, 'oncoanalyser': 4.0,
 
             # Variant calling
             'variant': 3.0, 'snp': 2.5, 'indel': 2.0, 'mutation': 2.0,
