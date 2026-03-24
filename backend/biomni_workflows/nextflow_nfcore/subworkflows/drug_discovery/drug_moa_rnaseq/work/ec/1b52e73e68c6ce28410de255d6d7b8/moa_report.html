@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Drug MoA Report &mdash; Erlotinib</title>
+<style>
+  body {font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; color: #333;}
+  h1   {color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 8px;}
+  h2   {color: #34495e; margin-top: 32px;}
+  .info-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+               background: #f8f9fa; padding: 14px 18px; border-radius: 6px; margin-bottom: 18px;}
+  .info-item {padding: 3px 0;}
+  .info-label {font-weight: bold; color: #555;}
+  .qc-box {padding: 14px 20px; border-radius: 8px; color: white; font-size: 1.15em;
+             font-weight: bold; margin: 18px 0; background: #ffc107;}
+  .hypothesis-box {background: #eaf3fb; border-left: 5px solid #3498db;
+                    padding: 14px 20px; border-radius: 0 6px 6px 0; margin: 18px 0;
+                    font-style: italic; line-height: 1.6;}
+  table {border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.93em;}
+  th    {background: #2c3e50; color: white; padding: 8px 12px; text-align: left;}
+  td    {padding: 6px 12px; border-bottom: 1px solid #dde;}
+  tr:nth-child(even) {background: #f9f9fb;}
+  tr:hover {background: #ebf5fb;}
+  .footer {color: #aaa; font-size: 0.83em; margin-top: 40px;
+             border-top: 1px solid #eee; padding-top: 10px;}
+</style>
+</head>
+<body>
+<h1>&#127995; Drug Mechanism-of-Action Report</h1>
+
+<div class="info-grid">
+  <div class="info-item"><span class="info-label">Drug:</span> Erlotinib</div>
+  <div class="info-item"><span class="info-label">Target Gene:</span> EGFR</div>
+  <div class="info-item"><span class="info-label">Significant DE genes:</span> 5</div>
+  <div class="info-item"><span class="info-label">Enriched pathways:</span> 32</div>
+  <div class="info-item"><span class="info-label">Generated:</span> 2026-03-24 20:50 UTC</div>
+  <div class="info-item"><span class="info-label">Top CMap match:</span> N/A (sim=0.00)</div>
+</div>
+
+<div class="qc-box">QC Status: WARN &mdash; 5 significant DE genes detected</div>
+
+<h2>&#128161; MoA Hypothesis</h2>
+<div class="hypothesis-box">Treatment with Erlotinib induces suppression of the PI3K/AKT/mTOR  Signaling pathway (NES=-1.62), consistent with N/A (CMap similarity=0.00), supporting EGFR engagement.</div>
+
+<h2>&#128202; Top 20 Differentially Expressed Genes</h2>
+<table>
+  <tr><th>Gene</th><th>log2FC</th><th>padj</th><th>baseMean</th><th>Sig</th></tr>
+  <tr><td>MAP2K1</td><td style='color:#2980b9;text-align:right'>-2.153</td><td style='text-align:right'>9.15e-06</td><td style='text-align:right'>99.51704313108264</td><td> &#9733;</td></tr>
+<tr><td>MTOR</td><td style='color:#2980b9;text-align:right'>-1.768</td><td style='text-align:right'>2.31e-04</td><td style='text-align:right'>62.97070011689556</td><td> &#9733;</td></tr>
+<tr><td>BRAF</td><td style='color:#2980b9;text-align:right'>-1.243</td><td style='text-align:right'>1.47e-02</td><td style='text-align:right'>243.9796062834395</td><td> &#9733;</td></tr>
+<tr><td>PIK3CA</td><td style='color:#2980b9;text-align:right'>-1.298</td><td style='text-align:right'>1.69e-02</td><td style='text-align:right'>76.01467054340961</td><td> &#9733;</td></tr>
+<tr><td>PTEN</td><td style='color:#2980b9;text-align:right'>-1.451</td><td style='text-align:right'>3.10e-02</td><td style='text-align:right'>239.6597372413887</td><td> &#9733;</td></tr>
+<tr><td>KRAS</td><td style='color:#2980b9;text-align:right'>-1.251</td><td style='text-align:right'>7.77e-02</td><td style='text-align:right'>32.65597380593361</td><td></td></tr>
+<tr><td>ERBB2</td><td style='color:#2980b9;text-align:right'>-1.236</td><td style='text-align:right'>7.87e-02</td><td style='text-align:right'>69.26480343162946</td><td></td></tr>
+<tr><td>EGFR</td><td style='color:#2980b9;text-align:right'>-1.152</td><td style='text-align:right'>8.44e-02</td><td style='text-align:right'>316.76546165144697</td><td></td></tr>
+<tr><td>AKT1</td><td style='color:#2980b9;text-align:right'>-0.904</td><td style='text-align:right'>1.83e-01</td><td style='text-align:right'>117.14538774136577</td><td></td></tr>
+<tr><td>GENE0080</td><td style='color:#c0392b;text-align:right'>0.878</td><td style='text-align:right'>2.47e-01</td><td style='text-align:right'>161.2963906624346</td><td></td></tr>
+<tr><td>GENE0035</td><td style='color:#2980b9;text-align:right'>-0.793</td><td style='text-align:right'>2.83e-01</td><td style='text-align:right'>205.067327890286</td><td></td></tr>
+<tr><td>GENE0025</td><td style='color:#c0392b;text-align:right'>0.778</td><td style='text-align:right'>3.11e-01</td><td style='text-align:right'>348.12285088416775</td><td></td></tr>
+<tr><td>GENE0062</td><td style='color:#2980b9;text-align:right'>-1.005</td><td style='text-align:right'>3.33e-01</td><td style='text-align:right'>285.34229305415465</td><td></td></tr>
+<tr><td>GENE0164</td><td style='color:#c0392b;text-align:right'>0.671</td><td style='text-align:right'>3.48e-01</td><td style='text-align:right'>528.8022601915701</td><td></td></tr>
+<tr><td>GENE0181</td><td style='color:#2980b9;text-align:right'>-0.801</td><td style='text-align:right'>3.81e-01</td><td style='text-align:right'>492.1387352909788</td><td></td></tr>
+<tr><td>GENE0149</td><td style='color:#2980b9;text-align:right'>-0.831</td><td style='text-align:right'>5.04e-01</td><td style='text-align:right'>255.02265036178287</td><td></td></tr>
+<tr><td>GENE0090</td><td style='color:#c0392b;text-align:right'>0.748</td><td style='text-align:right'>5.85e-01</td><td style='text-align:right'>267.8266648345479</td><td></td></tr>
+<tr><td>RB1</td><td style='color:#c0392b;text-align:right'>0.915</td><td style='text-align:right'>6.00e-01</td><td style='text-align:right'>79.69873514678444</td><td></td></tr>
+<tr><td>GENE0117</td><td style='color:#c0392b;text-align:right'>0.619</td><td style='text-align:right'>7.15e-01</td><td style='text-align:right'>121.18775212583442</td><td></td></tr>
+<tr><td>GENE0195</td><td style='color:#2980b9;text-align:right'>-0.644</td><td style='text-align:right'>7.15e-01</td><td style='text-align:right'>249.25715630003506</td><td></td></tr>
+
+</table>
+
+<h2>&#127774; Top 10 Enriched Pathways (MSigDB Hallmark)</h2>
+<table>
+  <tr><th>Pathway</th><th>NES</th><th>padj</th><th>Leading Edge (truncated)</th></tr>
+  <tr><td>PI3K/AKT/mTOR  Signaling</td><td style='color:#2980b9;text-align:right'>-1.616</td><td style='text-align:right'>0.0082</td><td style='font-size:0.82em'>PTEN;EGFR;AKT1</td></tr>
+<tr><td>Spermatogenesis</td><td style='color:#2980b9;text-align:right'>-1.534</td><td style='text-align:right'>0.0288</td><td style='font-size:0.82em'>MTOR;BRAF</td></tr>
+<tr><td>UV Response Dn</td><td style='color:#2980b9;text-align:right'>-1.533</td><td style='text-align:right'>0.0192</td><td style='font-size:0.82em'>PTEN;ERBB2</td></tr>
+<tr><td>Allograft Rejection</td><td style='color:#2980b9;text-align:right'>-1.463</td><td style='text-align:right'>0.0566</td><td style='font-size:0.82em'>EGFR;AKT1</td></tr>
+<tr><td>Apical Junction</td><td style='color:#2980b9;text-align:right'>-1.429</td><td style='text-align:right'>0.0684</td><td style='font-size:0.82em'>PTEN;EGFR</td></tr>
+<tr><td>p53 Pathway</td><td style='color:#c0392b;text-align:right'>1.308</td><td style='text-align:right'>1.0000</td><td style='font-size:0.82em'>RB1;BAX</td></tr>
+<tr><td>TNF-alpha Signaling via NF-kB</td><td style='color:#c0392b;text-align:right'>1.293</td><td style='text-align:right'>0.9550</td><td style='font-size:0.82em'>VEGFA;CCND1</td></tr>
+<tr><td>Myogenesis</td><td style='color:#c0392b;text-align:right'>1.284</td><td style='text-align:right'>0.6991</td><td style='font-size:0.82em'>RB1</td></tr>
+<tr><td>Complement</td><td style='color:#2980b9;text-align:right'>-1.274</td><td style='text-align:right'>0.3226</td><td style='font-size:0.82em'>PIK3CA</td></tr>
+<tr><td>Angiogenesis</td><td style='color:#c0392b;text-align:right'>1.215</td><td style='text-align:right'>0.5507</td><td style='font-size:0.82em'>VEGFA</td></tr>
+
+</table>
+
+<h2>&#128279; LINCS CMap Drug Similarity Matches</h2>
+<table>
+  <tr><th>Drug</th><th>Target</th><th>Similarity</th><th>MoA Annotation</th><th>Cell Line</th></tr>
+  
+</table>
+
+<div class="footer">
+  BioMate Drug MoA Pipeline &mdash; Gap 9 Drug Discovery Analysis &mdash;
+  Generated 2026-03-24T20:50:07.227437Z
+</div>
+</body>
+</html>

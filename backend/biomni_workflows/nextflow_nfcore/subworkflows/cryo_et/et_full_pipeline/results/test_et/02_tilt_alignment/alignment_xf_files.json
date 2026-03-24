@@ -1,0 +1,20 @@
+{
+  "alignment_method": "aretomo2",
+  "xf_files": {
+    "TS_001": {
+      "tilt_axis_angle_deg": 1.38,
+      "num_transforms": 41,
+      "xf_file_path": "alignments/TS_001.xf"
+    },
+    "TS_002": {
+      "tilt_axis_angle_deg": -1.48,
+      "num_transforms": 41,
+      "xf_file_path": "alignments/TS_002.xf"
+    },
+    "TS_003": {
+      "tilt_axis_angle_deg": 3.02,
+      "num_transforms": 41,
+      "xf_file_path": "alignments/TS_003.xf"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [label="GEO_DATA_CONNECTOR:GEO_FETCH"];
+v0 -> v1 [label="ch_input"];
+
+v1 [label="GEO_DATA_CONNECTOR:GEO_FETCH"];
+v2 [label="GEO_DATA_CONNECTOR:GEO_COUNT_MATRIX"];
+v1 -> v2 [label="series_matrix"];
+
+v1 [label="GEO_DATA_CONNECTOR:GEO_FETCH"];
+v3 [label="GEO_DATA_CONNECTOR:GEO_CLINICAL_METADATA"];
+v1 -> v3;
+
+v1 [label="GEO_DATA_CONNECTOR:GEO_FETCH"];
+v4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v1 -> v4;
+
+v2 [label="GEO_DATA_CONNECTOR:GEO_COUNT_MATRIX"];
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v2 -> v6 [label="count_matrix"];
+
+v2 [label="GEO_DATA_CONNECTOR:GEO_COUNT_MATRIX"];
+v12 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v2 -> v12 [label="feature_metadata"];
+
+v2 [label="GEO_DATA_CONNECTOR:GEO_COUNT_MATRIX"];
+v4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v2 -> v4;
+
+v3 [label="GEO_DATA_CONNECTOR:GEO_CLINICAL_METADATA"];
+v8 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v3 -> v8 [label="clinical_metadata"];
+
+v3 [label="GEO_DATA_CONNECTOR:GEO_CLINICAL_METADATA"];
+v4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v3 -> v4;
+
+v4 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v5 [shape=point];
+v4 -> v5 [label="versions"];
+
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v7 [shape=point];
+v6 -> v7;
+
+v8 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v9 [shape=point];
+v8 -> v9;
+
+v1 [label="GEO_DATA_CONNECTOR:GEO_FETCH"];
+v10 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v1 -> v10 [label="series_matrix"];
+
+v10 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v11 [shape=point];
+v10 -> v11;
+
+v12 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v13 [shape=point];
+v12 -> v13;
+
+}

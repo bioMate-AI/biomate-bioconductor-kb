@@ -1,0 +1,84 @@
+Mar-04 21:16:18.683 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile test
+Mar-04 21:16:18.736 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-04 21:16:18.768 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/nextflow.config
+Mar-04 21:16:18.770 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/nextflow.config
+Mar-04 21:16:18.791 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
+Mar-04 21:16:19.156 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, conda, singularity, aws, docker]
+Mar-04 21:16:19.178 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nxf_home_test/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-04 21:16:19.184 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-04 21:16:19.185 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-04 21:16:19.187 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-04 21:16:19.197 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-04 21:16:19.293 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-04 21:16:19.294 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-04 21:16:19.295 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-04 21:16:19.303 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nxf_home_test/secrets/store.json
+Mar-04 21:16:19.305 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@76b47204] - activable => nextflow.secret.LocalSecretsProvider@76b47204
+Mar-04 21:16:19.312 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-04 21:16:19.322 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [shrivelled_lichterman] DSL2 - revision: be03d43c49
+Mar-04 21:16:19.352 [main] DEBUG nextflow.Session - Session UUID: 3b6fa8db-cc40-47c2-924e-82d473a44e7c
+Mar-04 21:16:19.352 [main] DEBUG nextflow.Session - Run name: shrivelled_lichterman
+Mar-04 21:16:19.352 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-04 21:16:19.358 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-04 21:16:19.363 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:16:19.374 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3792811@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.4 GB) - Swap: 16 GB (14.8 GB)
+Mar-04 21:16:19.388 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/work [ext2/ext3]
+Mar-04 21:16:19.389 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/bin
+Mar-04 21:16:19.394 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-04 21:16:19.400 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-04 21:16:19.402 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-04 21:16:19.432 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-04 21:16:19.437 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-04 21:16:19.489 [main] DEBUG nextflow.Session - Session start
+Mar-04 21:16:19.493 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: ./results/immune_deconvolution/pipeline_info/trace.txt
+Mar-04 21:16:19.778 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-04 21:16:19.883 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ
+Mar-04 21:16:19.891 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:16:19.892 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:16:19.898 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-04 21:16:19.901 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-04 21:16:19.903 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-04 21:16:19.916 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ': maxForks=0; fair=false; array=0
+Mar-04 21:16:19.941 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_low` matches labels `process_low` for process with name IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY
+Mar-04 21:16:19.943 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:16:19.943 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:16:19.944 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY': maxForks=0; fair=false; array=0
+Mar-04 21:16:19.959 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: IMMUNEDECONV_SUMMARY, IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ, BIOC_DECONRNASEQ, IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY
+Mar-04 21:16:19.960 [main] DEBUG nextflow.Session - Igniting dataflow network (3)
+Mar-04 21:16:19.961 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ
+Mar-04 21:16:19.961 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY
+Mar-04 21:16:19.961 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_7809a84bc21bbc93: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/main.nf
+Mar-04 21:16:19.962 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-04 21:16:19.962 [main] DEBUG nextflow.Session - Session await
+Mar-04 21:16:20.083 [Actor Thread 8] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_COUNTS_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_COUNTS_FILE
+Mar-04 21:16:20.084 [Actor Thread 8] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_SIGNATURE_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_SIGNATURE_FILE
+Mar-04 21:16:20.136 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:16:20.138 [Task submitter] INFO  nextflow.Session - [e3/4cc874] Submitted process > IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ (run)
+Mar-04 21:16:20.214 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ (run); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/work/e3/4cc87476b230ab9e88298d414f6a12]
+Mar-04 21:16:20.215 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:16:20.233 [Actor Thread 14] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/NO_FILE
+Mar-04 21:16:20.233 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:16:20.240 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:16:20.241 [Task submitter] INFO  nextflow.Session - [3b/d08dd1] Submitted process > IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY (run)
+Mar-04 21:16:20.318 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY (run); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/immune_deconvolution/work/3b/d08dd1da0a7955210eadda4d5b4e86]
+Mar-04 21:16:20.327 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-04 21:16:20.418 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-04 21:16:20.419 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-04 21:16:20.420 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-04 21:16:20.421 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-04 21:16:20.426 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=12ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=2 GB; ]
+Mar-04 21:16:20.440 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-04 21:16:20.444 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-04 21:16:20.867 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-04 21:16:20.905 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-04 21:16:20.908 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-04 21:16:20.914 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-04 21:16:20.914 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

@@ -1,0 +1,1 @@
+2026-03-24 22:28:49	2.2s	marvelous_nobel	OK	dae960283d6eec617fb2eaaa292d4da8	aa87371b-c77c-4d90-bc8e-b335cb1af26e	nextflow run main.nf -profile docker --outdir results/aspirin_vs_terfenadine

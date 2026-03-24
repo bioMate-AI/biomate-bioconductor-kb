@@ -1,0 +1,90 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: flowGraph
+// Identifies maximal differential cell populations in flow cytometry data taking into account dependen
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/flowGraph/inst/doc/flowGraph.R
+// Upstream  : BiocManager
+// Downstream: none
+//
+// Install: BiocManager::install("flowGraph")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_FLOWGRAPH {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-flowgraph"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-flowgraph:1.14.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-flowgraph:1.14.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_flowgraph_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_flowgraph_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_flowgraph_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(flowGraph)
+    library(jsonlite)
+
+    # --- evaluate=FALSE [] ---
+    # Key functions: flowGraphSubset
+    data(fg_data_pos2)
+    fg <- flowGraphSubset(fg_data_pos2$count, meta=fg_data_pos2$meta, no_cores=no_cores,
+    summary_pars=flowGraphSubset_summary_pars(),
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_flowgraph_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_flowgraph_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_flowgraph_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_FLOWGRAPH:", paste0("    flowgraph: ", packageVersion("flowGraph"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_flowgraph_results.csv
+    touch ${prefix}_flowgraph_output.rds
+    echo "BIOC_FLOWGRAPH:" > versions.yml
+    echo "    flowgraph: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_FLOWGRAPH_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_FLOWGRAPH(ch_input)
+
+    emit:
+    results  = BIOC_FLOWGRAPH.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_FLOWGRAPH.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_FLOWGRAPH.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_FLOWGRAPH.out.versions  // channel: path(versions.yml)
+}

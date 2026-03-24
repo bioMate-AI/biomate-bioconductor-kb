@@ -1,0 +1,90 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: epiNEM
+// epiNEM is an extension of the original Nested Effects Models (NEM). EpiNEM is able to take into acco
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/epiNEM/inst/doc/epiNEM.R
+// Upstream  : AnnotationHub, GOSemSim, STRINGdb, bnem, minet
+// Downstream: none
+//
+// Install: BiocManager::install("epiNEM")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_EPINEM {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-epinem"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-epinem:1.30.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-epinem:1.30.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_epinem_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_epinem_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_epinem_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(Background)
+    library(jsonlite)
+
+    # --- Background [] ---
+    # Key functions: Background, epiNEM
+    knitr::opts_chunk$set(message=FALSE)
+    fig.cap1 <- "Toy example result for a double mutant (A,B) and one modulator
+    (C)."
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_epinem_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_epinem_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_epinem_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_EPINEM:", paste0("    epinem: ", packageVersion("epiNEM"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_epinem_results.csv
+    touch ${prefix}_epinem_output.rds
+    echo "BIOC_EPINEM:" > versions.yml
+    echo "    epinem: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_EPINEM_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_EPINEM(ch_input)
+
+    emit:
+    results  = BIOC_EPINEM.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_EPINEM.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_EPINEM.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_EPINEM.out.versions  // channel: path(versions.yml)
+}

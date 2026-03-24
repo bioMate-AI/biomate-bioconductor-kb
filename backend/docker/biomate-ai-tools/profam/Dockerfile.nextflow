@@ -1,0 +1,14 @@
+# ProFam Nextflow wrapper image
+# Based on :latest — removes ENTRYPOINT for Nextflow/AWS Batch compatibility
+FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:latest
+
+# REQUIRED: Remove ENTRYPOINT so Nextflow can control command execution
+ENTRYPOINT []
+
+CMD ["/bin/bash"]
+
+LABEL maintainer="Galaxy Team"
+LABEL description="ProFam wrapper for Nextflow/AWS Batch orchestration"
+LABEL base-image="biomate/ai-tools/profam:latest"
+LABEL wrapper-version="1.0"
+LABEL purpose="nextflow"

@@ -2022,20 +2022,47 @@ class AIAssistant:
                 optional.append(entry)
         return {"required": required, "optional": optional}
 
+    _SRA_ACCESSION_RE = re.compile(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', re.IGNORECASE)
+
+    def _extract_sra_accession(self, user_intent: str) -> Optional[str]:
+        """Return the first SRA/GEO/ArrayExpress/PRIDE accession found in the user's message."""
+        m = self._SRA_ACCESSION_RE.search(user_intent)
+        return m.group(1).upper() if m else None
+
+    def _inject_sra_into_params(self, req_params: list, opt_params: list, accession: str) -> tuple:
+        """If user provided an SRA accession, set it as the default for the 'reads' required param.
+        Keeps 'reads' in required_params (correct semantics) but pre-fills default so the Run
+        button is not blocked — the viewer's hasUnfilledRequired check uses p.value which
+        is initialized from p.default.  The param is flagged with sra_accession=True so the
+        UI can show a badge 'pre-filled from your query'.
+        Returns (new_req_params, new_opt_params) with the accession injected."""
+        new_req = []
+        for p in req_params:
+            if p['name'] in ('reads', 'input', 'fastq', 'sample', 'reads1', 'reads2'):
+                # Keep in required but pre-fill default from the user-supplied accession
+                new_req.append({**p, 'default': accession, 'sra_accession': True})
+            else:
+                new_req.append(p)
+        return new_req, list(opt_params)
+
     def _build_prereq_validation(self, required_params: list) -> Optional[dict]:
-        """Build prerequisitesValidation payload consumed by prereq-normalizer.ts."""
-        if not required_params:
+        """Build prerequisitesValidation payload consumed by prereq-normalizer.ts.
+        Excludes params that have a pre-filled default (e.g. SRR accession injected) from
+        missingParameters — those are provided by the user and do not block the Run button."""
+        # Only params without a pre-filled default are truly missing
+        truly_missing = [p for p in required_params if not p.get('default')]
+        if not truly_missing:
             return None
         return {
             "requirements": {
                 "parameters": [
                     {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
-                    for p in required_params
+                    for p in truly_missing
                 ]
             },
             "analysis": {
                 "missingInputs": [],
-                "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in required_params],
+                "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in truly_missing],
                 "inputMappings": [],
             },
         }
@@ -2330,6 +2357,9 @@ class AIAssistant:
                     _nf_params_tr = self._parse_nextflow_params(best_match.filename)
                     _req_tr = _nf_params_tr['required']
                     _opt_tr = _nf_params_tr['optional']
+                    _sra_tr = self._extract_sra_accession(user_intent)
+                    if _sra_tr:
+                        _req_tr, _opt_tr = self._inject_sra_into_params(_req_tr, _opt_tr, _sra_tr)
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2443,6 +2473,9 @@ class AIAssistant:
                     _nf_params_ta = self._parse_nextflow_params(best_match.filename)
                     _req_ta = _nf_params_ta['required']
                     _opt_ta = _nf_params_ta['optional']
+                    _sra_ta = self._extract_sra_accession(user_intent)
+                    if _sra_ta:
+                        _req_ta, _opt_ta = self._inject_sra_into_params(_req_ta, _opt_ta, _sra_ta)
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2519,6 +2552,9 @@ class AIAssistant:
                     _nf_params_mc = self._parse_nextflow_params(composed['nextflow_path'])
                     _req_mc = _nf_params_mc['required']
                     _opt_mc = _nf_params_mc['optional']
+                    _sra_mc = self._extract_sra_accession(user_intent)
+                    if _sra_mc:
+                        _req_mc, _opt_mc = self._inject_sra_into_params(_req_mc, _opt_mc, _sra_mc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2598,6 +2634,9 @@ class AIAssistant:
                     _nf_params_lc = self._parse_nextflow_params(composed['nextflow_path'])
                     _req_lc = _nf_params_lc['required']
                     _opt_lc = _nf_params_lc['optional']
+                    _sra_lc = self._extract_sra_accession(user_intent)
+                    if _sra_lc:
+                        _req_lc, _opt_lc = self._inject_sra_into_params(_req_lc, _opt_lc, _sra_lc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],

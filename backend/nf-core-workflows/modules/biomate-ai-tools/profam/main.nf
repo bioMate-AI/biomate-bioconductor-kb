@@ -5,7 +5,7 @@ process PROFAM_SCORE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:nextflow'
 
     input:
     tuple val(meta), path(conditioning_fasta)  // Family MSA or reference sequences
@@ -42,7 +42,7 @@ process PROFAM_GENERATE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/profam:nextflow'
 
     input:
     tuple val(meta), path(conditioning_fasta)  // Family MSA or reference sequences

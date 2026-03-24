@@ -1,0 +1,1408 @@
+{
+  "drug_name": "Erlotinib",
+  "target_gene": "EGFR",
+  "mock_mode": false,
+  "timestamp": "2026-03-24T20:50:02.439744+00:00",
+  "points": [
+    {
+      "gene_id": "MAP2K1",
+      "gene_name": "MAP2K1",
+      "log2FoldChange": -2.153132807096227,
+      "neg_log10_padj": 5.038544485054779,
+      "significant": true
+    },
+    {
+      "gene_id": "MTOR",
+      "gene_name": "MTOR",
+      "log2FoldChange": -1.7684204280323077,
+      "neg_log10_padj": 3.6356766908270197,
+      "significant": true
+    },
+    {
+      "gene_id": "BRAF",
+      "gene_name": "BRAF",
+      "log2FoldChange": -1.2432424500885575,
+      "neg_log10_padj": 1.8323582582627727,
+      "significant": true
+    },
+    {
+      "gene_id": "PIK3CA",
+      "gene_name": "PIK3CA",
+      "log2FoldChange": -1.2975597878775547,
+      "neg_log10_padj": 1.771130554967649,
+      "significant": true
+    },
+    {
+      "gene_id": "PTEN",
+      "gene_name": "PTEN",
+      "log2FoldChange": -1.4512354955045366,
+      "neg_log10_padj": 1.509102048719731,
+      "significant": true
+    },
+    {
+      "gene_id": "KRAS",
+      "gene_name": "KRAS",
+      "log2FoldChange": -1.2506065568945135,
+      "neg_log10_padj": 1.1094260486571095,
+      "significant": false
+    },
+    {
+      "gene_id": "ERBB2",
+      "gene_name": "ERBB2",
+      "log2FoldChange": -1.2356800968683874,
+      "neg_log10_padj": 1.1038812668959659,
+      "significant": false
+    },
+    {
+      "gene_id": "EGFR",
+      "gene_name": "EGFR",
+      "log2FoldChange": -1.1524524570371302,
+      "neg_log10_padj": 1.0738250880912894,
+      "significant": false
+    },
+    {
+      "gene_id": "AKT1",
+      "gene_name": "AKT1",
+      "log2FoldChange": -0.9044421460786538,
+      "neg_log10_padj": 0.7382012598859261,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0080",
+      "gene_name": "GENE0080",
+      "log2FoldChange": 0.8778471629140878,
+      "neg_log10_padj": 0.6079809788187583,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0035",
+      "gene_name": "GENE0035",
+      "log2FoldChange": -0.7934883469556588,
+      "neg_log10_padj": 0.5480354749261482,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0025",
+      "gene_name": "GENE0025",
+      "log2FoldChange": 0.7779125694108499,
+      "neg_log10_padj": 0.5077245895165874,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0062",
+      "gene_name": "GENE0062",
+      "log2FoldChange": -1.0046316349356659,
+      "neg_log10_padj": 0.4776076906053627,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0164",
+      "gene_name": "GENE0164",
+      "log2FoldChange": 0.6709225558077153,
+      "neg_log10_padj": 0.4579718404095073,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0181",
+      "gene_name": "GENE0181",
+      "log2FoldChange": -0.8007473943185618,
+      "neg_log10_padj": 0.41901607795266776,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0149",
+      "gene_name": "GENE0149",
+      "log2FoldChange": -0.8305897211412869,
+      "neg_log10_padj": 0.2971479895888785,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0090",
+      "gene_name": "GENE0090",
+      "log2FoldChange": 0.7475086204625175,
+      "neg_log10_padj": 0.23290027932629478,
+      "significant": false
+    },
+    {
+      "gene_id": "RB1",
+      "gene_name": "RB1",
+      "log2FoldChange": 0.9145222695669796,
+      "neg_log10_padj": 0.22215983865399389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0117",
+      "gene_name": "GENE0117",
+      "log2FoldChange": 0.6193828243360077,
+      "neg_log10_padj": 0.14565175591327428,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0195",
+      "gene_name": "GENE0195",
+      "log2FoldChange": -0.6435741836249035,
+      "neg_log10_padj": 0.14565175591327428,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0155",
+      "gene_name": "GENE0155",
+      "log2FoldChange": 0.6061543111901168,
+      "neg_log10_padj": 0.14565175591327428,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0037",
+      "gene_name": "GENE0037",
+      "log2FoldChange": -0.5395825642065913,
+      "neg_log10_padj": 0.11088676150336535,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0056",
+      "gene_name": "GENE0056",
+      "log2FoldChange": 0.6022522141906892,
+      "neg_log10_padj": 0.10387945904947944,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0101",
+      "gene_name": "GENE0101",
+      "log2FoldChange": 0.737216675207651,
+      "neg_log10_padj": 0.10387945904947944,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0092",
+      "gene_name": "GENE0092",
+      "log2FoldChange": 0.6440702800018753,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0045",
+      "gene_name": "GENE0045",
+      "log2FoldChange": 0.47144562796346917,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0023",
+      "gene_name": "GENE0023",
+      "log2FoldChange": -0.5826704526101578,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0169",
+      "gene_name": "GENE0169",
+      "log2FoldChange": 0.7937419920120964,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0079",
+      "gene_name": "GENE0079",
+      "log2FoldChange": 0.49448810142130406,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0137",
+      "gene_name": "GENE0137",
+      "log2FoldChange": 0.47496030841499043,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0120",
+      "gene_name": "GENE0120",
+      "log2FoldChange": -0.4807781779632829,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0146",
+      "gene_name": "GENE0146",
+      "log2FoldChange": 0.7001763746821309,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "VEGFA",
+      "gene_name": "VEGFA",
+      "log2FoldChange": 0.6092200082450749,
+      "neg_log10_padj": 0.09542152167660531,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0029",
+      "gene_name": "GENE0029",
+      "log2FoldChange": -0.6611549184390366,
+      "neg_log10_padj": 0.08613480417855768,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0173",
+      "gene_name": "GENE0173",
+      "log2FoldChange": -0.6585633699179755,
+      "neg_log10_padj": 0.08613480417855768,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0061",
+      "gene_name": "GENE0061",
+      "log2FoldChange": 0.47246492354152964,
+      "neg_log10_padj": 0.08613480417855768,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0199",
+      "gene_name": "GENE0199",
+      "log2FoldChange": 0.5785444415883839,
+      "neg_log10_padj": 0.07329833439461332,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0145",
+      "gene_name": "GENE0145",
+      "log2FoldChange": 0.3974893413296009,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0148",
+      "gene_name": "GENE0148",
+      "log2FoldChange": 0.6274872152486956,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0057",
+      "gene_name": "GENE0057",
+      "log2FoldChange": 0.46542980793834315,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0087",
+      "gene_name": "GENE0087",
+      "log2FoldChange": 0.5656463300828828,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0132",
+      "gene_name": "GENE0132",
+      "log2FoldChange": 0.5133998195340553,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0067",
+      "gene_name": "GENE0067",
+      "log2FoldChange": 0.5716618356785979,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0138",
+      "gene_name": "GENE0138",
+      "log2FoldChange": -0.44368079176563063,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0136",
+      "gene_name": "GENE0136",
+      "log2FoldChange": -0.451647432417051,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0099",
+      "gene_name": "GENE0099",
+      "log2FoldChange": 0.5123048506403215,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0130",
+      "gene_name": "GENE0130",
+      "log2FoldChange": 0.32899209888289355,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0124",
+      "gene_name": "GENE0124",
+      "log2FoldChange": -0.33531425653029506,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0122",
+      "gene_name": "GENE0122",
+      "log2FoldChange": 0.5276052547172665,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0082",
+      "gene_name": "GENE0082",
+      "log2FoldChange": 0.4394501153372482,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0083",
+      "gene_name": "GENE0083",
+      "log2FoldChange": -0.3837602666613792,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0107",
+      "gene_name": "GENE0107",
+      "log2FoldChange": 0.3801125125482881,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0085",
+      "gene_name": "GENE0085",
+      "log2FoldChange": 0.41088797190370724,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0066",
+      "gene_name": "GENE0066",
+      "log2FoldChange": 0.37252545989749974,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0078",
+      "gene_name": "GENE0078",
+      "log2FoldChange": 0.5232330323493399,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0047",
+      "gene_name": "GENE0047",
+      "log2FoldChange": 0.36293351924103384,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0157",
+      "gene_name": "GENE0157",
+      "log2FoldChange": -0.4277443731233116,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0196",
+      "gene_name": "GENE0196",
+      "log2FoldChange": 0.48229639020973264,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "CCND1",
+      "gene_name": "CCND1",
+      "log2FoldChange": 0.3802196719921484,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0193",
+      "gene_name": "GENE0193",
+      "log2FoldChange": 0.6311324377841621,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0191",
+      "gene_name": "GENE0191",
+      "log2FoldChange": -0.4844797117098801,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "BCL2",
+      "gene_name": "BCL2",
+      "log2FoldChange": 0.4544502497343336,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "BAX",
+      "gene_name": "BAX",
+      "log2FoldChange": 0.5094652584342443,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0188",
+      "gene_name": "GENE0188",
+      "log2FoldChange": -0.4504262580581348,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0021",
+      "gene_name": "GENE0021",
+      "log2FoldChange": 0.3901152191279724,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0030",
+      "gene_name": "GENE0030",
+      "log2FoldChange": 0.34247381513189,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0031",
+      "gene_name": "GENE0031",
+      "log2FoldChange": -0.30148929027353655,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0150",
+      "gene_name": "GENE0150",
+      "log2FoldChange": 0.39994278091000657,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0177",
+      "gene_name": "GENE0177",
+      "log2FoldChange": -0.36470881617413914,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0036",
+      "gene_name": "GENE0036",
+      "log2FoldChange": -0.3327698838224127,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0096",
+      "gene_name": "GENE0096",
+      "log2FoldChange": 0.28798292988016316,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0039",
+      "gene_name": "GENE0039",
+      "log2FoldChange": 0.33169240870674077,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0050",
+      "gene_name": "GENE0050",
+      "log2FoldChange": -0.4989022657693252,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0040",
+      "gene_name": "GENE0040",
+      "log2FoldChange": -0.546028287804089,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0041",
+      "gene_name": "GENE0041",
+      "log2FoldChange": 0.5138090548212823,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0049",
+      "gene_name": "GENE0049",
+      "log2FoldChange": 0.3861575098616493,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0098",
+      "gene_name": "GENE0098",
+      "log2FoldChange": 0.30161446982469947,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0176",
+      "gene_name": "GENE0176",
+      "log2FoldChange": -0.6017760602619735,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0044",
+      "gene_name": "GENE0044",
+      "log2FoldChange": 0.3595220606885153,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0172",
+      "gene_name": "GENE0172",
+      "log2FoldChange": -0.32160662073558893,
+      "neg_log10_padj": 0.05138719994274618,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0072",
+      "gene_name": "GENE0072",
+      "log2FoldChange": -0.29666021010147076,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0147",
+      "gene_name": "GENE0147",
+      "log2FoldChange": 0.3703117065320174,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0194",
+      "gene_name": "GENE0194",
+      "log2FoldChange": 0.33758281258230227,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0060",
+      "gene_name": "GENE0060",
+      "log2FoldChange": -0.27406358874932585,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0102",
+      "gene_name": "GENE0102",
+      "log2FoldChange": 0.29269923586167573,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0140",
+      "gene_name": "GENE0140",
+      "log2FoldChange": -0.3650504985765428,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0081",
+      "gene_name": "GENE0081",
+      "log2FoldChange": -0.34803144400368236,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0182",
+      "gene_name": "GENE0182",
+      "log2FoldChange": 0.29858211655417144,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0179",
+      "gene_name": "GENE0179",
+      "log2FoldChange": -0.3744933088325251,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0042",
+      "gene_name": "GENE0042",
+      "log2FoldChange": -0.23687706142912512,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0033",
+      "gene_name": "GENE0033",
+      "log2FoldChange": -0.36225991595141205,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0184",
+      "gene_name": "GENE0184",
+      "log2FoldChange": -0.312815692523442,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0178",
+      "gene_name": "GENE0178",
+      "log2FoldChange": -0.2819701035140496,
+      "neg_log10_padj": 0.02660653550138389,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0183",
+      "gene_name": "GENE0183",
+      "log2FoldChange": -0.2867371134335641,
+      "neg_log10_padj": 0.010268887412839801,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0200",
+      "gene_name": "GENE0200",
+      "log2FoldChange": 0.2678188632860838,
+      "neg_log10_padj": 0.010268887412839801,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0032",
+      "gene_name": "GENE0032",
+      "log2FoldChange": -0.32303294461474186,
+      "neg_log10_padj": 0.010268887412839801,
+      "significant": false
+    },
+    {
+      "gene_id": "MAPK1",
+      "gene_name": "MAPK1",
+      "log2FoldChange": -0.5399185343979879,
+      "neg_log10_padj": 0.009990098577796635,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0054",
+      "gene_name": "GENE0054",
+      "log2FoldChange": 0.3196015924553,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0167",
+      "gene_name": "GENE0167",
+      "log2FoldChange": -0.24677158675401198,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0071",
+      "gene_name": "GENE0071",
+      "log2FoldChange": -0.27171976519752045,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0114",
+      "gene_name": "GENE0114",
+      "log2FoldChange": -0.3760476277912031,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0048",
+      "gene_name": "GENE0048",
+      "log2FoldChange": 0.19580646173702165,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0186",
+      "gene_name": "GENE0186",
+      "log2FoldChange": -0.3331397798576811,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0065",
+      "gene_name": "GENE0065",
+      "log2FoldChange": 0.25346203353832214,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0068",
+      "gene_name": "GENE0068",
+      "log2FoldChange": 0.24860509779297413,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0198",
+      "gene_name": "GENE0198",
+      "log2FoldChange": 0.2535339501440718,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0059",
+      "gene_name": "GENE0059",
+      "log2FoldChange": 0.2523006140589092,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0052",
+      "gene_name": "GENE0052",
+      "log2FoldChange": 0.19197765300259984,
+      "neg_log10_padj": 0.006111978470688393,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0158",
+      "gene_name": "GENE0158",
+      "log2FoldChange": -0.04249172906751702,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0168",
+      "gene_name": "GENE0168",
+      "log2FoldChange": -0.1337831235293187,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0166",
+      "gene_name": "GENE0166",
+      "log2FoldChange": -0.14990280995056104,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0165",
+      "gene_name": "GENE0165",
+      "log2FoldChange": 0.026113357105626657,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0152",
+      "gene_name": "GENE0152",
+      "log2FoldChange": 0.05900264088759725,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0051",
+      "gene_name": "GENE0051",
+      "log2FoldChange": 0.05569975840126779,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0163",
+      "gene_name": "GENE0163",
+      "log2FoldChange": 0.0373212158937367,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0162",
+      "gene_name": "GENE0162",
+      "log2FoldChange": -0.03315635752615269,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0161",
+      "gene_name": "GENE0161",
+      "log2FoldChange": -0.09228601805325512,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0160",
+      "gene_name": "GENE0160",
+      "log2FoldChange": -0.17466491621362767,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0154",
+      "gene_name": "GENE0154",
+      "log2FoldChange": -0.08987253440069068,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0053",
+      "gene_name": "GENE0053",
+      "log2FoldChange": -0.13552261760533382,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0159",
+      "gene_name": "GENE0159",
+      "log2FoldChange": 0.05832517766095581,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0156",
+      "gene_name": "GENE0156",
+      "log2FoldChange": 0.10929391913002187,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0153",
+      "gene_name": "GENE0153",
+      "log2FoldChange": 0.010170001117019071,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0170",
+      "gene_name": "GENE0170",
+      "log2FoldChange": -0.12736361343650085,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0094",
+      "gene_name": "GENE0094",
+      "log2FoldChange": 0.02930695119454913,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0046",
+      "gene_name": "GENE0046",
+      "log2FoldChange": -0.1584658572203791,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0197",
+      "gene_name": "GENE0197",
+      "log2FoldChange": 0.09767738988694738,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "MYC",
+      "gene_name": "MYC",
+      "log2FoldChange": 0.7153336947307376,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "CDK4",
+      "gene_name": "CDK4",
+      "log2FoldChange": -0.09235120988190944,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "TP53",
+      "gene_name": "TP53",
+      "log2FoldChange": 0.034389186762618616,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0192",
+      "gene_name": "GENE0192",
+      "log2FoldChange": -0.11957335015769925,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "MDM2",
+      "gene_name": "MDM2",
+      "log2FoldChange": 0.14441724773044787,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0190",
+      "gene_name": "GENE0190",
+      "log2FoldChange": 0.05242510026205662,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0189",
+      "gene_name": "GENE0189",
+      "log2FoldChange": -0.1559293701594999,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "CASP3",
+      "gene_name": "CASP3",
+      "log2FoldChange": -0.23661786938329446,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0187",
+      "gene_name": "GENE0187",
+      "log2FoldChange": 0.1471304312878133,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0171",
+      "gene_name": "GENE0171",
+      "log2FoldChange": -0.11206316213387306,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0185",
+      "gene_name": "GENE0185",
+      "log2FoldChange": -0.11553613631218866,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0024",
+      "gene_name": "GENE0024",
+      "log2FoldChange": -0.10148325479486213,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0026",
+      "gene_name": "GENE0026",
+      "log2FoldChange": 0.11388242262305183,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0027",
+      "gene_name": "GENE0027",
+      "log2FoldChange": 0.03645497574796257,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0180",
+      "gene_name": "GENE0180",
+      "log2FoldChange": 0.044424463030352745,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0028",
+      "gene_name": "GENE0028",
+      "log2FoldChange": -0.01263517729654954,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0034",
+      "gene_name": "GENE0034",
+      "log2FoldChange": 0.07453018506294448,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0038",
+      "gene_name": "GENE0038",
+      "log2FoldChange": -0.14254388072102547,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0175",
+      "gene_name": "GENE0175",
+      "log2FoldChange": -0.11146763688103468,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0174",
+      "gene_name": "GENE0174",
+      "log2FoldChange": 0.16318214963048636,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0151",
+      "gene_name": "GENE0151",
+      "log2FoldChange": 0.23426570161653534,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0022",
+      "gene_name": "GENE0022",
+      "log2FoldChange": -0.21227189611246242,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0043",
+      "gene_name": "GENE0043",
+      "log2FoldChange": 0.09856598525257997,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0058",
+      "gene_name": "GENE0058",
+      "log2FoldChange": 0.15690433584074964,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0095",
+      "gene_name": "GENE0095",
+      "log2FoldChange": 0.0273599357167474,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0118",
+      "gene_name": "GENE0118",
+      "log2FoldChange": 0.08511053629482895,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0077",
+      "gene_name": "GENE0077",
+      "log2FoldChange": -0.12128568785998867,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0116",
+      "gene_name": "GENE0116",
+      "log2FoldChange": 0.2530395895754487,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0115",
+      "gene_name": "GENE0115",
+      "log2FoldChange": -0.056289036267702305,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0113",
+      "gene_name": "GENE0113",
+      "log2FoldChange": -0.006441225702188296,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0112",
+      "gene_name": "GENE0112",
+      "log2FoldChange": 0.008535284495357934,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0111",
+      "gene_name": "GENE0111",
+      "log2FoldChange": -0.07240953541061025,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0110",
+      "gene_name": "GENE0110",
+      "log2FoldChange": 0.10553693381446959,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0109",
+      "gene_name": "GENE0109",
+      "log2FoldChange": 0.11295896326870586,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0108",
+      "gene_name": "GENE0108",
+      "log2FoldChange": -0.02682823252378391,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0084",
+      "gene_name": "GENE0084",
+      "log2FoldChange": 0.1663988139925318,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0106",
+      "gene_name": "GENE0106",
+      "log2FoldChange": -0.11108857865629984,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0105",
+      "gene_name": "GENE0105",
+      "log2FoldChange": 0.11019067583146128,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0104",
+      "gene_name": "GENE0104",
+      "log2FoldChange": 0.11505346872462222,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0103",
+      "gene_name": "GENE0103",
+      "log2FoldChange": 0.07655421380005338,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0086",
+      "gene_name": "GENE0086",
+      "log2FoldChange": 0.11271977832808532,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0088",
+      "gene_name": "GENE0088",
+      "log2FoldChange": -0.1696209230697737,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0089",
+      "gene_name": "GENE0089",
+      "log2FoldChange": -0.13470056376923267,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0091",
+      "gene_name": "GENE0091",
+      "log2FoldChange": 0.2458109060068662,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0093",
+      "gene_name": "GENE0093",
+      "log2FoldChange": -0.08715612052673588,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0097",
+      "gene_name": "GENE0097",
+      "log2FoldChange": 0.07131642846889248,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0119",
+      "gene_name": "GENE0119",
+      "log2FoldChange": -0.23033603139480263,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0055",
+      "gene_name": "GENE0055",
+      "log2FoldChange": 0.12439097110090497,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0076",
+      "gene_name": "GENE0076",
+      "log2FoldChange": -0.1881676960633084,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0075",
+      "gene_name": "GENE0075",
+      "log2FoldChange": -0.026007739766430196,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0063",
+      "gene_name": "GENE0063",
+      "log2FoldChange": -0.03758854126192542,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0064",
+      "gene_name": "GENE0064",
+      "log2FoldChange": -0.154869887654072,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0144",
+      "gene_name": "GENE0144",
+      "log2FoldChange": 0.12534319230493585,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0143",
+      "gene_name": "GENE0143",
+      "log2FoldChange": -0.11224052996129574,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0142",
+      "gene_name": "GENE0142",
+      "log2FoldChange": 0.13435973445992747,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0141",
+      "gene_name": "GENE0141",
+      "log2FoldChange": 0.006427478398519789,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0139",
+      "gene_name": "GENE0139",
+      "log2FoldChange": 0.15909562462587867,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0069",
+      "gene_name": "GENE0069",
+      "log2FoldChange": 0.0882212345207272,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0070",
+      "gene_name": "GENE0070",
+      "log2FoldChange": 0.044056724807467286,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0135",
+      "gene_name": "GENE0135",
+      "log2FoldChange": -0.17969354088621298,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0134",
+      "gene_name": "GENE0134",
+      "log2FoldChange": 0.19149909843625593,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0133",
+      "gene_name": "GENE0133",
+      "log2FoldChange": -0.05348469912629518,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0131",
+      "gene_name": "GENE0131",
+      "log2FoldChange": -0.1802179119679236,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0073",
+      "gene_name": "GENE0073",
+      "log2FoldChange": -0.31460836079396876,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0129",
+      "gene_name": "GENE0129",
+      "log2FoldChange": 0.21113467723446339,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0128",
+      "gene_name": "GENE0128",
+      "log2FoldChange": 0.02417973920063549,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0127",
+      "gene_name": "GENE0127",
+      "log2FoldChange": 0.18777694398795014,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0126",
+      "gene_name": "GENE0126",
+      "log2FoldChange": 0.040502891185951004,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0125",
+      "gene_name": "GENE0125",
+      "log2FoldChange": 0.009259827016807425,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0074",
+      "gene_name": "GENE0074",
+      "log2FoldChange": -0.11946328748177118,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0123",
+      "gene_name": "GENE0123",
+      "log2FoldChange": -0.17016508925718496,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0100",
+      "gene_name": "GENE0100",
+      "log2FoldChange": -0.02820946993527991,
+      "neg_log10_padj": 0.004258493106679476,
+      "significant": false
+    },
+    {
+      "gene_id": "GENE0121",
+      "gene_name": "GENE0121",
+      "log2FoldChange": 0.0037899568547015445,
+      "neg_log10_padj": 0.003539898972005304,
+      "significant": false
+    }
+  ]
+}

@@ -1,0 +1,316 @@
+Mar-12 19:28:59.353 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work' --outdir /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/output -with-trace /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/workflow-trace.txt -c /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/biomate_executor_override.config
+Mar-12 19:28:59.418 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-12 19:28:59.462 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-12 19:28:59.465 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/biomate_executor_override.config
+Mar-12 19:28:59.466 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-12 19:28:59.466 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/biomate_executor_override.config
+Mar-12 19:28:59.486 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-12 19:28:59.896 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-12 19:28:59.991 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-12 19:28:59.998 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-12 19:28:59.998 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-12 19:29:00.000 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-12 19:29:00.009 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-12 19:29:00.121 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-12 19:29:00.123 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Mar-12 19:29:00.124 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Mar-12 19:29:00.636 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Mar-12 19:29:00.656 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Mar-12 19:29:00.661 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Mar-12 19:29:02.999 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Mar-12 19:29:03.007 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Mar-12 19:29:03.007 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Mar-12 19:29:03.018 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Mar-12 19:29:03.027 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Mar-12 19:29:03.036 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/.nextflow/secrets/store.json
+Mar-12 19:29:03.038 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@5099c59b] - activable => nextflow.secret.LocalSecretsProvider@5099c59b
+Mar-12 19:29:03.041 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-12 19:29:03.051 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf` [lethal_escher] DSL2 - revision: e126362047
+Mar-12 19:29:03.080 [main] DEBUG nextflow.Session - Session UUID: 90969370-e1e6-4e56-94e4-89278016714c
+Mar-12 19:29:03.081 [main] DEBUG nextflow.Session - Run name: lethal_escher
+Mar-12 19:29:03.081 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-12 19:29:03.088 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
+Mar-12 19:29:03.100 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Mar-12 19:29:03.776 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-12 19:29:03.782 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-12 19:29:03.800 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 2648360@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (2.5 GB) - Swap: 16 GB (13.3 GB)
+Mar-12 19:29:04.035 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work
+
+Mar-12 19:29:04.035 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work [null]
+Mar-12 19:29:04.036 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/bin
+Mar-12 19:29:04.058 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Mar-12 19:29:04.070 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-12 19:29:04.074 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-12 19:29:04.122 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-12 19:29:04.128 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-12 19:29:04.175 [main] DEBUG nextflow.Session - Session start
+Mar-12 19:29:04.181 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/workflow-trace.txt
+Mar-12 19:29:04.685 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-12 19:29:04.763 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Transcriptomic Biomarker Discovery Pipeline
+====================================================================
+Mode:              MOCK (synthetic data)
+Group column:      group
+Reference group:   control
+FDR threshold:     0.05
+|logFC| threshold: 1.0
+GSVA method:       gsva
+Output dir:        /tmp/nextflow_runs/c161e2ef-a5f3-4b2d-96ae-6f5a67ffc947/output
+====================================================================
+
+Mar-12 19:29:04.807 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_INPUT_QC` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-12 19:29:04.813 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Mar-12 19:29:04.813 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Mar-12 19:29:04.817 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Mar-12 19:29:04.824 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Mar-12 19:29:04.827 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Mar-12 19:29:04.828 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Mar-12 19:29:04.832 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Mar-12 19:29:04.877 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:null, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Mar-12 19:29:04.889 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC': maxForks=0; fair=false; array=0
+Mar-12 19:29:04.911 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:LIMMA_DIFFERENTIAL_EXPRESSION` matches process TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-12 19:29:04.912 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Mar-12 19:29:04.913 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Mar-12 19:29:04.914 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-12 19:29:04.917 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_SIGNATURE_SCORING` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-12 19:29:04.917 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Mar-12 19:29:04.918 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Mar-12 19:29:04.919 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING': maxForks=0; fair=false; array=0
+Mar-12 19:29:04.923 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_REPORT` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-12 19:29:04.927 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Mar-12 19:29:04.927 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Mar-12 19:29:04.927 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT': maxForks=0; fair=false; array=0
+Mar-12 19:29:04.945 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LIMMA_DIFFERENTIAL_EXPRESSION, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC, BIOMARKER_SIGNATURE_SCORING, BIOMARKER_INPUT_QC, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING, TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION, BIOMARKER_REPORT, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-12 19:29:04.947 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-12 19:29:04.947 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-12 19:29:04.948 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-12 19:29:04.948 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-12 19:29:04.948 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-12 19:29:04.948 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_4a262b4feaeea3b9: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf
+Mar-12 19:29:04.948 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-12 19:29:04.948 [main] DEBUG nextflow.Session - Session await
+Mar-12 19:29:04.951 [Actor Thread 14] ERROR nextflow.extension.OperatorImpl - @unknown
+java.nio.file.NoSuchFileException: /biomate-nextflow-work/nextflow/work/mock_metadata.csv
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:218)
+	at java.base/java.nio.file.spi.FileSystemProvider.newOutputStream(FileSystemProvider.java:484)
+	at java.base/java.nio.file.Files.newOutputStream(Files.java:228)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:561)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:452)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:436)
+	at org.apache.groovy.nio.extensions.NioExtensions.setText(NioExtensions.java:465)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.runtime.metaclass.ReflectionMetaMethod.invoke(ReflectionMetaMethod.java:59)
+	at org.codehaus.groovy.runtime.metaclass.NewInstanceMetaMethod.invoke(NewInstanceMetaMethod.java:57)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.setProperty(MetaClassImpl.java:2899)
+	at groovy.lang.MetaClassImpl.setProperty(MetaClassImpl.java:3916)
+	at groovy.lang.DelegatingMetaClass.setProperty(DelegatingMetaClass.java:189)
+	at org.codehaus.groovy.runtime.InvokerHelper.setProperty(InvokerHelper.java:194)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.setProperty(ScriptBytecodeAdapter.java:503)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure22$_closure27.doCall(Script_4a262b4feaeea3b9:1361)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure22$_closure27.doCall(Script_4a262b4feaeea3b9)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure22.doCall(Script_4a262b4feaeea3b9:1359)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.extension.MapOp$_apply_closure1.doCall(MapOp.groovy:56)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.startTask(DataflowOperatorActor.java:120)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.onMessage(DataflowOperatorActor.java:108)
+	at groovyx.gpars.actor.impl.SDAClosure$1.call(SDAClosure.java:43)
+	at groovyx.gpars.actor.AbstractLoopingActor.runEnhancedWithoutRepliesOnMessages(AbstractLoopingActor.java:293)
+	at groovyx.gpars.actor.AbstractLoopingActor.access$400(AbstractLoopingActor.java:30)
+	at groovyx.gpars.actor.AbstractLoopingActor$1.handleMessage(AbstractLoopingActor.java:93)
+	at groovyx.gpars.util.AsyncMessagingCore.run(AsyncMessagingCore.java:132)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Mar-12 19:29:04.951 [Actor Thread 13] ERROR nextflow.extension.OperatorImpl - @unknown
+java.nio.file.NoSuchFileException: /biomate-nextflow-work/nextflow/work/mock_expression_matrix.csv
+	at java.base/sun.nio.fs.UnixException.translateToIOException(UnixException.java:92)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106)
+	at java.base/sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111)
+	at java.base/sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:218)
+	at java.base/java.nio.file.spi.FileSystemProvider.newOutputStream(FileSystemProvider.java:484)
+	at java.base/java.nio.file.Files.newOutputStream(Files.java:228)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:561)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:452)
+	at org.apache.groovy.nio.extensions.NioExtensions.write(NioExtensions.java:436)
+	at org.apache.groovy.nio.extensions.NioExtensions.setText(NioExtensions.java:465)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.runtime.metaclass.ReflectionMetaMethod.invoke(ReflectionMetaMethod.java:59)
+	at org.codehaus.groovy.runtime.metaclass.NewInstanceMetaMethod.invoke(NewInstanceMetaMethod.java:57)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.setProperty(MetaClassImpl.java:2899)
+	at groovy.lang.MetaClassImpl.setProperty(MetaClassImpl.java:3916)
+	at groovy.lang.DelegatingMetaClass.setProperty(DelegatingMetaClass.java:189)
+	at org.codehaus.groovy.runtime.InvokerHelper.setProperty(InvokerHelper.java:194)
+	at org.codehaus.groovy.runtime.ScriptBytecodeAdapter.setProperty(ScriptBytecodeAdapter.java:503)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure21$_closure26.doCall(Script_4a262b4feaeea3b9:1351)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure21$_closure26.doCall(Script_4a262b4feaeea3b9)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at Script_4a262b4feaeea3b9$_runScript_closure6$_closure20$_closure21.doCall(Script_4a262b4feaeea3b9:1349)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.extension.MapOp$_apply_closure1.doCall(MapOp.groovy:56)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.startTask(DataflowOperatorActor.java:120)
+	at groovyx.gpars.dataflow.operator.DataflowOperatorActor.onMessage(DataflowOperatorActor.java:108)
+	at groovyx.gpars.actor.impl.SDAClosure$1.call(SDAClosure.java:43)
+	at groovyx.gpars.actor.AbstractLoopingActor.runEnhancedWithoutRepliesOnMessages(AbstractLoopingActor.java:293)
+	at groovyx.gpars.actor.AbstractLoopingActor.access$400(AbstractLoopingActor.java:30)
+	at groovyx.gpars.actor.AbstractLoopingActor$1.handleMessage(AbstractLoopingActor.java:93)
+	at groovyx.gpars.util.AsyncMessagingCore.run(AsyncMessagingCore.java:132)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Mar-12 19:29:04.961 [Actor Thread 14] DEBUG nextflow.Session - Session aborted -- Cause: /biomate-nextflow-work/nextflow/work/mock_metadata.csv
+Mar-12 19:29:04.961 [Actor Thread 13] DEBUG nextflow.Session - Session aborted -- Cause: /biomate-nextflow-work/nextflow/work/mock_expression_matrix.csv
+Mar-12 19:29:04.984 [Actor Thread 13] DEBUG nextflow.Session - The following nodes are still active:
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: expression_matrix
+  port 1: (queue) OPEN  ; channel: metadata
+  port 2: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: validated_matrix
+  port 1: (queue) OPEN  ; channel: validated_metadata
+  port 2: (queue) OPEN  ; channel: qc_report
+  port 3: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: validated_matrix
+  port 1: (queue) OPEN  ; channel: validated_metadata
+  port 2: (queue) OPEN  ; channel: de_results
+  port 3: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: de_results
+  port 1: (queue) OPEN  ; channel: significant_genes
+  port 2: (queue) OPEN  ; channel: model_summary
+  port 3: (queue) OPEN  ; channel: signature_scores
+  port 4: (queue) OPEN  ; channel: pathway_summary
+  port 5: (cntrl) -     ; channel: $
+
+Mar-12 19:29:04.985 [Actor Thread 14] DEBUG nextflow.Session - The following nodes are still active:
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: expression_matrix
+  port 1: (queue) OPEN  ; channel: metadata
+  port 2: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: validated_matrix
+  port 1: (queue) OPEN  ; channel: validated_metadata
+  port 2: (queue) OPEN  ; channel: qc_report
+  port 3: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: validated_matrix
+  port 1: (queue) OPEN  ; channel: validated_metadata
+  port 2: (queue) OPEN  ; channel: de_results
+  port 3: (cntrl) -     ; channel: $
+
+[process] TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: de_results
+  port 1: (queue) OPEN  ; channel: significant_genes
+  port 2: (queue) OPEN  ; channel: model_summary
+  port 3: (queue) OPEN  ; channel: signature_scores
+  port 4: (queue) OPEN  ; channel: pathway_summary
+  port 5: (cntrl) -     ; channel: $
+
+Mar-12 19:29:04.988 [Actor Thread 14] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Mar-12 19:29:04.991 [Actor Thread 13] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Mar-12 19:29:05.180 [Actor Thread 14] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-12 19:29:05.180 [Actor Thread 13] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-12 19:29:05.182 [Actor Thread 14] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-12 19:29:05.182 [Actor Thread 13] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-12 19:29:05.625 [Actor Thread 14] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-12 19:29:05.625 [Actor Thread 13] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-12 19:29:05.672 [Actor Thread 14] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-12 19:29:05.672 [Actor Thread 13] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-12 19:29:05.678 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-12 19:29:05.678 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-12 19:29:05.678 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Mar-12 19:29:05.679 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Mar-12 19:29:05.686 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-12 19:29:05.686 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-12 19:29:06.053 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-12 19:29:06.088 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-12 19:29:06.092 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-12 19:29:06.096 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Mar-12 19:29:06.096 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Mar-12 19:29:06.097 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

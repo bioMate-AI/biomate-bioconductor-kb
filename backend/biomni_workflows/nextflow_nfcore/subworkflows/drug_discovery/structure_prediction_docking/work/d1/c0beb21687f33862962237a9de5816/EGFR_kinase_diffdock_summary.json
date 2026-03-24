@@ -1,0 +1,123 @@
+{
+  "target": "EGFR_kinase",
+  "ligand": "mock_aspirin.sdf",
+  "tool": "DiffDock",
+  "version": "1.1.2",
+  "num_poses": 10,
+  "inference_steps": 20,
+  "top_confidence": 2.1942,
+  "poses": [
+    {
+      "rank": 1,
+      "confidence": 2.1942,
+      "sdf_file": "rank1_confidence2.1942.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        0.3,
+        0.1,
+        0.0
+      ]
+    },
+    {
+      "rank": 2,
+      "confidence": 2.0031,
+      "sdf_file": "rank2_confidence2.0031.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        0.6,
+        0.2,
+        0.0
+      ]
+    },
+    {
+      "rank": 3,
+      "confidence": 1.8155,
+      "sdf_file": "rank3_confidence1.8155.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        0.9,
+        0.3,
+        0.0
+      ]
+    },
+    {
+      "rank": 4,
+      "confidence": 1.6581,
+      "sdf_file": "rank4_confidence1.6581.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        1.2,
+        0.4,
+        0.0
+      ]
+    },
+    {
+      "rank": 5,
+      "confidence": 1.4349,
+      "sdf_file": "rank5_confidence1.4349.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        1.5,
+        0.5,
+        0.0
+      ]
+    },
+    {
+      "rank": 6,
+      "confidence": 1.1901,
+      "sdf_file": "rank6_confidence1.1901.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        1.8,
+        0.6,
+        0.0
+      ]
+    },
+    {
+      "rank": 7,
+      "confidence": 1.0733,
+      "sdf_file": "rank7_confidence1.0733.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        2.1,
+        0.7,
+        0.0
+      ]
+    },
+    {
+      "rank": 8,
+      "confidence": 0.8593,
+      "sdf_file": "rank8_confidence0.8593.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        2.4,
+        0.8,
+        0.0
+      ]
+    },
+    {
+      "rank": 9,
+      "confidence": 0.6713,
+      "sdf_file": "rank9_confidence0.6713.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        2.7,
+        0.9,
+        0.0
+      ]
+    },
+    {
+      "rank": 10,
+      "confidence": 0.4946,
+      "sdf_file": "rank10_confidence0.4946.sdf",
+      "rmsd_to_ref": null,
+      "centroid": [
+        3.0,
+        1.0,
+        0.0
+      ]
+    }
+  ],
+  "timestamp": "2026-03-19T01:36:25.429873Z",
+  "mock_mode": true
+}

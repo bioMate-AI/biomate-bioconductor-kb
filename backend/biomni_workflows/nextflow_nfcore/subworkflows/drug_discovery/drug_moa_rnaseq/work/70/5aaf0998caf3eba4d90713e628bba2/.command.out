@@ -1,0 +1,20 @@
+Loaded counts: 200 genes x 6 samples
+  Treated samples: 3  Control samples: 3
+Using None as control genes, passed at DeseqDataSet initialization
+Log2 fold change & Wald test p-value: condition treated vs control
+            baseMean  log2FoldChange  ...        pvalue      padj
+gene                                  ...                        
+EGFR      316.765462       -1.152452  ...  3.374698e-03  0.084367
+ERBB2      69.264803       -1.235680  ...  2.755413e-03  0.078726
+KRAS       32.655974       -1.250607  ...  2.331821e-03  0.077727
+BRAF      243.979606       -1.243242  ...  2.206648e-04  0.014711
+MAP2K1     99.517043       -2.153133  ...  4.575363e-08  0.000009
+...              ...             ...  ...           ...       ...
+GENE0196  129.295113        0.482296  ...  1.988615e-01  0.888409
+GENE0197  204.590906        0.097677  ...  8.027642e-01  0.990242
+GENE0198   58.608026        0.253534  ...  5.286109e-01  0.986025
+GENE0199  446.752390        0.578544  ...  1.562692e-01  0.844698
+GENE0200  548.241959        0.267819  ...  4.667038e-01  0.976632
+
+[200 rows x 6 columns]
+DE analysis (live/pydeseq2): 200 genes tested, 5 significantly DE

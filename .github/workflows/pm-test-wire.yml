@@ -1,0 +1,93 @@
+name: PM Test Wire
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/pm-test-wire.yml"
+      - "frontend/package.json"
+      - "frontend/scripts/run-pm-test-wire.sh"
+      - "frontend/scripts/check-pm-wire-deps.sh"
+      - "backend/scripts/run_qc_regression_in_galaxy_backend.sh"
+      - "frontend/server/**"
+      - "frontend/client/src/hooks/**"
+      - "frontend/shared/**"
+      - "docs/20260302_0615_PM_TEST_WIRING_QC_RESEARCH_TESTHARNESS.md"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/pm-test-wire.yml"
+      - "frontend/package.json"
+      - "frontend/scripts/run-pm-test-wire.sh"
+      - "frontend/scripts/check-pm-wire-deps.sh"
+      - "backend/scripts/run_qc_regression_in_galaxy_backend.sh"
+      - "frontend/server/**"
+      - "frontend/client/src/hooks/**"
+      - "frontend/shared/**"
+      - "docs/20260302_0615_PM_TEST_WIRING_QC_RESEARCH_TESTHARNESS.md"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Wire mode to run"
+        required: true
+        default: "quick"
+        type: choice
+        options:
+          - quick
+          - full
+          - release
+
+concurrency:
+  group: pm-test-wire-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pm-wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run PM wire (PR/push quick)
+        if: github.event_name != 'workflow_dispatch'
+        env:
+          PM_WIRE_BACKEND_GATE_MODE: docker
+        run: npm run pm:wire:quick
+
+      - name: Run PM wire (manual mode)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PM_WIRE_RUN_HARNESS: ${{ inputs.mode == 'release' && '1' || '0' }}
+          PM_WIRE_BACKEND_GATE_MODE: docker
+        run: |
+          if [ "${{ inputs.mode }}" = "release" ]; then
+            npm run pm:wire:release
+          elif [ "${{ inputs.mode }}" = "full" ]; then
+            npm run pm:wire:full
+          else
+            npm run pm:wire:quick
+          fi
+
+      - name: Upload PM wire report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pm-wire-report
+          path: frontend/test-results/pm-wire-report.txt

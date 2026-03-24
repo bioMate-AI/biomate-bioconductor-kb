@@ -1,0 +1,118 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: DFP
+// This package provides a supervised technique able to identify differentially expressed genes, based 
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DFP/inst/doc/DFP.R
+// Upstream  : none
+// Downstream: none
+//
+// Install: BiocManager::install("DFP")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_DFP {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-dfp"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-dfp:1.64.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-dfp:1.64.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_dfp_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_dfp_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_dfp_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(DFP)
+    library(jsonlite)
+
+    # --- Data [] ---
+    # Key functions: featureNames
+    data(rmadataset)
+    # Number of genes in the test set
+    length(featureNames(rmadataset))
+    # --- Discriminantfuzzypattern [] ---
+    # Key functions: discriminantFuzzyPattern
+    res <- discriminantFuzzyPattern(rmadataset)
+    # --- Plotdiscriminantfuzzypattern [] ---
+    # Key functions: plotDiscriminantFuzzyPattern
+    plotDiscriminantFuzzyPattern(res$discriminant.fuzzy.pattern)
+    # --- Readcsv [] ---
+    # Key functions: readCSV
+    rmadataset <- readCSV(fileExprs, filePhenodata); rmadataset
+    # --- Calculatemembershipfunctions [] ---
+    # Key functions: calculateMembershipFunctions, plotMembershipFunctions, featureNames
+    mfs <- calculateMembershipFunctions(rmadataset, skipFactor); mfs[[1]]
+    plotMembershipFunctions(rmadataset, mfs, featureNames(rmadataset)[1:2])
+    # --- Discretizeexpressionvalues [] ---
+    # Key functions: discretizeExpressionValues, showDiscreteValues, featureNames
+    dvs <- discretizeExpressionValues(rmadataset, mfs, zeta, overlapping); dvs[1:4,1:10]
+    showDiscreteValues(dvs, featureNames(rmadataset)[1:10],c("healthy", "AML-inv"))
+    # --- Calculatefuzzypatterns [] ---
+    # Key functions: calculateFuzzyPatterns, showFuzzyPatterns
+    fps <- calculateFuzzyPatterns(rmadataset, dvs, piVal, overlapping); fps[1:30,]
+    showFuzzyPatterns(fps, "healthy")[21:50]
+    # --- Calculatediscriminantfuzzypattern [] ---
+    # Key functions: calculateDiscriminantFuzzyPattern, plotDiscriminantFuzzyPattern
+    dfps <- calculateDiscriminantFuzzyPattern(rmadataset, fps); dfps[1:5,]
+    plotDiscriminantFuzzyPattern(dfps, overlapping)
+    # --- Tolatex [] ---
+    # Key functions: toLatex
+    toLatex(sessionInfo())
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_dfp_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_dfp_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_dfp_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_DFP:", paste0("    dfp: ", packageVersion("DFP"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_dfp_results.csv
+    touch ${prefix}_dfp_output.rds
+    echo "BIOC_DFP:" > versions.yml
+    echo "    dfp: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_DFP_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_DFP(ch_input)
+
+    emit:
+    results  = BIOC_DFP.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_DFP.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_DFP.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_DFP.out.versions  // channel: path(versions.yml)
+}

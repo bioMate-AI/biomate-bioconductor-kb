@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-03-24T19:09:33.695Z",
+  "suiteStartedAt": "2026-03-24T19:07:53.356Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Full E2E — no mocks — real AI + real execution",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/full-e2e",
+  "billingCost": {
+    "error": "HTTP 401"
+  },
+  "scenarios": [
+    {
+      "name": "ADMET Full Execution Flow",
+      "asserts": [
+        "AWAITING REVIEW badge visible",
+        "Confirm & Run button present + enabled",
+        "Workflow completion banner appears",
+        "Results section auto-opens",
+        "Download All button enabled after completion",
+        "CSV preview API responds with data"
+      ]
+    },
+    {
+      "name": "AWAITING REVIEW UX",
+      "asserts": [
+        "pending_review state shows AWAITING REVIEW badge",
+        "Scientific Rationale panel present",
+        "No raw Python dict params displayed"
+      ]
+    }
+  ],
+  "notes": [
+    "Tests use real server at http://localhost:5000",
+    "AI responses are live — not mocked",
+    "Execution uses real Nextflow/Galaxy backend",
+    "Screenshots capture actual UI state",
+    "billingCost.totalEstimatedCostUsd is heuristic from token counting"
+  ]
+}

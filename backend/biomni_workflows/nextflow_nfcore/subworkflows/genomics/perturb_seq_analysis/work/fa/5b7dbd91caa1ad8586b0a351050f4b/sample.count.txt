@@ -1,0 +1,1 @@
+/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/perturb_seq_analysis/work/7a/c0d873f73eb26e0f8a3d65f7665d88/sample.count.txt

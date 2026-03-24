@@ -1,0 +1,10 @@
+REMARK  BioMate mock fpocket alpha-spheres — top pocket (id=1)
+REMARK  Target: EGFR_kinase
+REMARK  druggability_score=0.78  volume=847.0 A3
+REMARK  Generated: 2026-03-24T22:29:43.349854Z
+HETATM    1  C   STP A   1      13.800  -4.100   8.700  1.00  0.00           C
+HETATM    2  C   STP A   1      10.800  -4.100   8.700  1.00  0.00           C
+HETATM    3  C   STP A   1      12.300  -2.600   8.700  1.00  0.00           C
+HETATM    4  C   STP A   1      12.300  -5.600   8.700  1.00  0.00           C
+HETATM    5  C   STP A   1      12.300  -4.100  10.200  1.00  0.00           C
+END

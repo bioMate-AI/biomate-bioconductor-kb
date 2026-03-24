@@ -1,0 +1,4 @@
+    "IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE":
+        python: 3.12.3
+        biomni_function: "ivive_hepatic_clearance"
+    END_VERSIONS

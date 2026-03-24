@@ -6,7 +6,7 @@ process DRUGCLIP {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/drugclip:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/drugclip:nextflow'
     containerOptions '--entrypoint ""'
 
     input:

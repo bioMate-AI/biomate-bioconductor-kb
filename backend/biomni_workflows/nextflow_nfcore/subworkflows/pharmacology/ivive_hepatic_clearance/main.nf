@@ -124,7 +124,7 @@ SPECIES_PARAMS = {
 
 
 def scale_clint(clint_uL_min, assay_type, species_data, fu_inc=1.0):
-    """
+    '''
     Scale in vitro CLint to mL/min/kg body weight.
 
     Microsomal scaling (Obach 1999):
@@ -132,7 +132,7 @@ def scale_clint(clint_uL_min, assay_type, species_data, fu_inc=1.0):
 
     Hepatocyte scaling (Naritomi et al. 2001 Drug Metab Dispos 29:1316):
       CLint_in_vivo = CLint_uL/min/10^6cells × hepatocellularity × liver_weight_g/kg × fu_inc / 1000
-    """
+    '''
     liver_weight = species_data["liver_weight_g_per_kg"]
 
     if assay_type == "microsomal":
@@ -146,7 +146,7 @@ def scale_clint(clint_uL_min, assay_type, species_data, fu_inc=1.0):
 
 
 def well_stirred_model(clint_scaled, Q_liver, fu_plasma):
-    """
+    '''
     Well-stirred (venous equilibrium) liver model.
 
     CLh = Q_liver × fu × CLint / (Q_liver + fu × CLint)
@@ -154,7 +154,7 @@ def well_stirred_model(clint_scaled, Q_liver, fu_plasma):
     Wilkinson & Shand 1975; Pang & Rowland 1977 J Pharmacokinet Biopharm 5:625.
     Assumes rapid equilibration between blood and hepatocyte compartment.
     Valid across extraction ratios, most reliable for intermediate-extraction compounds.
-    """
+    '''
     numerator = Q_liver * fu_plasma * clint_scaled
     denominator = Q_liver + fu_plasma * clint_scaled
     if denominator == 0:
@@ -163,7 +163,7 @@ def well_stirred_model(clint_scaled, Q_liver, fu_plasma):
 
 
 def parallel_tube_model(clint_scaled, Q_liver, fu_plasma):
-    """
+    '''
     Parallel tube (sinusoidal perfusion) model.
 
     E = 1 - exp(-fu × CLint / Q_liver)
@@ -172,19 +172,19 @@ def parallel_tube_model(clint_scaled, Q_liver, fu_plasma):
     Assumes plug flow of blood through sinusoids. Generally gives higher CLh
     predictions than the well-stirred model for high-extraction compounds.
     Rowland et al. 1973 J Pharmacokinet Biopharm 1:123.
-    """
+    '''
     E = 1.0 - math.exp(-fu_plasma * clint_scaled / max(Q_liver, 0.001))
     return Q_liver * E
 
 
 def dispersion_model(clint_scaled, Q_liver, fu_plasma, RN=0.17):
-    """
+    '''
     Dispersion model (Roberts & Rowland 1986 J Pharmacokinet Biopharm 14:227).
 
     RN = dispersion number (default 0.17 for human liver, Weisiger 1996).
     Numerically integrates the dispersion PDE; simplified analytic solution used here.
     Intermediate between well-stirred and parallel tube.
-    """
+    '''
     DN = fu_plasma * clint_scaled / Q_liver
     # Analytic solution from Roberts & Rowland 1986 Eq. 6a
     a = math.sqrt(1 + 4 * DN * RN)
@@ -194,14 +194,14 @@ def dispersion_model(clint_scaled, Q_liver, fu_plasma, RN=0.17):
 
 
 def compute_uncertainty(clint_in_vitro, fu_plasma, clh_predicted, Q_liver):
-    """
+    '''
     Approximate 90% confidence bounds using reported IVIVE variability.
 
     Obach 1999 (Drug Metab Dispos 27:1350): inter-laboratory CLint CV ~50%.
     fu_plasma measurement error ±20% of measured value.
     Propagated through well-stirred model analytically.
     Returns (clh_lower, clh_upper) as 90% CI.
-    """
+    '''
     clint_cv = 0.50  # 50% CV on CLint measurement
     fu_cv    = 0.20  # 20% CV on fu measurement
 
@@ -216,7 +216,7 @@ def compute_uncertainty(clint_in_vitro, fu_plasma, clh_predicted, Q_liver):
 
 
 def run_ivive(clint_in_vitro, assay_type, fu_plasma, fu_inc, species, scaling_model):
-    """Full IVIVE pipeline with uncertainty estimation."""
+    '''Full IVIVE pipeline with uncertainty estimation.'''
     species = species.lower().strip()
     assay_type = assay_type.lower().strip()
     scaling_model = scaling_model.lower().strip()

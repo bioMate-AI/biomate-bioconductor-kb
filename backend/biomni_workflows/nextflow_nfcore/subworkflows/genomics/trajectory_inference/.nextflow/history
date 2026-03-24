@@ -1,0 +1,2 @@
+2026-03-04 21:16:29	2.3s	gigantic_coulomb	OK	6d5edde63dc1c05fff0f239c1f713fa6	0793e7a8-8642-4209-8cf1-ee64479bda4d	nextflow run main.nf -profile test
+2026-03-04 21:21:09	1.8s	happy_shockley	OK	6d5edde63dc1c05fff0f239c1f713fa6	2021e275-3415-4127-ab07-7ff6ee427164	nextflow run main.nf -profile test

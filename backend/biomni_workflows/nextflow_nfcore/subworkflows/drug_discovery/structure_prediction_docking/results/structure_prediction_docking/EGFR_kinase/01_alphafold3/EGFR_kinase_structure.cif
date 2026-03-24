@@ -1,0 +1,8 @@
+data_EGFR_kinase
+_entry.id EGFR_kinase
+_struct.title 'BioMate mock AlphaFold3 structure'
+# Coordinates omitted in mock mode — use PDB file for coordinates
+_ma_qa_metric_global.metric_id   1
+_ma_qa_metric_global.metric_value  0.85
+_ma_qa_metric_global.type        pTM
+# end

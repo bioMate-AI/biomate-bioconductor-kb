@@ -78,7 +78,7 @@ def auto_convert(val):
 
 
 def compute_structural_safety(smiles_list):
-    """
+    '''
     Estimate toxicity flags from molecular descriptors (RDKit).
 
     Provides literature-backed heuristic estimates for:
@@ -88,7 +88,7 @@ def compute_structural_safety(smiles_list):
                           Toxicol Sci 116:536; Fontana et al. 2010 Hepatology)
 
     Returns worst-case metrics across all compounds, or {} if RDKit unavailable.
-    """
+    '''
     try:
         from rdkit import Chem
         from rdkit.Chem import Descriptors
@@ -158,7 +158,7 @@ def compute_structural_safety(smiles_list):
 
 
 def compute_ames_alerts(smiles_input):
-    """
+    '''
     Ames mutagenicity prediction via structural alerts.
 
     Kazius et al. 2005 J Med Chem 48:312-320 — 13 principal mechanistic
@@ -168,7 +168,7 @@ def compute_ames_alerts(smiles_input):
     Returns ames_positive (bool), ames_probability (0–1), and the list of
     structural alerts triggered. Probability is an estimate from alert severity;
     ICH S2(R1) requires confirmatory experimental testing regardless.
-    """
+    '''
     try:
         from rdkit import Chem
     except ImportError:

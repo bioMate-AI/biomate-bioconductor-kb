@@ -1,0 +1,6 @@
+    "SCAFFOLD_HOPPING:MMP_ANALYSIS":
+        mmpdb: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/52/56ff7f79864cf731c5e2b087cbf873/.command.sh: line 208: mmpdb: command not found
+        rdkit: 2023.09.6
+        python: 3.11.14
+        mock_mode: "false"
+    END_VERSIONS

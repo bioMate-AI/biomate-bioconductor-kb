@@ -1,0 +1,2 @@
+2026-03-04 21:14:39	979ms	nice_montalcini	OK	eb4a64e49bf1a014c1c961f94108f8f1	4143153f-8d47-4b0b-8500-c299ccb9e624	nextflow run main.nf -profile test
+2026-03-04 21:21:03	1.4s	prickly_lagrange	OK	eb4a64e49bf1a014c1c961f94108f8f1	7522dfe6-40fc-44a9-b8da-77daeaee7466	nextflow run main.nf -profile test

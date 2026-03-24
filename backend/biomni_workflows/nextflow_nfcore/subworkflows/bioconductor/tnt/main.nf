@@ -1,0 +1,126 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: TnT
+// A R interface to the TnT javascript library (https://github.com/ tntvis) to provide interactive and 
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/TnT/inst/doc/introduction.R
+// Upstream  : none
+// Downstream: none
+//
+// Install: BiocManager::install("TnT")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_TNT {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-tnt"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-tnt:1.28.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-tnt:1.28.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_tnt_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_tnt_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_tnt_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(BlockTrack)
+    library(GRanges)
+    library(IRanges)
+    library(TnTBoard)
+    library(TnTGenome)
+    library(jsonlite)
+
+    # --- Granges [] ---
+    # Key functions: GRanges, IRanges, BlockTrack
+    ---------------------------------------------------------------------
+    gr <- GenomicRanges::GRanges("chr7",
+        ranges = IRanges(
+            start = c(26549019L, 26564119L, 26585667L, 26591772L, 26594192L, 26623835L,
+                      26659284L, 26721294L, 26821518L, 26991322L),
+    # --- Tntgenome [] ---
+    # Key functions: TnTGenome
+    ---------------------------------------------------------------------
+    TnT::TnTGenome(btrack)
+    # --- Trackspec [] ---
+    # Key functions: trackSpec
+    ---------------------------------------------------------------------
+    TnT::trackSpec(btrack, "background")
+    btrack2 <- btrack
+    TnT::trackSpec(btrack2, "background") <- "blanchedalmond"
+    TnT::trackSpec(btrack2, "label")      <- "My Ranges"
+    # --- Trackdata [] ---
+    # Key functions: trackData
+    ---------------------------------------------------------------------
+    btrack2$color                     # Equivalent to `trackData(btrack2)$color`
+    btrack2$color <- "darkseagreen4"  # Equivalent to `trackData(btrack2)$color <- "darkseagreen4"`
+    # --- Trackdata [] ---
+    # Key functions: trackData, shift
+    ---------------------------------------------------------------------
+    TnT::trackData(btrack2) <- GenomicRanges::shift(TnT::trackData(btrack2), 10000)
+    # --- Tntboard [] ---
+    # Key functions: TnTBoard
+    ---------------------------------------------------------------------
+    TnT::TnTBoard(list(btrack, btrack2))
+    # --- Tooltip [] ---
+    # Key functions: tooltip, frame, trackData, TnTGenome
+    ---------------------------------------------------------------------
+    TnT::tooltip(btrack2) <- cbind(TnT::tooltip(btrack2),
+                                   as.data.frame(TnT::trackData(btrack2)))
+    TnT::TnTGenome(btrack2, view.range = TnT::trackData(btrack2)[4] * .05)
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_tnt_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_tnt_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_tnt_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_TNT:", paste0("    tnt: ", packageVersion("TnT"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_tnt_results.csv
+    touch ${prefix}_tnt_output.rds
+    echo "BIOC_TNT:" > versions.yml
+    echo "    tnt: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_TNT_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_TNT(ch_input)
+
+    emit:
+    results  = BIOC_TNT.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_TNT.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_TNT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_TNT.out.versions  // channel: path(versions.yml)
+}

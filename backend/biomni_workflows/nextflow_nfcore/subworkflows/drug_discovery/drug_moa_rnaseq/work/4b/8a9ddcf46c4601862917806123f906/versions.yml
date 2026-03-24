@@ -1,0 +1,5 @@
+    "DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT":
+        fgsea: mock
+        python: 3.11.14
+        mock_mode: "false"
+    END_VERSIONS

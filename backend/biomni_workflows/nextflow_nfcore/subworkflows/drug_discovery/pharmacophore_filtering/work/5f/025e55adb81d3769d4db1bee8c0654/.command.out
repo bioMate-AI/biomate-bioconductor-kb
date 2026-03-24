@@ -1,0 +1,7 @@
+Pharmacophore report written:
+  Screened:     10 compounds
+  Passed:       2 (20.0%)
+  Min features: 3
+  Model features: 4
+  -> PASS: CPND005  c1ccc(cc1)C(=O)O  matched=4
+  -> PASS: CPND009  CC(=O)Oc1ccc(cc1)C(=O)O  matched=4

@@ -1,0 +1,322 @@
+Mar-24 20:48:03.773 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --drug_name Erlotinib --target_gene EGFR --treated_counts /tmp/test_treated_counts.tsv --control_counts /tmp/test_control_counts.tsv --outdir /tmp/test_moa_out
+Mar-24 20:48:03.818 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:48:03.859 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:48:03.861 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:48:03.882 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:48:04.304 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, docker]
+Mar-24 20:48:04.333 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:48:04.339 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:48:04.339 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:48:04.341 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:48:04.347 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:48:04.435 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:48:04.439 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:48:04.439 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:48:04.449 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:48:04.451 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1d408060] - activable => nextflow.secret.LocalSecretsProvider@1d408060
+Mar-24 20:48:04.454 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:48:04.465 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [voluminous_gates] DSL2 - revision: 439dcd5e07
+Mar-24 20:48:04.495 [main] DEBUG nextflow.Session - Session UUID: 3fbe1d30-c60a-46a8-ad93-109daad48d22
+Mar-24 20:48:04.495 [main] DEBUG nextflow.Session - Run name: voluminous_gates
+Mar-24 20:48:04.495 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:48:04.500 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:48:04.503 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:48:04.515 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1442401@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (9 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:48:04.532 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work [ext2/ext3]
+Mar-24 20:48:04.532 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/bin
+Mar-24 20:48:04.538 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:48:04.546 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:48:04.551 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:48:04.589 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:48:04.595 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:48:04.654 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:48:04.659 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_moa_out/pipeline_info/trace.txt
+Mar-24 20:48:05.137 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:48:05.238 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Drug MoA Characterisation from RNA-seq  (Gap 9)
+====================================================================
+Mode:        LIVE (DESeq2 + fgsea + CMap)
+Drug:        Erlotinib
+Target gene: EGFR
+Replicates:  3
+GMT file:    null
+Output dir:  /tmp/test_moa_out
+====================================================================
+
+Mar-24 20:48:05.283 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:05.283 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:05.289 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:48:05.292 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:48:05.294 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:48:05.306 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-24 20:48:05.354 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:05.355 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:05.357 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT': maxForks=0; fair=false; array=0
+Mar-24 20:48:05.362 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:05.363 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:05.365 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP': maxForks=0; fair=false; array=0
+Mar-24 20:48:05.369 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:05.369 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:05.370 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:MOA_REPORT': maxForks=0; fair=false; array=0
+Mar-24 20:48:05.394 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION, MOA_REPORT, DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT, GENE_SET_ENRICHMENT, DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:MOA_REPORT, DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:05.400 [main] WARN  nextflow.Session - There's no process matching config selector: DESEQ2_DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:05.400 [main] WARN  nextflow.Session - There's no process matching config selector: GSEA_PATHWAY_ENRICHMENT
+Mar-24 20:48:05.401 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-24 20:48:05.410 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:05.410 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT
+Mar-24 20:48:05.410 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP
+Mar-24 20:48:05.411 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:MOA_REPORT
+Mar-24 20:48:05.411 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_2f726fc40e7650f4: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/main.nf
+Mar-24 20:48:05.411 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:48:05.411 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:48:05.566 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:48:05.571 [Task submitter] INFO  nextflow.Session - [94/ce5d57] Submitted process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)
+Mar-24 20:48:06.508 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/94/ce5d570cfa992a7558b9559fac9dd3]
+Mar-24 20:48:06.509 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:48:06.521 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/94/ce5d570cfa992a7558b9559fac9dd3
+  error [nextflow.exception.ProcessFailedException]: Process `DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)` terminated with an error exit status (1)
+Mar-24 20:48:06.545 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)'
+
+Caused by:
+  Process `DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import math
+  import random
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  n_reps      = int("3")
+  
+  # ---------------------------------------------------------------------------
+  # Biologically plausible kinase-pathway genes for kinase inhibitor targets
+  # ---------------------------------------------------------------------------
+  KINASE_GENES = [
+      "MAPK1", "PIK3CA", "AKT1", "STAT3", "MYC",
+      "CDK2",  "BCL2",   "EGFR", "KRAS",  "TP53",
+      "MTOR",  "RAF1",   "BRAF", "JAK2",  "SRC",
+      "RB1",   "CCND1",  "CDKN1A", "MDM2", "PTEN",
+  ]
+  
+  # Pad to 200 genes with generic identifiers
+  generic_genes = [f"GENE{i:04d}" for i in range(1, 181)]
+  all_genes     = KINASE_GENES + generic_genes
+  random.shuffle(all_genes)
+  all_genes     = all_genes[:200]
+  
+  # ---------------------------------------------------------------------------
+  # Assign DE statistics
+  # ~20 % of genes are significantly DE (padj < 0.05, |log2FC| > 1).
+  # Kinase genes get stronger signal (80 % sig probability).
+  # ---------------------------------------------------------------------------
+  rows = []
+  for idx, gene_name in enumerate(all_genes, 1):
+      is_kinase = gene_name in KINASE_GENES
+      is_sig    = random.random() < (0.80 if is_kinase else 0.17)
+  
+      if is_sig:
+          log2fc    = random.choice([-1, 1]) * random.uniform(1.0, 4.5 if is_kinase else 3.0)
+          padj      = random.uniform(0.0001, 0.045)
+          base_mean = random.uniform(500, 8000) if is_kinase else random.uniform(50, 3000)
+          lfcse     = round(abs(log2fc) * random.uniform(0.08, 0.25), 4)
+      else:
+          log2fc    = random.uniform(-0.9, 0.9)
+          padj      = random.uniform(0.052, 1.0)
+          base_mean = random.uniform(10, 2000)
+          lfcse     = round(abs(log2fc) * random.uniform(0.15, 0.4) + 0.01, 4)
+  
+      pvalue = min(padj * random.uniform(1.5, 8.0), 1.0)
+      stat   = round(log2fc / (lfcse + 1e-6), 4)
+  
+      rows.append({
+          "gene_id":        f"ENSG{idx:011d}",
+          "gene_name":      gene_name,
+          "log2FoldChange": round(log2fc, 4),
+          "padj":           round(padj, 6),
+          "pvalue":         round(pvalue, 6),
+          "baseMean":       round(base_mean, 2),
+          "lfcSE":          lfcse,
+          "stat":           stat,
+      })
+  
+  rows.sort(key=lambda r: r["padj"])
+  
+  # Write DE results TSV
+  header = "gene_id\tgene_name\tlog2FoldChange\tpadj\tpvalue\tbaseMean\tlfcSE\tstat"
+  with open("de_results.tsv", "w") as f:
+      f.write(header + "\n")
+      for r in rows:
+          f.write(
+              f"{r['gene_id']}\t{r['gene_name']}\t{r['log2FoldChange']}\t"
+              f"{r['padj']}\t{r['pvalue']}\t{r['baseMean']}\t"
+              f"{r['lfcSE']}\t{r['stat']}\n"
+          )
+  
+  # Volcano plot data JSON
+  points = []
+  for r in rows:
+      neg_log10 = -math.log10(max(r["padj"], 1e-300))
+      points.append({
+          "gene_id":        r["gene_id"],
+          "gene_name":      r["gene_name"],
+          "log2FoldChange": r["log2FoldChange"],
+          "neg_log10_padj": round(neg_log10, 4),
+          "significant":    r["padj"] < 0.05 and abs(r["log2FoldChange"]) > 1,
+      })
+  
+  volcano = {
+      "drug_name":   drug_name,
+      "target_gene": target_gene,
+      "mock_mode":   True,
+      "timestamp":   datetime.utcnow().isoformat() + "Z",
+      "points":      points,
+  }
+  with open("volcano_data.json", "w") as f:
+      json.dump(volcano, f, indent=2)
+  
+  n_sig = sum(1 for r in rows if r["padj"] < 0.05 and abs(r["log2FoldChange"]) > 1)
+  print(f"DE analysis (mock): {len(rows)} genes tested, {n_sig} significantly DE")
+  print(f"  Drug: {drug_name}  Target: {target_gene}  n_replicates: {n_reps}")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: run pydeseq2 (Python DESeq2) on pre-supplied count-matrix TSV files.
+          # Each TSV: rows = genes, columns = samples, first column = gene_id (header).
+          # pydeseq2 is a faithful Python reimplementation of DESeq2 (Muzellec et al. 2022).
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json, math, sys
+  import numpy as np
+  import pandas as pd
+  from datetime import datetime, timezone
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  
+  # ── Load count matrices ──────────────────────────────────────────────────────
+  treated_df = pd.read_csv("test_treated_counts.tsv", sep="\t", index_col=0)
+  control_df = pd.read_csv("test_control_counts.tsv", sep="\t", index_col=0)
+  
+  counts_df  = pd.concat([treated_df, control_df], axis=1)
+  n_treated  = treated_df.shape[1]
+  n_control  = control_df.shape[1]
+  conditions = ["treated"] * n_treated + ["control"] * n_control
+  
+  meta_df = pd.DataFrame({"condition": conditions}, index=counts_df.columns)
+  
+  print(f"Loaded counts: {counts_df.shape[0]} genes x {counts_df.shape[1]} samples")
+  print(f"  Treated samples: {n_treated}  Control samples: {n_control}")
+  
+  # ── Run pydeseq2 ─────────────────────────────────────────────────────────────
+  from pydeseq2.dds import DeseqDataSet
+  from pydeseq2.ds  import DeseqStats
+  
+  counts_int = counts_df.T.astype(int)   # pydeseq2 expects samples x genes
+  dds = DeseqDataSet(
+      counts   = counts_int,
+      metadata = meta_df,
+      design_factors = "condition",
+      ref_level      = ["condition", "control"],
+      n_cpus         = 4,
+      quiet          = False,
+  )
+  dds.deseq2()
+  
+  stat_res = DeseqStats(dds, contrast=["condition", "treated", "control"], quiet=False)
+  stat_res.summary()
+  
+  res_df = stat_res.results_df.copy()
+  res_df.index.name = "gene_id"
+  res_df["gene_name"] = res_df.index
+  res_df = res_df.dropna(subset=["padj"]).sort_values("padj")
+  
+  # ── Write DE results TSV ─────────────────────────────────────────────────────
+  out_cols = ["gene_name", "log2FoldChange", "padj", "pvalue", "baseMean", "lfcSE", "stat"]
+  out_cols = [c for c in out_cols if c in res_df.columns]
+  res_df.reset_index()[["gene_id"] + out_cols].to_csv("de_results.tsv", sep="\t", index=False)
+  
+  # ── Write volcano JSON ────────────────────────────────────────────────────────
+  points = []
+  for gene_id, row in res_df.iterrows():
+      points.append({
+          "gene_id":        gene_id,
+          "gene_name":      row.get("gene_name", gene_id),
+          "log2FoldChange": float(row["log2FoldChange"]) if not math.isnan(row["log2FoldChange"]) else 0.0,
+          "neg_log10_padj": float(-math.log10(max(row["padj"], 1e-300))),
+          "significant":    bool(row["padj"] < 0.05 and abs(row["log2FoldChange"]) > 1),
+      })
+  
+  volcano = {
+      "drug_name":   drug_name,
+      "target_gene": target_gene,
+      "mock_mode":   False,
+      "timestamp":   datetime.now(timezone.utc).isoformat(),
+      "points":      points,
+  }
+  with open("volcano_data.json", "w") as f:
+      json.dump(volcano, f, indent=2)
+  
+  n_sig = sum(1 for p in points if p["significant"])
+  print(f"DE analysis (live/pydeseq2): {len(res_df)} genes tested, {n_sig} significantly DE")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION":
+          deseq2: $(Rscript -e "cat(as.character(packageVersion('DESeq2')))" 2>/dev/null || echo "mock")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "3.10.0")
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  Loaded counts: 200 genes x 6 samples
+    Treated samples: 3  Control samples: 3
+
+Command error:
+  Loaded counts: 200 genes x 6 samples
+    Treated samples: 3  Control samples: 3
+  Traceback (most recent call last):
+    File "<stdin>", line 24, in <module>
+  ModuleNotFoundError: No module named 'pydeseq2'
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/94/ce5d570cfa992a7558b9559fac9dd3
+
+Container:
+  bioconductor/bioconductor_docker:RELEASE_3_18
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Mar-24 20:48:06.552 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:48:06.561 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:48:06.568 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:48:06.568 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:48:06.570 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:48:06.574 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=908ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Mar-24 20:48:06.574 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:48:06.983 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:48:07.023 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:48:07.026 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:48:07.032 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:48:07.032 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

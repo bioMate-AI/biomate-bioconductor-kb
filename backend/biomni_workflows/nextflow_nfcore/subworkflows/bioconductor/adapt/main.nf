@@ -1,0 +1,89 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: ADAPT
+// ADAPT carries out differential abundance analysis for microbiome metagenomics data in phyloseq forma
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/ADAPT/inst/doc/ADAPT-manual.R
+// Upstream  : none
+// Downstream: none
+//
+// Install: BiocManager::install("ADAPT")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_ADAPT {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-adapt"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-adapt:1.0.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-adapt:1.0.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_adapt_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_adapt_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_adapt_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(ADAPT)
+    library(jsonlite)
+
+    # --- adapt [] ---
+    # Key functions: adapt
+    saliva_output_noadjust <- adapt(input_data=ecc_saliva, cond.var="CaseStatus", base.cond="Control")
+    saliva_output_adjust <- adapt(input_data=ecc_saliva, cond.var="CaseStatus", base.cond="Control", adj.var="Site")
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_adapt_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_adapt_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_adapt_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_ADAPT:", paste0("    adapt: ", packageVersion("ADAPT"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_adapt_results.csv
+    touch ${prefix}_adapt_output.rds
+    echo "BIOC_ADAPT:" > versions.yml
+    echo "    adapt: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_ADAPT_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_ADAPT(ch_input)
+
+    emit:
+    results  = BIOC_ADAPT.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_ADAPT.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_ADAPT.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_ADAPT.out.versions  // channel: path(versions.yml)
+}

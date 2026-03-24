@@ -82,7 +82,7 @@ interface ChatMessageProps {
   onResumeWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   onSuggestionClick?: (suggestion: string, message: Message) => void
-  onAdjustViaChat?: () => void
+  onAdjustViaChat?: (message?: string) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
@@ -287,11 +287,11 @@ export function ChatMessage({
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
               const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
-                executionStatus === 'completed'
+                executionStatus === 'completed' || executionStatus === 'ok'
                   ? 'completed'
                   : executionStatus === 'paused'
                   ? 'paused'
-                  : executionStatus === 'failed' || executionStatus === 'cancelled'
+                  : executionStatus === 'failed' || executionStatus === 'cancelled' || executionStatus === 'error'
                   ? 'failed'
                   : executionStatus === 'running'
                   ? 'running'

@@ -6,7 +6,7 @@ process STATE_PERTURB {
     label 'process_gpu'
     label 'process_high_memory'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/state:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/state:nextflow'
 
     input:
     tuple val(meta), path(adata)  // AnnData h5ad file with scRNA-seq data
@@ -39,7 +39,7 @@ process STATE_EMBED {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/state:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/state:nextflow'
 
     input:
     tuple val(meta), path(adata)  // AnnData h5ad file

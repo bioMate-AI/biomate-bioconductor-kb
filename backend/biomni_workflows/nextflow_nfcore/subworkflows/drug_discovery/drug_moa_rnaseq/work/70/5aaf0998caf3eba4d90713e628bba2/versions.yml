@@ -1,0 +1,5 @@
+    "DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION":
+        deseq2: mock
+        python: 3.11.14
+        mock_mode: "false"
+    END_VERSIONS

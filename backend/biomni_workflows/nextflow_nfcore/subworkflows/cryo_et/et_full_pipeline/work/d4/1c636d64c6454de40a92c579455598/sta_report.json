@@ -1,0 +1,30 @@
+{
+  "step": "04_subtomogram_averaging",
+  "timestamp": "2026-03-05T16:37:39.540930",
+  "num_tomograms": 3,
+  "total_particles_picked": 500,
+  "particles_per_tomogram": {
+    "TS_001": 177,
+    "TS_002": 167,
+    "TS_003": 156
+  },
+  "picking_snr": 1.868,
+  "template_matching": false,
+  "symmetry": "C1",
+  "num_sta_rounds": 2,
+  "sta_rounds": [
+    {
+      "round": 1,
+      "fsc_0143_resolution_angstroms": 25.63,
+      "particles_included": 443
+    },
+    {
+      "round": 2,
+      "fsc_0143_resolution_angstroms": 18.0,
+      "particles_included": 446
+    }
+  ],
+  "final_fsc_0143_resolution_angstroms": 18.0,
+  "sta_resolution_target_angstroms": 15.0,
+  "mock_mode": true
+}

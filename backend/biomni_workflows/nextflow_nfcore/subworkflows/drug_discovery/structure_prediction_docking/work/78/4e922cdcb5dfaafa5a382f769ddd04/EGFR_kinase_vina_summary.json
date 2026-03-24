@@ -1,0 +1,38 @@
+{
+  "target": "EGFR_kinase",
+  "ligand": "mock_aspirin.sdf",
+  "tool": "AutoDock Vina",
+  "version": "1.2.5",
+  "pocket_centre_xyz": [
+    1.76,
+    -1.48,
+    75.0
+  ],
+  "pocket_anchor_residue": 50,
+  "box_size_angstrom": 20.0,
+  "exhaustiveness": 4,
+  "num_modes": 3,
+  "best_affinity_kcal_mol": -9.2,
+  "modes": [
+    {
+      "mode": 1,
+      "affinity_kcal_mol": -9.2,
+      "rmsd_lb": 1.473,
+      "rmsd_ub": 4.03
+    },
+    {
+      "mode": 2,
+      "affinity_kcal_mol": -8.9,
+      "rmsd_lb": 1.784,
+      "rmsd_ub": 2.261
+    },
+    {
+      "mode": 3,
+      "affinity_kcal_mol": -8.5,
+      "rmsd_lb": 0.844,
+      "rmsd_ub": 2.089
+    }
+  ],
+  "timestamp": "2026-03-04T21:09:13.321841Z",
+  "mock_mode": true
+}

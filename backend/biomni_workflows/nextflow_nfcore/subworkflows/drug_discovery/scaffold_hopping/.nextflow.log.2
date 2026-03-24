@@ -1,0 +1,711 @@
+Mar-24 20:57:11.913 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --input_smiles /tmp/test_actives.smi --outdir /tmp/test_scaffold_out
+Mar-24 20:57:11.969 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:57:12.013 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:57:12.014 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:57:12.037 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:57:12.478 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, stub, singularity, docker]
+Mar-24 20:57:12.505 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:57:12.513 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:57:12.518 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:57:12.520 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:57:12.527 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:57:12.637 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:57:12.639 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:57:12.639 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:57:12.649 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:57:12.652 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7beae796] - activable => nextflow.secret.LocalSecretsProvider@7beae796
+Mar-24 20:57:12.654 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:57:12.674 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [stupefied_ochoa] DSL2 - revision: 0a7efd4c70
+Mar-24 20:57:12.710 [main] DEBUG nextflow.Session - Session UUID: 6a4f4874-231e-4afe-9b78-0c181645391e
+Mar-24 20:57:12.711 [main] DEBUG nextflow.Session - Run name: stupefied_ochoa
+Mar-24 20:57:12.711 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:57:12.719 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:57:12.723 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:57:12.740 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1458317@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (8.5 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:57:12.762 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work [ext2/ext3]
+Mar-24 20:57:12.762 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/bin
+Mar-24 20:57:12.768 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:57:12.774 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:57:12.780 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:57:12.830 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:57:12.836 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:57:12.883 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:57:12.888 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_scaffold_out/pipeline_info/trace.txt
+Mar-24 20:57:13.441 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:57:13.529 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Scaffold Hopping Pipeline
+====================================================================
+Mode:               LIVE
+Reference SMILES:   CC(=O)Nc1ccc(O)cc1
+Max candidates:     20
+Lipinski filter:    true
+Output dir:         /tmp/test_scaffold_out
+====================================================================
+
+Mar-24 20:57:13.581 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_INPUT_VALIDATION` matches process SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:57:13.591 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:57:13.591 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:57:13.597 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:57:13.600 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:57:13.601 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:57:13.614 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION': maxForks=0; fair=false; array=0
+Mar-24 20:57:13.638 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:RECAP_FRAGMENTATION` matches process SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:57:13.639 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:57:13.639 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:57:13.640 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:RECAP_FRAGMENTATION': maxForks=0; fair=false; array=0
+Mar-24 20:57:13.650 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:MMP_ANALYSIS` matches process SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:57:13.652 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:57:13.652 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:57:13.653 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:MMP_ANALYSIS': maxForks=0; fair=false; array=0
+Mar-24 20:57:13.661 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_HOPPING_CANDIDATES` matches process SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:57:13.662 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:57:13.662 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:57:13.662 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES': maxForks=0; fair=false; array=0
+Mar-24 20:57:13.677 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_HOPPING:MMP_ANALYSIS, SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION, RECAP_FRAGMENTATION, SCAFFOLD_HOPPING:RECAP_FRAGMENTATION, MMP_ANALYSIS, SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:57:13.679 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Mar-24 20:57:13.683 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:57:13.683 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:57:13.683 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:57:13.683 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:57:13.683 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_9388b981124f5385: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/main.nf
+Mar-24 20:57:13.683 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:57:13.683 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:57:13.825 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:57:13.828 [Task submitter] INFO  nextflow.Session - [0e/559e66] Submitted process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives)
+Mar-24 20:57:14.330 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/0e/559e668c9a2842ef03fbca10eafa5e]
+Mar-24 20:57:14.331 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:57:14.375 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:57:14.393 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:57:14.394 [Task submitter] INFO  nextflow.Session - [89/ae9add] Submitted process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)
+Mar-24 20:57:14.961 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/89/ae9add4373d0ced15a47ec6b55d726]
+Mar-24 20:57:14.988 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:57:14.988 [Task submitter] INFO  nextflow.Session - [95/231fbc] Submitted process > SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives)
+Mar-24 20:57:15.544 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/95/231fbc8f7bfc80f3b5e434134e3882]
+Mar-24 20:57:15.592 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:57:15.593 [Task submitter] INFO  nextflow.Session - [58/ca5125] Submitted process > SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives)
+Mar-24 20:57:15.979 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/58/ca5125cb8e5e7f814afcfbd353a8d5]
+Mar-24 20:57:15.987 [TaskFinalizer-4] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/58/ca5125cb8e5e7f814afcfbd353a8d5
+  error [nextflow.exception.ProcessFailedException]: Process `SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives)` terminated with an error exit status (1)
+Mar-24 20:57:16.007 [TaskFinalizer-4] ERROR nextflow.processor.TaskProcessor - Error executing process > 'SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives)'
+
+Caused by:
+  Process `SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES (test_actives)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import csv
+  import random
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  meta_id     = "test_actives"
+  max_cands   = int("20")
+  lip_filter  = str("true").lower() in ("true", "1", "yes")
+  
+  # ---------------------------------------------------------------------------
+  # Mock top-10 scaffold hop candidates
+  #
+  # Ranking criteria:
+  #   1. MMP frequency (how often the scaffold appears across pairs)
+  #   2. QED score      (Bickerton et al., quantitative drug-likeness 0-1)
+  #   3. Lipinski pass  (MW ≤ 500, HBA ≤ 10, HBD ≤ 5, logP ≤ 5)
+  #   4. SA score       (Ertl & Schuffenhauer synthetic accessibility, 1=easy, 10=hard)
+  #
+  # Compounds ordered by composite rank score = 0.4*QED + 0.3*norm_freq + 0.3*(1-norm_SA)
+  # ---------------------------------------------------------------------------
+  candidates = [
+      {
+          "rank":           1,
+          "scaffold_smiles": "[*]Nc1ccc(O)cc1",
+          "hop_smiles":     "CC(=O)Nc1ccc(O)cc1",
+          "scaffold_id":    "SCAF_001",
+          "mmp_frequency":  9,
+          "qed_score":      0.82,
+          "sa_score":       1.83,
+          "mw_da":          151.16,
+          "logP":           0.91,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.791,
+          "origin_pairs":   "MMP_001,MMP_009,MMP_010,MMP_011,MMP_013,MMP_014",
+          "novelty_flag":   "reference_scaffold",
+      },
+      {
+          "rank":           2,
+          "scaffold_smiles": "Fc1ccc([*])cc1",
+          "hop_smiles":     "CC(=O)Nc1ccc(F)cc1",
+          "scaffold_id":    "SCAF_002",
+          "mmp_frequency":  5,
+          "qed_score":      0.79,
+          "sa_score":       1.91,
+          "mw_da":          153.15,
+          "logP":           1.77,
+          "hba":            1,
+          "hbd":            1,
+          "lipinski_pass":  True,
+          "rank_score":     0.753,
+          "origin_pairs":   "MMP_002,MMP_006,MMP_008",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           3,
+          "scaffold_smiles": "COc1ccc([*])cc1",
+          "hop_smiles":     "CC(=O)Nc1ccc(OC)cc1",
+          "scaffold_id":    "SCAF_003",
+          "mmp_frequency":  7,
+          "qed_score":      0.77,
+          "sa_score":       2.01,
+          "mw_da":          165.19,
+          "logP":           1.35,
+          "hba":            2,
+          "hbd":            1,
+          "lipinski_pass":  True,
+          "rank_score":     0.741,
+          "origin_pairs":   "MMP_001,MMP_006,MMP_007,MMP_015",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           4,
+          "scaffold_smiles": "Clc1ccc([*])cc1",
+          "hop_smiles":     "CC(=O)Nc1ccc(Cl)cc1",
+          "scaffold_id":    "SCAF_004",
+          "mmp_frequency":  5,
+          "qed_score":      0.74,
+          "sa_score":       1.95,
+          "mw_da":          169.61,
+          "logP":           2.39,
+          "hba":            1,
+          "hbd":            1,
+          "lipinski_pass":  True,
+          "rank_score":     0.718,
+          "origin_pairs":   "MMP_003,MMP_007,MMP_008",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           5,
+          "scaffold_smiles": "Cc1cc([*])ccc1O",
+          "hop_smiles":     "CC(=O)Nc1ccc(O)cc1C",
+          "scaffold_id":    "SCAF_005",
+          "mmp_frequency":  4,
+          "qed_score":      0.72,
+          "sa_score":       2.14,
+          "mw_da":          165.19,
+          "logP":           1.35,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.694,
+          "origin_pairs":   "MMP_013,MMP_014",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           6,
+          "scaffold_smiles": "[*]Nc1cc(O)ccc1",
+          "hop_smiles":     "CC(=O)Nc1cc(O)ccc1",
+          "scaffold_id":    "SCAF_006",
+          "mmp_frequency":  3,
+          "qed_score":      0.70,
+          "sa_score":       2.02,
+          "mw_da":          151.16,
+          "logP":           0.88,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.681,
+          "origin_pairs":   "MMP_009",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           7,
+          "scaffold_smiles": "O=C([*])c1ccccc1",
+          "hop_smiles":     "O=C(Nc1ccc(O)cc1)c1ccccc1",
+          "scaffold_id":    "SCAF_007",
+          "mmp_frequency":  4,
+          "qed_score":      0.68,
+          "sa_score":       1.78,
+          "mw_da":          213.23,
+          "logP":           2.12,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.671,
+          "origin_pairs":   "MMP_005,MMP_012",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           8,
+          "scaffold_smiles": "Fc1cc([*])ccc1O",
+          "hop_smiles":     "CC(=O)Nc1ccc(O)c(F)c1",
+          "scaffold_id":    "SCAF_008",
+          "mmp_frequency":  3,
+          "qed_score":      0.66,
+          "sa_score":       2.21,
+          "mw_da":          169.15,
+          "logP":           1.47,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.649,
+          "origin_pairs":   "MMP_010",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           9,
+          "scaffold_smiles": "[*]Nc1ccc([*])cc1",
+          "hop_smiles":     "CCC(=O)Nc1ccc(O)cc1",
+          "scaffold_id":    "SCAF_009",
+          "mmp_frequency":  3,
+          "qed_score":      0.63,
+          "sa_score":       2.05,
+          "mw_da":          165.19,
+          "logP":           1.14,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.621,
+          "origin_pairs":   "MMP_004,MMP_012",
+          "novelty_flag":   "novel_hop",
+      },
+      {
+          "rank":           10,
+          "scaffold_smiles": "Cc1ccc([*])cc1O",
+          "hop_smiles":     "CC(=O)Nc1ccc(O)c(C)c1",
+          "scaffold_id":    "SCAF_010",
+          "mmp_frequency":  2,
+          "qed_score":      0.60,
+          "sa_score":       2.18,
+          "mw_da":          165.19,
+          "logP":           1.22,
+          "hba":            2,
+          "hbd":            2,
+          "lipinski_pass":  True,
+          "rank_score":     0.598,
+          "origin_pairs":   "MMP_011",
+          "novelty_flag":   "novel_hop",
+      },
+  ]
+  
+  # Apply Lipinski filter if requested
+  if lip_filter:
+      candidates = [c for c in candidates if c["lipinski_pass"]]
+  
+  # Cap at max_candidates
+  candidates = candidates[:max_cands]
+  
+  # Re-rank after filter
+  for i, c in enumerate(candidates, 1):
+      c["rank"] = i
+  
+  with open(f"{meta_id}_scaffold_candidates.csv", "w", newline="") as csvf:
+      writer = csv.DictWriter(csvf, fieldnames=list(candidates[0].keys()))
+      writer.writeheader()
+      writer.writerows(candidates)
+  
+  # ---- HTML Report ----
+  def qed_color(q):
+      if q >= 0.75: return "#2ecc71"    # green
+      if q >= 0.60: return "#f39c12"    # amber
+      return "#e74c3c"                  # red
+  
+  def sa_color(sa):
+      if sa <= 2.0: return "#2ecc71"
+      if sa <= 3.5: return "#f39c12"
+      return "#e74c3c"
+  
+  rows_html = ""
+  for c in candidates:
+      lip_badge = (
+          '<span style="background:#2ecc71;color:#fff;padding:2px 6px;border-radius:3px;">PASS</span>'
+          if c["lipinski_pass"] else
+          '<span style="background:#e74c3c;color:#fff;padding:2px 6px;border-radius:3px;">FAIL</span>'
+      )
+      qc = qed_color(c["qed_score"])
+      sc = sa_color(c["sa_score"])
+      rows_html += (
+          "        <tr>
+  "
+          "          <td style='text-align:center'><b>" + str(c["rank"]) + "</b></td>
+  "
+          "          <td><code style='font-size:11px'>" + str(c["hop_smiles"]) + "</code></td>
+  "
+          "          <td><code style='font-size:10px;color:#555'>" + str(c["scaffold_smiles"]) + "</code></td>
+  "
+          "          <td style='text-align:center'>" + str(c["mmp_frequency"]) + "</td>
+  "
+          "          <td style='text-align:center;color:" + qc + "'><b>" + "{:.2f}".format(c["qed_score"]) + "</b></td>
+  "
+          "          <td style='text-align:center;color:" + sc + "'>" + "{:.2f}".format(c["sa_score"]) + "</td>
+  "
+          "          <td style='text-align:center'>" + "{:.1f}".format(c["mw_da"]) + "</td>
+  "
+          "          <td style='text-align:center'>" + "{:.2f}".format(c["logP"]) + "</td>
+  "
+          "          <td style='text-align:center'>" + lip_badge + "</td>
+  "
+          "          <td style='text-align:center;font-weight:bold'>" + "{:.3f}".format(c["rank_score"]) + "</td>
+  "
+          "        </tr>
+  "
+      )
+  
+  n_cands   = len(candidates)
+  lip_label = "ON" if lip_filter else "OFF"
+  generated = datetime.utcnow().isoformat() + "Z"
+  html = (
+      "<!DOCTYPE html>
+  "
+      "<html lang='en'>
+  "
+      "<head>
+  "
+      "  <meta charset='UTF-8'>
+  "
+      "  <title>BioMate Scaffold Hopping Report - " + meta_id + "</title>
+  "
+      "  <style>
+  "
+      "    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+      "           margin: 0; padding: 24px; background: #f9f9f9; color: #222; }
+  "
+      "    h1   { font-size: 22px; color: #2c3e50; border-bottom: 2px solid #3498db;"
+      "           padding-bottom: 8px; }
+  "
+      "    .meta { background: #eaf2fb; border-left: 4px solid #3498db;"
+      "            padding: 10px 16px; margin: 16px 0; border-radius: 4px; font-size: 14px; }
+  "
+      "    .badge { display:inline-block; background:#3498db; color:#fff;"
+      "             padding:2px 8px; border-radius:10px; font-size:12px; margin:2px; }
+  "
+      "    table { border-collapse: collapse; width: 100%; background: #fff;"
+      "            box-shadow: 0 1px 4px rgba(0,0,0,.08); border-radius: 6px;"
+      "            overflow: hidden; margin-top: 16px; }
+  "
+      "    th    { background: #2c3e50; color: #fff; padding: 10px 8px;"
+      "            font-size: 12px; text-align: center; }
+  "
+      "    td    { padding: 8px 8px; font-size: 12px; border-bottom: 1px solid #eee; }
+  "
+      "    tr:hover td { background: #f0f7ff; }
+  "
+      "    .footer { font-size: 11px; color: #999; margin-top: 20px; text-align: right; }
+  "
+      "  </style>
+  "
+      "</head>
+  "
+      "<body>
+  "
+      "  <h1>BioMate Scaffold Hopping Report</h1>
+  "
+      "  <div class='meta'>
+  "
+      "    <b>Run ID:</b> " + meta_id + " &nbsp;|&nbsp;
+  "
+      "    <b>Reference SMILES:</b> <code>CC(=O)Nc1ccc(O)cc1</code> (acetaminophen) &nbsp;|&nbsp;
+  "
+      "    <b>Candidates shown:</b> " + str(n_cands) + " &nbsp;|&nbsp;
+  "
+      "    <b>Lipinski filter:</b> " + lip_label + " &nbsp;|&nbsp;
+  "
+      "    <b>Mode:</b> <span class='badge'>MOCK</span>
+  "
+      "    <br><b>Generated:</b> " + generated + "
+  "
+      "  </div>
+  "
+      "  <h2 style='font-size:16px;margin-top:24px'>Top Scaffold Hop Candidates</h2>
+  "
+      "  <p style='font-size:13px;color:#555'>
+  "
+      "    Rank score = 0.4 x QED + 0.3 x norm_frequency + 0.3 x (1 - norm_SA_score).
+  "
+      "    Lipinski pass: MW &le; 500, HBA &le; 10, HBD &le; 5, logP &le; 5.
+  "
+      "  </p>
+  "
+      "  <table>
+  "
+      "    <thead>
+  "
+      "      <tr>
+  "
+      "        <th>Rank</th><th>Hop SMILES</th><th>Core Scaffold</th>
+  "
+      "        <th>MMP Freq</th><th>QED</th><th>SA Score</th>
+  "
+      "        <th>MW (Da)</th><th>logP</th><th>Lipinski</th><th>Rank Score</th>
+  "
+      "      </tr>
+  "
+      "    </thead>
+  "
+      "    <tbody>
+  "
+      + rows_html +
+      "    </tbody>
+  "
+      "  </table>
+  "
+      "  <div class='footer'>
+  "
+      "    Generated by BioMate scaffold_hopping pipeline &bull;
+  "
+      "    RECAP (Lewell 1998) + mmpdb (Dalke 2018) + RDKit &bull;
+  "
+      "    Mock mode - no real chemistry tools were executed
+  "
+      "  </div>
+  "
+      "</body>
+  "
+      "</html>
+  "
+  )
+  with open(f"{meta_id}_scaffold_report.html", "w") as hf:
+      hf.write(html)
+  
+  # Ranking summary JSON
+  ranking_summary = {
+      "meta_id":              meta_id,
+      "total_candidates":     len(candidates),
+      "lipinski_filter_applied": lip_filter,
+      "max_candidates":       max_cands,
+      "top_candidate": {
+          "smiles":      candidates[0]["hop_smiles"],
+          "scaffold":    candidates[0]["scaffold_smiles"],
+          "qed":         candidates[0]["qed_score"],
+          "sa_score":    candidates[0]["sa_score"],
+          "rank_score":  candidates[0]["rank_score"],
+      },
+      "qed_range":   [min(c["qed_score"] for c in candidates),
+                      max(c["qed_score"] for c in candidates)],
+      "sa_score_range": [min(c["sa_score"] for c in candidates),
+                         max(c["sa_score"] for c in candidates)],
+      "all_lipinski_pass": all(c["lipinski_pass"] for c in candidates),
+      "tool":      "RDKit (QED + SA score, mock)",
+      "timestamp": datetime.utcnow().isoformat() + "Z",
+      "mock_mode": True,
+  }
+  
+  with open(f"{meta_id}_ranking_summary.json", "w") as jf:
+      json.dump(ranking_summary, jf, indent=2)
+  
+  print(f"Scaffold hopping mock complete: {len(candidates)} candidates ranked")
+  print(f"  Top hit: {candidates[0]['hop_smiles']}")
+  print(f"  Top QED: {candidates[0]['qed_score']:.2f}  SA: {candidates[0]['sa_score']:.2f}")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: RDKit QED + SA score ranking
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json
+  import csv
+  import sys
+  from datetime import datetime
+  
+  try:
+      from rdkit import Chem
+      from rdkit.Chem import Descriptors, QED, rdMolDescriptors
+      from rdkit.Contrib.SA_Score import sascorer
+      RDKIT_OK = True
+  except ImportError:
+      RDKIT_OK = False
+      print("WARNING: RDKit or SA_Score contrib not found.", file=sys.stderr)
+  
+  meta_id      = "test_actives"
+  frags_file   = "test_actives_recap_fragments.csv"
+  mmp_file     = "test_actives_mmp_pairs.csv"
+  max_cands    = int("20")
+  lip_filter   = str("true").lower() in ("true", "1", "yes")
+  
+  # ---- 1. Collect candidate SMILES from MMP pairs ----
+  candidates_raw = {}
+  with open(mmp_file, newline="") as csvf:
+      reader = csv.DictReader(csvf)
+      for row in reader:
+          for smi_key in ("match_smiles", "query_smiles"):
+              smi = row.get(smi_key, "").strip()
+              if smi:
+                  candidates_raw[smi] = candidates_raw.get(smi, 0) + 1
+  
+  # Also add RECAP scaffold smiles as hopping candidates
+  with open(frags_file, newline="") as csvf:
+      reader = csv.DictReader(csvf)
+      for row in reader:
+          sc = row.get("scaffold_smiles", "").strip()
+          if sc:
+              candidates_raw[sc] = candidates_raw.get(sc, 0) + int(row.get("fragment_frequency", 1))
+  
+  # ---- 2. Score each candidate ----
+  scored = []
+  for smi, freq in candidates_raw.items():
+      mol = Chem.MolFromSmiles(smi) if RDKIT_OK else None
+      if mol is None:
+          continue
+  
+      mw    = round(Descriptors.MolWt(mol), 3)
+      logp  = round(Descriptors.MolLogP(mol), 3)
+      hba   = rdMolDescriptors.CalcNumHBA(mol)
+      hbd   = rdMolDescriptors.CalcNumHBD(mol)
+      qed   = round(QED.qed(mol), 4)
+      try:
+          sa  = round(sascorer.calculateScore(mol), 3)
+      except Exception:
+          sa  = 5.0
+  
+      lip   = (mw <= 500 and hba <= 10 and hbd <= 5 and logp <= 5)
+  
+      if lip_filter and not lip:
+          continue
+  
+      scored.append({
+          "smiles":          smi,
+          "mmp_frequency":   freq,
+          "qed_score":       qed,
+          "sa_score":        sa,
+          "mw_da":           mw,
+          "logP":            logp,
+          "hba":             hba,
+          "hbd":             hbd,
+          "lipinski_pass":   lip,
+      })
+  
+  # ---- 3. Normalise + composite rank ----
+  if scored:
+      max_freq = max(c["mmp_frequency"] for c in scored) or 1
+      max_sa   = max(c["sa_score"]      for c in scored) or 1
+      for c in scored:
+          norm_freq = c["mmp_frequency"] / max_freq
+          norm_sa   = c["sa_score"] / max_sa
+          c["rank_score"] = round(0.4 * c["qed_score"] + 0.3 * norm_freq + 0.3 * (1 - norm_sa), 4)
+  
+  scored.sort(key=lambda x: -x["rank_score"])
+  scored = scored[:max_cands]
+  
+  for i, c in enumerate(scored, 1):
+      c["rank"]       = i
+      c["scaffold_id"] = f"SCAF_{i:03d}"
+      c["hop_smiles"]  = c.pop("smiles")
+  
+  with open(f"{meta_id}_scaffold_candidates.csv", "w", newline="") as csvf:
+      if scored:
+          writer = csv.DictWriter(csvf, fieldnames=list(scored[0].keys()))
+          writer.writeheader()
+          writer.writerows(scored)
+      else:
+          csvf.write("rank,scaffold_id,hop_smiles,qed_score,sa_score\n")
+  
+  # Minimal HTML report (build rows without nested f-strings)
+  table_rows = ""
+  for c in scored:
+      table_rows += (
+          "<tr><td>" + str(c["rank"]) + "</td>"
+          "<td><code>" + str(c["hop_smiles"]) + "</code></td>"
+          "<td>" + str(c["qed_score"]) + "</td>"
+          "<td>" + str(c["sa_score"]) + "</td>"
+          "<td>" + str(c["mw_da"]) + "</td>"
+          "<td>" + str(c["logP"]) + "</td>"
+          "<td>" + str(c["rank_score"]) + "</td></tr>"
+      )
+  n_cands    = len(scored)
+  lip_label  = "ON" if lip_filter else "OFF"
+  generated  = datetime.utcnow().isoformat() + "Z"
+  html = (
+      "<!DOCTYPE html>
+  <html><head><meta charset='UTF-8'>
+  "
+      "<title>BioMate Scaffold Hopping — " + meta_id + "</title></head>
+  "
+      "<body><h1>Scaffold Hopping Candidates — " + meta_id + "</h1>
+  "
+      "<p>" + str(n_cands) + " candidates (Lipinski filter: " + lip_label + ")</p>
+  "
+      "<table border='1' cellpadding='4'>
+  "
+      "<tr><th>Rank</th><th>SMILES</th><th>QED</th><th>SA</th>"
+      "<th>MW</th><th>logP</th><th>Score</th></tr>
+  "
+      + table_rows +
+      "
+  </table>
+  "
+      "<p><small>Generated " + generated + " | BioMate scaffold_hopping pipeline</small></p>
+  "
+      "</body></html>"
+  )
+  with open(f"{meta_id}_scaffold_report.html", "w") as hf:
+      hf.write(html)
+  
+  ranking_summary = {
+      "meta_id":               meta_id,
+      "total_candidates":      len(scored),
+      "lipinski_filter_applied": lip_filter,
+      "top_candidate":         scored[0] if scored else {},
+      "timestamp":             datetime.utcnow().isoformat() + "Z",
+      "mock_mode":             False,
+  }
+  with open(f"{meta_id}_ranking_summary.json", "w") as jf:
+      json.dump(ranking_summary, jf, indent=2)
+  
+  print(f"Scaffold hopping live: {len(scored)} candidates ranked")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES":
+          rdkit: $(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+    File "<stdin>", line 114
+      "<!DOCTYPE html>
+      ^
+  SyntaxError: unterminated string literal (detected at line 114)
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/58/ca5125cb8e5e7f814afcfbd353a8d5
+
+Container:
+  biomate/biomni-drug-discovery-nf:latest
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Mar-24 20:57:16.011 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:57:16.012 [TaskFinalizer-4] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:57:16.020 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:57:16.020 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:57:16.021 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:57:16.022 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 20:57:16.026 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=3; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=574ms; failedDuration=335ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Mar-24 20:57:16.035 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-24 20:57:16.035 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:57:16.439 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:57:16.476 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:57:16.480 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:57:16.487 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:57:16.487 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

@@ -1,0 +1,1078 @@
+#\!/usr/bin/env nextflow
+/*
+ * drug_discovery/amber_pmemd_md
+ *
+ * AMBER pmemd protein-ligand molecular dynamics + MM-GBSA binding free energy pipeline.
+ * Uses AMBER 24 pmemd.cuda for GPU-accelerated MD and MMPBSA.py for binding DeltaGbind.
+ *
+ * Pipeline Steps:
+ * 1. LIGAND_PREP         -- antechamber (GAFF2 charges/atom types) + parmchk2 (missing params)
+ *                           Converts sdf/mol2 -> ligand_gaff2.mol2 + ligand.frcmod
+ * 2. SYSTEM_SETUP        -- tleap: protein+ligand complex, solvate (TIP3P), neutralize
+ *                           Saves AMBER prmtop + inpcrd for downstream runs
+ * 3. ENERGY_MINIMIZATION -- sander: 2500 H-only + 2500 all-atom steepest descent
+ * 4. EQUILIBRATION       -- pmemd.cuda: 100ps NVT (heating 0->300K, restrained)
+ *                                     + 100ps NPT (1 atm, restrained)
+ * 5. PRODUCTION_MD       -- pmemd.cuda: N ns NPT unrestrained production
+ * 6. TRAJECTORY_ANALYSIS -- cpptraj: RMSD, RMSF, H-bonds, radius of gyration
+ * 7. MM_GBSA             -- MMPBSA.py: GB model (igb=2), per-residue decomposition
+ *
+ * Outputs:
+ *   trajectory.nc             -- NetCDF production trajectory
+ *   binding_summary.json      -- DeltaGbind, RMSD stats, system info
+ *   rmsd_plot.png             -- RMSD over time (protein backbone + ligand)
+ *   rmsf_per_residue.csv      -- per-residue RMSF table
+ *   mmgbsa_results.csv        -- per-residue energy decomposition
+ *
+ * References:
+ *   AMBER:   Case et al. J. Chem. Inf. Model. 2023, 63:6183-6200
+ *   GAFF2:   Wang et al. J. Comput. Chem. 2004, 25:1157-1174
+ *   MM-GBSA: Kollman et al. Acc. Chem. Res. 2000, 33:889-897
+ *   cpptraj: Roe & Cheatham J. Chem. Theory Comput. 2013, 9:3084-3095
+ */
+
+nextflow.enable.dsl = 2
+
+// ============================================================================
+// Default Parameters
+// ============================================================================
+
+params.outdir               = './results/amber_pmemd_md'
+params.publish_dir_mode     = 'copy'
+
+// Mode
+params.mock_mode            = true       // true = synthetic output, no AMBER needed
+
+// Inputs
+params.receptor             = null       // receptor.pdb or S3 URI
+params.ligand               = null       // ligand.sdf / ligand.mol2
+
+// Force field
+params.force_field          = 'ff19SB'   // ff14SB | ff19SB
+params.water_model          = 'tip3p'    // tip3p
+params.gaff_version         = 'gaff2'   // gaff | gaff2
+
+// System setup
+params.box_padding          = 12         // Angstrom from protein surface to box edge
+
+// Simulation settings
+params.n_steps              = 5000000    // MD steps (2 fs dt -> 10 ns default)
+params.dt                   = 0.002      // ps (2 fs timestep)
+params.temperature          = 300        // K
+params.pressure             = 1.0        // atm
+
+// MM-GBSA
+params.mmgbsa_startframe    = 500        // skip first N frames (equilibration buffer)
+params.mmgbsa_interval      = 5          // analyse every Nth frame
+
+// Resources
+params.n_cpus               = 8
+params.gpu                  = true
+
+// ============================================================================
+// Containers
+// ============================================================================
+
+def AMBER_CONTAINER      = '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
+def AMBERTOOLS_CONTAINER = 'ambermd/ambertools:23'
+
+// ============================================================================
+// Processes
+// ============================================================================
+
+process LIGAND_PREP {
+    /*
+     * Convert ligand to GAFF2 force-field parameters using AmberTools antechamber.
+     * Input:  ligand.sdf / ligand.mol2
+     * Output: ligand_gaff2.mol2  -- AM1-BCC charges, GAFF2 atom types
+     *         ligand.frcmod      -- missing GAFF2 force-field terms
+     */
+    tag "ligand_prep"
+    container AMBERTOOLS_CONTAINER
+    publishDir "${params.outdir}/01_ligand_prep", mode: params.publish_dir_mode
+
+    input:
+    path ligand_file
+
+    output:
+    path "ligand_gaff2.mol2", emit: mol2
+    path "ligand.frcmod",     emit: frcmod
+    path "ligand_prep.log",   emit: log
+
+    script:
+    if (params.mock_mode) {
+        """
+        echo "[MOCK] LIGAND_PREP -- GAFF2 parameterization" > ligand_prep.log
+        echo "[MOCK] antechamber + parmchk2 (mock, no AMBER needed)" >> ligand_prep.log
+
+        cat > ligand_gaff2.mol2 << 'MOL2EOF'
+@<TRIPOS>MOLECULE
+LIG
+ 12 12 0 0 0
+SMALL
+bcc
+
+
+@<TRIPOS>ATOM
+      1 C1          1.2124    0.7004    0.0000 ca      1 LIG        -0.1390
+      2 C2          2.4249    0.0000    0.0000 ca      1 LIG        -0.1390
+      3 C3          2.4249   -1.4008    0.0000 ca      1 LIG        -0.1390
+      4 C4          1.2124   -2.1012    0.0000 ca      1 LIG        -0.1390
+      5 C5          0.0000   -1.4008    0.0000 ca      1 LIG        -0.1390
+      6 C6          0.0000    0.0000    0.0000 ca      1 LIG        -0.1390
+      7 H1          1.2124    1.7854    0.0000 ha      1 LIG         0.1390
+      8 H2          3.3700    0.5850    0.0000 ha      1 LIG         0.1390
+      9 H3          3.3700   -1.9858    0.0000 ha      1 LIG         0.1390
+     10 H4          1.2124   -3.1862    0.0000 ha      1 LIG         0.1390
+     11 H5         -0.9451   -1.9858    0.0000 ha      1 LIG         0.1390
+     12 H6         -0.9451    0.5850    0.0000 ha      1 LIG         0.1390
+@<TRIPOS>BOND
+     1    1    2 ar
+     2    2    3 ar
+     3    3    4 ar
+     4    4    5 ar
+     5    5    6 ar
+     6    6    1 ar
+     7    1    7 1
+     8    2    8 1
+     9    3    9 1
+    10    4   10 1
+    11    5   11 1
+    12    6   12 1
+MOL2EOF
+
+        cat > ligand.frcmod << 'FRCEOF'
+Remark line goes here
+MASS
+
+BOND
+
+ANGLE
+
+DIHE
+
+IMPROPER
+
+NONBON
+
+FRCEOF
+
+        echo "[MOCK] LIGAND_PREP complete" >> ligand_prep.log
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        input_ext=$(echo "${ligand_file}" | rev | cut -d. -f1 | rev | tr '[:upper:]' '[:lower:]')
+        if [[ "$input_ext" == "sdf" || "$input_ext" == "sd" ]]; then
+            input_fmt="sdf"
+        elif [[ "$input_ext" == "mol2" ]]; then
+            input_fmt="mol2"
+        else
+            echo "Unsupported ligand format: $input_ext" >&2
+            exit 1
+        fi
+
+        antechamber \
+            -i ${ligand_file} -fi $input_fmt \
+            -o ligand_gaff2.mol2 -fo mol2 \
+            -c bcc -s 2 \
+            -at ${params.gaff_version} \
+            -rn LIG \
+            2>&1 | tee antechamber.log
+
+        parmchk2 \
+            -i ligand_gaff2.mol2 -f mol2 \
+            -o ligand.frcmod \
+            -s ${params.gaff_version} \
+            2>&1 | tee parmchk2.log
+
+        cat antechamber.log parmchk2.log > ligand_prep.log
+        echo "LIGAND_PREP complete" >> ligand_prep.log
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process SYSTEM_SETUP {
+    /*
+     * Build protein-ligand complex with tleap.
+     * Solvates with TIP3P octahedral box, neutralizes with Na+/Cl-.
+     * Saves AMBER topology (prmtop) and coordinates (inpcrd).
+     */
+    tag "system_setup"
+    container AMBERTOOLS_CONTAINER
+    publishDir "${params.outdir}/02_system_setup", mode: params.publish_dir_mode
+
+    input:
+    path receptor_file
+    path mol2_file
+    path frcmod_file
+
+    output:
+    path "complex.prmtop",  emit: prmtop
+    path "complex.inpcrd",  emit: inpcrd
+    path "tleap.log",       emit: log
+
+    script:
+    if (params.mock_mode) {
+        """
+        echo "[MOCK] SYSTEM_SETUP -- tleap complex assembly" > tleap.log
+        echo "[MOCK] force_field=${params.force_field} water=${params.water_model} box=${params.box_padding}A" >> tleap.log
+
+        cat > complex.prmtop << 'PRMTOPEOF'
+%VERSION  VERSION_STAMP = V0001.000  DATE = 03/21/26  00:00:00
+%FLAG TITLE
+%FORMAT(20a4)
+MOCK AMBER PRMTOP - PROTEIN-LIGAND COMPLEX (TIP3P SOLVATED)
+%FLAG POINTERS
+%FORMAT(10I8)
+        0        0        0        0        0        0        0        0        0        0
+PRMTOPEOF
+
+        cat > complex.inpcrd << 'INPCRDEOF'
+MOCK AMBER INPCRD - INITIAL COORDINATES
+         100
+  0.0000000E+00  0.0000000E+00  0.0000000E+00  1.0000000E+00  0.0000000E+00  0.0000000E+00
+ 60.0000000E+00 60.0000000E+00 60.0000000E+00 90.0000000E+00 90.0000000E+00 90.0000000E+00
+INPCRDEOF
+
+        echo "[MOCK] System: ~30000 atoms, box ~60x60x60 Angstrom" >> tleap.log
+        echo "[MOCK] SYSTEM_SETUP complete" >> tleap.log
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > tleap.in << TLEAPIN
+source leaprc.protein.${params.force_field}
+source leaprc.${params.gaff_version}
+source leaprc.water.${params.water_model}
+loadamberparams ${frcmod_file}
+LIG = loadmol2 ${mol2_file}
+PROT = loadpdb ${receptor_file}
+COMP = combine {PROT LIG}
+check COMP
+solvateOct COMP TIP3PBOX ${params.box_padding}
+addionsrand COMP Na+ 0
+addionsrand COMP Cl- 0
+saveamberparm COMP complex.prmtop complex.inpcrd
+desc COMP
+quit
+TLEAPIN
+
+        tleap -f tleap.in 2>&1 | tee tleap.log
+        echo "SYSTEM_SETUP complete" >> tleap.log
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process ENERGY_MINIMIZATION {
+    /*
+     * Two-stage steepest descent minimization using sander (CPU):
+     *   Stage 1: 2500 steps -- heavy-atom restraints (restraint_wt=500 kcal/mol/A^2)
+     *   Stage 2: 2500 steps -- all-atom, no restraints
+     */
+    tag "energy_minimization"
+    container AMBER_CONTAINER
+    publishDir "${params.outdir}/03_minimization", mode: params.publish_dir_mode
+
+    cpus params.n_cpus
+
+    input:
+    path prmtop
+    path inpcrd
+
+    output:
+    path "minimized.rst",  emit: rst
+    path "em.out",         emit: log
+
+    script:
+    if (params.mock_mode) {
+        """
+        echo "[MOCK] ENERGY_MINIMIZATION -- sander steepest descent (2500+2500 steps)" > em.out
+        echo "  NSTEP =     2500   ENERGY = -123456.7890   RMS = 0.0892" >> em.out
+        echo "  NSTEP =     5000   ENERGY = -125678.1234   RMS = 0.0412" >> em.out
+        echo "[MOCK] Minimization converged" >> em.out
+
+        cat > minimized.rst << 'RSTEOF'
+MOCK AMBER RESTART - POST-MINIMIZATION
+         100      0.0000000
+  0.1234567E+01  0.9876543E+00  0.5432100E+00  1.2000000E+00  0.8000000E+00  0.3000000E+00
+ 60.0000000E+00 60.0000000E+00 60.0000000E+00 90.0000000E+00 90.0000000E+00 90.0000000E+00
+RSTEOF
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > min1.in << 'MIN1EOF'
+H-only minimization -- stage 1
+ &cntrl
+  imin=1, ntmin=1,
+  maxcyc=2500, ncyc=1000,
+  ntb=1, ntp=0,
+  ntf=1, ntc=1,
+  ntr=1, restraintmask='!@H=',
+  restraint_wt=500.0,
+  ntpr=100, ntwx=0,
+ /
+MIN1EOF
+
+        sander -O \
+            -i min1.in \
+            -o min1.out \
+            -p ${prmtop} \
+            -c ${inpcrd} \
+            -r min1.rst \
+            -ref ${inpcrd}
+
+        cat > min2.in << 'MIN2EOF'
+All-atom minimization -- stage 2
+ &cntrl
+  imin=1, ntmin=1,
+  maxcyc=2500, ncyc=1000,
+  ntb=1, ntp=0,
+  ntf=2, ntc=2,
+  ntr=0,
+  ntpr=100, ntwx=0,
+ /
+MIN2EOF
+
+        sander -O \
+            -i min2.in \
+            -o min2.out \
+            -p ${prmtop} \
+            -c min1.rst \
+            -r minimized.rst
+
+        cat min1.out min2.out > em.out
+        echo "ENERGY_MINIMIZATION complete" >> em.out
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process EQUILIBRATION {
+    /*
+     * Two-stage GPU equilibration with pmemd.cuda:
+     *   Stage 1: 100 ps NVT -- linear heating 0->300K, backbone restrained
+     *   Stage 2: 100 ps NPT -- 1 atm Berendsen barostat, backbone restrained
+     */
+    tag "equilibration"
+    container AMBER_CONTAINER
+    publishDir "${params.outdir}/04_equilibration", mode: params.publish_dir_mode
+
+    cpus params.n_cpus
+
+    input:
+    path prmtop
+    path minimized_rst
+
+    output:
+    path "equil.rst",       emit: rst
+    path "equil_nvt.out",   emit: nvt_log
+    path "equil_npt.out",   emit: npt_log
+
+    script:
+    if (params.mock_mode) {
+        """
+        echo "[MOCK] EQUILIBRATION -- NVT 100ps heating 0->300K (restrained)" > equil_nvt.out
+        echo "  NSTEP =    10000   TEMP(K) = 150.00   ETOT = -112345.00" >> equil_nvt.out
+        echo "  NSTEP =    50000   TEMP(K) = 300.01   ETOT = -115678.00" >> equil_nvt.out
+        echo "[MOCK] NVT equilibration complete" >> equil_nvt.out
+
+        echo "[MOCK] EQUILIBRATION -- NPT 100ps at 1.0 atm (restrained)" > equil_npt.out
+        echo "  NSTEP =    10000   TEMP(K) = 299.98   PRESS = 1.02   VOLUME = 216000.0" >> equil_npt.out
+        echo "  NSTEP =    50000   TEMP(K) = 300.03   PRESS = 0.99   VOLUME = 215800.0" >> equil_npt.out
+        echo "[MOCK] NPT equilibration complete" >> equil_npt.out
+
+        cat > equil.rst << 'RSTEOF'
+MOCK AMBER RESTART - POST-EQUILIBRATION
+         100  100000.0000000
+  0.2345678E+01  1.0987654E+00  0.6543210E+00  1.3000000E+00  0.9000000E+00  0.4000000E+00
+  0.0100000E+00 -0.0050000E+00  0.0020000E+00  0.0080000E+00 -0.0030000E+00  0.0015000E+00
+ 60.0123456E+00 60.0234567E+00 60.0345678E+00 90.0000000E+00 90.0000000E+00 90.0000000E+00
+RSTEOF
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > nvt.in << NVTEOF
+NVT equilibration -- linear heating 0->${params.temperature}K (100 ps)
+ &cntrl
+  imin=0, irest=0, ntx=1,
+  nstlim=50000, dt=${params.dt},
+  ntb=1, ntp=0,
+  ntf=2, ntc=2,
+  tempi=0.0, temp0=${params.temperature},
+  ntt=3, gamma_ln=2.0,
+  ntr=1, restraintmask='@CA,C,N',
+  restraint_wt=10.0,
+  ntpr=1000, ntwx=0, ntwr=50000,
+  ioutfm=1,
+ /
+NVTEOF
+
+        pmemd.cuda -O \
+            -i nvt.in \
+            -o equil_nvt.out \
+            -p ${prmtop} \
+            -c ${minimized_rst} \
+            -r nvt.rst \
+            -ref ${minimized_rst}
+
+        cat > npt.in << NPTEOF
+NPT equilibration -- ${params.pressure} atm Berendsen barostat (100 ps)
+ &cntrl
+  imin=0, irest=1, ntx=5,
+  nstlim=50000, dt=${params.dt},
+  ntb=2, ntp=1, barostat=2,
+  pres0=${params.pressure}, taup=2.0,
+  ntf=2, ntc=2,
+  temp0=${params.temperature},
+  ntt=3, gamma_ln=2.0,
+  ntr=1, restraintmask='@CA,C,N',
+  restraint_wt=10.0,
+  ntpr=1000, ntwx=0, ntwr=50000,
+  ioutfm=1,
+ /
+NPTEOF
+
+        pmemd.cuda -O \
+            -i npt.in \
+            -o equil_npt.out \
+            -p ${prmtop} \
+            -c nvt.rst \
+            -r equil.rst \
+            -ref nvt.rst
+
+        echo "EQUILIBRATION complete" >> equil_npt.out
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process PRODUCTION_MD {
+    /*
+     * GPU production MD with pmemd.cuda.
+     * NPT ensemble, unrestrained, default 10 ns (5,000,000 steps at 2 fs).
+     * Trajectory saved in NetCDF format every 10 ps (ntwx=5000 at dt=0.002 ps).
+     */
+    tag "production_md"
+    container AMBER_CONTAINER
+    publishDir "${params.outdir}/05_production", mode: params.publish_dir_mode
+
+    cpus params.n_cpus
+
+    input:
+    path prmtop
+    path equil_rst
+
+    output:
+    path "trajectory.nc",  emit: trajectory
+    path "md.out",         emit: log
+    path "md.rst",         emit: rst
+
+    script:
+    if (params.mock_mode) {
+        """
+        echo "[MOCK] PRODUCTION_MD -- pmemd.cuda NPT ${params.n_steps} steps" > md.out
+        echo "[MOCK] dt=${params.dt} ps  T=${params.temperature}K  P=${params.pressure}atm" >> md.out
+        echo "  NSTEP =   500000   TEMP(K) = 299.97   PRESS = 0.98   ETOT = -115432.00" >> md.out
+        echo "  NSTEP =  1000000   TEMP(K) = 300.04   PRESS = 1.01   ETOT = -115598.00" >> md.out
+        echo "  NSTEP =  2500000   TEMP(K) = 300.00   PRESS = 1.00   ETOT = -115521.00" >> md.out
+        echo "  NSTEP =  5000000   TEMP(K) = 299.99   PRESS = 0.99   ETOT = -115487.00" >> md.out
+        echo "[MOCK] Production MD complete -- trajectory.nc written" >> md.out
+
+        printf '\\x89HDF\\r\\n\\x1a\\nMOCK_NETCDF_AMBER_PMEMD_TRAJECTORY' > trajectory.nc
+
+        cat > md.rst << 'RSTEOF'
+MOCK AMBER RESTART - POST-PRODUCTION
+         100 10000000.0000000
+  0.3456789E+01  1.1987654E+00  0.7543210E+00  1.4000000E+00  1.0000000E+00  0.5000000E+00
+  0.0050000E+00 -0.0025000E+00  0.0010000E+00  0.0040000E+00 -0.0015000E+00  0.0008000E+00
+ 60.0456789E+00 60.0567890E+00 60.0678901E+00 90.0000000E+00 90.0000000E+00 90.0000000E+00
+RSTEOF
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > md.in << MDEOF
+Production MD -- NPT ${params.n_steps} steps @ ${params.temperature}K ${params.pressure}atm
+ &cntrl
+  imin=0, irest=1, ntx=5,
+  nstlim=${params.n_steps}, dt=${params.dt},
+  ntb=2, ntp=1, barostat=2,
+  pres0=${params.pressure}, taup=2.0,
+  ntf=2, ntc=2,
+  temp0=${params.temperature},
+  ntt=3, gamma_ln=1.0,
+  ntr=0,
+  ntpr=5000, ntwx=5000, ntwr=50000,
+  ioutfm=1,
+ /
+MDEOF
+
+        pmemd.cuda -O \
+            -i md.in \
+            -o md.out \
+            -p ${prmtop} \
+            -c ${equil_rst} \
+            -r md.rst \
+            -x trajectory.nc
+
+        echo "PRODUCTION_MD complete" >> md.out
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process TRAJECTORY_ANALYSIS {
+    /*
+     * Post-processing with cpptraj:
+     *   - Protein backbone RMSD vs minimized reference
+     *   - Per-residue RMSF (B-factor equivalent)
+     *   - Radius of gyration
+     *   - Hydrogen bond analysis (protein-ligand)
+     * Python generates matplotlib RMSD+RMSF plots, rmsf CSV, analysis_summary.json
+     */
+    tag "trajectory_analysis"
+    container AMBERTOOLS_CONTAINER
+    publishDir "${params.outdir}/06_analysis", mode: params.publish_dir_mode
+
+    input:
+    path prmtop
+    path trajectory
+    path md_rst
+
+    output:
+    path "rmsd_plot.png",          emit: rmsd_plot
+    path "rmsf_per_residue.csv",   emit: rmsf_csv
+    path "analysis_summary.json",  emit: summary
+
+    script:
+    if (params.mock_mode) {
+        """
+        python3 - << 'PYEOF'
+import json, math, random
+random.seed(42)
+n_residues = 250
+n_frames   = 1000
+dt_ns      = 0.01
+time_ns = [i * dt_ns for i in range(n_frames)]
+rmsd = [round(2.0 * (1.0 - math.exp(-i / 150.0)) + random.gauss(0, 0.05), 3)
+        for i in range(n_frames)]
+rmsf = [round(max(0.1, random.gauss(1.2, 0.4) *
+               max(0.3, 1.5 - abs(r - n_residues/2.0)/(n_residues/2.0))), 3)
+        for r in range(n_residues)]
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    mean_last = sum(rmsd[-200:]) / 200.0
+    axes[0].plot(time_ns, rmsd, color='steelblue', linewidth=0.8, alpha=0.9)
+    axes[0].axhline(y=mean_last, color='crimson', linestyle='--',
+                    linewidth=1.2, label='Mean (last 2ns)')
+    axes[0].set_xlabel('Time (ns)')
+    axes[0].set_ylabel('RMSD (Angstrom)')
+    axes[0].set_title('Protein Backbone RMSD -- AMBER pmemd Production MD')
+    axes[0].legend()
+    axes[0].grid(alpha=0.3)
+    residues = list(range(1, n_residues + 1))
+    axes[1].bar(residues, rmsf, color='darkorange', alpha=0.7, width=1.0)
+    axes[1].set_xlabel('Residue Number')
+    axes[1].set_ylabel('RMSF (Angstrom)')
+    axes[1].set_title('Per-Residue RMSF -- Backbone Flexibility')
+    axes[1].grid(alpha=0.3, axis='y')
+    plt.tight_layout()
+    plt.savefig('rmsd_plot.png', dpi=150, bbox_inches='tight')
+    plt.close()
+except ImportError:
+    import struct, zlib
+    def make_png(w=2, h=2):
+        def chunk(t, d):
+            c = zlib.crc32(t + d) & 0xffffffff
+            return struct.pack('>I', len(d)) + t + d + struct.pack('>I', c)
+        ihdr = struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)
+        raw  = (b'\x00\x80\x80\x80' * w) * h
+        idat = zlib.compress(raw)
+        return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', ihdr) +
+                chunk(b'IDAT', idat) + chunk(b'IEND', b''))
+    open('rmsd_plot.png', 'wb').write(make_png())
+with open('rmsf_per_residue.csv', 'w') as fh:
+    fh.write('residue_number,rmsf_angstrom\n')
+    for idx, val in enumerate(rmsf, 1):
+        fh.write(f'{idx},{val:.3f}\n')
+rmsd_mean = sum(rmsd[-200:]) / 200.0
+flex_res  = [i + 1 for i, v in enumerate(rmsf) if v > 2.0]
+summary = {
+    'pipeline': 'AMBER pmemd protein-ligand MD', 'mock_mode': True,
+    'n_residues': n_residues, 'n_frames': n_frames,
+    'simulation_time_ns': n_frames * dt_ns,
+    'rmsd': {'mean_last2ns_angstrom': round(rmsd_mean, 3),
+             'max_angstrom': round(max(rmsd), 3), 'converged': rmsd_mean < 3.0},
+    'rmsf': {'mean_angstrom': round(sum(rmsf)/len(rmsf), 3),
+             'flexible_residues_gt2A': flex_res[:10]},
+    'force_field': 'ff19SB', 'water_model': 'tip3p',
+    'temperature_K': 300, 'pressure_atm': 1.0
+}
+with open('analysis_summary.json', 'w') as fh:
+    json.dump(summary, fh, indent=2)
+print('[MOCK] TRAJECTORY_ANALYSIS complete')
+PYEOF
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > analysis.in << 'CPPEOF'
+trajin trajectory.nc
+reference minimized.rst parm complex.prmtop
+rmsd backbone_rmsd @CA,C,N,O ref reference out rmsd.dat
+atomicfluct rmsf_residue :1-9999 byres out rmsf.dat
+radgyr protein_radgyr @CA out radgyr.dat
+hbond lig_hbonds :LIG out hbond.dat avgout hbond_avg.dat
+run
+quit
+CPPEOF
+
+        cpptraj -p ${prmtop} -i analysis.in 2>&1 | tee cpptraj.log
+
+        python3 - << 'PYEOF'
+import json, sys
+rmsd_time, rmsd_vals = [], []
+try:
+    with open('rmsd.dat') as fh:
+        for line in fh:
+            if line.startswith('#'): continue
+            cols = line.split()
+            if len(cols) >= 2:
+                rmsd_time.append(float(cols[0]))
+                rmsd_vals.append(float(cols[1]))
+except Exception as e:
+    print(f'Warning: rmsd.dat: {e}', file=sys.stderr)
+rmsf_res, rmsf_vals = [], []
+try:
+    with open('rmsf.dat') as fh:
+        for line in fh:
+            if line.startswith('#'): continue
+            cols = line.split()
+            if len(cols) >= 2:
+                rmsf_res.append(int(float(cols[0])))
+                rmsf_vals.append(float(cols[1]))
+except Exception as e:
+    print(f'Warning: rmsf.dat: {e}', file=sys.stderr)
+with open('rmsf_per_residue.csv', 'w') as fh:
+    fh.write('residue_number,rmsf_angstrom\n')
+    for res, val in zip(rmsf_res, rmsf_vals):
+        fh.write(f'{res},{val:.3f}\n')
+try:
+    import matplotlib; matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    if rmsd_vals:
+        axes[0].plot(rmsd_time, rmsd_vals, color='steelblue', linewidth=0.8)
+        axes[0].set_xlabel('Frame'); axes[0].set_ylabel('RMSD (Angstrom)')
+        axes[0].set_title('Protein Backbone RMSD -- AMBER pmemd Production MD')
+        axes[0].grid(alpha=0.3)
+    if rmsf_vals:
+        axes[1].bar(rmsf_res, rmsf_vals, color='darkorange', alpha=0.7, width=1.0)
+        axes[1].set_xlabel('Residue Number'); axes[1].set_ylabel('RMSF (Angstrom)')
+        axes[1].set_title('Per-Residue RMSF'); axes[1].grid(alpha=0.3, axis='y')
+    plt.tight_layout()
+    plt.savefig('rmsd_plot.png', dpi=150, bbox_inches='tight')
+    plt.close()
+except ImportError:
+    open('rmsd_plot.png', 'wb').write(b'PNG_PLACEHOLDER')
+n_frames  = len(rmsd_vals)
+tail      = max(1, n_frames // 5)
+rmsd_mean = sum(rmsd_vals[-tail:]) / tail if rmsd_vals else 0.0
+rmsf_mean = sum(rmsf_vals) / len(rmsf_vals) if rmsf_vals else 0.0
+flex_res  = [r for r, v in zip(rmsf_res, rmsf_vals) if v > 2.0]
+summary = {
+    'pipeline': 'AMBER pmemd protein-ligand MD', 'mock_mode': False,
+    'n_frames': n_frames,
+    'rmsd': {'mean_last20pct_angstrom': round(rmsd_mean, 3), 'converged': rmsd_mean < 3.0},
+    'rmsf': {'mean_angstrom': round(rmsf_mean, 3), 'flexible_residues_gt2A': flex_res[:10]},
+    'force_field': '${params.force_field}', 'water_model': '${params.water_model}',
+    'temperature_K': ${params.temperature}, 'pressure_atm': ${params.pressure}
+}
+with open('analysis_summary.json', 'w') as fh:
+    json.dump(summary, fh, indent=2)
+print('TRAJECTORY_ANALYSIS complete')
+PYEOF
+        """
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+process MM_GBSA {
+    /*
+     * MM-GBSA binding free energy with MMPBSA.py:
+     *   - GB model igb=2 (Onufriev-Bashford-Case GB)
+     *   - Per-residue energy decomposition (idecomp=1)
+     *   - Frames: startframe=${params.mmgbsa_startframe}, interval=${params.mmgbsa_interval}
+     * Outputs: mmgbsa_results.csv, binding_summary.json
+     */
+    tag "mm_gbsa"
+    container AMBERTOOLS_CONTAINER
+    publishDir "${params.outdir}/07_mmgbsa", mode: params.publish_dir_mode
+
+    input:
+    path prmtop
+    path trajectory
+    path equil_rst
+
+    output:
+    path "mmgbsa_results.csv",    emit: results_csv
+    path "binding_summary.json",  emit: summary
+
+    script:
+    if (params.mock_mode) {
+        """
+        python3 - << 'PYEOF'
+import json, random
+random.seed(7)
+n_residues   = 250
+delta_g_bind = -9.2
+contrib = []
+for r in range(1, n_residues + 1):
+    if 85 <= r <= 110:
+        base = random.gauss(-0.35, 0.20)
+    elif (70 <= r < 85) or (110 < r <= 125):
+        base = random.gauss(-0.05, 0.10)
+    else:
+        base = random.gauss(0.01, 0.04)
+    contrib.append(base)
+total = sum(contrib)
+scale = delta_g_bind / total
+contrib = [round(v * scale, 4) for v in contrib]
+resnames = ['ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY',
+            'HIS','ILE','LEU','LYS','MET','PHE','PRO','SER',
+            'THR','TRP','TYR','VAL']
+with open('mmgbsa_results.csv', 'w') as fh:
+    fh.write('residue,resname,delta_g_gb,delta_internal,delta_electrostatic,'
+             'delta_vdw,delta_polar_solv,delta_nonpolar_solv\n')
+    for r in range(1, n_residues + 1):
+        rn   = resnames[(r - 1) % len(resnames)]
+        dg   = contrib[r - 1]
+        vdw  = round(dg * random.uniform(0.55, 0.75), 4)
+        ele  = round(dg * random.uniform(0.10, 0.25), 4)
+        pol  = round(-abs(dg) * random.uniform(0.05, 0.15), 4)
+        npol = round(dg * random.uniform(0.02, 0.08), 4)
+        intr = round(dg - vdw - ele - pol - npol, 4)
+        fh.write(f'{r},{rn},{dg},{intr},{ele},{vdw},{pol},{npol}\n')
+top_res = sorted(range(1, n_residues + 1), key=lambda r: contrib[r - 1])[:10]
+top_contrib = [{'residue': r, 'delta_g_kcal_mol': round(contrib[r - 1], 3)}
+               for r in top_res]
+binding_summary = {
+    'pipeline': 'AMBER MM-GBSA', 'mock_mode': True,
+    'gb_model': 'igb=2 (Onufriev-Bashford-Case)',
+    'startframe': 500, 'interval': 5,
+    'delta_g_bind': {
+        'value_kcal_mol':           round(delta_g_bind, 2),
+        'std_kcal_mol':             round(abs(random.gauss(0.5, 0.1)), 2),
+        'van_der_waals_kcal_mol':   round(delta_g_bind * 0.65, 2),
+        'electrostatic_kcal_mol':   round(delta_g_bind * 0.20, 2),
+        'polar_solvation_kcal_mol': round(-abs(delta_g_bind) * 0.10, 2),
+        'nonpolar_solv_kcal_mol':   round(delta_g_bind * 0.05, 2),
+        'entropy_penalty_kcal_mol': round(abs(delta_g_bind) * 0.08, 2)
+    },
+    'classification':       'strong_binder' if delta_g_bind < -8.0 else 'moderate_binder',
+    'top_binding_residues': top_contrib,
+    'force_field': 'ff19SB', 'water_model': 'tip3p',
+    'n_frames_analysed': int((5000000 - 500) / 5)
+}
+with open('binding_summary.json', 'w') as fh:
+    json.dump(binding_summary, fh, indent=2)
+print(f'[MOCK] MM_GBSA complete -- DeltaG_bind = {delta_g_bind} kcal/mol (GB igb=2)')
+PYEOF
+        """
+    } else {
+        """
+        set -euo pipefail
+        source /opt/amber24/amber.sh || true
+
+        cat > strip_receptor.in << 'STREOF'
+parm complex.prmtop
+parmstrip :LIG
+parmwrite out receptor.prmtop
+quit
+STREOF
+        cpptraj -p ${prmtop} -i strip_receptor.in
+
+        cat > strip_ligand.in << 'STLEOF'
+parm complex.prmtop
+parmstrip !:LIG
+parmwrite out ligand_only.prmtop
+quit
+STLEOF
+        cpptraj -p ${prmtop} -i strip_ligand.in
+
+        cat > mmgbsa.in << 'GBSEOF'
+Input file for MM/GBSA calculation
+&general
+  startframe=${params.mmgbsa_startframe},
+  endframe=-1,
+  interval=${params.mmgbsa_interval},
+  verbose=2,
+  keep_files=0,
+/
+&gb
+  igb=2, saltcon=0.15,
+/
+&decomp
+  idecomp=1,
+  print_res='within 6.0',
+/
+GBSEOF
+
+        MMPBSA.py \
+            -O \
+            -i mmgbsa.in \
+            -o mmgbsa_raw.dat \
+            -do mmgbsa_decomp.dat \
+            -cp ${prmtop} \
+            -rp receptor.prmtop \
+            -lp ligand_only.prmtop \
+            -y ${trajectory} \
+            2>&1 | tee mmpbsa.log
+
+        python3 - << 'PYEOF'
+import json, re, sys
+delta_g = None; std_dg = None; components = {}
+try:
+    with open('mmgbsa_raw.dat') as fh:
+        for line in fh:
+            m = re.search(r'VDWAALS\s*=\s*([-\d.]+)', line)
+            if m: components['vdw_kcal_mol'] = float(m.group(1))
+            m = re.search(r'EEL\s*=\s*([-\d.]+)', line)
+            if m: components['electrostatic_kcal_mol'] = float(m.group(1))
+            m = re.search(r'EGB\s*=\s*([-\d.]+)', line)
+            if m: components['polar_solvation_kcal_mol'] = float(m.group(1))
+            m = re.search(r'ESURF\s*=\s*([-\d.]+)', line)
+            if m: components['nonpolar_solv_kcal_mol'] = float(m.group(1))
+            m = re.search(r'DELTA TOTAL\s*=\s*([-\d.]+)\s*\+/-\s*([\d.]+)', line)
+            if m: delta_g = float(m.group(1)); std_dg = float(m.group(2))
+except Exception as e:
+    print(f'Warning: mmgbsa_raw.dat: {e}', file=sys.stderr)
+res_data = []
+try:
+    with open('mmgbsa_decomp.dat') as fh:
+        lines = fh.readlines()
+    in_section = False
+    for line in lines:
+        if 'Residue' in line and 'Internal' in line:
+            in_section = True; continue
+        if in_section and line.strip() == '': break
+        if in_section:
+            cols = line.split()
+            if len(cols) >= 5:
+                res_data.append({
+                    'residue': cols[0], 'delta_g_gb': float(cols[1]),
+                    'delta_internal': float(cols[2]), 'delta_electrostatic': float(cols[3]),
+                    'delta_vdw': float(cols[4]),
+                    'delta_polar_solv': float(cols[5]) if len(cols) > 5 else 0.0
+                })
+except Exception as e:
+    print(f'Warning: mmgbsa_decomp.dat: {e}', file=sys.stderr)
+with open('mmgbsa_results.csv', 'w') as fh:
+    fh.write('residue,delta_g_gb,delta_internal,delta_electrostatic,delta_vdw,delta_polar_solv\n')
+    for row in res_data:
+        fh.write(f'{row["residue"]},{row["delta_g_gb"]},{row["delta_internal"]},'
+                 f'{row["delta_electrostatic"]},{row["delta_vdw"]},{row["delta_polar_solv"]}\n')
+top_res = sorted(res_data, key=lambda x: x['delta_g_gb'])[:10]
+summary = {
+    'pipeline': 'AMBER MM-GBSA', 'mock_mode': False,
+    'gb_model': 'igb=2 (Onufriev-Bashford-Case)',
+    'startframe': ${params.mmgbsa_startframe}, 'interval': ${params.mmgbsa_interval},
+    'delta_g_bind': {
+        'value_kcal_mol': round(delta_g, 2) if delta_g is not None else None,
+        'std_kcal_mol':   round(std_dg,  2) if std_dg  is not None else None,
+        **{k: round(v, 2) for k, v in components.items()}
+    },
+    'classification': ('strong_binder' if delta_g is not None and delta_g < -8.0
+                        else 'moderate_binder'),
+    'top_binding_residues': top_res[:10],
+    'force_field': '${params.force_field}', 'water_model': '${params.water_model}'
+}
+with open('binding_summary.json', 'w') as fh:
+    json.dump(summary, fh, indent=2)
+dg_str = f'{delta_g:.2f}' if delta_g is not None else 'N/A'
+print(f'MM_GBSA complete -- DeltaG_bind = {dg_str} kcal/mol (GB igb=2)')
+PYEOF
+        """
+    }
+}
+
+// ============================================================================
+// Workflow
+// ============================================================================
+
+workflow {
+
+    // -----------------------------------------------------------------------
+    // Parameter validation
+    // -----------------------------------------------------------------------
+    if (!params.mock_mode) {
+        if (!params.receptor) {
+            error "ERROR: params.receptor is required when mock_mode=false.\n" +
+                  "       Provide a PDB file path or S3 URI (e.g. s3://bucket/protein.pdb)"
+        }
+        if (!params.ligand) {
+            error "ERROR: params.ligand is required when mock_mode=false.\n" +
+                  "       Provide a ligand SDF or mol2 file path"
+        }
+    }
+
+    log.info """
+    ============================================================
+     AMBER pmemd Protein-Ligand MD Pipeline
+    ============================================================
+     receptor     : ${params.receptor    ?: '[mock]'}
+     ligand       : ${params.ligand      ?: '[mock]'}
+     force_field  : ${params.force_field}
+     water_model  : ${params.water_model}
+     gaff_version : ${params.gaff_version}
+     box_padding  : ${params.box_padding} A
+     n_steps      : ${params.n_steps}
+     temperature  : ${params.temperature} K
+     pressure     : ${params.pressure} atm
+     mmgbsa_start : frame ${params.mmgbsa_startframe}
+     mmgbsa_interv: ${params.mmgbsa_interval}
+     mock_mode    : ${params.mock_mode}
+     outdir       : ${params.outdir}
+    ============================================================
+    """.stripIndent()
+
+    // -----------------------------------------------------------------------
+    // Input channels
+    // -----------------------------------------------------------------------
+    if (params.mock_mode) {
+        receptor_ch = Channel.of('receptor_mock.pdb')
+            .map { name ->
+                def f = file("${workDir}/mock_inputs/${name}")
+                f.parent.mkdirs()
+                f.text = "ATOM      1  CA  ALA A   1       1.000   1.000   1.000  1.00  0.00           C\nEND\n"
+                f
+            }
+        ligand_ch = Channel.of('ligand_mock.sdf')
+            .map { name ->
+                def f = file("${workDir}/mock_inputs/${name}")
+                f.parent.mkdirs()
+                f.text = "mock_ligand\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END\n"
+                f
+            }
+    } else {
+        receptor_ch = Channel.fromPath(params.receptor, checkIfExists: true)
+        ligand_ch   = Channel.fromPath(params.ligand,   checkIfExists: true)
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 1: GAFF2 ligand parameterization
+    // -----------------------------------------------------------------------
+    ligand_prep_out = LIGAND_PREP(ligand_ch)
+
+    // -----------------------------------------------------------------------
+    // Step 2: Build solvated complex with tleap
+    // -----------------------------------------------------------------------
+    system_setup_out = SYSTEM_SETUP(
+        receptor_ch,
+        ligand_prep_out.mol2,
+        ligand_prep_out.frcmod
+    )
+
+    // -----------------------------------------------------------------------
+    // Step 3: Energy minimization (sander CPU)
+    // -----------------------------------------------------------------------
+    em_out = ENERGY_MINIMIZATION(
+        system_setup_out.prmtop,
+        system_setup_out.inpcrd
+    )
+
+    // -----------------------------------------------------------------------
+    // Step 4: NVT + NPT equilibration (pmemd.cuda)
+    // -----------------------------------------------------------------------
+    equil_out = EQUILIBRATION(
+        system_setup_out.prmtop,
+        em_out.rst
+    )
+
+    // -----------------------------------------------------------------------
+    // Step 5: Production MD (pmemd.cuda)
+    // -----------------------------------------------------------------------
+    prod_out = PRODUCTION_MD(
+        system_setup_out.prmtop,
+        equil_out.rst
+    )
+
+    // -----------------------------------------------------------------------
+    // Step 6: Trajectory analysis (cpptraj + matplotlib)
+    // -----------------------------------------------------------------------
+    analysis_out = TRAJECTORY_ANALYSIS(
+        system_setup_out.prmtop,
+        prod_out.trajectory,
+        prod_out.rst
+    )
+
+    // -----------------------------------------------------------------------
+    // Step 7: MM-GBSA binding free energy (MMPBSA.py)
+    // -----------------------------------------------------------------------
+    mmgbsa_out = MM_GBSA(
+        system_setup_out.prmtop,
+        prod_out.trajectory,
+        equil_out.rst
+    )
+
+    // -----------------------------------------------------------------------
+    // Pipeline completion summary -- print DeltaG from binding_summary.json
+    // -----------------------------------------------------------------------
+    mmgbsa_out.summary
+        .subscribe { summary_file ->
+            def json_text = summary_file.text
+            def dg_match  = json_text =~ /"value_kcal_mol"\s*:\s*([-\d.]+)/
+            def std_match = json_text =~ /"std_kcal_mol"\s*:\s*([-\d.]+)/
+            def cls_match = json_text =~ /"classification"\s*:\s*"([^"]+)"/
+
+            def dg_val  = dg_match  ? dg_match[0][1]  : 'N/A'
+            def std_val = std_match ? std_match[0][1] : 'N/A'
+            def cls_val = cls_match ? cls_match[0][1] : 'N/A'
+
+            log.info """
++------------------------------------------------------------+
+|  AMBER pmemd MD Pipeline -- COMPLETE                       |
++------------------------------------------------------------+
+|  DeltaG_bind (MM-GBSA igb=2)   :  ${dg_val} +/- ${std_val} kcal/mol
+|  Classification                 :  ${cls_val}
+|  RMSD plot                      :  ${params.outdir}/06_analysis/rmsd_plot.png
+|  Per-residue RMSF               :  ${params.outdir}/06_analysis/rmsf_per_residue.csv
+|  MM-GBSA per-residue results    :  ${params.outdir}/07_mmgbsa/mmgbsa_results.csv
+|  Binding summary JSON           :  ${params.outdir}/07_mmgbsa/binding_summary.json
+|  Trajectory (NetCDF)            :  ${params.outdir}/05_production/trajectory.nc
++------------------------------------------------------------+
+|  References:
+|    AMBER:   Case et al. J. Chem. Inf. Model. 2023, 63:6183
+|    GAFF2:   Wang et al. J. Comput. Chem. 2004, 25:1157
+|    MM-GBSA: Kollman et al. Acc. Chem. Res. 2000, 33:889
+|    cpptraj: Roe & Cheatham JCTC 2013, 9:3084
++------------------------------------------------------------+
+            """.stripIndent()
+        }
+}

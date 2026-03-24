@@ -1,0 +1,100 @@
+{
+  "pharmacophore_model": "pharmacophore_model.json",
+  "library": "mock_library.smi",
+  "n_screened": 10,
+  "n_passed": 2,
+  "min_features": 3,
+  "results": [
+    {
+      "compound_id": "CPND001",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "features_matched": 0,
+      "feature_types": [],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND002",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)N",
+      "features_matched": 0,
+      "feature_types": [],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND003",
+      "smiles": "OC(=O)c1ccccc1O",
+      "features_matched": 2,
+      "feature_types": [
+        "Acceptor",
+        "Donor"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND004",
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "features_matched": 1,
+      "feature_types": [
+        "Donor"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND005",
+      "smiles": "c1ccc(cc1)C(=O)O",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Acceptor",
+        "Aromatic"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "CPND006",
+      "smiles": "CCCC",
+      "features_matched": 0,
+      "feature_types": [],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND007",
+      "smiles": "CC(=O)Oc1cccc(c1)C(=O)O",
+      "features_matched": 0,
+      "feature_types": [],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND008",
+      "smiles": "c1ccc2c(c1)cccc2",
+      "features_matched": 1,
+      "feature_types": [
+        "Acceptor"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "CPND009",
+      "smiles": "CC(=O)Oc1ccc(cc1)C(=O)O",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Acceptor"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "CPND010",
+      "smiles": "NC(=O)c1ccccc1N",
+      "features_matched": 1,
+      "feature_types": [
+        "Aromatic"
+      ],
+      "pass": false
+    }
+  ],
+  "timestamp": "2026-03-24T22:30:04.425897Z",
+  "mock_mode": true
+}

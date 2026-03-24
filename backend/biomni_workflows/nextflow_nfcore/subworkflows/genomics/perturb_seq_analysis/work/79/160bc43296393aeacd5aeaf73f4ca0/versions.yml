@@ -1,0 +1,4 @@
+        "PERTURB_SEQ_ANALYSIS:SCVI_PERTURBATION":
+            python: 3.12.3
+            scvi_tools: "mock"
+        END_VERSIONS

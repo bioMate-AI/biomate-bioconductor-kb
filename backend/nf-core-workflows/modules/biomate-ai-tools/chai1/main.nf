@@ -7,7 +7,7 @@ process CHAI1 {
     label 'process_gpu'
     label 'process_high_memory'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/chai1:nextflow'
 
     input:
     tuple val(meta), path(fasta)

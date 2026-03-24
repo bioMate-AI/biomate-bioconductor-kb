@@ -113,6 +113,29 @@ function prettifyParamLabel(raw: string): string {
 }
 
 function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
+  // Prefer structured required_params / optional_params when the backend .nf parser populated them.
+  const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+  const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+  if (reqList.length > 0 || optList.length > 0) {
+    return [...reqList, ...optList]
+      .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
+      .map((p: any) => {
+        const userValue = currentParams[p.name];
+        const defaultVal = p.default ?? null;
+        return {
+          id: p.name,
+          name: p.name,
+          type: inferParamType(userValue ?? defaultVal),
+          label: p.label || prettifyParamLabel(p.name),
+          description: p.description,
+          value: userValue !== undefined ? userValue : (defaultVal !== null ? defaultVal : ""),
+          defaultValue: defaultVal,
+          required: reqList.some((r: any) => r.name === p.name),
+        };
+      });
+  }
+
+  // Fallback: old flat-map from parameters / inline_parameters keys.
   const fromWorkflow = workflowDefinition?.parameters && typeof workflowDefinition.parameters === "object"
     ? workflowDefinition.parameters
     : {};
@@ -599,7 +622,14 @@ export function NextflowWorkflowViewer({
 
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
-  const isPrereqBlocked = !!prereqChecklist && !prereqChecklist.canRun;
+  // Block Run if any required param is still empty (no value provided, no default).
+  // Skip this check when prereq recovery mode is active (overrideAllowed=true) — user approved demo path.
+  const hasUnfilledRequired = prereqChecklist?.overrideAllowed
+    ? false
+    : renderedParameters
+        .filter((p: any) => p.required === true)
+        .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
+  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
     autofix?.active === true ||
@@ -616,7 +646,18 @@ export function NextflowWorkflowViewer({
   }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
 
   useEffect(() => {
-    setParams(initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
+    if (initialParams) { setParams(initialParams); return; }
+    const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+    const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+    if (reqList.length > 0 || optList.length > 0) {
+      const defaults: Record<string, any> = {};
+      for (const p of [...reqList, ...optList]) {
+        if (p?.name && p.default != null) defaults[p.name] = p.default;
+      }
+      setParams(defaults);
+    } else {
+      setParams(workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
+    }
   }, [initialParams, workflowDefinition]);
 
   useEffect(() => {
@@ -846,6 +887,17 @@ export function NextflowWorkflowViewer({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Completion banner — shown when workflow reaches terminal success state */}
+          {status === 'completed' && (
+            <div
+              data-testid="workflow-completion-banner"
+              className="mb-4 flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50/60 px-3 py-2 text-sm text-green-800 dark:border-green-700/50 dark:bg-green-950/30 dark:text-green-300"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+              <span>Workflow completed successfully. View Results and Download All are now available.</span>
+            </div>
+          )}
+
           {/* Scientific Rationale Panel — shown when Bioconductor KB has data */}
           {rationale && rationale.tools_used?.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -948,9 +1000,14 @@ export function NextflowWorkflowViewer({
                 parameters={renderedParameters}
                 onChange={handleParamChange}
               />
+              {hasUnfilledRequired && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Fill in all required fields (*) before running.
+                </p>
+              )}
               <div className="space-y-2" data-testid="workflow-run-controls">
                 {/* C3: Validate environment button — only show for Nextflow workflows */}
-                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && status === 'pending' && (
+                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
                   <div className="space-y-1">
                     <Button
                       variant="outline"
@@ -1401,7 +1458,7 @@ export function NextflowWorkflowViewer({
             </div>
           </div>
 
-          {runId && (status === 'completed' || status === 'failed') && (
+          {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
               <DownloadCommandsPanel runId={runId} />
             </div>

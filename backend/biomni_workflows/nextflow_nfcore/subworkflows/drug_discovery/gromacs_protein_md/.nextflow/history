@@ -1,0 +1,1 @@
+2026-03-24 22:22:53	6.4s	peaceful_faraday	OK	5f1adbca4526540bc80b03eea5b991ea	3ecd68c2-cc42-4359-9c09-f48d462755b2	nextflow run main.nf -profile docker --receptor /tmp/test_1IEP.pdb --ligand /tmp/test_ligand.smi --outdir /tmp/test_gromacs_out

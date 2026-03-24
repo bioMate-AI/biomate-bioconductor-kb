@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "function": "ivive_hepatic_clearance",
+  "domain": "pharmacology",
+  "clint_in_vitro": 100.0,
+  "assay_type": "microsomal",
+  "clint_scaled_ml_min_kg": 115.65,
+  "clh_predicted_ml_min_kg": 7.42,
+  "clh_fraction_of_qh": 0.3584,
+  "clh_lower_ci": 1.298,
+  "clh_upper_ci": 13.541,
+  "extraction_class": "intermediate",
+  "Q_liver_ml_min_kg": 20.7,
+  "fu_plasma": 0.1,
+  "fu_inc": 1.0,
+  "species": "human",
+  "scaling_model": "well_stirred",
+  "mppgl": 45.0,
+  "hepatocellularity": null,
+  "liver_weight_g_per_kg": 25.7,
+  "reference": "Well-stirred model: Wilkinson & Shand 1975 Clin Pharmacol Ther 18:377. Scaling factors: Davies & Morris 1993 Pharm Res 10:1093; Barter et al. 2007 Drug Metab Dispos 35:1514. Uncertainty: Obach 1999 Drug Metab Dispos 27:1350."
+}

@@ -1,0 +1,12 @@
+{
+  "confidence": 0.91,
+  "ptm": 0.89,
+  "iptm": 0.87,
+  "complex_plddt": 88.3,
+  "mean_plddt": 87.1,
+  "model_id": "EGFR_kinase_boltz2_model_0",
+  "boltz2_mode": "local",
+  "timestamp": "2026-03-19T01:36:25.319759Z",
+  "tool": "boltz2",
+  "mock_mode": true
+}

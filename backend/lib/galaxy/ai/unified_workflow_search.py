@@ -926,7 +926,7 @@ class UnifiedWorkflowSearch:
         )
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3) -> List["WorkflowChain"]:
+                      limit: int = 3, min_score: float = 0.15) -> List["WorkflowChain"]:
         """Return workflow chains whose example_queries or description match the query.
 
         Scoring uses three signals:
@@ -969,16 +969,14 @@ class UnifiedWorkflowSearch:
             union   = len(query_tokens | chain_tokens) or 1
             score   = overlap / union
 
-            # Keyword weight boost using same table as workflow search
-            kw_boost = sum(
-                self.keyword_weights.get(t, 0.0) for t in query_tokens & chain_tokens
-            ) * 0.05
+            # Domain match bonus: chains are broad, only boost if domain aligns
+            domain_bonus = 0.05 if (chain.domain and chain.domain == domain) else 0.0
 
-            scored.append((min(score + kw_boost, 1.0), chain))
+            scored.append((min(score + domain_bonus, 1.0), chain))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        # Return chains with at least weak signal
-        return [c for s, c in scored[:limit] if s >= 0.15]
+        # Return chains above min_score threshold
+        return [c for s, c in scored[:limit] if s >= min_score]
 
     def get_chain(self, name: str) -> Optional["WorkflowChain"]:
         """Fetch a chain by its unique name."""

@@ -1,0 +1,374 @@
+Mar-24 20:56:03.087 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --input_smiles /tmp/test_actives.smi --outdir /tmp/test_scaffold_out
+Mar-24 20:56:03.143 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:56:03.177 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:56:03.179 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:56:03.200 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:56:03.691 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, stub, singularity, docker]
+Mar-24 20:56:03.731 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:56:03.740 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:56:03.740 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:56:03.742 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:56:03.751 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:56:03.832 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:56:03.833 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:56:03.833 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:56:03.843 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:56:03.844 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7beae796] - activable => nextflow.secret.LocalSecretsProvider@7beae796
+Mar-24 20:56:03.847 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:56:03.858 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [gigantic_waddington] DSL2 - revision: 299951aa45
+Mar-24 20:56:03.885 [main] DEBUG nextflow.Session - Session UUID: 04feed9c-5121-4007-bab9-9e41b721141e
+Mar-24 20:56:03.885 [main] DEBUG nextflow.Session - Run name: gigantic_waddington
+Mar-24 20:56:03.885 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:56:03.890 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:56:03.893 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:56:03.905 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1456467@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (8.6 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:56:03.919 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work [ext2/ext3]
+Mar-24 20:56:03.920 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/bin
+Mar-24 20:56:03.925 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:56:03.930 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:56:03.932 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:56:03.988 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:56:03.994 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:56:04.043 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:56:04.047 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_scaffold_out/pipeline_info/trace.txt
+Mar-24 20:56:04.590 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:56:04.700 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Scaffold Hopping Pipeline
+====================================================================
+Mode:               LIVE
+Reference SMILES:   CC(=O)Nc1ccc(O)cc1
+Max candidates:     20
+Lipinski filter:    true
+Output dir:         /tmp/test_scaffold_out
+====================================================================
+
+Mar-24 20:56:04.754 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_INPUT_VALIDATION` matches process SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:56:04.768 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:56:04.768 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:56:04.777 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:56:04.781 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:56:04.783 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:56:04.801 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION': maxForks=0; fair=false; array=0
+Mar-24 20:56:04.834 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:RECAP_FRAGMENTATION` matches process SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:56:04.837 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:56:04.837 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:56:04.838 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:RECAP_FRAGMENTATION': maxForks=0; fair=false; array=0
+Mar-24 20:56:04.851 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:MMP_ANALYSIS` matches process SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:56:04.854 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:56:04.854 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:56:04.854 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:MMP_ANALYSIS': maxForks=0; fair=false; array=0
+Mar-24 20:56:04.860 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_HOPPING_CANDIDATES` matches process SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:56:04.862 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:56:04.862 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:56:04.863 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES': maxForks=0; fair=false; array=0
+Mar-24 20:56:04.876 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_HOPPING:MMP_ANALYSIS, SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION, RECAP_FRAGMENTATION, SCAFFOLD_HOPPING:RECAP_FRAGMENTATION, MMP_ANALYSIS, SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:56:04.878 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Mar-24 20:56:04.881 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:56:04.882 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:56:04.882 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:56:04.882 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:56:04.882 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_dd1eb4b2d46a4d92: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/main.nf
+Mar-24 20:56:04.882 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:56:04.882 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:56:05.048 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:56:05.051 [Task submitter] INFO  nextflow.Session - [e3/cbee01] Submitted process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives)
+Mar-24 20:56:05.605 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/e3/cbee011008e2721b8c431a83f9d945]
+Mar-24 20:56:05.606 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:56:05.649 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:56:05.652 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:56:05.652 [Task submitter] INFO  nextflow.Session - [09/e9515b] Submitted process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)
+Mar-24 20:56:06.190 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/09/e9515b91b26d8209556342c70f0ed3]
+Mar-24 20:56:06.232 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:56:06.233 [Task submitter] INFO  nextflow.Session - [dd/396f16] Submitted process > SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives)
+Mar-24 20:56:06.646 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/dd/396f16d3e86bed62713b2ddda5f34e]
+Mar-24 20:56:06.651 [TaskFinalizer-3] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/dd/396f16d3e86bed62713b2ddda5f34e
+  error [nextflow.exception.ProcessFailedException]: Process `SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives)` terminated with an error exit status (1)
+Mar-24 20:56:06.669 [TaskFinalizer-3] ERROR nextflow.processor.TaskProcessor - Error executing process > 'SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives)'
+
+Caused by:
+  Process `SCAFFOLD_HOPPING:MMP_ANALYSIS (test_actives)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import csv
+  import random
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  meta_id    = "test_actives"
+  ref_smiles = "CC(=O)Nc1ccc(O)cc1"
+  
+  # ---------------------------------------------------------------------------
+  # Mock MMP output: 15 matched molecular pairs
+  #
+  # Each MMP = two compounds that differ by a single RECAP fragment swap
+  # (the "matched" bond is at the same attachment point in both molecules).
+  #
+  # Property deltas computed relative to the reference compound:
+  #   logP_delta:  positive = more lipophilic
+  #   mw_delta:    Da difference (positive = heavier)
+  #   qed_delta:   quantitative estimate of drug-likeness change
+  # ---------------------------------------------------------------------------
+  pairs = [
+      # Format: (pair_id, query_smi, match_smi, transformation, logP_q, logP_m,
+      #          mw_q, mw_m, qed_q, qed_m)
+      ("MMP_001", "CC(=O)Nc1ccc(O)cc1",  "CC(=O)Nc1ccc(OC)cc1",
+       "OH>>OC",        0.91, 1.35, 151.16, 165.19, 0.70, 0.67),
+      ("MMP_002", "CC(=O)Nc1ccc(O)cc1",  "CC(=O)Nc1ccc(F)cc1",
+       "OH>>F",         0.91, 1.77, 151.16, 153.15, 0.70, 0.72),
+      ("MMP_003", "CC(=O)Nc1ccc(O)cc1",  "CC(=O)Nc1ccc(Cl)cc1",
+       "OH>>Cl",        0.91, 2.39, 151.16, 169.61, 0.70, 0.65),
+      ("MMP_004", "CC(=O)Nc1ccc(O)cc1",  "CCC(=O)Nc1ccc(O)cc1",
+       "CC(=O)>>CCC(=O)",0.91,1.14, 151.16, 165.19, 0.70, 0.68),
+      ("MMP_005", "CC(=O)Nc1ccc(O)cc1",  "O=C(Nc1ccc(O)cc1)c1ccccc1",
+       "CC(=O)>>O=C(c1ccccc1)",
+                        0.91, 2.12, 151.16, 213.23, 0.70, 0.61),
+      ("MMP_006", "CC(=O)Nc1ccc(OC)cc1", "CC(=O)Nc1ccc(F)cc1",
+       "OC>>F",         1.35, 1.77, 165.19, 153.15, 0.67, 0.72),
+      ("MMP_007", "CC(=O)Nc1ccc(OC)cc1", "CC(=O)Nc1ccc(Cl)cc1",
+       "OC>>Cl",        1.35, 2.39, 165.19, 169.61, 0.67, 0.65),
+      ("MMP_008", "CC(=O)Nc1ccc(F)cc1",  "CC(=O)Nc1ccc(Cl)cc1",
+       "F>>Cl",         1.77, 2.39, 153.15, 169.61, 0.72, 0.65),
+      ("MMP_009", "CC(=O)Nc1ccc(O)cc1",  "CC(=O)Nc1cc(O)ccc1",
+       "para-OH>>meta-OH",
+                        0.91, 0.88, 151.16, 151.16, 0.70, 0.69),
+      ("MMP_010", "CC(=O)Nc1ccc(O)c(F)c1","CC(=O)Nc1ccc(O)cc1",
+       "2-F,4-OH>>4-OH",1.47, 0.91, 169.15, 151.16, 0.68, 0.70),
+      ("MMP_011", "CC(=O)Nc1ccc(O)c(C)c1","CC(=O)Nc1ccc(O)cc1",
+       "2-Me,4-OH>>4-OH",
+                        1.22, 0.91, 165.19, 151.16, 0.67, 0.70),
+      ("MMP_012", "CCC(=O)Nc1ccc(O)cc1", "O=C(Nc1ccc(O)cc1)c1ccccc1",
+       "CCC(=O)>>O=C(c1ccccc1)",
+                        1.14, 2.12, 165.19, 213.23, 0.68, 0.61),
+      ("MMP_013", "CC(=O)Nc1ccc(O)cc1C", "CC(=O)Nc1ccc(O)cc1",
+       "2-Me>>H",       1.35, 0.91, 165.19, 151.16, 0.66, 0.70),
+      ("MMP_014", "CC(=O)Nc1ccc(O)cc1",  "CC(=O)Nc1ccc(O)cc1C",
+       "H>>2-Me",       0.91, 1.35, 151.16, 165.19, 0.70, 0.66),
+      ("MMP_015", "CC(=O)Nc1ccc(OC)cc1", "CCC(=O)Nc1ccc(OC)cc1",
+       "CC(=O)>>CCC(=O)",1.35,1.58, 165.19, 179.22, 0.67, 0.64),
+  ]
+  
+  rows = []
+  for (pid, q_smi, m_smi, transform,
+       logp_q, logp_m, mw_q, mw_m, qed_q, qed_m) in pairs:
+      rows.append({
+          "pair_id":          pid,
+          "query_smiles":     q_smi,
+          "match_smiles":     m_smi,
+          "transformation":   transform,
+          "logP_query":       logp_q,
+          "logP_match":       logp_m,
+          "logP_delta":       round(logp_m - logp_q, 3),
+          "mw_query_da":      mw_q,
+          "mw_match_da":      mw_m,
+          "mw_delta_da":      round(mw_m - mw_q, 3),
+          "qed_query":        qed_q,
+          "qed_match":        qed_m,
+          "qed_delta":        round(qed_m - qed_q, 3),
+          "is_reference_pair": str(q_smi == ref_smiles or m_smi == ref_smiles),
+      })
+  
+  with open(f"{meta_id}_mmp_pairs.csv", "w", newline="") as csvf:
+      writer = csv.DictWriter(csvf, fieldnames=list(rows[0].keys()))
+      writer.writeheader()
+      writer.writerows(rows)
+  
+  # Summarise transformation rules
+  transform_counts = {}
+  for row in rows:
+      t = row["transformation"]
+      transform_counts[t] = transform_counts.get(t, 0) + 1
+  
+  logp_deltas = [r["logP_delta"] for r in rows]
+  mw_deltas   = [r["mw_delta_da"] for r in rows]
+  
+  summary = {
+      "meta_id":           meta_id,
+      "reference_smiles":  ref_smiles,
+      "total_pairs":       len(rows),
+      "reference_pairs":   sum(1 for r in rows if r["is_reference_pair"] == "True"),
+      "logP_delta_range":  [min(logp_deltas), max(logp_deltas)],
+      "mw_delta_range_da": [min(mw_deltas), max(mw_deltas)],
+      "unique_transformations": len(transform_counts),
+      "top_transformations": sorted(
+          [{"transformation": t, "count": c} for t, c in transform_counts.items()],
+          key=lambda x: -x["count"]
+      )[:5],
+      "tool":      "mmpdb 3.1 (mock)",
+      "timestamp": datetime.utcnow().isoformat() + "Z",
+      "mock_mode": True,
+  }
+  
+  with open(f"{meta_id}_mmp_summary.json", "w") as jf:
+      json.dump(summary, jf, indent=2)
+  
+  print(f"MMP mock complete: {len(rows)} pairs, {len(transform_counts)} unique transformations")
+  print(f"  logP delta range: {min(logp_deltas):.3f} to {max(logp_deltas):.3f}")
+  print(f"  MW delta range:   {min(mw_deltas):.1f} to {max(mw_deltas):.1f} Da")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: mmpdb MMP analysis
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json
+  import csv
+  import subprocess
+  import sys
+  import os
+  import tempfile
+  from datetime import datetime
+  
+  meta_id      = "test_actives"
+  input_csv    = "test_actives_validated.csv"
+  ref_smiles   = "CC(=O)Nc1ccc(O)cc1"
+  
+  # ---- 1. Convert validated CSV → SMILES file expected by mmpdb ----
+  smiles_file = f"{meta_id}_for_mmpdb.smi"
+  with open(input_csv, newline="") as csvf, open(smiles_file, "w") as smif:
+      reader = csv.DictReader(csvf)
+      for row in reader:
+          if row.get("valid", "").lower() == "true":
+              smif.write(f"{row['canonical_smiles']} {row['compound_id']}\n")
+  
+  # ---- 2. Fragment with mmpdb ----
+  frag_file = f"{meta_id}_mmpdb.fragments"
+  result = subprocess.run(
+      ["mmpdb", "fragment", smiles_file, "-o", frag_file],
+      capture_output=True, text=True
+  )
+  if result.returncode != 0:
+      print(f"mmpdb fragment failed: {result.stderr}", file=sys.stderr)
+      sys.exit(1)
+  
+  # ---- 3. Index ----
+  db_file = f"{meta_id}_mmpdb.db"
+  result = subprocess.run(
+      ["mmpdb", "index", frag_file, "-o", db_file],
+      capture_output=True, text=True
+  )
+  if result.returncode != 0:
+      print(f"mmpdb index failed: {result.stderr}", file=sys.stderr)
+      sys.exit(1)
+  
+  # ---- 4. Transform from reference (find all pairs that include reference) ----
+  transform_out = f"{meta_id}_transforms.csv"
+  result = subprocess.run(
+      ["mmpdb", "transform", "--smiles", ref_smiles, db_file,
+       "--output", transform_out],
+      capture_output=True, text=True
+  )
+  if result.returncode != 0:
+      print(f"mmpdb transform warning: {result.stderr}", file=sys.stderr)
+  
+  # ---- 5. Parse transform output → MMP pairs CSV ----
+  rows = []
+  try:
+      with open(transform_out, newline="") as csvf:
+          reader = csv.DictReader(csvf, delimiter="	")
+          for i, row in enumerate(reader):
+              rows.append({
+                  "pair_id":           f"MMP_{i+1:03d}",
+                  "query_smiles":      ref_smiles,
+                  "match_smiles":      row.get("start_smiles", ""),
+                  "transformation":    row.get("rule", ""),
+                  "logP_query":        0.0,
+                  "logP_match":        0.0,
+                  "logP_delta":        float(row.get("delta_logP", 0) or 0),
+                  "mw_query_da":       0.0,
+                  "mw_match_da":       0.0,
+                  "mw_delta_da":       float(row.get("delta_MW", 0) or 0),
+                  "qed_query":         0.0,
+                  "qed_match":         0.0,
+                  "qed_delta":         0.0,
+                  "is_reference_pair": "True",
+              })
+  except FileNotFoundError:
+      pass
+  
+  with open(f"{meta_id}_mmp_pairs.csv", "w", newline="") as csvf:
+      if rows:
+          writer = csv.DictWriter(csvf, fieldnames=list(rows[0].keys()))
+          writer.writeheader()
+          writer.writerows(rows)
+      else:
+          csvf.write("pair_id,query_smiles,match_smiles,transformation\n")
+  
+  summary = {
+      "meta_id":          meta_id,
+      "reference_smiles": ref_smiles,
+      "total_pairs":      len(rows),
+      "tool":             "mmpdb 3.1",
+      "timestamp":        datetime.utcnow().isoformat() + "Z",
+      "mock_mode":        False,
+  }
+  with open(f"{meta_id}_mmp_summary.json", "w") as jf:
+      json.dump(summary, jf, indent=2)
+  
+  print(f"MMP live complete: {len(rows)} pairs")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "SCAFFOLD_HOPPING:MMP_ANALYSIS":
+          mmpdb: $(mmpdb --version 2>&1 | head -1 || echo "N/A")
+          rdkit: $(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  Traceback (most recent call last):
+    File "<stdin>", line 23, in <module>
+    File "/usr/local/lib/python3.11/subprocess.py", line 548, in run
+      with Popen(*popenargs, **kwargs) as process:
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.11/subprocess.py", line 1026, in __init__
+      self._execute_child(args, executable, preexec_fn, close_fds,
+    File "/usr/local/lib/python3.11/subprocess.py", line 1955, in _execute_child
+      raise child_exception_type(errno_num, err_msg, err_filename)
+  FileNotFoundError: [Errno 2] No such file or directory: 'mmpdb'
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/dd/396f16d3e86bed62713b2ddda5f34e
+
+Container:
+  biomate/biomni-drug-discovery-nf:latest
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Mar-24 20:56:06.673 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:56:06.674 [TaskFinalizer-3] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:56:06.681 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:56:06.681 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:56:06.682 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:56:06.683 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 20:56:06.686 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=381ms; failedDuration=356ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Mar-24 20:56:06.697 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-24 20:56:06.697 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:56:07.118 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:56:07.157 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:56:07.161 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:56:07.167 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:56:07.168 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

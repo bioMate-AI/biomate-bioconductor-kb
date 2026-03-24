@@ -1,0 +1,5 @@
+    "SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION":
+        rdkit: 2023.09.6
+        python: 3.11.14
+        mock_mode: "false"
+    END_VERSIONS

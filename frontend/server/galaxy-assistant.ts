@@ -559,6 +559,18 @@ Rules:
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
 
+    // Programmatic ADMET+SMILES fast path: if the message contains a SMILES string AND ADMET
+    // keywords, force needsWorkflowGeneration=true regardless of the intent classifier output.
+    // This prevents the LLM from asking clarifications in multi-turn conversations where the
+    // user has already provided a SMILES string.
+    const _hasSmilesPattern = /(?:CC\(=O\)|c1ccc|[A-Z][a-z]?(?:c|C)\d|[A-Z]=O|SMILES\s*[:=]\s*\S{5,})/i.test(message)
+      || /\b[A-Z][CNOPSFIBrcl0-9@=#\-+\[\]()\/.\\]{6,}\b/.test(message);
+    const _hasAdmetKeywords = /(ADMET|hERG|DILI|Ames\s+mutagenicity|cardiotox|hepatotox|ClinTox|toxicity\s+screen|drug\s+toxicity)/i.test(message);
+    if (_hasSmilesPattern && _hasAdmetKeywords && !actions.needsWorkflowGeneration) {
+      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true');
+      actions.needsWorkflowGeneration = true;
+    }
+
     // If the intent is ambiguous, return a clarifying question before generating
     const ambiguity = (intent as any).workflowAmbiguity;
     if (ambiguity && actions.needsWorkflowGeneration) {
@@ -1900,11 +1912,22 @@ IMPORTANT RULES:
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
 - If no workflow but tools were found, explain which tool to use and suggest creating a workflow
-- Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?")
-- When the user requests a workflow but has NOT mentioned any dataset (no file path, S3 URI, SRA/GSE/EMBL/PXD accession, SMILES string, protein sequence, or specific data file), ask what data they have and its format/location BEFORE generating the workflow — do NOT generate a workflow with empty input fields. Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it without requiring data.
-- SMILES strings (e.g. CC(=O)Oc1ccccc1C(=O)O), InChI strings, compound names with structures, and amino acid sequences all count as input data — if the user provides ANY of these in their FIRST message, you MUST generate the workflow immediately without asking ANY clarifying questions. This overrides all other rules about follow-up questions.
-- Ask at most ONE clarification question per conversation. Once the user has replied with any data or answered a question, generate the workflow immediately using that data and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
-- OVERRIDE RULE: If the user's first message contains a SMILES string, InChI string, amino acid sequence, or any molecular structure notation, skip ALL clarification questions and generate the workflow immediately using the provided structure.
+- Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?"). If the user wants to RUN or GENERATE a workflow, apply the DATA-FIRST RULE below — do not explain pipeline steps.
+
+DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
+- NEVER describe workflow steps, list pipeline stages, explain tools, or provide any execution instructions in response to a workflow-generation request when the user has not yet provided input data. This is a strict prohibition, not a preference. Violating this rule means the system cannot run.
+- "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
+- SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for a file path or S3 URI when an SRA accession is present in the message.
+- If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please provide one of: (1) FASTQ file paths or S3 URIs for your sequencing reads, or (2) an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
+- Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it immediately without asking for data.
+
+TURN-2 QUALIFIER RULE:
+- If the previous assistant message generated a workflow card AND the user's current message provides a type qualifier (e.g., "germline", "somatic", "bulk RNA-seq", "single-cell", "tumor-only", "paired tumor/normal", "inherited disease", "cancer"), regenerate the workflow immediately with the qualifier applied. Do NOT describe the workflow in text. Do NOT ask for data again. The previous conversation's input data is still valid.
+
+ONE-QUESTION RULE:
+- Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
+- SECOND-TURN OVERRIDE: If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), GENERATE THE WORKFLOW IMMEDIATELY. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel.
+- SMILES strings (e.g. CC(=O)Oc1ccccc1C(=O)O), InChI strings, compound names with structures, and amino acid sequences all count as input data — if the user provides ANY of these, generate the workflow immediately without asking ANY clarifying questions.
 - When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". Use the galaxy_dataset_id values as the workflow input parameters (e.g. input_bam, reads, input_vcf). Do NOT ask the user for data again — proceed directly to workflow generation using those IDs.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}

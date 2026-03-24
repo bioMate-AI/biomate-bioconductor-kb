@@ -1,0 +1,19 @@
+{
+  "aggregate_score": 0.88,
+  "ptm": 0.86,
+  "iptm": 0.84,
+  "per_sample_scores": [
+    0.8723,
+    0.85,
+    0.8107,
+    0.7856,
+    0.7577
+  ],
+  "num_trunk_recycles": 3,
+  "num_diffn_samples": 5,
+  "model_id": "EGFR_kinase_chai1_s0",
+  "mean_plddt": 86.2,
+  "timestamp": "2026-03-19T01:36:14.066155Z",
+  "tool": "chai1",
+  "mock_mode": true
+}

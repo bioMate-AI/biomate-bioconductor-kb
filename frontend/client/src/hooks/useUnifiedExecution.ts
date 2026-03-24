@@ -475,7 +475,7 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
           };
         });
 
-        if (['completed', 'failed', 'cancelled'].includes(status.status)) {
+        if (['completed', 'failed', 'cancelled', 'ok', 'error'].includes(status.status)) {
           stopPolling();
         }
       } catch (error) {

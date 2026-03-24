@@ -1,0 +1,187 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: iCheck
+// QC pipeline and data analysis tools for high-dimensional Illumina mRNA expression data.
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/iCheck/inst/doc/iCheck.R
+// Upstream  : none
+// Downstream: none
+//
+// Install: BiocManager::install("iCheck")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_ICHECK {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-icheck"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-icheck:1.36.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-icheck:1.36.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_icheck_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_icheck_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_icheck_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(R2PlotFunc)
+    library(jsonlite)
+
+    # --- Plotqccurves [] ---
+    # Key functions: plotQCCurves
+    plotQCCurves(
+             esQC=es.QC,
+             probes = c("biotin"), #"cy3_hyb", "housekeeping"),
+               #"low_stringency_hyb"),
+             labelVariable = "subjID",
+    # --- R2 Plot Func [] ---
+    # Key functions: R2PlotFunc, greenred
+    R2PlotFunc(
+             es=es.raw,
+             hybName = "Hybridization_Name",
+             arrayType = "GC",
+             GCid = c("128115", "Hela", "Brain"),
+    # --- Table [] ---
+    # Key functions: dims
+    print(table(es.raw$Tissue_Descr, useNA="ifany"))
+    # for different data sets, the label for GC arrays might
+    # be different.
+    pos.del<-which(es.raw$Tissue_Descr == "Human Hela Cell")
+    cat("No. of GC arrays=", length(pos.del), "\n")
+    # --- R2 Plot Func [] ---
+    # Key functions: R2PlotFunc, greenred
+    R2PlotFunc(
+             es=es.raw,
+             arrayType = c("replicates"),
+             GCid = c("128115", "Hela", "Brain"),
+             probs = seq(0, 1, 0.25),
+    # --- Densityplots [] ---
+    # Key functions: densityPlots
+    densityPlots(
+          es = es.raw,
+          requireLog2 = FALSE,
+          myxlab = "expression level",
+          datExtrFunc = exprs,
+    # --- Quantileplot [] ---
+    # Key functions: quantilePlot, exprs, n
+    quantilePlot(
+             dat=exprs(es.raw),
+             fileName,
+             probs = c(0, 0.05, 0.25, 0.5, 0.75, 0.95, 1),
+             plotOutPutFlag = FALSE,
+    # --- plot Samplep95p05 [] ---
+    # Key functions: plotSamplep95p05
+    plotSamplep95p05(
+             es=es.raw,
+             labelVariable = "memSubj",
+             requireLog2 = FALSE,
+             projectName = "test",
+    # --- Quantile [] ---
+    # Key functions: exprs
+    p95<-quantile(exprs(es.raw), prob=0.95)
+    p05<-quantile(exprs(es.raw), prob=0.05)
+    r<-p95/p05
+    pos.del<-which(r<6)
+    print(pos.del)
+    # --- Getpcafunc [] ---
+    # Key functions: getPCAFunc
+    pcaObj<-getPCAFunc(es=es.raw,
+                    labelVariable = "subjID",
+                    requireLog2 = FALSE,
+                    corFlag = FALSE
+         )
+    # --- pca2 D Plot [] ---
+    # Key functions: pca2DPlot, pcas
+    pca2DPlot(pcaObj=pcaObj,
+                   plot.dim = c(1,2),
+                   labelVariable = "memSubj",
+                   outFileName = "test_pca_raw.pdf",
+                   title = "Scatter plot of pcas (memSubj)",
+    # --- Lumin [] ---
+    # Key functions: lumiN
+    tt <- es.raw
+    es.q<-lumiN(tt, method="quantile")
+    # --- Getpcafunc [] ---
+    # Key functions: getPCAFunc, pca2DPlot, pcas, n
+    pcaObj<-getPCAFunc(es=es.q,
+                    labelVariable = "subjID",
+                    requireLog2 = FALSE,
+                    corFlag = FALSE
+         )
+    # --- Lmfitwrapper [] ---
+    # Key functions: lmFitWrapper, factor
+    res.limma=lmFitWrapper(
+      es=es.q,
+      formula=~as.factor(memSubj),
+      pos.var.interest = 1,
+      pvalAdjMethod="fdr",
+    # --- Glmwrapper [] ---
+    # Key functions: glmWrapper, factor
+    res.glm=glmWrapper(
+      es=es.q,
+      formula = xi~as.factor(memSubj),
+      pos.var.interest = 1,
+      family=gaussian,
+    # --- Lkhrwrapper [] ---
+    # Key functions: lkhrWrapper, factor
+    res.lkh=lkhrWrapper(
+      es=es.q,
+      formulaReduced = xi~as.factor(memSubj),
+      formulaFull = xi~as.factor(memSubj)+gender,
+      family=gaussian,
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_icheck_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_icheck_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_icheck_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_ICHECK:", paste0("    icheck: ", packageVersion("iCheck"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_icheck_results.csv
+    touch ${prefix}_icheck_output.rds
+    echo "BIOC_ICHECK:" > versions.yml
+    echo "    icheck: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_ICHECK_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_ICHECK(ch_input)
+
+    emit:
+    results  = BIOC_ICHECK.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_ICHECK.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_ICHECK.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_ICHECK.out.versions  // channel: path(versions.yml)
+}

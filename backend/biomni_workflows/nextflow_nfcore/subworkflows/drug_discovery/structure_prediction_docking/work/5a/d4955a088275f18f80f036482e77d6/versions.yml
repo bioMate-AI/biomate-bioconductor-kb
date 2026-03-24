@@ -1,0 +1,6 @@
+    "STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION":
+        alphafold3: "3.0.0"
+        python: 3.12.3
+        af3_mode: "mock"
+        mock_mode: "true"
+    END_VERSIONS

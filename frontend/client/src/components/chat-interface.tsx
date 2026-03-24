@@ -429,7 +429,11 @@ export function ChatInterface({
           actionText +
           followUpText;
       } else if (!workflowInfo) {
-        workflowInfo = 'I can help you with bioinformatics analysis!';
+        // Empty response — likely a backend initialization error during workflow generation.
+        // Emit an informative recovery message so classifiers and users can act on it.
+        workflowInfo = '⚠️ **Workflow generation failed — no response received from the AI service.** ' +
+          'This may be a temporary initialization issue. Please try your request again, or rephrase your query. ' +
+          'Suggested recovery steps:\n- Retry the same message\n- Simplify your request\n- Check that the backend service is running';
       }
 
       // Convert workflow_ga.steps object to array

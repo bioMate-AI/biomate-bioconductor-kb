@@ -691,10 +691,11 @@ def search_nextflow_workflow(
         # curated multi-step chain matches the query.  Chains outrank any
         # single-workflow match because they represent authoritative, vetted
         # multi-tool pipelines for complex analyses.
-        # search_chains returns List[WorkflowChain] already filtered at ≥0.15;
-        # we only act when at least one chain is returned (score already enough
-        # to be meaningful — chain match is always preferred over single wf).
-        chain_candidates = _workflow_search.search_chains(user_intent)
+        # Use min_score=0.35 to avoid weak-overlap false positives.
+        # The internal default of 0.15 is too permissive — direct single-pipeline
+        # queries (e.g. "germline variant calling") would otherwise match complex
+        # chains (e.g. rare_disease_multimodal_workup) via 2-3 shared tokens.
+        chain_candidates = _workflow_search.search_chains(user_intent, min_score=0.35)
         if chain_candidates:
             best_chain = chain_candidates[0]
             log.info(
@@ -845,18 +846,33 @@ def search_nextflow_workflow(
             else:
                 _opt_params.append(_entry)
 
+        # Inject SRA accession into reads param when user provided one.
+        # Keeps reads in required_params (correct semantics) but sets default so the viewer
+        # pre-fills the field and the Run button is not blocked (hasUnfilledRequired uses p.value).
+        _sra_accession = re.search(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', user_intent, re.IGNORECASE)
+        if _sra_accession:
+            _acc = _sra_accession.group(1).upper()
+            _req_params = [
+                {**_p, 'default': _acc, 'sra_accession': True}
+                if _p['name'] in ('reads', 'input', 'fastq', 'sample', 'reads1', 'reads2')
+                else _p
+                for _p in _req_params
+            ]
+
+        # Only treat params as "missing" if they have no pre-filled default (e.g. SRR accession injected)
+        _truly_missing = [p for p in _req_params if not p.get('default')]
         _prereq_validation = None
-        if _req_params:
+        if _truly_missing:
             _prereq_validation = {
                 "requirements": {
                     "parameters": [
                         {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
-                        for p in _req_params
+                        for p in _truly_missing
                     ]
                 },
                 "analysis": {
                     "missingInputs": [],
-                    "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in _req_params],
+                    "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in _truly_missing],
                     "inputMappings": [],
                 },
             }

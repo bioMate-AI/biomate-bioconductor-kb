@@ -1,0 +1,1 @@
+2026-03-24 22:29:06	1.9s	fabulous_faraday	OK	104793f0ee1c7cad5892cf6387684686	3e67401e-915f-4bff-84eb-60efaee3dbee	nextflow run main.nf -profile docker --outdir results/midazolam

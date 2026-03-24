@@ -1,0 +1,412 @@
+Mar-24 20:53:20.644 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --input_smiles /tmp/test_actives.smi --outdir /tmp/test_scaffold_out
+Mar-24 20:53:20.705 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:53:20.740 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:53:20.741 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/nextflow.config
+Mar-24 20:53:20.761 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:53:21.231 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, stub, singularity, docker]
+Mar-24 20:53:21.258 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:53:21.264 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:53:21.265 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:53:21.266 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:53:21.278 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:53:21.372 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:53:21.373 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:53:21.373 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:53:21.391 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:53:21.394 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7beae796] - activable => nextflow.secret.LocalSecretsProvider@7beae796
+Mar-24 20:53:21.397 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:53:21.414 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [suspicious_wozniak] DSL2 - revision: ef3f54dd2e
+Mar-24 20:53:21.453 [main] DEBUG nextflow.Session - Session UUID: dcd59208-8940-4239-8b63-7974b34ea244
+Mar-24 20:53:21.453 [main] DEBUG nextflow.Session - Run name: suspicious_wozniak
+Mar-24 20:53:21.454 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:53:21.461 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:53:21.468 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:53:21.487 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1452962@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (8.7 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:53:21.510 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work [ext2/ext3]
+Mar-24 20:53:21.511 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/bin
+Mar-24 20:53:21.516 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:53:21.521 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:53:21.524 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:53:21.567 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:53:21.573 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:53:21.626 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:53:21.630 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_scaffold_out/pipeline_info/trace.txt
+Mar-24 20:53:22.168 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:53:22.248 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Scaffold Hopping Pipeline
+====================================================================
+Mode:               LIVE
+Reference SMILES:   CC(=O)Nc1ccc(O)cc1
+Max candidates:     20
+Lipinski filter:    true
+Output dir:         /tmp/test_scaffold_out
+====================================================================
+
+Mar-24 20:53:22.300 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_INPUT_VALIDATION` matches process SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:53:22.309 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:53:22.309 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:53:22.318 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:53:22.322 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:53:22.323 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:53:22.336 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION': maxForks=0; fair=false; array=0
+Mar-24 20:53:22.363 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:RECAP_FRAGMENTATION` matches process SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:53:22.364 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:53:22.364 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:53:22.365 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:RECAP_FRAGMENTATION': maxForks=0; fair=false; array=0
+Mar-24 20:53:22.376 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:MMP_ANALYSIS` matches process SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:53:22.379 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:53:22.379 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:53:22.380 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:MMP_ANALYSIS': maxForks=0; fair=false; array=0
+Mar-24 20:53:22.389 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SCAFFOLD_HOPPING_CANDIDATES` matches process SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:53:22.390 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 20:53:22.390 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:53:22.391 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES': maxForks=0; fair=false; array=0
+Mar-24 20:53:22.403 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_HOPPING:MMP_ANALYSIS, SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION, RECAP_FRAGMENTATION, SCAFFOLD_HOPPING:RECAP_FRAGMENTATION, MMP_ANALYSIS, SCAFFOLD_HOPPING_CANDIDATES, SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:53:22.405 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Mar-24 20:53:22.408 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION
+Mar-24 20:53:22.408 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION
+Mar-24 20:53:22.409 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:MMP_ANALYSIS
+Mar-24 20:53:22.409 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SCAFFOLD_HOPPING:SCAFFOLD_HOPPING_CANDIDATES
+Mar-24 20:53:22.409 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_6b34968be8ce137b: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/main.nf
+Mar-24 20:53:22.409 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:53:22.409 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:53:22.584 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:53:22.587 [Task submitter] INFO  nextflow.Session - [2c/f41e81] Submitted process > SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives)
+Mar-24 20:53:23.122 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: SCAFFOLD_HOPPING:SCAFFOLD_INPUT_VALIDATION (test_actives); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/2c/f41e81a9c3adcea2911e92537d5bdc]
+Mar-24 20:53:23.123 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:53:23.170 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:53:23.193 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:53:23.194 [Task submitter] INFO  nextflow.Session - [38/377ef9] Submitted process > SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)
+Mar-24 20:53:23.683 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/38/377ef92cf6cceaf4659595c19b47dc]
+Mar-24 20:53:23.686 [TaskFinalizer-2] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/38/377ef92cf6cceaf4659595c19b47dc
+  error [nextflow.exception.ProcessFailedException]: Process `SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)` terminated with an error exit status (1)
+Mar-24 20:53:23.698 [TaskFinalizer-2] ERROR nextflow.processor.TaskProcessor - Error executing process > 'SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)'
+
+Caused by:
+  Process `SCAFFOLD_HOPPING:RECAP_FRAGMENTATION (test_actives)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import csv
+  import random
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  meta_id = "test_actives"
+  
+  # ---------------------------------------------------------------------------
+  # Mock RECAP output: 8 fragments from acetaminophen (CC(=O)Nc1ccc(O)cc1)
+  #
+  # RECAP bond types (Lewell et al. 1998):
+  #   amide, ester, amine, urea, ether, olefin, quaternary N, aromatic N-aliphatic C,
+  #   lactam N-aliphatic C, aromatic C-aromatic C
+  #
+  # Scaffold = core retained after fragmentation
+  # R-groups = leaving fragments at attachment points (marked with [*])
+  # ---------------------------------------------------------------------------
+  fragments = [
+      {
+          "compound_id":        "REF_001",
+          "parent_smiles":      "CC(=O)Nc1ccc(O)cc1",
+          "fragment_id":        "FRAG_001_amide_scaffold",
+          "scaffold_smiles":    "[*]Nc1ccc(O)cc1",
+          "rgroup_smiles":      "[*]C(=O)C",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        109.13,
+          "rgroup_mw":          43.04,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 6,
+      },
+      {
+          "compound_id":        "REF_001",
+          "parent_smiles":      "CC(=O)Nc1ccc(O)cc1",
+          "fragment_id":        "FRAG_001_phenol_core",
+          "scaffold_smiles":    "Oc1ccc([*])cc1",
+          "rgroup_smiles":      "[*]NC(=O)C",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        94.11,
+          "rgroup_mw":          57.07,
+          "scaffold_heavy_atoms": 7,
+          "fragment_frequency": 9,
+      },
+      {
+          "compound_id":        "ANA_002",
+          "parent_smiles":      "CC(=O)Nc1ccc(OC)cc1",
+          "fragment_id":        "FRAG_002_methoxyphenyl",
+          "scaffold_smiles":    "COc1ccc([*])cc1",
+          "rgroup_smiles":      "[*]NC(=O)C",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        108.14,
+          "rgroup_mw":          57.07,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 7,
+      },
+      {
+          "compound_id":        "ANA_003",
+          "parent_smiles":      "CC(=O)Nc1ccc(F)cc1",
+          "fragment_id":        "FRAG_003_fluorophenyl",
+          "scaffold_smiles":    "Fc1ccc([*])cc1",
+          "rgroup_smiles":      "[*]NC(=O)C",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        96.10,
+          "rgroup_mw":          57.07,
+          "scaffold_heavy_atoms": 7,
+          "fragment_frequency": 5,
+      },
+      {
+          "compound_id":        "ANA_005",
+          "parent_smiles":      "CCC(=O)Nc1ccc(O)cc1",
+          "fragment_id":        "FRAG_005_propanoyl",
+          "scaffold_smiles":    "[*]Nc1ccc(O)cc1",
+          "rgroup_smiles":      "[*]C(=O)CC",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        109.13,
+          "rgroup_mw":          57.07,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 3,
+      },
+      {
+          "compound_id":        "ANA_009",
+          "parent_smiles":      "O=C(Nc1ccc(O)cc1)c1ccccc1",
+          "fragment_id":        "FRAG_009_benzoyl",
+          "scaffold_smiles":    "[*]Nc1ccc(O)cc1",
+          "rgroup_smiles":      "[*]C(=O)c1ccccc1",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        109.13,
+          "rgroup_mw":          105.11,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 4,
+      },
+      {
+          "compound_id":        "ANA_009",
+          "parent_smiles":      "O=C(Nc1ccc(O)cc1)c1ccccc1",
+          "fragment_id":        "FRAG_009_phenyl_rgroup",
+          "scaffold_smiles":    "O=C([*])c1ccccc1",
+          "rgroup_smiles":      "[*]Nc1ccc(O)cc1",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        105.11,
+          "rgroup_mw":          109.13,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 4,
+      },
+      {
+          "compound_id":        "ANA_010",
+          "parent_smiles":      "CC(=O)Nc1ccc(O)cc1C",
+          "fragment_id":        "FRAG_010_methylphenol",
+          "scaffold_smiles":    "Cc1cc([*])ccc1O",
+          "rgroup_smiles":      "[*]NC(=O)C",
+          "bond_type":          "amide",
+          "attachment_points":  1,
+          "scaffold_mw":        108.14,
+          "rgroup_mw":          57.07,
+          "scaffold_heavy_atoms": 8,
+          "fragment_frequency": 2,
+      },
+  ]
+  
+  with open(f"{meta_id}_recap_fragments.csv", "w", newline="") as csvf:
+      if fragments:
+          writer = csv.DictWriter(csvf, fieldnames=list(fragments[0].keys()))
+          writer.writeheader()
+          writer.writerows(fragments)
+  
+  # Scaffold frequency table (unique scaffolds across all compounds)
+  scaffold_freq = {}
+  for frag in fragments:
+      sc = frag["scaffold_smiles"]
+      scaffold_freq[sc] = scaffold_freq.get(sc, 0) + frag["fragment_frequency"]
+  
+  summary = {
+      "meta_id":               meta_id,
+      "input_file":            "test_actives_validated.csv",
+      "total_compounds_processed": 10,
+      "total_fragments":       len(fragments),
+      "unique_scaffolds":      len(set(f["scaffold_smiles"] for f in fragments)),
+      "bond_type_counts": {
+          "amide":  len(fragments),
+      },
+      "top_scaffolds_by_frequency": sorted(
+          [{"scaffold": sc, "frequency": freq}
+           for sc, freq in scaffold_freq.items()],
+          key=lambda x: -x["frequency"]
+      )[:5],
+      "tool":      "RDKit RECAP",
+      "timestamp": datetime.utcnow().isoformat() + "Z",
+      "mock_mode": True,
+  }
+  
+  with open(f"{meta_id}_recap_summary.json", "w") as jf:
+      json.dump(summary, jf, indent=2)
+  
+  print(f"RECAP mock complete: {len(fragments)} fragments from 10 compounds")
+  print(f"  Unique scaffolds: {summary['unique_scaffolds']}")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: RDKit RECAP decomposition
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json
+  import csv
+  import sys
+  from datetime import datetime
+  
+  try:
+      from rdkit import Chem
+      from rdkit.Chem import RECAP, Descriptors
+  except ImportError:
+      print("ERROR: RDKit is required for live RECAP fragmentation", file=sys.stderr)
+      sys.exit(1)
+  
+  meta_id    = "test_actives"
+  input_file = "test_actives_validated.csv"
+  
+  compounds = []
+  with open(input_file, newline="") as csvf:
+      reader = csv.DictReader(csvf)
+      for row in reader:
+          if row.get("valid", "").lower() == "true":
+              compounds.append(row)
+  
+  all_fragments = []
+  scaffold_freq = {}
+  
+  for cmpd in compounds:
+      cid = cmpd["compound_id"]
+      smi = cmpd["canonical_smiles"] or cmpd["smiles"]
+      mol = Chem.MolFromSmiles(smi)
+      if mol is None:
+          continue
+  
+      try:
+          recap_tree = RECAP.RecapDecompose(mol)
+      except Exception as e:
+          print(f"  WARNING: RECAP failed for {cid}: {e}", file=sys.stderr)
+          continue
+  
+      leaves = recap_tree.GetLeaves()
+      for leaf_smi, leaf_node in leaves.items():
+          # leaf_smi contains [*] attachment point markers
+          try:
+              leaf_mol = Chem.MolFromSmiles(leaf_smi)
+              if leaf_mol is None:
+                  continue
+              mw = round(Descriptors.MolWt(leaf_mol), 3)
+              ha = leaf_mol.GetNumHeavyAtoms()
+          except Exception:
+              mw, ha = 0.0, 0
+  
+          # Count attachment points (*-atoms)
+          n_attach = leaf_smi.count("[*]")
+  
+          frag_id = f"FRAG_{cid}_{len(all_fragments):04d}"
+          all_fragments.append({
+              "compound_id":        cid,
+              "parent_smiles":      smi,
+              "fragment_id":        frag_id,
+              "scaffold_smiles":    leaf_smi,
+              "rgroup_smiles":      "",      # RECAP returns leaf nodes; parent context gives R-groups
+              "bond_type":          "recap",
+              "attachment_points":  n_attach,
+              "scaffold_mw":        mw,
+              "rgroup_mw":          0.0,
+              "scaffold_heavy_atoms": ha,
+              "fragment_frequency": 1,
+          })
+          scaffold_freq[leaf_smi] = scaffold_freq.get(leaf_smi, 0) + 1
+  
+  # Update frequencies
+  for frag in all_fragments:
+      frag["fragment_frequency"] = scaffold_freq.get(frag["scaffold_smiles"], 1)
+  
+  with open(f"{meta_id}_recap_fragments.csv", "w", newline="") as csvf:
+      if all_fragments:
+          writer = csv.DictWriter(csvf, fieldnames=list(all_fragments[0].keys()))
+          writer.writeheader()
+          writer.writerows(all_fragments)
+      else:
+          csvf.write("compound_id,scaffold_smiles,fragment_frequency\n")
+  
+  unique_scaffolds = len(set(f["scaffold_smiles"] for f in all_fragments))
+  summary = {
+      "meta_id":               meta_id,
+      "input_file":            input_file,
+      "total_compounds_processed": len(compounds),
+      "total_fragments":       len(all_fragments),
+      "unique_scaffolds":      unique_scaffolds,
+      "top_scaffolds_by_frequency": sorted(
+          [{"scaffold": sc, "frequency": freq}
+           for sc, freq in scaffold_freq.items()],
+          key=lambda x: -x["frequency"]
+      )[:10],
+      "tool":      "RDKit RECAP",
+      "timestamp": datetime.utcnow().isoformat() + "Z",
+      "mock_mode": False,
+  }
+  with open(f"{meta_id}_recap_summary.json", "w") as jf:
+      json.dump(summary, jf, indent=2)
+  
+  print(f"RECAP live complete: {len(all_fragments)} fragments, {unique_scaffolds} unique scaffolds")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "SCAFFOLD_HOPPING:RECAP_FRAGMENTATION":
+          rdkit: $(python3 -c "from rdkit import __version__; print(__version__)" 2>/dev/null || echo "N/A")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  ERROR: RDKit is required for live RECAP fragmentation
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/scaffold_hopping/work/38/377ef92cf6cceaf4659595c19b47dc
+
+Container:
+  biomate/biomni-drug-discovery-nf:latest
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Mar-24 20:53:23.702 [TaskFinalizer-2] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:53:23.706 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:53:23.709 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:53:23.710 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:53:23.712 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:53:23.712 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 20:53:23.717 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=168ms; failedDuration=462ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Mar-24 20:53:23.741 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-24 20:53:23.741 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:53:24.161 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:53:24.201 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:53:24.205 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:53:24.222 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:53:24.223 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

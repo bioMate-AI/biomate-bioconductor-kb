@@ -1,0 +1,11 @@
+[0;93m2026-03-24 20:31:22.255707622 [W:onnxruntime:Default, device_discovery.cc:325 DiscoverDevicesForPlatform] GPU device discovery failed: device_discovery.cc:92 ReadFileContents Failed to open file: "/sys/class/drm/card0/device/vendor"[m
+mkdir -p failed for path /.config/matplotlib: [Errno 13] Permission denied: '/.config'
+Matplotlib created a temporary cache directory at /tmp/matplotlib-zi9oum8q because there was an issue with the default path (/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+usage: aizynthcli [-h] --smiles SMILES --config CONFIG
+                  [--policy POLICY [POLICY ...]]
+                  [--filter FILTER [FILTER ...]]
+                  [--stocks STOCKS [STOCKS ...]] [--output OUTPUT]
+                  [--log_to_file] [--nproc NPROC] [--cluster]
+                  [--post_processing POST_PROCESSING [POST_PROCESSING ...]]
+                  [--pre_processing PRE_PROCESSING] [--checkpoint CHECKPOINT]
+aizynthcli: error: unrecognized arguments: --max-transforms 6 --iteration-limit 100

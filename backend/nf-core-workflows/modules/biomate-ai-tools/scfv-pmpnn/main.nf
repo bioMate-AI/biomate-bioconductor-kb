@@ -6,7 +6,7 @@ process SCFV_DESIGN {
     label 'process_gpu'
     label 'process_high_memory'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:nextflow'
 
     input:
     tuple val(meta), path(target_pdb)  // Target antigen structure
@@ -45,7 +45,7 @@ process SCFV_PREDICT {
     label 'process_gpu'
     label 'process_high_memory'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/scfv-pmpnn:nextflow'
 
     input:
     tuple val(meta), path(scfv_fasta)  // Designed antibody sequences

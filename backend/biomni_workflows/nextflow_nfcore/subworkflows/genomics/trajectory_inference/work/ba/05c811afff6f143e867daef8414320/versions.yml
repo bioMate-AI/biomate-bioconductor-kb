@@ -1,0 +1,4 @@
+SCVELO_DYNAMICS:
+    scvelo: 0.3.2
+    scanpy: 1.10.0
+    anndata: 0.10.8

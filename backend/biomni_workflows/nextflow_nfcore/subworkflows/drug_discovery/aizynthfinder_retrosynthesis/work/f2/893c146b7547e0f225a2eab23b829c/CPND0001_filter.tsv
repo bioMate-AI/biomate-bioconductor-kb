@@ -1,0 +1,2 @@
+compound_id	smiles	best_route_steps	best_route_score	best_sa_score	n_routes	qc_status	qc_reason
+CPND0001	CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1	0	0.5	3.0	5	WARN	best_route_steps=0_score=0.5_below_pass_threshold

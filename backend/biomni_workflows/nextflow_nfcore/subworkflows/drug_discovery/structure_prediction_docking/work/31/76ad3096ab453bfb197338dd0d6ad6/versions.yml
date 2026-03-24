@@ -1,0 +1,5 @@
+    "STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION":
+        chai_lab: "0.5.0"
+        python: 3.12.3
+        mock_mode: "true"
+    END_VERSIONS

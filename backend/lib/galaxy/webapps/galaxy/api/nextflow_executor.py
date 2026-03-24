@@ -56,10 +56,15 @@ _qc_handlers_lock = threading.Lock()
 # Request / response models
 # ---------------------------------------------------------------------------
 
+def _default_nf_profile() -> str:
+    """Return the deployment-level Nextflow profile from env, defaulting to 'docker'."""
+    return os.environ.get("BIOMATE_NF_PROFILE", "docker")
+
+
 class NextflowExecuteRequest(BaseModel):
     nextflow_path: str
     parameters: Optional[Dict[str, Any]] = None
-    profile: Optional[str] = "standard"
+    profile: Optional[str] = None  # None → resolved at execution time from BIOMATE_NF_PROFILE
     entry: Optional[str] = None
     history_id: Optional[str] = None
     compute_config: Optional[Dict[str, Any]] = None
@@ -1382,9 +1387,17 @@ def execute_nextflow(
             ),
         )
 
-    # Profile
-    profile = request.profile or "standard"
+    # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
+    profile = request.profile or _default_nf_profile()
     cmd += ["-profile", profile]
+
+    # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
+    # Workflows default params.mock_mode = true; command-line params override defaults.
+    # This keeps the logic centralised here rather than scattered across workflow configs.
+    _mock_profiles = {"standard", "test", "test_full", "test_cache"}
+    if not any(p.strip() in _mock_profiles for p in profile.split(",")) and "mock_mode" not in params:
+        params["mock_mode"] = False
+        log.info(f"[Nextflow run {run_id}] profile={profile!r} → injecting --mock_mode false")
 
     # Work directory — for awsbatch, the work dir must be S3 (set in executor config);
     # passing a local path via -w would override that and cause "S3 bucket required" errors.
@@ -1571,6 +1584,56 @@ def get_nextflow_status(
         info = _runs.get(run_id)
 
     if info is None:
+        # Fallback: run may have been started in a different gunicorn worker.
+        # gunicorn --workers 4 creates 4 separate Python processes each with their own
+        # _runs dict. If the execute request hit Worker A and this status request hits
+        # Worker B, _runs.get(run_id) returns None. Reconstruct status from disk.
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        log_dir = work_base / run_id
+        output_dir = log_dir / "output"
+        log_path_fallback = log_dir / "nextflow.log"
+        log_tail_fallback: list = []
+        if log_path_fallback.exists():
+            try:
+                with open(log_path_fallback) as fh:
+                    lines = fh.readlines()
+                log_tail_fallback = [l.rstrip() for l in lines[-20:]]
+            except Exception:
+                pass
+        if output_dir.exists():
+            # Output directory exists → run completed successfully
+            return {
+                "run_id": run_id,
+                "invocation_id": run_id,
+                "status": "succeeded",
+                "returncode": 0,
+                "outdir": str(output_dir),
+                "work_dir": str(log_dir / "work"),
+                "log_tail": log_tail_fallback,
+                "is_batch": False,
+                "s3_output_files": [],
+                "completedSteps": 0,
+                "totalSteps": 0,
+                "progressPercent": 100,
+                "processes": [],
+            }
+        elif log_dir.exists():
+            # Log dir exists but no output yet → still running
+            return {
+                "run_id": run_id,
+                "invocation_id": run_id,
+                "status": "running",
+                "returncode": None,
+                "outdir": str(output_dir),
+                "work_dir": str(log_dir / "work"),
+                "log_tail": log_tail_fallback,
+                "is_batch": False,
+                "s3_output_files": [],
+                "completedSteps": 0,
+                "totalSteps": 0,
+                "progressPercent": 50,
+                "processes": [],
+            }
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     # Read last few lines of log for progress info
@@ -1635,7 +1698,13 @@ def download_s3_output(
     with _runs_lock:
         info = _runs.get(run_id)
     if info is None:
-        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+        # Same multi-worker fallback as get_nextflow_status: reconstruct from disk
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        output_dir = work_base / run_id / "output"
+        if output_dir.exists():
+            info = {"outdir": str(output_dir), "invocation_id": run_id}
+        else:
+            raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):

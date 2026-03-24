@@ -1,0 +1,5 @@
+MoA Report complete for Erlotinib / EGFR
+  QC status:   WARN  (5 significant DE genes)
+  Top pathway: PI3K/AKT/mTOR  Signaling  NES=-1.62
+  CMap top:    N/A  similarity=0.00
+  Hypothesis:  Treatment with Erlotinib induces suppression of the PI3K/AKT/mTOR  Signaling pathway (NES=-1.62), consistent with N/A (CMap similarity=0.00), supporting EGFR engagement.

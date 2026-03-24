@@ -1,0 +1,5 @@
+Pharmacophore model generated (mock): 4 features from 3 references
+  [D] Donor: Hydroxyl or NH hydrogen-bond donor  (frac=1.0)
+  [A1] Acceptor: Carbonyl C=O acceptor (ester/acid/amide)  (frac=1.0)
+  [A2] Acceptor: Ester or hydroxyl oxygen acceptor  (frac=1.0)
+  [Ar] Aromatic: Aromatic benzene ring  (frac=1.0)

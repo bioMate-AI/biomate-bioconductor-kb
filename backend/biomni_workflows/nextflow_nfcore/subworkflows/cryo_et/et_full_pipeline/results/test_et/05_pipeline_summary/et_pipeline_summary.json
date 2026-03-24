@@ -1,0 +1,41 @@
+{
+  "workflow": "cryo_et_full_pipeline",
+  "version": "1.0",
+  "completion_time": "2026-03-05T16:37:39.614025",
+  "mock_mode": true,
+  "steps_completed": 4,
+  "steps": [
+    "04_subtomogram_averaging",
+    "02_tilt_alignment",
+    "01_import_tiltseries",
+    "03_tomogram_reconstruction"
+  ],
+  "acquisition": {
+    "num_tiltseries": 3,
+    "num_tilts_per_series": 41,
+    "pixel_size_angstroms": 1.35,
+    "voltage_kv": 300,
+    "total_dose_e_per_a2": 120.0
+  },
+  "alignment": {
+    "method": "aretomo2",
+    "overall_mean_residual_angstroms": 1.496,
+    "num_poor_alignments": 0
+  },
+  "reconstruction": {
+    "method": "wbp",
+    "binning_factor": 4,
+    "voxel_size_angstroms": 5.4,
+    "num_tomograms": 3
+  },
+  "sta": {
+    "total_particles": 500,
+    "symmetry": "C1",
+    "num_rounds": 2,
+    "final_fsc_0143_resolution_angstroms": 18.0
+  },
+  "outputs": {
+    "tomograms": "03_tomogram_reconstruction/tomograms_manifest.json",
+    "sta_map": "04_subtomogram_averaging/sta_report.json"
+  }
+}

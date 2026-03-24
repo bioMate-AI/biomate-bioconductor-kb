@@ -1,0 +1,98 @@
+Mar-05 22:37:37.843 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile test
+Mar-05 22:37:37.885 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-05 22:37:37.903 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/nextflow.config
+Mar-05 22:37:37.905 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/nextflow.config
+Mar-05 22:37:37.931 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
+Mar-05 22:37:38.225 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [slurm, test, local_gpu, stub, singularity, docker]
+Mar-05 22:37:38.255 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-05 22:37:38.262 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-05 22:37:38.272 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-05 22:37:38.274 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-05 22:37:38.283 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-05 22:37:38.363 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-05 22:37:38.364 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-05 22:37:38.364 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-05 22:37:38.379 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-05 22:37:38.381 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@5f2de715] - activable => nextflow.secret.LocalSecretsProvider@5f2de715
+Mar-05 22:37:38.388 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-05 22:37:38.397 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [silly_fourier] DSL2 - revision: 9551cde4d3
+Mar-05 22:37:38.425 [main] DEBUG nextflow.Session - Session UUID: dffc19fe-e7d1-49a2-a4f5-3c34fac28808
+Mar-05 22:37:38.426 [main] DEBUG nextflow.Session - Run name: silly_fourier
+Mar-05 22:37:38.426 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-05 22:37:38.430 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-05 22:37:38.434 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-05 22:37:38.444 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 180458@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (4.7 GB) - Swap: 16 GB (14.8 GB)
+Mar-05 22:37:38.470 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work [ext2/ext3]
+Mar-05 22:37:38.470 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/bin
+Mar-05 22:37:38.475 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-05 22:37:38.480 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-05 22:37:38.481 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-05 22:37:38.504 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-05 22:37:38.510 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-05 22:37:38.547 [main] DEBUG nextflow.Session - Session start
+Mar-05 22:37:38.857 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-05 22:37:38.998 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-05 22:37:38.999 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-05 22:37:39.005 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-05 22:37:39.009 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-05 22:37:39.011 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-05 22:37:39.030 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'CRYO_ET_FULL_PIPELINE:IMPORT_TILTSERIES': maxForks=0; fair=false; array=0
+Mar-05 22:37:39.055 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_gpu` matches labels `process_gpu` for process with name CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT
+Mar-05 22:37:39.056 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-05 22:37:39.056 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-05 22:37:39.056 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT': maxForks=0; fair=false; array=0
+Mar-05 22:37:39.059 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-05 22:37:39.059 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-05 22:37:39.059 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'CRYO_ET_FULL_PIPELINE:TOMOGRAM_RECONSTRUCTION': maxForks=0; fair=false; array=0
+Mar-05 22:37:39.061 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_gpu` matches labels `process_gpu` for process with name CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING
+Mar-05 22:37:39.062 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-05 22:37:39.062 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-05 22:37:39.062 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING': maxForks=0; fair=false; array=0
+Mar-05 22:37:39.081 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-05 22:37:39.081 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-05 22:37:39.081 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'CRYO_ET_FULL_PIPELINE:ET_PIPELINE_SUMMARY': maxForks=0; fair=false; array=0
+Mar-05 22:37:39.084 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: TILT_ALIGNMENT, CRYO_ET_FULL_PIPELINE:ET_PIPELINE_SUMMARY, TOMOGRAM_RECONSTRUCTION, IMPORT_TILTSERIES, CRYO_ET_FULL_PIPELINE:TOMOGRAM_RECONSTRUCTION, CRYO_ET_FULL_PIPELINE:IMPORT_TILTSERIES, SUBTOMOGRAM_AVERAGING, CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT, ET_PIPELINE_SUMMARY, CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING
+Mar-05 22:37:39.086 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-05 22:37:39.090 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > CRYO_ET_FULL_PIPELINE:IMPORT_TILTSERIES
+Mar-05 22:37:39.091 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT
+Mar-05 22:37:39.091 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > CRYO_ET_FULL_PIPELINE:TOMOGRAM_RECONSTRUCTION
+Mar-05 22:37:39.091 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING
+Mar-05 22:37:39.091 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > CRYO_ET_FULL_PIPELINE:ET_PIPELINE_SUMMARY
+Mar-05 22:37:39.092 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_d6cc4f0bf068ce5b: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/main.nf
+Mar-05 22:37:39.092 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-05 22:37:39.092 [main] DEBUG nextflow.Session - Session await
+Mar-05 22:37:39.228 [Actor Thread 17] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/test_data -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/test_data
+Mar-05 22:37:39.276 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-05 22:37:39.278 [Task submitter] INFO  nextflow.Session - [b7/7b0110] Submitted process > CRYO_ET_FULL_PIPELINE:IMPORT_TILTSERIES (import_tiltseries)
+Mar-05 22:37:39.326 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: CRYO_ET_FULL_PIPELINE:IMPORT_TILTSERIES (import_tiltseries); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work/b7/7b011047d6e571a71334ce89b3420e]
+Mar-05 22:37:39.328 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-05 22:37:39.347 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-05 22:37:39.380 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-05 22:37:39.381 [Task submitter] INFO  nextflow.Session - [bb/baa5fd] Submitted process > CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT (tilt_alignment)
+Mar-05 22:37:39.419 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: CRYO_ET_FULL_PIPELINE:TILT_ALIGNMENT (tilt_alignment); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work/bb/baa5fd6a1326334ebd6bc0109c948b]
+Mar-05 22:37:39.452 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-05 22:37:39.452 [Task submitter] INFO  nextflow.Session - [0b/c80062] Submitted process > CRYO_ET_FULL_PIPELINE:TOMOGRAM_RECONSTRUCTION (tomogram_reconstruction)
+Mar-05 22:37:39.489 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: CRYO_ET_FULL_PIPELINE:TOMOGRAM_RECONSTRUCTION (tomogram_reconstruction); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work/0b/c80062ca5907cfc96d043ec182972d]
+Mar-05 22:37:39.513 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-05 22:37:39.513 [Task submitter] INFO  nextflow.Session - [d4/1c636d] Submitted process > CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING (subtomogram_averaging)
+Mar-05 22:37:39.551 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: CRYO_ET_FULL_PIPELINE:SUBTOMOGRAM_AVERAGING (subtomogram_averaging); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work/d4/1c636d64c6454de40a92c579455598]
+Mar-05 22:37:39.575 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-05 22:37:39.576 [Task submitter] INFO  nextflow.Session - [21/878039] Submitted process > CRYO_ET_FULL_PIPELINE:ET_PIPELINE_SUMMARY (et_summary)
+Mar-05 22:37:39.625 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 5; name: CRYO_ET_FULL_PIPELINE:ET_PIPELINE_SUMMARY (et_summary); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/work/21/878039755ae39c6be1a69101a49e94]
+Mar-05 22:37:39.630 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-05 22:37:39.725 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-05 22:37:39.725 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-05 22:37:39.727 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-05 22:37:39.727 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-05 22:37:39.733 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=5; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=23ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=8; peakMemory=32 GB; ]
+Mar-05 22:37:39.736 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-05 22:37:39.752 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-05 22:37:39.753 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

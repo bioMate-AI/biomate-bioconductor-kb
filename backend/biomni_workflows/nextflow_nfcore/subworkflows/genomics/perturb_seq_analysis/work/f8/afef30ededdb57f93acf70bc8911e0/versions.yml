@@ -1,0 +1,4 @@
+        "PERTURB_SEQ_ANALYSIS:MAGECK_MLE":
+            mageck: "0.5.9.5 (mock)"
+            python: 3.12.3
+        END_VERSIONS

@@ -1,0 +1,13 @@
+{
+  "ptm": 0.85,
+  "iptm": 0.82,
+  "ranking_score": 0.87,
+  "fraction_disordered": 0.02,
+  "has_clash": false,
+  "num_recycles": 10,
+  "model_id": "EGFR_kinase_model_1",
+  "mean_plddt": 84.7,
+  "min_plddt": 52.3,
+  "timestamp": "2026-03-04T21:20:55.109690Z",
+  "mock_mode": true
+}

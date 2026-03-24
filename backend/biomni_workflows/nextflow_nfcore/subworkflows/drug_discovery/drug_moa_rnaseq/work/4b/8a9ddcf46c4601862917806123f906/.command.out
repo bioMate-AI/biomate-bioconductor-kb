@@ -1,0 +1,7 @@
+GMT file not found at null; using gseapy built-in: MSigDB_Hallmark_2020
+GSEA (live/gseapy): 32 pathways, 3 significant (padj<0.05)
+  [DOWN] PI3K/AKT/mTOR  Signaling  NES=-1.616  padj=0.0082
+  [DOWN] UV Response Dn  NES=-1.533  padj=0.0192
+  [DOWN] Spermatogenesis  NES=-1.534  padj=0.0288
+  [DOWN] Allograft Rejection  NES=-1.463  padj=0.0566
+  [DOWN] Apical Junction  NES=-1.429  padj=0.0684

@@ -1,0 +1,1 @@
+2026-03-24 22:28:16	2.6s	loving_dubinsky	OK	26285d71a3c5a68beb1e30b416be1a83	f7156f9e-3711-4eb5-91b2-272ded770271	nextflow run main.nf --smiles 'OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC' --outdir results/terfenadine -profile docker

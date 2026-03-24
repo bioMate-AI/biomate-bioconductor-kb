@@ -1,0 +1,1034 @@
+{
+  "num_tiltseries": 3,
+  "num_tilts_per_series": 41,
+  "tilt_range_min_deg": -60.0,
+  "tilt_range_max_deg": 60.0,
+  "tilt_increment_deg": 3.0,
+  "pixel_size_angstroms": 1.35,
+  "voltage_kv": 300,
+  "tiltseries": [
+    {
+      "ts_id": "TS_001",
+      "num_tilts": 41,
+      "tilt_angles": [
+        -60.0,
+        -57.0,
+        -54.0,
+        -51.0,
+        -48.0,
+        -45.0,
+        -42.0,
+        -39.0,
+        -36.0,
+        -33.0,
+        -30.0,
+        -27.0,
+        -24.0,
+        -21.0,
+        -18.0,
+        -15.0,
+        -12.0,
+        -9.0,
+        -6.0,
+        -3.0,
+        0.0,
+        3.0,
+        6.0,
+        9.0,
+        12.0,
+        15.0,
+        18.0,
+        21.0,
+        24.0,
+        27.0,
+        30.0,
+        33.0,
+        36.0,
+        39.0,
+        42.0,
+        45.0,
+        48.0,
+        51.0,
+        54.0,
+        57.0,
+        60.0
+      ],
+      "tilt_entries": [
+        {
+          "tilt_angle_deg": -60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 2.9268,
+          "defocus_um": -2.401,
+          "filename": "tiltseries_TS_001_tilt001.mrc"
+        },
+        {
+          "tilt_angle_deg": -57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 5.8536,
+          "defocus_um": -3.937,
+          "filename": "tiltseries_TS_001_tilt002.mrc"
+        },
+        {
+          "tilt_angle_deg": -54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 8.7804,
+          "defocus_um": -3.312,
+          "filename": "tiltseries_TS_001_tilt003.mrc"
+        },
+        {
+          "tilt_angle_deg": -51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 11.7072,
+          "defocus_um": -3.442,
+          "filename": "tiltseries_TS_001_tilt004.mrc"
+        },
+        {
+          "tilt_angle_deg": -48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 14.634,
+          "defocus_um": -2.159,
+          "filename": "tiltseries_TS_001_tilt005.mrc"
+        },
+        {
+          "tilt_angle_deg": -45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 17.5608,
+          "defocus_um": -2.308,
+          "filename": "tiltseries_TS_001_tilt006.mrc"
+        },
+        {
+          "tilt_angle_deg": -42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 20.4876,
+          "defocus_um": -1.77,
+          "filename": "tiltseries_TS_001_tilt007.mrc"
+        },
+        {
+          "tilt_angle_deg": -39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 23.4144,
+          "defocus_um": -3.783,
+          "filename": "tiltseries_TS_001_tilt008.mrc"
+        },
+        {
+          "tilt_angle_deg": -36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 26.3412,
+          "defocus_um": -2.945,
+          "filename": "tiltseries_TS_001_tilt009.mrc"
+        },
+        {
+          "tilt_angle_deg": -33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 29.268,
+          "defocus_um": -3.926,
+          "filename": "tiltseries_TS_001_tilt010.mrc"
+        },
+        {
+          "tilt_angle_deg": -30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 32.1948,
+          "defocus_um": -3.453,
+          "filename": "tiltseries_TS_001_tilt011.mrc"
+        },
+        {
+          "tilt_angle_deg": -27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 35.1216,
+          "defocus_um": -2.737,
+          "filename": "tiltseries_TS_001_tilt012.mrc"
+        },
+        {
+          "tilt_angle_deg": -24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 38.0484,
+          "defocus_um": -3.934,
+          "filename": "tiltseries_TS_001_tilt013.mrc"
+        },
+        {
+          "tilt_angle_deg": -21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 40.9752,
+          "defocus_um": -3.503,
+          "filename": "tiltseries_TS_001_tilt014.mrc"
+        },
+        {
+          "tilt_angle_deg": -18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 43.902,
+          "defocus_um": -2.375,
+          "filename": "tiltseries_TS_001_tilt015.mrc"
+        },
+        {
+          "tilt_angle_deg": -15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 46.8288,
+          "defocus_um": -2.638,
+          "filename": "tiltseries_TS_001_tilt016.mrc"
+        },
+        {
+          "tilt_angle_deg": -12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 49.7556,
+          "defocus_um": -3.449,
+          "filename": "tiltseries_TS_001_tilt017.mrc"
+        },
+        {
+          "tilt_angle_deg": -9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 52.6824,
+          "defocus_um": -2.527,
+          "filename": "tiltseries_TS_001_tilt018.mrc"
+        },
+        {
+          "tilt_angle_deg": -6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 55.6092,
+          "defocus_um": -1.976,
+          "filename": "tiltseries_TS_001_tilt019.mrc"
+        },
+        {
+          "tilt_angle_deg": -3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 58.536,
+          "defocus_um": -3.984,
+          "filename": "tiltseries_TS_001_tilt020.mrc"
+        },
+        {
+          "tilt_angle_deg": 0.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 61.4628,
+          "defocus_um": -1.985,
+          "filename": "tiltseries_TS_001_tilt021.mrc"
+        },
+        {
+          "tilt_angle_deg": 3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 64.3896,
+          "defocus_um": -2.255,
+          "filename": "tiltseries_TS_001_tilt022.mrc"
+        },
+        {
+          "tilt_angle_deg": 6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 67.3164,
+          "defocus_um": -3.149,
+          "filename": "tiltseries_TS_001_tilt023.mrc"
+        },
+        {
+          "tilt_angle_deg": 9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 70.2432,
+          "defocus_um": -3.611,
+          "filename": "tiltseries_TS_001_tilt024.mrc"
+        },
+        {
+          "tilt_angle_deg": 12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 73.17,
+          "defocus_um": -1.607,
+          "filename": "tiltseries_TS_001_tilt025.mrc"
+        },
+        {
+          "tilt_angle_deg": 15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 76.0968,
+          "defocus_um": -3.159,
+          "filename": "tiltseries_TS_001_tilt026.mrc"
+        },
+        {
+          "tilt_angle_deg": 18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 79.0236,
+          "defocus_um": -3.768,
+          "filename": "tiltseries_TS_001_tilt027.mrc"
+        },
+        {
+          "tilt_angle_deg": 21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 81.9504,
+          "defocus_um": -3.758,
+          "filename": "tiltseries_TS_001_tilt028.mrc"
+        },
+        {
+          "tilt_angle_deg": 24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 84.8772,
+          "defocus_um": -1.881,
+          "filename": "tiltseries_TS_001_tilt029.mrc"
+        },
+        {
+          "tilt_angle_deg": 27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 87.804,
+          "defocus_um": -2.491,
+          "filename": "tiltseries_TS_001_tilt030.mrc"
+        },
+        {
+          "tilt_angle_deg": 30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 90.7308,
+          "defocus_um": -1.982,
+          "filename": "tiltseries_TS_001_tilt031.mrc"
+        },
+        {
+          "tilt_angle_deg": 33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 93.6576,
+          "defocus_um": -2.176,
+          "filename": "tiltseries_TS_001_tilt032.mrc"
+        },
+        {
+          "tilt_angle_deg": 36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 96.5844,
+          "defocus_um": -2.659,
+          "filename": "tiltseries_TS_001_tilt033.mrc"
+        },
+        {
+          "tilt_angle_deg": 39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 99.5112,
+          "defocus_um": -1.567,
+          "filename": "tiltseries_TS_001_tilt034.mrc"
+        },
+        {
+          "tilt_angle_deg": 42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 102.438,
+          "defocus_um": -3.054,
+          "filename": "tiltseries_TS_001_tilt035.mrc"
+        },
+        {
+          "tilt_angle_deg": 45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 105.3648,
+          "defocus_um": -2.62,
+          "filename": "tiltseries_TS_001_tilt036.mrc"
+        },
+        {
+          "tilt_angle_deg": 48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 108.2916,
+          "defocus_um": -1.926,
+          "filename": "tiltseries_TS_001_tilt037.mrc"
+        },
+        {
+          "tilt_angle_deg": 51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 111.2184,
+          "defocus_um": -2.454,
+          "filename": "tiltseries_TS_001_tilt038.mrc"
+        },
+        {
+          "tilt_angle_deg": 54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 114.1452,
+          "defocus_um": -1.846,
+          "filename": "tiltseries_TS_001_tilt039.mrc"
+        },
+        {
+          "tilt_angle_deg": 57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 117.072,
+          "defocus_um": -2.557,
+          "filename": "tiltseries_TS_001_tilt040.mrc"
+        },
+        {
+          "tilt_angle_deg": 60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 119.9988,
+          "defocus_um": -2.239,
+          "filename": "tiltseries_TS_001_tilt041.mrc"
+        }
+      ],
+      "mdoc_available": false,
+      "pixel_size_angstroms": 1.35,
+      "voltage_kv": 300,
+      "spherical_aberration_mm": 2.7,
+      "total_dose_e_per_a2": 120.0
+    },
+    {
+      "ts_id": "TS_002",
+      "num_tilts": 41,
+      "tilt_angles": [
+        -60.0,
+        -57.0,
+        -54.0,
+        -51.0,
+        -48.0,
+        -45.0,
+        -42.0,
+        -39.0,
+        -36.0,
+        -33.0,
+        -30.0,
+        -27.0,
+        -24.0,
+        -21.0,
+        -18.0,
+        -15.0,
+        -12.0,
+        -9.0,
+        -6.0,
+        -3.0,
+        0.0,
+        3.0,
+        6.0,
+        9.0,
+        12.0,
+        15.0,
+        18.0,
+        21.0,
+        24.0,
+        27.0,
+        30.0,
+        33.0,
+        36.0,
+        39.0,
+        42.0,
+        45.0,
+        48.0,
+        51.0,
+        54.0,
+        57.0,
+        60.0
+      ],
+      "tilt_entries": [
+        {
+          "tilt_angle_deg": -60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 2.9268,
+          "defocus_um": -3.885,
+          "filename": "tiltseries_TS_002_tilt001.mrc"
+        },
+        {
+          "tilt_angle_deg": -57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 5.8536,
+          "defocus_um": -3.43,
+          "filename": "tiltseries_TS_002_tilt002.mrc"
+        },
+        {
+          "tilt_angle_deg": -54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 8.7804,
+          "defocus_um": -3.277,
+          "filename": "tiltseries_TS_002_tilt003.mrc"
+        },
+        {
+          "tilt_angle_deg": -51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 11.7072,
+          "defocus_um": -3.801,
+          "filename": "tiltseries_TS_002_tilt004.mrc"
+        },
+        {
+          "tilt_angle_deg": -48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 14.634,
+          "defocus_um": -3.418,
+          "filename": "tiltseries_TS_002_tilt005.mrc"
+        },
+        {
+          "tilt_angle_deg": -45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 17.5608,
+          "defocus_um": -3.747,
+          "filename": "tiltseries_TS_002_tilt006.mrc"
+        },
+        {
+          "tilt_angle_deg": -42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 20.4876,
+          "defocus_um": -3.305,
+          "filename": "tiltseries_TS_002_tilt007.mrc"
+        },
+        {
+          "tilt_angle_deg": -39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 23.4144,
+          "defocus_um": -2.411,
+          "filename": "tiltseries_TS_002_tilt008.mrc"
+        },
+        {
+          "tilt_angle_deg": -36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 26.3412,
+          "defocus_um": -3.088,
+          "filename": "tiltseries_TS_002_tilt009.mrc"
+        },
+        {
+          "tilt_angle_deg": -33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 29.268,
+          "defocus_um": -3.075,
+          "filename": "tiltseries_TS_002_tilt010.mrc"
+        },
+        {
+          "tilt_angle_deg": -30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 32.1948,
+          "defocus_um": -3.476,
+          "filename": "tiltseries_TS_002_tilt011.mrc"
+        },
+        {
+          "tilt_angle_deg": -27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 35.1216,
+          "defocus_um": -3.333,
+          "filename": "tiltseries_TS_002_tilt012.mrc"
+        },
+        {
+          "tilt_angle_deg": -24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 38.0484,
+          "defocus_um": -1.658,
+          "filename": "tiltseries_TS_002_tilt013.mrc"
+        },
+        {
+          "tilt_angle_deg": -21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 40.9752,
+          "defocus_um": -2.38,
+          "filename": "tiltseries_TS_002_tilt014.mrc"
+        },
+        {
+          "tilt_angle_deg": -18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 43.902,
+          "defocus_um": -2.477,
+          "filename": "tiltseries_TS_002_tilt015.mrc"
+        },
+        {
+          "tilt_angle_deg": -15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 46.8288,
+          "defocus_um": -3.572,
+          "filename": "tiltseries_TS_002_tilt016.mrc"
+        },
+        {
+          "tilt_angle_deg": -12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 49.7556,
+          "defocus_um": -2.177,
+          "filename": "tiltseries_TS_002_tilt017.mrc"
+        },
+        {
+          "tilt_angle_deg": -9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 52.6824,
+          "defocus_um": -3.591,
+          "filename": "tiltseries_TS_002_tilt018.mrc"
+        },
+        {
+          "tilt_angle_deg": -6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 55.6092,
+          "defocus_um": -3.051,
+          "filename": "tiltseries_TS_002_tilt019.mrc"
+        },
+        {
+          "tilt_angle_deg": -3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 58.536,
+          "defocus_um": -1.526,
+          "filename": "tiltseries_TS_002_tilt020.mrc"
+        },
+        {
+          "tilt_angle_deg": 0.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 61.4628,
+          "defocus_um": -2.4,
+          "filename": "tiltseries_TS_002_tilt021.mrc"
+        },
+        {
+          "tilt_angle_deg": 3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 64.3896,
+          "defocus_um": -2.608,
+          "filename": "tiltseries_TS_002_tilt022.mrc"
+        },
+        {
+          "tilt_angle_deg": 6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 67.3164,
+          "defocus_um": -2.288,
+          "filename": "tiltseries_TS_002_tilt023.mrc"
+        },
+        {
+          "tilt_angle_deg": 9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 70.2432,
+          "defocus_um": -1.893,
+          "filename": "tiltseries_TS_002_tilt024.mrc"
+        },
+        {
+          "tilt_angle_deg": 12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 73.17,
+          "defocus_um": -2.06,
+          "filename": "tiltseries_TS_002_tilt025.mrc"
+        },
+        {
+          "tilt_angle_deg": 15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 76.0968,
+          "defocus_um": -3.427,
+          "filename": "tiltseries_TS_002_tilt026.mrc"
+        },
+        {
+          "tilt_angle_deg": 18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 79.0236,
+          "defocus_um": -3.92,
+          "filename": "tiltseries_TS_002_tilt027.mrc"
+        },
+        {
+          "tilt_angle_deg": 21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 81.9504,
+          "defocus_um": -3.211,
+          "filename": "tiltseries_TS_002_tilt028.mrc"
+        },
+        {
+          "tilt_angle_deg": 24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 84.8772,
+          "defocus_um": -3.331,
+          "filename": "tiltseries_TS_002_tilt029.mrc"
+        },
+        {
+          "tilt_angle_deg": 27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 87.804,
+          "defocus_um": -3.473,
+          "filename": "tiltseries_TS_002_tilt030.mrc"
+        },
+        {
+          "tilt_angle_deg": 30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 90.7308,
+          "defocus_um": -1.643,
+          "filename": "tiltseries_TS_002_tilt031.mrc"
+        },
+        {
+          "tilt_angle_deg": 33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 93.6576,
+          "defocus_um": -1.809,
+          "filename": "tiltseries_TS_002_tilt032.mrc"
+        },
+        {
+          "tilt_angle_deg": 36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 96.5844,
+          "defocus_um": -3.213,
+          "filename": "tiltseries_TS_002_tilt033.mrc"
+        },
+        {
+          "tilt_angle_deg": 39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 99.5112,
+          "defocus_um": -2.361,
+          "filename": "tiltseries_TS_002_tilt034.mrc"
+        },
+        {
+          "tilt_angle_deg": 42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 102.438,
+          "defocus_um": -3.011,
+          "filename": "tiltseries_TS_002_tilt035.mrc"
+        },
+        {
+          "tilt_angle_deg": 45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 105.3648,
+          "defocus_um": -1.714,
+          "filename": "tiltseries_TS_002_tilt036.mrc"
+        },
+        {
+          "tilt_angle_deg": 48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 108.2916,
+          "defocus_um": -2.853,
+          "filename": "tiltseries_TS_002_tilt037.mrc"
+        },
+        {
+          "tilt_angle_deg": 51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 111.2184,
+          "defocus_um": -3.338,
+          "filename": "tiltseries_TS_002_tilt038.mrc"
+        },
+        {
+          "tilt_angle_deg": 54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 114.1452,
+          "defocus_um": -3.383,
+          "filename": "tiltseries_TS_002_tilt039.mrc"
+        },
+        {
+          "tilt_angle_deg": 57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 117.072,
+          "defocus_um": -2.597,
+          "filename": "tiltseries_TS_002_tilt040.mrc"
+        },
+        {
+          "tilt_angle_deg": 60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 119.9988,
+          "defocus_um": -3.343,
+          "filename": "tiltseries_TS_002_tilt041.mrc"
+        }
+      ],
+      "mdoc_available": false,
+      "pixel_size_angstroms": 1.35,
+      "voltage_kv": 300,
+      "spherical_aberration_mm": 2.7,
+      "total_dose_e_per_a2": 120.0
+    },
+    {
+      "ts_id": "TS_003",
+      "num_tilts": 41,
+      "tilt_angles": [
+        -60.0,
+        -57.0,
+        -54.0,
+        -51.0,
+        -48.0,
+        -45.0,
+        -42.0,
+        -39.0,
+        -36.0,
+        -33.0,
+        -30.0,
+        -27.0,
+        -24.0,
+        -21.0,
+        -18.0,
+        -15.0,
+        -12.0,
+        -9.0,
+        -6.0,
+        -3.0,
+        0.0,
+        3.0,
+        6.0,
+        9.0,
+        12.0,
+        15.0,
+        18.0,
+        21.0,
+        24.0,
+        27.0,
+        30.0,
+        33.0,
+        36.0,
+        39.0,
+        42.0,
+        45.0,
+        48.0,
+        51.0,
+        54.0,
+        57.0,
+        60.0
+      ],
+      "tilt_entries": [
+        {
+          "tilt_angle_deg": -60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 2.9268,
+          "defocus_um": -2.539,
+          "filename": "tiltseries_TS_003_tilt001.mrc"
+        },
+        {
+          "tilt_angle_deg": -57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 5.8536,
+          "defocus_um": -1.755,
+          "filename": "tiltseries_TS_003_tilt002.mrc"
+        },
+        {
+          "tilt_angle_deg": -54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 8.7804,
+          "defocus_um": -3.001,
+          "filename": "tiltseries_TS_003_tilt003.mrc"
+        },
+        {
+          "tilt_angle_deg": -51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 11.7072,
+          "defocus_um": -3.452,
+          "filename": "tiltseries_TS_003_tilt004.mrc"
+        },
+        {
+          "tilt_angle_deg": -48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 14.634,
+          "defocus_um": -1.506,
+          "filename": "tiltseries_TS_003_tilt005.mrc"
+        },
+        {
+          "tilt_angle_deg": -45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 17.5608,
+          "defocus_um": -2.726,
+          "filename": "tiltseries_TS_003_tilt006.mrc"
+        },
+        {
+          "tilt_angle_deg": -42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 20.4876,
+          "defocus_um": -3.773,
+          "filename": "tiltseries_TS_003_tilt007.mrc"
+        },
+        {
+          "tilt_angle_deg": -39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 23.4144,
+          "defocus_um": -3.882,
+          "filename": "tiltseries_TS_003_tilt008.mrc"
+        },
+        {
+          "tilt_angle_deg": -36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 26.3412,
+          "defocus_um": -3.726,
+          "filename": "tiltseries_TS_003_tilt009.mrc"
+        },
+        {
+          "tilt_angle_deg": -33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 29.268,
+          "defocus_um": -2.431,
+          "filename": "tiltseries_TS_003_tilt010.mrc"
+        },
+        {
+          "tilt_angle_deg": -30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 32.1948,
+          "defocus_um": -2.02,
+          "filename": "tiltseries_TS_003_tilt011.mrc"
+        },
+        {
+          "tilt_angle_deg": -27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 35.1216,
+          "defocus_um": -2.945,
+          "filename": "tiltseries_TS_003_tilt012.mrc"
+        },
+        {
+          "tilt_angle_deg": -24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 38.0484,
+          "defocus_um": -3.841,
+          "filename": "tiltseries_TS_003_tilt013.mrc"
+        },
+        {
+          "tilt_angle_deg": -21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 40.9752,
+          "defocus_um": -3.046,
+          "filename": "tiltseries_TS_003_tilt014.mrc"
+        },
+        {
+          "tilt_angle_deg": -18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 43.902,
+          "defocus_um": -1.51,
+          "filename": "tiltseries_TS_003_tilt015.mrc"
+        },
+        {
+          "tilt_angle_deg": -15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 46.8288,
+          "defocus_um": -2.677,
+          "filename": "tiltseries_TS_003_tilt016.mrc"
+        },
+        {
+          "tilt_angle_deg": -12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 49.7556,
+          "defocus_um": -1.572,
+          "filename": "tiltseries_TS_003_tilt017.mrc"
+        },
+        {
+          "tilt_angle_deg": -9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 52.6824,
+          "defocus_um": -1.848,
+          "filename": "tiltseries_TS_003_tilt018.mrc"
+        },
+        {
+          "tilt_angle_deg": -6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 55.6092,
+          "defocus_um": -3.971,
+          "filename": "tiltseries_TS_003_tilt019.mrc"
+        },
+        {
+          "tilt_angle_deg": -3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 58.536,
+          "defocus_um": -2.198,
+          "filename": "tiltseries_TS_003_tilt020.mrc"
+        },
+        {
+          "tilt_angle_deg": 0.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 61.4628,
+          "defocus_um": -2.296,
+          "filename": "tiltseries_TS_003_tilt021.mrc"
+        },
+        {
+          "tilt_angle_deg": 3.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 64.3896,
+          "defocus_um": -2.658,
+          "filename": "tiltseries_TS_003_tilt022.mrc"
+        },
+        {
+          "tilt_angle_deg": 6.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 67.3164,
+          "defocus_um": -3.333,
+          "filename": "tiltseries_TS_003_tilt023.mrc"
+        },
+        {
+          "tilt_angle_deg": 9.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 70.2432,
+          "defocus_um": -2.398,
+          "filename": "tiltseries_TS_003_tilt024.mrc"
+        },
+        {
+          "tilt_angle_deg": 12.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 73.17,
+          "defocus_um": -3.721,
+          "filename": "tiltseries_TS_003_tilt025.mrc"
+        },
+        {
+          "tilt_angle_deg": 15.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 76.0968,
+          "defocus_um": -2.913,
+          "filename": "tiltseries_TS_003_tilt026.mrc"
+        },
+        {
+          "tilt_angle_deg": 18.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 79.0236,
+          "defocus_um": -2.866,
+          "filename": "tiltseries_TS_003_tilt027.mrc"
+        },
+        {
+          "tilt_angle_deg": 21.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 81.9504,
+          "defocus_um": -1.615,
+          "filename": "tiltseries_TS_003_tilt028.mrc"
+        },
+        {
+          "tilt_angle_deg": 24.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 84.8772,
+          "defocus_um": -1.81,
+          "filename": "tiltseries_TS_003_tilt029.mrc"
+        },
+        {
+          "tilt_angle_deg": 27.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 87.804,
+          "defocus_um": -3.342,
+          "filename": "tiltseries_TS_003_tilt030.mrc"
+        },
+        {
+          "tilt_angle_deg": 30.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 90.7308,
+          "defocus_um": -2.749,
+          "filename": "tiltseries_TS_003_tilt031.mrc"
+        },
+        {
+          "tilt_angle_deg": 33.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 93.6576,
+          "defocus_um": -3.553,
+          "filename": "tiltseries_TS_003_tilt032.mrc"
+        },
+        {
+          "tilt_angle_deg": 36.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 96.5844,
+          "defocus_um": -1.718,
+          "filename": "tiltseries_TS_003_tilt033.mrc"
+        },
+        {
+          "tilt_angle_deg": 39.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 99.5112,
+          "defocus_um": -1.824,
+          "filename": "tiltseries_TS_003_tilt034.mrc"
+        },
+        {
+          "tilt_angle_deg": 42.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 102.438,
+          "defocus_um": -3.254,
+          "filename": "tiltseries_TS_003_tilt035.mrc"
+        },
+        {
+          "tilt_angle_deg": 45.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 105.3648,
+          "defocus_um": -2.403,
+          "filename": "tiltseries_TS_003_tilt036.mrc"
+        },
+        {
+          "tilt_angle_deg": 48.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 108.2916,
+          "defocus_um": -2.478,
+          "filename": "tiltseries_TS_003_tilt037.mrc"
+        },
+        {
+          "tilt_angle_deg": 51.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 111.2184,
+          "defocus_um": -3.618,
+          "filename": "tiltseries_TS_003_tilt038.mrc"
+        },
+        {
+          "tilt_angle_deg": 54.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 114.1452,
+          "defocus_um": -2.094,
+          "filename": "tiltseries_TS_003_tilt039.mrc"
+        },
+        {
+          "tilt_angle_deg": 57.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 117.072,
+          "defocus_um": -2.652,
+          "filename": "tiltseries_TS_003_tilt040.mrc"
+        },
+        {
+          "tilt_angle_deg": 60.0,
+          "accumulated_dose_per_tilt": 2.9268,
+          "cumulative_dose_e_per_a2": 119.9988,
+          "defocus_um": -2.053,
+          "filename": "tiltseries_TS_003_tilt041.mrc"
+        }
+      ],
+      "mdoc_available": false,
+      "pixel_size_angstroms": 1.35,
+      "voltage_kv": 300,
+      "spherical_aberration_mm": 2.7,
+      "total_dose_e_per_a2": 120.0
+    }
+  ]
+}

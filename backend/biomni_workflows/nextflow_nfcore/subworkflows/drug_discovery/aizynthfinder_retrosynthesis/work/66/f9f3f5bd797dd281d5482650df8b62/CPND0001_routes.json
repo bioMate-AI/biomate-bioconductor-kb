@@ -1,0 +1,88 @@
+{
+  "compound_id": "CPND0001",
+  "smiles": "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1",
+  "smiles_valid": true,
+  "n_routes": 5,
+  "routes": [
+    {
+      "route_id": 1,
+      "score": 0.5,
+      "step_count": 0,
+      "sa_score": 3.0,
+      "steps": []
+    },
+    {
+      "route_id": 2,
+      "score": 0.5,
+      "step_count": 1,
+      "sa_score": 3.0,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "0.0 Unrecognized",
+          "reagent": "unknown",
+          "precursor_smiles": "CCc1cc(N)no1.CCOc1cc2ncnc(Cl)c2cc1OCC",
+          "yield_pct": null
+        }
+      ]
+    },
+    {
+      "route_id": 3,
+      "score": 0.5,
+      "step_count": 1,
+      "sa_score": 3.0,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "0.0 Unrecognized",
+          "reagent": "unknown",
+          "precursor_smiles": "CCI.CCOc1cc2ncnc(Nc3cc(CC)on3)c2cc1O",
+          "yield_pct": null
+        }
+      ]
+    },
+    {
+      "route_id": 4,
+      "score": 0.5,
+      "step_count": 1,
+      "sa_score": 3.0,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "0.0 Unrecognized",
+          "reagent": "unknown",
+          "precursor_smiles": "CCc1cc(N)no1.CCOc1cc(C#N)c(N=CN(C)C)cc1OCC",
+          "yield_pct": null
+        }
+      ]
+    },
+    {
+      "route_id": 5,
+      "score": 0.5,
+      "step_count": 1,
+      "sa_score": 3.0,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "0.0 Unrecognized",
+          "reagent": "unknown",
+          "precursor_smiles": "CCO.CCOc1cc2c(Nc3cc(CC)on3)ncnc2cc1O",
+          "yield_pct": null
+        }
+      ]
+    }
+  ],
+  "feasibility_rank": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "max_routes": 5,
+  "max_depth": 6,
+  "tool": "aizynthfinder",
+  "version": "3.7.0",
+  "timestamp": "2026-03-24T20:33:11.348032Z",
+  "mock_mode": false
+}

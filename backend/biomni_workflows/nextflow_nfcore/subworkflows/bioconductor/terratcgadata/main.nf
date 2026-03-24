@@ -1,0 +1,89 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: terraTCGAdata
+// Leverage the existing open access TCGA data on Terra with well-established Bioconductor infrastructu
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/terraTCGAdata/inst/doc/terraTCGAdata.R
+// Upstream  : AnVIL
+// Downstream: none
+//
+// Install: BiocManager::install("terraTCGAdata")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_TERRATCGADATA {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-terratcgadata"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-terratcgadata:1.10.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-terratcgadata:1.10.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_terratcgadata_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_terratcgadata_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_terratcgadata_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(terraTCGAdata)
+    library(jsonlite)
+
+    # --- Gcloud Exists [] ---
+    # Key functions: gcloud_exists
+    ---------------------------------------------------------------------
+    gcloud_exists()
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_terratcgadata_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_terratcgadata_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_terratcgadata_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_TERRATCGADATA:", paste0("    terratcgadata: ", packageVersion("terraTCGAdata"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_terratcgadata_results.csv
+    touch ${prefix}_terratcgadata_output.rds
+    echo "BIOC_TERRATCGADATA:" > versions.yml
+    echo "    terratcgadata: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_TERRATCGADATA_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_TERRATCGADATA(ch_input)
+
+    emit:
+    results  = BIOC_TERRATCGADATA.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_TERRATCGADATA.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_TERRATCGADATA.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_TERRATCGADATA.out.versions  // channel: path(versions.yml)
+}

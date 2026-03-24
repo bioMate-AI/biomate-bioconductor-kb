@@ -1,0 +1,345 @@
+Mar-24 20:31:53.734 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --smiles_file /tmp/test_compounds.smi --outdir /tmp/biomate_test_aizynth
+Mar-24 20:31:53.782 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:31:53.818 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/nextflow.config
+Mar-24 20:31:53.820 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/nextflow.config
+Mar-24 20:31:53.839 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:31:54.177 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, gpu, docker]
+Mar-24 20:31:54.206 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:31:54.212 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:31:54.213 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:31:54.215 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:31:54.223 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:31:54.314 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:31:54.315 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:31:54.315 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:31:54.324 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:31:54.326 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@2f4ba1ae] - activable => nextflow.secret.LocalSecretsProvider@2f4ba1ae
+Mar-24 20:31:54.328 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:31:54.339 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [reverent_church] DSL2 - revision: 77f2a45db6
+Mar-24 20:31:54.369 [main] DEBUG nextflow.Session - Session UUID: 181f752d-ada0-457d-9e7b-9ae0fe211ea2
+Mar-24 20:31:54.369 [main] DEBUG nextflow.Session - Run name: reverent_church
+Mar-24 20:31:54.369 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:31:54.374 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:31:54.377 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:31:54.390 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1413318@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (5.6 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:31:54.405 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/work [ext2/ext3]
+Mar-24 20:31:54.405 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/bin
+Mar-24 20:31:54.410 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:31:54.416 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:31:54.418 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:31:54.441 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:31:54.446 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:31:54.489 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:31:54.496 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/biomate_test_aizynth/pipeline_info/trace.txt
+Mar-24 20:31:54.986 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:31:55.080 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | AiZynthFinder Retrosynthesis Pipeline
+====================================================================
+Mode:               LIVE (AiZynthFinder)
+Max routes:         5
+Max depth:          6
+PASS threshold:     steps ≤ 4  AND  score ≥ 0.6
+WARN threshold:     steps ≤ 6
+Output dir:         /tmp/biomate_test_aizynth
+====================================================================
+
+Mar-24 20:31:55.160 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:31:55.160 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:31:55.169 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:31:55.174 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:31:55.176 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:31:55.195 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT': maxForks=0; fair=false; array=0
+Mar-24 20:31:55.216 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:31:55.217 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:31:55.217 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_FILTER': maxForks=0; fair=false; array=0
+Mar-24 20:31:55.224 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:31:55.224 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:31:55.225 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_REPORT': maxForks=0; fair=false; array=0
+Mar-24 20:31:55.260 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT, RETROSYNTHESIS_REPORT, AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_FILTER, AIZYNTHFINDER_PREDICT, AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_REPORT, RETROSYNTHESIS_FILTER
+Mar-24 20:31:55.261 [main] DEBUG nextflow.Session - Igniting dataflow network (4)
+Mar-24 20:31:55.270 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT
+Mar-24 20:31:55.277 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_FILTER
+Mar-24 20:31:55.278 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_REPORT
+Mar-24 20:31:55.278 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_391ab7e2983586de: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/main.nf
+Mar-24 20:31:55.278 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:31:55.278 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:31:55.541 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:31:55.544 [Task submitter] INFO  nextflow.Session - [bb/2cee42] Submitted process > AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001)
+Mar-24 20:31:56.104 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001); status: COMPLETED; exit: 125; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/work/bb/2cee422fe7bdc704098aab8de73dfa]
+Mar-24 20:31:56.106 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:31:56.116 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/work/bb/2cee422fe7bdc704098aab8de73dfa
+  error [nextflow.exception.ProcessFailedException]: Process `AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001)` terminated with an error exit status (125)
+Mar-24 20:31:56.142 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001)'
+
+Caused by:
+  Process `AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT (CPND0001)` terminated with an error exit status (125)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import random
+  import hashlib
+  from datetime import datetime
+  
+  compound_id = "CPND0001"
+  smiles      = "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1"
+  max_routes  = int("5")
+  max_depth   = int("6")
+  
+  # ---------------------------------------------------------------------------
+  # Seed RNG from SMILES for reproducible mock outputs across CI runs.
+  # ---------------------------------------------------------------------------
+  seed = int(hashlib.md5(smiles.encode()).hexdigest(), 16) % (2**31)
+  rng  = random.Random(seed)
+  
+  MOCK_REAGENTS = [
+      ("Pd(OAc)2 / PPh3",      "Suzuki coupling"),
+      ("NaBH4 / MeOH",          "Carbonyl reduction"),
+      ("SOCl2 / pyridine",       "Chlorination"),
+      ("LiAlH4 / THF",           "Amide reduction"),
+      ("Ac2O / Et3N",            "Acetylation"),
+      ("EDCI / HOBt / DMF",      "Amide coupling"),
+      ("K2CO3 / DMF",            "N-alkylation"),
+      ("m-CPBA / CH2Cl2",        "Epoxidation"),
+      ("NBS / CCl4 / hv",        "Radical bromination"),
+      ("H2 / Pd-C / EtOH",      "Hydrogenation"),
+  ]
+  
+  MOCK_PRECURSORS = [
+      "c1ccccc1",
+      "CC(=O)O",
+      "NC(=O)O",
+      "c1ccc(Br)cc1",
+      "CCOC(=O)CCl",
+      "OC(=O)c1ccccc1",
+      "c1ccc(N)cc1",
+      "CC(C)=O",
+      "OCC",
+      "c1ccc(Cl)cc1",
+  ]
+  
+  def make_steps(rng, n_steps):
+      steps = []
+      for i in range(n_steps):
+          reagent, rxn_class = rng.choice(MOCK_REAGENTS)
+          precursor = rng.choice(MOCK_PRECURSORS)
+          steps.append({
+              "step":             i + 1,
+              "reaction_class":   rxn_class,
+              "reagent":          reagent,
+              "precursor_smiles": precursor,
+              "yield_pct":        round(rng.uniform(60.0, 95.0), 1),
+          })
+      return steps
+  
+  # ---------------------------------------------------------------------------
+  # Basic validity check: balanced parentheses/brackets, non-empty, no spaces.
+  # Full SMILES validation requires RDKit (not available in mock mode).
+  # ---------------------------------------------------------------------------
+  smiles_valid = (
+      len(smiles.strip()) > 0
+      and " " not in smiles.strip()
+      and smiles.count("(") == smiles.count(")")
+      and smiles.count("[") == smiles.count("]")
+  )
+  
+  if not smiles_valid:
+      routes = []
+      feasibility_rank = []
+  else:
+      n_routes = min(3, max_routes)
+      routes = []
+      for r_idx in range(n_routes):
+          n_steps  = rng.randint(2, min(4, max_depth))
+          score    = round(rng.uniform(0.50, 0.92), 3)
+          sa_score = round(rng.uniform(1.5, 4.5), 2)  # SA score: 1=easy, 10=very hard
+          steps    = make_steps(rng, n_steps)
+          routes.append({
+              "route_id":   r_idx + 1,
+              "score":      score,
+              "step_count": n_steps,
+              "sa_score":   sa_score,
+              "steps":      steps,
+          })
+      # Sort descending by score → position = feasibility_rank
+      routes.sort(key=lambda x: x["score"], reverse=True)
+      feasibility_rank = [r["route_id"] for r in routes]
+  
+  result = {
+      "compound_id":      compound_id,
+      "smiles":           smiles,
+      "smiles_valid":     smiles_valid,
+      "n_routes":         len(routes),
+      "routes":           routes,
+      "feasibility_rank": feasibility_rank,
+      "max_routes":       max_routes,
+      "max_depth":        max_depth,
+      "tool":             "aizynthfinder",
+      "version":          "3.7.0-mock",
+      "timestamp":        datetime.utcnow().isoformat() + "Z",
+      "mock_mode":        True,
+  }
+  
+  with open(f"{compound_id}_routes.json", "w") as f:
+      json.dump(result, f, indent=2)
+  
+  print(f"AiZynthFinder predict (mock) [{compound_id}]: {len(routes)} routes  smiles={smiles[:50]}")
+  for r in routes:
+      print(f"  Route {r['route_id']}: steps={r['step_count']}  score={r['score']}  sa_score={r['sa_score']}")
+  if not smiles_valid:
+      print(f"  WARNING: SMILES failed validity check — 0 routes generated")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: run aizynthcli and normalize its output into BioMate JSON format.
+          # aizynthcli writes a JSON file containing a list of solved route trees.
+          # ---------------------------------------------------------------------------
+          aizynthcli             --smiles "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1"             --output CPND0001_routes_raw.json             --config "/opt/aizynthfinder/config.yml"
+  
+          python3 << 'PYEOF'
+  import json
+  import sys
+  from datetime import datetime
+  
+  compound_id = "CPND0001"
+  smiles      = "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1"
+  max_routes  = int("5")
+  raw_file    = f"{compound_id}_routes_raw.json"
+  
+  try:
+      raw = json.load(open(raw_file))
+  except (FileNotFoundError, json.JSONDecodeError) as exc:
+      print(f"ERROR: could not read {raw_file}: {exc}", file=sys.stderr)
+      result = {
+          "compound_id":      compound_id,
+          "smiles":           smiles,
+          "smiles_valid":     False,
+          "n_routes":         0,
+          "routes":           [],
+          "feasibility_rank": [],
+          "error":            str(exc),
+          "mock_mode":        False,
+      }
+      with open(f"{compound_id}_routes.json", "w") as f:
+          json.dump(result, f, indent=2)
+      sys.exit(0)
+  
+  # aizynthcli output is a list of route tree dicts; handle both list and dict root
+  routes_raw = raw if isinstance(raw, list) else raw.get("routes", raw.get("trees", []))
+  
+  def count_steps(node):
+      if node.get("type") == "reaction":
+          return 1 + sum(count_steps(c) for c in node.get("children", []))
+      return sum(count_steps(c) for c in node.get("children", []))
+  
+  def collect_steps(node, depth=0):
+      steps = []
+      if node.get("type") == "reaction":
+          steps.append({
+              "step":             depth + 1,
+              "reaction_class":   node.get("metadata", {}).get("classification", "unknown"),
+              "reagent":          node.get("metadata", {}).get("name", "unknown"),
+              "precursor_smiles": ".".join(
+                  c.get("smiles", "") for c in node.get("children", [])
+                  if c.get("type") == "mol"
+              ),
+              "yield_pct": None,
+          })
+      for child in node.get("children", []):
+          next_depth = depth + 1 if node.get("type") == "reaction" else depth
+          steps.extend(collect_steps(child, next_depth))
+      return steps
+  
+  routes = []
+  for r_idx, route_tree in enumerate(routes_raw[:max_routes]):
+      meta     = route_tree.get("metadata", {})
+      n_steps  = count_steps(route_tree)
+      steps    = collect_steps(route_tree)
+      score    = float(meta.get("score", meta.get("reaction_class_score", 0.5)))
+      sa_score = float(meta.get("sa_score", 3.0))
+      routes.append({
+          "route_id":   r_idx + 1,
+          "score":      round(score, 3),
+          "step_count": n_steps,
+          "sa_score":   round(sa_score, 2),
+          "steps":      steps,
+      })
+  
+  routes.sort(key=lambda x: x["score"], reverse=True)
+  
+  result = {
+      "compound_id":      compound_id,
+      "smiles":           smiles,
+      "smiles_valid":     True,
+      "n_routes":         len(routes),
+      "routes":           routes,
+      "feasibility_rank": [r["route_id"] for r in routes],
+      "max_routes":       max_routes,
+      "max_depth":        int("6"),
+      "tool":             "aizynthfinder",
+      "version":          "3.7.0",
+      "timestamp":        datetime.utcnow().isoformat() + "Z",
+      "mock_mode":        False,
+  }
+  
+  with open(f"{compound_id}_routes.json", "w") as f:
+      json.dump(result, f, indent=2)
+  
+  print(f"AiZynthFinder predict (live) [{compound_id}]: {len(routes)} routes found")
+  for r in routes:
+      print(f"  Route {r['route_id']}: steps={r['step_count']}  score={r['score']}  sa_score={r['sa_score']}")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT":
+          aizynthfinder: $(aizynthcli --version 2>&1 | head -1 || echo "3.7.0-mock")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  125
+
+Command output:
+  (empty)
+
+Command error:
+  Unable to find image 'molecularai/aizynthfinder:3.7.0' locally
+  docker: Error response from daemon: pull access denied for molecularai/aizynthfinder, repository does not exist or may require 'docker login': denied: requested access to the resource is denied
+  
+  Run 'docker run --help' for more information
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/aizynthfinder_retrosynthesis/work/bb/2cee422fe7bdc704098aab8de73dfa
+
+Container:
+  docker.io/molecularai/aizynthfinder:3.7.0
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Mar-24 20:31:56.151 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:31:56.159 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:31:56.167 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:31:56.168 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:31:56.170 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:31:56.177 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=518ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Mar-24 20:31:56.177 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:31:56.598 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:31:56.637 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:31:56.640 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:31:56.646 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:31:56.646 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

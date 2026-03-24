@@ -1,0 +1,15 @@
+{
+  "meta_id": "test_actives",
+  "input_file": "test_actives.smi",
+  "total_lines": 1,
+  "valid_count": 0,
+  "invalid_count": 1,
+  "errors": [
+    {
+      "line": 1,
+      "reason": "missing compound_id"
+    }
+  ],
+  "timestamp": "2026-03-24T20:59:35.603477Z",
+  "mock_mode": false
+}

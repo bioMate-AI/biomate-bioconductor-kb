@@ -1,0 +1,2 @@
+[22:22:58] SMILES Parse Error: syntax error while parsing: /tmp/test_ligand.smi
+[22:22:58] SMILES Parse Error: Failed parsing SMILES '/tmp/test_ligand.smi' for input: '/tmp/test_ligand.smi'

@@ -1,0 +1,51 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [label="TRAJECTORY_INFERENCE:MONOCLE3_TRAJECTORY"];
+v0 -> v1 [label="ch_input"];
+
+v1 [label="TRAJECTORY_INFERENCE:MONOCLE3_TRAJECTORY"];
+v8 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v1 -> v8 [label="pseudotime"];
+
+v1 [label="TRAJECTORY_INFERENCE:MONOCLE3_TRAJECTORY"];
+v3 [shape=point];
+v1 -> v3 [label="trajectory_plot"];
+
+v1 [label="TRAJECTORY_INFERENCE:MONOCLE3_TRAJECTORY"];
+v2 [shape=point];
+v1 -> v2 [label="monocle3_cds"];
+
+v1 [label="TRAJECTORY_INFERENCE:MONOCLE3_TRAJECTORY"];
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v1 -> v6;
+
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v4 [label="TRAJECTORY_INFERENCE:SCVELO_DYNAMICS"];
+v0 -> v4 [label="ch_input"];
+
+v4 [label="TRAJECTORY_INFERENCE:SCVELO_DYNAMICS"];
+v10 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v4 -> v10 [label="velocity_plot"];
+
+v4 [label="TRAJECTORY_INFERENCE:SCVELO_DYNAMICS"];
+v5 [shape=point];
+v4 -> v5 [label="velocity_adata"];
+
+v4 [label="TRAJECTORY_INFERENCE:SCVELO_DYNAMICS"];
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v4 -> v6;
+
+v6 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v7 [shape=point];
+v6 -> v7 [label="versions"];
+
+v8 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v9 [shape=point];
+v8 -> v9;
+
+v10 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v11 [shape=point];
+v10 -> v11;
+
+}

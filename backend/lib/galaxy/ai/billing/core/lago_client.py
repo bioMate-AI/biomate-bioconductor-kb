@@ -66,13 +66,18 @@ class EventCode:
     S3_DATA_TRANSFER_GB = "s3_data_transfer_gb"
 
 
+def subscription_id(user_id: str) -> str:
+    """Deterministic subscription external_id for a user. Single place to change."""
+    return f"sub_{user_id}"
+
+
 @dataclass
 class LagoEvent:
-    transaction_id: str          # globally unique; used for idempotency
-    external_customer_id: str    # your user_id
-    code: str                    # EventCode.*
-    timestamp: float             # Unix epoch (float)
-    properties: dict             # {"tokens": 1234} — field matching metric config
+    transaction_id: str            # globally unique; used for idempotency
+    external_subscription_id: str  # links event to the right subscription (required by Lago v1.44+)
+    code: str                      # EventCode.*
+    timestamp: float               # Unix epoch (float)
+    properties: dict               # {"tokens": 1234} — field matching metric config
 
 
 class LagoClient:
@@ -140,11 +145,11 @@ class LagoClient:
         """
         payload = {
             "event": {
-                "transaction_id":        event.transaction_id,
-                "external_customer_id":  event.external_customer_id,
-                "code":                  event.code,
-                "timestamp":             int(event.timestamp),
-                "properties":            event.properties,
+                "transaction_id":           event.transaction_id,
+                "external_subscription_id": event.external_subscription_id,
+                "code":                     event.code,
+                "timestamp":                int(event.timestamp),
+                "properties":               event.properties,
             }
         }
         try:
@@ -167,11 +172,11 @@ class LagoClient:
         payload = {
             "events": [
                 {
-                    "transaction_id":       e.transaction_id,
-                    "external_customer_id": e.external_customer_id,
-                    "code":                 e.code,
-                    "timestamp":            int(e.timestamp),
-                    "properties":           e.properties,
+                    "transaction_id":           e.transaction_id,
+                    "external_subscription_id": e.external_subscription_id,
+                    "code":                     e.code,
+                    "timestamp":                int(e.timestamp),
+                    "properties":               e.properties,
                 }
                 for e in events
             ]
@@ -203,14 +208,14 @@ class LagoClient:
         self.send_batch_events([
             LagoEvent(
                 transaction_id=f"llm-in-{session_id}-{uid}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.LLM_INPUT_TOKENS,
                 timestamp=ts,
                 properties={"tokens": input_tokens, "model": model},
             ),
             LagoEvent(
                 transaction_id=f"llm-out-{session_id}-{uid}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.LLM_OUTPUT_TOKENS,
                 timestamp=ts,
                 properties={"tokens": output_tokens, "model": model},
@@ -230,14 +235,14 @@ class LagoClient:
         events: list[LagoEvent] = [
             LagoEvent(
                 transaction_id=f"batch-vcpu-{job_id}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.BATCH_VCPU_SECONDS,
                 timestamp=ts,
                 properties={"seconds": round(vcpus * duration_seconds, 3)},
             ),
             LagoEvent(
                 transaction_id=f"batch-mem-{job_id}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.BATCH_MEM_GB_SEC,
                 timestamp=ts,
                 properties={"gb_seconds": round(memory_gb * duration_seconds, 3)},
@@ -246,7 +251,7 @@ class LagoClient:
         if gpu_count > 0:
             events.append(LagoEvent(
                 transaction_id=f"batch-gpu-{job_id}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.BATCH_GPU_SECONDS,
                 timestamp=ts,
                 properties={"seconds": round(gpu_count * duration_seconds, 3)},
@@ -259,14 +264,14 @@ class LagoClient:
         self.send_batch_events([
             LagoEvent(
                 transaction_id=f"s3-put-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.S3_PUT_REQUESTS,
                 timestamp=ts,
                 properties={"count": 1, "key": key},
             ),
             LagoEvent(
                 transaction_id=f"s3-store-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.S3_STORAGE_GB_HR,
                 # 30-day default retention converted to GB-hours
                 timestamp=ts,
@@ -280,7 +285,7 @@ class LagoClient:
         events = [
             LagoEvent(
                 transaction_id=f"s3-get-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.S3_GET_REQUESTS,
                 timestamp=ts,
                 properties={"count": 1, "key": key},
@@ -289,7 +294,7 @@ class LagoClient:
         if is_cross_region and gb > 0:
             events.append(LagoEvent(
                 transaction_id=f"s3-xfer-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_customer_id=user_id,
+                external_subscription_id=subscription_id(user_id),
                 code=EventCode.S3_DATA_TRANSFER_GB,
                 timestamp=ts,
                 properties={"gb": round(gb, 6)},
@@ -332,6 +337,7 @@ class LagoClient:
             "subscription": {
                 "external_customer_id": user_id,
                 "plan_code": plan_code,
+                "external_id": subscription_id(user_id),  # deterministic — matches event routing
             }
         }
         try:
