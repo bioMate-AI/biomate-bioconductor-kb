@@ -3147,10 +3147,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Array.isArray(prerequisitesValidation?.analysis?.missingParameters)
           ? prerequisitesValidation.analysis.missingParameters.length
           : 0;
+      // Approve recovery whenever user explicitly requested it AND a workflow was generated.
+      // The missing-count condition was too strict: the JS validator sometimes returns 0
+      // when the Python backend's prereq validation has missing params, causing a false negative.
       const prereqRecoveryApproved =
         prereqRecoveryRequested &&
-        !!assistantResponse.generatedWorkflow &&
-        (missingInputCount > 0 || missingParamCount > 0);
+        !!assistantResponse.generatedWorkflow;
       const prereqRecovery = {
         requested: prereqRecoveryRequested,
         approved: prereqRecoveryApproved,
@@ -3597,6 +3599,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assistantMessage += `\n\nTo unblock this quickly, please confirm:\n- ${workflowGenerationDiagnostics.followUpQuestions.join("\n- ")}`;
       }
 
+      const requestTextLowerStream = (message || "").toLowerCase();
+      const prereqRecoveryRequested =
+        requestTextLowerStream.includes("prepare runnable demo inputs") ||
+        requestTextLowerStream.includes("sample/test inputs") ||
+        requestTextLowerStream.includes("sample data") ||
+        requestTextLowerStream.includes("test data");
+      const prereqRecoveryApproved =
+        prereqRecoveryRequested &&
+        !!assistantResponse.generatedWorkflow;
+      const prereqRecovery = {
+        requested: prereqRecoveryRequested,
+        approved: prereqRecoveryApproved,
+        reason: prereqRecoveryApproved
+          ? "Recovery mode approved: allow runnable demo/sample path while inputs are unresolved."
+          : null,
+      };
+
       const responsePayload = {
         response: assistantMessage,
         suggestions,
@@ -3610,6 +3629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
+          prereqRecovery,
           workflowGenerationDiagnostics,
         },
         subIntentResults: assistantResponse.subIntentResults,
@@ -4974,7 +4994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ".command.sh", ".command.run", ".command.log", ".command.out",
         ".command.err", ".command.env", ".command.trace", ".exitcode",
         ".started", ".nf-params.json", "workflow-trace.txt",
-        "workflow-timeline.html",  // execution timeline (internal)
+        "workflow-timeline.html", "dag.dot", "versions.yml",
       ]);
       const NF_SKIP_DIRS = new Set(["work", ".nextflow"]);
 
@@ -5114,28 +5134,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (invocation) {
           outputs = await storage.getInvocationOutputs(invocation.id);
 
-          // If persisted outputs are still empty for Nextflow, materialize runtime evidence
-          // so users can inspect/download concrete run artifacts from the UI.
-          if (outputs.length === 0 && invocation.galaxyInvocationId) {
+          // If outputs are missing or consist only of the fallback runtime summary,
+          // attempt a real disk scan. The summary fallback is created while the workflow
+          // is still running (no files yet) so it must be superseded on completion.
+          const onlyFallbackSummary =
+            outputs.length > 0 &&
+            outputs.every((o: any) => o?.metadata?.source === 'nextflow_runtime_summary');
+
+          if ((outputs.length === 0 || onlyFallbackSummary) && invocation.galaxyInvocationId) {
             const executionRun = await storage.getExecutionRunByGalaxyId(invocation.galaxyInvocationId);
-            const nextflowStatus = executionRun?.execution?.nextflowStatus;
+            // Also try looking up executionRun directly by the request ID (could be executionRun.id)
+            const executionRunDirect = executionRun || await storage.getExecutionRun(req.params.id);
+            const effectiveExecutionRun = executionRun || executionRunDirect;
+            const nextflowStatus = effectiveExecutionRun?.execution?.nextflowStatus;
+            const nfRunId = effectiveExecutionRun?.execution?.nextflowRunId;
+            console.log(`[Outputs] invId=${invocation.id} galaxyInvId=${invocation.galaxyInvocationId} nfRunId=${nfRunId} nfOutdir=${nextflowStatus?.outdir} nfStatus=${nextflowStatus?.status}`);
+
+            const artifacts: string[] = [];
+            const pushArtifact = (value: any) => {
+              if (!value) return;
+              if (typeof value === "string") {
+                const trimmed = value.trim();
+                if (trimmed) artifacts.push(trimmed);
+                return;
+              }
+              if (Array.isArray(value)) {
+                value.forEach(pushArtifact);
+                return;
+              }
+              if (typeof value === "object") {
+                Object.values(value).forEach(pushArtifact);
+              }
+            };
+
             if (nextflowStatus && typeof nextflowStatus === "object") {
-              const artifacts: string[] = [];
-              const pushArtifact = (value: any) => {
-                if (!value) return;
-                if (typeof value === "string") {
-                  const trimmed = value.trim();
-                  if (trimmed) artifacts.push(trimmed);
-                  return;
-                }
-                if (Array.isArray(value)) {
-                  value.forEach(pushArtifact);
-                  return;
-                }
-                if (typeof value === "object") {
-                  Object.values(value).forEach(pushArtifact);
-                }
-              };
               pushArtifact(nextflowStatus.outputs);
               pushArtifact(nextflowStatus.results);
               pushArtifact(nextflowStatus.output_files);
@@ -5147,13 +5179,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   pathMatches.forEach((candidate) => artifacts.push(candidate));
                 }
               }
+            }
 
+            // Guaranteed fallback: construct disk path from nextflowRunId
+            if (nfRunId) {
+              const nfWorkBase = process.env.NEXTFLOW_WORK_DIR || '/tmp/nextflow_runs';
+              const diskOutdir = path.join(nfWorkBase, nfRunId, 'output');
+              if (!artifacts.includes(diskOutdir)) {
+                artifacts.push(diskOutdir);
+                console.log(`[Outputs] Added disk fallback outdir: ${diskOutdir}`);
+              }
+            }
+
+            const nfIsTerminal = ['succeeded', 'completed', 'failed', 'error'].includes(
+              String(nextflowStatus?.status || '').toLowerCase()
+            );
+            const runIsComplete = ['completed', 'failed'].includes(
+              String(effectiveExecutionRun?.execution?.status || '').toLowerCase()
+            );
+            const isTerminal = nfIsTerminal || runIsComplete;
+            console.log(`[Outputs] isTerminal=${isTerminal} artifacts=${artifacts.length}`);
+
+            if (artifacts.length > 0) {
+              // Delete existing fallback summary so real outputs replace it
+              if (onlyFallbackSummary) {
+                for (const o of outputs) {
+                  await storage.deleteOutput(o.id);
+                }
+                outputs = [];
+              }
               await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
               outputs = await storage.getInvocationOutputs(invocation.id);
-              if (outputs.length === 0) {
-                await materializeRuntimeSummary(invocation.id, nextflowStatus, executionRun?.id);
-                outputs = await storage.getInvocationOutputs(invocation.id);
-              }
+              console.log(`[Outputs] After scan: ${outputs.length} outputs registered (terminal=${isTerminal})`);
+            }
+
+            // Only materialize fallback summary after workflow has actually finished
+            if (outputs.length === 0 && isTerminal) {
+              await materializeRuntimeSummary(invocation.id, nextflowStatus || {}, effectiveExecutionRun?.id);
+              outputs = await storage.getInvocationOutputs(invocation.id);
             }
           }
         }
@@ -8266,9 +8329,10 @@ function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'bina
   const ext = extension.toLowerCase();
 
   const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp'];
-  const tableExts = ['tsv', 'csv', 'tabular', 'txt', 'bed', 'gtf', 'gff', 'vcf'];
+  // json renders as a sortable table via CsvTableViewer; csv/tsv are canonical tables
+  const tableExts = ['tsv', 'csv', 'tabular', 'json', 'bed', 'gtf', 'gff', 'vcf'];
   const interactiveExts = ['html', 'htm'];
-  const textExts = ['txt', 'log', 'md', 'json', 'xml', 'yaml', 'yml'];
+  const textExts = ['txt', 'log', 'md', 'xml', 'yaml', 'yml', 'nf', 'config'];
 
   if (imageExts.includes(ext)) return 'image';
   if (tableExts.includes(ext)) return 'table';
@@ -8278,7 +8342,10 @@ function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'bina
 }
 
 function isVisualizable(extension: string): boolean {
-  const visualizableExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm'];
+  const visualizableExts = [
+    'png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm',
+    'json', 'csv', 'tsv', 'txt', 'fasta', 'fa', 'fastq', 'fq',
+  ];
   return visualizableExts.includes(extension.toLowerCase());
 }
 

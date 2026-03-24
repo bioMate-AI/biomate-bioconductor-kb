@@ -175,6 +175,35 @@ carry the aromatic carboxylate pharmacophore consistent with the reference activ
 
 ---
 
+---
+
+## Drug Discovery API Endpoints (Tracks C / D / E)
+
+All three API tracks now have working routes, registered via the standard Galaxy
+`include_all_package_routers()` pattern:
+
+| Method | Path | Track | Description |
+|---|---|---|---|
+| POST | `/api/drug-discovery/{id}/ingest-assay` | C | Upload assay CSV; recomputes rankings |
+| GET  | `/api/drug-discovery/{id}/compounds` | C | Return current compound ranking |
+| GET  | `/api/drug-discovery/{id}/export/cro-order` | E | Export WuXi/Pharmaron/Enamine CSV |
+| POST | `/api/drug-discovery/{id}/models/register` | D | Register Docker or REST scoring model |
+| GET  | `/api/drug-discovery/{id}/models` | D | List models + run history |
+| POST | `/api/drug-discovery/{id}/models/{name}/run` | D | Score SMILES with a registered model |
+| GET  | `/api/drug-discovery/availability` | — | PubChem batch availability check |
+
+**Implementation files:**
+- `backend/lib/galaxy/ai/drug_discovery/api_router.py` — FastAPI router (new)
+- `backend/lib/galaxy/webapps/galaxy/api/drug_discovery.py` — shim (new)
+
+**Bug fixed in assay ranking:** hERG IC50 was incorrectly in `_LOWER_IS_BETTER`, treating
+low hERG IC50 as good potency. Corrected: hERG now applies a safety penalty when IC50 < 10 µM
+(ICH S7B-informed threshold) and awards a normalised score for compounds with high IC50.
+Verified with BCR-ABL inhibitors (dasatinib → imatinib → bosutinib → terfenadine, all in the
+correct scientific order).
+
+---
+
 ## Remaining Items
 
 1. **Track A/B live mode** — `pocket_detection_druggability` and `pharmacophore_filtering`
