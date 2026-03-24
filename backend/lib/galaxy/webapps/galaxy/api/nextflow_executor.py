@@ -2723,3 +2723,104 @@ def estimate_workflow_cost(request: CostEstimateRequest) -> Dict[str, Any]:
             "AWS Spot pricing may reduce cost by 60–80%",
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# C3 — nf-core test profile runner
+# ---------------------------------------------------------------------------
+
+class ValidateProfileRequest(BaseModel):
+    nextflow_path: str
+    profile: Optional[str] = "test"
+    timeout_seconds: Optional[int] = 300
+
+
+@router.post("/api/workflows/validate_profile", summary="Validate pipeline runs with nf-core test profile")
+def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]:
+    """Run ``nextflow run {path} -profile test,docker`` on the smallest Batch
+    instance to confirm the pipeline environment works end-to-end.
+
+    Returns:
+        status: "pass" | "fail" | "timeout" | "skipped"
+        message: Human-readable summary
+        log_tail: Last 20 lines of stdout/stderr
+        duration_seconds: Actual wall time used
+    """
+    nf_path = request.nextflow_path.strip()
+    if not nf_path:
+        raise HTTPException(status_code=400, detail="nextflow_path is required")
+
+    profile = request.profile or "test"
+    timeout = min(max(int(request.timeout_seconds or 300), 30), 600)
+
+    # Safety: only allow test/docker/singularity profiles; never run user data
+    safe_profiles = {"test", "docker", "singularity", "podman", "conda", "test_full", "test_cache"}
+    profile_parts = {p.strip() for p in profile.split(",")}
+    if not profile_parts.issubset(safe_profiles):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only safe profiles allowed: {safe_profiles}. Got: {profile_parts - safe_profiles}",
+        )
+
+    # Resolve pipeline path
+    resolved_path = nf_path
+    if not Path(nf_path).exists():
+        # Try known nf-core local paths
+        base = Path(__file__).resolve().parents[5] / "nf-core-workflows"
+        pipeline_name = nf_path.split("/")[-1].replace("nf-core/", "")
+        candidate = base / pipeline_name
+        if candidate.exists():
+            resolved_path = str(candidate)
+        # Otherwise pass through as remote (nf-core/<name>) and let Nextflow resolve
+
+    import time as _time
+    cmd = ["nextflow", "run", resolved_path, f"-profile", profile, "--outdir", "/tmp/biomate_test_run"]
+    start = _time.time()
+    log_lines: List[str] = []
+    status = "pass"
+    message = ""
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        duration = round(_time.time() - start, 1)
+        combined_output = (proc.stdout or "") + (proc.stderr or "")
+        log_lines = combined_output.splitlines()[-20:]
+
+        if proc.returncode == 0:
+            status = "pass"
+            message = f"Pipeline environment validated in {duration}s — runs end-to-end"
+        else:
+            status = "fail"
+            # Extract first error line from Nextflow output
+            err_line = next(
+                (l for l in combined_output.splitlines() if "ERROR" in l or "error" in l.lower()),
+                f"Exit code {proc.returncode}"
+            )
+            message = f"Validation failed: {err_line[:200]}"
+
+    except subprocess.TimeoutExpired:
+        duration = timeout
+        status = "timeout"
+        message = f"Validation timed out after {timeout}s — pipeline may require more resources"
+    except FileNotFoundError:
+        duration = 0.0
+        status = "skipped"
+        message = "Nextflow binary not found — cannot validate profile locally"
+    except Exception as exc:
+        duration = round(_time.time() - start, 1)
+        status = "fail"
+        message = f"Unexpected error: {exc}"
+
+    return {
+        "status": status,
+        "message": message,
+        "log_tail": log_lines,
+        "duration_seconds": duration,
+        "profile_used": profile,
+        "nextflow_path": nf_path,
+    }

@@ -6190,6 +6190,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validate pipeline with nf-core test profile (C3)
+  app.post("/api/workflows/validate_profile", optionalAuth, express.json(), async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/validate_profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(320000), // 320s — longer than max 300s backend timeout
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({
+        status: 'skipped',
+        message: 'Could not reach backend for profile validation',
+        log_tail: [],
+        duration_seconds: 0,
+        error: String(err?.message ?? err),
+      });
+    }
+  });
+
   // Cost estimation — pre-run cost estimate before user commits to a full run (D1)
   app.post("/api/workflows/estimate_cost", optionalAuth, express.json(), async (req, res) => {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';

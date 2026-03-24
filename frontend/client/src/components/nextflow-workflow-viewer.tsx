@@ -113,6 +113,30 @@ function prettifyParamLabel(raw: string): string {
 }
 
 function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
+  // Prefer structured required_params / optional_params (populated by backend .nf parser)
+  const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+  const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+
+  if (reqList.length > 0 || optList.length > 0) {
+    return [...reqList, ...optList]
+      .filter((p) => p?.name && !String(p.name).startsWith("__"))
+      .map((p) => {
+        const userValue = currentParams[p.name];
+        const defaultVal = p.default ?? null;
+        return {
+          id: p.name,
+          name: p.name,
+          type: inferParamType(userValue ?? defaultVal),
+          label: p.label || prettifyParamLabel(p.name),
+          description: p.description,
+          value: userValue !== undefined ? userValue : (defaultVal !== null ? defaultVal : ""),
+          defaultValue: defaultVal,
+          required: reqList.some((r) => r.name === p.name),
+        };
+      });
+  }
+
+  // Fallback: use flat parameters / inline_parameters maps
   const fromWorkflow = workflowDefinition?.parameters && typeof workflowDefinition.parameters === "object"
     ? workflowDefinition.parameters
     : {};
@@ -532,10 +556,35 @@ export function NextflowWorkflowViewer({
   };
 
   const rationale = workflowDefinition?.scientific_rationale;
-  const renderedParameters = buildViewerParameters(workflowDefinition, params);
+
+  // Build a quick lookup: param name → hint (rationale + recommended value) from scientific_rationale
+  const paramHintMap = React.useMemo<Record<string, { rationale?: string; recommended?: string }>>(() => {
+    const map: Record<string, { rationale?: string; recommended?: string }> = {};
+    for (const h of (workflowDefinition?.scientific_rationale?.parameter_hints as any[] | undefined) || []) {
+      if (h?.param) map[h.param] = { rationale: h.rationale, recommended: h.recommended };
+    }
+    return map;
+  }, [workflowDefinition?.scientific_rationale?.parameter_hints]);
+
+  // Enrich rendered params with rationale + autoFilled markers from tool_knowledge hints
+  const renderedParameters = React.useMemo(() => {
+    const base = buildViewerParameters(workflowDefinition, params);
+    return base.map((p: any) => {
+      const hint = paramHintMap[p.id] || paramHintMap[p.name];
+      if (!hint?.rationale) return p;
+      const isAutoFilled = hint.recommended !== undefined &&
+        String(p.value).trim() !== '' &&
+        String(p.value) === String(hint.recommended);
+      return { ...p, rationale: hint.rationale, autoFilled: isAutoFilled };
+    });
+  }, [workflowDefinition, params, paramHintMap]);
+
+  const hasUnfilledRequired = renderedParameters
+    .filter((p: any) => p.required)
+    .some((p: any) => p.value === "" || p.value === null || p.value === undefined);
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
-  const isPrereqBlocked = !!prereqChecklist && !prereqChecklist.canRun;
+  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
     autofix?.active === true ||
@@ -552,7 +601,18 @@ export function NextflowWorkflowViewer({
   }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
 
   useEffect(() => {
-    setParams(initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
+    if (initialParams) { setParams(initialParams); return; }
+    const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+    const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+    if (reqList.length > 0 || optList.length > 0) {
+      const defaults: Record<string, any> = {};
+      for (const p of [...reqList, ...optList]) {
+        if (p?.name && p.default != null) defaults[p.name] = p.default;
+      }
+      setParams(defaults);
+    } else {
+      setParams(workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
+    }
   }, [initialParams, workflowDefinition]);
 
   useEffect(() => {
@@ -884,6 +944,11 @@ export function NextflowWorkflowViewer({
                 parameters={renderedParameters}
                 onChange={handleParamChange}
               />
+              {hasUnfilledRequired && (
+                <p className="text-xs text-destructive" data-testid="required-params-hint">
+                  Fill in all required fields (*) before running.
+                </p>
+              )}
               <div className="space-y-2" data-testid="workflow-run-controls">
                 <Button
                   className="w-full"

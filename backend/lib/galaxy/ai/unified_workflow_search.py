@@ -487,6 +487,47 @@ class UnifiedWorkflowSearch:
             # Sort by custom score (includes source priority + Pass-0 boost)
             results.sort(key=lambda x: x.score, reverse=True)
 
+            # ── Pass-0 rescue: fetch LLM-ranked IDs that FTS missed ─────────
+            # Some semantically relevant workflows may have low FTS scores and
+            # fall outside the broad candidate set.  Fetch them directly and
+            # insert them using their LLM rank to determine a synthetic score.
+            if llm_ranked_ids:
+                seen_ids = {m.id for m in results}
+                missing_llm_ids = [wf_id for wf_id in llm_ranked_ids if wf_id not in seen_ids]
+                if missing_llm_ids:
+                    placeholders = ",".join("?" * len(missing_llm_ids))
+                    rescue_sql = f"""
+                        SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
+                               w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
+                               0.0 as fts_score
+                        FROM workflows w
+                        WHERE w.id IN ({placeholders})
+                    """
+                    try:
+                        rescue_conn = self._get_connection()
+                        rc = rescue_conn.cursor()
+                        rc.execute(rescue_sql, missing_llm_ids)
+                        rescued_rows = rc.fetchall()
+                        rescue_conn.close()
+                        for row in rescued_rows:
+                            m = self._create_match(row, query, include_workflow_json, user_profile=user_profile)
+                            rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
+                            # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
+                            m = WorkflowMatch(
+                                id=m.id, name=m.name, description=m.description,
+                                domain=m.domain, source=m.source, format=m.format,
+                                step_count=m.step_count, tools=m.tools, tags=m.tags,
+                                filename=m.filename, workflow_json=m.workflow_json,
+                                score=round(2.8 - 0.3 * rank, 2),
+                                match_type="llm_rescued",
+                            )
+                            results.append(m)
+                        if rescued_rows:
+                            results.sort(key=lambda x: x.score, reverse=True)
+                            log.debug("Pass-0 rescued %d LLM-selected workflows not in FTS", len(rescued_rows))
+                    except Exception as exc:
+                        log.debug("Pass-0 rescue fetch failed: %s", exc)
+
             return results[:limit]
 
         except sqlite3.OperationalError as e:
@@ -567,10 +608,13 @@ class UnifiedWorkflowSearch:
         stopwords = {'i', 'want', 'to', 'the', 'a', 'an', 'for', 'with', 'and', 'or', 'from', 'in', 'on', 'my', 'run'}
         words = [w for w in words if w not in stopwords and len(w) > 1]
 
-        # Expand abbreviations
+        # Expand abbreviations — keep the original token AND add expansions
+        # so "rnaseq" matches both the exact "rnaseq" token in FTS and
+        # workflows that use the expanded form "rna seq transcriptome".
         expanded_words = []
         for word in words:
             if word in self.ABBREVIATION_MAP:
+                expanded_words.append(word)            # original first (exact match gets higher BM25)
                 expanded_words.extend(self.ABBREVIATION_MAP[word])
             else:
                 expanded_words.append(word)
@@ -690,8 +734,18 @@ class UnifiedWorkflowSearch:
         overlap = len(query_words.intersection(name_words))
         score += overlap * 1.5
 
-        # 5. Source priority (~5% weight)
-        source_bonus = SOURCE_PRIORITY.get(source, 0) / 50.0  # Normalize to ~2.0 max
+        # 4b. Exact / near-exact name match bonus — critical for "run nf-core/rnaseq" queries
+        # Strip prefix like "nf-core/" so "rnaseq" matches "nf-core/rnaseq"
+        bare_name = name_lower.split("/")[-1].replace("-", " ").replace("_", " ").strip()
+        q_bare = query_lower.replace("nf-core/", "").replace("nf-core ", "").replace("-", " ").replace("_", " ").strip()
+        if bare_name and q_bare:
+            if bare_name == q_bare:
+                score += 15.0  # Exact name match (e.g., query="rnaseq", name="nf-core/rnaseq")
+            elif bare_name.startswith(q_bare) or q_bare.startswith(bare_name):
+                score += 8.0   # Prefix match
+
+        # 5. Source priority (~5% weight) — boosted to make nfcore clearly win over bioconductor
+        source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
         score += source_bonus
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
@@ -832,7 +886,7 @@ class UnifiedWorkflowSearch:
         )
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3) -> List["WorkflowChain"]:
+                      limit: int = 3, min_score: float = 0.35) -> List["WorkflowChain"]:
         """Return workflow chains whose example_queries or description match the query.
 
         Scoring uses three signals:
