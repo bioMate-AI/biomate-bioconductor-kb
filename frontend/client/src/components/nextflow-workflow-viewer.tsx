@@ -999,6 +999,7 @@ export function NextflowWorkflowViewer({
                 description={renderedParameters.length === 0 ? "No editable parameters detected for this workflow." : undefined}
                 parameters={renderedParameters}
                 onChange={handleParamChange}
+                defaultOpen={renderedParameters.length > 0}
               />
               {hasUnfilledRequired && (
                 <p className="text-xs text-amber-700 dark:text-amber-400">
@@ -1244,8 +1245,14 @@ export function NextflowWorkflowViewer({
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Execution checklist
                     </p>
-                    <Badge variant={prereqChecklist.canRun ? "outline" : "secondary"}>
-                      {prereqChecklist.canRun ? "Ready" : "Action required"}
+                    <Badge variant={
+                      !prereqChecklist.canRun ? "destructive"
+                      : prereqChecklist.items.some(i => i.status === 'warning') ? "secondary"
+                      : "outline"
+                    }>
+                      {!prereqChecklist.canRun ? "Action required"
+                       : prereqChecklist.items.some(i => i.status === 'warning') ? "Warnings"
+                       : "Ready"}
                     </Badge>
                   </div>
                   <div className="space-y-1.5">

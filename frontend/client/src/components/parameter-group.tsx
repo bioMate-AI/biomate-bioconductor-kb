@@ -43,6 +43,8 @@ interface ParameterGroupProps {
   parameters: Parameter[];
   onChange?: (id: string, value: any) => void;
   className?: string;
+  /** Open the accordion by default (true when workflow has parameters to fill) */
+  defaultOpen?: boolean;
 }
 
 function KnowledgeBadge({ param }: { param: Parameter }) {
@@ -153,7 +155,7 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
   );
 }
 
-export function ParameterGroup({ id, title, description, parameters, onChange, className }: ParameterGroupProps) {
+export function ParameterGroup({ id, title, description, parameters, onChange, className, defaultOpen }: ParameterGroupProps) {
   const renderParameterInput = (param: Parameter) => {
     const hasKnowledge = !!(param.rationale || param.citation);
     const LabelWithKnowledge = () => (
@@ -228,7 +230,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, c
   };
 
   return (
-    <Accordion type="single" collapsible className={cn("w-full border rounded-lg bg-card text-card-foreground shadow-sm", className)}>
+    <Accordion type="single" collapsible defaultValue={defaultOpen ? id : undefined} className={cn("w-full border rounded-lg bg-card text-card-foreground shadow-sm", className)}>
       <AccordionItem value={id} className="border-b-0">
         <AccordionTrigger className="px-4 py-3 hover:bg-accent/50 transition-colors">
           <div className="flex flex-col items-start text-left">
