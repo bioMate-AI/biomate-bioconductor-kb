@@ -132,6 +132,11 @@ class UnifiedWorkflowSearch:
         # Set via set_llm_client() from AIAssistant after construction.
         self._llm_client: Optional[Any] = None
 
+        # Minimum score required for search_chains() results.
+        # 0.35 avoids weak-overlap false positives (e.g. "germline" matching
+        # "rare_disease_multimodal_workup" at Jaccard 0.15 via 2-3 shared tokens).
+        self.chain_min_score: float = 0.35
+
         # Keyword weights for scoring
         self.keyword_weights = {
             # RNA-seq & Differential Expression
@@ -599,6 +604,33 @@ class UnifiedWorkflowSearch:
 
         return preferred, penalized
 
+    # Tokens that signal "I have raw data to process" or "I want to run a pipeline"
+    # → prefer full pipeline sources (nfcore, biomni_nextflow) over R package libraries
+    _PIPELINE_INTENT_SIGNALS = [
+        # "I have data" pattern
+        'i have', 'my data', 'my samples', 'i want to process', 'i want to run',
+        'process my', 'analyze my', 'analyse my', 'run analysis', 'run a pipeline',
+        'fastq', 'bam file', 'vcf file', 'raw reads', 'raw data', 'sequencing data',
+        'from samples', 'from patients', 'from cells', 'i need to process',
+        'we have', 'our data', 'our samples', 'we sequenced',
+        # "run [workflow_type]" pattern — clearly want to execute a pipeline
+        'run rna', 'run chip', 'run atac', 'run variant', 'run qc', 'run wgs',
+        'run methylseq', 'run sarek', 'run rnaseq', 'run genome',
+        'perform rna', 'perform chip', 'perform variant', 'perform whole genome',
+        'execute rna', 'execute variant', 'execute pipeline',
+        'do rna-seq', 'do rna seq', 'do chip-seq', 'do atac-seq',
+        'nf-core run', 'nextflow run',
+    ]
+
+    def _detect_pipeline_intent(self, query: str) -> bool:
+        """Return True when the user's query indicates they have raw data to process.
+
+        Such queries should prefer full pipeline sources (nfcore, biomni_nextflow)
+        over package-level tools (bioconductor) that operate on already-processed data.
+        """
+        q = query.lower()
+        return any(signal in q for signal in self._PIPELINE_INTENT_SIGNALS)
+
     def _build_fts_query(self, query: str) -> str:
         """Build FTS5 query from natural language with safe tokenization and abbreviation expansion."""
         # Robust tokenization: strip punctuation that can break FTS syntax.
@@ -744,9 +776,17 @@ class UnifiedWorkflowSearch:
             elif bare_name.startswith(q_bare) or q_bare.startswith(bare_name):
                 score += 8.0   # Prefix match
 
-        # 5. Source priority (~5% weight) — boosted to make nfcore clearly win over bioconductor
+        # 5. Source priority — boosted to make nfcore clearly win over bioconductor
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
         score += source_bonus
+
+        # 5b. Pipeline intent boost: when user says "I have data to process",
+        # full pipeline sources get a large bonus over package-level Bioconductor tools
+        if self._detect_pipeline_intent(query):
+            if source in ("nfcore", "nfcore_subwf", "biomni_nextflow"):
+                score += 8.0
+            elif source == "bioconductor":
+                score -= 5.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
         preferred_domains, penalized_domains = self._infer_domain_preferences(query)
@@ -886,7 +926,7 @@ class UnifiedWorkflowSearch:
         )
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3, min_score: float = 0.35) -> List["WorkflowChain"]:
+                      limit: int = 3) -> List["WorkflowChain"]:
         """Return workflow chains whose example_queries or description match the query.
 
         Scoring uses three signals:
