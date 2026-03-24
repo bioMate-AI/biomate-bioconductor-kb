@@ -5921,6 +5921,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 nextflowStatus: nextflowStatus,
               },
             }) || run;
+
+            // D2: Emit workflow_completed so the notification service fires for Nextflow runs.
+            // Galaxy poller doesn't poll Nextflow direct runs; we emit manually on terminal state.
+            const nfInvocationId = run.execution?.galaxyInvocationId || run.execution?.nextflowRunId;
+            if (nfInvocationId) {
+              galaxyPoller.emit('workflow_completed', {
+                invocation_id: nfInvocationId,
+                state: nfState === 'succeeded' ? 'ok' : 'failed',
+              });
+            }
           } else if (run.execution.status === 'running') {
             // Keep latest Nextflow status snapshot for UI visibility.
             run = await storage.updateExecutionRun(run.id, {
@@ -6118,13 +6128,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Preflight validation — fast 3-phase check before pilot/full run
+  // Preflight validation — 3-phase check with pilot analysis detection via Galaxy backend
   app.post("/api/workflows/preflight", async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     try {
-      const { workflowDefinition, parameters } = req.body || {};
-      const phases: { id: string; status: string; message: string }[] = [];
+      const { workflowDefinition, parameters, inputFiles } = req.body || {};
 
-      // Phase 1: Required parameters
+      // Try to use the richer Galaxy backend preflight endpoint (C1)
+      try {
+        const backendBody = {
+          workflow_path: workflowDefinition?.nextflowPath || workflowDefinition?.path || null,
+          workflow_name: workflowDefinition?.name || null,
+          parameters: parameters || {},
+          input_files: inputFiles || [],
+          required_params: (workflowDefinition?.parameters || []).filter(
+            (p: any) => p.required === true || p.level === 'required'
+          ),
+        };
+        const backendResp = await fetch(`${galaxyUrl}/api/workflows/preflight`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(backendBody),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (backendResp.ok) {
+          const data = await backendResp.json();
+          return res.json(data);
+        }
+      } catch (backendErr) {
+        // Fall through to local implementation if backend unreachable
+        console.warn('[preflight] Backend unavailable, using local check:', (backendErr as any)?.message);
+      }
+
+      // Local fallback — same 3-phase logic as before
+      const phases: { id: string; status: string; message: string }[] = [];
       const requiredParams = (workflowDefinition?.parameters || []).filter(
         (p: any) => p.required === true || p.level === 'required'
       );
@@ -6139,26 +6176,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? 'All required parameters present'
           : `Missing required parameters: ${missingRequired.map((p: any) => p.id || p.name).join(', ')}`,
       });
-
-      // Phase 2: Input accessibility (local runs always pass; S3 checked on Batch)
-      phases.push({
-        id: 'inputs',
-        status: 'pass',
-        message: 'Input file accessibility check complete',
-      });
-
-      // Phase 3: Workflow structure
+      phases.push({ id: 'inputs', status: 'pass', message: 'Input file accessibility check complete' });
       phases.push({
         id: 'structure',
         status: 'pass',
         message: `Workflow structure valid: ${workflowDefinition?.name || 'workflow'} ready`,
       });
-
       const ready = phases.every(p => p.status === 'pass');
       res.json({ phases, ready });
     } catch (error: any) {
       console.error('[preflight] Error:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Cost estimation — pre-run cost estimate before user commits to a full run (D1)
+  app.post("/api/workflows/estimate_cost", optionalAuth, express.json(), async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/estimate_cost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(5000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({
+        min_usd: 0.5,
+        max_usd: 5.0,
+        assumptions: ['Could not reach backend — using default estimate'],
+        error: String(err?.message ?? err),
+      });
     }
   });
 

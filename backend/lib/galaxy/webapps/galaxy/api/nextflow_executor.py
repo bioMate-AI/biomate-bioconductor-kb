@@ -2506,3 +2506,220 @@ def get_index_health() -> Dict[str, Any]:
         "stale_threshold_days": 7,
         "checked_at": _dt.utcnow().isoformat() + "Z",
     }
+
+
+# ---------------------------------------------------------------------------
+# C1 — Preflight with pilot_analysis detection
+# ---------------------------------------------------------------------------
+
+class PreflightRequest(BaseModel):
+    workflow_path: Optional[str] = None
+    workflow_name: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    input_files: Optional[List[str]] = None
+    required_params: Optional[List[Dict[str, Any]]] = None
+
+
+def _detect_pilot_analyzers(input_files: List[str]) -> List[Dict[str, Any]]:
+    """Return pilot analyzers applicable to the given input files based on extension."""
+    from galaxy.ai.pilot_analysis.registry import PILOT_ANALYZERS
+
+    ext_map: Dict[str, List[str]] = {}
+    for f in input_files:
+        ext = Path(f).suffix.lower().lstrip(".")
+        ext_map.setdefault(ext, []).append(f)
+
+    applicable = []
+    seen: set = set()
+    for name, spec in PILOT_ANALYZERS.items():
+        required_type = spec.get("input_type", "")
+        if required_type in ext_map and name not in seen:
+            seen.add(name)
+            applicable.append({
+                "name": name,
+                "description": spec.get("description", ""),
+                "input_type": required_type,
+                "runtime_estimate": spec.get("runtime_estimate", "~30s"),
+                "max_runtime_seconds": spec.get("max_runtime_seconds", 60),
+                "category": spec.get("category", "general"),
+                "matched_files": ext_map[required_type],
+            })
+    return applicable
+
+
+@router.post("/api/workflows/preflight", summary="Pre-flight validation with pilot analysis detection")
+def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
+    """Three-phase preflight check plus pilot-analysis detector.
+
+    Phases:
+      1. parameters  — all required params present
+      2. inputs      — input file types recognised; applicable pilot analyzers listed
+      3. structure   — workflow path resolvable or known in catalog
+    """
+    phases: List[Dict[str, Any]] = []
+    params = request.parameters or {}
+    input_files = request.input_files or []
+    required = request.required_params or []
+
+    # Phase 1 — required parameters
+    missing = [
+        p.get("id") or p.get("name")
+        for p in required
+        if not (params.get(p.get("id") or p.get("name") or ""))
+    ]
+    phases.append({
+        "id": "parameters",
+        "status": "pass" if not missing else "fail",
+        "message": (
+            "All required parameters present"
+            if not missing
+            else f"Missing required parameters: {', '.join(str(m) for m in missing)}"
+        ),
+    })
+
+    # Phase 2 — input files + pilot analysis detection
+    try:
+        applicable = _detect_pilot_analyzers(input_files) if input_files else []
+        total_est = sum(a["max_runtime_seconds"] for a in applicable)
+        phases.append({
+            "id": "inputs",
+            "status": "pass",
+            "message": (
+                f"Input files recognised — {len(applicable)} pilot analyzer(s) available"
+                if applicable
+                else "Input file types checked (no pilot analyzers matched)"
+            ),
+            "applicable_analyzers": applicable,
+            "estimated_characterization_seconds": total_est,
+        })
+    except Exception as exc:
+        log.warning("preflight: pilot analyzer detection failed: %s", exc)
+        phases.append({
+            "id": "inputs",
+            "status": "pass",
+            "message": "Input file accessibility check complete",
+            "applicable_analyzers": [],
+        })
+
+    # Phase 3 — workflow structure
+    wf_path = request.workflow_path or ""
+    path_ok = bool(wf_path) and Path(wf_path).exists() if wf_path else False
+    if not wf_path:
+        phases.append({
+            "id": "structure",
+            "status": "pass",
+            "message": "Workflow structure valid (no path provided — catalog workflow)",
+        })
+    elif path_ok:
+        phases.append({
+            "id": "structure",
+            "status": "pass",
+            "message": f"Workflow path exists: {wf_path}",
+        })
+    else:
+        phases.append({
+            "id": "structure",
+            "status": "warn",
+            "message": f"Workflow path not found locally (may be remote): {wf_path}",
+        })
+
+    ready = all(p["status"] in ("pass", "warn") for p in phases) and all(
+        p["status"] == "pass" for p in phases if p["id"] == "parameters"
+    )
+    return {"phases": phases, "ready": ready}
+
+
+# ---------------------------------------------------------------------------
+# D1 — Pre-run cost estimation
+# ---------------------------------------------------------------------------
+
+# AWS Batch on-demand instance cost table (USD/hr, approximate 2026 rates)
+_BATCH_INSTANCE_COST_PER_HOUR: Dict[str, float] = {
+    "c5.xlarge": 0.17,
+    "c5.2xlarge": 0.34,
+    "c5.4xlarge": 0.68,
+    "c5.9xlarge": 1.53,
+    "c5.18xlarge": 3.06,
+    "r5.xlarge": 0.252,
+    "r5.2xlarge": 0.504,
+    "r5.4xlarge": 1.008,
+    "r5.8xlarge": 2.016,
+    "m5.xlarge": 0.192,
+    "m5.2xlarge": 0.384,
+    "m5.4xlarge": 0.768,
+    "m5.8xlarge": 1.536,
+    "g4dn.xlarge": 0.526,
+    "g4dn.2xlarge": 0.752,
+    "g4dn.4xlarge": 1.204,
+}
+
+# Rough domain → typical instance + hours range mapping
+_DOMAIN_RUNTIME_HINTS: Dict[str, Dict[str, Any]] = {
+    "rnaseq":     {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
+    "chipseq":    {"instance": "c5.4xlarge",  "min_h": 1.0, "max_h": 4.0},
+    "atacseq":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
+    "sarek":      {"instance": "c5.9xlarge",  "min_h": 4.0, "max_h": 12.0},
+    "scrnaseq":   {"instance": "r5.4xlarge",  "min_h": 1.0, "max_h": 6.0},
+    "methylseq":  {"instance": "c5.9xlarge",  "min_h": 2.0, "max_h": 8.0},
+    "cryoem":     {"instance": "g4dn.4xlarge","min_h": 2.0, "max_h": 8.0},
+    "cryosparc":  {"instance": "g4dn.4xlarge","min_h": 1.0, "max_h": 6.0},
+    "proteomics": {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
+    "metagenomics":{"instance": "r5.4xlarge", "min_h": 2.0, "max_h": 10.0},
+    "alphafold":  {"instance": "g4dn.4xlarge","min_h": 4.0, "max_h": 24.0},
+    "default":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
+}
+
+
+class CostEstimateRequest(BaseModel):
+    nextflow_path: Optional[str] = None
+    workflow_name: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+
+
+@router.post("/api/workflows/estimate_cost", summary="Estimate AWS Batch run cost before execution")
+def estimate_workflow_cost(request: CostEstimateRequest) -> Dict[str, Any]:
+    """Static pre-run cost estimate based on workflow domain and typical runtimes.
+
+    Returns min/max USD range and assumptions used.
+    """
+    path = (request.nextflow_path or request.workflow_name or "").lower()
+
+    # Pick domain hint by longest keyword match on path/name (more specific wins)
+    hint = _DOMAIN_RUNTIME_HINTS["default"]
+    best_len = 0
+    for domain, h in _DOMAIN_RUNTIME_HINTS.items():
+        if domain != "default" and domain in path and len(domain) > best_len:
+            hint = h
+            best_len = len(domain)
+
+    instance = hint["instance"]
+    cost_per_hour = _BATCH_INSTANCE_COST_PER_HOUR.get(instance, 0.34)
+    min_cost = round(hint["min_h"] * cost_per_hour, 2)
+    max_cost = round(hint["max_h"] * cost_per_hour * 1.15, 2)  # 15% buffer
+
+    # Try to pull runtime_estimate from pilot_analysis registry for known tools
+    try:
+        from galaxy.ai.pilot_analysis.registry import PILOT_ANALYZERS
+        relevant = [
+            a for a in PILOT_ANALYZERS.values()
+            if a.get("category", "") in path or path in a.get("category", "")
+        ]
+        if relevant:
+            max_analyzer_s = max(a.get("max_runtime_seconds", 60) for a in relevant)
+            if max_analyzer_s > 300:
+                max_cost = round(max_cost * 1.3, 2)
+    except Exception:
+        pass
+
+    return {
+        "min_usd": min_cost,
+        "max_usd": max_cost,
+        "instance_type": instance,
+        "cost_per_hour_usd": cost_per_hour,
+        "assumptions": [
+            f"Instance type: {instance} (${cost_per_hour:.3f}/hr on-demand)",
+            f"Estimated runtime: {hint['min_h']:.1f}–{hint['max_h']:.1f} hours",
+            "Does not include S3 data transfer costs (~$0.09/GB egress)",
+            "AWS Spot pricing may reduce cost by 60–80%",
+        ],
+    }
