@@ -321,11 +321,50 @@ export class GalaxyAssistant {
   private galaxyAPI: GalaxyAPIProxy;
   private modelConfig: ModelConfig;
 
+  /** In-memory domain profile cache: userId → { domains, topics, fetchedAt } */
+  private _domainProfileCache: Map<number, { domains: string[]; topics: string[]; fetchedAt: number }> = new Map();
+  private static readonly DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
   constructor(options: GalaxyAssistantOptions) {
     this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     console.log('[GalaxyAssistant] Initialized with model config:', this.modelConfig);
+  }
+
+  /**
+   * Fetch user domain profile from backend, with 5-minute in-memory cache.
+   * Returns null if userId not set or fetch fails (never throws).
+   */
+  private async _fetchDomainProfile(userId?: number): Promise<{ domains: string[]; topics: string[] } | null> {
+    if (!userId) return null;
+    const cached = this._domainProfileCache.get(userId);
+    if (cached && Date.now() - cached.fetchedAt < GalaxyAssistant.DOMAIN_CACHE_TTL_MS) {
+      return { domains: cached.domains, topics: cached.topics };
+    }
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const res = await fetch(`${galaxyUrl}/api/user/domain-profile?user_id=${userId}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const profile = { domains: data.domains || [], topics: data.topics || [] };
+      this._domainProfileCache.set(userId, { ...profile, fetchedAt: Date.now() });
+      return profile.domains.length > 0 ? profile : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Build a domain profile context string to prepend to system prompts.
+   * Returns empty string if no profile is set.
+   */
+  private _buildDomainProfileContext(profile: { domains: string[]; topics: string[] } | null): string {
+    if (!profile || profile.domains.length === 0) return '';
+    const topicStr = profile.topics.length > 0 ? `, topics=[${profile.topics.join(', ')}]` : '';
+    return `User research profile: domains=[${profile.domains.join(', ')}]${topicStr}. Use this as a starting bias — current conversation context always takes precedence.\n\n`;
   }
 
   /** Get current model configuration (for testing/debugging) */
@@ -452,6 +491,13 @@ Rules:
 
     log('Processing message: ' + message.substring(0, 50));
 
+    // Load domain profile context (cached per user, 5-min TTL)
+    const domainProfile = await this._fetchDomainProfile(context.userId);
+    const domainProfileContext = this._buildDomainProfileContext(domainProfile);
+    if (domainProfileContext) {
+      log('Domain profile loaded for user ' + context.userId);
+    }
+
     // Step 1: Analyze user intent with NLU (now supports multi-intent)
     log('Step 1: Analyzing intent');
     const decomposition = await this.analyzeIntent(message, context);
@@ -460,7 +506,7 @@ Rules:
 
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
-      return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta);
+      return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
     }
 
     // Single-intent path: unchanged from original pipeline
@@ -512,6 +558,18 @@ Rules:
     let researchResponse: any = undefined;
     let benchmarkEvidence: any = undefined;
     const actions = intent.actions;
+
+    // Programmatic ADMET+SMILES fast path: if the message contains a SMILES string AND ADMET
+    // keywords, force needsWorkflowGeneration=true regardless of the intent classifier output.
+    // This prevents the LLM from asking clarifications in multi-turn conversations where the
+    // user has already provided a SMILES string.
+    const _hasSmilesPattern = /(?:CC\(=O\)|c1ccc|[A-Z][a-z]?(?:c|C)\d|[A-Z]=O|SMILES\s*[:=]\s*\S{5,})/i.test(message)
+      || /\b[A-Z][CNOPSFIBrcl0-9@=#\-+\[\]()\/.\\]{6,}\b/.test(message);
+    const _hasAdmetKeywords = /(ADMET|hERG|DILI|Ames\s+mutagenicity|cardiotox|hepatotox|ClinTox|toxicity\s+screen|drug\s+toxicity)/i.test(message);
+    if (_hasSmilesPattern && _hasAdmetKeywords && !actions.needsWorkflowGeneration) {
+      log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true');
+      actions.needsWorkflowGeneration = true;
+    }
 
     // If the intent is ambiguous, return a clarifying question before generating
     const ambiguity = (intent as any).workflowAmbiguity;
@@ -614,11 +672,13 @@ Rules:
             intent.inlineParameters,
             context
           );
-          workflowGenerated = !!(
-            generatedWorkflow?.success &&
-            !generatedWorkflow?.error &&
-            (generatedWorkflow?.workflow_ga || generatedWorkflow?.nextflow_path)
-          );
+           workflowGenerated = !!(
+             generatedWorkflow?.success &&
+             !generatedWorkflow?.error &&
+             (generatedWorkflow?.workflow_ga ||
+              generatedWorkflow?.nextflow_path ||
+              generatedWorkflow?.workflow_type === 'chain')
+           );
           if (workflowGenerated) {
             log('Step 5 complete - Workflow generated');
           } else {
@@ -681,7 +741,8 @@ Rules:
       context,
       researchResponse,
       benchmarkEvidence,
-      onResponseDelta
+      onResponseDelta,
+      domainProfileContext
     );
     log('Step 6 complete');
 
@@ -744,7 +805,8 @@ Rules:
     message: string,
     context: ChatContext,
     startTime: number,
-    onResponseDelta?: (chunk: string) => void
+    onResponseDelta?: (chunk: string) => void,
+    domainProfileContext: string = ''
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
@@ -846,7 +908,8 @@ Rules:
       context,
       researchResult?.researchResponse,
       benchmarkResult?.benchmarkEvidence,
-      onResponseDelta
+      onResponseDelta,
+      domainProfileContext
     );
     log('Multi-intent Step 6 complete');
 
@@ -1759,6 +1822,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       user_intent: userIntent,
       max_tools_search: 30,
       inline_parameters: mergedInlineParameters,
+      session_id: context?.sessionId,
       datasets: datasets.map((d) => ({
         id: d.id,
         name: d.name,
@@ -1797,7 +1861,8 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     context: ChatContext,
     researchResponse?: any,
     benchmarkEvidence?: any,
-    onResponseDelta?: (chunk: string) => void
+    onResponseDelta?: (chunk: string) => void,
+    domainProfileContext: string = ''
   ): Promise<{ message: string; thinking?: ThinkingDetectionResult; truncated?: boolean }> {
     const lowerMessage = (message || '').toLowerCase();
     const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
@@ -1806,7 +1871,9 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     const runnableWorkflow = !!(
       generatedWorkflow?.success &&
       !generatedWorkflow?.error &&
-      (generatedWorkflow?.workflow_ga || generatedWorkflow?.nextflow_path)
+      (generatedWorkflow?.workflow_ga ||
+       generatedWorkflow?.nextflow_path ||
+       generatedWorkflow?.workflow_type === 'chain')
     );
     const workflowGenerationFailed = !!generatedWorkflow && !runnableWorkflow;
     const workflowFailureSignals = workflowGenerationFailed
@@ -1823,7 +1890,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
 
     const isResearchIntent = !!researchResponse;
     const systemPrompt = isResearchIntent
-      ? `You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 Your role:
 - Provide accurate, evidence-based answers to scientific questions
@@ -1831,7 +1898,7 @@ Your role:
 - Only cite papers from the provided list — never fabricate citations
 - Structure answers clearly with headings and bullet points
 - End with a ## References section listing only the papers you cited`
-      : `You are BioMate, an expert bioinformatics AI assistant.
+      : `${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 Your capabilities:
 - Access to 2,177 bioinformatics tools (real-time search)
@@ -1845,12 +1912,33 @@ IMPORTANT RULES:
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
 - If no workflow but tools were found, explain which tool to use and suggest creating a workflow
-- Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?")
-- When the user requests a workflow but has NOT mentioned any dataset (no file path, S3 URI, SRA/GSE/EMBL/PXD accession, or specific data file), ask what data they have and its format/location BEFORE generating the workflow — do NOT generate a workflow with empty input fields. Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it without requiring data.
+- Only provide direct answers for conceptual questions (e.g., "what is RNA-seq?"). If the user wants to RUN or GENERATE a workflow, apply the DATA-FIRST RULE below — do not explain pipeline steps.
+
+DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
+- NEVER describe workflow steps, list pipeline stages, explain tools, or provide any execution instructions in response to a workflow-generation request when the user has not yet provided input data. This is a strict prohibition, not a preference. Violating this rule means the system cannot run.
+- "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
+- SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for a file path or S3 URI when an SRA accession is present in the message.
+- If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please provide one of: (1) FASTQ file paths or S3 URIs for your sequencing reads, or (2) an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
+- Exception: if the user explicitly requests a "demo", "test", or "mock" workflow, generate it immediately without asking for data.
+
+TURN-2 QUALIFIER RULE:
+- If the previous assistant message generated a workflow card AND the user's current message provides a type qualifier (e.g., "germline", "somatic", "bulk RNA-seq", "single-cell", "tumor-only", "paired tumor/normal", "inherited disease", "cancer"), regenerate the workflow immediately with the qualifier applied. Do NOT describe the workflow in text. Do NOT ask for data again. The previous conversation's input data is still valid.
+
+ONE-QUESTION RULE:
+- Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
+- SECOND-TURN OVERRIDE: If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), GENERATE THE WORKFLOW IMMEDIATELY. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel.
+- SMILES strings (e.g. CC(=O)Oc1ccccc1C(=O)O), InChI strings, compound names with structures, and amino acid sequences all count as input data — if the user provides ANY of these, generate the workflow immediately without asking ANY clarifying questions.
 - When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". Use the galaxy_dataset_id values as the workflow input parameters (e.g. input_bam, reads, input_vcf). Do NOT ask the user for data again — proceed directly to workflow generation using those IDs.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
-${isDrugDevelopmentQuery ? `- For drug-development failures, include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions` : ''}
+${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
+
+Workflow routing (use these specific workflows when the user's intent matches):
+- "MD simulation", "molecular dynamics", "AMBER", "pmemd", "protein stability in explicit solvent", or "post-docking MM-GBSA refinement": suggest the amber_pmemd_md workflow (AMBER pmemd.cuda GPU MD, 7-step pipeline: GAFF2 parametrization → tleap → EM → NVT/NPT equilibration → production MD → cpptraj RMSD/RMSF → MMPBSA.py ΔGbind. License: free academic since AMBER24.)
+- "GROMACS", "GROMACS MD", "GROMOS force field", or explicit mention of GROMACS: suggest the gromacs_protein_md workflow (GROMACS 2025 + gmx_MMPBSA, 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory)
+- "Glide docking", "Schrödinger docking", "Schrodinger docking", "XP docking", "HTVS", "extra precision docking", "virtual screening Glide", or "FEP+ preparation": suggest the schrodinger_glide_docking workflow (Schrödinger Glide HTVS/SP/XP, 5-step pipeline: LigPrep → PrepWiz → Grid → Glide → ranked SDF. License: FlexNet, user must provide.)
+- "covalent docking", "covalent inhibitor", "warhead", "acrylamide docking", "irreversible inhibitor design", "MOE docking", or "targeted covalent drug": suggest the moe_covalent_docking workflow (MOE CovDock SVL, 5-step: LigPrep → QuickPrep → CovDock → GBVI/WSA dG → SDF report. Warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor. License: MOE FlexNet, user must provide.)
+- "generative drug design", "de novo design", "scaffold hopping", "lead generation", "molecule optimization", "REINVENT", or "fragment decoration": suggest the reinvent4_lead_design workflow (REINVENT4 AstraZeneca, RL-based SMILES generator, outputs ranked molecules + SDF + score trajectory)
 
 Style guide:
 - Be concise and practical
@@ -2179,7 +2267,8 @@ ${isDrugDevelopmentQuery && !isResearchIntent ? `
 
     // POST to /api/memory/session-summary (non-blocking; this server calls Galaxy backend)
     const body = JSON.stringify({ summary, sessionId, userId });
-    await fetch('http://localhost:8080/api/memory/session-summary', {
+    const _galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    await fetch(`${_galaxyUrl}/api/memory/session-summary`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,

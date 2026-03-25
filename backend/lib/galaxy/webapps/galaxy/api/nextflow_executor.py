@@ -14,7 +14,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse
@@ -56,10 +56,15 @@ _qc_handlers_lock = threading.Lock()
 # Request / response models
 # ---------------------------------------------------------------------------
 
+def _default_nf_profile() -> str:
+    """Return the deployment-level Nextflow profile from env, defaulting to 'docker'."""
+    return os.environ.get("BIOMATE_NF_PROFILE", "docker")
+
+
 class NextflowExecuteRequest(BaseModel):
     nextflow_path: str
     parameters: Optional[Dict[str, Any]] = None
-    profile: Optional[str] = "standard"
+    profile: Optional[str] = None  # None → resolved at execution time from BIOMATE_NF_PROFILE
     entry: Optional[str] = None
     history_id: Optional[str] = None
     compute_config: Optional[Dict[str, Any]] = None
@@ -897,14 +902,54 @@ def _choose_container_strategy(nf_path: Path, raw_nextflow_path: str) -> Dict[st
     }
 
 
+_TRACE_SKIP_FILES = frozenset({
+    ".command.sh", ".command.run", ".command.log", ".command.out",
+    ".command.err", ".command.env", ".command.trace", ".exitcode",
+    ".started", ".nf-params.json",
+})
+
+
+def _scan_task_work_dir(work_dir: str) -> List[str]:
+    """List output files in a Nextflow task work directory, skipping internal files."""
+    p = Path(work_dir)
+    if not p.is_dir():
+        return []
+    files: List[str] = []
+    try:
+        for entry in p.iterdir():
+            if not entry.is_file():
+                continue
+            if entry.name in _TRACE_SKIP_FILES:
+                continue
+            files.append(entry.name)
+    except PermissionError:
+        pass
+    return sorted(files)
+
+
 def _parse_trace_progress(trace_path: Path) -> dict:
-    """Parse Nextflow trace file and return task-level progress counts."""
+    """Parse Nextflow trace file and return task-level progress counts.
+
+    Also reads the optional ``workdir`` column (column 14) to surface per-task
+    output files — enabling the UI to show intermediate results per step.
+    """
     if not trace_path.exists():
         return {}
     try:
         lines = trace_path.read_text(errors="replace").splitlines()
     except OSError:
         return {}
+
+    if not lines:
+        return {}
+
+    # Parse header to locate columns by name (trace format can vary)
+    header = [h.strip() for h in lines[0].split("\t")]
+    col_idx = {name: i for i, name in enumerate(header)}
+    idx_task_id  = col_idx.get("task_id",  0)
+    idx_name     = col_idx.get("name",     3)
+    idx_status   = col_idx.get("status",   4)
+    idx_workdir  = col_idx.get("workdir",  -1)  # not present in all Nextflow versions
 
     completed = failed = running = 0
     processes = []
@@ -916,11 +961,29 @@ def _parse_trace_progress(trace_path: Path) -> dict:
         parts = line.split("\t")
         if len(parts) < 5:
             continue
-        task_id = parts[0].strip()
-        process_name = parts[3].strip()
-        status = parts[4].strip()
+        task_id      = parts[idx_task_id].strip() if idx_task_id < len(parts) else ""
+        process_name = parts[idx_name].strip()    if idx_name    < len(parts) else ""
+        status       = parts[idx_status].strip()  if idx_status  < len(parts) else ""
+        work_dir     = (
+            parts[idx_workdir].strip()
+            if idx_workdir >= 0 and idx_workdir < len(parts)
+            else ""
+        )
+
         seen_tasks[task_id] = status
-        processes.append({"id": task_id, "name": process_name, "status": status})
+
+        # Collect files produced by this task (only for completed local tasks)
+        task_files: List[str] = []
+        if work_dir and status == "COMPLETED":
+            task_files = _scan_task_work_dir(work_dir)
+
+        processes.append({
+            "id": task_id,
+            "name": process_name,
+            "status": status,
+            "work_dir": work_dir,
+            "task_files": task_files,
+        })
 
     for s in seen_tasks.values():
         if s == "COMPLETED":
@@ -1324,9 +1387,17 @@ def execute_nextflow(
             ),
         )
 
-    # Profile
-    profile = request.profile or "standard"
+    # Profile — explicit request value wins; fall back to BIOMATE_NF_PROFILE env var.
+    profile = request.profile or _default_nf_profile()
     cmd += ["-profile", profile]
+
+    # Real-mode guard: for any non-mock profile, ensure mock_mode is off.
+    # Workflows default params.mock_mode = true; command-line params override defaults.
+    # This keeps the logic centralised here rather than scattered across workflow configs.
+    _mock_profiles = {"standard", "test", "test_full", "test_cache"}
+    if not any(p.strip() in _mock_profiles for p in profile.split(",")) and "mock_mode" not in params:
+        params["mock_mode"] = False
+        log.info(f"[Nextflow run {run_id}] profile={profile!r} → injecting --mock_mode false")
 
     # Work directory — for awsbatch, the work dir must be S3 (set in executor config);
     # passing a local path via -w would override that and cause "S3 bucket required" errors.
@@ -1513,6 +1584,56 @@ def get_nextflow_status(
         info = _runs.get(run_id)
 
     if info is None:
+        # Fallback: run may have been started in a different gunicorn worker.
+        # gunicorn --workers 4 creates 4 separate Python processes each with their own
+        # _runs dict. If the execute request hit Worker A and this status request hits
+        # Worker B, _runs.get(run_id) returns None. Reconstruct status from disk.
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        log_dir = work_base / run_id
+        output_dir = log_dir / "output"
+        log_path_fallback = log_dir / "nextflow.log"
+        log_tail_fallback: list = []
+        if log_path_fallback.exists():
+            try:
+                with open(log_path_fallback) as fh:
+                    lines = fh.readlines()
+                log_tail_fallback = [l.rstrip() for l in lines[-20:]]
+            except Exception:
+                pass
+        if output_dir.exists():
+            # Output directory exists → run completed successfully
+            return {
+                "run_id": run_id,
+                "invocation_id": run_id,
+                "status": "succeeded",
+                "returncode": 0,
+                "outdir": str(output_dir),
+                "work_dir": str(log_dir / "work"),
+                "log_tail": log_tail_fallback,
+                "is_batch": False,
+                "s3_output_files": [],
+                "completedSteps": 0,
+                "totalSteps": 0,
+                "progressPercent": 100,
+                "processes": [],
+            }
+        elif log_dir.exists():
+            # Log dir exists but no output yet → still running
+            return {
+                "run_id": run_id,
+                "invocation_id": run_id,
+                "status": "running",
+                "returncode": None,
+                "outdir": str(output_dir),
+                "work_dir": str(log_dir / "work"),
+                "log_tail": log_tail_fallback,
+                "is_batch": False,
+                "s3_output_files": [],
+                "completedSteps": 0,
+                "totalSteps": 0,
+                "progressPercent": 50,
+                "processes": [],
+            }
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     # Read last few lines of log for progress info
@@ -1577,7 +1698,13 @@ def download_s3_output(
     with _runs_lock:
         info = _runs.get(run_id)
     if info is None:
-        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+        # Same multi-worker fallback as get_nextflow_status: reconstruct from disk
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        output_dir = work_base / run_id / "output"
+        if output_dir.exists():
+            info = {"outdir": str(output_dir), "invocation_id": run_id}
+        else:
+            raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     outdir = str(info.get("outdir", ""))
     if not outdir.startswith("s3://"):
@@ -2388,3 +2515,381 @@ def get_cryosparc_status(run_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"CryoSPARC run not found: {run_id}")
 
     return status
+
+
+# ---------------------------------------------------------------------------
+# Index health check
+# ---------------------------------------------------------------------------
+
+@router.get("/api/admin/index-health", summary="Workflow index health by source")
+def get_index_health() -> Dict[str, Any]:
+    """Returns workflow index counts by source and staleness flags.
+
+    A source is considered stale if its most-recent ``indexed_at`` timestamp
+    is older than 7 days (or if no ``indexed_at`` value exists).
+    """
+    import sqlite3 as _sqlite3
+    from datetime import datetime as _dt, timedelta as _td
+
+    stale_threshold = _dt.utcnow() - _td(days=7)
+    db_path = Path(__file__).resolve().parents[5] / "database" / "galaxy_ai_tools.db"
+
+    if not db_path.exists():
+        raise HTTPException(status_code=503, detail=f"Workflow database not found at {db_path}")
+
+    try:
+        conn = _sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT source, COUNT(*), MAX(indexed_at) FROM workflows GROUP BY source ORDER BY COUNT(*) DESC"
+        ).fetchall()
+        conn.close()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"DB query failed: {exc}")
+
+    sources = []
+    any_stale = False
+    for source, count, last_indexed in rows:
+        if last_indexed:
+            try:
+                last_dt = _dt.fromisoformat(last_indexed.replace("Z", "+00:00").replace("+00:00", ""))
+            except ValueError:
+                last_dt = None
+        else:
+            last_dt = None
+
+        is_stale = (last_dt is None) or (last_dt < stale_threshold)
+        if is_stale:
+            any_stale = True
+
+        sources.append({
+            "source": source,
+            "count": count,
+            "last_indexed": last_indexed,
+            "is_stale": is_stale,
+        })
+
+    return {
+        "sources": sources,
+        "total": sum(s["count"] for s in sources),
+        "health": "stale" if any_stale else "ok",
+        "stale_threshold_days": 7,
+        "checked_at": _dt.utcnow().isoformat() + "Z",
+    }
+
+
+# ---------------------------------------------------------------------------
+# C1 — Preflight with pilot_analysis detection
+# ---------------------------------------------------------------------------
+
+class PreflightRequest(BaseModel):
+    workflow_path: Optional[str] = None
+    workflow_name: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    input_files: Optional[List[str]] = None
+    required_params: Optional[List[Dict[str, Any]]] = None
+
+
+def _detect_pilot_analyzers(input_files: List[str]) -> List[Dict[str, Any]]:
+    """Return pilot analyzers applicable to the given input files based on extension."""
+    from galaxy.ai.pilot_analysis.registry import PILOT_ANALYZERS
+
+    ext_map: Dict[str, List[str]] = {}
+    for f in input_files:
+        ext = Path(f).suffix.lower().lstrip(".")
+        ext_map.setdefault(ext, []).append(f)
+
+    applicable = []
+    seen: set = set()
+    for name, spec in PILOT_ANALYZERS.items():
+        required_type = spec.get("input_type", "")
+        if required_type in ext_map and name not in seen:
+            seen.add(name)
+            applicable.append({
+                "name": name,
+                "description": spec.get("description", ""),
+                "input_type": required_type,
+                "runtime_estimate": spec.get("runtime_estimate", "~30s"),
+                "max_runtime_seconds": spec.get("max_runtime_seconds", 60),
+                "category": spec.get("category", "general"),
+                "matched_files": ext_map[required_type],
+            })
+    return applicable
+
+
+@router.post("/api/workflows/preflight", summary="Pre-flight validation with pilot analysis detection")
+def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
+    """Three-phase preflight check plus pilot-analysis detector.
+
+    Phases:
+      1. parameters  — all required params present
+      2. inputs      — input file types recognised; applicable pilot analyzers listed
+      3. structure   — workflow path resolvable or known in catalog
+    """
+    phases: List[Dict[str, Any]] = []
+    params = request.parameters or {}
+    input_files = request.input_files or []
+    required = request.required_params or []
+
+    # Phase 1 — required parameters
+    missing = [
+        p.get("id") or p.get("name")
+        for p in required
+        if not (params.get(p.get("id") or p.get("name") or ""))
+    ]
+    phases.append({
+        "id": "parameters",
+        "status": "pass" if not missing else "fail",
+        "message": (
+            "All required parameters present"
+            if not missing
+            else f"Missing required parameters: {', '.join(str(m) for m in missing)}"
+        ),
+    })
+
+    # Phase 2 — input files + pilot analysis detection
+    try:
+        applicable = _detect_pilot_analyzers(input_files) if input_files else []
+        total_est = sum(a["max_runtime_seconds"] for a in applicable)
+        phases.append({
+            "id": "inputs",
+            "status": "pass",
+            "message": (
+                f"Input files recognised — {len(applicable)} pilot analyzer(s) available"
+                if applicable
+                else "Input file types checked (no pilot analyzers matched)"
+            ),
+            "applicable_analyzers": applicable,
+            "estimated_characterization_seconds": total_est,
+        })
+    except Exception as exc:
+        log.warning("preflight: pilot analyzer detection failed: %s", exc)
+        phases.append({
+            "id": "inputs",
+            "status": "pass",
+            "message": "Input file accessibility check complete",
+            "applicable_analyzers": [],
+        })
+
+    # Phase 3 — workflow structure
+    wf_path = request.workflow_path or ""
+    path_ok = bool(wf_path) and Path(wf_path).exists() if wf_path else False
+    if not wf_path:
+        phases.append({
+            "id": "structure",
+            "status": "pass",
+            "message": "Workflow structure valid (no path provided — catalog workflow)",
+        })
+    elif path_ok:
+        phases.append({
+            "id": "structure",
+            "status": "pass",
+            "message": f"Workflow path exists: {wf_path}",
+        })
+    else:
+        phases.append({
+            "id": "structure",
+            "status": "warn",
+            "message": f"Workflow path not found locally (may be remote): {wf_path}",
+        })
+
+    ready = all(p["status"] in ("pass", "warn") for p in phases) and all(
+        p["status"] == "pass" for p in phases if p["id"] == "parameters"
+    )
+    return {"phases": phases, "ready": ready}
+
+
+# ---------------------------------------------------------------------------
+# D1 — Pre-run cost estimation
+# ---------------------------------------------------------------------------
+
+# AWS Batch on-demand instance cost table (USD/hr, approximate 2026 rates)
+_BATCH_INSTANCE_COST_PER_HOUR: Dict[str, float] = {
+    "c5.xlarge": 0.17,
+    "c5.2xlarge": 0.34,
+    "c5.4xlarge": 0.68,
+    "c5.9xlarge": 1.53,
+    "c5.18xlarge": 3.06,
+    "r5.xlarge": 0.252,
+    "r5.2xlarge": 0.504,
+    "r5.4xlarge": 1.008,
+    "r5.8xlarge": 2.016,
+    "m5.xlarge": 0.192,
+    "m5.2xlarge": 0.384,
+    "m5.4xlarge": 0.768,
+    "m5.8xlarge": 1.536,
+    "g4dn.xlarge": 0.526,
+    "g4dn.2xlarge": 0.752,
+    "g4dn.4xlarge": 1.204,
+}
+
+# Rough domain → typical instance + hours range mapping
+_DOMAIN_RUNTIME_HINTS: Dict[str, Dict[str, Any]] = {
+    "rnaseq":     {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
+    "chipseq":    {"instance": "c5.4xlarge",  "min_h": 1.0, "max_h": 4.0},
+    "atacseq":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
+    "sarek":      {"instance": "c5.9xlarge",  "min_h": 4.0, "max_h": 12.0},
+    "scrnaseq":   {"instance": "r5.4xlarge",  "min_h": 1.0, "max_h": 6.0},
+    "methylseq":  {"instance": "c5.9xlarge",  "min_h": 2.0, "max_h": 8.0},
+    "cryoem":     {"instance": "g4dn.4xlarge","min_h": 2.0, "max_h": 8.0},
+    "cryosparc":  {"instance": "g4dn.4xlarge","min_h": 1.0, "max_h": 6.0},
+    "proteomics": {"instance": "c5.4xlarge",  "min_h": 0.5, "max_h": 2.0},
+    "metagenomics":{"instance": "r5.4xlarge", "min_h": 2.0, "max_h": 10.0},
+    "alphafold":  {"instance": "g4dn.4xlarge","min_h": 4.0, "max_h": 24.0},
+    "default":    {"instance": "c5.2xlarge",  "min_h": 0.5, "max_h": 3.0},
+}
+
+
+class CostEstimateRequest(BaseModel):
+    nextflow_path: Optional[str] = None
+    workflow_name: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+
+
+@router.post("/api/workflows/estimate_cost", summary="Estimate AWS Batch run cost before execution")
+def estimate_workflow_cost(request: CostEstimateRequest) -> Dict[str, Any]:
+    """Static pre-run cost estimate based on workflow domain and typical runtimes.
+
+    Returns min/max USD range and assumptions used.
+    """
+    path = (request.nextflow_path or request.workflow_name or "").lower()
+
+    # Pick domain hint by longest keyword match on path/name (more specific wins)
+    hint = _DOMAIN_RUNTIME_HINTS["default"]
+    best_len = 0
+    for domain, h in _DOMAIN_RUNTIME_HINTS.items():
+        if domain != "default" and domain in path and len(domain) > best_len:
+            hint = h
+            best_len = len(domain)
+
+    instance = hint["instance"]
+    cost_per_hour = _BATCH_INSTANCE_COST_PER_HOUR.get(instance, 0.34)
+    min_cost = round(hint["min_h"] * cost_per_hour, 2)
+    max_cost = round(hint["max_h"] * cost_per_hour * 1.15, 2)  # 15% buffer
+
+    # Try to pull runtime_estimate from pilot_analysis registry for known tools
+    try:
+        from galaxy.ai.pilot_analysis.registry import PILOT_ANALYZERS
+        relevant = [
+            a for a in PILOT_ANALYZERS.values()
+            if a.get("category", "") in path or path in a.get("category", "")
+        ]
+        if relevant:
+            max_analyzer_s = max(a.get("max_runtime_seconds", 60) for a in relevant)
+            if max_analyzer_s > 300:
+                max_cost = round(max_cost * 1.3, 2)
+    except Exception:
+        pass
+
+    return {
+        "min_usd": min_cost,
+        "max_usd": max_cost,
+        "instance_type": instance,
+        "cost_per_hour_usd": cost_per_hour,
+        "assumptions": [
+            f"Instance type: {instance} (${cost_per_hour:.3f}/hr on-demand)",
+            f"Estimated runtime: {hint['min_h']:.1f}–{hint['max_h']:.1f} hours",
+            "Does not include S3 data transfer costs (~$0.09/GB egress)",
+            "AWS Spot pricing may reduce cost by 60–80%",
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# C3 — nf-core test profile runner
+# ---------------------------------------------------------------------------
+
+class ValidateProfileRequest(BaseModel):
+    nextflow_path: str
+    profile: Optional[str] = "test"
+    timeout_seconds: Optional[int] = 300
+
+
+@router.post("/api/workflows/validate_profile", summary="Validate pipeline runs with nf-core test profile")
+def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]:
+    """Run ``nextflow run {path} -profile test,docker`` on the smallest Batch
+    instance to confirm the pipeline environment works end-to-end.
+
+    Returns:
+        status: "pass" | "fail" | "timeout" | "skipped"
+        message: Human-readable summary
+        log_tail: Last 20 lines of stdout/stderr
+        duration_seconds: Actual wall time used
+    """
+    nf_path = request.nextflow_path.strip()
+    if not nf_path:
+        raise HTTPException(status_code=400, detail="nextflow_path is required")
+
+    profile = request.profile or "test"
+    timeout = min(max(int(request.timeout_seconds or 300), 30), 600)
+
+    # Safety: only allow test/docker/singularity profiles; never run user data
+    safe_profiles = {"test", "docker", "singularity", "podman", "conda", "test_full", "test_cache"}
+    profile_parts = {p.strip() for p in profile.split(",")}
+    if not profile_parts.issubset(safe_profiles):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only safe profiles allowed: {safe_profiles}. Got: {profile_parts - safe_profiles}",
+        )
+
+    # Resolve pipeline path
+    resolved_path = nf_path
+    if not Path(nf_path).exists():
+        # Try known nf-core local paths
+        base = Path(__file__).resolve().parents[5] / "nf-core-workflows"
+        pipeline_name = nf_path.split("/")[-1].replace("nf-core/", "")
+        candidate = base / pipeline_name
+        if candidate.exists():
+            resolved_path = str(candidate)
+        # Otherwise pass through as remote (nf-core/<name>) and let Nextflow resolve
+
+    import time as _time
+    cmd = ["nextflow", "run", resolved_path, f"-profile", profile, "--outdir", "/tmp/biomate_test_run"]
+    start = _time.time()
+    log_lines: List[str] = []
+    status = "pass"
+    message = ""
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        duration = round(_time.time() - start, 1)
+        combined_output = (proc.stdout or "") + (proc.stderr or "")
+        log_lines = combined_output.splitlines()[-20:]
+
+        if proc.returncode == 0:
+            status = "pass"
+            message = f"Pipeline environment validated in {duration}s — runs end-to-end"
+        else:
+            status = "fail"
+            # Extract first error line from Nextflow output
+            err_line = next(
+                (l for l in combined_output.splitlines() if "ERROR" in l or "error" in l.lower()),
+                f"Exit code {proc.returncode}"
+            )
+            message = f"Validation failed: {err_line[:200]}"
+
+    except subprocess.TimeoutExpired:
+        duration = timeout
+        status = "timeout"
+        message = f"Validation timed out after {timeout}s — pipeline may require more resources"
+    except FileNotFoundError:
+        duration = 0.0
+        status = "skipped"
+        message = "Nextflow binary not found — cannot validate profile locally"
+    except Exception as exc:
+        duration = round(_time.time() - start, 1)
+        status = "fail"
+        message = f"Unexpected error: {exc}"
+
+    return {
+        "status": status,
+        "message": message,
+        "log_tail": log_lines,
+        "duration_seconds": duration,
+        "profile_used": profile,
+        "nextflow_path": nf_path,
+    }

@@ -5,12 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChatOutputAttachments } from "./chat-output-attachments";
 import type { PrereqChecklist } from "@/lib/prereq-normalizer";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -20,7 +24,10 @@ interface NextflowWorkflowViewerProps {
   workflowDefinition?: any; // Nextflow definition
   initialParams?: any;
   onExecute?: (params: any) => void;
-  status?: 'idle' | 'running' | 'completed' | 'failed';
+  onPause?: () => void;
+  onResume?: () => void;
+  onCancel?: () => void;
+  status?: 'idle' | 'running' | 'paused' | 'completed' | 'failed' | 'pending_review';
   errorMessage?: string;
   progress?: number;
   onParameterChange?: (id: string, value: any) => void;
@@ -35,9 +42,196 @@ interface NextflowWorkflowViewerProps {
     totalAttempts?: number;
   };
   nextflowStatus?: any;
+  dataVerification?: any;
+  onAdjustViaChat?: (message: string) => void;
+  executionEngine?: string;
 }
 
-export function NextflowWorkflowViewer({ 
+type ViewerParameter = {
+  id: string;
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'select' | 'file';
+  label: string;
+  value?: any;
+  defaultValue?: any;
+  description?: string;
+  required?: boolean;
+};
+
+type ViewerPhaseStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
+
+type ViewerPhase = {
+  id: string;
+  name: string;
+  description?: string;
+  status: ViewerPhaseStatus;
+  toolId?: string;
+  parameters?: Record<string, unknown>;
+  inputs?: Record<string, unknown>;
+};
+
+type StepExecutionState = {
+  backendState?: string;
+  phaseStatus: ViewerPhaseStatus;
+  jobId?: string;
+  startedAt?: string;
+  lastRunAt?: string;
+  runCount: number;
+  outputsCount?: number;
+  isExecuting: boolean;
+  errorMessage?: string;
+};
+
+type QCGateFailure = { metric: string; value: number; threshold: number; operator: string; message: string };
+
+type QCGateData = {
+  processName: string;
+  qcMetrics: Record<string, number>;
+  failures: Array<QCGateFailure | string>;
+  suggestions: Array<{
+    parameter: string;
+    currentValue: any;
+    suggestedValue: any;
+    reason: string;
+    confidence: number;
+  }>;
+};
+
+function inferParamType(value: any): ViewerParameter['type'] {
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  return "string";
+}
+
+function prettifyParamLabel(raw: string): string {
+  return raw
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function buildViewerParameters(workflowDefinition: any, currentParams: Record<string, any>): ViewerParameter[] {
+  // Prefer structured required_params / optional_params when the backend .nf parser populated them.
+  const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+  const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+  if (reqList.length > 0 || optList.length > 0) {
+    return [...reqList, ...optList]
+      .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
+      .map((p: any) => {
+        const userValue = currentParams[p.name];
+        const defaultVal = p.default ?? null;
+        return {
+          id: p.name,
+          name: p.name,
+          type: inferParamType(userValue ?? defaultVal),
+          label: p.label || prettifyParamLabel(p.name),
+          description: p.description,
+          value: userValue !== undefined ? userValue : (defaultVal !== null ? defaultVal : ""),
+          defaultValue: defaultVal,
+          required: reqList.some((r: any) => r.name === p.name),
+        };
+      });
+  }
+
+  // Fallback: old flat-map from parameters / inline_parameters keys.
+  const fromWorkflow = workflowDefinition?.parameters && typeof workflowDefinition.parameters === "object"
+    ? workflowDefinition.parameters
+    : {};
+  const fromInline = workflowDefinition?.inline_parameters && typeof workflowDefinition.inline_parameters === "object"
+    ? workflowDefinition.inline_parameters
+    : {};
+  const merged: Record<string, any> = {
+    ...fromWorkflow,
+    ...fromInline,
+    ...currentParams,
+  };
+
+  return Object.entries(merged)
+    .filter(([key]) => !key.startsWith("__"))
+    .map(([key, value]) => ({
+      id: key,
+      name: key,
+      type: inferParamType(value),
+      label: prettifyParamLabel(key),
+      value,
+      defaultValue: fromWorkflow[key],
+      required: false,
+    }));
+}
+
+function normalizeBackendState(state: unknown): string {
+  if (typeof state !== "string") return "unknown";
+  return state.toLowerCase();
+}
+
+function mapBackendToPhaseStatus(state: string): ViewerPhaseStatus {
+  if (state === "ok" || state === "completed") return "completed";
+  if (state === "error" || state === "failed" || state === "cancelled") return "failed";
+  if (state === "paused") return "paused";
+  if (state === "running" || state === "queued") return "running";
+  return "pending";
+}
+
+function isTerminalBackendState(state: string): boolean {
+  return state === "ok" || state === "completed" || state === "error" || state === "failed" || state === "cancelled";
+}
+
+async function readApiErrorMessage(response: Response): Promise<string> {
+  try {
+    const payload = await response.json();
+    if (typeof payload?.message === "string" && payload.message.trim().length > 0) {
+      return payload.message;
+    }
+    if (typeof payload?.error === "string" && payload.error.trim().length > 0) {
+      return payload.error;
+    }
+  } catch {
+    // Fallback to plain text for non-JSON responses.
+  }
+
+  try {
+    const text = await response.text();
+    if (text.trim().length > 0) {
+      return text;
+    }
+  } catch {
+    // Keep default below.
+  }
+  return `Request failed (${response.status})`;
+}
+
+function DownloadCommandsPanel({ runId }: { runId: string }) {
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`/api/workflows/runs/${runId}/download_commands`)
+      .then(r => r.json())
+      .then(d => setData(d))
+      .catch(() => {});
+  }, [runId]);
+
+  if (!data?.download_commands) return null;
+
+  const allOutputs: string = data.download_commands.all_outputs ?? '';
+  if (!allOutputs) return null;
+
+  return (
+    <div data-testid="download-commands-panel" className="rounded-md border border-muted p-4 space-y-3">
+      <h4 className="text-sm font-semibold flex items-center gap-2">
+        <Download className="h-4 w-4" />
+        Download Outputs
+      </h4>
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">All outputs:</p>
+        <code className="block text-xs font-mono bg-muted p-2 rounded break-all">{allOutputs}</code>
+      </div>
+    </div>
+  );
+}
+
+export function NextflowWorkflowViewer({
   workflowId, 
   invocationId,
   executionBlockedReason,
@@ -45,6 +239,9 @@ export function NextflowWorkflowViewer({
   workflowDefinition, 
   initialParams, 
   onExecute,
+  onPause,
+  onResume,
+  onCancel,
   status = 'idle',
   errorMessage,
   progress = 0,
@@ -54,37 +251,280 @@ export function NextflowWorkflowViewer({
   runId,
   autofix,
   nextflowStatus,
+  executionEngine,
 }: NextflowWorkflowViewerProps) {
-  const [params, setParams] = useState(initialParams || {});
+  const [params, setParams] = useState<Record<string, any>>(
+    initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
+  );
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
 
-  // Derive phases from workflow steps if available
-  const phases = workflowDefinition?.steps ? Object.values(workflowDefinition.steps).map((step: any, index: number) => ({
-    id: step.id || `step-${index}`,
-    name: step.name || step.label || step.tool_id || `Step ${index + 1}`,
-    status: 'pending', // Default status, should be updated based on execution state
-    description: step.annotation || step.description
-  })) : [
-    { id: 'setup', name: 'Setup & Input', status: 'completed' },
-    { id: 'process', name: 'Data Processing', status: 'running' },
-    { id: 'analysis', name: 'Statistical Analysis', status: 'pending' },
-    { id: 'report', name: 'Report Generation', status: 'pending' }
-  ];
+  // QC governance settings
+  const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
+  const [pauseAtQcFailures, setPauseAtQcFailures] = useState(true);
+  const [qcProfile, setQcProfile] = useState('');
+  const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string }>>([]);
+  const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
+  const [qcOverrideKey, setQcOverrideKey] = useState('');
+  const [qcOverrideValue, setQcOverrideValue] = useState('');
 
-  // Update phase status based on global status (simple simulation for now)
-  // In a real implementation, we would map individual step statuses from the backend
-  const updatedPhases = phases.map((phase: any, index: number) => {
-    if (status === 'completed') return { ...phase, status: 'completed' };
-    if (status === 'running') {
-        // Simple progress simulation mapping
-        const totalPhases = phases.length;
-        const currentPhaseIndex = Math.floor((progress / 100) * totalPhases);
-        if (index < currentPhaseIndex) return { ...phase, status: 'completed' };
-        if (index === currentPhaseIndex) return { ...phase, status: 'running' };
-        return { ...phase, status: 'pending' };
+  // C3: validate environment state
+  const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
+  const [validateLog, setValidateLog] = useState<string[]>([]);
+  const [validateLogOpen, setValidateLogOpen] = useState(false);
+
+  const handleValidateEnvironment = async () => {
+    const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath || '';
+    if (!nfPath) return;
+    setValidateStatus('running');
+    setValidateLog([]);
+    setValidateLogOpen(false);
+    try {
+      const resp = await fetch('/api/workflows/validate_profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nextflow_path: nfPath, profile: 'test', timeout_seconds: 120 }),
+      });
+      const data = await resp.json();
+      setValidateStatus(data.status ?? 'fail');
+      setValidateLog(data.log_tail ?? []);
+      if (data.status === 'fail' || data.status === 'timeout') setValidateLogOpen(true);
+    } catch {
+      setValidateStatus('fail');
+      setValidateLog(['Network error — could not reach backend']);
+      setValidateLogOpen(true);
     }
-    return phase;
+  };
+
+  const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
+  const stepPollersRef = React.useRef<Record<string, ReturnType<typeof setInterval>>>({});
+
+  // QC gate inline panel state (SSE-triggered)
+  const [showQcInline, setShowQcInline] = useState(false);
+  const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
+  const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
+
+  const phases = React.useMemo<ViewerPhase[]>(() => {
+    if (workflowDefinition?.steps && typeof workflowDefinition.steps === "object") {
+      return Object.entries(workflowDefinition.steps).map(([stepKey, rawStep], index) => {
+        const step = (rawStep || {}) as Record<string, unknown>;
+        return {
+          id: String(step.id || stepKey || `step-${index}`),
+          name: String(step.name || step.label || step.tool_id || `Step ${index + 1}`),
+          status: "pending",
+          description: String(step.annotation || step.description || ""),
+          toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
+          parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
+          inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
+        };
+      });
+    }
+    return [
+      { id: "setup", name: "Setup & Input", status: "completed" },
+      { id: "process", name: "Data Processing", status: "running" },
+      { id: "analysis", name: "Statistical Analysis", status: "pending" },
+      { id: "report", name: "Report Generation", status: "pending" },
+    ];
+  }, [workflowDefinition]);
+
+  useEffect(() => {
+    setStepExecutionById((prev) => {
+      const next: Record<string, StepExecutionState> = {};
+      for (const phase of phases) {
+        if (prev[phase.id]) {
+          next[phase.id] = prev[phase.id];
+        }
+      }
+      return next;
+    });
+  }, [phases]);
+
+  const clearStepPoller = React.useCallback((stepId: string) => {
+    const timer = stepPollersRef.current[stepId];
+    if (timer) {
+      clearInterval(timer);
+      delete stepPollersRef.current[stepId];
+    }
+  }, []);
+
+  const refreshStepStatus = React.useCallback(async (stepId: string) => {
+    try {
+      const response = await fetch(`/api/workflow/step/${encodeURIComponent(stepId)}/status`);
+      if (!response.ok) {
+        throw new Error(`Status check failed (${response.status})`);
+      }
+
+      const payload = await response.json();
+      const backendState = normalizeBackendState(payload?.state);
+      const phaseStatus = mapBackendToPhaseStatus(backendState);
+      const outputsCount = Array.isArray(payload?.outputs) ? payload.outputs.length : 0;
+
+      setStepExecutionById((prev) => ({
+        ...prev,
+        [stepId]: {
+          ...(prev[stepId] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+          backendState,
+          phaseStatus,
+          jobId: payload?.job_id || prev[stepId]?.jobId,
+          startedAt: payload?.started_at || prev[stepId]?.startedAt,
+          lastRunAt: payload?.started_at || prev[stepId]?.lastRunAt,
+          outputsCount,
+          isExecuting: !isTerminalBackendState(backendState),
+          errorMessage: backendState === "error" || backendState === "failed" || backendState === "cancelled"
+            ? "Step execution failed."
+            : undefined,
+          runCount: prev[stepId]?.runCount ?? 1,
+        },
+      }));
+
+      if (isTerminalBackendState(backendState)) {
+        clearStepPoller(stepId);
+      }
+      return backendState;
+    } catch (error: any) {
+      setStepExecutionById((prev) => ({
+        ...prev,
+        [stepId]: {
+          ...(prev[stepId] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+          phaseStatus: "failed",
+          isExecuting: false,
+          errorMessage: error?.message || "Unable to refresh step status.",
+          runCount: prev[stepId]?.runCount ?? 1,
+        },
+      }));
+      clearStepPoller(stepId);
+      return "error";
+    }
+  }, [clearStepPoller]);
+
+  const beginStepStatusPolling = React.useCallback((stepId: string) => {
+    clearStepPoller(stepId);
+    void refreshStepStatus(stepId).then((backendState) => {
+      if (backendState && !isTerminalBackendState(backendState)) {
+        stepPollersRef.current[stepId] = setInterval(() => {
+          void refreshStepStatus(stepId);
+        }, 2500);
+      }
+    });
+  }, [clearStepPoller, refreshStepStatus]);
+
+  useEffect(() => {
+    return () => {
+      Object.keys(stepPollersRef.current).forEach((stepId) => clearStepPoller(stepId));
+    };
+  }, [clearStepPoller]);
+
+  const handleRunStep = React.useCallback(async (phase: ViewerPhase) => {
+    if (!phase.toolId) {
+      setStepExecutionById((prev) => ({
+        ...prev,
+        [phase.id]: {
+          ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+          phaseStatus: "failed",
+          isExecuting: false,
+          errorMessage: "Step is missing tool_id and cannot run individually.",
+          runCount: prev[phase.id]?.runCount ?? 0,
+        },
+      }));
+      return;
+    }
+
+    const startedAt = new Date().toISOString();
+    emitUxEvent("workflow.run_clicked", {
+      workflowId,
+      stepId: phase.id,
+      toolId: phase.toolId,
+      invocationId,
+    });
+
+    setStepExecutionById((prev) => ({
+      ...prev,
+      [phase.id]: {
+        ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+        phaseStatus: "running",
+        backendState: "queued",
+        runCount: (prev[phase.id]?.runCount ?? 0) + 1,
+        lastRunAt: startedAt,
+        startedAt,
+        outputsCount: 0,
+        isExecuting: true,
+        errorMessage: undefined,
+      },
+    }));
+
+    try {
+      const response = await fetch("/api/workflow/step/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step_id: phase.id,
+          tool_id: phase.toolId,
+          parameters: phase.parameters || {},
+          inputs: phase.inputs || {},
+        }),
+      });
+      if (!response.ok) {
+        const message = await readApiErrorMessage(response);
+        throw new Error(message);
+      }
+
+      const payload = await response.json();
+      const backendState = normalizeBackendState(payload?.state || "queued");
+      setStepExecutionById((prev) => ({
+        ...prev,
+        [phase.id]: {
+          ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+          backendState,
+          phaseStatus: mapBackendToPhaseStatus(backendState),
+          jobId: payload?.job_id || prev[phase.id]?.jobId,
+          isExecuting: !isTerminalBackendState(backendState),
+        },
+      }));
+      beginStepStatusPolling(phase.id);
+    } catch (error: any) {
+      setStepExecutionById((prev) => ({
+        ...prev,
+        [phase.id]: {
+          ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+          phaseStatus: "failed",
+          backendState: "error",
+          isExecuting: false,
+          errorMessage: error?.message || "Step execution failed.",
+        },
+      }));
+      clearStepPoller(phase.id);
+    }
+  }, [beginStepStatusPolling, clearStepPoller, invocationId, workflowId]);
+
+  const updatedPhases = phases.map((phase, index) => {
+    let derivedStatus: ViewerPhaseStatus = phase.status;
+    if (status === "completed") {
+      derivedStatus = "completed";
+    } else if (status === "running") {
+      const totalPhases = phases.length;
+      const currentPhaseIndex = Math.floor((progress / 100) * totalPhases);
+      if (index < currentPhaseIndex) derivedStatus = "completed";
+      else if (index === currentPhaseIndex) derivedStatus = "running";
+      else derivedStatus = "pending";
+    }
+
+    const stepExecution = stepExecutionById[phase.id];
+    if (!stepExecution) {
+      return { ...phase, status: derivedStatus };
+    }
+
+    return {
+      ...phase,
+      status: stepExecution.phaseStatus,
+      backendState: stepExecution.backendState,
+      jobId: stepExecution.jobId,
+      startedAt: stepExecution.startedAt,
+      lastRunAt: stepExecution.lastRunAt,
+      runCount: stepExecution.runCount,
+      outputsCount: stepExecution.outputsCount,
+      errorMessage: stepExecution.errorMessage,
+      isExecuting: stepExecution.isExecuting,
+    };
   });
 
   const handleParamChange = (id: string, value: any) => {
@@ -98,14 +538,99 @@ export function NextflowWorkflowViewer({
     }
     emitUxEvent('workflow.run_clicked', { workflowId, invocationId });
     if (onExecute) {
-      onExecute(params);
+      onExecute({
+        ...params,
+        __qcConfig: {
+          pauseAtQcFailures,
+          ...(qcProfile && { qcProfile }),
+          ...(Object.keys(qcOverrides).length > 0 && { qcOverrides }),
+        },
+      });
     }
   };
 
+  const handleRetryWithSuggestions = async () => {
+    if (!qcGateData) return;
+    setIsApplyingSuggestions(true);
+    try {
+      for (const suggestion of qcGateData.suggestions) {
+        if (onParameterChange) {
+          onParameterChange(suggestion.parameter, suggestion.suggestedValue);
+        }
+        setParams((prev: Record<string, any>) => ({ ...prev, [suggestion.parameter]: suggestion.suggestedValue }));
+      }
+      setShowQcInline(false);
+      setQCGateData(null);
+      if (onExecute) onExecute(params);
+    } catch (err) {
+      console.error('[QC Gate NFViewer] Failed to apply suggestions:', err);
+    } finally {
+      setIsApplyingSuggestions(false);
+    }
+  };
+
+  const handleProceedAnyway = () => {
+    console.log("[QC Gate NFViewer] User chose to proceed despite QC failures");
+    setShowQcInline(false);
+    setQCGateData(null);
+  };
+
+  const handleCancelWorkflow = () => {
+    console.log("[QC Gate NFViewer] User cancelled workflow due to QC failures");
+    setShowQcInline(false);
+    setQCGateData(null);
+    onCancel?.();
+  };
+
   const rationale = workflowDefinition?.scientific_rationale;
+
+  // Build a lookup from tool name prefix → hints, so pipeline-level params
+  // (e.g., star_index, salmon_index) can be matched to tool-internal hints
+  // (outSAMtype, validateMappings) from the scientific rationale.
+  const toolHintMap = React.useMemo<Record<string, { rationale: string; toolName: string }>>(() => {
+    const map: Record<string, { rationale: string; toolName: string }> = {};
+    const hints: any[] = (workflowDefinition?.scientific_rationale?.parameter_hints as any[]) || [];
+    // Group hints by tool, build a summary rationale per tool
+    const byTool: Record<string, string[]> = {};
+    for (const h of hints) {
+      if (!h?.tool || !h?.param) continue;
+      const toolKey = h.tool.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!byTool[toolKey]) byTool[toolKey] = [];
+      byTool[toolKey].push(`${h.param}: ${h.recommended}`);
+    }
+    for (const [toolKey, recs] of Object.entries(byTool)) {
+      map[toolKey] = { rationale: recs.slice(0, 3).join(' · '), toolName: toolKey };
+    }
+    return map;
+  }, [workflowDefinition?.scientific_rationale?.parameter_hints]);
+
+  // Enrich rendered params with rationale from tool_knowledge hints.
+  // Matching strategy: check if the param's id/name contains a known tool name
+  // (e.g., star_index → STAR hints, salmon_index → Salmon hints).
+  const renderedParameters = React.useMemo(() => {
+    const base = buildViewerParameters(workflowDefinition, params);
+    if (Object.keys(toolHintMap).length === 0) return base;
+    return base.map((p: any) => {
+      const pKey = (p.id || p.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Find any tool whose name is a substring of the param key
+      const matchedTool = Object.keys(toolHintMap).find(toolKey => pKey.includes(toolKey));
+      if (!matchedTool) return p;
+      const hint = toolHintMap[matchedTool];
+      return { ...p, rationale: `${hint.toolName.toUpperCase()} recommendations — ${hint.rationale}`, autoFilled: false };
+    });
+  }, [workflowDefinition, params, toolHintMap]);
+
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
-  const isPrereqBlocked = !!prereqChecklist && !prereqChecklist.canRun;
+  // Block Run if any required param is still empty (no value provided, no default).
+  // Skip this check when prereq recovery mode is active (overrideAllowed=true) — user approved demo path.
+  const hasUnfilledRequired = prereqChecklist?.overrideAllowed
+    ? false
+    : renderedParameters
+        .filter((p: any) => p.required === true)
+        .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
+  const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
+  const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
     autofix?.active === true ||
     ["analyzing", "fixing", "restarting"].includes(autofix?.state || "");
@@ -118,7 +643,63 @@ export function NextflowWorkflowViewer({
 
   useEffect(() => {
     setLastUpdateAt(new Date());
-  }, [status, progress, errorMessage, nextflowStatus]);
+  }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
+
+  useEffect(() => {
+    if (initialParams) { setParams(initialParams); return; }
+    const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+    const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+    if (reqList.length > 0 || optList.length > 0) {
+      const defaults: Record<string, any> = {};
+      for (const p of [...reqList, ...optList]) {
+        if (p?.name && p.default != null) defaults[p.name] = p.default;
+      }
+      setParams(defaults);
+    } else {
+      setParams(workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
+    }
+  }, [initialParams, workflowDefinition]);
+
+  useEffect(() => {
+    fetch('/api/qc/profiles')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.profiles) setAvailableQcProfiles(data.profiles); })
+      .catch(() => {});
+  }, []);
+
+  // SSE listener for QC gate events — mirrors workflow-artifact.tsx logic
+  useEffect(() => {
+    if (!invocationId) return;
+    let stopped = false;
+
+    const es = new EventSource(`/api/workflows/${invocationId}/events`);
+
+    es.addEventListener("qc_gate_triggered", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        console.log("[QC Gate NFViewer] Event received:", data);
+        const gateData: QCGateData = {
+          processName: data.process_name,
+          qcMetrics: data.qc_metrics ?? {},
+          failures: data.failures ?? [],
+          suggestions: data.suggestions ?? [],
+        };
+        setQCGateData(gateData);
+        setShowQcInline(true);
+      } catch (err) {
+        console.error("[QC Gate NFViewer] Failed to parse event:", err);
+      }
+    });
+
+    es.onerror = () => {
+      if (!stopped) es.close();
+    };
+
+    return () => {
+      stopped = true;
+      es.close();
+    };
+  }, [invocationId]);
 
   useEffect(() => {
     const rawLogTail = Array.isArray(nextflowStatus?.log_tail)
@@ -215,7 +796,7 @@ export function NextflowWorkflowViewer({
           : "Use View Results to check generated outputs as they arrive.";
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6 p-4" data-testid="workflow-artifact-panel">
       <DownloadOutcomePrompt
         open={downloadAllPromptOpen}
         onOpenChange={setDownloadAllPromptOpen}
@@ -224,11 +805,80 @@ export function NextflowWorkflowViewer({
         runId={runId}
         isDownloadAll={true}
       />
+
+      {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
+      {showQcInline && qcGateData && (
+        <div
+          data-testid="qc-gate-inline"
+          className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3"
+        >
+          <div className="flex items-start gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm text-amber-800 dark:text-amber-300">
+                QC Gate — {
+                  qcGateData.processName.includes(":")
+                    ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
+                    : qcGateData.processName.replace(/_/g, " ")
+                } — Review Required
+              </p>
+              {qcGateData.failures.length > 0 && (
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                  {typeof qcGateData.failures[0] === 'string'
+                    ? qcGateData.failures[0]
+                    : (qcGateData.failures[0] as QCGateFailure).message}
+                </p>
+              )}
+            </div>
+          </div>
+          {qcGateData.suggestions.length > 0 && (
+            <div className="mb-2 space-y-1">
+              {qcGateData.suggestions.map((s, i) => (
+                <div key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                  <span>•</span>
+                  <span>{s.parameter}: {JSON.stringify(s.currentValue)} → {JSON.stringify(s.suggestedValue)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 flex-wrap">
+            {qcGateData.suggestions.length > 0 && (
+              <button
+                data-testid="qc-gate-apply"
+                className="rounded bg-amber-600 text-white px-3 py-1.5 text-xs hover:bg-amber-700 disabled:opacity-50"
+                onClick={() => { void handleRetryWithSuggestions(); }}
+                disabled={isApplyingSuggestions}
+              >
+                {isApplyingSuggestions ? "Applying…" : "Apply suggestions"}
+              </button>
+            )}
+            <button
+              data-testid="qc-gate-keep"
+              className="rounded border border-amber-300 dark:border-amber-700 px-3 py-1.5 text-xs hover:bg-amber-100 dark:hover:bg-amber-900/30"
+              onClick={handleProceedAnyway}
+            >
+              Keep current
+            </button>
+            <button
+              data-testid="qc-gate-cancel-run"
+              className="rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-950/30"
+              onClick={handleCancelWorkflow}
+            >
+              Cancel run
+            </button>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Nextflow Workflow: {workflowDefinition?.name || 'Untitled'}</span>
             <div className="flex items-center gap-2">
+                {workflowDefinition?.qc_profile && (
+                  <Badge variant="outline" className="text-xs font-normal text-emerald-700 border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20">
+                    QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
+                  </Badge>
+                )}
                 {effectiveProgress > 0 && <span className="text-sm text-muted-foreground">{effectiveProgress}%</span>}
                 <Badge variant={status === 'running' ? 'secondary' : 'outline'}>
                 {status.toUpperCase()}
@@ -237,6 +887,17 @@ export function NextflowWorkflowViewer({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Completion banner — shown when workflow reaches terminal success state */}
+          {status === 'completed' && (
+            <div
+              data-testid="workflow-completion-banner"
+              className="mb-4 flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50/60 px-3 py-2 text-sm text-green-800 dark:border-green-700/50 dark:bg-green-950/30 dark:text-green-300"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+              <span>Workflow completed successfully. View Results and Download All are now available.</span>
+            </div>
+          )}
+
           {/* Scientific Rationale Panel — shown when Bioconductor KB has data */}
           {rationale && rationale.tools_used?.length > 0 && (
             <div className="mb-5 space-y-3">
@@ -335,27 +996,238 @@ export function NextflowWorkflowViewer({
               <ParameterGroup
                 id="main-params"
                 title="Workflow Parameters"
-                parameters={[
-                  { id: 'input', name: 'input', label: 'Input File', type: 'string', required: true },
-                  { id: 'output', name: 'output', label: 'Output Directory', type: 'string', required: true },
-                  { id: 'threads', name: 'threads', label: 'Threads', type: 'number', defaultValue: 4 }
-                ]}
+                description={renderedParameters.length === 0 ? "No editable parameters detected for this workflow." : undefined}
+                parameters={renderedParameters}
                 onChange={handleParamChange}
+                defaultOpen={renderedParameters.length > 0}
               />
-              <Button 
-                className="w-full" 
-                data-testid="button-run-workflow-panel"
-                onClick={handleExecute} 
-                disabled={
-                  status === 'running' ||
-                  status === 'completed' ||
-                  !!executionBlockedReason ||
-                  isPrereqBlocked ||
-                  isAutofixActive
-                }
-              >
-                {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : status === 'completed' ? 'Completed' : 'Run Workflow'}
-              </Button>
+              {hasUnfilledRequired && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Fill in all required fields (*) before running.
+                </p>
+              )}
+              <div className="space-y-2" data-testid="workflow-run-controls">
+                {/* C3: Validate environment button — only show for Nextflow workflows */}
+                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
+                  <div className="space-y-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      data-testid="button-validate-environment"
+                      onClick={handleValidateEnvironment}
+                      disabled={validateStatus === 'running'}
+                    >
+                      {validateStatus === 'running' ? (
+                        <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Validating environment…</>
+                      ) : validateStatus === 'pass' ? (
+                        <><CheckCircle2 className="mr-1.5 h-3 w-3 text-green-600" />Environment validated</>
+                      ) : validateStatus === 'fail' ? (
+                        <><XCircle className="mr-1.5 h-3 w-3 text-destructive" />Validation failed — see log</>
+                      ) : validateStatus === 'timeout' ? (
+                        <><AlertTriangle className="mr-1.5 h-3 w-3 text-amber-500" />Validation timed out</>
+                      ) : (
+                        <><ShieldCheck className="mr-1.5 h-3 w-3" />Validate Environment</>
+                      )}
+                    </Button>
+                    {validateLog.length > 0 && (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setValidateLogOpen(v => !v)}
+                          className="text-xs text-muted-foreground underline underline-offset-2"
+                        >
+                          {validateLogOpen ? 'Hide' : 'Show'} log ({validateLog.length} lines)
+                        </button>
+                        {validateLogOpen && (
+                          <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
+                            {validateLog.join('\n')}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <Button
+                  className="w-full"
+                  data-testid="button-run-workflow-panel"
+                  onClick={handleExecute}
+                  disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive}
+                >
+                  {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Run Workflow'}
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    data-testid="button-pause-workflow-panel"
+                    onClick={onPause}
+                    disabled={status !== 'running' || !onPause}
+                  >
+                    <Pause className="mr-2 h-4 w-4" />
+                    {executionEngine === 'nextflow' ? 'Detach' : 'Pause'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    data-testid="button-resume-workflow-panel"
+                    onClick={onResume}
+                    disabled={status !== 'paused' || !onResume}
+                  >
+                    <Play className="mr-2 h-4 w-4" />
+                    {executionEngine === 'nextflow' ? 'Reconnect' : 'Resume'}
+                  </Button>
+                </div>
+                {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
+                  <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    data-testid="button-restart-workflow-panel"
+                    onClick={() => onExecute?.(params)}
+                    disabled={status !== 'completed' && status !== 'failed'}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Restart
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    data-testid="button-cancel-workflow-panel"
+                    onClick={onCancel}
+                    disabled={status !== 'running' && status !== 'paused'}
+                  >
+                    <Square className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+
+              {/* QC Settings collapsible */}
+              <div className="rounded-md border border-border" data-testid="qc-settings-section">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between p-3 text-sm font-medium"
+                  onClick={() => setQcSettingsOpen(prev => !prev)}
+                  aria-expanded={qcSettingsOpen}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Settings2 className="h-3.5 w-3.5" />
+                    QC Settings
+                    {Object.keys(qcOverrides).length > 0 && (
+                      <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                        {Object.keys(qcOverrides).length}
+                      </Badge>
+                    )}
+                  </span>
+                  {qcSettingsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                </button>
+                {qcSettingsOpen && (
+                  <div className="border-t border-border p-3 space-y-4 text-sm">
+                    {/* Pause toggle */}
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="pause-qc-switch" className="text-xs">
+                        Pause at QC failures
+                      </Label>
+                      <Switch
+                        id="pause-qc-switch"
+                        checked={pauseAtQcFailures}
+                        onCheckedChange={setPauseAtQcFailures}
+                        aria-label="Pause at QC failures"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground -mt-2">
+                      {pauseAtQcFailures
+                        ? 'Workflow pauses when a gate fires'
+                        : 'Gates are logged but workflow continues'}
+                    </p>
+
+                    {/* QC Profile picker */}
+                    {availableQcProfiles.length > 0 && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Named QC Profile</Label>
+                        <Select value={qcProfile || 'none'} onValueChange={v => setQcProfile(v === 'none' ? '' : v)}>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Platform defaults" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none" className="text-xs">Platform defaults (no profile)</SelectItem>
+                            {availableQcProfiles.map(p => (
+                              <SelectItem key={p.id} value={p.id} className="text-xs">
+                                {p.id.replace(/_/g, '\u00A0')}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {/* Threshold overrides */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>
+                      <div className="flex gap-1">
+                        <Input
+                          className="h-7 text-xs flex-1"
+                          placeholder="metric_key"
+                          value={qcOverrideKey}
+                          onChange={e => setQcOverrideKey(e.target.value)}
+                        />
+                        <Input
+                          className="h-7 text-xs w-20"
+                          placeholder="value"
+                          type="number"
+                          value={qcOverrideValue}
+                          onChange={e => setQcOverrideValue(e.target.value)}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs px-2"
+                          onClick={() => {
+                            const v = parseFloat(qcOverrideValue);
+                            if (qcOverrideKey && !isNaN(v)) {
+                              setQcOverrides(prev => ({ ...prev, [qcOverrideKey]: v }));
+                              setQcOverrideKey('');
+                              setQcOverrideValue('');
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {Object.entries(qcOverrides).map(([key, val]) => (
+                        <div key={key} className="flex items-center justify-between text-xs bg-muted/40 rounded px-2 py-1">
+                          <span>{key}: {val}</span>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-destructive ml-2"
+                            onClick={() => setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; })}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {autofix && (
+                <div
+                  className="rounded-md border border-blue-300/50 bg-blue-50/40 p-3 text-xs dark:border-blue-900/60 dark:bg-blue-950/20"
+                  data-testid="autofix-status-panel"
+                >
+                  <p className="font-semibold text-blue-800 dark:text-blue-200">Auto-fix status</p>
+                  <p className="mt-1">
+                    State: <span className="font-medium">{autofix.state || "unknown"}</span>
+                  </p>
+                  {autofix.totalAttempts !== undefined && (
+                    <p>Attempts: {autofix.totalAttempts}</p>
+                  )}
+                  {autofix.source && <p>Source: {autofix.source}</p>}
+                  {autofix.message && (
+                    <p className="mt-1 text-blue-700 dark:text-blue-300">{autofix.message}</p>
+                  )}
+                </div>
+              )}
               {isAutofixActive && (
                 <Alert className="border-blue-400/40 bg-blue-50/40 dark:bg-blue-950/20" data-testid="autofix-active-banner">
                   <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -373,8 +1245,14 @@ export function NextflowWorkflowViewer({
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Execution checklist
                     </p>
-                    <Badge variant={prereqChecklist.canRun ? "outline" : "secondary"}>
-                      {prereqChecklist.canRun ? "Ready" : "Action required"}
+                    <Badge variant={
+                      !prereqChecklist.canRun ? "destructive"
+                      : prereqChecklist.items.some(i => i.status === 'warning') ? "secondary"
+                      : "outline"
+                    }>
+                      {!prereqChecklist.canRun ? "Action required"
+                       : prereqChecklist.items.some(i => i.status === 'warning') ? "Warnings"
+                       : "Ready"}
                     </Badge>
                   </div>
                   <div className="space-y-1.5">
@@ -446,7 +1324,7 @@ export function NextflowWorkflowViewer({
                     disabled={
                       status === 'running' ||
                       status === 'completed' ||
-                      isPrereqBlocked ||
+                      (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ||
                       isAutofixActive
                     }
                   >
@@ -534,11 +1412,25 @@ export function NextflowWorkflowViewer({
                 </div>
               </div>
               <div className="space-y-2">
-                {updatedPhases.map((phase: any, index: number) => (
+                <p className="text-xs text-muted-foreground" data-testid="workflow-step-controls-hint">
+                  Run single steps for targeted checks. Finished or errored steps can be rerun repeatedly.
+                </p>
+                {updatedPhases.map((phase: any) => (
                   <PhaseCard
                     key={phase.id}
                     phase={phase}
-                    onExecute={() => console.log(`Execute phase ${phase.name}`)}
+                    onRun={() => handleRunStep(phase)}
+                    runLabel={(phase.runCount ?? 0) > 0 ? "Rerun Step" : "Run Step"}
+                    runDisabled={
+                      !phase.toolId ||
+                      phase.isExecuting === true ||
+                      !!executionBlockedReason ||
+                      isPrereqBlocked ||
+                      isAutofixActive ||
+                      isGlobalExecutionActive
+                    }
+                    runLoading={phase.isExecuting === true}
+                    runButtonTestId={`button-run-step-${phase.id}`}
                   />
                 ))}
               </div>
@@ -572,6 +1464,12 @@ export function NextflowWorkflowViewer({
               </div>
             </div>
           </div>
+
+          {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
+            <div className="mt-4">
+              <DownloadCommandsPanel runId={runId} />
+            </div>
+          )}
 
           {invocationId && showResults && (
             <div className="mt-6">

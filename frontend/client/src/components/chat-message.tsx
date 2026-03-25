@@ -51,6 +51,8 @@ import { GalaxyRecommendations } from "./galaxy-recommendations"
 import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { WorkflowChainPlan } from "./workflow-chain-plan"
+import { PipelineListView } from "./pipeline-list-view"
 import { WorkflowRationale } from "./workflow-rationale"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
@@ -80,7 +82,7 @@ interface ChatMessageProps {
   onResumeWorkflow?: () => void
   onParameterChange?: (stepId: string, params: Record<string, any>) => void
   onSuggestionClick?: (suggestion: string, message: Message) => void
-  onAdjustViaChat?: () => void
+  onAdjustViaChat?: (message?: string) => void
   isWorkflowRunning?: boolean
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
@@ -285,11 +287,11 @@ export function ChatMessage({
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
               const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
-                executionStatus === 'completed'
+                executionStatus === 'completed' || executionStatus === 'ok'
                   ? 'completed'
                   : executionStatus === 'paused'
                   ? 'paused'
-                  : executionStatus === 'failed' || executionStatus === 'cancelled'
+                  : executionStatus === 'failed' || executionStatus === 'cancelled' || executionStatus === 'error'
                   ? 'failed'
                   : executionStatus === 'running'
                   ? 'running'
@@ -361,6 +363,71 @@ export function ChatMessage({
                 );
               }
 
+              // Dynamic multi-step pipeline — AI-generated sequential execution plan
+              const isPipelineWorkflow = message.metadata?.workflow?.workflow_type === 'pipeline'
+              if (isPipelineWorkflow) {
+                const wf = message.metadata?.workflow
+                const steps = (wf.pipeline_steps || []).map((s: any, idx: number) => ({
+                  id: s.id || `step-${idx}`,
+                  stepNumber: idx + 1,
+                  workflowName: s.workflow_name || s.name || `Step ${idx + 1}`,
+                  workflowPath: s.workflow_path || s.nextflow_path,
+                  nextflowPath: s.nextflow_path || s.workflow_path,
+                  params: s.params || s.parameters || {},
+                  status: s.status || 'pending' as const,
+                  outputTypes: s.output_types || [],
+                  usesStepId: s.uses_step_id || s.input_from,
+                  usesDescription: s.uses_description || s.input_type,
+                }))
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                  >
+                    <PipelineListView
+                      steps={steps}
+                      onConfirmRun={() => {
+                        fetch('/api/workflows/chain', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            workflow_name: wf.name || wf.chain_name || 'Pipeline',
+                            workflow_steps: steps.map((s: any) => ({
+                              nextflow_path: s.nextflowPath || s.workflowPath,
+                              params: s.params,
+                            })),
+                          }),
+                        }).catch(console.error);
+                      }}
+                      onModifyStep={(stepId, msg) => onAdjustViaChat?.(`Modify pipeline step ${stepId}: ${msg}`)}
+                    />
+                  </div>
+                )
+              }
+
+              // Chain plan — curated multi-step pipeline returned by workflow_chains lookup
+              const isChainWorkflow = message.metadata?.workflow?.workflow_type === 'chain'
+              if (isChainWorkflow) {
+                const wf = message.metadata?.workflow
+                return (
+                  <div
+                    id={`workflow-artifact-anchor-${message.id}`}
+                    data-testid={`workflow-artifact-anchor-${message.id}`}
+                  >
+                    <WorkflowChainPlan
+                      chainName={wf.chain_name || wf.name || ''}
+                      displayName={wf.chain_display_name || wf.display_name || wf.name || 'Pipeline Plan'}
+                      domain={wf.chain_domain || wf.domain || ''}
+                      description={wf.chain_description || wf.description || ''}
+                      steps={wf.chain_steps || []}
+                      connections={wf.chain_connections || []}
+                      requiredInputs={wf.required_inputs || []}
+                      expectedOutputs={wf.expected_outputs || []}
+                    />
+                  </div>
+                )
+              }
+
               return (
                 <div
                   id={`workflow-artifact-anchor-${message.id}`}
@@ -421,6 +488,7 @@ export function ChatMessage({
                     onRequestPrereqRecovery={onRequestPrereqRecovery}
                     sessionId={sessionId}
                     runId={currentExecutionRun?.id}
+                    executionEngine={currentExecutionRun?.execution?.executionEngine}
                   />
                 </div>
               );
@@ -479,8 +547,6 @@ export function ChatMessage({
               runId={currentExecutionRun?.id}
               executionStatus={currentExecutionRun?.execution?.status}
               errorMessage={currentExecutionRun?.execution?.errorMessage}
-              artifactReadiness={currentExecutionRun?.execution?.nextflowStatus?.artifactReadiness}
-              nextflowStatus={currentExecutionRun?.execution?.nextflowStatus}
             />
           )}
         </div>

@@ -708,6 +708,77 @@ class NextflowQCGateHandler:
             for name, profile in QC_NAMED_PROFILES.items()
         ]
 
+    @classmethod
+    def infer_qc_profile(cls, nextflow_path: str) -> "Optional[str]":
+        """
+        Auto-select a QC profile name from the Nextflow workflow path.
+        Returns None if no profile can be inferred (caller uses platform defaults).
+        """
+        p = nextflow_path.lower()
+
+        def _has(*keywords: str) -> bool:
+            return any(k in p for k in keywords)
+
+        # Drug discovery / compound
+        if _has("admet", "docking", "pharmacokinetics", "nca", "toxicity", "drug"):
+            return "compound_druglike"
+
+        # Cryo-EM — check BEFORE genomics to avoid 'em' false matches
+        if _has("cryoem", "cryo_em", "cryosparc", "relion", "ctf"):
+            if _has("tomo", "tomography"):
+                return "cryoem_tomo_in_situ"
+            if _has("phase_plate", "vpp"):
+                return "cryoem_spa_phase_plate"
+            if _has("membrane", "lipid"):
+                return "cryoem_spa_membrane"
+            return "cryoem_spa_purified"
+
+        # Somatic (must check BEFORE germline / wgs)
+        if _has("somatic", "mutect", "tumor_normal", "cancer"):
+            return "wgs_somatic_tumor_only"
+
+        # WGS germline
+        if _has("germline", "haplotypecaller", "deepvariant", "wgs"):
+            if _has("lowpass", "low_pass", "lcwgs"):
+                return "wgs_germline_lowpass"
+            return "wgs_germline_standard"
+
+        # WES
+        if _has("wes", "exome", "exome_seq"):
+            return "wes_research"
+
+        # RNA-seq
+        if _has("rnaseq", "rna_seq", "salmon", "star_align", "deseq", "featurecounts"):
+            if _has("ffpe"):
+                return "rnaseq_ffpe"
+            if _has("snrna", "single_nucleus", "snuc"):
+                return "rnaseq_single_nucleus"
+            if _has("ribodepleted", "ribo_depletion"):
+                return "rnaseq_ribodepleted"
+            return "rnaseq_polya_standard"
+
+        # scRNA-seq
+        if _has("scrna", "scrnaseq", "cellranger", "seurat", "scanpy", "sc_rna"):
+            if _has("perturb", "crispr"):
+                return "scrna_perturbation"
+            return "scrna_standard"
+
+        # Proteomics
+        if _has("proteomics", "maxquant", "diann", "spectronaut"):
+            if _has("phospho"):
+                return "proteomics_phospho"
+            return "proteomics_standard"
+
+        # Metagenomics
+        if _has("metagenomics", "kraken", "metaphlan", "qiime", "16s"):
+            return "metagenomics_human_gut"
+
+        # Pharmacogenomics
+        if _has("pgx", "pharmacogenomics"):
+            return "pgx_research"
+
+        return None
+
     def _get_threshold(self, metric: str, default: float) -> float:
         """
         Return the effective threshold for a metric, applying any user override.

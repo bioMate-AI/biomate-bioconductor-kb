@@ -92,6 +92,10 @@ class AIAssistant:
 
         # ONLY initialize components needed for generate_workflow_unified()
         self.workflow_search = get_workflow_search()  # UnifiedWorkflowSearch with 951+ workflows
+        # N5: inject fast-LLM client into search for Pass-0 catalog browse (lazy — done after
+        # _fast_llm_client is built on first call, so we register it here with a placeholder
+        # and update after first use.  Actual injection happens in fast_llm_classify.)
+        # NOTE: injection happens lazily on first fast_llm_classify call (see _inject_search_llm).
         self._tool_search = None  # Lazy-loaded UnifiedToolSearch
         self.constrained_generator = GalaxyWorkflowGenerator(config=self.config)
         self.dataset_selector = WorkflowDatasetSelector()
@@ -116,6 +120,17 @@ class AIAssistant:
         self._agentic_memory = None  # AgenticMemoryService for long-term memory
         self._literature_client = None  # UnifiedLiteratureClient for citation retrieval
         self._fast_llm_client = None   # Cheap/fast LLMClient for classification tasks
+
+        # LangGraph pipeline — built lazily on first use; shared across requests.
+        # Enabled when BIOMATE_USE_LANGGRAPH=true (default: off, safe rollout).
+        self._langgraph_pipeline = None  # CompiledStateGraph | None
+
+        # Enable LangSmith tracing if API key is configured (no-op if not set)
+        try:
+            from galaxy.config.ai_config import configure_langsmith
+            configure_langsmith()
+        except Exception:
+            pass
 
         log.info("AIAssistant initialized (lightweight mode)")
         log.info(f"  - Workflow search: UnifiedWorkflowSearch (database-backed)")
@@ -535,6 +550,12 @@ class AIAssistant:
                 # Override only the model; keep all auth/endpoint settings unchanged
                 client.model = fast_model
             self._fast_llm_client = client
+            # N5: wire fast-LLM into the workflow search singleton for Pass-0 browse.
+            # Done exactly once here — when the client is first created.
+            try:
+                self.workflow_search.set_llm_client(self._fast_llm_client)
+            except Exception:
+                pass
 
         return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
 
@@ -1942,6 +1963,202 @@ class AIAssistant:
                 unique_trials.append(trial.strip())
         return unique_trials
 
+    # -------------------------------------------------------------------------
+    # Nextflow parameter extraction helpers
+    # -------------------------------------------------------------------------
+
+    _NEXTFLOW_INTERNAL_PARAMS = {
+        'mock_mode', 'outdir', 'sample_id', 'platform', 'library', 'genome',
+        'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
+        'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
+        'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
+    }
+
+    def _find_nf_file(self, filename: str) -> Optional[Any]:
+        """Resolve DB-stored filename to absolute .nf path using same walk-up as executor."""
+        from pathlib import Path as _Path
+        this_file = _Path(__file__).resolve()
+        backend_root = this_file.parent
+        for ancestor in list(this_file.parents):
+            if (ancestor / "biomni_workflows").is_dir():
+                backend_root = ancestor
+                break
+        candidates = [
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / filename,
+            backend_root / "biomni_workflows" / filename,
+            backend_root / filename,
+        ]
+        for c in candidates:
+            if c.exists():
+                return c
+        return None
+
+    def _parse_nextflow_params(self, filename: str) -> dict:
+        """Parse params.* lines from .nf file. Returns {"required": [...], "optional": [...]}."""
+        import re as _re
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return {"required": [], "optional": []}
+        try:
+            text = nf_path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            return {"required": [], "optional": []}
+        required, optional = [], []
+        for m in _re.finditer(r"^\s*params\.(\w+)\s*=\s*(.+)$", text, _re.MULTILINE):
+            name = m.group(1)
+            # Strip inline comment (// ...) from value
+            raw = _re.sub(r'\s*//.*$', '', m.group(2)).strip()
+            val_raw = raw
+            if name in self._NEXTFLOW_INTERNAL_PARAMS:
+                continue
+            label = name.replace("_", " ").title()
+            description = f"Workflow parameter: {label}"
+            is_required = (val_raw == "null")
+            entry = {"name": name, "label": label, "description": description,
+                     "default": None if is_required else val_raw.strip("'\"")}
+            if is_required:
+                required.append(entry)
+            else:
+                optional.append(entry)
+        return {"required": required, "optional": optional}
+
+    _SRA_ACCESSION_RE = re.compile(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', re.IGNORECASE)
+
+    def _extract_sra_accession(self, user_intent: str) -> Optional[str]:
+        """Return the first SRA/GEO/ArrayExpress/PRIDE accession found in the user's message."""
+        m = self._SRA_ACCESSION_RE.search(user_intent)
+        return m.group(1).upper() if m else None
+
+    def _inject_sra_into_params(self, req_params: list, opt_params: list, accession: str) -> tuple:
+        """If user provided an SRA accession, set it as the default for the 'reads' required param.
+        Keeps 'reads' in required_params (correct semantics) but pre-fills default so the Run
+        button is not blocked — the viewer's hasUnfilledRequired check uses p.value which
+        is initialized from p.default.  The param is flagged with sra_accession=True so the
+        UI can show a badge 'pre-filled from your query'.
+        Returns (new_req_params, new_opt_params) with the accession injected."""
+        new_req = []
+        for p in req_params:
+            if p['name'] in ('reads', 'input', 'fastq', 'sample', 'reads1', 'reads2'):
+                # Keep in required but pre-fill default from the user-supplied accession
+                new_req.append({**p, 'default': accession, 'sra_accession': True})
+            else:
+                new_req.append(p)
+        return new_req, list(opt_params)
+
+    def _build_prereq_validation(self, required_params: list) -> Optional[dict]:
+        """Build prerequisitesValidation payload consumed by prereq-normalizer.ts.
+        Excludes params that have a pre-filled default (e.g. SRR accession injected) from
+        missingParameters — those are provided by the user and do not block the Run button."""
+        # Only params without a pre-filled default are truly missing
+        truly_missing = [p for p in required_params if not p.get('default')]
+        if not truly_missing:
+            return None
+        return {
+            "requirements": {
+                "parameters": [
+                    {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
+                    for p in truly_missing
+                ]
+            },
+            "analysis": {
+                "missingInputs": [],
+                "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in truly_missing],
+                "inputMappings": [],
+            },
+        }
+
+    # ------------------------------------------------------------------
+    # LangGraph pipeline — observability wrapper around generate_workflow_unified
+    # ------------------------------------------------------------------
+
+    def _get_or_build_pipeline(self):
+        """Build (or return cached) the BioMate LangGraph CompiledStateGraph.
+
+        The graph wraps ``generate_workflow_unified`` in a single node so that:
+        - LangSmith traces every generation call automatically (when key is set).
+        - MemorySaver checkpoints the result keyed by ``session_id``, enabling
+          state recovery if the backend restarts mid-generation on a long job.
+
+        Returns None and logs a warning if the import fails.
+        """
+        if self._langgraph_pipeline is not None:
+            return self._langgraph_pipeline
+        try:
+            from .langgraph_pipeline import build_biomate_pipeline
+            self._langgraph_pipeline = build_biomate_pipeline(ai_assistant=self)
+            log.info("[AIAssistant] LangGraph pipeline built and cached")
+        except Exception as exc:
+            log.warning("[AIAssistant] Could not build LangGraph pipeline: %s", exc)
+            self._langgraph_pipeline = None
+        return self._langgraph_pipeline
+
+    def run_via_pipeline(
+        self,
+        user_intent: str,
+        session_id: str,
+        user_id: Optional[str] = None,
+        uploaded_datasets: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Invoke ``generate_workflow_unified`` through the LangGraph StateGraph.
+
+        Falls back to ``generate_workflow_unified`` directly if the pipeline
+        cannot be built or if invocation fails.
+
+        The pipeline:
+        1. ``classify_intent`` — intent type + clarification flag
+        2. ``check_clarification`` — routes to clarify or continue
+        3. ``search_workflows`` — populates ``workflow_candidates`` in state
+        4. ``generate_workflow`` — calls ``generate_workflow_unified()``
+        5. ``dispatch_execution`` — records execution_run_id (stub)
+
+        ``final_response`` in the terminal state is the full result dict
+        from ``generate_workflow_unified``, unchanged.
+        """
+        import os
+        pipeline = self._get_or_build_pipeline()
+        if pipeline is None:
+            log.warning("[run_via_pipeline] pipeline unavailable, falling back")
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+
+        initial_state = {
+            "query": user_intent,
+            "session_id": session_id,
+            "user_id": user_id or "",
+            "intent": None,
+            "confidence": None,
+            "clarification_needed": False,
+            "workflow_candidates": [],
+            "selected_workflow": None,
+            "parameters": None,
+            "execution_run_id": None,
+            "autofix_attempts": 0,
+            "error": None,
+            "final_response": None,
+        }
+        config = {"configurable": {"thread_id": session_id}}
+        try:
+            terminal_state = pipeline.invoke(initial_state, config=config)
+            result = terminal_state.get("final_response")
+            if result and isinstance(result, dict):
+                log.info("[run_via_pipeline] pipeline completed, source=%s", result.get("source"))
+                return result
+            # Clarification requested — return a structured response the
+            # endpoint can handle (success=False, message carries the question).
+            if terminal_state.get("clarification_needed"):
+                return {
+                    "success": False,
+                    "message": (
+                        terminal_state.get("final_response", {}).get("message")
+                        or "Please clarify your request."
+                    ),
+                    "source": "clarification",
+                }
+            log.warning("[run_via_pipeline] terminal state has no final_response, falling back")
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+        except Exception as exc:
+            log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
+            return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
+
     def generate_workflow_unified(
         self,
         user_intent: str,
@@ -1993,6 +2210,46 @@ class AIAssistant:
                 log.warning("[UnifiedWorkflowGeneration] LTM correction fetch failed: %s", _ltm_err)
 
         try:
+            # Step 0: Chain lookup — preferred path for multi-step research projects.
+            # Curated chains encode expert step order and output→input connections,
+            # bypassing per-query LLM assembly entirely when a match is found.
+            log.info("[UnifiedWorkflowGeneration] Step 0: Checking workflow chains...")
+            try:
+                chain_results = self.workflow_search.search_chains(user_intent, limit=3)
+                if chain_results:
+                    top_chain = chain_results[0]
+                    log.info(
+                        "[UnifiedWorkflowGeneration] Chain match: %s (%d steps, domain=%s)",
+                        top_chain.name, len(top_chain.steps), top_chain.domain,
+                    )
+                    return {
+                        'success': True,
+                        'workflow_type': 'chain',
+                        'chain_name': top_chain.name,
+                        'chain_display_name': top_chain.display_name,
+                        'chain_domain': top_chain.domain,
+                        'chain_description': top_chain.description,
+                        'chain_steps': top_chain.steps,
+                        'chain_connections': top_chain.connections,
+                        'required_inputs': top_chain.required_inputs,
+                        'expected_outputs': top_chain.expected_outputs,
+                        'source': 'chain_lookup',
+                        'confidence': 9,
+                        'message': (
+                            f"Found curated pipeline: **{top_chain.display_name}** "
+                            f"({len(top_chain.steps)} steps). {top_chain.description}"
+                        ),
+                        'note': (
+                            f"Pre-validated {len(top_chain.steps)}-step pipeline "
+                            f"with explicit data-flow connections between steps."
+                        ),
+                        'execution_engine': 'chain',
+                        'format': 'chain',
+                        'all_chains': [c.to_dict() for c in chain_results],
+                    }
+            except Exception as chain_exc:
+                log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
+
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
             trials = self._build_intent_trials(user_intent)
@@ -2097,6 +2354,12 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params_tr = self._parse_nextflow_params(best_match.filename)
+                    _req_tr = _nf_params_tr['required']
+                    _opt_tr = _nf_params_tr['optional']
+                    _sra_tr = self._extract_sra_accession(user_intent)
+                    if _sra_tr:
+                        _req_tr, _opt_tr = self._inject_sra_into_params(_req_tr, _opt_tr, _sra_tr)
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2127,9 +2390,14 @@ class AIAssistant:
                             'steps': {},  # Nextflow steps are in the .nf file, not here
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req_tr,
+                            'optional_params': _opt_tr,
                         },
                         'datasets_assigned': False,  # Nextflow handles inputs via parameters
-                        'generated_parameters': [],
+                        'required_params': _req_tr,
+                        'optional_params': _opt_tr,
+                        'generated_parameters': _req_tr + _opt_tr,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_tr)} if _req_tr else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
                         'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
                         'needs_user_feedback': False,
@@ -2202,6 +2470,12 @@ class AIAssistant:
                     _qc_profile = self._infer_qc_profile(
                         best_match.domain, best_match.tags, best_match.name
                     )
+                    _nf_params_ta = self._parse_nextflow_params(best_match.filename)
+                    _req_ta = _nf_params_ta['required']
+                    _opt_ta = _nf_params_ta['optional']
+                    _sra_ta = self._extract_sra_accession(user_intent)
+                    if _sra_ta:
+                        _req_ta, _opt_ta = self._inject_sra_into_params(_req_ta, _opt_ta, _sra_ta)
                     return {
                         'success': True,
                         'nextflow_path': best_match.filename,
@@ -2234,9 +2508,14 @@ class AIAssistant:
                             'steps': {},
                             'scientific_rationale': scientific_rationale,
                             'hardware_requirements': hardware_requirements,
+                            'required_params': _req_ta,
+                            'optional_params': _opt_ta,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_ta,
+                        'optional_params': _opt_ta,
+                        'generated_parameters': _req_ta + _opt_ta,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_ta)} if _req_ta else {}),
                         'validation': {'is_valid': True, 'issues': [], 'warnings': [
                             'Medium confidence match — please verify tool selection is appropriate'
                         ], 'suggestions': []},
@@ -2270,6 +2549,12 @@ class AIAssistant:
                         f"{composed['composable_count']} NF-WRAPPER + {composed['adhoc_count']} generated"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params_mc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req_mc = _nf_params_mc['required']
+                    _opt_mc = _nf_params_mc['optional']
+                    _sra_mc = self._extract_sra_accession(user_intent)
+                    if _sra_mc:
+                        _req_mc, _opt_mc = self._inject_sra_into_params(_req_mc, _opt_mc, _sra_mc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2293,9 +2578,14 @@ class AIAssistant:
                             'nextflow_path': composed['nextflow_path'],
                             'workflow_type': 'nextflow',
                             'steps': {},
+                            'required_params': _req_mc,
+                            'optional_params': _opt_mc,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_mc,
+                        'optional_params': _opt_mc,
+                        'generated_parameters': _req_mc + _opt_mc,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_mc)} if _req_mc else {}),
                         'validation': {
                             'is_valid': validation.get('is_valid', True),
                             'warnings': validation.get('warnings', []),
@@ -2341,6 +2631,12 @@ class AIAssistant:
                         f"{composed['adhoc_count']} generated processes"
                     )
                     validation = composed.get('validation', {})
+                    _nf_params_lc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _req_lc = _nf_params_lc['required']
+                    _opt_lc = _nf_params_lc['optional']
+                    _sra_lc = self._extract_sra_accession(user_intent)
+                    if _sra_lc:
+                        _req_lc, _opt_lc = self._inject_sra_into_params(_req_lc, _opt_lc, _sra_lc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2370,9 +2666,14 @@ class AIAssistant:
                             'workflow_type': 'nextflow',
                             'steps': {},
                             'tools_used': composed['tools_used'],
+                            'required_params': _req_lc,
+                            'optional_params': _opt_lc,
                         },
                         'datasets_assigned': False,
-                        'generated_parameters': [],
+                        'required_params': _req_lc,
+                        'optional_params': _opt_lc,
+                        'generated_parameters': _req_lc + _opt_lc,
+                        **({'prerequisitesValidation': self._build_prereq_validation(_req_lc)} if _req_lc else {}),
                         'tools_used': composed['tools_used'],
                         # Nextflow validation: checks include{} paths resolve on disk.
                         # Tool availability is handled by container images, not installation.
