@@ -3147,12 +3147,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Array.isArray(prerequisitesValidation?.analysis?.missingParameters)
           ? prerequisitesValidation.analysis.missingParameters.length
           : 0;
-      // Approve recovery whenever user explicitly requested it AND a workflow was generated.
-      // The missing-count condition was too strict: the JS validator sometimes returns 0
-      // when the Python backend's prereq validation has missing params, causing a false negative.
-      const prereqRecoveryApproved =
-        prereqRecoveryRequested &&
-        !!assistantResponse.generatedWorkflow;
+      // Trust the user's explicit recovery request unconditionally — approve whenever they
+      // clicked the recovery button. No need to check whether a new workflow was generated.
+      const prereqRecoveryApproved = prereqRecoveryRequested;
       const prereqRecovery = {
         requested: prereqRecoveryRequested,
         approved: prereqRecoveryApproved,
@@ -3605,9 +3602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestTextLowerStream.includes("sample/test inputs") ||
         requestTextLowerStream.includes("sample data") ||
         requestTextLowerStream.includes("test data");
-      const prereqRecoveryApproved =
-        prereqRecoveryRequested &&
-        !!assistantResponse.generatedWorkflow;
+      // Trust the user's explicit recovery request unconditionally.
+      const prereqRecoveryApproved = prereqRecoveryRequested;
       const prereqRecovery = {
         requested: prereqRecoveryRequested,
         approved: prereqRecoveryApproved,

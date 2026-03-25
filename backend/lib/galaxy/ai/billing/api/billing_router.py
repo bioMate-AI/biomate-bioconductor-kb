@@ -362,14 +362,14 @@ def internal_job_completed(payload: JobCompletedPayload):
     # Emit to Java billing service (dual-write — fire-and-forget)
     jbc = get_java_billing_client()
     if jbc and payload.instance_type:
-        # region is not in the payload yet — use env default until Lambda is updated
-        region = os.environ.get("AWS_DEFAULT_REGION", "us-west-2")
-        jbc.emit_ec2(
+        jbc.emit_batch_job(
             user_id=payload.user_id,
+            job_id=payload.job_id,
             instance_type=payload.instance_type,
-            region=region,
+            vcpus=payload.vcpus,
+            memory_mb=payload.memory_mb,
+            gpu_count=payload.gpu_count,
             duration_seconds=payload.duration_seconds,
-            transaction_id=f"ec2-{payload.job_id}",
         )
 
     log.info(
@@ -420,15 +420,13 @@ def internal_s3_put(payload: S3PutPayload):
         key=payload.key,
     )
 
-    # Emit to Java billing service as EBS-equivalent storage (dual-write — fire-and-forget)
+    # Emit to Java billing service (dual-write — fire-and-forget)
     jbc = get_java_billing_client()
     if jbc:
-        size_gb = payload.size_bytes / (1024 ** 3)
-        jbc.emit_ebs(
+        jbc.emit_s3_put(
             user_id=payload.user_id,
-            volume_type="gp3",
-            size_gb=max(size_gb, 1.0),  # Java service requires >= 1 GB
-            duration_seconds=30 * 24 * 3600,  # 30-day retention projection
+            size_bytes=payload.size_bytes,
+            key=payload.key,
             transaction_id=f"s3-{uuid.uuid4().hex[:12]}",
         )
     return {"ok": True, "total_cost_usd": cost.total_cost}

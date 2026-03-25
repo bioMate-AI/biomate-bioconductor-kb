@@ -1,11 +1,18 @@
 """
 Java Billing Service Client for BioMate
 
-Forwards usage events to the Java Spring Boot billing microservice which owns:
-  - Lago (metering + invoicing)
-  - Stripe (payment processing)
-  - PostgreSQL (event journal)
-  - Prometheus → Grafana (observability)
+BioMate billing architecture (BioMate should ONLY talk to Java service, not Lago directly):
+
+  BioMate → Java service (pricing/business logic) → Lago (metering) → Stripe (invoicing)
+
+The Java service is the single source of truth for pricing. It wraps Lago so that price
+changes, plan changes, and quota rules can be managed in one place without touching
+Lago's admin UI directly.
+
+Remote Lago (production) billable metric codes:
+  "llm"   — LLM token usage (sum aggregation on "value" field)
+  "ec2"   — Batch/EC2 compute (sum aggregation on "value" field = duration_seconds)
+  "gp3"   — S3/EBS storage (sum aggregation on "value" field = duration_seconds)
 
 All methods are fire-and-forget: they log on failure and never raise,
 so billing issues never block user-facing requests.
@@ -141,7 +148,8 @@ class JavaBillingClient:
         return ok
 
     # ------------------------------------------------------------------
-    # Usage events
+    # Usage events — mirrors lago_client.py EventCode exactly so the
+    # Java service can forward the same codes to the remote Lago.
     # ------------------------------------------------------------------
 
     def emit_llm(
@@ -152,83 +160,143 @@ class JavaBillingClient:
         output_tokens: int,
         transaction_id: Optional[str] = None,
     ) -> bool:
-        """Report an LLM API call to the billing service.
+        """Report an LLM call: sends two events (input + output) with separate codes.
 
-        Current schema: combined token count (input + output) as a single "llm" event.
-        To split into separate input/output events when Q2 is decided, change only
-        this method — callers stay unchanged.
+        Remote Lago metrics required:
+          llm_input_tokens  — sum_agg on 'tokens' field
+          llm_output_tokens — sum_agg on 'tokens' field
         """
-        tid = transaction_id or f"llm-{user_id}-{uuid.uuid4().hex[:12]}"
-        total_tokens = input_tokens + output_tokens
-        ok = self._post("/api/billing/usage/events", {
+        ts = time.time()
+        uid = transaction_id or f"llm-{user_id}-{uuid.uuid4().hex[:12]}"
+        ok_in = self._post("/api/billing/usage/events", {
             "externalCustomerId": external_id(user_id),
-            "code": "llm",
-            "transactionId": tid,
-            "timestamp": time.time(),
-            "properties": {
-                "model": model,
-                "value": str(total_tokens),
-                # Keep breakdown in properties for future use
-                "input_tokens": str(input_tokens),
-                "output_tokens": str(output_tokens),
-            },
+            "code": "llm_input_tokens",
+            "transactionId": f"{uid}-in",
+            "timestamp": ts,
+            "properties": {"tokens": input_tokens, "model": model},
         })
+        ok_out = self._post("/api/billing/usage/events", {
+            "externalCustomerId": external_id(user_id),
+            "code": "llm_output_tokens",
+            "transactionId": f"{uid}-out",
+            "timestamp": ts,
+            "properties": {"tokens": output_tokens, "model": model},
+        })
+        ok = ok_in and ok_out
         if ok:
-            log.info("[java_billing] llm event sent: user=%s model=%s tokens=%d",
-                     user_id, model, total_tokens)
+            log.info("[java_billing] llm events sent: user=%s model=%s in=%d out=%d",
+                     user_id, model, input_tokens, output_tokens)
         return ok
 
-    def emit_ec2(
+    def emit_batch_job(
         self,
         user_id: str,
+        job_id: str,
         instance_type: str,
-        region: str,
+        vcpus: float,
+        memory_mb: int,
+        gpu_count: int,
         duration_seconds: float,
-        transaction_id: Optional[str] = None,
     ) -> bool:
-        """Report AWS EC2/Batch compute usage. Java service converts to Credits."""
-        tid = transaction_id or f"ec2-{user_id}-{uuid.uuid4().hex[:12]}"
-        ok = self._post("/api/billing/usage/events", {
+        """Report a completed AWS Batch job: sends vCPU-sec, mem-sec, GPU-sec events.
+
+        Remote Lago metrics required:
+          batch_vcpu_seconds   — sum_agg on 'seconds' field
+          batch_memory_gb_sec  — sum_agg on 'gb_seconds' field
+          batch_gpu_seconds    — sum_agg on 'seconds' field (only sent for GPU jobs)
+        """
+        ts = time.time()
+        memory_gb = memory_mb / 1024.0
+        vcpu_seconds = round(vcpus * duration_seconds, 3)
+        mem_gb_sec = round(memory_gb * duration_seconds, 3)
+
+        ok_vcpu = self._post("/api/billing/usage/events", {
             "externalCustomerId": external_id(user_id),
-            "code": "ec2_instance",
-            "transactionId": tid,
-            "timestamp": time.time(),
-            "properties": {
-                "instanceType": instance_type,
-                "region": region,
-                "value": str(int(duration_seconds)),
-            },
+            "code": "batch_vcpu_seconds",
+            "transactionId": f"batch-vcpu-{job_id}",
+            "timestamp": ts,
+            "properties": {"seconds": vcpu_seconds, "instanceType": instance_type},
         })
+        ok_mem = self._post("/api/billing/usage/events", {
+            "externalCustomerId": external_id(user_id),
+            "code": "batch_memory_gb_sec",
+            "transactionId": f"batch-mem-{job_id}",
+            "timestamp": ts,
+            "properties": {"gb_seconds": mem_gb_sec, "instanceType": instance_type},
+        })
+        ok_gpu = True
+        if gpu_count > 0:
+            gpu_seconds = round(gpu_count * duration_seconds, 3)
+            ok_gpu = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "batch_gpu_seconds",
+                "transactionId": f"batch-gpu-{job_id}",
+                "timestamp": ts,
+                "properties": {"seconds": gpu_seconds, "instanceType": instance_type},
+            })
+
+        ok = ok_vcpu and ok_mem and ok_gpu
         if ok:
-            log.info("[java_billing] ec2 event sent: user=%s type=%s region=%s sec=%.0f",
-                     user_id, instance_type, region, duration_seconds)
+            log.info("[java_billing] batch events sent: user=%s job=%s vcpu_sec=%.1f mem_gb_sec=%.1f gpu=%d",
+                     user_id, job_id, vcpu_seconds, mem_gb_sec, gpu_count)
         return ok
 
-    def emit_ebs(
+    def emit_s3_put(
         self,
         user_id: str,
-        volume_type: str,
-        size_gb: float,
-        duration_seconds: float,
+        size_bytes: int,
+        key: str,
         transaction_id: Optional[str] = None,
     ) -> bool:
-        """Report AWS S3/EBS storage usage. Java service converts to Credits."""
-        tid = transaction_id or f"ebs-{user_id}-{uuid.uuid4().hex[:12]}"
-        ok = self._post("/api/billing/usage/events", {
+        """Report an S3 upload: sends PUT request count + storage GB-hours events.
+
+        Remote Lago metrics required:
+          s3_put_requests    — sum_agg on 'count' field
+          s3_storage_gb_hours — sum_agg on 'gb_hours' field
+        """
+        ts = time.time()
+        uid = transaction_id or uuid.uuid4().hex[:12]
+        gb = size_bytes / (1024 ** 3)
+        gb_hours = round(gb * 24 * 30, 6)   # 30-day retention projection
+
+        ok_put = self._post("/api/billing/usage/events", {
             "externalCustomerId": external_id(user_id),
-            "code": "ebs_storage",
-            "transactionId": tid,
-            "timestamp": time.time(),
-            "properties": {
-                "volumeType": volume_type,
-                "sizeGb": str(int(size_gb)) if size_gb >= 1 else "1",
-                "value": str(int(duration_seconds)),
-            },
+            "code": "s3_put_requests",
+            "transactionId": f"s3-put-{uid}",
+            "timestamp": ts,
+            "properties": {"count": 1, "key": key},
         })
+        ok_store = self._post("/api/billing/usage/events", {
+            "externalCustomerId": external_id(user_id),
+            "code": "s3_storage_gb_hours",
+            "transactionId": f"s3-store-{uid}",
+            "timestamp": ts,
+            "properties": {"gb_hours": gb_hours},
+        })
+        ok = ok_put and ok_store
         if ok:
-            log.info("[java_billing] ebs event sent: user=%s type=%s size_gb=%.1f sec=%.0f",
-                     user_id, volume_type, size_gb, duration_seconds)
+            log.info("[java_billing] s3_put events sent: user=%s bytes=%d gb_hours=%.6f",
+                     user_id, size_bytes, gb_hours)
         return ok
+
+    # Keep old emit_ec2 / emit_ebs as thin aliases so existing callers in
+    # billing_router.py still compile — they will be migrated to emit_batch_job
+    # and emit_s3_put in the next pass.
+    def emit_ec2(self, user_id: str, instance_type: str, region: str,
+                 duration_seconds: float, transaction_id: Optional[str] = None) -> bool:
+        """Deprecated: use emit_batch_job() for full detail. Kept for compatibility."""
+        return self.emit_batch_job(
+            user_id=user_id, job_id=transaction_id or uuid.uuid4().hex[:12],
+            instance_type=instance_type, vcpus=1.0, memory_mb=2048,
+            gpu_count=0, duration_seconds=duration_seconds,
+        )
+
+    def emit_ebs(self, user_id: str, volume_type: str, size_gb: float,
+                 duration_seconds: float, transaction_id: Optional[str] = None) -> bool:
+        """Deprecated: use emit_s3_put() instead. Kept for compatibility."""
+        size_bytes = int(size_gb * (1024 ** 3))
+        return self.emit_s3_put(user_id=user_id, size_bytes=size_bytes,
+                                key=f"legacy/{volume_type}", transaction_id=transaction_id)
 
     # ------------------------------------------------------------------
     # Quota (concurrent resource slots)
