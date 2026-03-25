@@ -1,0 +1,3 @@
+Druggability QC [1IEP]: PASS
+  top pocket id=1  score=0.567  volume=879.2 A3
+  PASS requires score>=0.5 AND volume>=300.0

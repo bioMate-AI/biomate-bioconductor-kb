@@ -10,7 +10,9 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {},
+    "metadata": {
+      "actualWorkers": 1
+    },
     "preserveOutput": "always",
     "reporter": [
       [
@@ -40,7 +42,9 @@
         "outputDir": "/home/yzhang/biomate/frontend/e2e/test-results",
         "repeatEach": 1,
         "retries": 0,
-        "metadata": {},
+        "metadata": {
+          "actualWorkers": 1
+        },
         "id": "chromium",
         "name": "chromium",
         "testDir": "/home/yzhang/biomate/frontend/e2e",
@@ -61,232 +65,561 @@
   },
   "suites": [
     {
-      "title": "full-workflow-e2e.e2e.ts",
-      "file": "full-workflow-e2e.e2e.ts",
+      "title": "germline-complete-e2e.e2e.ts",
+      "file": "germline-complete-e2e.e2e.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "ADMET Full Execution Flow",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 247,
+          "title": "GC-1: Disambiguation → germline workflow → execute",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 302,
           "column": 6,
           "specs": [
             {
-              "title": "ADMET query → AWAITING REVIEW → Confirm & Run → completion banner → results → download",
+              "title": "ambiguous query → AI clarification → germline answer → correct workflow → AWAITING REVIEW → execute API accepts",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 342592,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Screenshot] gc1_01_initial.png\n"
+                        },
+                        {
+                          "text": "[GC1] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc1_02_after_first_query.png\n"
+                        },
+                        {
+                          "text": "[GC1] Step 1 — askedClarification=false panelVisible=false workflowContent=true askedForDataset=true failedWithRecovery=true\n"
+                        },
+                        {
+                          "text": "[GC1] Response snippet: Great goal! I can help you build a BWA + GATK variant calling workflow. It looks like the workflow generation couldn't start because no input data was detected — the system needs your sequencing data \n"
+                        },
+                        {
+                          "text": "[GC1] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc1_03_after_germline_answer.png\n"
+                        },
+                        {
+                          "text": "[GC1] Step 2 — cardFound=false snippet: Thank you for the clarification — germline single-sample HaplotypeCaller is exactly the right route. The workflow type is clear, but generation failed because no input data has been provided yet.\n\n⚠️ Why Generation Failed\nThe diagnostics show:\n\"error\": \"Cannot read properties of null (reading 'data'\n"
+                        },
+                        {
+                          "text": "[GC1] Step 3 — isGermline=true isSomaticOnly=false cardFound=false\n"
+                        },
+                        {
+                          "text": "[GC1] Step 4 — AWAITING REVIEW state: false\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc1_04_awaiting_review.png\n"
+                        },
+                        {
+                          "text": "[GC1] INFO — Workflow card not generated; AI may have asked for data. Disambiguation routing IS correct (germline text received). Execution path cannot be tested without workflow card.\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:18:56.494Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "feb188400a741825904e-f32be9957f3d7a29c269",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 248,
+              "id": "3343431e87a3106a2d62-cdb0f42c0eca01bdd816",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 303,
               "column": 3
             }
           ]
         },
         {
-          "title": "AWAITING REVIEW UX",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 365,
+          "title": "GC-2: Direct mock germline execution → outputs → download",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 509,
           "column": 6,
           "specs": [
             {
-              "title": "workflow card shows AWAITING REVIEW badge, rationale panel, Confirm & Run button",
-              "ok": true,
+              "title": "explicit germline+mock query → no redundant clarification → Confirm & Run → terminal state → output_files API → download_commands API",
+              "ok": false,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 267608,
+                      "error": {
+                        "message": "Error: Expected a workflow card to appear\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: Expected a workflow card to appear\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at /home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts:596:65",
+                        "location": {
+                          "file": "/home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts",
+                          "column": 65,
+                          "line": 596
+                        },
+                        "snippet": "  594 |         await screenshot(page, \"gc2_no_card\");\n  595 |         // Hard-fail: we MUST get a workflow card for E2E execution\n> 596 |         expect(cardFound, \"Expected a workflow card to appear\").toBe(true);\n      |                                                                 ^\n  597 |         return;\n  598 |       }\n  599 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts",
+                            "column": 65,
+                            "line": 596
+                          },
+                          "message": "Error: Expected a workflow card to appear\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  594 |         await screenshot(page, \"gc2_no_card\");\n  595 |         // Hard-fail: we MUST get a workflow card for E2E execution\n> 596 |         expect(cardFound, \"Expected a workflow card to appear\").toBe(true);\n      |                                                                 ^\n  597 |         return;\n  598 |       }\n  599 |\n    at /home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts:596:65"
+                        },
+                        {
+                          "message": "Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/home/yzhang/biomate/frontend/e2e/test-results/.playwright-artifacts-0/traces/3343431e87a3106a2d62-67241021d2a317239f28-recording1.trace'"
+                        },
+                        {
+                          "message": "Error: browserContext._wrapApiCall: ENOENT: no such file or directory, open '/home/yzhang/biomate/frontend/e2e/test-results/.playwright-artifacts-0/traces/3343431e87a3106a2d62-67241021d2a317239f28-recording1.trace'"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[Screenshot] gc2_01_initial.png\n"
+                        },
+                        {
+                          "text": "[GC2] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc2_02_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[GC2] cardFound=false snippet: I'm sorry the workflow generation hit a snag! Let me explain what happened and get you back on track quickly.\n\n⚠️ What Went Wrong\nThe diagnostics show a null data read error during workflow construction — this is an internal pipeline initialization failure, not a problem with your request. The error\n"
+                        },
+                        {
+                          "text": "[GC2] Asked redundant clarification: false\n"
+                        },
+                        {
+                          "text": "[GC2] Germline content: true\n"
+                        },
+                        {
+                          "text": "[GC2] Workflow card not generated — AI may have requested data. Germline routing is correct. Full execution test cannot proceed.\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc2_no_card.png\n"
+                        },
+                        {
+                          "text": "[GC-Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/germline-complete/audit_2026-03-25T05-29-07-053Z.json\n"
+                        },
+                        {
+                          "text": "[GC-Audit] Estimated API cost: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:24:39.231Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-01aec-API-→-download-commands-API-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-01aec-API-→-download-commands-API-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-01aec-API-→-download-commands-API-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts",
+                        "column": 65,
+                        "line": 596
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
                 }
               ],
-              "id": "feb188400a741825904e-5cfe1575e97c5488ca9b",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 366,
+              "id": "3343431e87a3106a2d62-67241021d2a317239f28",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 510,
               "column": 3
             }
           ]
         },
         {
-          "title": "UC-3: Per-step output inspection",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 472,
+          "title": "GC-3: Information-flow audit — API connectivity",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 761,
           "column": 6,
           "specs": [
             {
-              "title": "download_commands API returns correct shape; PhaseCards render after run",
+              "title": "after germline disambiguation + execution start: status / output_files / download_commands / invocations endpoints all respond correctly",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 108137,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[GC3] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[GC3] Workflow card appeared (2 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc3_01_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[GC3] Run button disabled (prereqs missing)\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc3_02_after_run.png\n"
+                        },
+                        {
+                          "text": "[GC3] Run button disabled — verifying UI consistency without execution\n"
+                        },
+                        {
+                          "text": "[GC3] Workflow content visible: \u001b[33mtrue\u001b[39m\n"
+                        },
+                        {
+                          "text": "[GC3] ✓ Workflow panel state verified (button disabled — no data is expected)\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:29:07.804Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-181ac-oints-all-respond-correctly-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-181ac-oints-all-respond-correctly-chromium/video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "feb188400a741825904e-6816277ca3cf5d45159e",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 473,
+              "id": "3343431e87a3106a2d62-01456b2bdb86355469b1",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 762,
               "column": 3
             }
           ]
         },
         {
-          "title": "UC-4: Continue from Checkpoint visibility",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 529,
+          "title": "GC-4: QC summary section — wired after execution",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 927,
           "column": 6,
           "specs": [
             {
-              "title": "Checkpoint button absent in non-failed states; resume API is wired",
+              "title": "germline workflow: QC summary section present + methods text non-empty after run",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 98179,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[GC4] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[GC4] Workflow card appeared (2 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc4_01_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[GC4] Run button disabled (prereqs missing)\n"
+                        },
+                        {
+                          "text": "[GC4] Run button disabled (prereqs missing) — verifying panel rendered correctly\n"
+                        },
+                        {
+                          "text": "[GC4] QC Settings section visible: true (informational)\n"
+                        },
+                        {
+                          "text": "[GC4] ✓ Panel rendered correctly\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:30:56.045Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-216ae-ds-text-non-empty-after-run-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-216ae-ds-text-non-empty-after-run-chromium/video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "feb188400a741825904e-a82086cb9c43fd702abd",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 530,
+              "id": "3343431e87a3106a2d62-5e7d7d91aa79f778c174",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 928,
               "column": 3
             }
           ]
         },
         {
-          "title": "UC-5: Interactive tool launcher for Nextflow outputs",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 574,
+          "title": "GC-5: Inline data provision — SRR accession in query",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 1040,
           "column": 6,
           "specs": [
             {
-              "title": "Workflow artifact renders; all 4 generic PhaseCards present after run",
+              "title": "germline query with SRR accession → workflow uses accession, no data request",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 108862,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Screenshot] gc5_01_initial.png\n"
+                        },
+                        {
+                          "text": "[GC5] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc5_02_response.png\n"
+                        },
+                        {
+                          "text": "[GC5] Classify text (first 200): GATK Germline Variant Calling Workflow — Ready to Run\nYour workflow has been generated for SRR1518169 (NA12878, paired-end WGS, hg38). Here's a summary of what it will execute:\n\nPipeline Steps\n\n\n\n\n\n\n\n\n"
+                        },
+                        {
+                          "text": "[GC5] Asked for data again: false\n"
+                        },
+                        {
+                          "text": "[GC5] Mentioned accession: true, Generated workflow: true\n"
+                        },
+                        {
+                          "text": "[GC5] Workflow card appeared (2 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc5_03_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[GC5] Workflow card found: true\n"
+                        },
+                        {
+                          "text": "[GC5] ✓ Inline data provision test complete\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:32:34.235Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-73407-s-accession-no-data-request-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-73407-s-accession-no-data-request-chromium/video.webm"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "feb188400a741825904e-2c6680b9fb9f1c83bcd3",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 575,
+              "id": "3343431e87a3106a2d62-44c4a76cee2aaa588da2",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 1041,
               "column": 3
             }
           ]
         },
         {
-          "title": "UC-6: Detach and Reconnect labels",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 611,
+          "title": "GC-6: Two-turn data provision — ask then provide",
+          "file": "germline-complete-e2e.e2e.ts",
+          "line": 1109,
           "column": 6,
           "specs": [
             {
-              "title": "Nextflow workflow shows \"Detach\" / \"Reconnect\" labels after run starts",
+              "title": "germline query without data → BioMate asks → user provides SRR → workflow configured",
               "ok": true,
               "tags": [],
               "tests": [
                 {
-                  "timeout": 1200000,
+                  "timeout": 600000,
                   "annotations": [],
                   "expectedStatus": "passed",
                   "projectId": "chromium",
                   "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 91478,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[Screenshot] gc6_01_initial.png\n"
+                        },
+                        {
+                          "text": "[GC6] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc6_02_turn1_response.png\n"
+                        },
+                        {
+                          "text": "[GC6] Turn1 text (first 200): GATK HaplotypeCaller Germline Variant Calling Workflow\nYour workflow has been generated and is ready to execute! Here's what it will do:\n\n🧬 Workflow Overview\nThis pipeline is optimized for rare disea\n"
+                        },
+                        {
+                          "text": "[GC6] Turn1 — askedForData=false generatedWorkflow=true\n"
+                        },
+                        {
+                          "text": "[GC6] Waiting for AI response...\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc6_03_turn2_response.png\n"
+                        },
+                        {
+                          "text": "[GC6] Turn2 text (first 200): I have everything needed to generate your workflow! Let me build it now using SRR1518169 as input with hg38 as the reference genome.\n\n✅ Workflow Generated: GATK Germline Variant Calling (Rare Disease)\n"
+                        },
+                        {
+                          "text": "[GC6] Turn2 — generatedWorkflow=true mentionedAccession=true\n"
+                        },
+                        {
+                          "text": "[GC6] Workflow card appeared (2 total)\n"
+                        },
+                        {
+                          "text": "[Screenshot] gc6_04_workflow_card.png\n"
+                        },
+                        {
+                          "text": "[GC6] Workflow card visible: true\n"
+                        },
+                        {
+                          "text": "[GC6] Workflow is germline: true\n"
+                        },
+                        {
+                          "text": "[GC6] ✓ Two-turn data provision test complete\n"
+                        },
+                        {
+                          "text": "[GC-Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/germline-complete/audit_2026-03-25T05-35-54-708Z.json\n"
+                        },
+                        {
+                          "text": "[GC-Audit] Estimated API cost: $n/a USD\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-25T05:34:23.112Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-71b8f-s-SRR-→-workflow-configured-chromium/test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-71b8f-s-SRR-→-workflow-configured-chromium/video.webm"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/yzhang/biomate/frontend/e2e/test-results/germline-complete-e2e.e2e.-71b8f-s-SRR-→-workflow-configured-chromium/test-finished-2.png"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
                 }
               ],
-              "id": "feb188400a741825904e-dc0e9e95cf82fa122630",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 612,
-              "column": 3
-            }
-          ]
-        },
-        {
-          "title": "UC-7: Download Commands Panel",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 703,
-          "column": 6,
-          "specs": [
-            {
-              "title": "Completed workflow: download_commands API correct; panel renders in UI",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 1200000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "feb188400a741825904e-266ef8f02310dc3dcfbc",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 704,
-              "column": 3
-            }
-          ]
-        },
-        {
-          "title": "UC-2: Pilot Run panel as test harness",
-          "file": "full-workflow-e2e.e2e.ts",
-          "line": 755,
-          "column": 6,
-          "specs": [
-            {
-              "title": "Pilot run banner shows Configure pilot button; preflight API responds",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 1200000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [],
-                  "status": "skipped"
-                }
-              ],
-              "id": "feb188400a741825904e-e753ba327ef47eee6e0c",
-              "file": "full-workflow-e2e.e2e.ts",
-              "line": 756,
+              "id": "3343431e87a3106a2d62-3204264818233ea87ca0",
+              "file": "germline-complete-e2e.e2e.ts",
+              "line": 1110,
               "column": 3
             }
           ]
@@ -296,11 +629,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-24T22:10:22.479Z",
-    "duration": 101.54999999999995,
-    "expected": 0,
-    "skipped": 8,
-    "unexpected": 0,
+    "startTime": "2026-03-25T05:18:55.956Z",
+    "duration": 1018840.072,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
     "flaky": 0
   }
 }

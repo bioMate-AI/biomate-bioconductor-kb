@@ -5122,6 +5122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // First try to get outputs directly by invocation ID
       let outputs = await storage.getInvocationOutputs(req.params.id);
+      console.log(`[Outputs] req.id=${req.params.id} direct=${outputs.length} sources=${outputs.map((o:any)=>o?.metadata?.source).join(',')}`);
 
       // If no outputs found, check if this is an ExecutionRun ID
       // and look up the corresponding WorkflowInvocation

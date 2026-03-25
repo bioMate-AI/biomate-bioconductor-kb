@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "biomate/pipeline_manifest/v1",
+  "title": "BioMate Pipeline Output Manifest",
+  "description": "Written by every completed BioMate Nextflow pipeline. Describes what the pipeline produced and where each named output port can be found.",
+  "type": "object",
+  "required": ["schema_version", "pipeline_id", "invocation_id", "completed_at", "outdir", "ports"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Manifest schema version. Increment when port structure changes."
+    },
+    "pipeline_id": {
+      "type": "string",
+      "description": "Must match a key in pipeline_registry.json.",
+      "examples": ["cryosparc_standard_spa", "et_full_pipeline", "particle_subtraction"]
+    },
+    "invocation_id": {
+      "type": "string",
+      "description": "BioMate invocation ID assigned at workflow launch. Used by the manifest resolver API."
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of pipeline completion."
+    },
+    "outdir": {
+      "type": "string",
+      "description": "Absolute path to the output directory. All port paths are relative to this."
+    },
+    "pipeline_version": {
+      "type": "string",
+      "description": "Git commit SHA or semver tag of the pipeline at runtime. Optional but recommended."
+    },
+    "params": {
+      "type": "object",
+      "description": "Key acquisition and processing parameters used in this run. Not exhaustive — only parameters relevant for downstream interpretation.",
+      "properties": {
+        "pixel_size":   { "type": "number" },
+        "voltage":      { "type": "integer", "enum": [100, 120, 200, 300] },
+        "qc_profile":   { "type": "string" },
+        "symmetry":     { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Key scientific metrics from the run. Pipeline-specific.",
+      "properties": {
+        "fsc_0143_resolution_angstroms": { "type": ["number", "null"] },
+        "num_particles":                 { "type": ["integer", "null"] },
+        "orientation_anisotropy_ratio":  { "type": ["number", "null"] },
+        "final_helical_rise_angstroms":  { "type": ["number", "null"] },
+        "final_helical_twist_deg":       { "type": ["number", "null"] },
+        "sta_fsc_resolution_angstroms":  { "type": ["number", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "ports": {
+      "type": "object",
+      "description": "Named output ports. Keys must match the pipeline's declared output port names in pipeline_registry.json. Values are paths relative to outdir.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "description": "Relative path from outdir to the output file."
+      }
+    },
+    "upstream_invocation_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Invocation IDs of pipelines whose outputs were used as inputs to this run. Enables dependency graph reconstruction."
+    }
+  },
+  "additionalProperties": false
+}

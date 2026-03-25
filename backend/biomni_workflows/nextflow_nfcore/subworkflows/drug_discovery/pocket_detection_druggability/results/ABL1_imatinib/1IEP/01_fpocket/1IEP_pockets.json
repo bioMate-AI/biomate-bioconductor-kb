@@ -1,0 +1,110 @@
+{
+  "target": "1IEP",
+  "tool": "biotite_geometric",
+  "version": "2.6",
+  "num_pockets": 10,
+  "pockets": [
+    {
+      "pocket_id": 1,
+      "volume_A3": 879.2,
+      "druggability_score": 0.567,
+      "hydrophobicity": 0.491,
+      "polarity": 0.458,
+      "center_x": 14.87,
+      "center_y": 57.203,
+      "center_z": 0.914
+    },
+    {
+      "pocket_id": 2,
+      "volume_A3": 532.6,
+      "druggability_score": 0.56,
+      "hydrophobicity": 0.53,
+      "polarity": 0.436,
+      "center_x": 20.52,
+      "center_y": 47.998,
+      "center_z": 3.849
+    },
+    {
+      "pocket_id": 3,
+      "volume_A3": 762.2,
+      "druggability_score": 0.56,
+      "hydrophobicity": 0.497,
+      "polarity": 0.444,
+      "center_x": 18.701,
+      "center_y": 52.772,
+      "center_z": 1.448
+    },
+    {
+      "pocket_id": 4,
+      "volume_A3": 882.3,
+      "druggability_score": 0.543,
+      "hydrophobicity": 0.457,
+      "polarity": 0.358,
+      "center_x": 17.81,
+      "center_y": 60.719,
+      "center_z": 7.467
+    },
+    {
+      "pocket_id": 5,
+      "volume_A3": 390.2,
+      "druggability_score": 0.532,
+      "hydrophobicity": 0.517,
+      "polarity": 0.373,
+      "center_x": 21.842,
+      "center_y": 56.76,
+      "center_z": 8.807
+    },
+    {
+      "pocket_id": 6,
+      "volume_A3": 649.2,
+      "druggability_score": 0.53,
+      "hydrophobicity": 0.469,
+      "polarity": 0.52,
+      "center_x": 27.813,
+      "center_y": 51.799,
+      "center_z": 9.439
+    },
+    {
+      "pocket_id": 7,
+      "volume_A3": 347.2,
+      "druggability_score": 0.458,
+      "hydrophobicity": 0.421,
+      "polarity": 0.565,
+      "center_x": 20.406,
+      "center_y": 39.487,
+      "center_z": -0.608
+    },
+    {
+      "pocket_id": 8,
+      "volume_A3": 195.4,
+      "druggability_score": 0.446,
+      "hydrophobicity": 0.444,
+      "polarity": 0.556,
+      "center_x": 21.312,
+      "center_y": 35.691,
+      "center_z": -2.626
+    },
+    {
+      "pocket_id": 9,
+      "volume_A3": 425.7,
+      "druggability_score": 0.43,
+      "hydrophobicity": 0.364,
+      "polarity": 0.421,
+      "center_x": 20.893,
+      "center_y": 62.042,
+      "center_z": 17.746
+    },
+    {
+      "pocket_id": 10,
+      "volume_A3": 463.2,
+      "druggability_score": 0.423,
+      "hydrophobicity": 0.346,
+      "polarity": 0.408,
+      "center_x": 18.64,
+      "center_y": 63.179,
+      "center_z": 12.546
+    }
+  ],
+  "timestamp": "2026-03-24T22:54:24.287666Z",
+  "mock_mode": false
+}

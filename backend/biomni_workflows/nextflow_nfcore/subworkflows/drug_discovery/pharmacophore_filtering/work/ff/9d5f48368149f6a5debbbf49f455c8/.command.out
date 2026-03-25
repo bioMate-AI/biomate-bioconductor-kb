@@ -1,0 +1,7 @@
+Pharmacophore model (RDKit): 6 features from 4 valid references
+  [D0] Donor: fraction=1.0
+  [A1] Acceptor: fraction=1.0
+  [A2] Aromatic: fraction=1.0
+  [H3] Hydrophobe: fraction=1.0
+  [L4] LumpedHydrophobe: fraction=1.0
+  [P5] PosIonizable: fraction=0.75

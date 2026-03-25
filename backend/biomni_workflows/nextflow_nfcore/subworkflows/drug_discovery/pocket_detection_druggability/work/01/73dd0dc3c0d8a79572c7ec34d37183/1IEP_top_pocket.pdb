@@ -1,0 +1,4 @@
+REMARK  BioMate geometric pocket detection - top pocket
+REMARK  druggability_score=0.567  volume=879.2 A3
+HETATM    1  C   STP A   1      14.870  57.203   0.914  1.00  0.00           C
+END

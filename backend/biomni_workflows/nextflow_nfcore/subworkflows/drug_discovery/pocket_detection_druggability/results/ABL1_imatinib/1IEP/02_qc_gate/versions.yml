@@ -1,0 +1,6 @@
+    "POCKET_DETECTION_DRUGGABILITY:DRUGGABILITY_QC_GATE":
+        python: 3.11.14
+        min_druggability: "0.5"
+        warn_druggability: "0.3"
+        min_volume: "300.0"
+    END_VERSIONS

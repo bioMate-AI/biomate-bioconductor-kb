@@ -1636,9 +1636,9 @@ def generate_workflow_unified(
                             _num_movies = int(_pd['parameters'][_key])
                         except (ValueError, TypeError):
                             pass
-            if _num_movies is None and request.message:
+            if _num_movies is None and request.request_text:
                 import re as _re
-                _m = _re.search(r'\bnum_movies\s*=\s*(\d+)', request.message, _re.IGNORECASE)
+                _m = _re.search(r'\bnum_movies\s*=\s*(\d+)', request.request_text, _re.IGNORECASE)
                 if _m:
                     try:
                         _num_movies = int(_m.group(1))
