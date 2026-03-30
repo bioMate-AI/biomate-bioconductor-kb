@@ -2966,13 +2966,21 @@ def get_available_skills(
 
 # ── User Domain Profile endpoints ────────────────────────────────────────────
 
+_DOMAIN_PROFILE_AVAILABLE = False
+_get_memory_service = None
+DOMAIN_TAXONOMY: dict = {}
+DOMAIN_LABELS: dict = {}
+
+try:
+    from galaxy.ai.domain_taxonomy import DOMAIN_TAXONOMY, DOMAIN_LABELS, get_topics_for_domains
+except Exception as _dt_err:
+    logging.warning(f"Domain taxonomy not available: {_dt_err}")
+
 try:
     from galaxy.ai.memory.agentic_memory import get_memory_service as _get_memory_service
-    from galaxy.ai.domain_taxonomy import DOMAIN_TAXONOMY, DOMAIN_LABELS, get_topics_for_domains
     _DOMAIN_PROFILE_AVAILABLE = True
 except Exception as _dp_err:
-    logging.warning(f"Domain profile components not available: {_dp_err}")
-    _DOMAIN_PROFILE_AVAILABLE = False
+    logging.warning(f"Domain profile memory not available: {_dp_err}")
 
 
 class DomainProfileRequest(BaseModel):
@@ -3053,9 +3061,9 @@ def get_domain_profile(
 def get_domain_taxonomy(
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Return the static domain taxonomy (domains + labels + topics)."""
-    if not _DOMAIN_PROFILE_AVAILABLE:
-        return {"domains": {}, "labels": {}}
+    """Return the static domain taxonomy (domains + labels + topics).
+    Domain taxonomy is always available regardless of memory service status.
+    """
     return {
         "domains": DOMAIN_TAXONOMY,
         "labels": DOMAIN_LABELS,

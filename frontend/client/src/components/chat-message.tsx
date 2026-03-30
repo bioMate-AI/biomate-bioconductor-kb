@@ -286,14 +286,15 @@ export function ChatMessage({
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
+              const executionStatusStr = executionStatus as string;
               const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
-                executionStatus === 'completed' || executionStatus === 'ok'
+                executionStatusStr === 'completed' || executionStatusStr === 'ok'
                   ? 'completed'
-                  : executionStatus === 'paused'
+                  : executionStatusStr === 'paused'
                   ? 'paused'
-                  : executionStatus === 'failed' || executionStatus === 'cancelled' || executionStatus === 'error'
+                  : executionStatusStr === 'failed' || executionStatusStr === 'cancelled' || executionStatusStr === 'error'
                   ? 'failed'
-                  : executionStatus === 'running'
+                  : executionStatusStr === 'running'
                   ? 'running'
                   : 'idle';
 

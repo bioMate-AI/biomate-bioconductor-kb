@@ -6683,13 +6683,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Sequential workflow chain proxy (B3) ─────────────────────────────────
   // Backend: backend/lib/galaxy/webapps/galaxy/api/workflow_chain.py
+  // ChainSubmitRequest expects: { steps: [{nextflow_path, params}], chain_run_id? }
   app.post("/api/workflows/chain", optionalAuth, express.json(), async (req, res) => {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     try {
+      // Normalize payload: frontend may send workflow_steps or steps
+      const rawSteps = req.body?.steps || req.body?.workflow_steps || [];
+      const backendBody = {
+        chain_run_id: req.body?.chain_run_id,
+        steps: rawSteps.map((s: any) => ({
+          nextflow_path: s.nextflow_path || s.workflowPath || s.workflow_path || s.nextflowPath,
+          params: s.params || s.parameters || {},
+        })),
+      };
       const resp = await fetch(`${galaxyUrl}/api/workflows/chain`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
+        body: JSON.stringify(backendBody),
         signal: AbortSignal.timeout(30000),
       });
       const data = await resp.json();

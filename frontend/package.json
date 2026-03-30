@@ -78,6 +78,7 @@
     "@types/pg": "^8.15.6",
     "@types/redis": "^4.0.11",
     "@types/uuid": "^10.0.0",
+    "3dmol": "^2.5.4",
     "archiver": "^7.0.1",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
