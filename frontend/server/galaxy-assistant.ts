@@ -245,6 +245,8 @@ export interface IntentDecomposition {
   intents: DecomposedIntent[];
   isMultiIntent: boolean;
   primaryIntent: DecomposedIntent;
+  /** True when the intents form an ordered pipeline (output of step N feeds step N+1) */
+  isSequential?: boolean;
 }
 
 export interface SubIntentResult {
@@ -797,6 +799,120 @@ Rules:
   }
 
   /**
+   * Process a sequential pipeline request.
+   *
+   * Each intent maps to one Nextflow workflow step. Steps are executed in order
+   * with output→input wiring described between consecutive steps.
+   * Returns a response with `workflow_type: 'pipeline'` and `pipeline_steps: [...]`
+   * so that the frontend `chat-message.tsx` renders `PipelineListView`.
+   */
+  private async processSequentialPipeline(
+    decomposition: IntentDecomposition,
+    message: string,
+    context: ChatContext,
+    startTime: number,
+    onResponseDelta?: (chunk: string) => void,
+    domainProfileContext: string = ''
+  ): Promise<GalaxyAssistantResponse> {
+    const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] [SEQ] ${step}`);
+    log(`Building sequential pipeline: ${decomposition.intents.length} steps`);
+
+    // Resolve each step to a workflow in parallel using the unified search
+    const stepResults = await Promise.all(
+      decomposition.intents.map(async (intent, idx) => {
+        try {
+          log(`Step ${idx + 1}: resolving "${intent.subQuery}"`);
+          const subResult = await this.processSubIntent(
+            intent, message, context, [], []
+          );
+          return { intent, subResult, idx };
+        } catch (err: any) {
+          log(`Step ${idx + 1} failed: ${err.message}`);
+          return { intent, subResult: null, idx };
+        }
+      })
+    );
+
+    // Build pipeline_steps array for PipelineListView
+    const pipelineSteps = stepResults.map(({ intent, subResult, idx }) => {
+      const wf = subResult?.generatedWorkflow;
+      const prevStep = idx > 0 ? stepResults[idx - 1] : null;
+      return {
+        id: intent.id || `step_${idx + 1}`,
+        step_number: idx + 1,
+        workflow_name: wf?.workflow_name || wf?.name || intent.subQuery,
+        nextflow_path: wf?.nextflow_path || null,
+        params: wf?.parameters || wf?.params || intent.inlineParameters || {},
+        status: 'pending',
+        output_types: wf?.output_types || [],
+        input_from: prevStep ? (prevStep.intent.id || `step_${idx}`) : null,
+        uses_description: (intent as any).inputFromDescription ||
+          (prevStep ? `Output from step ${idx}: ${(prevStep.intent as any).outputDescription || prevStep.intent.subQuery}` : null),
+        output_description: (intent as any).outputDescription || null,
+      };
+    });
+
+    const resolvedCount = pipelineSteps.filter(s => s.nextflow_path).length;
+    log(`Pipeline assembled: ${pipelineSteps.length} steps, ${resolvedCount} resolved to workflow paths`);
+
+    // Build a summary message
+    const stepSummaryLines = pipelineSteps.map(
+      (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (workflow path TBD)'}` +
+        (s.uses_description ? `\n     → Input: ${s.uses_description}` : '')
+    );
+    const summaryMessage = [
+      `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
+      '',
+      ...stepSummaryLines,
+      '',
+      'Review the steps below, then click **Confirm & Run** to execute them in order.',
+      resolvedCount < pipelineSteps.length
+        ? `\n⚠️ ${pipelineSteps.length - resolvedCount} step(s) could not be resolved to specific workflow paths — you may need to confirm them before running.`
+        : '',
+    ].join('\n').trim();
+
+    const allFacts = decomposition.intents.flatMap(i => i.facts);
+    const turnIndex = context.turnIndex ?? 0;
+    const extractedFacts = allFacts.map((f, i) => ({
+      id: `fact-seq-${Date.now()}-${i}`,
+      category: f.category as any,
+      value: f.value,
+      source: { type: 'user_message' as const, turnIndex },
+      confidence: f.confidence,
+      supersedes: f.supersedes,
+    }));
+
+    return {
+      message: summaryMessage,
+      intentType: 'workflow_generation',
+      intentConfidence: 0.9,
+      extractedFacts: extractedFacts.length > 0 ? extractedFacts : undefined,
+      isMultiIntent: true,
+      generatedWorkflow: {
+        success: true,
+        workflow_type: 'pipeline',
+        name: `Sequential Pipeline (${pipelineSteps.length} steps)`,
+        pipeline_steps: pipelineSteps,
+        step_count: pipelineSteps.length,
+        source: 'biomate_sequential',
+      },
+      suggestions: [
+        'Modify a specific step',
+        'Add a QC step between stages',
+        'Run only the first step to verify',
+      ],
+      sources: {
+        toolSearchUsed: false,
+        datasetRAGUsed: false,
+        workflowGenerated: true,
+        thinkingUsed: false,
+        researchAgentUsed: false,
+        benchmarkAgentUsed: false,
+      },
+    };
+  }
+
+  /**
    * Process a multi-intent message by fanning out to processSubIntent for each intent.
    * Results are collected and synthesized into a single response.
    */
@@ -810,7 +926,12 @@ Rules:
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
-    log(`Multi-intent processing: ${decomposition.intents.length} intents`);
+    log(`Multi-intent processing: ${decomposition.intents.length} intents` + (decomposition.isSequential ? ' [SEQUENTIAL]' : ''));
+
+    // Sequential pipeline path: process each step, then assemble pipeline_steps response
+    if (decomposition.isSequential) {
+      return this.processSequentialPipeline(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
+    }
 
     // Step 2-3: Parallel tool/dataset search using union of all keywords
     const allKeywords = Array.from(new Set(decomposition.intents.flatMap(i => i.keywords)));
@@ -1118,6 +1239,20 @@ Rules for multi-intent:
 - Set dependsOn when one intent's output feeds into another (e.g., research findings used for workflow design)
 - IMPORTANT: When in doubt between single-intent and multi-intent, prefer multi-intent if the user is asking for 2+ distinct outcomes (e.g., run an analysis AND compare tools AND search literature)
 
+## Sequential Pipeline Detection
+
+A special case of multi-intent is an **ordered sequential pipeline** where each step's output is the input for the next step. This is different from parallel multi-intent.
+
+Signals for sequential pipeline (set `"is_sequential": true` in the intents response):
+- Words: "then", "followed by", "after that", "next", "step 1 ... step 2", "pipeline of", "chain:"
+- Examples:
+  - "RNA-seq alignment then differential expression then pathway enrichment" → sequential
+  - "First run FastQC, then trim adapters, then align with STAR" → sequential
+  - "QC my FASTQ files, then align to hg38, then call variants" → sequential
+- Each intent in a sequential pipeline should have `"dependsOn": ["<prior_intent_id>"]`
+- Set `"input_from_description"` on each step (except the first) describing what it receives from the previous step
+- Sequential pipelines must ALL be `workflow_generation` type intents (each step = one runnable workflow)
+
 ## Parameter Extraction
 
 Extract any inline data or parameters the user provides directly in their message:
@@ -1264,8 +1399,9 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "workflowAmbiguity": null
 }
 
-For MULTI-intent messages, respond with an "intents" array:
+For MULTI-intent messages (parallel), respond with an "intents" array:
 {
+  "is_sequential": false,
   "intents": [
     {
       "id": "intent_1",
@@ -1308,6 +1444,43 @@ For MULTI-intent messages, respond with an "intents" array:
       },
       "facts": [{"category": "tool_preference", "value": "DESeq2", "confidence": 0.9}],
       "dependsOn": []
+    }
+  ]
+}
+
+For SEQUENTIAL pipeline messages (step outputs feed the next step), use `"is_sequential": true` and chain `dependsOn`:
+{
+  "is_sequential": true,
+  "intents": [
+    {
+      "id": "step_1",
+      "type": "workflow_generation",
+      "subQuery": "Run FastQC and trim adapters on FASTQ files",
+      "keywords": ["fastqc", "trimming", "quality control"],
+      "inlineParameters": {},
+      "needsToolSearch": true,
+      "needsDatasets": false,
+      "confidence": 0.95,
+      "actions": {"needsToolSearch": true, "needsWorkflowGeneration": true, "needsWorkflowModification": false, "needsResearchAgent": false, "needsBenchmarkAgent": false, "needsDatasetAccess": false, "needsLLMReasoning": true},
+      "facts": [],
+      "dependsOn": [],
+      "input_from_description": null,
+      "output_description": "trimmed FASTQ files"
+    },
+    {
+      "id": "step_2",
+      "type": "workflow_generation",
+      "subQuery": "Align trimmed reads to hg38 with STAR",
+      "keywords": ["alignment", "STAR", "hg38"],
+      "inlineParameters": {},
+      "needsToolSearch": true,
+      "needsDatasets": false,
+      "confidence": 0.9,
+      "actions": {"needsToolSearch": true, "needsWorkflowGeneration": true, "needsWorkflowModification": false, "needsResearchAgent": false, "needsBenchmarkAgent": false, "needsDatasetAccess": false, "needsLLMReasoning": true},
+      "facts": [],
+      "dependsOn": ["step_1"],
+      "input_from_description": "trimmed FASTQ files from step 1",
+      "output_description": "aligned BAM files"
     }
   ]
 }`;
@@ -1425,6 +1598,7 @@ For MULTI-intent messages, respond with an "intents" array:
 
     // Multi-intent format: { intents: [...] }
     if (Array.isArray(result.intents) && result.intents.length > 0) {
+      const isSequential = result.is_sequential === true;
       const intents: DecomposedIntent[] = result.intents.map((intent: any, i: number) => ({
         id: intent.id || `intent_${i + 1}`,
         type: intent.type || 'general_question',
@@ -1437,18 +1611,25 @@ For MULTI-intent messages, respond with an "intents" array:
         facts: parseFacts(intent.facts),
         dependsOn: Array.isArray(intent.dependsOn) ? intent.dependsOn : [],
         actions: parseActions(intent.actions, intent.type || 'general_question'),
+        // Sequential pipeline metadata
+        inputFromDescription: intent.input_from_description ?? undefined,
+        outputDescription: intent.output_description ?? undefined,
       }));
 
-      // Primary = highest confidence
-      const primaryIntent = intents.reduce((best, current) =>
-        current.confidence > best.confidence ? current : best
-      );
+      // Primary = highest confidence (or first step for sequential)
+      const primaryIntent = isSequential
+        ? intents[0]
+        : intents.reduce((best, current) => current.confidence > best.confidence ? current : best);
 
-      console.log(`[GalaxyAssistant] Multi-intent detected: ${intents.length} intents [${intents.map(i => i.type).join(', ')}]`);
+      console.log(
+        `[GalaxyAssistant] Multi-intent detected: ${intents.length} intents [${intents.map(i => i.type).join(', ')}]` +
+        (isSequential ? ' (SEQUENTIAL pipeline)' : '')
+      );
 
       return {
         intents,
         isMultiIntent: intents.length > 1,
+        isSequential,
         primaryIntent,
       };
     }

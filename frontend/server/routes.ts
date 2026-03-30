@@ -6662,6 +6662,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── D4: Workflow error explanation proxy ──────────────────────────────────
+  app.post("/api/workflows/explain_error", optionalAuth, express.json(), async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/explain_error`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err) });
+    }
+  });
+
+  // ── Sequential workflow chain proxy (B3) ─────────────────────────────────
+  // Backend: backend/lib/galaxy/webapps/galaxy/api/workflow_chain.py
+  app.post("/api/workflows/chain", optionalAuth, express.json(), async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/chain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(30000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err), detail: 'Chain execution backend unavailable' });
+    }
+  });
+
+  app.get("/api/workflows/chain/:chainRunId", optionalAuth, async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/workflows/chain/${req.params.chainRunId}`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(503).json({ error: String(err?.message ?? err) });
+    }
+  });
+
   // Output files for a run
   app.get("/api/workflows/runs/:id/output_files", async (req, res) => {
     try {

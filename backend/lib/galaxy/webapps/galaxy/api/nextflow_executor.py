@@ -2616,6 +2616,101 @@ def _detect_pilot_analyzers(input_files: List[str]) -> List[Dict[str, Any]]:
     return applicable
 
 
+# C2 — File-type-based parameter suggestion table
+# Maps file extension (or normalized type) → list of parameter suggestions.
+# Each suggestion: {param_id, suggested_value, confidence, rationale}
+_FILE_TYPE_PARAM_SUGGESTIONS: Dict[str, List[Dict[str, Any]]] = {
+    # FASTQ / gzipped FASTQ
+    "fastq": [
+        {"param_id": "strandedness", "suggested_value": "auto", "confidence": 0.7,
+         "rationale": "Auto-detect strandedness is recommended for FASTQ inputs unless library prep is known"},
+        {"param_id": "skip_fastqc", "suggested_value": False, "confidence": 0.8,
+         "rationale": "FastQC QC is always recommended for FASTQ data"},
+    ],
+    "fq": [
+        {"param_id": "strandedness", "suggested_value": "auto", "confidence": 0.7,
+         "rationale": "Auto-detect strandedness is recommended for FASTQ inputs"},
+    ],
+    "gz": [  # handles .fastq.gz / .fq.gz
+        {"param_id": "strandedness", "suggested_value": "auto", "confidence": 0.65,
+         "rationale": "Likely compressed FASTQ — auto-detecting strandedness recommended"},
+    ],
+    # BAM / CRAM
+    "bam": [
+        {"param_id": "skip_alignment", "suggested_value": True, "confidence": 0.9,
+         "rationale": "Input is already aligned (BAM) — skip re-alignment step"},
+        {"param_id": "aligner", "suggested_value": None, "confidence": 0.85,
+         "rationale": "BAM is pre-aligned; aligner choice is not needed"},
+    ],
+    "cram": [
+        {"param_id": "skip_alignment", "suggested_value": True, "confidence": 0.9,
+         "rationale": "CRAM is a pre-aligned format — skip re-alignment"},
+    ],
+    # VCF
+    "vcf": [
+        {"param_id": "variant_caller", "suggested_value": "gatk", "confidence": 0.6,
+         "rationale": "VCF files are typically from GATK or compatible callers"},
+    ],
+    # CSV / sample sheet
+    "csv": [
+        {"param_id": "input", "suggested_value": "<uploaded CSV>", "confidence": 0.8,
+         "rationale": "CSV files are commonly used as nf-core sample sheets — set --input to this file"},
+        {"param_id": "samplesheet", "suggested_value": "<uploaded CSV>", "confidence": 0.75,
+         "rationale": "This CSV file may be the samplesheet for the workflow"},
+    ],
+    # FASTA
+    "fasta": [
+        {"param_id": "fasta", "suggested_value": "<uploaded FASTA>", "confidence": 0.8,
+         "rationale": "FASTA file detected — likely the reference genome or sequence input"},
+    ],
+    "fa": [
+        {"param_id": "fasta", "suggested_value": "<uploaded FASTA>", "confidence": 0.75,
+         "rationale": "FASTA file detected — commonly used as reference or sequence input"},
+    ],
+    # H5AD (single-cell)
+    "h5ad": [
+        {"param_id": "input_format", "suggested_value": "h5ad", "confidence": 0.95,
+         "rationale": "H5AD is AnnData format — standard for single-cell workflows"},
+        {"param_id": "normalization_method", "suggested_value": "scran", "confidence": 0.6,
+         "rationale": "Scran normalization is recommended for scRNA-seq data"},
+    ],
+    # MRC (Cryo-EM)
+    "mrc": [
+        {"param_id": "pixel_size", "suggested_value": None, "confidence": 0.5,
+         "rationale": "MRC micrograph detected — pixel size (Å/pixel) is required"},
+        {"param_id": "microscope_voltage", "suggested_value": 300, "confidence": 0.6,
+         "rationale": "Most modern cryo-EM data is acquired at 300 kV"},
+    ],
+    # PDB (structural biology)
+    "pdb": [
+        {"param_id": "structure_file", "suggested_value": "<uploaded PDB>", "confidence": 0.9,
+         "rationale": "PDB file is the protein structure input"},
+    ],
+}
+
+
+def _infer_param_suggestions(input_files: List[str]) -> List[Dict[str, Any]]:
+    """
+    Return parameter suggestions derived purely from file extensions (no tool execution).
+    This is C2 Phase 1: fast, zero-cost heuristic suggestions.
+    """
+    suggestions: List[Dict[str, Any]] = []
+    seen_params: set = set()
+    for f in input_files:
+        fname = Path(f).name.lower()
+        # Handle double extensions like .fastq.gz
+        if fname.endswith(".fastq.gz") or fname.endswith(".fq.gz"):
+            ext = "fastq"
+        else:
+            ext = Path(f).suffix.lower().lstrip(".")
+        for suggestion in _FILE_TYPE_PARAM_SUGGESTIONS.get(ext, []):
+            pid = suggestion["param_id"]
+            if pid not in seen_params:
+                seen_params.add(pid)
+                suggestions.append({**suggestion, "source_file": Path(f).name})
+    return suggestions
+
+
 @router.post("/api/workflows/preflight", summary="Pre-flight validation with pilot analysis detection")
 def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
     """Three-phase preflight check plus pilot-analysis detector.
@@ -2646,10 +2741,12 @@ def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
         ),
     })
 
-    # Phase 2 — input files + pilot analysis detection
+    # Phase 2 — input files + pilot analysis detection + C2 parameter suggestions
     try:
         applicable = _detect_pilot_analyzers(input_files) if input_files else []
         total_est = sum(a["max_runtime_seconds"] for a in applicable)
+        # C2: infer parameter suggestions from file types (no tool execution needed)
+        param_suggestions = _infer_param_suggestions(input_files) if input_files else []
         phases.append({
             "id": "inputs",
             "status": "pass",
@@ -2660,6 +2757,7 @@ def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
             ),
             "applicable_analyzers": applicable,
             "estimated_characterization_seconds": total_est,
+            "parameter_suggestions": param_suggestions,
         })
     except Exception as exc:
         log.warning("preflight: pilot analyzer detection failed: %s", exc)
@@ -2668,6 +2766,7 @@ def workflow_preflight(request: PreflightRequest) -> Dict[str, Any]:
             "status": "pass",
             "message": "Input file accessibility check complete",
             "applicable_analyzers": [],
+            "parameter_suggestions": [],
         })
 
     # Phase 3 — workflow structure

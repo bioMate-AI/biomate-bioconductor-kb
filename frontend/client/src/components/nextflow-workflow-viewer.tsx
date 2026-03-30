@@ -252,6 +252,7 @@ export function NextflowWorkflowViewer({
   autofix,
   nextflowStatus,
   executionEngine,
+  onAdjustViaChat,
 }: NextflowWorkflowViewerProps) {
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
@@ -272,6 +273,16 @@ export function NextflowWorkflowViewer({
   const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
   const [validateLog, setValidateLog] = useState<string[]>([]);
   const [validateLogOpen, setValidateLogOpen] = useState(false);
+
+  // D4: error recovery state — auto-triggered when workflow fails
+  const [errorExplanation, setErrorExplanation] = useState<{
+    error_type: string;
+    human_summary: string;
+    suggested_fix: string;
+    chat_prompt: string;
+    llm_used: boolean;
+  } | null>(null);
+  const [errorExplaining, setErrorExplaining] = useState(false);
 
   const handleValidateEnvironment = async () => {
     const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath || '';
@@ -638,6 +649,28 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     if (status === 'completed') {
       setShowResults(true);
+    }
+  }, [status]);
+
+  // D4: Auto-fetch error explanation when workflow fails
+  useEffect(() => {
+    if (status === 'failed' && !errorExplanation && !errorExplaining) {
+      const rawLog = logs.slice(-30).join('\n') + (errorMessage ? `\n${errorMessage}` : '');
+      if (!rawLog.trim()) return;
+      setErrorExplaining(true);
+      fetch('/api/workflows/explain_error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
+          error_log: rawLog,
+          run_id: runId,
+        }),
+      })
+        .then(r => r.json())
+        .then(data => setErrorExplanation(data))
+        .catch(() => {})
+        .finally(() => setErrorExplaining(false));
     }
   }, [status]);
 
@@ -1468,6 +1501,48 @@ export function NextflowWorkflowViewer({
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
               <DownloadCommandsPanel runId={runId} />
+            </div>
+          )}
+
+          {/* D4: Error recovery card — shown when workflow has failed */}
+          {status === 'failed' && (
+            <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                <span>⚠ Workflow Failed</span>
+                {errorExplaining && <span className="text-muted-foreground font-normal text-xs">Analyzing error…</span>}
+              </div>
+              {errorExplanation ? (
+                <>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">What went wrong</p>
+                    <p className="text-sm text-muted-foreground">{errorExplanation.human_summary}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Suggested fix</p>
+                    <p className="text-sm text-muted-foreground">{errorExplanation.suggested_fix}</p>
+                  </div>
+                  {errorExplanation.chat_prompt && (
+                    <button
+                      className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                      onClick={() => {
+                        setErrorExplanation(null);
+                        onAdjustViaChat?.(errorExplanation.chat_prompt);
+                      }}
+                      data-testid="button-error-fix-chat"
+                    >
+                      Fix &amp; Retry via Chat
+                    </button>
+                  )}
+                  <p className="text-[10px] text-muted-foreground/60">
+                    Error type: {errorExplanation.error_type}
+                    {errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
+                  </p>
+                </>
+              ) : errorExplaining ? (
+                <p className="text-xs text-muted-foreground">Analyzing error log…</p>
+              ) : errorMessage ? (
+                <p className="text-sm text-muted-foreground">{errorMessage}</p>
+              ) : null}
             </div>
           )}
 

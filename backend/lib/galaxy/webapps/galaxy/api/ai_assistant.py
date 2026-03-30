@@ -3113,3 +3113,109 @@ def store_session_summary(
     except Exception as exc:
         log.error("Failed to store session summary: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+# ── D4: Workflow Error Explanation ─────────────────────────────────────────────
+
+class ExplainErrorRequest(BaseModel):
+    run_id: Optional[str] = None
+    workflow_name: Optional[str] = None
+    error_log: str = ""
+    max_log_chars: int = 4000
+
+
+@router.post(
+    "/api/workflows/explain_error",
+    summary="Parse a Nextflow error log and return a human-readable explanation + fix suggestion."
+)
+def explain_workflow_error(request: ExplainErrorRequest) -> Dict[str, Any]:
+    """
+    Takes a Nextflow error log and returns:
+      - error_type: category of error (e.g. 'missing_parameter', 'docker_pull', 'resource_limit', 'data_format')
+      - human_summary: plain-English explanation of what went wrong
+      - suggested_fix: actionable instruction
+      - chat_prompt: a pre-composed message the user can send to the chat to fix the issue
+    """
+    import anthropic as _anthropic
+    import os as _os
+
+    api_key = _os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        # Fallback: simple regex-based error classification without LLM
+        log_lower = request.error_log.lower()
+        if "no such file" in log_lower or "file not found" in log_lower:
+            error_type = "missing_file"
+            human_summary = "A required input file was not found."
+            suggested_fix = "Check that your input file paths are correct and the files exist."
+            chat_prompt = f"The workflow {request.workflow_name or ''} failed because a file was not found. Can you help me fix the input file path?"
+        elif "docker" in log_lower and ("pull" in log_lower or "error" in log_lower):
+            error_type = "docker_pull"
+            human_summary = "Docker could not pull the required container image."
+            suggested_fix = "Ensure Docker is running and you have internet access to pull the image."
+            chat_prompt = f"The workflow {request.workflow_name or ''} failed with a Docker pull error. Can you suggest an alternative container or fix?"
+        elif "memory" in log_lower or "oom" in log_lower or "out of memory" in log_lower:
+            error_type = "resource_limit"
+            human_summary = "The job ran out of memory."
+            suggested_fix = "Increase the memory allocation in the workflow parameters."
+            chat_prompt = f"The workflow {request.workflow_name or ''} ran out of memory. Can you increase the memory limit?"
+        elif "missing" in log_lower and "param" in log_lower:
+            error_type = "missing_parameter"
+            human_summary = "A required parameter is missing."
+            suggested_fix = "Provide the required parameter value."
+            chat_prompt = f"The workflow {request.workflow_name or ''} failed due to a missing parameter. What parameter do I need to provide?"
+        else:
+            error_type = "unknown"
+            human_summary = "An unexpected error occurred during workflow execution."
+            suggested_fix = "Review the error log for details."
+            chat_prompt = f"The workflow {request.workflow_name or ''} failed. Here is the error: {request.error_log[:200]}"
+        return {
+            "error_type": error_type,
+            "human_summary": human_summary,
+            "suggested_fix": suggested_fix,
+            "chat_prompt": chat_prompt,
+            "llm_used": False,
+        }
+
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        truncated_log = request.error_log[-request.max_log_chars:] if len(request.error_log) > request.max_log_chars else request.error_log
+
+        system_prompt = """You are a bioinformatics workflow debugging assistant.
+A Nextflow workflow has failed. Analyze the error log and respond ONLY with valid JSON:
+{
+  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, unknown>",
+  "human_summary": "<1-2 sentences: what went wrong in plain language a scientist can understand>",
+  "suggested_fix": "<1-2 sentences: the specific action to fix this>",
+  "chat_prompt": "<the exact message a user should type in the chat to get help fixing this issue>"
+}
+
+Keep responses concise and actionable. The chat_prompt should be ready to paste."""
+
+        completion = client.messages.create(
+            model="claude-haiku-4-5",
+            max_tokens=400,
+            temperature=0.1,
+            system=system_prompt,
+            messages=[{
+                "role": "user",
+                "content": f"Workflow: {request.workflow_name or 'unknown'}\n\nError log:\n{truncated_log}"
+            }],
+        )
+
+        result_text = completion.content[0].text.strip() if completion.content else "{}"
+        # Strip markdown if present
+        result_text = result_text.replace("```json", "").replace("```", "").strip()
+        import json as _json
+        result = _json.loads(result_text)
+        result["llm_used"] = True
+        return result
+
+    except Exception as exc:
+        log.error("explain_workflow_error LLM call failed: %s", exc)
+        return {
+            "error_type": "unknown",
+            "human_summary": "An error occurred during workflow execution.",
+            "suggested_fix": "Review the full error log for details.",
+            "chat_prompt": f"The workflow failed. Can you help me debug this error?",
+            "llm_used": False,
+            "llm_error": str(exc),
+        }
