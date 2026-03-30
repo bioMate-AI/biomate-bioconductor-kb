@@ -232,6 +232,25 @@ export class AuthService {
       .catch((err) =>
         console.warn('[billing] register_user unreachable:', err.message),
       );
+
+    // Also register with the Java billing service (dual-write, fire-and-forget).
+    // The Java service auto-creates a Lago customer + default subscription.
+    const javaBillingUrl = process.env.JAVA_BILLING_SERVICE_URL;
+    if (javaBillingUrl) {
+      fetch(`${javaBillingUrl}/api/billing/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          externalId: `bm_${user.id}`,
+          name:       user.fullName || user.email,
+          email:      user.email,
+          currency:   'USD',
+        }),
+        signal: AbortSignal.timeout(5000),
+      }).catch((err) =>
+        console.warn('[billing] java service registration failed:', err.message),
+      );
+    }
   }
 
   /**

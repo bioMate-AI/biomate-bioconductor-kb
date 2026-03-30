@@ -1,0 +1,14 @@
+REMARK  BioMate mock EGFR kinase domain — minimal test PDB
+REMARK  UniProt: P00533  EGFR_HUMAN  residues 712–979
+REMARK  Generated for pocket_detection_druggability mock mode
+ATOM      1  CA  LEU A 712      10.000  -3.500   8.000  1.00 20.00           C
+ATOM      2  CA  LYS A 713      11.200  -4.100   8.500  1.00 18.50           C
+ATOM      3  CA  ILE A 714      12.100  -3.900   9.100  1.00 17.30           C
+ATOM      4  CA  LEU A 715      13.000  -4.500   8.800  1.00 19.10           C
+ATOM      5  CA  ASP A 716      11.800  -5.200   7.900  1.00 21.40           C
+ATOM      6  CA  PHE A 717      10.500  -5.100   7.200  1.00 16.80           C
+ATOM      7  CA  GLY A 718       9.800  -4.300   6.500  1.00 15.20           C
+ATOM      8  CA  ALA A 719      10.200  -3.100   6.000  1.00 14.90           C
+ATOM      9  CA  LYS A 720      11.500  -2.700   6.800  1.00 22.00           C
+ATOM     10  CA  GLU A 721      12.400  -3.600   7.400  1.00 20.50           C
+END

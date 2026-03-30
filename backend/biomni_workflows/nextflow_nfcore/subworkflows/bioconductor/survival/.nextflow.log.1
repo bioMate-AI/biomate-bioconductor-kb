@@ -1,0 +1,76 @@
+Mar-04 21:14:26.228 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile test
+Mar-04 21:14:26.273 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-04 21:14:26.308 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/nextflow.config
+Mar-04 21:14:26.311 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/nextflow.config
+Mar-04 21:14:26.359 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
+Mar-04 21:14:26.724 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, docker]
+Mar-04 21:14:26.751 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nxf_home_test/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-04 21:14:26.758 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-04 21:14:26.759 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-04 21:14:26.760 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-04 21:14:26.771 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-04 21:14:26.861 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-04 21:14:26.862 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-04 21:14:26.862 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-04 21:14:26.871 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nxf_home_test/secrets/store.json
+Mar-04 21:14:26.873 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1e236278] - activable => nextflow.secret.LocalSecretsProvider@1e236278
+Mar-04 21:14:26.880 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-04 21:14:26.890 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [suspicious_kalman] DSL2 - revision: 656dd5c74e
+Mar-04 21:14:26.920 [main] DEBUG nextflow.Session - Session UUID: 17724616-d839-44b6-b541-c5eea1f1c667
+Mar-04 21:14:26.920 [main] DEBUG nextflow.Session - Run name: suspicious_kalman
+Mar-04 21:14:26.920 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-04 21:14:26.925 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-04 21:14:26.928 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:14:26.939 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3789877@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.2 GB) - Swap: 16 GB (14.8 GB)
+Mar-04 21:14:26.955 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/work [ext2/ext3]
+Mar-04 21:14:26.956 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/bin
+Mar-04 21:14:26.961 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-04 21:14:26.968 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-04 21:14:26.970 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-04 21:14:26.992 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-04 21:14:26.997 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-04 21:14:27.044 [main] DEBUG nextflow.Session - Session start
+Mar-04 21:14:27.318 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-04 21:14:27.433 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_low` matches labels `process_low` for process with name SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER
+Mar-04 21:14:27.442 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:14:27.442 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:14:27.449 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-04 21:14:27.454 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-04 21:14:27.456 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-04 21:14:27.471 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER': maxForks=0; fair=false; array=0
+Mar-04 21:14:27.508 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_low` matches labels `process_low` for process with name SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX
+Mar-04 21:14:27.510 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:14:27.510 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:14:27.510 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX': maxForks=0; fair=false; array=0
+Mar-04 21:14:27.522 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: CRAN_SURVIVAL_KAPLANMEIER, SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX, CRAN_SURVIVAL_COX, SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER
+Mar-04 21:14:27.524 [main] DEBUG nextflow.Session - Igniting dataflow network (4)
+Mar-04 21:14:27.525 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER
+Mar-04 21:14:27.526 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX
+Mar-04 21:14:27.526 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_0798569dfcfb4b9c: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/main.nf
+Mar-04 21:14:27.526 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-04 21:14:27.526 [main] DEBUG nextflow.Session - Session await
+Mar-04 21:14:27.601 [Actor Thread 15] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/NO_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/NO_FILE
+Mar-04 21:14:27.601 [Actor Thread 14] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/NO_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/NO_FILE
+Mar-04 21:14:27.647 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:14:27.649 [Task submitter] INFO  nextflow.Session - [5f/ddc040] Submitted process > SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER (test)
+Mar-04 21:14:27.661 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:14:27.662 [Task submitter] INFO  nextflow.Session - [63/dcb723] Submitted process > SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX (test)
+Mar-04 21:14:27.668 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: SURVIVAL_ANALYSIS:CRAN_SURVIVAL_KAPLANMEIER (test); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/work/5f/ddc0409d6304918d721d0055b33b87]
+Mar-04 21:14:27.669 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:14:27.676 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: SURVIVAL_ANALYSIS:CRAN_SURVIVAL_COX (test); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/work/63/dcb723e088922bf7dbfc016d17b6fd]
+Mar-04 21:14:27.700 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-04 21:14:27.776 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-04 21:14:27.776 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-04 21:14:27.777 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-04 21:14:27.785 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=5ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=2; peakMemory=4 GB; ]
+Mar-04 21:14:27.787 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-04 21:14:27.794 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-04 21:14:27.795 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

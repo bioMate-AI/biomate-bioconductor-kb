@@ -1,0 +1,58 @@
+{
+  "step": "03_tomogram_reconstruction",
+  "timestamp": "2026-03-05T16:37:39.478616",
+  "reconstruction_method": "wbp",
+  "sirt_iterations": null,
+  "binning_factor": 4,
+  "tomogram_thickness_nm": 200,
+  "voxel_size_angstroms": 5.4,
+  "num_tomograms": 3,
+  "tomograms": [
+    {
+      "ts_id": "TS_001",
+      "dimensions_voxels": [
+        1024,
+        1024,
+        370
+      ],
+      "voxel_size_angstroms": 5.4,
+      "binning_factor": 4,
+      "contrast_min": -0.0321,
+      "contrast_max": 0.1191,
+      "output_mrc": "tomogram_TS_001_bin4.mrc",
+      "reconstruction_method": "wbp",
+      "sirt_iterations": null
+    },
+    {
+      "ts_id": "TS_002",
+      "dimensions_voxels": [
+        1024,
+        1024,
+        370
+      ],
+      "voxel_size_angstroms": 5.4,
+      "binning_factor": 4,
+      "contrast_min": -0.0656,
+      "contrast_max": 0.1787,
+      "output_mrc": "tomogram_TS_002_bin4.mrc",
+      "reconstruction_method": "wbp",
+      "sirt_iterations": null
+    },
+    {
+      "ts_id": "TS_003",
+      "dimensions_voxels": [
+        1024,
+        1024,
+        370
+      ],
+      "voxel_size_angstroms": 5.4,
+      "binning_factor": 4,
+      "contrast_min": -0.0731,
+      "contrast_max": 0.1371,
+      "output_mrc": "tomogram_TS_003_bin4.mrc",
+      "reconstruction_method": "wbp",
+      "sirt_iterations": null
+    }
+  ],
+  "mock_mode": true
+}

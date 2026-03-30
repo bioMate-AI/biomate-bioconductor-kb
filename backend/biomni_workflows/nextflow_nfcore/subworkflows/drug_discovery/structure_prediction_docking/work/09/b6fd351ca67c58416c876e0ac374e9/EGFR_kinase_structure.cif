@@ -1,0 +1,5 @@
+data_EGFR_kinase
+_entry.id EGFR_kinase
+_struct.title 'BioMate mock Boltz-2 structure'
+_ma_qa_metric_global.metric_value 0.91
+_ma_qa_metric_global.type confidence

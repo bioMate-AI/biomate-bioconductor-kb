@@ -1,0 +1,47 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [label="IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ"];
+v0 -> v1 [label="ch_input"];
+
+v1 [label="IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ"];
+v5 [label="IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY"];
+v1 -> v5 [label="cell_fractions"];
+
+v1 [label="IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ"];
+v3 [shape=point];
+v1 -> v3 [label="deconv_plot"];
+
+v1 [label="IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ"];
+v2 [shape=point];
+v1 -> v2 [label="rds"];
+
+v1 [label="IMMUNE_DECONVOLUTION:BIOC_DECONRNASEQ"];
+v7 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v1 -> v7;
+
+v4 [shape=point,label="",fixedsize=true,width=0.1];
+v5 [label="IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY"];
+v4 -> v5 [label="clinical_metadata"];
+
+v5 [label="IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY"];
+v9 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v5 -> v9 [label="immune_summary"];
+
+v5 [label="IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY"];
+v6 [shape=point];
+v5 -> v6 [label="heatmap"];
+
+v5 [label="IMMUNE_DECONVOLUTION:IMMUNEDECONV_SUMMARY"];
+v7 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v5 -> v7;
+
+v7 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v8 [shape=point];
+v7 -> v8 [label="versions"];
+
+v9 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v10 [shape=point];
+v9 -> v10;
+
+}

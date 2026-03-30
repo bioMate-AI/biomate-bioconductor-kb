@@ -1,0 +1,1595 @@
+{
+  "results": [
+    {
+      "testId": "INTENT-001",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Hello, what can you do?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.99\n}\n```",
+      "latencyMs": 2224,
+      "inputTokens": 314,
+      "outputTokens": 56,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-001",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Hello, what can you do?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\nThis is a conversational question asking about my capabilities. No tool execution or data processing is required - just a general informational response about what I can help with in bioinformatics.",
+      "latencyMs": 1731,
+      "inputTokens": 314,
+      "outputTokens": 95,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-002",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "I want to analyze RNA-seq data from mouse liver samples",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"RNA-seq\", \"mouse\", \"liver\", \"transcriptomics\", \"gene expression\", \"alignment\", \"quantification\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.95\n}\n```",
+      "latencyMs": 2473,
+      "inputTokens": 319,
+      "outputTokens": 83,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-002",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "I want to analyze RNA-seq data from mouse liver samples",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"RNA-seq\", \"mouse\", \"liver\", \"differential expression\", \"alignment\", \"quantification\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.92\n}\n```",
+      "latencyMs": 1101,
+      "inputTokens": 319,
+      "outputTokens": 77,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-003",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "What tools are available for variant calling?",
+      "response": "```json\n{\n  \"type\": \"tool_inquiry\",\n  \"keywords\": [\"variant calling\", \"SNP detection\", \"mutation detection\", \"genomics\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is a direct inquiry about available tools for a specific bioinformatics task (variant calling). The user wants to know what tools exist rather than generate a workflow or run an analysis, so it's classified as `tool_inquiry` with high confidence. Tool search is needed to provide relevant variant calling tools, but dataset recommendations are not necessary since the user is asking about tool availability rather than requesting to perform an analysis.",
+      "latencyMs": 4406,
+      "inputTokens": 315,
+      "outputTokens": 158,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-003",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "What tools are available for variant calling?",
+      "response": "```json\n{\n  \"type\": \"tool_inquiry\",\n  \"keywords\": [\"variant calling\", \"SNP detection\", \"indel detection\", \"VCF\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.92\n}\n```",
+      "latencyMs": 1507,
+      "inputTokens": 315,
+      "outputTokens": 74,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-004",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Query UniProt for human insulin receptor",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"UniProt\", \"database query\", \"human\", \"insulin receptor\", \"protein database\", \"sequence retrieval\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 2413,
+      "inputTokens": 315,
+      "outputTokens": 80,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-004",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Query UniProt for human insulin receptor",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"UniProt\", \"human insulin receptor\", \"protein query\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\n**Reasoning:** This is a database query request (UniProt search) which explicitly falls under the workflow_generation category. The user wants to retrieve and analyze protein information for the human insulin receptor, requiring tool execution.",
+      "latencyMs": 1533,
+      "inputTokens": 315,
+      "outputTokens": 115,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-005",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Align my FASTQ files to the human genome and call variants",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"FASTQ\", \"alignment\", \"human genome\", \"variant calling\", \"genomics\", \"sequencing\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is clearly a workflow generation request that requires:\n1. **Alignment tools** (e.g., BWA, Bowtie2, STAR)\n2. **Variant calling tools** (e.g., GATK, FreeBayes, BCFtools)\n3. Reference genome data (human genome)\n\nThe user wants to execute a multi-step bioinformatics pipeline, so tool search is essential to find appropriate alignment and variant calling tools.",
+      "latencyMs": 3804,
+      "inputTokens": 321,
+      "outputTokens": 182,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-005",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Align my FASTQ files to the human genome and call variants",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"FASTQ\", \"alignment\", \"human genome\", \"variant calling\", \"NGS\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 707,
+      "inputTokens": 321,
+      "outputTokens": 75,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-001",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Thanks!",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.99\n}\n```\n\nThis is a simple conversational acknowledgment that doesn't require any bioinformatics tools, workflows, or data analysis.",
+      "latencyMs": 2786,
+      "inputTokens": 309,
+      "outputTokens": 82,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-001",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Thanks!",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\nThis appears to be a simple acknowledgment or thank you message without any specific bioinformatics request. No tool search or dataset recommendations are needed.",
+      "latencyMs": 941,
+      "inputTokens": 309,
+      "outputTokens": 87,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-002",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Can you help me?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\nThis is a general conversational question asking for help without specifying any particular bioinformatics task, tool, dataset, or workflow. No tool search or dataset recommendations are needed at this stage.",
+      "latencyMs": 2753,
+      "inputTokens": 312,
+      "outputTokens": 97,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-002",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Can you help me?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.85\n}\n```\n\nThis is a very open-ended request without specific bioinformatics context. To better assist you, could you please provide more details about what you need help with? For example:\n\n- Are you looking to analyze biological data?\n- Do you need help designing a bioinformatics workflow?\n- Are you searching for specific tools or datasets?\n- Do you have a particular research question or analysis in mind?\n\nOnce you provide more specifics, I can give you more targeted recommendations!",
+      "latencyMs": 1837,
+      "inputTokens": 312,
+      "outputTokens": 159,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-003",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "BLAST",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"BLAST\", \"sequence alignment\", \"similarity search\", \"nucleotide\", \"protein\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 2256,
+      "inputTokens": 309,
+      "outputTokens": 75,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-003",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "BLAST",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"BLAST\", \"sequence alignment\", \"homology search\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.92\n}\n```\n\n**Analysis:** \"BLAST\" is a specific bioinformatics tool/database request. This indicates the user wants to perform sequence similarity searches, which requires:\n- Tool search to identify appropriate BLAST variants (blastn, blastp, blastx, etc.)\n- Dataset recommendations for query sequences and reference databases\n- Workflow generation for executing BLAST analysis",
+      "latencyMs": 2271,
+      "inputTokens": 309,
+      "outputTokens": 145,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-004",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "I have some data",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.85\n}\n```\n\nThis message is too vague to determine a specific intent. The user mentions having data but doesn't specify:\n- What type of data (RNA-seq, proteomics, metabolomics, etc.)\n- What they want to do with it (analyze, visualize, compare, etc.)\n- What their research question or goal is\n\nThis requires follow-up questions to understand their needs before we can determine if they need workflow generation, tool recommendations, or dataset suggestions.",
+      "latencyMs": 4115,
+      "inputTokens": 311,
+      "outputTokens": 156,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-004",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "I have some data",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.6\n}\n```\n\nYour message is quite brief. To better assist you, could you provide more details about:\n\n1. **What type of data** do you have? (e.g., RNA-seq, proteomics, genomic sequences, metabolomics, etc.)\n2. **What would you like to do** with it? (e.g., analyze, process, visualize, compare, etc.)\n3. **What is your goal?** (e.g., differential expression analysis, pathway analysis, quality control, etc.)\n\nOnce you provide more context, I can help you design an appropriate bioinformatics workflow or recommend relevant tools and analyses.",
+      "latencyMs": 1815,
+      "inputTokens": 311,
+      "outputTokens": 194,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-005",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Run FastQC on my samples and then trim adapters with Trimmomatic, align with BWA-MEM to hg38, call variants with GATK HaplotypeCaller, and annotate with SnpEff",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"FastQC\", \"quality control\", \"Trimmomatic\", \"adapter trimming\", \"BWA-MEM\", \"alignment\", \"hg38\", \"GATK\", \"HaplotypeCaller\", \"variant calling\", \"SnpEff\", \"variant annotation\", \"genomics\", \"NGS\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 2862,
+      "inputTokens": 358,
+      "outputTokens": 125,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-005",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Run FastQC on my samples and then trim adapters with Trimmomatic, align with BWA-MEM to hg38, call variants with GATK HaplotypeCaller, and annotate with SnpEff",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\n    \"FastQC\",\n    \"quality control\",\n    \"Trimmomatic\",\n    \"adapter trimming\",\n    \"BWA-MEM\",\n    \"alignment\",\n    \"hg38\",\n    \"GATK HaplotypeCaller\",\n    \"variant calling\",\n    \"SnpEff\",\n    \"variant annotation\",\n    \"whole genome sequencing\",\n    \"NGS pipeline\"\n  ],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.98\n}\n```\n\n**Analysis:**\nThis is a clear **workflow_generation** request with multiple explicit tool mentions and execution instructions. The user is asking to:\n1. Run quality control (FastQC)\n2. Process/trim",
+      "latencyMs": 1700,
+      "inputTokens": 358,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-006",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "What is CRISPR?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [\"CRISPR\", \"gene editing\"],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 1683,
+      "inputTokens": 314,
+      "outputTokens": 65,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-006",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "What is CRISPR?",
+      "response": "```json\n{\n  \"type\": \"general_question\",\n  \"keywords\": [\"CRISPR\"],\n  \"needsToolSearch\": false,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is a straightforward informational question asking for an explanation of what CRISPR is. It doesn't request any tool execution, data analysis, database queries, or workflow generation—just a conversational explanation of a biological concept.",
+      "latencyMs": 1253,
+      "inputTokens": 314,
+      "outputTokens": 110,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-007",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Compare my treated vs control samples",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"differential expression\", \"treated vs control\", \"comparison\", \"statistical analysis\", \"fold change\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.92\n}\n```\n\nThis is a workflow generation request because the user wants to perform a comparative analysis between treated and control samples. This requires:\n\n1. **Tool search needed**: Yes - will need tools for statistical comparison, differential expression analysis, and visualization\n2. **Dataset recommendations**: No - the user is referring to their own samples\n3. **High confidence** (0.92) - this is a clear analytical request requiring computational workflow execution\n\nThe keywords capture the comparative nature and typical analysis components needed for treated vs control comparisons across various omics domains (transcriptomics, proteomics, metabolomics, etc.).",
+      "latencyMs": 5579,
+      "inputTokens": 313,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-EDGE-007",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Compare my treated vs control samples",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"comparison\", \"treated vs control\", \"differential analysis\", \"statistical comparison\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.85\n}\n```\n\n**Analysis Notes:**\n- This is a **workflow generation request** - the user wants to perform a comparative analysis\n- The request implies data processing/analysis work\n- **Additional information needed** to refine the workflow:\n  - What type of data? (RNA-seq, proteomics, metabolomics, imaging, etc.)\n  - What organism/system?\n  - Do you have the data files ready, or need help with data preparation?\n  - What statistical methods do you prefer?\n  - What are your expected outcomes?\n\nWould you like to provide more details so I can generate a more specific",
+      "latencyMs": 2350,
+      "inputTokens": 313,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-001",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Predict protein structure for my amino acid sequence",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"protein structure prediction\", \"amino acid sequence\", \"structure modeling\", \"protein folding\", \"alphafold\", \"homology modeling\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```",
+      "latencyMs": 2228,
+      "inputTokens": 316,
+      "outputTokens": 84,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-001",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Predict protein structure for my amino acid sequence",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"protein structure prediction\", \"amino acid sequence\", \"AlphaFold\", \"structure modeling\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\nThis is classified as **workflow_generation** because you're requesting to **execute/run** a protein structure prediction analysis on your sequence. This requires:\n\n- **Tool search**: Protein structure prediction tools like AlphaFold2, RoseTTAFold, SWISS-MODEL, or I-TASSER\n- **No datasets needed**: You're providing your own sequence\n\nTo help you further, I would need:\n1. Your amino acid sequence (or file format: FASTA, etc.)\n2. Preferred prediction method (AlphaFold2 is",
+      "latencyMs": 2111,
+      "inputTokens": 316,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-002",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Identify peaks in my ChIP-seq data",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"ChIP-seq\", \"peak calling\", \"peak detection\", \"peak identification\", \"chromatin immunoprecipitation\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is clearly a workflow generation request that requires:\n- **Peak calling tools** (like MACS2, HOMER, or similar)\n- **ChIP-seq specific analysis** capabilities\n- Tool search is needed to find appropriate peak detection software\n- No dataset recommendations needed since the user has their own data\n- High confidence as this is a straightforward bioinformatics analysis request",
+      "latencyMs": 4619,
+      "inputTokens": 317,
+      "outputTokens": 165,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-002",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Identify peaks in my ChIP-seq data",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"ChIP-seq\", \"peak detection\", \"peak calling\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\n**Analysis:**\n- **Intent**: This is a clear request to **execute/process data** (identify peaks), which requires running bioinformatics tools\n- **Keywords**: ChIP-seq peak calling/detection tools (MACS2, HOMER, SPP, etc.)\n- **Tool Search**: Required - user needs peak calling tools and potentially visualization tools\n- **Datasets**: Not needed - user indicates they have their own ChIP-seq data",
+      "latencyMs": 1876,
+      "inputTokens": 317,
+      "outputTokens": 167,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-003",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Cluster my single-cell RNA-seq data and find marker genes",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"single-cell\", \"RNA-seq\", \"clustering\", \"marker genes\", \"scRNA-seq\", \"cell type identification\", \"differential expression\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is clearly a workflow generation request that requires:\n1. **Clustering tools** for single-cell RNA-seq data (e.g., Seurat, Scanpy, SC3)\n2. **Marker gene identification** tools for finding differentially expressed genes between clusters\n3. Multiple computational steps including normalization, dimensionality reduction, clustering, and differential expression analysis\n\nThe high confidence reflects the clear technical requirements and standard bioinformatics workflow nature of the request.",
+      "latencyMs": 4531,
+      "inputTokens": 321,
+      "outputTokens": 190,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-003",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Cluster my single-cell RNA-seq data and find marker genes",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"single-cell RNA-seq\", \"clustering\", \"marker genes\", \"scRNA-seq analysis\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": true,\n  \"confidence\": 0.95\n}\n```",
+      "latencyMs": 778,
+      "inputTokens": 321,
+      "outputTokens": 77,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-004",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Annotate metabolites from my LC-MS data",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"LC-MS\", \"metabolite annotation\", \"mass spectrometry\", \"metabolomics\", \"compound identification\", \"peak annotation\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis request requires:\n- **Workflow generation** to process LC-MS data\n- **Tool search** for metabolite annotation tools (e.g., XCMS, MS-DIAL, MetaboAnalyst, compound databases)\n- The user has their own data, so dataset recommendations are not needed\n- High confidence as this is a clear analytical task requiring specific bioinformatics tools",
+      "latencyMs": 4280,
+      "inputTokens": 318,
+      "outputTokens": 169,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-004",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Annotate metabolites from my LC-MS data",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"LC-MS\", \"metabolite annotation\", \"mass spectrometry\", \"metabolomics\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.92\n}\n```\n\n**Analysis:**\n- **Intent**: You're requesting to process and analyze LC-MS data for metabolite identification - this is a data analysis/processing task\n- **Tools needed**: Metabolite annotation tools such as XCMS, MZmine, MetaboAnalyst, SIRIUS, or database matching tools (HMDB, MassBank, KEGG)\n- **Next steps**: I can help you build a workflow that includes:\n  1. Peak detection and feature extraction\n  2. Mass-to-charge ratio matching against metabolite databases\n  3. Annotation",
+      "latencyMs": 2142,
+      "inputTokens": 318,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-005",
+      "model": "claude-sonnet-4-5",
+      "category": "intent",
+      "prompt": "Assemble my bacterial genome from Nanopore reads",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"bacterial genome\", \"genome assembly\", \"nanopore\", \"long-read sequencing\", \"de novo assembly\", \"oxford nanopore\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.98\n}\n```\n\nThis is clearly a workflow generation request that requires:\n- **Tool search**: Yes - need to find genome assembly tools that support Nanopore long reads (e.g., Flye, Canu, Miniasm, Raven)\n- **Dataset recommendations**: No - user has their own Nanopore reads\n- **High confidence**: The intent is very clear - assemble a bacterial genome from long-read sequencing data",
+      "latencyMs": 4950,
+      "inputTokens": 319,
+      "outputTokens": 181,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "INTENT-DOMAIN-005",
+      "model": "claude-haiku-4-5",
+      "category": "intent",
+      "prompt": "Assemble my bacterial genome from Nanopore reads",
+      "response": "```json\n{\n  \"type\": \"workflow_generation\",\n  \"keywords\": [\"nanopore\", \"bacterial genome assembly\", \"long-read sequencing\", \"de novo assembly\"],\n  \"needsToolSearch\": true,\n  \"needsDatasets\": false,\n  \"confidence\": 0.95\n}\n```\n\n**Analysis:**\nThis is a clear **workflow_generation** request. The user is asking to execute/run a genome assembly analysis using their Nanopore sequencing data. This requires:\n\n1. **Tool recommendations** for long-read bacterial genome assembly (e.g., Flye, Miniasm, wtdbg2, Canu)\n2. **Quality control tools** (FastQC, NanoPlot for read assessment)\n3. **Polishing tools** (Medaka, Racon for accuracy improvement)\n4. **Assembly evaluation**",
+      "latencyMs": 1970,
+      "inputTokens": 319,
+      "outputTokens": 200,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-001",
+      "model": "claude-sonnet-4-5",
+      "category": "ranking",
+      "prompt": "I need to align short reads to a reference genome",
+      "response": "I can help you align short reads to a reference genome! Here's what you need to know:\n\n## Recommended Tools\n\n**For DNA alignment:**\n1. **BWA-MEM** - Best for reads >70bp, Illumina data (most common choice)\n2. **Bowtie2** - Good for shorter reads, fast and memory-efficient\n3. **STAR** - If working with RNA-seq data instead\n\n**For specialized cases:**\n- **Minimap2** - For long reads (PacBio, Nanopore)\n- **BWA-backtrack** - For very short reads (<70bp)\n\n## Typical Workflow Steps\n\n1. **Quality Control** (FastQC) - Check read quality first\n2. **Trimming** (Trimmomatic/Cutadapt) - Remove adapters and low-quality bases\n3. **Alignment** (BWA-MEM/Bowtie2)\n   - Index your reference genome first\n   - Map reads to reference\n4. **Post-processing** (SAMtools)\n   - Convert SAM to BAM\n   - Sort and index BAM file\n   - Filter for quality (MAPQ score)\n\n## Key Parameters to Consider\n\n- **Read type**: Single-end or paired-end?\n- **Read length**: <70bp vs >70bp determines tool choice\n- **Reference genome**: Do you have it, or need one from BioMNI catalog?\n- **Output format**: BAM (binary, compressed) is standard\n\n**What's your specific case?** Tell me:\n- Read length and sequencing platform\n- Organism/reference genome\n- Whether you have the reference or need help finding it",
+      "latencyMs": 8713,
+      "inputTokens": 117,
+      "outputTokens": 388,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-001",
+      "model": "claude-haiku-4-5",
+      "category": "ranking",
+      "prompt": "I need to align short reads to a reference genome",
+      "response": "# Short Read Alignment Workflow\n\nI'll help you set up a read alignment pipeline. Here are your best options:\n\n## **Recommended Tools** (Galaxy-available)\n\n### **Primary Aligners:**\n1. **BWA** - Best for Illumina reads\n   - `bwa-mem`: Fast, accurate for reads 70-1M bp\n   - `bwa-aln`: For shorter reads (<100 bp)\n\n2. **Bowtie2** - Excellent all-rounder\n   - Good balance of speed and sensitivity\n   - Great for variable read lengths\n\n3. **HISAT2** - Optimized for RNA-seq\n   - Handles spliced alignments if needed\n\n## **Basic Workflow**\n\n```\nRaw Reads (FASTQ)\n    ↓\n[QC Check - FastQC]\n    ↓\n[Index Reference Genome - BWA Index]\n    ↓\n[Align Reads - BWA-mem]\n    ↓\n[Sort & Convert - SAMtools]\n    ↓\nBAM (indexed)\n```\n\n## **Key Parameters to Set**\n\n| Parameter | Typical Value | Notes |\n|-----------|---------------|-------|\n| Read type | Single/Paired | Paired-end recommended |\n| Reference | FASTA | Pre-indexed if available |\n| Seed length | 19-32 bp | Default usually fine |\n| Mismatches | 2-4% | Adjust for your data |\n\n## **Questions to Refine:**\n- **Read type?** (single-end or paired-end)\n- **Organism?** (may have pre-indexed genomes)\n- **Read length?** (affects tool choice)\n- **Expected error rate?** (affects sensitivity settings)\n\nWhat's your specific use case?",
+      "latencyMs": 5228,
+      "inputTokens": 117,
+      "outputTokens": 422,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-002",
+      "model": "claude-sonnet-4-5",
+      "category": "ranking",
+      "prompt": "Differential expression analysis of RNA-seq",
+      "response": "# Differential Expression Analysis of RNA-seq\n\nI'll guide you through a comprehensive RNA-seq differential expression workflow in Galaxy.\n\n## Standard Workflow Steps\n\n### 1. **Quality Control**\n- **FastQC** - Assess raw read quality\n- **MultiQC** - Aggregate QC reports\n\n### 2. **Read Preprocessing**\n- **Trim Galore!** or **Cutadapt** - Remove adapters and low-quality bases\n- **FastQC** again - Verify improvement\n\n### 3. **Alignment**\nChoose based on your needs:\n- **HISAT2** - Fast, splice-aware (recommended for most cases)\n- **STAR** - Highly accurate, requires more memory\n- **Salmon** or **Kallisto** - Pseudo-alignment (faster, quantification-only)\n\n### 4. **Quantification**\n- **featureCounts** - Count reads per gene (if using HISAT2/STAR)\n- **Salmon/Kallisto** - Direct transcript quantification\n\n### 5. **Differential Expression**\n- **DESeq2** - Most popular, handles small sample sizes well\n- **edgeR** - Good for larger datasets\n- **limma-voom** - Fast, good statistical power\n\n### 6. **Visualization & Interpretation**\n- **Volcano plots** - Show significance vs fold-change\n- **MA plots** - Mean expression vs log fold-change\n- **Heatmaps** - Cluster samples and genes\n- **PCA plots** - Sample similarity\n\n## Key Considerations\n\n**Minimum requirements:**\n- 3+ biological replicates per condition (more is better)\n- Paired-end reads preferred (50-150 bp)\n- 20-30 million reads per sample\n\n**Critical parameters:**\n- FDR/adjusted p-value < 0.05\n- |log2 fold-change| > 1 (typical threshold)\n- Normalization: DESeq2 uses median-of-ratios\n\n## BioMNI Datasets Available\n\nWould you like me to search for specific reference genomes or example RNA-seq datasets for your organism?\n\n**What's your specific setup?**\n- Organism?\n- Number of conditions/replicates?\n- Do you have raw FASTQ files or pre-processed counts?",
+      "latencyMs": 12079,
+      "inputTokens": 115,
+      "outputTokens": 543,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-002",
+      "model": "claude-haiku-4-5",
+      "category": "ranking",
+      "prompt": "Differential expression analysis of RNA-seq",
+      "response": "# RNA-seq Differential Expression Analysis in Galaxy\n\nI'll guide you through a complete workflow for DE analysis.\n\n## **Workflow Overview**\n\n```\nRaw FASTQ → QC → Alignment → Count Matrix → DE Analysis → Visualization\n```\n\n---\n\n## **Step 1: Quality Control**\n\n**Tools:**\n- **FastQC** - assess read quality\n- **MultiQC** - aggregate QC reports\n\n**Key checks:** Phred scores, adapter contamination, GC content\n\n---\n\n## **Step 2: Alignment & Quantification**\n\nChoose based on your reference:\n\n### **Option A: With Reference Genome (Recommended)**\n- **HISAT2** or **TopHat2** - splice-aware alignment\n- **featureCounts** - count reads per gene\n\n### **Option B: De novo Assembly**\n- **Trinity** - transcriptome assembly\n- **Salmon** - fast quantification\n\n**Parameters to set:**\n- Strandedness (unstranded/forward/reverse)\n- Min mapping quality (≥30)\n- GTF annotation file\n\n---\n\n## **Step 3: Build Count Matrix**\n\n- Combine featureCounts outputs\n- **Tool:** Galaxy's \"Concatenate datasets\" or **DESeq2 matrix builder**\n- Format: genes × samples (rows × columns)\n\n---\n\n## **Step 4: Differential Expression**\n\n### **DESeq2** (Most Popular)\n```\nInput: Count matrix + design file (conditions/replicates)\nOutput: Log2FC, p-values, adjusted p-values\n```\n\n**Key parameters:**\n- Fit type: `parametric` (default)\n- Test type: `Wald` (pairwise) or `LRT` (multi-group)\n- FDR cutoff: 0.05\n\n### **Alternatives:**\n- **edgeR** - robust, good for small samples\n- **Limma-Voom** - microarray-like approach\n\n---\n\n## **Step 5: Visualization & Annotation**\n\n| Purpose | Tool |\n|---------|------|\n| Volcano plots | **Volcano plot** tool |\n| MA plots | Built into DESeq2 output |\n| Heatmaps | **Heatmap2** |\n| PCA/clustering | **plotPCA** (DESeq2) |\n| Gene annotation | **Biomatr** (add gene names/descriptions) |\n\n---\n\n## **Quick Start: Essential Parameters**\n\n| Parameter | Recommendation |\n|-----------|-----------------|\n| Replicates | ≥3 per condition |\n| Min counts | Filter genes with <10 total counts |\n| Normalization | TMM or DESeq2 default |\n| FDR threshold | 0.05 |\n| Log2FC threshold | ≥1 (optional, for visualization) |\n\n---\n\n## **Output Interpretation**\n\n- **padj < 0.05** = significantly DE gene\n- **|log2FC| > 1** = ≥2-fold change\n- Volcano plot: upper left/right = significant + large effect\n\n---\n\n**Need help with:**\n- Specific organism/dataset?\n- Experimental design setup?\n- Result interpretation?\n\nLet me know! 🧬",
+      "latencyMs": 7371,
+      "inputTokens": 115,
+      "outputTokens": 763,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-003",
+      "model": "claude-sonnet-4-5",
+      "category": "ranking",
+      "prompt": "Quality control of my sequencing data",
+      "response": "# Quality Control for Sequencing Data\n\nI'll help you set up a comprehensive QC workflow. Here's what you need:\n\n## Essential QC Tools\n\n**1. FastQC** - Primary quality assessment\n- Evaluates per-base quality scores, GC content, adapter contamination\n- Generates visual HTML reports\n- Run on raw reads first\n\n**2. MultiQC** - Aggregate reporting\n- Combines FastQC results from multiple samples\n- Creates unified dashboard for batch analysis\n\n**3. Fastp** or **Trimmomatic** - Quality filtering/trimming\n- Remove low-quality bases and adapters\n- Fastp is faster and includes built-in QC reporting\n\n## Recommended Workflow\n\n```\nRaw FASTQ files\n    ↓\nFastQC (initial assessment)\n    ↓\nFastp/Trimmomatic (filtering)\n    ↓\nFastQC (post-trimming verification)\n    ↓\nMultiQC (summary report)\n```\n\n## Key Parameters to Check\n\n- **Quality scores**: Phred score >20 (99% accuracy) or >30 (99.9%)\n- **Adapter content**: Should be removed if present\n- **Sequence duplication**: High levels may indicate PCR bias\n- **GC content**: Should match expected organism distribution\n\n## Questions to Optimize Your QC:\n\n1. **Data type**: RNA-seq, DNA-seq, ChIP-seq, amplicon?\n2. **Sequencing platform**: Illumina, PacBio, Nanopore?\n3. **Read type**: Single-end or paired-end?\n4. **Organism**: Affects expected GC content\n\nWould you like me to generate a specific workflow for your data type?",
+      "latencyMs": 9552,
+      "inputTokens": 114,
+      "outputTokens": 403,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RANK-003",
+      "model": "claude-haiku-4-5",
+      "category": "ranking",
+      "prompt": "Quality control of my sequencing data",
+      "response": "# Sequencing Data Quality Control Workflow\n\nI'll guide you through a comprehensive QC pipeline. First, let me clarify your data type:\n\n## Quick Questions\n1. **Sequencing type**: DNA-seq, RNA-seq, or other?\n2. **Format**: FASTQ files?\n3. **Paired-end or single-end**?\n\n## Standard QC Pipeline (while you answer)\n\n### **Step 1: Initial Quality Assessment**\n- **FastQC** - Generate quality reports per sample\n  - Identifies issues: adapter contamination, low quality bases, overrepresented sequences\n  - Output: HTML reports + data files\n\n### **Step 2: Trimming & Filtering**\nChoose based on your needs:\n- **Trimmomatic** - Remove adapters, trim low-quality bases\n- **Cutadapt** - Adapter removal (more flexible)\n- **fastp** - All-in-one: trimming, filtering, QC reporting\n\n### **Step 3: Post-Trim Validation**\n- **FastQC** (again) - Confirm improvements\n- **MultiQC** - Aggregate reports across all samples\n\n### **Step 4: Alignment QC** (if mapping to reference)\n- **Samtools flagstat** - Read mapping statistics\n- **Picard CollectAlignmentSummaryMetrics** - Detailed alignment metrics\n- **Qualimap** - Comprehensive BAM quality analysis\n\n---\n\n## Recommended Minimal Workflow\n```\nFASTQ → FastQC → Trimmomatic/fastp → FastQC → MultiQC\n```\n\n**Key parameters to check**:\n- Per-base quality scores (Phred ≥30 is good)\n- GC content distribution\n- Adapter contamination levels\n- Read length distribution\n\nWhat's your data type? I can refine this with specific tool recommendations and parameter settings.",
+      "latencyMs": 4082,
+      "inputTokens": 114,
+      "outputTokens": 438,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run1",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "BWA (Burrows-Wheeler Aligner) accepts the following input file formats:\n\n**For reference genome:**\n- **FASTA** (.fasta, .fa, .fna) - must be indexed first using `bwa index`\n\n**For sequencing reads:**\n- **FASTQ** (.fastq, .fq) - most common format for raw reads\n- **FASTA** (.fasta, .fa) - also supported but less common\n- **Compressed formats**: .gz (gzipped) versions of the above\n\n**Typical BWA workflow:**\n1. **Index** the reference genome (one-time step)\n2. **Align** reads using:\n   - `bwa mem` - for 70bp-1Mbp reads (most versatile, recommended)\n   - `bwa aln` + `bwa samse/sampe` - for shorter reads (<70bp)\n\n**Output format:**\n- **SAM** (Sequence Alignment/Map) - which is typically converted to BAM for storage\n\n**Key considerations:**\n- Paired-end reads require two FASTQ files (R1 and R2)\n- Quality scores in FASTQ should be Phred+33 or Phred+64 encoding\n- Reference genome should be uncompressed for indexing\n\nNeed help setting up a BWA alignment workflow?",
+      "latencyMs": 8348,
+      "inputTokens": 117,
+      "outputTokens": 312,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run2",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "BWA (Burrows-Wheeler Aligner) accepts the following input file formats:\n\n**For reference genome:**\n- **FASTA** (.fasta, .fa, .fna) - must be indexed first using `bwa index`\n\n**For sequencing reads:**\n- **FASTQ** (.fastq, .fq) - most common format for raw reads\n- **FASTA** (.fasta, .fa) - also supported but less common for NGS data\n- **Compressed formats**: .gz (gzip compressed FASTQ/FASTA)\n\n**Typical BWA workflow:**\n1. Index reference: `bwa index reference.fasta`\n2. Align reads: `bwa mem reference.fasta reads.fastq > output.sam`\n\n**Key notes:**\n- BWA outputs **SAM/BAM** format\n- For paired-end data, provide two FASTQ files (R1 and R2)\n- Quality scores in FASTQ are important for alignment scoring\n\nIn Galaxy, the BWA tools (BWA-MEM, BWA-backtrack) will automatically handle these formats and typically expect FASTQ for reads and a pre-indexed reference genome from your history or built-in genomes.",
+      "latencyMs": 7723,
+      "inputTokens": 117,
+      "outputTokens": 282,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run3",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "BWA (Burrows-Wheeler Aligner) accepts the following input file formats:\n\n**For reference genome:**\n- **FASTA** (.fasta, .fa, .fna) - must be indexed first using `bwa index`\n\n**For sequencing reads:**\n- **FASTQ** (.fastq, .fq) - uncompressed or gzip-compressed (.fastq.gz, .fq.gz)\n- **FASTA** (.fasta, .fa) - also supported but less common for reads\n\n**Key points:**\n- BWA requires the reference genome to be **indexed** before alignment\n- Most common workflow uses FASTQ files for reads (single-end or paired-end)\n- Paired-end data requires two FASTQ files (R1 and R2)\n- Compressed FASTQ files (.gz) are directly supported without manual decompression\n\n**Output format:**\n- BWA produces **SAM** (Sequence Alignment/Map) format by default\n- Often piped to samtools to convert to BAM format\n\nWould you like help setting up a BWA alignment workflow in Galaxy?",
+      "latencyMs": 6098,
+      "inputTokens": 117,
+      "outputTokens": 257,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run1",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "# BWA Input Formats\n\nBWA accepts the following input file formats:\n\n## Primary Input\n- **FASTQ** (.fastq, .fq) - Most common, contains reads with quality scores\n- **FASTA** (.fasta, .fa) - Sequence-only format (quality scores set to default)\n\n## Formats by BWA Command\n- **bwa mem** (most used): FASTQ or FASTA\n- **bwa aln** (older algorithm): FASTQ or FASTA\n- **bwa bwasw**: FASTQ or FASTA\n\n## Quality Score Encoding\n- Sanger/Illumina 1.8+ (ASCII 33-based)\n- Older Illumina formats (ASCII 64-based) - BWA can auto-detect\n\n## Reference Genome\n- **FASTA** format for the reference index (must be pre-indexed with `bwa index`)\n\n## Galaxy Context\nIn Galaxy, you can:\n- Upload FASTQ/FASTA files directly\n- Use BWA tools with automatic format detection\n- The **BWA-MEM** tool is recommended for modern sequencing data (typically Illumina reads 70-1000bp)\n\n**Key tip**: FASTQ is strongly preferred since it preserves quality information, which is essential for variant calling and other downstream analyses.",
+      "latencyMs": 3702,
+      "inputTokens": 117,
+      "outputTokens": 307,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run2",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "# BWA Input Formats\n\nBWA accepts the following input file formats:\n\n## Primary Input\n- **FASTQ** - Most common (single-end or paired-end reads)\n- **FASTA** - DNA sequences without quality scores\n\n## Input Specifications\n- **Compressed files**: `.gz` (gzip) format supported\n- **Paired-end reads**: Two separate FASTQ/FASTA files or interleaved format\n- **Single-end reads**: One FASTQ/FASTA file\n\n## Galaxy Context\nIn Galaxy, BWA tools typically accept:\n- FASTQ files (quality scores preserved)\n- FASTA files (when quality information isn't needed)\n- Collections of paired-end datasets\n\n## Key Parameters\nWhen using BWA in Galaxy, you'll specify:\n- **Reference genome** (pre-indexed or auto-indexed)\n- **Input dataset(s)** - your FASTQ/FASTA files\n- **Read type** - single-end or paired-end\n- **Output format** - typically SAM or BAM\n\n**Tip**: FASTQ is strongly recommended over FASTA for mapping, as quality scores help BWA make better alignment decisions and filter low-quality reads.\n\nWould you like help setting up a BWA mapping workflow in Galaxy?",
+      "latencyMs": 3059,
+      "inputTokens": 117,
+      "outputTokens": 292,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-001-run3",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "What file format does BWA accept as input?",
+      "response": "# BWA Input File Formats\n\nBWA accepts the following input formats:\n\n## Primary Input\n- **FASTQ** (.fastq, .fq) - Most common\n  - Single-end reads\n  - Paired-end reads (separate files for R1/R2)\n- **FASTA** (.fasta, .fa) - Less common, typically for reference genomes\n\n## Reference Genome\n- **FASTA** (.fasta, .fa) - Required for the reference sequence\n  - Must be indexed before alignment (BWA creates .amb, .ann, .bwt, .pac, .sa files)\n\n## Key Considerations\n\n| Aspect | Details |\n|--------|---------|\n| **Quality scores** | Required for FASTQ; BWA uses them for mapping quality assessment |\n| **Compression** | Supports gzip-compressed files (.fastq.gz, .fq.gz) |\n| **Paired-end** | Provide as two separate FASTQ files (R1 and R2) or interleaved single file |\n| **Read length** | Works with variable-length reads |\n\n## Galaxy Workflow Tip\nIn Galaxy, use the **BWA** tool and it will:\n1. Auto-detect FASTQ format\n2. Handle reference indexing automatically\n3. Accept compressed inputs directly\n\nWould you like guidance on preparing your reads or setting up a BWA alignment workflow?",
+      "latencyMs": 3493,
+      "inputTokens": 117,
+      "outputTokens": 323,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run1",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Workflow Steps\n\n## 1. **Quality Control**\n- **Tool**: FastQC\n- Check read quality, adapter content, GC bias\n- Identify issues before proceeding\n\n## 2. **Preprocessing**\n- **Tool**: Trim Galore! or Cutadapt\n- Remove adapters and low-quality bases\n- Filter short reads\n\n## 3. **Alignment**\n- **Tool**: HISAT2 or STAR (for splice-aware alignment)\n- Map reads to reference genome\n- Generates BAM files\n- *Alternative*: Salmon/Kallisto for pseudo-alignment (faster)\n\n## 4. **Quantification**\n- **Tool**: featureCounts or HTSeq-count\n- Count reads per gene/transcript\n- Produces count matrix\n- *If using Salmon/Kallisto*: Skip alignment, go directly to quantification\n\n## 5. **Differential Expression Analysis**\n- **Tool**: DESeq2, edgeR, or limma-voom\n- Normalize counts\n- Identify differentially expressed genes (DEGs)\n- Statistical testing with FDR correction\n\n## 6. **Visualization & Interpretation**\n- **Tools**: Volcano plots, heatmaps, PCA plots\n- Functional enrichment (GO terms, KEGG pathways)\n- **Tool**: GOseq or clusterProfiler\n\n## Key Considerations:\n- **Paired-end vs single-end** reads\n- **Stranded protocols** (preserve strand information)\n- **Replicates**: Minimum 3 biological replicates per condition\n- **Batch effects**: Account for in experimental design\n\nWould you like detailed parameters for any specific step?",
+      "latencyMs": 9133,
+      "inputTokens": 115,
+      "outputTokens": 400,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run2",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Workflow Steps\n\n## 1. **Quality Control**\n- **Tool**: FastQC\n- Check read quality, adapter content, GC bias\n- Identify issues before proceeding\n\n## 2. **Read Trimming/Filtering**\n- **Tool**: Cutadapt or Trimmomatic\n- Remove adapters and low-quality bases\n- Filter short reads\n\n## 3. **Alignment to Reference Genome**\n- **Tool**: HISAT2 or STAR\n- Map reads to reference genome\n- STAR for splice-aware alignment (recommended for eukaryotes)\n- HISAT2 for faster, memory-efficient mapping\n\n## 4. **Quantification**\n- **Tool**: featureCounts or HTSeq-count\n- Count reads per gene/transcript\n- Requires GTF/GFF annotation file\n\n## 5. **Differential Expression Analysis**\n- **Tool**: DESeq2 or edgeR\n- Compare conditions (treatment vs control)\n- Statistical testing for significant changes\n- Key outputs: log2 fold changes, adjusted p-values\n\n## 6. **Visualization & Interpretation**\n- **Tools**: Volcano plots, MA plots, heatmaps\n- PCA for sample clustering\n- GO enrichment analysis (GOseq)\n\n## Key Considerations:\n- **Replicates**: Minimum 3 biological replicates per condition\n- **Read depth**: 20-30M reads for human/mouse\n- **Strand specificity**: Match library prep protocol\n\nWould you like details on any specific step?",
+      "latencyMs": 8202,
+      "inputTokens": 115,
+      "outputTokens": 365,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run3",
+      "model": "claude-sonnet-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Pipeline Steps\n\n## 1. **Quality Control**\n- **Tool**: FastQC\n- Check read quality, adapter content, GC bias\n- Identify potential issues before processing\n\n## 2. **Read Trimming/Filtering**\n- **Tool**: Cutadapt or Trimmomatic\n- Remove adapters and low-quality bases\n- Filter reads below quality threshold (typically Q20-Q30)\n\n## 3. **Alignment to Reference Genome**\n- **Tool**: HISAT2 (splice-aware) or STAR\n- Map reads to reference genome\n- Generate BAM files with aligned reads\n\n## 4. **Post-Alignment QC**\n- **Tool**: RSeQC or Qualimap\n- Check alignment rates, gene body coverage\n- Assess strand specificity and read distribution\n\n## 5. **Quantification**\n- **Tool**: featureCounts or HTSeq\n- Count reads per gene/transcript\n- Generate count matrix for downstream analysis\n\n## 6. **Differential Expression Analysis**\n- **Tool**: DESeq2 or edgeR\n- Normalize counts\n- Identify differentially expressed genes (DEGs)\n- Apply statistical testing with FDR correction\n\n## 7. **Visualization & Interpretation**\n- Generate MA plots, volcano plots, heatmaps\n- **Tool**: ggplot2, ComplexHeatmap\n- Perform GO enrichment and pathway analysis\n\n**Key Consideration**: Biological replicates (≥3 per condition) are essential for robust statistical analysis.",
+      "latencyMs": 8133,
+      "inputTokens": 115,
+      "outputTokens": 361,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run1",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Workflow\n\n## 1. **Quality Control (QC)**\n- **FastQC** - assess raw read quality\n- **MultiQC** - aggregate QC reports\n- Look for: adapter contamination, low-quality bases, GC bias\n\n## 2. **Read Trimming** (if needed)\n- **Trimmomatic** or **Cutadapt** - remove adapters/low-quality bases\n- **Trim Galore** - combined trimming + QC\n\n## 3. **Alignment/Mapping**\nChoose based on your reference:\n- **HISAT2** - splice-aware, fast (recommended for eukaryotes)\n- **STAR** - sensitive splice detection, better for novel junctions\n- **Kallisto/Salmon** - pseudo-alignment (faster, quantification-focused)\n\n## 4. **Post-Alignment QC**\n- **RSeQC** - check strand specificity, coverage, rRNA contamination\n- **SAMtools** - validate BAM files\n- **Picard** - mark duplicates, collect metrics\n\n## 5. **Quantification**\n- **featureCounts** - count reads per gene (after HISAT2/STAR)\n- **HTSeq-count** - alternative counting method\n- Built-in for Kallisto/Salmon\n\n## 6. **Differential Expression Analysis**\n- **DESeq2** - robust normalization, statistical testing\n- **edgeR** - alternative GLM-based approach\n- Requires: count matrix + sample metadata\n\n## 7. **Post-Analysis**\n- **Visualization** - heatmaps, MA plots, volcano plots\n- **Gene Ontology/KEGG** - functional enrichment\n- **Pathway analysis** - Reactome, STRING\n\n---\n\n**Quick tip:** Galaxy has pre-built RNA-seq workflows—search \"RNA-seq\" in Workflow menu for automated pipelines matching your organism/design.\n\nWhat's your experimental design? (organism, paired-end, strand-specific?)",
+      "latencyMs": 4576,
+      "inputTokens": 115,
+      "outputTokens": 476,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run2",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Workflow\n\n## 1. **Quality Control (QC)**\n- **Tool**: FastQC\n- Check raw read quality, adapter content, GC bias\n- Output: HTML quality reports\n\n## 2. **Preprocessing**\n- **Trimming**: Trimmomatic or Cutadapt\n  - Remove adapters, low-quality bases (Q < 20)\n- **Optional**: Ribosomal RNA filtering if needed\n\n## 3. **Read Alignment**\n- **Tools**: \n  - HISAT2 (splice-aware, faster)\n  - STAR (more sensitive)\n  - Bowtie2 (general purpose)\n- **Reference**: Download genome index for your organism\n- Output: BAM files (sorted, indexed)\n\n## 4. **Post-Alignment QC**\n- **Tool**: QualiMap or Samtools flagstat\n- Check mapping rates, coverage, strand bias\n- Verify proper library preparation\n\n## 5. **Quantification**\n- **Tools**:\n  - HTSeq-count (gene-level counts)\n  - featureCounts (faster, flexible)\n  - Salmon/Kallisto (alignment-free, quasi-mapping)\n- **Reference**: GTF annotation file\n- Output: Count matrix (genes × samples)\n\n## 6. **Differential Expression Analysis**\n- **Tools**: DESeq2, edgeR, or Limma-Voom\n- Normalize counts, test for DE genes\n- Adjust for multiple testing (FDR < 0.05)\n\n## 7. **Visualization & Interpretation**\n- PCA, heatmaps, MA plots, volcano plots\n- Pathway analysis (KEGG, GO enrichment)\n- **Tools**: ClusterProfiler, Enrichr, or g:Profiler\n\n---\n\n**Need help with specific steps or tool selection?** Galaxy has pre-built workflows for most of these!",
+      "latencyMs": 4190,
+      "inputTokens": 115,
+      "outputTokens": 453,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "CONSIST-002-run3",
+      "model": "claude-haiku-4-5",
+      "category": "consistency",
+      "prompt": "List the steps for RNA-seq analysis",
+      "response": "# RNA-seq Analysis Workflow\n\n## **1. Quality Control (QC)**\n- **FastQC** - assess raw read quality\n- **MultiQC** - aggregate QC reports\n- *Check for:* adapter contamination, low-quality bases, GC bias\n\n## **2. Read Trimming/Cleaning**\n- **Trimmomatic** or **Cutadapt** - remove adapters and low-quality reads\n- **Trim Galore** - automated quality/adapter trimming\n- *Output:* cleaned FASTQ files\n\n## **3. Alignment to Reference**\nChoose based on your organism/reference:\n- **HISAT2** - splice-aware, fast (recommended for most cases)\n- **STAR** - highly sensitive for splice junctions\n- **Bowtie2** - general-purpose aligner\n- *Output:* BAM files (sorted and indexed)\n\n## **4. Quality Assessment of Alignments**\n- **Samtools flagstat** - alignment statistics\n- **RSeQC** - RNA-seq specific QC metrics\n- **Picard** - duplicate detection, insert size distribution\n\n## **5. Quantification**\n- **HTSeq-count** - count reads per gene\n- **FeatureCounts** - fast, flexible counting\n- **Salmon/Kallisto** - lightweight, transcript-level quantification\n- *Output:* count matrix (genes × samples)\n\n## **6. Differential Expression Analysis**\n- **DESeq2** - negative binomial, handles replicates well\n- **edgeR** - robust for small sample sizes\n- **Limma-voom** - good for larger datasets\n- *Output:* log2 fold-changes, p-values, adjusted p-values\n\n## **7. Visualization & Interpretation**\n- **Heatmaps** - clustering of differentially expressed genes (DEGs)\n- **Volcano plots** - fold-change vs. significance\n- **PCA plots** - sample grouping and outliers\n- **GSEA/Pathway analysis** - functional enrichment (Enrichr, DAVID)\n\n---\n\n## **Key Considerations**\n| Factor | Decision |\n|--------|----------|\n| **Paired-end vs Single-end** | Paired-end preferred (better mapping) |\n| **Strand-specific?** | Affects quantification accuracy |\n| **Replicates** | ≥3 per condition recommended |\n| **Reference genome** | Ensure up-to-date annotation |\n\nWould you like detailed parameters for any specific step?",
+      "latencyMs": 5393,
+      "inputTokens": 115,
+      "outputTokens": 596,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-001",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "Explain the difference between BWA and Bowtie2",
+      "response": "## BWA vs Bowtie2: Key Differences\n\nBoth are **short-read aligners** for mapping sequencing reads to reference genomes, but they excel in different scenarios:\n\n### **BWA (Burrows-Wheeler Aligner)**\n\n**Best for:**\n- **Whole genome sequencing (WGS)**\n- **Long reads** (70-1000+ bp)\n- **Variant calling pipelines**\n\n**Algorithms:**\n- `bwa-backtrack` (aln): reads <70 bp\n- `bwa-mem`: reads ≥70 bp (most popular)\n- `bwa-sw`: long reads, lower accuracy tolerance\n\n**Strengths:**\n- More sensitive for longer reads\n- Better handles indels\n- Gold standard for human genome alignment\n- Optimized for low divergence from reference\n\n---\n\n### **Bowtie2**\n\n**Best for:**\n- **RNA-seq** (though STAR/HISAT2 often preferred)\n- **ChIP-seq, ATAC-seq**\n- **Short reads** (<50-100 bp)\n- **Metagenomics**\n\n**Strengths:**\n- Faster for shorter reads\n- More flexible gap penalties\n- Better for reads with higher divergence\n- Lower memory footprint\n- Excellent for non-model organisms\n\n---\n\n### **Quick Decision Guide**\n\n| Use Case | Recommended Tool |\n|----------|------------------|\n| Human WGS variant calling | **BWA-MEM** |\n| Short reads (<70 bp) | **Bowtie2** |\n| ChIP-seq/ATAC-seq | **Bowtie2** |\n| Bacterial genomes | Either (Bowtie2 slightly faster) |\n| High divergence from reference | **Bowtie2** |\n\n**Both are available in Galaxy** - choose based on your read length and application!",
+      "latencyMs": 9749,
+      "inputTokens": 120,
+      "outputTokens": 442,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-001",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "Explain the difference between BWA and Bowtie2",
+      "response": "# BWA vs Bowtie2: Key Differences\n\n## **Alignment Algorithm**\n- **BWA**: Uses Burrows-Wheeler Transform with backtracking\n  - Better for handling longer reads and more divergent sequences\n  - More tolerant of mismatches and gaps\n  \n- **Bowtie2**: Uses FM-index with dynamic programming\n  - Optimized for ungapped and short-gapped alignments\n  - Faster for reads with fewer mismatches\n\n## **Best Use Cases**\n\n### BWA (BWA-MEM algorithm)\n✓ Illumina reads ≥70 bp  \n✓ Whole genome sequencing  \n✓ Variant calling pipelines  \n✓ Human/mammalian genomes  \n✓ Reads with higher error rates\n\n### Bowtie2\n✓ RNA-seq alignment (splice-unaware)  \n✓ ChIP-seq and ATAC-seq  \n✓ Shorter reads (<100 bp)  \n✓ When speed is critical  \n✓ Bacterial/viral genomes\n\n## **Performance**\n- **Speed**: Bowtie2 generally faster for short reads\n- **Sensitivity**: BWA-MEM more sensitive for longer reads (>100bp)\n- **Memory**: BWA typically uses slightly more RAM\n\n## **Practical Recommendation**\n- **DNA-seq, WGS, variant calling** → Use **BWA-MEM**\n- **ChIP-seq, ATAC-seq, methylation** → Use **Bowtie2**\n- **RNA-seq** → Neither (use STAR or HISAT2 for splice-aware alignment)\n\nBoth are excellent tools—choose based on your specific application!",
+      "latencyMs": 10545,
+      "inputTokens": 150,
+      "outputTokens": 462,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "RESP-001",
+      "model": "claude-haiku-4-5",
+      "category": "response",
+      "prompt": "Explain the difference between BWA and Bowtie2",
+      "response": "# BWA vs Bowtie2: Key Differences\n\nBoth are short-read aligners, but they differ in important ways:\n\n## **Algorithm & Speed**\n- **BWA**: Uses Burrows-Wheeler Transform (BWT) with FM-index. Generally faster for large genomes\n- **Bowtie2**: Also uses BWT but with different indexing strategy. Typically slower but more memory-efficient\n\n## **Alignment Strategy**\n- **BWA**: Better for **exact/near-exact matches**. Less sensitive to mismatches\n- **Bowtie2**: More **sensitive to gapped alignments** and handles mismatches better. Uses dynamic programming for local alignment\n\n## **Best Use Cases**\n| Feature | BWA | Bowtie2 |\n|---------|-----|---------|\n| **Whole Genome Sequencing** | ✓ Preferred | ✓ Good |\n| **Exome/Targeted** | ✓ Good | ✓ Better |\n| **RNA-seq** | ✗ Not ideal | ✓ Better |\n| **Speed** | ✓ Faster | Slower |\n| **Memory** | Higher | ✓ Lower |\n\n## **Practical Considerations**\n- **BWA**: Default for most WGS projects; better for SNP calling\n- **Bowtie2**: Better for ChIP-seq, RNA-seq; handles splice-aware alignments better with modified parameters\n- **Sensitivity/Specificity**: Bowtie2 generally more sensitive; BWA more stringent\n\n## **In Galaxy**\nBoth available as standard tools. Choose based on your sequencing type and downstream analysis needs.\n\n**Quick recommendation**: Start with **BWA** for genomic DNA, **Bowtie2** for transcriptomic or enriched datasets.",
+      "latencyMs": 3976,
+      "inputTokens": 120,
+      "outputTokens": 424,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-002",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "I have 10 GB of paired-end Illumina data. What preprocessing steps should I take?",
+      "response": "# Preprocessing 10 GB Paired-End Illumina Data\n\nHere's a practical workflow for your data:\n\n## Essential Steps\n\n### 1. **Quality Control Assessment**\n- **Tool**: FastQC\n- Run on both R1 and R2 files\n- Check for: adapter contamination, quality drops, overrepresented sequences\n- **Tool**: MultiQC (aggregate reports if multiple samples)\n\n### 2. **Adapter Trimming & Quality Filtering**\n- **Tool**: **Fastp** (recommended - fast, all-in-one)\n  - Auto-detects adapters\n  - Trims low-quality bases (Q20-Q30 threshold)\n  - Filters short reads (<36 bp typically)\n  - Generates QC reports\n  \n- **Alternative**: Cutadapt + Trimmomatic\n  - More control but slower\n\n### 3. **Post-Trimming QC**\n- Re-run FastQC to verify improvement\n\n## Key Parameters\n\n**Fastp settings:**\n- Quality threshold: Q20-Q30\n- Minimum length: 36-50 bp (adjust based on downstream analysis)\n- Enable deduplication if PCR duplicates expected\n- Keep paired-end synchronization\n\n## Storage Considerations\n\nWith 10 GB input:\n- Expect ~7-8 GB after trimming (varies by quality)\n- Keep compressed (FASTQ.gz) throughout\n- Consider removing raw data after validation\n\n## Next Steps?\n\nAfter preprocessing, your workflow depends on:\n- **Variant calling** → alignment (BWA-MEM)\n- **RNA-seq** → alignment (HISAT2/STAR) → counting\n- **De novo assembly** → assembler (SPAdes/Trinity)\n\nWhat's your downstream analysis goal?",
+      "latencyMs": 13464,
+      "inputTokens": 129,
+      "outputTokens": 416,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-002",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "I have 10 GB of paired-end Illumina data. What preprocessing steps should I take?",
+      "response": "## Recommended Preprocessing Workflow for Paired-End Illumina Data\n\n### 1. **Initial Quality Assessment**\n- **Tool**: FastQC\n- Run on both R1 and R2 files\n- Check for: adapter contamination, per-base quality scores, GC content, sequence duplication\n\n### 2. **Adapter Trimming & Quality Filtering**\nChoose one of these tools:\n\n**Option A: Fastp** (recommended - fast, all-in-one)\n- Automatic adapter detection\n- Quality trimming (default Q20)\n- Length filtering (recommend ≥50 bp)\n- Handles paired-end properly\n\n**Option B: Trimmomatic**\n- More customizable\n- Key parameters:\n  - ILLUMINACLIP (adapter removal)\n  - LEADING:20 TRAILING:20\n  - SLIDINGWINDOW:4:20\n  - MINLEN:50\n\n### 3. **Post-Trimming QC**\n- Run FastQC again to verify improvement\n- Use MultiQC to aggregate all reports\n\n### 4. **Optional: Deduplication**\n- If PCR duplicates are a concern\n- Tools: Picard MarkDuplicates or dedupe.sh (BBTools)\n\n### Storage Consideration\n10 GB raw data → expect ~7-9 GB after preprocessing (depends on quality)\n\n**Next Step**: What's your downstream analysis? (Assembly, RNA-seq, variant calling?) This affects whether additional steps are needed.",
+      "latencyMs": 11618,
+      "inputTokens": 159,
+      "outputTokens": 479,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "RESP-002",
+      "model": "claude-haiku-4-5",
+      "category": "response",
+      "prompt": "I have 10 GB of paired-end Illumina data. What preprocessing steps should I take?",
+      "response": "# Paired-End Illumina Preprocessing Workflow\n\nHere's a practical preprocessing pipeline for your 10 GB dataset:\n\n## 1. **Quality Assessment**\n- **FastQC** - Initial quality profiling\n- **MultiQC** - Aggregate results across samples\n- Check for: adapter contamination, low-quality bases, GC bias\n\n## 2. **Adapter & Quality Trimming**\n- **Trim Galore!** (recommended) or **Cutadapt**\n  - Removes Illumina adapters automatically\n  - Trims low-quality bases (default Q20)\n  - Filters short reads (set minimum length ~50 bp)\n  \n**Key parameters:**\n```\n--quality 20\n--minimum_length 50\n--paired (maintains pairing)\n```\n\n## 3. **Post-Trim QC**\n- Re-run **FastQC + MultiQC** to verify improvements\n\n## 4. **Optional but Recommended**\n- **BBDuk** (if high contamination suspected)\n  - Removes ribosomal RNA, phix, common contaminants\n- **Deduplication** (if PCR duplicates likely)\n  - **Clumpify** or **Samtools markdup** (post-alignment)\n\n## 5. **Downstream Considerations**\n- **Alignment**: Bowtie2, BWA, or STAR (depending on organism)\n- **Assembly**: SPAdes or Megahit (if doing de novo)\n\n---\n\n**Time estimate**: ~2-4 hours for 10 GB on Galaxy with parallel processing\n\n**Would you like specific guidance on:**\n- Organism type (prokaryote/eukaryote)?\n- Your analysis goal (variant calling, RNA-seq, metagenomic)?\n- Dataset characteristics (single/multiple samples)?",
+      "latencyMs": 4556,
+      "inputTokens": 129,
+      "outputTokens": 428,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-003",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "How do I interpret a p-value of 0.03 in my differential expression results?",
+      "response": "## Interpreting p-value = 0.03 in Differential Expression\n\n**What it means:**\n- There's a **3% probability** of observing this expression difference (or more extreme) by random chance if there's truly no difference\n- The result is **statistically significant** at the conventional α = 0.05 threshold\n- However, it's a **borderline significance** - interpret cautiously\n\n**Key considerations:**\n\n**1. Multiple Testing Correction**\n- With thousands of genes tested, you MUST use adjusted p-values (padj/FDR)\n- An uncorrected p=0.03 likely becomes non-significant after correction\n- Look for **padj < 0.05** or **padj < 0.1** instead\n\n**2. Effect Size Matters More**\n- Check your **log2 fold change** (log2FC)\n- p=0.03 with log2FC=0.2 → statistically significant but biologically trivial\n- p=0.03 with log2FC=2.5 → both statistically and biologically meaningful\n- Typical cutoff: |log2FC| > 1 (2-fold change)\n\n**3. Sample Size Context**\n- Large n → even tiny differences get p<0.05\n- Small n → only large effects reach significance\n- Consider biological replicates (need ≥3 per group)\n\n**Recommended Galaxy tools for proper DE analysis:**\n- **DESeq2** - outputs padj automatically\n- **edgeR** - FDR correction built-in\n- **limma** - includes multiple testing adjustment\n\n**Bottom line:** Don't rely on p=0.03 alone. Use adjusted p-values + fold change thresholds together.",
+      "latencyMs": 11131,
+      "inputTokens": 127,
+      "outputTokens": 402,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-003",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "How do I interpret a p-value of 0.03 in my differential expression results?",
+      "response": "## Interpreting p-value = 0.03\n\n**Basic meaning**: There's a 3% probability of observing this expression difference (or more extreme) by random chance if there's truly no difference between your conditions.\n\n### Statistical Significance\n- **p < 0.05**: Traditionally considered \"statistically significant\"\n- **Your p = 0.03**: Crosses this threshold ✓\n\n### Critical Consideration for DE Analysis\n\n⚠️ **Raw p-values can be misleading** when testing thousands of genes simultaneously.\n\n**What you should actually use:**\n- **Adjusted p-value (FDR/q-value)**: Corrects for multiple testing\n- **Common threshold**: q < 0.05 or q < 0.1\n- **Your assessment**: Check if adjusted p-value is also < 0.05\n\n### Practical Interpretation\n\nIf your **adjusted p-value is also significant**:\n- Result is likely reliable\n- Consider **biological significance** too (fold change, expression level)\n- Validate with additional evidence\n\nIf **only raw p-value is < 0.05**:\n- May be a false positive\n- Lower priority for follow-up\n\n### Recommended Reporting\nReport **both**:\n- Raw p-value: 0.03\n- Adjusted p-value (FDR): [check your results]\n- Log2 fold change\n- Base mean expression level\n\n**Which DE tool are you using?** (DESeq2, edgeR, limma) - I can provide tool-specific guidance.",
+      "latencyMs": 11817,
+      "inputTokens": 157,
+      "outputTokens": 491,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "RESP-003",
+      "model": "claude-haiku-4-5",
+      "category": "response",
+      "prompt": "How do I interpret a p-value of 0.03 in my differential expression results?",
+      "response": "# Interpreting a p-value of 0.03\n\n## What it means\nA p-value of 0.03 indicates a **3% probability** that your observed difference in gene expression occurred by random chance alone, assuming the null hypothesis (no true difference) is true.\n\n## Statistical significance\nAt the conventional **α = 0.05 threshold**:\n- ✅ Your result is **statistically significant** (0.03 < 0.05)\n- This suggests a real biological difference, not just noise\n\n## Important caveats\n\n**1. Multiple testing problem**\n- If you tested thousands of genes, you'll get ~5% false positives by chance\n- **Always apply correction**: Benjamini-Hochberg (FDR) or Bonferroni\n- Your p-value may not survive correction\n\n**2. Effect size matters**\n- A significant p-value ≠ biologically meaningful difference\n- Check **log2 fold-change** (aim for |log2FC| > 1 for confidence)\n- A gene with p=0.03 but tiny fold-change may be biologically irrelevant\n\n**3. Sample size considerations**\n- Large sample sizes can yield significant p-values for tiny effects\n- Small samples may miss real effects\n\n## Practical workflow in Galaxy\n\nUse **DESeq2** or **edgeR** which provide:\n- Adjusted p-values (corrected for multiple testing)\n- Log2 fold-change estimates\n- MA plots and volcano plots for visualization\n\n## Recommendation\nDon't rely on p-value alone. Use **adjusted p-value < 0.05 AND |log2FC| ≥ 1** as your filtering criteria for candidate genes.\n\nWhat's your sample size and how many genes are you testing?",
+      "latencyMs": 4426,
+      "inputTokens": 127,
+      "outputTokens": 409,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-004",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "What parameters should I use for STAR alignment of human RNA-seq data?",
+      "response": "# STAR Alignment Parameters for Human RNA-seq\n\n## Essential Parameters\n\n**Basic Settings:**\n- **Genome**: Human reference (hg38/GRCh38 recommended)\n- **Read length**: Match your sequencing setup (typically 50-150bp)\n- **Library type**: Specify strand-specificity if applicable\n\n## Recommended Parameter Values\n\n**Alignment Strategy:**\n- `--outFilterMultimapNmax 20` - Allow up to 20 alignments per read\n- `--alignSJoverhangMin 8` - Minimum overhang for splice junctions (8bp standard)\n- `--alignSJDBoverhangMin 1` - Minimum overhang for annotated junctions\n- `--outFilterMismatchNmax 999` - Use filter based on mismatch/length ratio instead\n- `--outFilterMismatchNoverLmax 0.04` - Max 4% mismatches per mapped length\n\n**Splice Junction Detection:**\n- `--alignIntronMin 20` - Minimum intron size\n- `--alignIntronMax 1000000` - Maximum intron size (1Mb for human)\n- `--alignMatesGapMax 1000000` - Maximum gap between paired-end mates\n\n**Output Format:**\n- `--outSAMtype BAM SortedByCoordinate` - Direct sorted BAM output\n- `--quantMode GeneCounts` - Generate gene count tables\n- `--outSAMattributes NH HI AS nM` - Include alignment attributes\n\n## For Differential Expression Analysis\n\nAdd: `--outFilterType BySJout` - Reduces spurious junctions\n\n## Two-Pass Mode (Recommended)\n\nUse `--twopassMode Basic` for improved junction detection, especially for novel transcripts.\n\nWould you like help finding the STAR tool in Galaxy or setting up a complete RNA-seq workflow?",
+      "latencyMs": 10429,
+      "inputTokens": 123,
+      "outputTokens": 444,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-004",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "What parameters should I use for STAR alignment of human RNA-seq data?",
+      "response": "## STAR Alignment Parameters for Human RNA-seq\n\n### **Essential Parameters**\n\n**Basic Alignment:**\n- `--readFilesCommand zcat` (for gzipped FASTQ)\n- `--outSAMtype BAM SortedByCoordinate` (sorted BAM output)\n- `--outSAMunmapped Within` (include unmapped reads)\n- `--quantMode GeneCounts` (get gene counts directly)\n\n**For Paired-end Reads:**\n- Provide both R1 and R2 files\n\n### **Key Tuning Parameters**\n\n**Splice Junction Detection:**\n- `--outFilterMultimapNmax 20` (max multimapping locations)\n- `--alignSJoverhangMin 8` (minimum overhang for splice junctions)\n- `--alignSJDBoverhangMin 1` (minimum overhang for annotated junctions)\n- `--outFilterMismatchNmax 999` (use mismatch filter per base instead)\n- `--outFilterMismatchNoverReadLmax 0.04` (4% mismatch rate)\n\n**Alignment Stringency:**\n- `--alignIntronMin 20` (minimum intron length)\n- `--alignIntronMax 1000000` (maximum intron length - 1Mb for human)\n- `--alignMatesGapMax 1000000` (max gap between mate pairs)\n\n### **For Downstream Analysis**\n\n**Variant Calling/Post-processing:**\n- `--outSAMstrandField intronMotif` (XS strand attribute)\n- `--outFilterIntronMotifs RemoveNoncanonical` (removes non-canonical junctions)\n\n**ENCODE Standard Settings:**\n```\n--outFilterType BySJout\n--outFilterMultimapNmax 20\n--alignSJoverhangMin 8\n--alignSJDBoverhangMin 1\n--outFilterMismatchNmax 999\n--outFilterMismatchNoverReadLmax 0.04\n--alignIntronMin 20\n--alignIntronMax 1000000\n--alignMatesGapMax 1000000\n```\n\n### **Important Considerations**\n\n1. **Genome Index**: Use matching annotation GTF when building index\n2. **Two-pass Mode**: `--twopassMode Basic` (improves novel junction detection)\n3. **Threads**: `--runThreadN` (use 8-16 for optimal performance)\n4. **Memory**: Human genome requires ~30GB RAM\n\nWould you like help finding the appropriate human reference genome and annotation files in Galaxy?",
+      "latencyMs": 13256,
+      "inputTokens": 153,
+      "outputTokens": 724,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "RESP-004",
+      "model": "claude-haiku-4-5",
+      "category": "response",
+      "prompt": "What parameters should I use for STAR alignment of human RNA-seq data?",
+      "response": "# STAR Alignment Parameters for Human RNA-seq\n\n## Essential Parameters\n\n**Genome & Annotation:**\n- `--genomeDir`: Pre-built human genome index (GRCh38/hg38 recommended)\n- `--sjdbGTFfile`: Human GTF annotation (Ensembl or GENCODE)\n- `--sjdbOverhang`: 100 (for 2x150bp reads) or read_length-1\n\n**Read Input:**\n- `--readFilesIn`: Your FASTQ files (paired-end: file_R1 file_R2)\n- `--readFilesCommand`: `zcat` if gzipped\n\n## Recommended Settings\n\n| Parameter | Value | Reason |\n|-----------|-------|--------|\n| `--outSAMtype` | BAM SortedByCoordinate | Standard for downstream analysis |\n| `--outSAMstrandField` | intronMotif | Strand info from splice sites |\n| `--quantMode` | GeneCounts | Gene-level counts (optional) |\n| `--outFilterType` | BySJout | Better splicing detection |\n| `--outFilterMultimapNmax` | 20 | Default; adjust for repetitive regions |\n| `--alignSJoverhangMin` | 8 | Minimum overhang for novel junctions |\n| `--alignSJDBoverhangMin` | 1 | Annotated junction stringency |\n\n## Optional but Useful\n\n```\n--twopassMode Basic          # Improves novel junction detection\n--outSAMattributes NH HI AS nM MD  # BAM tags for QC\n--chimSegmentMin 15          # Detect fusion transcripts\n--limitBAMsortRAM 50000000000 # 50GB for large datasets\n```\n\n## Galaxy Implementation\n\nSearch for **\"STAR\"** in Galaxy tools. Key versions:\n- STAR (latest) with **Ensembl/GENCODE human indexes pre-loaded**\n- Pair with **MultiQC** for QC metrics\n\n**Would you like help with:** post-alignment QC, quantification, or specific experimental design considerations?",
+      "latencyMs": 5480,
+      "inputTokens": 123,
+      "outputTokens": 512,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-005",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "My alignment rate is only 50%. What could be wrong?",
+      "response": "A 50% alignment rate suggests several possible issues. Here's a systematic troubleshooting approach:\n\n## Most Common Causes:\n\n**1. Reference Genome Mismatch**\n- Wrong species or genome build (e.g., hg19 vs hg38)\n- Contamination from another organism\n- **Check**: Verify your reference matches your sample source\n\n**2. Adapter/Quality Issues**\n- Unremoved adapter sequences\n- Low-quality reads\n- **Fix**: Run FastQC, then use **Cutadapt** or **Trim Galore** for trimming\n\n**3. Library Type Problems**\n- RNA-seq aligned as DNA-seq (needs splice-aware aligner)\n- Stranded data treated as unstranded\n- **Fix**: Use **HISAT2** or **STAR** for RNA-seq, not BWA\n\n**4. Contamination**\n- Host/vector contamination\n- Microbial contamination in eukaryotic samples\n- **Check**: Align unmapped reads to common contaminants\n\n## Quick Diagnostic Steps:\n\n1. **Check read quality**: Use **FastQC** - look for adapter content, quality drops\n2. **Verify organism**: BLAST a sample of unmapped reads\n3. **Check aligner settings**: \n   - For RNA-seq: Use splice-aware aligners\n   - Adjust mismatch tolerance if needed\n4. **Screen for contamination**: Use **Kraken2** or **FastQ Screen**\n\n**What type of sequencing data do you have** (DNA-seq, RNA-seq, ChIP-seq, etc.) **and which aligner are you using?** This will help me give more specific recommendations.",
+      "latencyMs": 10193,
+      "inputTokens": 120,
+      "outputTokens": 394,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "RESP-005",
+      "model": "claude-sonnet-4-5",
+      "category": "response",
+      "prompt": "My alignment rate is only 50%. What could be wrong?",
+      "response": "A **50% alignment rate** suggests a significant issue. Here's a systematic troubleshooting approach:\n\n## Most Common Causes\n\n**1. Reference Genome Mismatch**\n- Wrong species or genome build\n- Check: Are you aligning mouse reads to human genome?\n- Verify your reference matches your sample source\n\n**2. Adapter/Quality Issues**\n- Run **FastQC** on unaligned reads\n- Look for: adapter contamination, low quality scores\n- Fix with: **Cutadapt** or **Trim Galore**\n\n**3. Contamination**\n- **For RNA-seq**: rRNA contamination (very common!)\n  - Use **SortMeRNA** or **RiboDetector** to check\n- **For any data**: Check species composition with **Kraken2**\n\n**4. Alignment Parameters**\n- Too strict mismatch/gap penalties\n- For RNA-seq: Did you use splice-aware aligner (**HISAT2**, **STAR**)?\n- For DNA-seq: Try adjusting **BWA-MEM** sensitivity\n\n## Quick Diagnostic Steps\n\n1. **Sample unaligned reads** (10K reads)\n2. **BLAST** them → identifies contamination/species\n3. **FastQC** → checks quality/adapters\n4. Re-align with adjusted parameters\n\n**What type of data are you working with?** (RNA-seq, WGS, ChIP-seq?) This will help me give more specific recommendations.",
+      "latencyMs": 12462,
+      "inputTokens": 150,
+      "outputTokens": 480,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "RESP-005",
+      "model": "claude-haiku-4-5",
+      "category": "response",
+      "prompt": "My alignment rate is only 50%. What could be wrong?",
+      "response": "# Low Alignment Rate Troubleshooting\n\nA 50% alignment rate is concerning. Here are the most common causes:\n\n## **1. Data Quality Issues** (most common)\n- **Check sequence quality**: Use **FastQC** to assess read quality\n  - Look for: adapter contamination, low quality bases (Q<20), length distribution\n  - Solution: **Trimmomatic** or **Cutadapt** to remove adapters and low-quality reads\n\n- **Check for contamination**: \n  - Run **FastScreen** or **Kraken2** to identify non-target sequences\n  - Could be: rRNA, vector, or environmental DNA\n\n## **2. Wrong Reference Genome**\n- Verify you're using the correct species/build\n- Check reference genome size matches expectations\n- Solution: Use **BLAST** on a sample of unmapped reads to identify what they actually are\n\n## **3. Alignment Tool Settings**\n- **Too-strict parameters**: Default settings may be too stringent\n  - Try **Bowtie2** with `--local` or `--very-sensitive-local` mode\n  - Or use **BWA-MEM** with default parameters (more permissive)\n  \n- **Mismatched tool for data type**:\n  - RNA-seq → use **HISAT2** or **STAR**\n  - Genomic DNA → use **Bowtie2** or **BWA**\n\n## **4. Other Causes**\n- Reads too short or degraded\n- Polyploidy/high heterozygosity in organism\n- Paired-end reads treated as single-end (or vice versa)\n\n## **Quick Diagnostic Workflow**\n1. **FastQC** → assess quality\n2. **FastScreen** → check contamination\n3. **BLAST** unmapped reads → identify them\n4. **Retry alignment** with relaxed parameters\n\n**What's your data type** (DNA/RNA) and **organism**? I can recommend specific tools and parameters.",
+      "latencyMs": 4816,
+      "inputTokens": 120,
+      "outputTokens": 463,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-001",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "Design a complete metagenomics pipeline for analyzing gut microbiome samples from 50 patients",
+      "response": "# Complete Gut Microbiome Metagenomics Pipeline\n\n## Pipeline Overview\nThis workflow processes 50 paired-end Illumina samples from raw reads through taxonomic/functional profiling to statistical analysis.\n\n---\n\n## Phase 1: Quality Control & Preprocessing\n\n### Step 1: Initial Quality Assessment\n**Tool:** `FastQC` (v0.72+)\n- Input: Raw FASTQ files (R1 & R2 for each sample)\n- Generates quality reports for all 100 files\n- Check: adapter content, per-base quality, GC content\n\n### Step 2: Read Trimming & Filtering\n**Tool:** `Fastp` or `Trimmomatic`\n- Remove adapters (Illumina TruSeq/Nextera)\n- Quality trimming: Q20 threshold\n- Minimum length: 50 bp\n- Parameters: `SLIDINGWINDOW:4:20 MINLEN:50`\n\n### Step 3: Host DNA Removal\n**Tool:** `Bowtie2`\n- **Dataset:** Human reference genome (hg38) from BioMNI\n- Align reads to human genome\n- Extract unmapped reads (microbial fraction)\n- Reduces false positives from human contamination\n\n---\n\n## Phase 2: Taxonomic Profiling\n\n### Step 4: Species-Level Classification\n**Primary Tool:** `MetaPhlAn4`\n- Uses species-specific marker genes\n- Fast, accurate for bacterial/archaeal/viral/eukaryotic species\n- Outputs relative abundances\n- ~5-10 min per sample\n\n**Alternative/Complementary:** `Kraken2` + `Bracken`\n- **Dataset:** Standard Kraken2 DB (bacteria, archaea, viruses)\n- K-mer based classification (faster but more memory)\n- Bracken refines abundance estimates at species level\n\n### Step 5: Merge Taxonomic Tables\n**Tool:** `merge_metaphlan_tables.py` or custom script\n- Combine all 50 samples into single abundance matrix\n- Format: samples × species\n\n---\n\n## Phase 3: Functional Profiling\n\n### Step 6: Functional Annotation\n**Tool:** `HUMAnN3` (HMP Unified Metabolic Analysis Network)\n- Input: Quality-filtered reads\n- **Databases:** \n  - ChocoPhlAn (pangenome database)\n  - UniRef90/50 (protein families)\n- Outputs:\n  - Gene families (UniRef90)\n  - Pathway abundances (MetaCyc)\n  - Pathway coverage\n\n### Step 7: Functional Summarization\n**Tool:** `humann_renorm_table`\n- Normalize to relative abundances or CPM\n- Stratify by species contributions\n- Regroup to higher-level categories (e.g., GO terms, EC numbers)\n\n---\n\n## Phase 4: Diversity & Statistical Analysis\n\n### Step 8: Alpha Diversity\n**Tool:** `Mothur` or `QIIME2 diversity alpha`\n- Metrics: Shannon, Simpson, Chao1, observed species\n- Calculate per sample\n- Compare between patient groups\n\n### Step 9: Beta Diversity\n**Tool:** `QIIME2 diversity beta` or custom R script\n- Metrics: Bray-Curtis, UniFrac (weighted/unweighted)\n- PCoA ordination\n- PERMANOVA testing for group differences\n\n### Step 10: Differential Abundance Analysis\n**Tool:** `LEfSe` (Linear discriminant analysis Effect Size)\n- Identifies biomarker species between groups\n- LDA score threshold: 2.0\n- Alternative: `DESeq2` (via Galaxy R tools)\n\n### Step 11: Visualization\n**Tools:** \n- `Krona` - Interactive taxonomic pie charts\n- `GraPhlAn` - Phylogenetic tree visualization\n- `Phinch` - Interactive data explorer\n- Custom R/Python scripts for heatmaps, boxplots\n\n---\n\n## Phase 5: Assembly-Based Analysis (Optional Deep Dive)\n\n### Step 12: Co-Assembly\n**Tool:** `MEGAHIT` or `metaSPAdes`\n- Pool samples by group or assemble individually\n- Memory-efficient for large datasets\n- Produces contigs for downstream binning\n\n### Step 13: Genome Binning\n**Tool:** `MetaBAT2`\n- Input: Contigs + read mapping (via Bowtie2)\n- Generates Metagenome-Assembled Genomes (MAGs)\n- Outputs: FASTA files for each bin\n\n### Step 14: MAG Quality Assessment\n**Tool:** `CheckM`\n- Estimates completeness and contamination\n- Keep MAGs: >50% complete, <10% contamination\n\n### Step 15: MAG Annotation\n**Tool:** `Prokka` or `DRAM`\n- Functional gene annotation\n- Metabolic pathway reconstruction\n\n---\n\n## Key Datasets from BioMNI Catalog\n\n1. **Human Reference Genome** (hg38) - host depletion\n2. **Kraken2 Standard DB** - taxonomic classification\n3. **ChocoPhlAn Database** - pangenome profiling\n4. **UniRef90/50** - functional annotation\n5. **MetaCyc Pathways** - metabolic reconstruction\n\n---\n\n## Computational Considerations\n\n- **Parallelization:** Process samples in batches of 10\n- **Storage:** ~500 GB for raw data + intermediates\n- **Runtime:** ~2-4 hours per sample (full pipeline)\n- **Memory:** 32-64 GB RAM for assembly/binning steps\n\n---\n\n## Quality Checkpoints\n\n✓ >80% reads pass quality filtering  \n✓ <20% human DNA contamination  \n✓ Rarefaction curves plateau (sufficient depth)  \n✓ Negative controls show minimal signal  \n\n---\n\n## Final Outputs\n\n1. Taxonomic abundance matrix (50 samples × species)\n2. Functional pathway abundances\n3. Alpha/beta diversity metrics\n4. Differential abundance results\n5. Publication-ready visualizations\n6. MAGs with functional annotations (optional)\n\nThis pipeline provides comprehensive characterization from community composition through functional potential. Adjust tools based on specific research questions (e.g., strain-level analysis, virome focus).",
+      "latencyMs": 37050,
+      "inputTokens": 128,
+      "outputTokens": 1501,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-001",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "Design a complete metagenomics pipeline for analyzing gut microbiome samples from 50 patients",
+      "response": "# Complete Gut Microbiome Metagenomics Pipeline\n\n## Pipeline Overview (50 Patient Samples)\n\n### **Phase 1: Quality Control & Preprocessing**\n\n**Step 1: Raw Data Quality Assessment**\n- **Tool**: `FastQC` (quality metrics)\n- **Tool**: `MultiQC` (aggregate all 50 samples)\n- Check for: adapter contamination, per-base quality, GC content\n\n**Step 2: Quality Filtering**\n- **Tool**: `fastp` or `Trimmomatic`\n- Parameters:\n  - Quality threshold: Q20-Q30\n  - Minimum length: 50-75 bp\n  - Remove adapters automatically\n\n**Step 3: Host Sequence Removal**\n- **Tool**: `Bowtie2` (align against human genome)\n- **Dataset**: Human reference genome (GRCh38)\n- Keep unmapped reads only (microbial sequences)\n\n---\n\n### **Phase 2: Taxonomic Profiling**\n\n**Option A: Kraken2/Bracken Pipeline** (Fast, recommended for 50 samples)\n- **Tool**: `Kraken2` - taxonomic classification\n  - Database: Standard (bacteria, archaea, viruses, human)\n- **Tool**: `Bracken` - abundance estimation at species level\n- **Output**: Species-level abundance tables\n\n**Option B: MetaPhlAn** (Marker gene-based)\n- **Tool**: `MetaPhlAn`\n- More specific but slower\n- Better for relative abundances\n\n**Step 4: Merge Abundance Tables**\n- **Tool**: `Kraken-biom` or custom scripts\n- Create combined OTU/ASV table for all 50 samples\n\n---\n\n### **Phase 3: Functional Profiling**\n\n**Step 5: Functional Annotation**\n- **Tool**: `HUMAnN` (HMP Unified Metabolic Analysis Network)\n  - Gene families (UniRef90)\n  - Pathways (MetaCyc)\n  - Outputs: Gene abundance, pathway abundance, coverage\n\n**Alternative**: \n- **Tool**: `Diamond` + `MEGAN` for functional classification\n\n---\n\n### **Phase 4: Diversity & Statistical Analysis**\n\n**Step 6: Alpha Diversity**\n- **Tool**: `Vegan` or `QIIME2` diversity plugins\n- Metrics: Shannon, Simpson, Chao1, observed species\n- Generate per-sample diversity indices\n\n**Step 7: Beta Diversity**\n- **Tool**: `QIIME2` or custom R scripts\n- Distance matrices: Bray-Curtis, UniFrac\n- **Visualization**: PCoA, NMDS plots\n- Statistical testing: PERMANOVA\n\n**Step 8: Differential Abundance**\n- **Tool**: `LEfSe` (Linear discriminant analysis Effect Size)\n- Alternative: `DESeq2` adapted for microbiome\n- Identify differentially abundant taxa between groups\n\n---\n\n### **Phase 5: Visualization & Reporting**\n\n**Step 9: Generate Visualizations**\n- **Tool**: `Krona` - interactive taxonomic charts\n- **Tool**: `Phinch` - abundance heatmaps\n- Stacked bar charts of taxonomic composition\n- Heatmaps of top taxa/pathways\n\n**Step 10: Statistical Plots**\n- Boxplots for alpha diversity by group\n- PCoA plots for beta diversity\n- Cladograms from LEfSe results\n\n---\n\n## **Recommended Galaxy Workflow Structure**\n\n```\nCollection Input (50 FASTQ pairs)\n    ↓\n[FastQC → MultiQC]\n    ↓\n[fastp filtering]\n    ↓\n[Bowtie2 host removal]\n    ↓\n         ┌─────────────┬─────────────┐\n         ↓             ↓             ↓\n    [Kraken2]    [MetaPhlAn]   [HUMAnN]\n         ↓             ↓             ↓\n    [Bracken]    [Abundance]  [Pathways]\n         ↓             ↓             ↓\n         └─────────────┴─────────────┘\n                   ↓\n         [Merge Tables]\n                   ↓\n         [Diversity Analysis]\n                   ↓\n         [Statistical Testing]\n                   ↓\n         [Visualizations]\n```\n\n---\n\n## **Key Parameters & Considerations**\n\n### Computational Resources:\n- **Memory**: 64-128 GB RAM (for Kraken2 standard DB)\n- **Storage**: ~500 GB for databases + results\n- **Runtime**: 2-4 hours per sample (full pipeline)\n\n### Critical Quality Metrics:\n- \\>80% reads passing QC\n- \\>90% host removal rate\n- \\>60% reads classified (Kraken2)\n\n### Sample Metadata Required:\n- Patient ID\n- Clinical groups/phenotypes\n- Collection date\n- Technical covariates (batch, sequencing run)\n\n---\n\n## **BioMNI Dataset Recommendations**\n\nLeverage reference databases:\n- **RefSeq microbial genomes**\n- **MetaCyc metabolic pathways**\n- **HMP reference gut microbiome profiles** (for validation)\n\n---\n\n## **Output Deliverables**\n\n1. **QC Report**: MultiQC HTML for all samples\n2. **Abundance Tables**: Taxa and functional profiles\n3. **Diversity Metrics**: Alpha/beta diversity matrices\n4. **Statistical Results**: Differential abundance tables\n5. **Figures**: Publication-ready plots (PNG/PDF)\n6. **Galaxy History**: Reproducible workflow with all parameters\n\n---\n\n## **Next Steps**\n\nWould you like me to:\n1. Generate the actual Galaxy workflow file (.ga)?\n2. Provide specific tool parameter recommendations?\n3. Detail the statistical analysis approach for your study design?\n4. Suggest sample grouping strategies based on your research questions?\n\nThis pipeline is scalable, reproducible, and follows best practices for metagenomic analysis!",
+      "latencyMs": 31284,
+      "inputTokens": 158,
+      "outputTokens": 1544,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "THINK-001",
+      "model": "claude-haiku-4-5",
+      "category": "thinking",
+      "prompt": "Design a complete metagenomics pipeline for analyzing gut microbiome samples from 50 patients",
+      "response": "# Gut Microbiome Metagenomics Pipeline\n\nI'll design a comprehensive 16S rRNA and/or shotgun metagenomics workflow for 50 patient samples.\n\n## Pipeline Overview\n\n```\nRaw Reads → QC → Preprocessing → Classification → Analysis → Visualization\n```\n\n---\n\n## Phase 1: Quality Control & Preprocessing\n\n### Step 1: Initial QC\n**Tools:**\n- **FastQC** - quality assessment of raw reads\n- **MultiQC** - aggregate QC reports across 50 samples\n\n**Parameters:**\n- Run on paired-end reads (R1/R2)\n- Flag samples with <1M reads or Q-score <30\n\n### Step 2: Read Trimming\n**Tool: Trimmomatic** (or **Cutadapt**)\n- Remove adapters\n- Trim low-quality bases (Q < 20)\n- Min length: 100bp (16S) or 50bp (shotgun)\n\n**For 16S specifically:**\n- **QIIME2 Demultiplex** - separate by barcode/index\n\n---\n\n## Phase 2: Taxonomic Classification\n\n### Option A: 16S rRNA Amplicon (Recommended for Cost/Speed)\n\n**Step 3: ASV Generation**\n- **DADA2** (via QIIME2 or standalone)\n  - Denoise paired reads\n  - Remove chimeras\n  - Generate Amplicon Sequence Variants\n  \n**Step 4: Taxonomic Assignment**\n- **QIIME2 Feature Classifier**\n  - Database: SILVA, RDP, or Greengenes2\n  - Method: Naive Bayes or VSEARCH\n\n### Option B: Shotgun Metagenomics (Higher Resolution)\n\n**Step 3: Host DNA Removal**\n- **Bowtie2** - map to human reference genome (GRCh38)\n- Remove human reads (~20-40% of reads typically)\n\n**Step 4: Taxonomic Classification**\n- **Kraken2** - fast k-mer based classification\n  - Database: Standard (8GB) or Full (160GB)\n  - Output: Abundance tables by species\n  \n**Alternative/Complementary:**\n- **MetaPhlAn4** - species-level profiling\n- **Centrifuge** - sensitive classification\n\n---\n\n## Phase 3: Functional Analysis\n\n### Step 5: Functional Annotation\n- **HUMAnN3** (Human Microbiome Unified Metabolic Analysis)\n  - Pathway abundance\n  - Gene family abundance\n  - Requires: UniRef database\n  \n**Or:**\n- **KEGG Mapper** - metabolic pathway mapping\n- **eggNOG Mapper** - ortholog assignment\n\n---\n\n## Phase 4: Statistical Analysis & Visualization\n\n### Step 6: Diversity Metrics\n**Tool: QIIME2 Diversity Plugin**\n- **Alpha diversity:** Shannon, Simpson, Chao1, ACE\n- **Beta diversity:** Bray-Curtis, Jaccard, UniFrac\n- **PCoA plots** - sample clustering\n\n### Step 7: Differential Abundance\n**Tools:**\n- **DESeq2** - genus/species level comparisons\n- **ALDEx2** - compositional data analysis\n- **ANCOM-BC** - differential abundance with bias correction\n\n### Step 8: Visualization\n- **QIIME2 Visualizations**\n  - Taxonomy bar plots\n  - Rarefaction curves\n  - Heatmaps\n- **R packages:** ggplot2, phyloseq, vegan\n- **Interactive:** Krona charts\n\n---\n\n## Recommended Galaxy Workflow Structure\n\n```\nInput: 50 paired-end FASTQ files\n  ↓\n[FastQC] → [MultiQC Report]\n  ↓\n[Trimmomatic/Cutadapt] → Filtered reads\n  ↓\nBRANCH A: 16S                BRANCH B: Shotgun\n  ↓                              ↓\n[DADA2/QIIME2]              [Bowtie2 remove host]\n  ↓                              ↓\n[Classifier]                 [Kraken2/MetaPhlAn4]\n  ↓                              ↓\n[Taxonomy table]             [HUMAnN3]\n  ↓                              ↓\nMERGE → [QIIME2 Diversity]\n  ↓\n[DESeq2/ALDEx2]\n  ↓\n[Visualization + Export]\n```\n\n---\n\n## Key Datasets (BioMNI Catalog)\n\n| Resource | Use | Size |\n|----------|-----|------|\n| **SILVA 138** | 16S reference | 2.4 GB |\n| **Greengenes2** | 16S reference | 1.2 GB |\n| **Kraken2 Standard** | Shotgun classification | 8 GB |\n| **MetaPhlAn4 DB** | Species profiling | 3.5 GB |\n| **UniRef90** | Functional annotation | 50+ GB |\n\n---\n\n## Critical Parameters for 50-Sample Study\n\n| Parameter | Setting | Rationale |\n|-----------|---------|-----------|\n| **Sequencing depth** | 10,000-50,000 reads/sample | Adequate for alpha diversity |\n| **Rarefaction depth** | 80% of minimum depth | Normalize library sizes |\n| **Min ASV frequency** | 2 samples, 5 reads | Remove spurious features |\n| **Taxonomy confidence** | ≥0.8 (80%) | High-quality assignments |\n\n---\n\n## Expected Outputs\n\n1. **OTU/ASV table** (taxa × samples matrix)\n2. **Taxonomy assignments** (species-level)\n3. **Alpha diversity metrics** (Shannon, Simpson indices)\n4. **Beta diversity plots** (PCoA, NMDS)\n5. **Differential abundance results** (p-values, fold-changes)\n6. **Functional profiles** (if shotgun)\n7. **Quality reports** (FastQC, rarefaction curves)\n\n---\n\n## Timeline Estimate\n- QC/Preprocessing: 2-4 hours\n- Classification: 4-8 hours (Kraken2 faster; DADA2 slower)\n- Analysis: 2-3 hours\n- **Total: ~12-15 hours** (parallelizable)\n\n---\n\n**Would you like me to:**\n1. Generate a Galaxy workflow JSON for this pipeline?\n2. Provide R/Python scripts for statistical analysis?\n3. Detail specific comparative analysis (case vs. control)?\n4. Optimize for a particular sequencing platform?",
+      "latencyMs": 14006,
+      "inputTokens": 128,
+      "outputTokens": 1613,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-002",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "What are the trade-offs between de novo assembly and reference-based assembly for my bacterial genome project?",
+      "response": "# De Novo vs Reference-Based Assembly Trade-offs\n\n## **De Novo Assembly**\n\n### Advantages:\n- **No reference needed** - ideal for novel strains or species\n- **Discovers structural variants** - captures large insertions, deletions, rearrangements\n- **Identifies plasmids** and mobile genetic elements\n- **Reveals strain-specific genes** not in reference genomes\n\n### Disadvantages:\n- **Computationally intensive** - requires more memory/time\n- **Quality depends on coverage** - needs 50-100x for bacteria\n- **Fragmented output** - may produce multiple contigs instead of complete chromosome\n- **Repeat resolution challenges** - short reads struggle with repetitive regions\n\n### Recommended Galaxy Tools:\n- **SPAdes** - excellent for bacteria, handles varied coverage\n- **Unicycler** - combines short+long reads for hybrid assembly\n- **MEGAHIT** - fast, memory-efficient alternative\n\n---\n\n## **Reference-Based Assembly**\n\n### Advantages:\n- **Fast and efficient** - lower computational requirements\n- **Works with lower coverage** - 20-30x often sufficient\n- **Single consensus sequence** - easier downstream analysis\n- **Better for SNP/indel detection** - straightforward variant calling\n\n### Disadvantages:\n- **Requires close reference** - <5% divergence recommended\n- **Misses novel sequences** - strain-specific genes ignored\n- **Reference bias** - forces data to match reference structure\n- **Poor for structural variants** - can't detect large rearrangements\n\n### Recommended Galaxy Tools:\n- **Snippy** - complete reference-based pipeline\n- **BWA-MEM** + **bcftools** - flexible mapping and variant calling\n\n---\n\n## **Decision Framework**\n\n**Choose de novo if:**\n- Novel or poorly characterized strain\n- Studying horizontal gene transfer or plasmids\n- Need complete genome structure\n- Have high-quality long reads (PacBio/Nanopore)\n\n**Choose reference-based if:**\n- Close reference available (<3% divergence)\n- Focus on SNPs/small variants\n- Limited computational resources\n- Outbreak investigation or epidemiology\n\n**Hybrid approach:** Do both! Use reference-based for quick SNP analysis, then de novo for comprehensive characterization.\n\nWhat's your bacterial species and sequencing data type? I can recommend a specific workflow.",
+      "latencyMs": 13582,
+      "inputTokens": 128,
+      "outputTokens": 541,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-002",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "What are the trade-offs between de novo assembly and reference-based assembly for my bacterial genome project?",
+      "response": "## **De Novo vs Reference-Based Assembly Trade-offs**\n\n### **De Novo Assembly**\n\n**Advantages:**\n- **No reference needed** - ideal for novel/poorly characterized strains\n- **Discovers structural variants** - insertions, deletions, rearrangements\n- **Unbiased assembly** - captures strain-specific sequences\n- **Complete genome potential** - can achieve closed genomes\n\n**Disadvantages:**\n- **Computationally intensive** - higher memory/time requirements\n- **Quality dependent** - needs high coverage (50-100x) and long reads\n- **Fragmented assemblies** - with short reads alone\n- **Complex repeat regions** - difficult to resolve\n\n**Recommended Galaxy tools:**\n- **SPAdes** - excellent for bacterial genomes\n- **Flye** - for long-read data (PacBio/Nanopore)\n- **Unicycler** - hybrid assembly (short + long reads)\n\n---\n\n### **Reference-Based Assembly**\n\n**Advantages:**\n- **Fast and efficient** - lower computational requirements\n- **Works with lower coverage** - 20-30x often sufficient\n- **Scaffolding support** - reference guides contig ordering\n- **Good for known organisms** - well-characterized species\n\n**Disadvantages:**\n- **Reference bias** - may miss novel sequences\n- **Requires close relative** - >95% identity recommended\n- **Misses large variants** - structural changes not captured\n- **Limited discovery** - constrained by reference sequence\n\n**Recommended Galaxy tools:**\n- **BWA-MEM** or **Bowtie2** - read mapping\n- **BCFtools/FreeBayes** - variant calling\n\n---\n\n### **Decision Framework**\n\n**Choose de novo if:**\n- Novel or divergent strain (>5% divergence)\n- Interested in structural variants\n- Need complete genome/plasmids\n- Have long-read data\n\n**Choose reference-based if:**\n- Well-characterized species available\n- Focused on SNP/small indel analysis\n- Limited computational resources\n- Outbreak surveillance (closely related strains)\n\n**Hybrid approach:** Consider combining both - use reference-based for quick analysis, then de novo for complete characterization.\n\nWhat's your strain and available sequencing data?",
+      "latencyMs": 14578,
+      "inputTokens": 158,
+      "outputTokens": 706,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "THINK-002",
+      "model": "claude-haiku-4-5",
+      "category": "thinking",
+      "prompt": "What are the trade-offs between de novo assembly and reference-based assembly for my bacterial genome project?",
+      "response": "# De Novo vs Reference-Based Assembly: Trade-offs\n\n## **De Novo Assembly**\n\n**Advantages:**\n- Discovers novel sequences, structural variants, and plasmids\n- No reference bias—captures true genomic content\n- Ideal for divergent strains or previously unsequenced species\n- Better for identifying horizontal gene transfer\n\n**Disadvantages:**\n- Computationally expensive (memory-intensive)\n- Requires higher sequencing depth (30-50x+)\n- Challenging with repetitive regions\n- Longer processing time\n- More difficult quality assessment\n\n**Best for:** Novel species, highly divergent strains, plasmid discovery\n\n---\n\n## **Reference-Based Assembly**\n\n**Advantages:**\n- Fast and computationally efficient\n- Works well with lower coverage (10-15x)\n- Easier gap filling and validation\n- Better handles repetitive regions\n- Simpler quality metrics\n\n**Disadvantages:**\n- Misses novel sequences and structural variants\n- Reference bias—may force reads into incorrect regions\n- Fails if reference is too divergent (>5-10% sequence difference)\n- Cannot detect large insertions/deletions reliably\n\n**Best for:** Closely related strains, SNP/indel detection, quick analysis\n\n---\n\n## **Practical Recommendation**\n\n| Scenario | Approach |\n|----------|----------|\n| Unknown species, plasmids present | **De novo** |\n| Strain comparison, SNP calling | **Reference-based** |\n| High divergence (>10% from reference) | **De novo** |\n| Limited budget/time | **Reference-based** |\n| Complete accuracy needed | **Hybrid** (both methods) |\n\n**Galaxy tools to consider:**\n- **De novo:** SPAdes, MEGAHIT, Flye\n- **Reference-based:** Bowtie2/BWA → SAMtools\n- **Hybrid validation:** QUAST (quality assessment for both)\n\nWhat's your sequencing data type and project goal? I can recommend specific tools and parameters.",
+      "latencyMs": 5153,
+      "inputTokens": 128,
+      "outputTokens": 465,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-003",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "I have RNA-seq data from cancer patients with different treatment responses. How should I design my analysis to identify predictive biomarkers?",
+      "response": "# RNA-seq Biomarker Discovery Strategy\n\n## 1. **Experimental Design Considerations**\n\n**Critical factors:**\n- **Sample size**: Minimum 20-30 per group for differential expression; more for machine learning\n- **Batch effects**: Record sequencing batches, library prep dates\n- **Clinical metadata**: Response classification (responder/non-responder), treatment timeline, demographics\n- **Controls**: Include pre-treatment samples if possible\n\n## 2. **Analysis Workflow**\n\n### **Phase 1: Quality Control & Preprocessing**\n```\nFastQC → MultiQC (quality assessment)\n↓\nCutadapt/Trim Galore (adapter trimming)\n↓\nSTAR or HISAT2 (alignment to reference genome)\n↓\nfeatureCounts (gene quantification)\n```\n\n### **Phase 2: Differential Expression Analysis**\nUse **DESeq2** or **edgeR** in Galaxy:\n- Compare responders vs. non-responders\n- Adjust for covariates (age, sex, batch)\n- Set thresholds: |log2FC| > 1, padj < 0.05\n\n### **Phase 3: Biomarker Identification**\n\n**A. Statistical approach:**\n- **Pathway enrichment** (GSEA, Reactome): Identify biological processes\n- **Volcano plots**: Visualize candidates\n- **Heatmaps**: Cluster samples by top genes\n\n**B. Machine learning approach:**\n- **Feature selection**: Use Lasso, Random Forest, or Boruta\n- **Classification models**: SVM, Random Forest, or elastic net\n- **Cross-validation**: 5-10 fold CV to prevent overfitting\n- **Tools**: Use Galaxy's ML suite or scikit-learn\n\n## 3. **Key Galaxy Tools**\n\n- `RNA STAR` - Fast RNA-seq alignment\n- `DESeq2` - Robust differential expression\n- `featureCounts` - Gene-level quantification\n- `ggplot2/Heatmap2` - Visualization\n- `sklearn` tools - Machine learning models\n\n## 4. **Validation Strategy**\n\n**Essential steps:**\n1. **Split data**: 70% discovery, 30% validation\n2. **Independent cohort**: Test on separate patient samples\n3. **qRT-PCR validation**: Confirm top 5-10 biomarkers\n4. **Clinical correlation**: ROC curves (AUC > 0.75 desirable)\n\n## 5. **Practical Recommendations**\n\n**Prioritize biomarkers by:**\n- Statistical significance + effect size\n- Biological plausibility (known cancer pathways)\n- Expression level (higher = easier clinical detection)\n- Consistency across validation sets\n\n**Red flags to avoid:**\n- Overfitting (100% accuracy = suspicious)\n- Ignoring batch effects\n- P-hacking (testing too many hypotheses)\n\n## 6. **Expected Outputs**\n\n- **Gene signature**: 10-50 genes predictive of response\n- **Classification model**: Probability score for new patients\n- **Pathway insights**: Mechanisms of resistance/response\n\n**Next steps**: Would you like help setting up the specific Galaxy workflow or guidance on dataset selection from BioMNI?",
+      "latencyMs": 16598,
+      "inputTokens": 135,
+      "outputTokens": 756,
+      "thinkingEnabled": false
+    },
+    {
+      "testId": "THINK-003",
+      "model": "claude-sonnet-4-5",
+      "category": "thinking",
+      "prompt": "I have RNA-seq data from cancer patients with different treatment responses. How should I design my analysis to identify predictive biomarkers?",
+      "response": "# RNA-seq Biomarker Discovery Workflow for Treatment Response\n\n## Study Design Considerations\n\n**Sample stratification:**\n- Responders vs. non-responders (clear definition criteria)\n- Minimum 10-15 samples per group (more for robust biomarkers)\n- Balanced for confounders (age, sex, tumor stage, batch)\n- Include validation cohort if possible\n\n## Recommended Analysis Pipeline\n\n### 1. **Quality Control & Preprocessing**\n- **FastQC** → assess read quality\n- **MultiQC** → aggregate QC reports\n- **Trim Galore/Cutadapt** → remove adapters and low-quality bases\n- **STAR** or **HISAT2** → align to reference genome\n- **featureCounts** or **HTSeq** → quantify gene expression\n\n### 2. **Differential Expression Analysis**\nKey tools:\n- **DESeq2** (recommended for small-moderate sample sizes)\n- **edgeR** (alternative, good for larger datasets)\n- **limma-voom** (flexible for complex designs)\n\n**Critical parameters:**\n- Adjust for batch effects (use design matrix)\n- Filter low-count genes (CPM > 1 in ≥ X samples)\n- FDR < 0.05, |log2FC| > 1 for stringent hits\n\n### 3. **Biomarker Selection Strategy**\n\n**A. Statistical approach:**\n- Rank genes by adjusted p-value AND effect size\n- Use **volcano plots** to visualize\n- Consider fold-change + statistical significance\n\n**B. Machine learning for feature selection:**\n- **Random Forest** → variable importance scores\n- **LASSO regression** → sparse feature selection\n- **Support Vector Machines (SVM)** → classification with feature ranking\n\n**C. Pathway enrichment:**\n- **GSEA** (Gene Set Enrichment Analysis)\n- **clusterProfiler** → GO/KEGG enrichment\n- Identify biologically coherent signatures\n\n### 4. **Build Predictive Models**\n\n```\nWorkflow sequence:\n1. Split data: 70% training / 30% test\n2. Feature selection on training set only\n3. Build classifier (Random Forest, SVM, elastic net)\n4. Cross-validation within training set\n5. Evaluate on held-out test set\n```\n\n**Key metrics:**\n- AUC-ROC curve\n- Sensitivity/Specificity\n- Positive/Negative Predictive Value\n\n### 5. **Validation Approaches**\n\n**Essential steps:**\n- **Internal validation:** Cross-validation, bootstrapping\n- **External validation:** Independent cohort (strongest evidence)\n- **Clinical validation:** Prospective testing\n\n## Galaxy Tools to Use\n\n**Preprocessing:**\n- `FastQC`, `MultiQC`, `Trim Galore`\n- `RNA STAR`, `HISAT2`\n- `featureCounts`\n\n**Analysis:**\n- `DESeq2` (tool ID: deseq2)\n- `limma` (tool ID: limma_voom)\n- `Volcano Plot` for visualization\n\n**Machine Learning:**\n- `scikit-learn` tools for classification\n- `randomForest` implementation\n\n**Enrichment:**\n- `goseq` or `clusterProfiler`\n\n## Critical Considerations\n\n⚠️ **Common pitfalls to avoid:**\n1. **Overfitting:** Don't use test data for feature selection\n2. **Batch effects:** Always check and correct (use `ComBat` if needed)\n3. **Multiple testing:** Use appropriate FDR correction\n4. **Sample size:** Underpowered studies yield unreliable biomarkers\n\n🎯 **Best practices:**\n- Pre-register analysis plan\n- Report full model performance (not just best results)\n- Validate in independent cohorts\n- Consider multi-gene signatures over single genes\n- Document all analysis parameters for reproducibility\n\n## Suggested Minimal Gene Signature\n\nFocus on:\n- **10-50 genes** (practical for clinical application)\n- **Balanced performance** (sensitivity ~80%, specificity ~80%)\n- **Biological interpretability** (aids clinical adoption)\n\nWould you like me to generate a specific Galaxy workflow for any of these steps, or help you search for relevant datasets in BioMNI?",
+      "latencyMs": 22838,
+      "inputTokens": 165,
+      "outputTokens": 1105,
+      "thinkingEnabled": true
+    },
+    {
+      "testId": "THINK-003",
+      "model": "claude-haiku-4-5",
+      "category": "thinking",
+      "prompt": "I have RNA-seq data from cancer patients with different treatment responses. How should I design my analysis to identify predictive biomarkers?",
+      "response": "# RNA-seq Biomarker Discovery Workflow\n\n## 1. **Data Preparation & QC**\nStart with these Galaxy tools:\n- **FastQC** → assess read quality\n- **Trimmomatic** or **Cutadapt** → remove low-quality reads/adapters\n- **MultiQC** → aggregate QC reports\n\n## 2. **Alignment & Quantification**\n- **HISAT2** or **STAR** → align to reference genome\n- **featureCounts** or **HTSeq** → generate count matrices\n- **Salmon/Kallisto** (if using pseudoalignment) → faster alternative\n\n## 3. **Exploratory Analysis**\n- **DESeq2** or **edgeR** → normalize counts, assess batch effects\n- **PCA/clustering** (via **plotPCA**, **heatmap**) → visualize treatment response groups\n- Check for batch effects; use **ComBat** if needed\n\n## 4. **Differential Expression (Responders vs Non-responders)**\n- **DESeq2** or **limma-voom** → identify DE genes\n- Filter: |log2FC| > 1, adjusted p-value < 0.05\n- Generate volcano plots with **ggplot2**\n\n## 5. **Biomarker Prioritization**\n- **Pathway enrichment** (KEGG/GO) → **clusterProfiler** or **GSEA**\n- **Survival analysis** → **Kaplan-Meier** curves (if survival data available)\n- **Functional annotation** → cross-reference with cancer databases (CancerMine, OncoKB)\n\n## 6. **Predictive Modeling** (Optional but recommended)\n- **Machine Learning** tools:\n  - **scikit-learn** (Random Forest, SVM, Logistic Regression)\n  - **Cross-validation** for model validation\n  - ROC-AUC evaluation\n\n## Key Parameters to Consider:\n| Step | Critical Parameter | Recommendation |\n|------|-------------------|-----------------|\n| Alignment | Reference genome | Use matched cancer type version |\n| Quantification | Min count threshold | ≥10 counts in ≥50% samples |\n| DE analysis | Design formula | Include batch/covariates |\n| Feature selection | n_genes | 10-50 genes for clinical utility |\n\n## Recommended BioMNI Datasets:\n- TCGA RNA-seq (cancer-specific cohorts)\n- GEO datasets with treatment response labels\n- ENCODE reference files for your organism\n\n**Next step:** Share your sample size and treatment types, and I can refine tool recommendations and suggest specific statistical thresholds.",
+      "latencyMs": 6222,
+      "inputTokens": 135,
+      "outputTokens": 630,
+      "thinkingEnabled": false
+    }
+  ],
+  "evaluations": [
+    {
+      "testId": "INTENT-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 2224,
+      "tokens": {
+        "input": 314,
+        "output": 56
+      }
+    },
+    {
+      "testId": "INTENT-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 1731,
+      "tokens": {
+        "input": 314,
+        "output": 95
+      }
+    },
+    {
+      "testId": "INTENT-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 2473,
+      "tokens": {
+        "input": 319,
+        "output": 83
+      }
+    },
+    {
+      "testId": "INTENT-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 1101,
+      "tokens": {
+        "input": 319,
+        "output": 77
+      }
+    },
+    {
+      "testId": "INTENT-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: tool_inquiry (expected: tool_inquiry), Keywords: 2/2",
+      "latencyMs": 4406,
+      "tokens": {
+        "input": 315,
+        "output": 158
+      }
+    },
+    {
+      "testId": "INTENT-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: tool_inquiry (expected: tool_inquiry), Keywords: 2/2",
+      "latencyMs": 1507,
+      "tokens": {
+        "input": 315,
+        "output": 74
+      }
+    },
+    {
+      "testId": "INTENT-004",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 2413,
+      "tokens": {
+        "input": 315,
+        "output": 80
+      }
+    },
+    {
+      "testId": "INTENT-004",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 1533,
+      "tokens": {
+        "input": 315,
+        "output": 115
+      }
+    },
+    {
+      "testId": "INTENT-005",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/4",
+      "latencyMs": 3804,
+      "tokens": {
+        "input": 321,
+        "output": 182
+      }
+    },
+    {
+      "testId": "INTENT-005",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/4",
+      "latencyMs": 707,
+      "tokens": {
+        "input": 321,
+        "output": 75
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 2786,
+      "tokens": {
+        "input": 309,
+        "output": 82
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 941,
+      "tokens": {
+        "input": 309,
+        "output": 87
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 2753,
+      "tokens": {
+        "input": 312,
+        "output": 97
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 1837,
+      "tokens": {
+        "input": 312,
+        "output": 159
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/1",
+      "latencyMs": 2256,
+      "tokens": {
+        "input": 309,
+        "output": 75
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/1",
+      "latencyMs": 2271,
+      "tokens": {
+        "input": 309,
+        "output": 145
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-004",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 4115,
+      "tokens": {
+        "input": 311,
+        "output": 156
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-004",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 1815,
+      "tokens": {
+        "input": 311,
+        "output": 194
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-005",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 5/5",
+      "latencyMs": 2862,
+      "tokens": {
+        "input": 358,
+        "output": 125
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-005",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 5/5",
+      "latencyMs": 1700,
+      "tokens": {
+        "input": 358,
+        "output": 200
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-006",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 1683,
+      "tokens": {
+        "input": 314,
+        "output": 65
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-006",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: general_question (expected: general_question), Keywords: 0/0",
+      "latencyMs": 1253,
+      "tokens": {
+        "input": 314,
+        "output": 110
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-007",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 2/3",
+      "latencyMs": 5579,
+      "tokens": {
+        "input": 313,
+        "output": 200
+      }
+    },
+    {
+      "testId": "INTENT-EDGE-007",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 2/3",
+      "latencyMs": 2350,
+      "tokens": {
+        "input": 313,
+        "output": 200
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 2228,
+      "tokens": {
+        "input": 316,
+        "output": 84
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 2111,
+      "tokens": {
+        "input": 316,
+        "output": 200
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/2",
+      "latencyMs": 4619,
+      "tokens": {
+        "input": 317,
+        "output": 165
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/2",
+      "latencyMs": 1876,
+      "tokens": {
+        "input": 317,
+        "output": 167
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 4531,
+      "tokens": {
+        "input": 321,
+        "output": 190
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 3/3",
+      "latencyMs": 778,
+      "tokens": {
+        "input": 321,
+        "output": 77
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-004",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": false,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/3",
+      "latencyMs": 4280,
+      "tokens": {
+        "input": 318,
+        "output": 169
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-004",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": false,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 1/3",
+      "latencyMs": 2142,
+      "tokens": {
+        "input": 318,
+        "output": 200
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-005",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 2/3",
+      "latencyMs": 4950,
+      "tokens": {
+        "input": 319,
+        "output": 181
+      }
+    },
+    {
+      "testId": "INTENT-DOMAIN-005",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "correct": true,
+      "details": "Intent: workflow_generation (expected: workflow_generation), Keywords: 2/3",
+      "latencyMs": 1970,
+      "tokens": {
+        "input": 319,
+        "output": 200
+      }
+    },
+    {
+      "testId": "RANK-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 8713,
+      "tokens": {
+        "input": 117,
+        "output": 388
+      }
+    },
+    {
+      "testId": "RANK-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 5228,
+      "tokens": {
+        "input": 117,
+        "output": 422
+      }
+    },
+    {
+      "testId": "RANK-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 12079,
+      "tokens": {
+        "input": 115,
+        "output": 543
+      }
+    },
+    {
+      "testId": "RANK-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 7371,
+      "tokens": {
+        "input": 115,
+        "output": 763
+      }
+    },
+    {
+      "testId": "RANK-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 9552,
+      "tokens": {
+        "input": 114,
+        "output": 403
+      }
+    },
+    {
+      "testId": "RANK-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 4082,
+      "tokens": {
+        "input": 114,
+        "output": 438
+      }
+    },
+    {
+      "testId": "CONSIST-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 7389.666666666667,
+      "tokens": {
+        "input": 117,
+        "output": 283.6666666666667
+      },
+      "details": "Length variance: 46 chars"
+    },
+    {
+      "testId": "CONSIST-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 3418,
+      "tokens": {
+        "input": 117,
+        "output": 307.3333333333333
+      },
+      "details": "Length variance: 33 chars"
+    },
+    {
+      "testId": "CONSIST-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 8489.333333333334,
+      "tokens": {
+        "input": 115,
+        "output": 375.3333333333333
+      },
+      "details": "Length variance: 47 chars"
+    },
+    {
+      "testId": "CONSIST-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 4719.666666666667,
+      "tokens": {
+        "input": 115,
+        "output": 508.3333333333333
+      },
+      "details": "Length variance: 250 chars"
+    },
+    {
+      "testId": "RESP-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 9749,
+      "tokens": {
+        "input": 120,
+        "output": 442
+      }
+    },
+    {
+      "testId": "RESP-001",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 10545,
+      "tokens": {
+        "input": 150,
+        "output": 462
+      }
+    },
+    {
+      "testId": "RESP-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 3976,
+      "tokens": {
+        "input": 120,
+        "output": 424
+      }
+    },
+    {
+      "testId": "RESP-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 13464,
+      "tokens": {
+        "input": 129,
+        "output": 416
+      }
+    },
+    {
+      "testId": "RESP-002",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 11618,
+      "tokens": {
+        "input": 159,
+        "output": 479
+      }
+    },
+    {
+      "testId": "RESP-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 4556,
+      "tokens": {
+        "input": 129,
+        "output": 428
+      }
+    },
+    {
+      "testId": "RESP-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 11131,
+      "tokens": {
+        "input": 127,
+        "output": 402
+      }
+    },
+    {
+      "testId": "RESP-003",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 11817,
+      "tokens": {
+        "input": 157,
+        "output": 491
+      }
+    },
+    {
+      "testId": "RESP-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 4426,
+      "tokens": {
+        "input": 127,
+        "output": 409
+      }
+    },
+    {
+      "testId": "RESP-004",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 10429,
+      "tokens": {
+        "input": 123,
+        "output": 444
+      }
+    },
+    {
+      "testId": "RESP-004",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 13256,
+      "tokens": {
+        "input": 153,
+        "output": 724
+      }
+    },
+    {
+      "testId": "RESP-004",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 5480,
+      "tokens": {
+        "input": 123,
+        "output": 512
+      }
+    },
+    {
+      "testId": "RESP-005",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 10193,
+      "tokens": {
+        "input": 120,
+        "output": 394
+      }
+    },
+    {
+      "testId": "RESP-005",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 12462,
+      "tokens": {
+        "input": 150,
+        "output": 480
+      }
+    },
+    {
+      "testId": "RESP-005",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 4816,
+      "tokens": {
+        "input": 120,
+        "output": 463
+      }
+    },
+    {
+      "testId": "THINK-001",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 37050,
+      "tokens": {
+        "input": 128,
+        "output": 1501
+      }
+    },
+    {
+      "testId": "THINK-001",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 31284,
+      "tokens": {
+        "input": 158,
+        "output": 1544
+      }
+    },
+    {
+      "testId": "THINK-001",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 14006,
+      "tokens": {
+        "input": 128,
+        "output": 1613
+      }
+    },
+    {
+      "testId": "THINK-002",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 13582,
+      "tokens": {
+        "input": 128,
+        "output": 541
+      }
+    },
+    {
+      "testId": "THINK-002",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 14578,
+      "tokens": {
+        "input": 158,
+        "output": 706
+      }
+    },
+    {
+      "testId": "THINK-002",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 5153,
+      "tokens": {
+        "input": 128,
+        "output": 465
+      }
+    },
+    {
+      "testId": "THINK-003",
+      "model": "sonnet",
+      "thinkingEnabled": false,
+      "latencyMs": 16598,
+      "tokens": {
+        "input": 135,
+        "output": 756
+      }
+    },
+    {
+      "testId": "THINK-003",
+      "model": "sonnet",
+      "thinkingEnabled": true,
+      "latencyMs": 22838,
+      "tokens": {
+        "input": 165,
+        "output": 1105
+      }
+    },
+    {
+      "testId": "THINK-003",
+      "model": "haiku",
+      "thinkingEnabled": false,
+      "latencyMs": 6222,
+      "tokens": {
+        "input": 135,
+        "output": 630
+      }
+    }
+  ],
+  "timestamp": "2026-03-04T02:23:10.642Z"
+}

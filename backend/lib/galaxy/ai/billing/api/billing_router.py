@@ -24,6 +24,7 @@ import hmac
 import hashlib
 import logging
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -46,6 +47,7 @@ from ..core.cost_calculator import CostCalculator
 from ..core.lago_client import get_lago_client, LAGO_API_KEY as _LAGO_API_KEY
 from ..core.realtime_cost_service import get_cost_service, _month_key
 from ..core.quota_enforcer import ensure_quota_set
+from ..java_billing_client import get_java_billing_client
 
 log = logging.getLogger(__name__)
 
@@ -168,14 +170,23 @@ async def get_usage(
 ):
     """
     Returns real-time cost breakdown for the current (or requested) month.
-    Reads from Redis → <5ms response.
-
-    Response includes committed costs + running-job estimates.
-
-    Rate limit: 60 requests/minute per IP address.
+    Reads from Redis → <5ms response.  If the Java billing service is enabled,
+    the response is enriched with `java_current` (live Lago data) and
+    `java_invoices` (invoice list) for richer frontend display.
     """
     svc  = get_cost_service()
     data = svc.get_current_costs(user_id, month)
+
+    # Enrich with Java billing service data (non-blocking — failures are ignored)
+    jbc = get_java_billing_client()
+    if jbc:
+        java_usage = jbc.get_current_usage(user_id)
+        if java_usage:
+            data["java_current"] = java_usage
+        java_invoices = jbc.get_invoices(user_id, page=0, per_page=6)
+        if java_invoices:
+            data["java_invoices"] = java_invoices
+
     return data
 
 
@@ -214,17 +225,40 @@ async def get_usage_history(
 async def get_quota(request: Request, user_id: str = Depends(current_user_id)):
     """
     Returns plan limit, current usage, and overage warning.
-    Rate limit: 60 requests/minute per IP address.
+    Enriched with Java billing service quota data when available.
     """
     svc   = get_cost_service()
     costs = svc.get_current_costs(user_id)
-    return {
+    result = {
         "user_id":    user_id,
         "quota_usd":  costs.get("quota_usd"),
         "used_usd":   costs.get("total_usd"),
         "quota_pct":  costs.get("quota_pct"),
         "over_quota": (costs.get("quota_pct") or 0) >= 100,
     }
+
+    jbc = get_java_billing_client()
+    if jbc:
+        java_quota = jbc.get_quota(user_id)
+        if java_quota:
+            result["java_quota"] = java_quota
+
+    return result
+
+
+@router.get("/api/billing/invoices")
+async def get_invoices(
+    request: Request,
+    page: int = 0,
+    per_page: int = 10,
+    user_id: str = Depends(current_user_id),
+):
+    """Returns invoices from the Java billing service (backed by Lago)."""
+    jbc = get_java_billing_client()
+    if not jbc:
+        return {"user_id": user_id, "invoices": [], "message": "billing service not configured"}
+    data = jbc.get_invoices(user_id, page=page, per_page=per_page)
+    return {"user_id": user_id, "invoices": data or []}
 
 
 @router.get("/api/billing/jobs/running")
@@ -325,6 +359,19 @@ def internal_job_completed(payload: JobCompletedPayload):
         duration_seconds=payload.duration_seconds,
     )
 
+    # Emit to Java billing service (dual-write — fire-and-forget)
+    jbc = get_java_billing_client()
+    if jbc and payload.instance_type:
+        jbc.emit_batch_job(
+            user_id=payload.user_id,
+            job_id=payload.job_id,
+            instance_type=payload.instance_type,
+            vcpus=payload.vcpus,
+            memory_mb=payload.memory_mb,
+            gpu_count=payload.gpu_count,
+            duration_seconds=payload.duration_seconds,
+        )
+
     log.info(
         "job %s complete user=%s cost=$%.6f (vcpu=%.6f gpu=%.6f mem=%.6f)",
         payload.job_id, payload.user_id,
@@ -372,6 +419,16 @@ def internal_s3_put(payload: S3PutPayload):
         size_bytes=payload.size_bytes,
         key=payload.key,
     )
+
+    # Emit to Java billing service (dual-write — fire-and-forget)
+    jbc = get_java_billing_client()
+    if jbc:
+        jbc.emit_s3_put(
+            user_id=payload.user_id,
+            size_bytes=payload.size_bytes,
+            key=payload.key,
+            transaction_id=f"s3-{uuid.uuid4().hex[:12]}",
+        )
     return {"ok": True, "total_cost_usd": cost.total_cost}
 
 
@@ -406,6 +463,28 @@ def internal_llm_cost(payload: LLMCostPayload):
         input_tokens=cost.input_tokens,
         output_tokens=cost.output_tokens,
     )
+
+    # Emit to Lago for usage-based billing
+    lago = get_lago_client()
+    lago.emit_llm(
+        user_id=payload.user_id,
+        session_id=payload.session_id,
+        input_tokens=payload.input_tokens,
+        output_tokens=payload.output_tokens,
+        model=payload.model,
+    )
+
+    # Emit to Java billing service (dual-write — fire-and-forget)
+    jbc = get_java_billing_client()
+    if jbc:
+        jbc.emit_llm(
+            user_id=payload.user_id,
+            model=payload.model,
+            input_tokens=payload.input_tokens,
+            output_tokens=payload.output_tokens,
+            transaction_id=f"llm-{payload.session_id}-{uuid.uuid4().hex[:8]}",
+        )
+
     log.info(
         "llm_cost user=%s model=%s in=%d out=%d cost=$%.8f",
         payload.user_id, payload.model,
@@ -505,6 +584,11 @@ def internal_register_user(payload: RegisterUserPayload):
 
     # 3. Set quota in Redis so the quota enforcer can gate job submissions immediately
     ensure_quota_set(payload.user_id, payload.plan)
+
+    # 4. Register in Java billing service (dual-write — fire-and-forget)
+    jbc = get_java_billing_client()
+    if jbc:
+        jbc.register_customer(payload.user_id, payload.name, payload.email)
 
     log.info(
         "User registered: user_id=%s email=%s plan=%s",

@@ -1,0 +1,328 @@
+Mar-24 20:48:43.582 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --drug_name Erlotinib --target_gene EGFR --treated_counts /tmp/test_treated_counts.tsv --control_counts /tmp/test_control_counts.tsv --outdir /tmp/test_moa_out
+Mar-24 20:48:43.668 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:48:43.703 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:48:43.705 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:48:43.746 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:48:44.140 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, docker]
+Mar-24 20:48:44.202 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:48:44.216 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:48:44.217 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:48:44.220 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:48:44.228 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:48:44.329 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:48:44.330 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:48:44.330 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:48:44.339 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:48:44.341 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1d408060] - activable => nextflow.secret.LocalSecretsProvider@1d408060
+Mar-24 20:48:44.343 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:48:44.355 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [scruffy_bernard] DSL2 - revision: 5d30911976
+Mar-24 20:48:44.393 [main] DEBUG nextflow.Session - Session UUID: f70f2e0d-328f-452c-b009-c065aaf15d23
+Mar-24 20:48:44.393 [main] DEBUG nextflow.Session - Run name: scruffy_bernard
+Mar-24 20:48:44.394 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:48:44.400 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:48:44.406 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:48:44.420 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1443449@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (8.9 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:48:44.434 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work [ext2/ext3]
+Mar-24 20:48:44.434 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/bin
+Mar-24 20:48:44.440 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:48:44.446 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:48:44.448 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:48:44.475 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:48:44.480 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:48:44.527 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:48:44.532 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_moa_out/pipeline_info/trace.txt
+Mar-24 20:48:44.965 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:48:45.034 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Drug MoA Characterisation from RNA-seq  (Gap 9)
+====================================================================
+Mode:        LIVE (DESeq2 + fgsea + CMap)
+Drug:        Erlotinib
+Target gene: EGFR
+Replicates:  3
+GMT file:    null
+Output dir:  /tmp/test_moa_out
+====================================================================
+
+Mar-24 20:48:45.071 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:45.071 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:45.076 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:48:45.079 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:48:45.081 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:48:45.094 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-24 20:48:45.126 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:45.126 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:45.127 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT': maxForks=0; fair=false; array=0
+Mar-24 20:48:45.130 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:45.130 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:45.131 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP': maxForks=0; fair=false; array=0
+Mar-24 20:48:45.135 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:48:45.136 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:48:45.137 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:MOA_REPORT': maxForks=0; fair=false; array=0
+Mar-24 20:48:45.167 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION, MOA_REPORT, DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT, GENE_SET_ENRICHMENT, DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:MOA_REPORT, DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:45.174 [main] WARN  nextflow.Session - There's no process matching config selector: DESEQ2_DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:45.174 [main] WARN  nextflow.Session - There's no process matching config selector: GSEA_PATHWAY_ENRICHMENT
+Mar-24 20:48:45.175 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-24 20:48:45.178 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION
+Mar-24 20:48:45.179 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT
+Mar-24 20:48:45.180 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP
+Mar-24 20:48:45.181 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:MOA_REPORT
+Mar-24 20:48:45.182 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_3d5e0317030a974d: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/main.nf
+Mar-24 20:48:45.183 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:48:45.183 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:48:45.401 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:48:45.403 [Task submitter] INFO  nextflow.Session - [c1/a57ce5] Submitted process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)
+Mar-24 20:48:49.041 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/c1/a57ce5f07e08112896f25f2efc909d]
+Mar-24 20:48:49.042 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:48:49.056 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:48:49.072 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:48:49.072 [Task submitter] INFO  nextflow.Session - [9e/52f031] Submitted process > DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap)
+Mar-24 20:48:49.077 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:48:49.078 [Task submitter] INFO  nextflow.Session - [c8/cc12ce] Submitted process > DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)
+Mar-24 20:48:49.462 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/9e/52f0312282bae5283ffc0cff96f107]
+Mar-24 20:48:49.470 [TaskFinalizer-2] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/9e/52f0312282bae5283ffc0cff96f107
+  error [nextflow.exception.ProcessFailedException]: Process `DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap)` terminated with an error exit status (1)
+Mar-24 20:48:49.493 [TaskFinalizer-2] ERROR nextflow.processor.TaskProcessor - Error executing process > 'DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap)'
+
+Caused by:
+  Process `DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import random
+  from datetime import datetime
+  
+  random.seed(77)
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  
+  # ---------------------------------------------------------------------------
+  # Mock CMap hits: 5 similar drug signatures with biologically coherent
+  # annotations for a kinase-inhibitor query (e.g. Imatinib / BCR-ABL1).
+  # ---------------------------------------------------------------------------
+  CMAP_DRUGS = [
+      {
+          "drug_name":      "Dasatinib",
+          "target":         "BCR-ABL1 / Src",
+          "moa_annotation": "ABL/Src kinase inhibitor (2nd gen TKI)",
+          "cell_line":      "K562",
+      },
+      {
+          "drug_name":      "Nilotinib",
+          "target":         "BCR-ABL1",
+          "moa_annotation": "Selective BCR-ABL1 inhibitor (2nd gen TKI)",
+          "cell_line":      "K562",
+      },
+      {
+          "drug_name":      "Bosutinib",
+          "target":         "BCR-ABL1 / Src",
+          "moa_annotation": "Dual ABL/Src kinase inhibitor",
+          "cell_line":      "K562",
+      },
+      {
+          "drug_name":      "Ponatinib",
+          "target":         "BCR-ABL1 T315I",
+          "moa_annotation": "Pan-BCR-ABL1 inhibitor (3rd gen TKI)",
+          "cell_line":      "K562",
+      },
+      {
+          "drug_name":      "Gleevec_analogue_1",
+          "target":         "BCR-ABL1 / c-KIT",
+          "moa_annotation": "Imatinib-class RTK inhibitor",
+          "cell_line":      "HL60",
+      },
+  ]
+  
+  similarity_scores = [0.92, 0.88, 0.81, 0.74, 0.63]
+  random.shuffle(similarity_scores)
+  
+  matches = []
+  for drug, sim in zip(CMAP_DRUGS, similarity_scores):
+      matches.append({
+          "drug_name":           drug["drug_name"],
+          "target":              drug["target"],
+          "similarity_score":    round(sim, 3),
+          "moa_annotation":      drug["moa_annotation"],
+          "cell_line":           drug["cell_line"],
+          "cmap_perturbagen_id": f"BRD-K{random.randint(10000000, 99999999):08d}",
+      })
+  
+  matches.sort(key=lambda m: m["similarity_score"], reverse=True)
+  
+  # Write TSV
+  header = "drug_name\ttarget\tsimilarity_score\tmoa_annotation\tcell_line\tcmap_perturbagen_id"
+  with open("cmap_matches.tsv", "w") as f:
+      f.write(header + "\n")
+      for m in matches:
+          f.write(
+              f"{m['drug_name']}\t{m['target']}\t{m['similarity_score']}\t"
+              f"{m['moa_annotation']}\t{m['cell_line']}\t{m['cmap_perturbagen_id']}\n"
+          )
+  
+  # Write JSON
+  payload = {
+      "query_drug":  drug_name,
+      "target_gene": target_gene,
+      "n_matches":   len(matches),
+      "mock_mode":   True,
+      "timestamp":   datetime.utcnow().isoformat() + "Z",
+      "matches":     matches,
+  }
+  with open("cmap_matches.json", "w") as f:
+      json.dump(payload, f, indent=2)
+  
+  print(f"CMap lookup (mock): {len(matches)} similar drugs found for {drug_name}")
+  for m in matches:
+      print(f"  [{m['similarity_score']:.3f}] {m['drug_name']} — {m['moa_annotation']}")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: derive top up/down gene signature from DE results and query the
+          # LINCS CMap API (clue.io).  Set env var LINCS_API_KEY before running.
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json
+  import os
+  import sys
+  import csv
+  import urllib.request
+  from datetime import datetime
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  
+  # Build top up/down gene lists from significant DE genes
+  sig_up   = []
+  sig_down = []
+  with open("de_results.tsv") as fh:
+      reader = csv.DictReader(fh, delimiter="\t")
+      for row in reader:
+          try:
+              padj   = float(row["padj"])
+              log2fc = float(row["log2FoldChange"])
+          except (ValueError, KeyError):
+              continue
+          if padj < 0.05 and abs(log2fc) > 1:
+              if log2fc > 0:
+                  sig_up.append((row["gene_name"], log2fc))
+              else:
+                  sig_down.append((row["gene_name"], log2fc))
+  
+  sig_up.sort(key=lambda x: -x[1])
+  sig_down.sort(key=lambda x: x[1])
+  top_up   = [g for g, _ in sig_up[:50]]
+  top_down = [g for g, _ in sig_down[:50]]
+  
+  api_key = os.environ.get("LINCS_API_KEY", "")
+  if not api_key:
+      print("WARNING: LINCS_API_KEY not set — CMap query may fail", file=sys.stderr)
+  
+  query_payload = json.dumps({
+      "up_genes":  top_up,
+      "dn_genes":  top_down,
+      "n_results": 10,
+  }).encode()
+  
+  matches = []
+  try:
+      req = urllib.request.Request(
+          "https://api.clue.io/api/query",
+          data=query_payload,
+          headers={"user_key": api_key, "Content-Type": "application/json"},
+          method="POST",
+      )
+      with urllib.request.urlopen(req, timeout=60) as resp:
+          cmap_data = json.loads(resp.read())
+      matches_raw = cmap_data.get("result", [])
+      for hit in matches_raw[:5]:
+          matches.append({
+              "drug_name":           hit.get("pert_iname", "unknown"),
+              "target":              hit.get("target", "unknown"),
+              "similarity_score":    round(float(hit.get("score", 0.0)), 3),
+              "moa_annotation":      hit.get("moa", "unknown"),
+              "cell_line":           hit.get("cell_id", "unknown"),
+              "cmap_perturbagen_id": hit.get("pert_id", "unknown"),
+          })
+  except Exception as exc:
+      print(f"WARNING: CMap API call failed: {exc}", file=sys.stderr)
+  
+  matches.sort(key=lambda m: m["similarity_score"], reverse=True)
+  
+  header = "drug_name\ttarget\tsimilarity_score\tmoa_annotation\tcell_line\tcmap_perturbagen_id"
+  with open("cmap_matches.tsv", "w") as f:
+      f.write(header + "\n")
+      for m in matches:
+          f.write(
+              f"{m['drug_name']}\t{m['target']}\t{m['similarity_score']}\t"
+              f"{m['moa_annotation']}\t{m['cell_line']}\t{m['cmap_perturbagen_id']}\n"
+          )
+  
+  payload = {
+      "query_drug":  drug_name,
+      "target_gene": target_gene,
+      "n_matches":   len(matches),
+      "mock_mode":   False,
+      "timestamp":   datetime.utcnow().isoformat() + "Z",
+      "matches":     matches,
+  }
+  with open("cmap_matches.json", "w") as f:
+      json.dump(payload, f, indent=2)
+  
+  print(f"CMap lookup (live): {len(matches)} similar drugs found for {drug_name}")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP":
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  Command 'ps' required by nextflow to collect task metrics cannot be found
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/9e/52f0312282bae5283ffc0cff96f107
+
+Container:
+  docker.io/python:3.11-slim
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Mar-24 20:48:49.499 [TaskFinalizer-2] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:48:49.507 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:48:51.057 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/c8/cc12cef36413b56a1187e8afd37a82]
+Mar-24 20:48:51.058 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:48:51.058 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:48:51.060 [TaskFinalizer-3] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/c8/cc12cef36413b56a1187e8afd37a82
+  error [nextflow.exception.ProcessFailedException]: Process `DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)` terminated with an error exit status (1)
+Mar-24 20:48:51.063 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:48:51.063 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 20:48:51.067 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=2; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=3.3s; failedDuration=2.2s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=2; peakMemory=0; ]
+Mar-24 20:48:51.068 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:48:51.479 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:48:51.518 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:48:51.522 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:48:51.527 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:48:51.528 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

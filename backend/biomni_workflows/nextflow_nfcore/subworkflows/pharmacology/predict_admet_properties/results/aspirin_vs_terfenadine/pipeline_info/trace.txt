@@ -1,0 +1,2 @@
+task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
+1	c7/3d0b71	1588945	PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (run)	COMPLETED	0	2026-03-24 22:28:50.165	525ms	142ms	923.6%	11.8 MB	17.3 MB	4.2 MB	18.1 KB

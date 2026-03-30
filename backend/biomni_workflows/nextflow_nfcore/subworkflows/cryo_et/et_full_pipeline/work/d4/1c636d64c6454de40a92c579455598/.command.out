@@ -1,0 +1,6 @@
+Subtomogram averaging complete (2 round(s))
+  Tomograms: 3  |  Total particles: 500
+  Symmetry: C1  |  Template matching: False
+  Round 1: FSC 0.143 = 25.6 A
+  Round 2: FSC 0.143 = 18.0 A
+  Final FSC 0.143 resolution: 18.0 A

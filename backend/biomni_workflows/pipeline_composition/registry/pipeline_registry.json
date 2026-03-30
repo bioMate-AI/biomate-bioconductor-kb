@@ -1,0 +1,358 @@
+{
+  "_comment": "BioMate Pipeline Port Schema Registry. Every pipeline that participates in composition must have an entry here. Keys under 'inputs' and 'outputs' must exactly match the param names and manifest port names used in the pipeline's main.nf.",
+  "type_compatibility": {
+    "cryosparc_cs":    ["cryosparc_cs"],
+    "cryosparc_cs[]":  ["cryosparc_cs[]"],
+    "mrc_volume":      ["mrc_volume"],
+    "mrc_volume[]":    ["mrc_volume[]"],
+    "json":            ["json"],
+    "json[]":          ["json[]"],
+    "path":            ["path"],
+    "float":           ["float", "int"],
+    "int":             ["int"],
+    "string":          ["string"],
+    "bool":            ["bool"],
+    "profile_name":    ["profile_name"],
+    "pth_model":       ["pth_model"]
+  },
+  "pipelines": {
+    "cryosparc_standard_spa": {
+      "description": "Standard 23-step SPA: raw movies → sharpened map. Covers import, motion correction, CTF, two-round picking, 2D classification, ab initio, homogeneous refinement, non-uniform refinement, local CTF refinement, local resolution, sharpening.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "movies_path":   { "type": "path",  "required": true,  "description": "Directory of raw movie stacks (MRC/TIFF/EER)" },
+        "pixel_size":    { "type": "float", "required": true,  "description": "Angstroms per pixel" },
+        "voltage":       { "type": "int",   "required": true,  "description": "Accelerating voltage (kV): 200 or 300" },
+        "cs":            { "type": "float", "required": false, "default": 2.7 },
+        "total_dose":    { "type": "float", "required": false, "default": 50.0 },
+        "symmetry":      { "type": "string","required": false, "default": "C1" },
+        "phase_plate":   { "type": "bool",  "required": false, "default": false },
+        "qc_profile":    { "type": "profile_name", "required": false, "default": "cryoem_spa_standard" }
+      },
+      "outputs": {
+        "particles_ctf_refined": { "type": "cryosparc_cs", "description": "CTF-refined particle stack (best for downstream refinement)" },
+        "volume_cs":             { "type": "cryosparc_cs", "description": "Homogeneous-refined volume" },
+        "nu_refined_volume":     { "type": "cryosparc_cs", "description": "Non-uniform refined volume (highest quality map)" },
+        "sharpened_map":         { "type": "cryosparc_cs", "description": "Final sharpened and post-processed map" },
+        "fsc_report":            { "type": "json",         "description": "FSC curve + 0.143 resolution" },
+        "local_resolution_map":  { "type": "cryosparc_cs", "description": "Per-voxel local resolution map" },
+        "micrographs_ctf":       { "type": "cryosparc_cs", "description": "CTF-estimated micrograph set" }
+      }
+    },
+
+    "particle_subtraction": {
+      "description": "Subtract signal outside a 3D mask from all particle images. Prerequisite for local/focused refinement.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/particle_subtraction/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs":    { "type": "cryosparc_cs", "required": true,  "description": "Particle stack to subtract from (use particles_ctf_refined for best results)" },
+        "volume_cs":       { "type": "cryosparc_cs", "required": true,  "description": "Reference volume for mask generation" },
+        "subtraction_mask":{ "type": "path",         "required": false, "default": "auto" },
+        "invert_mask":     { "type": "bool",         "required": false, "default": false }
+      },
+      "outputs": {
+        "subtracted_particles_cs": { "type": "cryosparc_cs", "description": "Signal-subtracted particle stack" },
+        "subtraction_report":      { "type": "json" }
+      }
+    },
+
+    "local_refinement": {
+      "description": "Focused refinement on a sub-region after signal subtraction. Typically achieves 0.5–2 Å better resolution than global refinement for the region of interest.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/local_refinement/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "subtracted_particles_cs": { "type": "cryosparc_cs", "required": true },
+        "volume_cs":               { "type": "cryosparc_cs", "required": true },
+        "symmetry":                { "type": "string", "required": false, "default": "C1" },
+        "initial_lowpass":         { "type": "float",  "required": false, "default": 8.0 }
+      },
+      "outputs": {
+        "local_refined_volume":    { "type": "cryosparc_cs", "description": "Focused refined map" },
+        "local_refinement_report": { "type": "json" }
+      }
+    },
+
+    "focused_refinement_pipeline": {
+      "description": "Runs particle_subtraction then local_refinement in sequence. Convenience composite for focused/local refinement projects.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/focused_refinement_pipeline/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs": { "type": "cryosparc_cs", "required": true },
+        "volume_cs":    { "type": "cryosparc_cs", "required": true }
+      },
+      "outputs": {
+        "local_refined_volume":        { "type": "cryosparc_cs" },
+        "focused_refinement_summary":  { "type": "json" }
+      }
+    },
+
+    "3d_variability_analysis": {
+      "description": "CryoSPARC 3DVA: PCA decomposition of conformational heterogeneity. Produces per-particle latent coordinates and variability component maps for motion visualisation.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/3d_variability_analysis/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs":         { "type": "cryosparc_cs", "required": true },
+        "volume_cs":            { "type": "cryosparc_cs", "required": true },
+        "num_components":       { "type": "int",   "required": false, "default": 3 },
+        "filter_res_angstroms": { "type": "float", "required": false, "default": 6.0 }
+      },
+      "outputs": {
+        "particles_with_latent": { "type": "cryosparc_cs",   "description": "Particles annotated with latent coordinates" },
+        "component_maps":        { "type": "cryosparc_cs[]", "description": "One variability component map per mode" },
+        "3dva_report":           { "type": "json" }
+      }
+    },
+
+    "3d_variability_pipeline": {
+      "description": "3DVA followed by 3D Variability Display. Produces a conformational trajectory as discrete frames.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/3d_variability_pipeline/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs":   { "type": "cryosparc_cs", "required": true },
+        "volume_cs":      { "type": "cryosparc_cs", "required": true },
+        "num_components": { "type": "int", "required": false, "default": 3 },
+        "num_clusters":   { "type": "int", "required": false, "default": 20 }
+      },
+      "outputs": {
+        "conformational_trajectory": { "type": "json",         "description": "Per-frame volume positions" },
+        "component_maps":            { "type": "cryosparc_cs[]" },
+        "3dva_report":               { "type": "json" }
+      }
+    },
+
+    "symmetry_expansion": {
+      "description": "Expand particle set by symmetry operators. C4 → 4× particles, each in the asymmetric unit. Prerequisite for asymmetric local refinement of a symmetric assembly.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/symmetry_expansion/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs": { "type": "cryosparc_cs", "required": true },
+        "volume_cs":    { "type": "cryosparc_cs", "required": true },
+        "symmetry":     { "type": "string", "required": false, "default": "C4", "description": "Point group: Cn, Dn, T, O, I" }
+      },
+      "outputs": {
+        "symmetry_expanded_particles_cs": { "type": "cryosparc_cs", "description": "Expanded particle set; one copy per symmetry operator" },
+        "symmetry_expansion_report":      { "type": "json" }
+      }
+    },
+
+    "global_ctf_refinement": {
+      "description": "Estimate and correct global optical aberrations (beam tilt, anisotropic magnification, trefoil) from the full particle population. Applied after high-resolution refinement.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/global_ctf_refinement/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particles_cs":   { "type": "cryosparc_cs", "required": true },
+        "volume_cs":      { "type": "cryosparc_cs", "required": true },
+        "fit_tilt":       { "type": "bool", "required": false, "default": true },
+        "fit_anisomag":   { "type": "bool", "required": false, "default": true },
+        "fit_trefoil":    { "type": "bool", "required": false, "default": false }
+      },
+      "outputs": {
+        "particles_global_ctf": { "type": "cryosparc_cs", "description": "Particles with global CTF aberrations corrected" },
+        "global_ctf_report":    { "type": "json" }
+      }
+    },
+
+    "filament_tracer": {
+      "description": "Pick filamentous particles by tracing filament axes (microtubules, actin, amyloid). Prerequisite step before helical refinement.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/filament_tracer/main.nf",
+      "sample_class": "helical",
+      "inputs": {
+        "micrographs_ctf_cs":           { "type": "cryosparc_cs", "required": true },
+        "filament_diameter_angstroms":   { "type": "float", "required": true },
+        "helical_rise_angstroms":        { "type": "float", "required": true },
+        "overlap_fraction":              { "type": "float", "required": false, "default": 0.9 }
+      },
+      "outputs": {
+        "filament_picks_cs":    { "type": "cryosparc_cs", "description": "Coordinate set along filament axes" },
+        "filament_tracer_report": { "type": "json" }
+      }
+    },
+
+    "helical_refinement": {
+      "description": "Apply helical symmetry (rise + twist) during reconstruction. Refines rise and twist iteratively. For actin, amyloid, microtubule, intermediate filament datasets.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/helical_refinement/main.nf",
+      "sample_class": "helical",
+      "inputs": {
+        "particles_cs":           { "type": "cryosparc_cs", "required": true },
+        "volume_cs":              { "type": "cryosparc_cs", "required": true },
+        "helical_rise_angstroms": { "type": "float", "required": true },
+        "helical_twist_deg":      { "type": "float", "required": true },
+        "symmetry":               { "type": "string", "required": false, "default": "C1" }
+      },
+      "outputs": {
+        "helical_volume":             { "type": "cryosparc_cs" },
+        "helical_refinement_report":  { "type": "json" }
+      }
+    },
+
+    "helical_spa_pipeline": {
+      "description": "Full 11-step helical SPA: movies → helical map. Movies → motion → CTF → filament tracing → extraction → 2D → ab initio → helical refinement → sharpening.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/main.nf",
+      "sample_class": "helical",
+      "inputs": {
+        "movies_path":            { "type": "path",  "required": true },
+        "pixel_size":             { "type": "float", "required": true },
+        "voltage":                { "type": "int",   "required": true },
+        "helical_rise_angstroms": { "type": "float", "required": true },
+        "helical_twist_deg":      { "type": "float", "required": true },
+        "filament_diameter_angstroms": { "type": "float", "required": true }
+      },
+      "outputs": {
+        "helical_volume":            { "type": "cryosparc_cs" },
+        "helical_refinement_report": { "type": "json" }
+      }
+    },
+
+    "topaz_train": {
+      "description": "Train a custom ResNet neural network picker on your micrographs using positive examples from a prior picking round.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/topaz_train/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "micrographs_cs":                    { "type": "cryosparc_cs", "required": true },
+        "particles_cs":                      { "type": "cryosparc_cs", "required": true, "description": "Positive examples for training" },
+        "num_training_micrographs":          { "type": "int",   "required": false, "default": 50 },
+        "expected_particles_per_micrograph": { "type": "int",   "required": false, "default": 300 },
+        "model_architecture":                { "type": "string","required": false, "default": "resnet16" }
+      },
+      "outputs": {
+        "topaz_model":       { "type": "pth_model", "description": "Trained Topaz ResNet model weights" },
+        "topaz_train_report":{ "type": "json" }
+      }
+    },
+
+    "topaz_extract": {
+      "description": "Apply a trained Topaz model to the full micrograph set for neural network-based particle extraction.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/topaz_extract/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "micrographs_cs":   { "type": "cryosparc_cs", "required": true },
+        "topaz_model":      { "type": "pth_model",    "required": true },
+        "topaz_threshold":  { "type": "float", "required": false, "default": -6.0 }
+      },
+      "outputs": {
+        "topaz_picks_cs":      { "type": "cryosparc_cs" },
+        "topaz_extract_report":{ "type": "json" }
+      }
+    },
+
+    "import_micrographs": {
+      "description": "Import pre-corrected micrographs (MRC/TIFF) as the starting point. Used when motion correction was already performed externally.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/import_micrographs/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "micrographs_path": { "type": "path",  "required": true },
+        "pixel_size":       { "type": "float", "required": true },
+        "voltage":          { "type": "int",   "required": true },
+        "total_dose":       { "type": "float", "required": false, "default": 50.0 }
+      },
+      "outputs": {
+        "micrographs_imported_cs": { "type": "cryosparc_cs", "description": "Imported micrograph set ready for CTF estimation" },
+        "import_micrographs_report": { "type": "json" }
+      }
+    },
+
+    "import_particles": {
+      "description": "Import existing particle stack from RELION (STAR) or CryoSPARC (.cs). Enables downstream BioMate workflows on externally processed datasets.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_em/import_particles/main.nf",
+      "sample_class": "spa",
+      "inputs": {
+        "particle_star":  { "type": "path",  "required": false, "description": "RELION STAR file" },
+        "particle_cs":    { "type": "path",  "required": false, "description": "CryoSPARC .cs file" },
+        "input_format":   { "type": "string","required": false, "default": "star" },
+        "pixel_size":     { "type": "float", "required": true },
+        "voltage":        { "type": "int",   "required": true },
+        "box_size":       { "type": "int",   "required": false, "default": 256 }
+      },
+      "outputs": {
+        "particles_imported_cs": { "type": "cryosparc_cs", "description": "Imported particle stack in BioMate format" },
+        "import_particles_report": { "type": "json" }
+      }
+    },
+
+    "import_tiltseries": {
+      "description": "Import tilt series MRC/MRCS files and MDOC metadata. Generates a tiltseries_manifest.json describing each tilt series (tilt angles, pixel size, dose, voltage). Step 1 of the Cryo-ET pipeline.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/import_tiltseries/main.nf",
+      "sample_class": "et",
+      "inputs": {
+        "tiltseries_path": { "type": "path",  "required": true,  "description": "Directory of tilt series MRC/MRCS files" },
+        "mdoc_path":       { "type": "path",  "required": false, "description": "Directory of MDOC metadata files" },
+        "pixel_size":      { "type": "float", "required": true },
+        "voltage":         { "type": "int",   "required": true },
+        "total_dose":      { "type": "float", "required": false, "default": 120.0 }
+      },
+      "outputs": {
+        "tiltseries_manifest":      { "type": "json", "description": "Per-tilt-series metadata manifest" },
+        "tiltseries_import_report": { "type": "json", "description": "Import summary with tilt counts and dose" }
+      }
+    },
+
+    "tilt_alignment": {
+      "description": "Tilt series alignment using AreTomo2 (default) or IMOD. Computes per-tilt alignment residuals and produces XF transformation files for tomogram reconstruction. Step 2 of the Cryo-ET pipeline.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/tilt_alignment/main.nf",
+      "sample_class": "et",
+      "inputs": {
+        "tiltseries_manifest": { "type": "json",   "required": true,  "description": "Output from import_tiltseries" },
+        "alignment_method":    { "type": "string", "required": false, "default": "aretomo2", "description": "aretomo2 or imod" },
+        "tilt_axis_angle":     { "type": "float",  "required": false, "default": 0.0 },
+        "patch_alignment":     { "type": "bool",   "required": false, "default": true }
+      },
+      "outputs": {
+        "tilt_alignment_report": { "type": "json", "description": "Per-tilt alignment residuals and summary stats" },
+        "alignment_xf_files":    { "type": "json", "description": "Per-tilt XF transformation file manifest" }
+      }
+    },
+
+    "tomogram_reconstruction": {
+      "description": "Reconstruct tomograms from aligned tilt series using weighted back-projection (WBP, default) or SIRT. All tilt series processed in parallel. Step 3 of the Cryo-ET pipeline.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/tomogram_reconstruction/main.nf",
+      "sample_class": "et",
+      "inputs": {
+        "alignment_report":       { "type": "json",   "required": true,  "description": "Output from tilt_alignment" },
+        "reconstruction_method":  { "type": "string", "required": false, "default": "wbp", "description": "wbp or sirt" },
+        "sirt_iterations":        { "type": "int",    "required": false, "default": 10 },
+        "binning_factor":         { "type": "int",    "required": false, "default": 4 }
+      },
+      "outputs": {
+        "tomogram_reconstruction_report": { "type": "json", "description": "Dimensions, voxel size, contrast stats per tomogram" },
+        "tomograms_manifest":             { "type": "json", "description": "Paths and metadata for all reconstructed tomograms" }
+      }
+    },
+
+    "subtomogram_averaging": {
+      "description": "Pick subtomogram particles from reconstructed tomograms (optionally guided by a PDB template) and perform iterative STA alignment. Outputs gold-standard FSC resolution. Step 4 of the Cryo-ET pipeline.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/subtomogram_averaging/main.nf",
+      "sample_class": "et",
+      "inputs": {
+        "tomograms_manifest":    { "type": "json",   "required": true,  "description": "Output from tomogram_reconstruction" },
+        "num_particles":         { "type": "int",    "required": false, "default": 1000 },
+        "template_pdb":          { "type": "path",   "required": false, "description": "PDB template for template matching" },
+        "symmetry":              { "type": "string", "required": false, "default": "C1" },
+        "sta_resolution_target": { "type": "float",  "required": false, "default": 15.0 },
+        "num_sta_rounds":        { "type": "int",    "required": false, "default": 2 }
+      },
+      "outputs": {
+        "sta_report": { "type": "json", "description": "STA FSC resolution, particle count, and symmetry applied" }
+      }
+    },
+
+    "et_full_pipeline": {
+      "description": "Full cryo-ET pipeline: tilt series import → alignment (AreTomo2/IMOD) → tomogram reconstruction (WBP/SIRT) → subtomogram averaging. All tilt series processed in parallel.",
+      "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/main.nf",
+      "sample_class": "et",
+      "inputs": {
+        "input_dir":          { "type": "path",  "required": true, "description": "Directory with MDOC + MRC tilt series files" },
+        "pixel_size":         { "type": "float", "required": true },
+        "voltage":            { "type": "int",   "required": true },
+        "tilt_range":         { "type": "string","required": false, "default": "-60,60" },
+        "alignment_method":   { "type": "string","required": false, "default": "aretomo2" },
+        "reconstruction_method": { "type": "string", "required": false, "default": "wbp" },
+        "sta_symmetry":       { "type": "string","required": false, "default": "C1" }
+      },
+      "outputs": {
+        "sta_report":           { "type": "json",      "description": "STA FSC + particle count" },
+        "et_pipeline_summary":  { "type": "json",      "description": "Full pipeline summary metrics" }
+      }
+    }
+  }
+}

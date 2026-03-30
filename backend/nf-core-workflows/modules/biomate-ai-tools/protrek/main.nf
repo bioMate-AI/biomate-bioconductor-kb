@@ -6,7 +6,7 @@ process PROTREK_SEARCH {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/protrek:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/protrek:nextflow'
 
     input:
     tuple val(meta), val(query)  // Can be: sequence, PDB path, or text description
@@ -50,7 +50,7 @@ process PROTREK_EMBED {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/protrek:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/protrek:nextflow'
 
     input:
     tuple val(meta), path(fasta)

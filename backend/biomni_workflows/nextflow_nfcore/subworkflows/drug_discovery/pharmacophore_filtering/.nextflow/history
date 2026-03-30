@@ -1,0 +1,1 @@
+2026-03-24 22:30:03	2.2s	tiny_baekeland	OK	bea1d6718ec79b3f23bcbed698817877	173d4eb9-9eff-4274-bffe-0f932264ff21	nextflow run main.nf --mock_mode true --outdir results/kinase_screen

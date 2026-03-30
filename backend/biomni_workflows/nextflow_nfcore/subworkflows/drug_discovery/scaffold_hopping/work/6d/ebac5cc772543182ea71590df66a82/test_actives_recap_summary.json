@@ -1,0 +1,11 @@
+{
+  "meta_id": "test_actives",
+  "input_file": "test_actives_validated.csv",
+  "total_compounds_processed": 0,
+  "total_fragments": 0,
+  "unique_scaffolds": 0,
+  "top_scaffolds_by_frequency": [],
+  "tool": "RDKit RECAP",
+  "timestamp": "2026-03-24T20:59:36.240599Z",
+  "mock_mode": false
+}

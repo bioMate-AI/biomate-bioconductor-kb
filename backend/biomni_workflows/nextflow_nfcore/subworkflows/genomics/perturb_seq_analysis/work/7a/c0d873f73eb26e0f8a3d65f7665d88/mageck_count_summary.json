@@ -1,0 +1,9 @@
+{
+  "guide_library_coverage_pct": 91.2,
+  "transfection_efficiency_pct": 77.1,
+  "total_reads": 15000000,
+  "mapped_reads": 13500000,
+  "mapping_rate_pct": 90.0,
+  "n_guides": 500,
+  "n_cells_estimated": 5000
+}

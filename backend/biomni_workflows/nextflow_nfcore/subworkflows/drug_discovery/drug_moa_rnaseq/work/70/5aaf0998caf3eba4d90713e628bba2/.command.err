@@ -1,0 +1,28 @@
+<stdin>:28: DeprecationWarning: ref_level is deprecated and no longer has any effect. It will beremoved in a future release.
+<stdin>:28: DeprecationWarning: design_factors is deprecated and will soon be removed.Please consider providing a formulaic formula using the design argumentinstead.
+Fitting size factors...
+... done in 0.00 seconds.
+
+Fitting dispersions...
+... done in 0.04 seconds.
+
+Fitting dispersion trend curve...
+/usr/local/lib/python3.11/site-packages/pydeseq2/dds.py:807: UserWarning: The dispersion trend curve fitting did not converge. Switching to a mean-based dispersion trend.
+  self._fit_parametric_dispersion_trend(vst)
+... done in 0.01 seconds.
+
+Fitting MAP dispersions...
+... done in 0.05 seconds.
+
+Fitting LFCs...
+... done in 0.03 seconds.
+
+Calculating cook's distance...
+... done in 0.00 seconds.
+
+Replacing 0 outlier genes.
+
+Running Wald tests...
+... done in 0.69 seconds.
+
+/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/70/5aaf0998caf3eba4d90713e628bba2/.command.sh: line 194: warning: here-document at line 189 delimited by end-of-file (wanted `END_VERSIONS')

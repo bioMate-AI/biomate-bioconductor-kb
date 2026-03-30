@@ -1,0 +1,2 @@
+task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
+1	1a/c3d1fe	1587250	ADMET_PRED_WORKFLOW:ADMET_PRED (run)	COMPLETED	0	2026-03-24 22:28:17.479	532ms	167ms	791.0%	12.4 MB	17.3 MB	4.2 MB	14.1 KB

@@ -1,0 +1,40 @@
+{
+  "target": "EGFR_kinase",
+  "tool": "fpocket",
+  "version": "4.1",
+  "num_pockets": 3,
+  "pockets": [
+    {
+      "pocket_id": 1,
+      "volume_A3": 847.0,
+      "druggability_score": 0.78,
+      "hydrophobicity": 0.62,
+      "polarity": 0.31,
+      "center_x": 12.3,
+      "center_y": -4.1,
+      "center_z": 8.7
+    },
+    {
+      "pocket_id": 2,
+      "volume_A3": 412.0,
+      "druggability_score": 0.54,
+      "hydrophobicity": 0.41,
+      "polarity": 0.45,
+      "center_x": -3.2,
+      "center_y": 9.8,
+      "center_z": -2.1
+    },
+    {
+      "pocket_id": 3,
+      "volume_A3": 156.0,
+      "druggability_score": 0.21,
+      "hydrophobicity": 0.28,
+      "polarity": 0.61,
+      "center_x": 0.1,
+      "center_y": -1.4,
+      "center_z": 15.3
+    }
+  ],
+  "timestamp": "2026-03-24T22:29:43.349718Z",
+  "mock_mode": true
+}

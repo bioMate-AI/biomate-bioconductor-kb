@@ -6,7 +6,7 @@ process BOLTZ {
     label 'process_gpu'
     label 'process_high_memory'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/boltz:nextflow'
 
     input:
     tuple val(meta), path(fasta)

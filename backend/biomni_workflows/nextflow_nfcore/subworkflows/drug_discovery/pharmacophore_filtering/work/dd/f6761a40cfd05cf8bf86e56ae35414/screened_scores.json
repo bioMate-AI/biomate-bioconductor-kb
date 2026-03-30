@@ -1,0 +1,242 @@
+{
+  "pharmacophore_model": "pharmacophore_model.json",
+  "library": "screening_library.smi",
+  "n_screened": 20,
+  "n_passed": 16,
+  "min_features": 3,
+  "results": [
+    {
+      "compound_id": "aspirin_control",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "weak_amide",
+      "smiles": "Cc1ccc(cc1)NC(=O)c1ccc(CC)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "quinoline",
+      "smiles": "c1ccc2ncccc2c1",
+      "features_matched": 2,
+      "feature_types": [
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "benzothiazole_methyl",
+      "smiles": "Cc1nc2ccccc2s1",
+      "features_matched": 2,
+      "feature_types": [
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "paracetamol_control",
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "imatinib_exact",
+      "smiles": "Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "chlorobenzamide",
+      "smiles": "c1ccc(NC(=O)c2cccc(Cl)c2)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "methylimidazole",
+      "smiles": "Cn1ccnc1",
+      "features_matched": 2,
+      "feature_types": [
+        "Hydrophobe",
+        "PosIonizable"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "urea_derivative",
+      "smiles": "CC(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "aminopurine_scaffold",
+      "smiles": "Cc1ncnc2c1cnn2C",
+      "features_matched": 1,
+      "feature_types": [
+        "Hydrophobe"
+      ],
+      "pass": false
+    },
+    {
+      "compound_id": "aminoquinazoline",
+      "smiles": "c1ccc2c(c1)nc(-c1ccccc1)nc2N",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "guanidine_scaffold",
+      "smiles": "CCOc1ccc(-c2nc(N)c3ccccc3n2)cc1OCC",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "pyridine_amide",
+      "smiles": "Cc1ccc(NC(=O)c2cc(-c3ccncc3)ccc2F)cc1C",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "imatinib_analogue",
+      "smiles": "CN1CCN(Cc2ccc(NC(=O)c3ccc(Nc4nccc(-c5cccnc5)n4)cc3)cc2)CC1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "adenosine",
+      "smiles": "Nc1ncnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Hydrophobe",
+        "PosIonizable"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "naphthalene_pyrimidine",
+      "smiles": "c1ccc2c(c1)ccc(-c1ccc(Nc3nccc(-c4cccnc4)n3)cc1)n2",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "aminothiazole_nitrile",
+      "smiles": "Cc1ccc(-c2nc(N)c(C#N)s2)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "thienopyrimidine_amide",
+      "smiles": "CNC(=O)c1ccc(-c2cc3c(N)ncnc3s2)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "boc_urea",
+      "smiles": "CC(C)(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    },
+    {
+      "compound_id": "oxazole_pyrimidine",
+      "smiles": "Cc1cc(-c2ccc(Nc3ncc4cc(-c5ccco5)ccc4n3)cc2)no1",
+      "features_matched": 4,
+      "feature_types": [
+        "Donor",
+        "Acceptor",
+        "Aromatic",
+        "Hydrophobe"
+      ],
+      "pass": true
+    }
+  ],
+  "timestamp": "2026-03-24T22:56:09.522969Z",
+  "mock_mode": false
+}

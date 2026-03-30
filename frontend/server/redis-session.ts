@@ -8,9 +8,10 @@ import createMemoryStore from 'memorystore';
  * Falls back to MemoryStore if Redis is not configured
  */
 
-const REDIS_URL = process.env.REDIS_URL || process.env.REDIS_HOST
-  ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`
-  : undefined;
+const REDIS_URL = process.env.REDIS_URL ||
+  (process.env.REDIS_HOST
+    ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}`
+    : undefined);
 
 let redisClient: ReturnType<typeof createClient> | null = null;
 let isRedisConnected = false;

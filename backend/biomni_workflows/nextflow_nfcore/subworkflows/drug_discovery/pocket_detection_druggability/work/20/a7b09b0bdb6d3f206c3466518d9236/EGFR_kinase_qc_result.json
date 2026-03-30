@@ -1,0 +1,13 @@
+{
+  "target": "EGFR_kinase",
+  "status": "PASS",
+  "top_pocket_id": 1,
+  "top_druggability_score": 0.78,
+  "top_volume": 847.0,
+  "threshold_score": 0.5,
+  "threshold_volume": 300.0,
+  "warn_threshold_score": 0.3,
+  "evidence_tier": "BRONZE",
+  "num_pockets_evaluated": 3,
+  "timestamp": "2026-03-24T22:29:43.494914Z"
+}

@@ -1,0 +1,10 @@
+{
+  "tool": "biopython_proxy",
+  "n_frames_analyzed": 1000,
+  "n_residues": 0,
+  "mean_rmsd_nm": 0.3486,
+  "max_rmsd_nm": 0.4231,
+  "mean_rmsf_nm": NaN,
+  "timestamp": "2026-03-24T22:22:58.051413Z",
+  "mock_mode": false
+}

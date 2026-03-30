@@ -1,0 +1,26 @@
+{
+  "pipeline": "aizynthfinder_retrosynthesis",
+  "mock_mode": false,
+  "n_compounds": 1,
+  "n_pass": 0,
+  "n_warn": 1,
+  "n_fail": 0,
+  "pass_rate_pct": 0.0,
+  "warn_rate_pct": 100.0,
+  "fail_rate_pct": 0.0,
+  "pass_threshold": "steps<=4 AND score>=0.6",
+  "avg_best_sa_score": 3.0,
+  "avg_best_steps": 0.0,
+  "compounds": [
+    {
+      "compound_id": "CPND0001",
+      "smiles": "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1",
+      "qc_status": "WARN",
+      "best_route_steps": 0,
+      "best_route_score": 0.5,
+      "best_sa_score": 3.0,
+      "n_routes": 5
+    }
+  ],
+  "timestamp": "2026-03-24T20:33:15.026886Z"
+}

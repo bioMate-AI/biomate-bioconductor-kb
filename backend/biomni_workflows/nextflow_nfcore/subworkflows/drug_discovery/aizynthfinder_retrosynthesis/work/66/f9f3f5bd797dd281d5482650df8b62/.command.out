@@ -1,0 +1,32 @@
+Loading template-based expansion policy model from /opt/aizynthfinder/models/uspto_model.onnx to uspto
+Loading templates from /opt/aizynthfinder/models/uspto_templates.csv to uspto
+Loading stock from InMemoryInchiKeyQuery to biomate_stock
+Selected as stock: biomate_stock
+Compounds in stock: 81
+Selected as expansion policy: uspto
+Trees saved to CPND0001_routes_raw.json
+target: CCOc1cc2ncnc(Nc3cc(CC)on3)c2cc1OCC
+search time: 3.549747943878174
+first solution time: 0
+first solution iteration: 0
+number of nodes: 566
+max transforms: 5
+max children: 29
+number of routes: 117
+number of solved routes: 0
+top score: 0.049100689501895424
+is solved: False
+number of steps: 0
+number of precursors: 1
+number of precursors in stock: 0
+precursors in stock: 
+precursors not in stock: CCOc1cc2ncnc(Nc3cc(CC)on3)c2cc1OCC
+precursors availability: Not in stock
+policy used counts: {'uspto': 565}
+profiling: {'expansion_calls': 449, 'reactants_generations': 758, 'iterations': 100}
+AiZynthFinder predict (live) [CPND0001]: 5 routes found
+  Route 1: steps=0  score=0.5  sa_score=3.0
+  Route 2: steps=1  score=0.5  sa_score=3.0
+  Route 3: steps=1  score=0.5  sa_score=3.0
+  Route 4: steps=1  score=0.5  sa_score=3.0
+  Route 5: steps=1  score=0.5  sa_score=3.0

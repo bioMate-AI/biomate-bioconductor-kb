@@ -1,0 +1,21 @@
+{
+  "target_name": "BCR-ABL1 kinase",
+  "gene_symbol": "ABL1",
+  "uniprot_id": "P00519",
+  "pdb_id": "1IEP",
+  "pdb_description": "ABL1 kinase domain in complex with imatinib (STI571), 2.10 Å resolution",
+  "disease_area": "Chronic Myeloid Leukemia (CML), Philadelphia chromosome-positive ALL",
+  "binding_site": "ATP-binding cleft, activation loop (DFG-out conformation in 1IEP)",
+  "reference_ligand": "Imatinib (STI571)",
+  "reference_ligand_ic50_nM": 600,
+  "reference_ligand_ki_nM": 190,
+  "druggability_notes": "Well-validated oncology target; multiple approved TKIs; gatekeeper mutation T315I known to confer resistance",
+  "pdb_download_url": "https://files.rcsb.org/download/1IEP.pdb",
+  "why_chosen_for_pilot": [
+    "Crystal structure publicly available with known binding mode",
+    "Multiple approved drugs provide ground-truth potency ranking",
+    "Known hERG liabilities (nilotinib, dasatinib) allow ADMET validation",
+    "Clinically relevant — leukemia is a key indication at academic medical centers",
+    "Allosteric site (asciminib) tests BioMate beyond ATP-site screening"
+  ]
+}

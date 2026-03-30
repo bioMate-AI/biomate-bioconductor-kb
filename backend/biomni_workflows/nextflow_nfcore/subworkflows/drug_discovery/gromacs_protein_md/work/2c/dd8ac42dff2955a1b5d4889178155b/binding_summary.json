@@ -1,0 +1,10 @@
+{
+  "ligand": "/tmp/test_ligand.smi",
+  "receptor": "/tmp/test_1IEP.pdb",
+  "dG_bind_kcal_per_mol": -7.5,
+  "dG_error": 1.2,
+  "Ki_estimate_nM": 3173.0,
+  "tool": "rdkit_mmgbsa_proxy",
+  "timestamp": "2026-03-24T22:22:58.675957Z",
+  "mock_mode": false
+}

@@ -1,0 +1,350 @@
+Mar-24 20:49:13.252 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --drug_name Erlotinib --target_gene EGFR --treated_counts /tmp/test_treated_counts.tsv --control_counts /tmp/test_control_counts.tsv --outdir /tmp/test_moa_out
+Mar-24 20:49:13.324 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 20:49:13.370 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:49:13.372 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/nextflow.config
+Mar-24 20:49:13.401 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 20:49:13.777 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, docker]
+Mar-24 20:49:13.819 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 20:49:13.826 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 20:49:13.827 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 20:49:13.829 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 20:49:13.838 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 20:49:13.945 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 20:49:13.946 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 20:49:13.946 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 20:49:13.954 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 20:49:13.956 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1d408060] - activable => nextflow.secret.LocalSecretsProvider@1d408060
+Mar-24 20:49:13.958 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 20:49:13.969 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [berserk_monod] DSL2 - revision: 10df5ccb6d
+Mar-24 20:49:14.001 [main] DEBUG nextflow.Session - Session UUID: dec53e4e-4d82-4aed-be99-4a088bf03868
+Mar-24 20:49:14.001 [main] DEBUG nextflow.Session - Run name: berserk_monod
+Mar-24 20:49:14.001 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 20:49:14.007 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 20:49:14.010 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:49:14.023 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1445594@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (8.9 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 20:49:14.037 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work [ext2/ext3]
+Mar-24 20:49:14.038 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/bin
+Mar-24 20:49:14.043 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 20:49:14.049 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 20:49:14.051 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 20:49:14.077 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 20:49:14.082 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 20:49:14.132 [main] DEBUG nextflow.Session - Session start
+Mar-24 20:49:14.136 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_moa_out/pipeline_info/trace.txt
+Mar-24 20:49:14.600 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 20:49:14.680 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Drug MoA Characterisation from RNA-seq  (Gap 9)
+====================================================================
+Mode:        LIVE (DESeq2 + fgsea + CMap)
+Drug:        Erlotinib
+Target gene: EGFR
+Replicates:  3
+GMT file:    null
+Output dir:  /tmp/test_moa_out
+====================================================================
+
+Mar-24 20:49:14.715 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:49:14.715 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:49:14.721 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 20:49:14.725 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 20:49:14.726 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 20:49:14.741 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-24 20:49:14.790 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:49:14.790 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:49:14.791 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT': maxForks=0; fair=false; array=0
+Mar-24 20:49:14.794 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:49:14.794 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:49:14.796 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP': maxForks=0; fair=false; array=0
+Mar-24 20:49:14.799 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-24 20:49:14.799 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 20:49:14.800 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'DRUG_MOA_RNASEQ:MOA_REPORT': maxForks=0; fair=false; array=0
+Mar-24 20:49:14.836 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION, MOA_REPORT, DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT, GENE_SET_ENRICHMENT, DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP, DRUG_MOA_RNASEQ:MOA_REPORT, DIFFERENTIAL_EXPRESSION
+Mar-24 20:49:14.847 [main] WARN  nextflow.Session - There's no process matching config selector: DESEQ2_DIFFERENTIAL_EXPRESSION
+Mar-24 20:49:14.847 [main] WARN  nextflow.Session - There's no process matching config selector: GSEA_PATHWAY_ENRICHMENT
+Mar-24 20:49:14.849 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-24 20:49:14.856 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION
+Mar-24 20:49:14.857 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT
+Mar-24 20:49:14.858 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP
+Mar-24 20:49:14.858 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > DRUG_MOA_RNASEQ:MOA_REPORT
+Mar-24 20:49:14.858 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_ed71858adb4c299f: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/main.nf
+Mar-24 20:49:14.859 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 20:49:14.859 [main] DEBUG nextflow.Session - Session await
+Mar-24 20:49:15.052 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:49:15.054 [Task submitter] INFO  nextflow.Session - [28/fbbf4f] Submitted process > DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control)
+Mar-24 20:49:17.930 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: DRUG_MOA_RNASEQ:DIFFERENTIAL_EXPRESSION (Erlotinib_vs_control); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/28/fbbf4fb1bcd02cbcb5ed71593aca1f]
+Mar-24 20:49:17.931 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:49:17.945 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 20:49:17.962 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:49:17.962 [Task submitter] INFO  nextflow.Session - [40/e246db] Submitted process > DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)
+Mar-24 20:49:17.966 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 20:49:17.967 [Task submitter] INFO  nextflow.Session - [a2/c33e09] Submitted process > DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap)
+Mar-24 20:49:18.780 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: DRUG_MOA_RNASEQ:LINCS_CMAP_LOOKUP (Erlotinib_cmap); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/a2/c33e0928badda2749b29d5d2dc043e]
+Mar-24 20:49:20.252 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea); status: COMPLETED; exit: 1; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/40/e246db026886ba35a5b412bf6a1e14]
+Mar-24 20:49:20.258 [TaskFinalizer-3] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/40/e246db026886ba35a5b412bf6a1e14
+  error [nextflow.exception.ProcessFailedException]: Process `DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)` terminated with an error exit status (1)
+Mar-24 20:49:20.277 [TaskFinalizer-3] ERROR nextflow.processor.TaskProcessor - Error executing process > 'DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)'
+
+Caused by:
+  Process `DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT (Erlotinib_gsea)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "false" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import random
+  from datetime import datetime
+  
+  random.seed(123)
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  
+  # ---------------------------------------------------------------------------
+  # Biologically plausible MSigDB Hallmark pathways for a kinase inhibitor.
+  # Base NES values reflect expected biology (positive = up-regulated on drug).
+  # ---------------------------------------------------------------------------
+  HALLMARK_PATHWAYS = [
+      ("HALLMARK_E2F_TARGETS",               "cell cycle / DNA replication",        2.31),
+      ("HALLMARK_G2M_CHECKPOINT",            "G2/M cell cycle checkpoint",           2.18),
+      ("HALLMARK_MYC_TARGETS_V1",            "MYC transcriptional targets",          1.95),
+      ("HALLMARK_PI3K_AKT_MTOR_SIGNALING",   "PI3K/AKT/mTOR pathway",               1.72),
+      ("HALLMARK_APOPTOSIS",                 "programmed cell death",               -1.88),
+      ("HALLMARK_P53_PATHWAY",               "TP53 tumour-suppressor pathway",      -2.05),
+      ("HALLMARK_DNA_REPAIR",                "DNA damage response",                  1.44),
+      ("HALLMARK_OXIDATIVE_PHOSPHORYLATION", "mitochondrial oxidative phosphorylation", -1.31),
+      ("HALLMARK_INFLAMMATORY_RESPONSE",     "innate immune / inflammatory response",-1.52),
+      ("HALLMARK_UNFOLDED_PROTEIN_RESPONSE", "ER stress / unfolded protein response", 1.19),
+  ]
+  
+  # Collect significant DE gene names for leading-edge annotation
+  sig_genes = []
+  with open("de_results.tsv") as fh:
+      next(fh)  # skip header
+      for line in fh:
+          parts = line.strip().split("\t")
+          if len(parts) >= 4:
+              try:
+                  padj   = float(parts[3])
+                  log2fc = float(parts[2])
+                  if padj < 0.05 and abs(log2fc) > 1:
+                      sig_genes.append(parts[1])
+              except ValueError:
+                  pass
+  
+  if not sig_genes:
+      sig_genes = ["MAPK1", "AKT1", "MYC", "STAT3", "CDK2"]
+  
+  rows = []
+  for pathway, description, base_nes in HALLMARK_PATHWAYS:
+      nes       = round(base_nes + random.uniform(-0.15, 0.15), 3)
+      padj      = round(random.uniform(0.001, 0.048), 4)
+      pvalue    = round(padj * random.uniform(1.2, 5.0), 6)
+      size      = random.randint(80, 350)
+      n_leading = min(random.randint(5, 20), len(sig_genes))
+      leading   = ",".join(random.sample(sig_genes, n_leading)) if n_leading > 0 else ""
+      rows.append({
+          "pathway":            pathway,
+          "description":        description,
+          "NES":                nes,
+          "padj":               padj,
+          "pvalue":             pvalue,
+          "size":               size,
+          "leading_edge_genes": leading,
+      })
+  
+  rows.sort(key=lambda r: abs(r["NES"]), reverse=True)
+  
+  # Write enrichment TSV
+  header = "pathway\tdescription\tNES\tpadj\tpvalue\tsize\tleading_edge_genes"
+  with open("enrichment.tsv", "w") as f:
+      f.write(header + "\n")
+      for r in rows:
+          f.write(
+              f"{r['pathway']}\t{r['description']}\t{r['NES']}\t"
+              f"{r['padj']}\t{r['pvalue']}\t{r['size']}\t{r['leading_edge_genes']}\n"
+          )
+  
+  # Write enrichment plot JSON
+  plot_data = {
+      "drug_name":   drug_name,
+      "target_gene": target_gene,
+      "mock_mode":   True,
+      "timestamp":   datetime.utcnow().isoformat() + "Z",
+      "pathways":    rows,
+  }
+  with open("enrichment_plot.json", "w") as f:
+      json.dump(plot_data, f, indent=2)
+  
+  print(f"GSEA (mock): {len(rows)} Hallmark pathways enriched for {drug_name}")
+  for r in rows[:5]:
+      direction = "UP" if r["NES"] > 0 else "DOWN"
+      print(f"  [{direction}] {r['pathway']}  NES={r['NES']}  padj={r['padj']}")
+  EOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: run gseapy prerank against MSigDB Hallmark gene sets.
+          # gseapy is a Python GSEA implementation wrapping the GSEA Java algorithm.
+          # Uses Wald stat from DE results as the gene ranking metric.
+          # ---------------------------------------------------------------------------
+          python3 << 'PYEOF'
+  import json, math, os
+  import pandas as pd
+  import gseapy as gp
+  from datetime import datetime, timezone
+  
+  drug_name   = "Erlotinib"
+  target_gene = "EGFR"
+  gmt_file    = "null"
+  
+  de_df = pd.read_csv("de_results.tsv", sep="\t")
+  de_df = de_df.dropna(subset=["stat"])
+  de_df = de_df.sort_values("stat", ascending=False)
+  
+  ranking = de_df.set_index("gene_name")["stat"].to_dict()
+  ranking_series = pd.Series(ranking).sort_values(ascending=False)
+  
+  # Choose gene set source: use provided GMT file if it exists, otherwise use gseapy's
+  # built-in MSigDB Hallmark collection (fetched on demand from gseapy's cached sets).
+  if os.path.exists(gmt_file):
+      gene_sets = gmt_file
+      print(f"Using local GMT file: {gmt_file}")
+  else:
+      gene_sets = "MSigDB_Hallmark_2020"
+      print(f"GMT file not found at {gmt_file}; using gseapy built-in: {gene_sets}")
+  
+  pre_res = gp.prerank(
+      rnk          = ranking_series,
+      gene_sets    = gene_sets,
+      min_size     = 1,     # accept any overlap — filter by FDR at interpretation step
+      max_size     = 500,
+      permutation_num = 200,
+      seed         = 42,
+      verbose      = True,
+      outdir       = None,
+  )
+  
+  res_df = pre_res.res2d.copy()
+  res_df = res_df.rename(columns={
+      "Term": "pathway", "NES": "NES", "FDR q-val": "padj",
+      "NOM p-val": "pvalue", "Tag %": "tag_pct", "Lead_genes": "leading_edge_genes",
+  })
+  if "pathway" not in res_df.columns and "Term" not in res_df.columns:
+      res_df = res_df.reset_index().rename(columns={"index": "pathway"})
+  res_df["description"] = res_df["pathway"]
+  
+  for col in ["padj", "pvalue", "NES"]:
+      if col in res_df.columns:
+          res_df[col] = pd.to_numeric(res_df[col], errors="coerce")
+  
+  res_df = res_df.sort_values("padj")
+  
+  out_cols = [c for c in ["pathway","description","NES","padj","pvalue","leading_edge_genes"] if c in res_df.columns]
+  res_df[out_cols].to_csv("enrichment.tsv", sep="\t", index=False)
+  
+  rows = []
+  for _, row in res_df.head(10).iterrows():
+      rows.append({
+          "pathway":            str(row.get("pathway", "")),
+          "description":        str(row.get("description", "")),
+          "NES":                float(row["NES"]) if not math.isnan(float(row["NES"])) else 0.0,
+          "padj":               float(row["padj"]) if not math.isnan(float(row["padj"])) else 1.0,
+          "pvalue":             float(row.get("pvalue", 1.0)) if "pvalue" in row else 1.0,
+          "leading_edge_genes": str(row.get("leading_edge_genes", "")),
+      })
+  
+  plot_data = {
+      "drug_name":   drug_name,
+      "target_gene": target_gene,
+      "mock_mode":   False,
+      "timestamp":   datetime.now(timezone.utc).isoformat(),
+      "pathways":    rows,
+  }
+  with open("enrichment_plot.json", "w") as f:
+      json.dump(plot_data, f, indent=2)
+  
+  n_sig = int((res_df["padj"] < 0.05).sum()) if "padj" in res_df.columns else 0
+  print(f"GSEA (live/gseapy): {len(res_df)} pathways, {n_sig} significant (padj<0.05)")
+  for r in rows[:5]:
+      direction = "UP" if r["NES"] > 0 else "DOWN"
+      print(f"  [{direction}] {r['pathway']}  NES={r['NES']:.3f}  padj={r['padj']:.4f}")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "DRUG_MOA_RNASEQ:GENE_SET_ENRICHMENT":
+          fgsea: $(Rscript -e "cat(as.character(packageVersion('fgsea')))" 2>/dev/null || echo "mock")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "3.10.0")
+          mock_mode: "false"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  GMT file not found at null; using gseapy built-in: MSigDB_Hallmark_2020
+
+Command error:
+  mkdir -p failed for path /.config/matplotlib: [Errno 13] Permission denied: '/.config'
+  Matplotlib created a temporary cache directory at /tmp/matplotlib-wu58jgbt because there was an issue with the default path (/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+  GMT file not found at null; using gseapy built-in: MSigDB_Hallmark_2020
+  2026-03-24 20:49:18,944 [INFO] Parsing data files for GSEA.............................
+  2026-03-24 20:49:19,503 [INFO] Downloading and generating Enrichr library gene sets......
+  Traceback (most recent call last):
+    File "<stdin>", line 26, in <module>
+    File "/usr/local/lib/python3.11/site-packages/gseapy/__init__.py", line 401, in prerank
+      pre.run()
+    File "/usr/local/lib/python3.11/site-packages/gseapy/gsea.py", line 566, in run
+      gmt = self.load_gmt(gene_list=dat2.index.values, gmt=self.gene_sets)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.11/site-packages/gseapy/base.py", line 482, in load_gmt
+      genesets_dict = self.load_gmt_only(gmt)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.11/site-packages/gseapy/base.py", line 456, in load_gmt_only
+      genesets_dict = self.parse_gmt(gmt)
+                      ^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.11/site-packages/gseapy/base.py", line 569, in parse_gmt
+      return self._download_libraries(gmt)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/usr/local/lib/python3.11/site-packages/gseapy/base.py", line 604, in _download_libraries
+      mkdirs(DEFAULT_CACHE_PATH)
+    File "/usr/local/lib/python3.11/site-packages/gseapy/utils.py", line 46, in mkdirs
+      raise exc
+    File "/usr/local/lib/python3.11/site-packages/gseapy/utils.py", line 43, in mkdirs
+      os.makedirs(outdir)
+    File "<frozen os>", line 215, in makedirs
+    File "<frozen os>", line 225, in makedirs
+  PermissionError: [Errno 13] Permission denied: '/.cache'
+
+Work dir:
+  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/drug_moa_rnaseq/work/40/e246db026886ba35a5b412bf6a1e14
+
+Container:
+  biomate/biomni-drug-discovery-nf:latest
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Mar-24 20:49:20.281 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 20:49:20.282 [TaskFinalizer-3] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-24 20:49:20.288 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 20:49:20.288 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 20:49:20.290 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 20:49:20.290 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 20:49:20.297 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=2.9s; failedDuration=2.2s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=2; peakMemory=0; ]
+Mar-24 20:49:20.297 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 20:49:20.712 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 20:49:20.753 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 20:49:20.760 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 20:49:20.769 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 20:49:20.770 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

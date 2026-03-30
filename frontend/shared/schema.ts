@@ -357,9 +357,10 @@ export const outputDatasetSchema = z.object({
     readCount: z.number().optional(), // For BAM/SAM
     cellCount: z.number().optional(), // For single-cell data
     geneCount: z.number().optional(),
-    source: z.string().optional(), // e.g. 'nextflow_runtime_artifact', 'galaxy'
-    localPath: z.string().optional(), // Local filesystem path for Nextflow outputs
-  }).optional(),
+     source: z.string().optional(), // e.g. 'nextflow_runtime_artifact', 'galaxy'
+     localPath: z.string().optional(), // Local filesystem path for Nextflow outputs
+     s3Uri: z.string().optional(),    // S3 URI for cloud-stored Nextflow outputs
+   }).optional(),
 });
 
 export type OutputDataset = z.infer<typeof outputDatasetSchema>;

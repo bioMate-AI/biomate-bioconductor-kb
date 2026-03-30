@@ -1,0 +1,74 @@
+{
+  "target": "EGFR_kinase",
+  "ligand": "mock_aspirin.sdf",
+  "tool": "AutoDock Vina",
+  "version": "1.2.5",
+  "pocket_centre_xyz": [
+    1.76,
+    -1.48,
+    75.0
+  ],
+  "pocket_anchor_residue": 50,
+  "box_size_angstrom": 20.0,
+  "exhaustiveness": 32,
+  "num_modes": 9,
+  "best_affinity_kcal_mol": -9.2,
+  "modes": [
+    {
+      "mode": 1,
+      "affinity_kcal_mol": -9.2,
+      "rmsd_lb": 0.437,
+      "rmsd_ub": 3.516
+    },
+    {
+      "mode": 2,
+      "affinity_kcal_mol": -8.9,
+      "rmsd_lb": 0.053,
+      "rmsd_ub": 2.597
+    },
+    {
+      "mode": 3,
+      "affinity_kcal_mol": -8.5,
+      "rmsd_lb": 1.3,
+      "rmsd_ub": 3.635
+    },
+    {
+      "mode": 4,
+      "affinity_kcal_mol": -8.1,
+      "rmsd_lb": 0.441,
+      "rmsd_ub": 3.768
+    },
+    {
+      "mode": 5,
+      "affinity_kcal_mol": -7.8,
+      "rmsd_lb": 1.619,
+      "rmsd_ub": 2.019
+    },
+    {
+      "mode": 6,
+      "affinity_kcal_mol": -7.6,
+      "rmsd_lb": 1.612,
+      "rmsd_ub": 4.094
+    },
+    {
+      "mode": 7,
+      "affinity_kcal_mol": -7.1,
+      "rmsd_lb": 0.681,
+      "rmsd_ub": 2.466
+    },
+    {
+      "mode": 8,
+      "affinity_kcal_mol": -6.8,
+      "rmsd_lb": 1.914,
+      "rmsd_ub": 3.01
+    },
+    {
+      "mode": 9,
+      "affinity_kcal_mol": -6.5,
+      "rmsd_lb": 0.185,
+      "rmsd_ub": 2.29
+    }
+  ],
+  "timestamp": "2026-03-19T01:36:14.227572Z",
+  "mock_mode": true
+}

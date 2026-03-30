@@ -1,0 +1,124 @@
+name: UX Feedback Regression CI
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/feedback-e2e-matrix.yml"
+      - "frontend/e2e/**"
+      - "frontend/client/src/components/feedback/**"
+      - "frontend/client/src/components/chat-message.tsx"
+      - "frontend/client/src/components/chat-with-artifacts.tsx"
+      - "frontend/client/src/components/chat-output-attachments.tsx"
+      - "frontend/client/src/components/nextflow-workflow-viewer.tsx"
+      - "frontend/client/src/components/site-header.tsx"
+      - "frontend/client/src/pages/admin/feedback-dashboard.tsx"
+      - "frontend/client/src/lib/feedback.ts"
+      - "frontend/client/src/lib/ux-telemetry.ts"
+      - "frontend/client/src/lib/feature-flags.ts"
+      - "frontend/server/routes.ts"
+      - "frontend/server/feedback-service.ts"
+      - "frontend/server/telemetry-service.ts"
+      - "frontend/server/rate-limit.ts"
+      - "frontend/shared/schema.ts"
+      - "frontend/playwright.config.ts"
+      - "frontend/scripts/run-feedback-e2e-matrix.sh"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/feedback-e2e-matrix.yml"
+      - "frontend/e2e/**"
+      - "frontend/client/src/components/feedback/**"
+      - "frontend/client/src/components/chat-message.tsx"
+      - "frontend/client/src/components/chat-with-artifacts.tsx"
+      - "frontend/client/src/components/chat-output-attachments.tsx"
+      - "frontend/client/src/components/nextflow-workflow-viewer.tsx"
+      - "frontend/client/src/components/site-header.tsx"
+      - "frontend/client/src/pages/admin/feedback-dashboard.tsx"
+      - "frontend/client/src/lib/feedback.ts"
+      - "frontend/client/src/lib/ux-telemetry.ts"
+      - "frontend/client/src/lib/feature-flags.ts"
+      - "frontend/server/routes.ts"
+      - "frontend/server/feedback-service.ts"
+      - "frontend/server/telemetry-service.ts"
+      - "frontend/server/rate-limit.ts"
+      - "frontend/shared/schema.ts"
+      - "frontend/playwright.config.ts"
+      - "frontend/scripts/run-feedback-e2e-matrix.sh"
+      - "frontend/package.json"
+      - "frontend/package-lock.json"
+  workflow_dispatch:
+
+concurrency:
+  group: ux-feedback-regression-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  feedback-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Start frontend server
+        run: |
+          npm run dev > /tmp/biomate-frontend.log 2>&1 &
+          echo $! > /tmp/biomate-frontend.pid
+
+      - name: Wait for frontend health
+        run: |
+          for i in {1..60}; do
+            if curl -fsS "http://127.0.0.1:5000" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend did not become ready in time"
+          echo "==== frontend log ===="
+          cat /tmp/biomate-frontend.log || true
+          exit 1
+
+      - name: Run feedback release gate
+        env:
+          BIOMATE_URL: http://127.0.0.1:5000
+          FEEDBACK_MATRIX_MODE: release
+          STRICT_NO_SKIP_CRITICAL: "true"
+        run: npm run e2e:feedback:matrix
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feedback-e2e-artifacts
+          path: |
+            frontend/e2e/reports
+            frontend/e2e/test-results
+            frontend/e2e/matrix-runs
+
+      - name: Print frontend server log on failure
+        if: failure()
+        run: |
+          echo "==== frontend log ===="
+          cat /tmp/biomate-frontend.log || true

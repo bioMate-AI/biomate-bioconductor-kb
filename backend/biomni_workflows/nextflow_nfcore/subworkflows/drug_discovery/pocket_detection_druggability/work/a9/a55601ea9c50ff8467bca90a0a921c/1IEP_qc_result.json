@@ -1,0 +1,13 @@
+{
+  "target": "1IEP",
+  "status": "PASS",
+  "top_pocket_id": 1,
+  "top_druggability_score": 0.567,
+  "top_volume": 879.2,
+  "threshold_score": 0.5,
+  "threshold_volume": 300.0,
+  "warn_threshold_score": 0.3,
+  "evidence_tier": "BRONZE",
+  "num_pockets_evaluated": 10,
+  "timestamp": "2026-03-24T22:54:24.777346Z"
+}

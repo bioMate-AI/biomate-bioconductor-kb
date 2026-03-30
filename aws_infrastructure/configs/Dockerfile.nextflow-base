@@ -1,0 +1,47 @@
+FROM python:3.11-slim
+
+# BioMate Nextflow base image for AWS Batch task containers.
+#
+# Nextflow's .command.run wrapper (injected into every Batch task) requires:
+#   bash     — to run the wrapper script itself (present in python:3.11-slim)
+#   python3  — to execute .command.sh pipeline steps (present in python:3.11-slim)
+#   aws      — for nxf_s3_upload / nxf_s3_download S3 staging (added here)
+#   ps       — for Nextflow CPU/memory metrics collection (added via procps)
+#
+# Additional packages:
+#   cryosparc-tools — Python client for CryoSPARC v5 API (real SPA pipeline execution)
+#
+# Build multi-arch (Batch=amd64, dev Mac=arm64):
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest \
+#     --push .
+#
+# Build amd64-only (faster, sufficient for Batch):
+#   docker buildx build --platform linux/amd64 \
+#     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest \
+#     --push .
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl unzip ca-certificates procps \
+    && curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip \
+    && unzip -q /tmp/awscliv2.zip -d /tmp \
+    && /tmp/aws/install \
+    && rm -rf /tmp/awscliv2.zip /tmp/aws \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages for all BioMate workflows
+# cryosparc-tools: official Python client for CryoSPARC v5 REST API
+# gget: programmatic access to genomic databases (Ensembl, UniProt, NCBI, GEO, etc.)
+#   used by RNA-seq, genomics, and multi-omics workflows
+# numpy/scipy/pandas: required by most BioMate computational workflows
+# biopython: sequence parsing, BLAST, PDB handling
+# rdkit: cheminformatics for pharmacology/ADMET workflows
+RUN pip install --no-cache-dir cryosparc-tools==5.0.2
+RUN pip install --no-cache-dir \
+    gget \
+    numpy \
+    scipy \
+    pandas \
+    biopython \
+    rdkit

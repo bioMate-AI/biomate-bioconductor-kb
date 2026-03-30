@@ -6,7 +6,7 @@ export default function TermsPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
-          <p className="text-muted-foreground">Last updated: October 17, 2025</p>
+          <p className="text-muted-foreground">Last updated: March 10, 2026</p>
         </div>
 
         <div className="prose prose-lg dark:prose-invert max-w-none space-y-8">
@@ -121,17 +121,37 @@ export default function TermsPage() {
             <CardHeader>
               <CardTitle>6. Data and Privacy</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 Your use of the Service is also governed by our Privacy Policy. By using the Service, you consent to the
                 collection and use of information as described in our Privacy Policy.
               </p>
-              <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>We do not own your research data</li>
-                <li>We implement industry-standard security measures</li>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>You retain all rights to the research data and results you generate using the Service</li>
+                <li>We do not use your research data to train or fine-tune any AI model without your explicit consent</li>
+                <li>We implement industry-standard security measures including encryption at rest (AES-256) and in transit (TLS 1.2+)</li>
                 <li>You are responsible for backing up your data</li>
-                <li>We may use anonymized data for analytics and improvement</li>
+                <li>We may collect anonymized, aggregate usage metrics (e.g. workflow run durations, step completion rates) to improve the Service. These metrics contain no research data and cannot be attributed to any individual or institution.</li>
               </ul>
+              <div>
+                <h4 className="font-semibold text-foreground mb-2">6.1 Pilot Study Participants</h4>
+                <p>
+                  If you are participating in a BioMate pilot evaluation study, you may be invited to complete
+                  voluntary in-product feedback surveys after each workflow run and at the end of the pilot period.
+                  Your individual survey responses will not be shared with any third party or attributed to you
+                  by name. Aggregate, anonymised pilot evaluation results may be used in academic publications
+                  or product improvement reports, with your institution's prior consent.
+                  Participation in surveys is entirely voluntary and does not affect your access to the Service.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-foreground mb-2">6.2 Data Deletion</h4>
+                <p>
+                  You may request deletion of your account and all associated data at any time by contacting
+                  legal@biomate.ai. Raw research files uploaded to BioMate-managed storage will be permanently
+                  deleted within 14 calendar days of your request. We will provide written confirmation of deletion.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -203,8 +223,8 @@ export default function TermsPage() {
             </CardHeader>
             <CardContent className="text-muted-foreground">
               <p>
-                These Terms are governed by the laws of the State of California, United States, without regard to conflict
-                of law principles. Any disputes shall be resolved in the courts of San Francisco County, California.
+                These Terms are governed by the laws of the State of Texas, United States, without regard to conflict
+                of law principles. Any disputes shall be resolved in the state or federal courts located in Texas.
               </p>
             </CardContent>
           </Card>
@@ -229,7 +249,7 @@ export default function TermsPage() {
               <p>For questions about these Terms, please contact us:</p>
               <ul className="mt-2 space-y-1">
                 <li>Email: legal@biomate.ai</li>
-                <li>Address: BioMate Inc., 123 Research Blvd, San Francisco, CA 94103</li>
+                <li>Website: biomate.ai</li>
               </ul>
             </CardContent>
           </Card>

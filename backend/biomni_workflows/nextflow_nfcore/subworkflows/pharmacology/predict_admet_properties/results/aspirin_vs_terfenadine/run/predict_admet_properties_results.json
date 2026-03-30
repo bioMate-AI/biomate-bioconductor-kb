@@ -1,0 +1,6 @@
+{
+  "success": true,
+  "function": "predict_admet_properties",
+  "domain": "pharmacology",
+  "result": "DeepPurpose not available in this environment.\nStructural safety estimates (RDKit descriptor-based heuristics) are used.\nInstall DeepPurpose for full ADMET predictions including ClinTox.\n"
+}

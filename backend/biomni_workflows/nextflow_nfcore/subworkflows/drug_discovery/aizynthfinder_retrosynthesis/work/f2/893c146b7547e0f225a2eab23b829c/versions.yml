@@ -1,0 +1,6 @@
+    "AIZYNTHFINDER_RETROSYNTHESIS:RETROSYNTHESIS_FILTER":
+        python: 3.11.14
+        pass_max_steps: "4"
+        pass_min_score: "0.6"
+        warn_max_steps: "6"
+    END_VERSIONS

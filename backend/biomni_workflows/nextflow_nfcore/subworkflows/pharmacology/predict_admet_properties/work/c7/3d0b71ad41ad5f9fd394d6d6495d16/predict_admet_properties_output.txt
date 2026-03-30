@@ -1,0 +1,6 @@
+Biomni: Predict ADMET Properties
+============================================================
+
+DeepPurpose not available in this environment.
+Structural safety estimates (RDKit descriptor-based heuristics) are used.
+Install DeepPurpose for full ADMET predictions including ClinTox.

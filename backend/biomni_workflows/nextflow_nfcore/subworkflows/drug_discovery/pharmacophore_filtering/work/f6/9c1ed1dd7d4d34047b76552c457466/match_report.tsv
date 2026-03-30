@@ -1,0 +1,11 @@
+compound_id	smiles	features_matched	feature_types_matched	pass
+CPND001	CC(=O)Oc1ccccc1C(=O)O	0		FAIL
+CPND002	CC(=O)Oc1ccccc1C(=O)N	0		FAIL
+CPND003	OC(=O)c1ccccc1O	2	Acceptor,Donor	FAIL
+CPND004	CC(=O)Nc1ccc(O)cc1	1	Donor	FAIL
+CPND005	c1ccc(cc1)C(=O)O	4	Donor,Acceptor,Acceptor,Aromatic	PASS
+CPND006	CCCC	0		FAIL
+CPND007	CC(=O)Oc1cccc(c1)C(=O)O	0		FAIL
+CPND008	c1ccc2c(c1)cccc2	1	Acceptor	FAIL
+CPND009	CC(=O)Oc1ccc(cc1)C(=O)O	4	Donor,Acceptor,Aromatic,Acceptor	PASS
+CPND010	NC(=O)c1ccccc1N	1	Aromatic	FAIL

@@ -1,0 +1,1 @@
+2026-03-24 22:29:42	2.1s	stoic_albattani	OK	04d3c8ede0d40f43067c21db23f74cf2	003e9880-7d93-4506-b035-20b62649637c	nextflow run main.nf --mock_mode true --outdir results/EGFR_kinase

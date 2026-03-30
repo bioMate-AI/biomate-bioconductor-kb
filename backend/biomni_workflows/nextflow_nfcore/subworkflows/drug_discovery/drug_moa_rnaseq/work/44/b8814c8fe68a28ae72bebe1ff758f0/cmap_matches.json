@@ -1,0 +1,8 @@
+{
+  "query_drug": "Erlotinib",
+  "target_gene": "EGFR",
+  "n_matches": 0,
+  "mock_mode": false,
+  "timestamp": "2026-03-24T20:50:03.607783Z",
+  "matches": []
+}

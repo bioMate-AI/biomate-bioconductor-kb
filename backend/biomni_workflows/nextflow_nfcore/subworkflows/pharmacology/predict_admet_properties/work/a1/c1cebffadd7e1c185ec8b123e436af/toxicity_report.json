@@ -1,0 +1,32 @@
+{
+  "compounds_assessed": 2,
+  "model_type": "MPNN",
+  "estimation_method": "rdkit_descriptors",
+  "toxicity": {
+    "herg_ic50_uM": 0.198,
+    "dili_risk": "high",
+    "dili_probability": 0.701,
+    "ames_positive": false,
+    "ames_probability": 0.1,
+    "ames_structural_alerts": [],
+    "ames_method": "kazius_structural_alerts"
+  },
+  "per_compound": [
+    {
+      "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+      "logP": 1.31,
+      "mw": 180.2,
+      "herg_ic50_uM": 10.162,
+      "dili_risk": "low",
+      "dili_probability": 0.106
+    },
+    {
+      "smiles": "OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC",
+      "logP": 7.01,
+      "mw": 499.7,
+      "herg_ic50_uM": 0.198,
+      "dili_risk": "high",
+      "dili_probability": 0.701
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+Retrosynthesis report generated:
+  Compounds:      1
+  PASS: 0 (0.0%)  WARN: 1  FAIL: 0
+  Avg SA score:   3.0  Avg best steps: 0.0
+  Outputs:  retrosynthesis_report.html  retrosynthesis_results.csv  qc_summary.json

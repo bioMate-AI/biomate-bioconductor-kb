@@ -1,0 +1,6 @@
+    "PHARMACOPHORE_FILTERING:PHARMACOPHORE_SCREEN":
+        rdkit: mock
+        python: 3.12.3
+        mock_mode: "true"
+        min_features: "3"
+    END_VERSIONS

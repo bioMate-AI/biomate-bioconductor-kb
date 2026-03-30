@@ -120,6 +120,85 @@ export interface DoomLoopDetection {
   suggestion?: string;
 }
 
+/**
+ * Records one step in a multi-workflow pipeline chain.
+ * Persisted inside ConversationState → PostgreSQL so the chain survives
+ * context compression and browser refresh.
+ */
+export interface WorkflowStepRecord {
+  stepIndex: number;
+  workflowId: string;       // DB workflows.id (stringified)
+  workflowName: string;     // e.g. "nf-core/rnaseq"
+  domain: string;
+  inputTypes: string[];     // from DB workflows.input_types
+  outputTypes: string[];    // from DB workflows.output_types
+  runId?: string;           // set once Nextflow job is launched
+  status: 'planned' | 'running' | 'completed' | 'failed';
+  compatibilityWarnings: string[];  // populated by checkStepCompatibility
+  turnIndex: number;        // which conversation turn added this step
+}
+
+export interface PipelineCompatibilityResult {
+  compatible: boolean;
+  warnings: string[];
+  suggestions: string[];
+}
+
+/**
+ * Check whether the output types of step N satisfy the input types of step N+1.
+ * Uses semantic type matching — e.g. "bam" satisfies "input_bam", "bam_file".
+ */
+export function checkStepCompatibility(
+  prevOutputTypes: string[],
+  nextInputTypes: string[],
+  prevWorkflowName = '',
+  nextWorkflowName = '',
+): PipelineCompatibilityResult {
+  if (!nextInputTypes.length || !prevOutputTypes.length) {
+    return { compatible: true, warnings: [], suggestions: [] };
+  }
+
+  // Semantic type aliases — a key satisfies any value in the list
+  const TYPE_ALIASES: Record<string, string[]> = {
+    bam:          ['bam', 'input_bam', 'alignments', 'reads_bam', 'input'],
+    vcf:          ['vcf', 'input_vcf', 'variants', 'variant_file'],
+    fastq:        ['fastq', 'reads', 'input', 'samplesheet'],
+    counts_matrix:['counts_matrix', 'counts', 'matrix', 'input', 'samplesheet'],
+    tpm_matrix:   ['tpm_matrix', 'tpm', 'expression_matrix', 'counts_matrix'],
+    bed_peaks:    ['bed_peaks', 'peaks', 'bed', 'input'],
+    fasta:        ['fasta', 'genome', 'reference', 'input'],
+    fasta_assembly:['fasta_assembly', 'fasta', 'assembly', 'input'],
+    tsv_taxonomy: ['tsv_taxonomy', 'taxonomy', 'tsv', 'input'],
+    h5ad:         ['h5ad', 'anndata', 'input'],
+    csv:          ['csv', 'samplesheet', 'input'],
+    tsv_proteins: ['tsv_proteins', 'protein_groups', 'input'],
+  };
+
+  const satisfies = (outType: string, inType: string): boolean => {
+    if (outType === inType) return true;
+    const aliases = TYPE_ALIASES[outType] ?? [outType];
+    return aliases.some(a => a === inType || inType.includes(a) || a.includes(inType));
+  };
+
+  const unmatched = nextInputTypes.filter(
+    inType => !prevOutputTypes.some(outType => satisfies(outType, inType))
+  );
+
+  if (unmatched.length === 0) {
+    return { compatible: true, warnings: [], suggestions: [] };
+  }
+
+  const warnings = [
+    `${prevWorkflowName || 'Previous step'} produces [${prevOutputTypes.join(', ')}] ` +
+    `but ${nextWorkflowName || 'next step'} requires [${unmatched.join(', ')}].`,
+  ];
+  const suggestions = [
+    `Consider adding an intermediate conversion step, or verify that the output ` +
+    `directory from ${prevWorkflowName} contains the required input files.`,
+  ];
+  return { compatible: false, warnings, suggestions };
+}
+
 export interface IntentHistorySummary {
   [intentType: string]: number;
 }
@@ -163,6 +242,10 @@ export interface ConversationState {
   taskArcs?: TaskArc[];
   activeArcId?: string;
 
+  // Multi-workflow pipeline chain — persisted so output→input wiring survives
+  // context compression and browser refresh (stored in PostgreSQL via saveState)
+  workflowSteps: WorkflowStepRecord[];
+
   // Timestamp
   updatedAt: string;
 }
@@ -192,6 +275,7 @@ export function createEmptyState(sessionId: string, userId?: string, projectId?:
       missingRequired: [],
       missingOptional: [],
     },
+    workflowSteps: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -710,6 +794,82 @@ export class ConversationStateManager {
     }
 
     return bestArc;
+  }
+
+  // ── Pipeline workflow step tracking ──────────────────────────────────────
+
+  /**
+   * Add a planned workflow step to the chain. Automatically checks compatibility
+   * with the previous step's output types and stores warnings in the record.
+   */
+  addWorkflowStep(
+    state: ConversationState,
+    step: Omit<WorkflowStepRecord, 'stepIndex' | 'compatibilityWarnings'>,
+  ): WorkflowStepRecord {
+    if (!state.workflowSteps) state.workflowSteps = [];
+    const stepIndex = state.workflowSteps.length;
+
+    let compatibilityWarnings: string[] = [];
+    if (stepIndex > 0) {
+      const prev = state.workflowSteps[stepIndex - 1];
+      const result = checkStepCompatibility(
+        prev.outputTypes,
+        step.inputTypes,
+        prev.workflowName,
+        step.workflowName,
+      );
+      if (!result.compatible) {
+        compatibilityWarnings = [...result.warnings, ...result.suggestions];
+      }
+    }
+
+    const record: WorkflowStepRecord = { ...step, stepIndex, compatibilityWarnings };
+    state.workflowSteps.push(record);
+    return record;
+  }
+
+  /**
+   * Update a workflow step's status and runId once it's launched or completes.
+   */
+  updateWorkflowStep(
+    state: ConversationState,
+    stepIndex: number,
+    update: Partial<Pick<WorkflowStepRecord, 'status' | 'runId' | 'outputTypes'>>,
+  ): void {
+    if (!state.workflowSteps) return;
+    const step = state.workflowSteps[stepIndex];
+    if (!step) return;
+    Object.assign(step, update);
+
+    // If outputTypes were updated after run completion, re-check compatibility
+    // for the NEXT step and update its warnings
+    if (update.outputTypes && stepIndex + 1 < state.workflowSteps.length) {
+      const next = state.workflowSteps[stepIndex + 1];
+      const result = checkStepCompatibility(
+        update.outputTypes,
+        next.inputTypes,
+        step.workflowName,
+        next.workflowName,
+      );
+      next.compatibilityWarnings = result.compatible
+        ? []
+        : [...result.warnings, ...result.suggestions];
+    }
+  }
+
+  /**
+   * Get all compatibility warnings across the current pipeline chain.
+   */
+  getPipelineWarnings(state: ConversationState): string[] {
+    if (!state.workflowSteps) return [];
+    return state.workflowSteps.flatMap(s => s.compatibilityWarnings);
+  }
+
+  /**
+   * Clear the workflow step chain (e.g. when user starts a new pipeline).
+   */
+  clearWorkflowSteps(state: ConversationState): void {
+    state.workflowSteps = [];
   }
 }
 

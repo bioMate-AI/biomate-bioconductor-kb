@@ -17,6 +17,8 @@ export type UxEventName =
   | 'workflow.status_changed'
   | 'workflow.error_shown'
   | 'workflow.confusion_signal'
+  | 'workflow.pause_clicked'
+  | 'workflow.resume_clicked'
   | 'async.retry_clicked'
   | 'async.report_issue_clicked'
   | 'output.panel_opened'

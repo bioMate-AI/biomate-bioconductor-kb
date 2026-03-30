@@ -96,6 +96,31 @@ except Exception as _e:
     _workflow_search = None
     WORKFLOW_SEARCH_AVAILABLE = False
 
+# ── WorkflowSession Redis store ───────────────────────────────────────────────
+# Lazy singleton — initialized on first actual use, not at import time.
+# This avoids blocking the worker startup when Redis is unavailable.
+import os as _os
+_session_store = None
+_WorkflowSessionStore = None
+try:
+    from galaxy.ai.workflow_session import WorkflowSessionStore as _WorkflowSessionStore
+except Exception as _sess_import_err:
+    logging.warning(f"WorkflowSessionStore import failed: {_sess_import_err}")
+
+
+def _get_session_store():
+    """Return (and lazily create) the module-level WorkflowSessionStore."""
+    global _session_store
+    if _session_store is None and _WorkflowSessionStore is not None:
+        try:
+            _session_store = _WorkflowSessionStore(
+                redis_url=_os.getenv("REDIS_URL")  # None → in-memory fallback, no ping
+            )
+            log.info("[WorkflowSessionStore] Initialized (Redis=%s)", _os.getenv("REDIS_URL") or "in-memory")
+        except Exception as _se:
+            log.warning("[WorkflowSessionStore] Init failed, sessions disabled: %s", _se)
+    return _session_store
+
 # ── ToolKnowledgeProvider for scientific rationale ───────────────────────────
 try:
     from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider as _ToolKnowledgeProvider
@@ -572,8 +597,14 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
         return {"parameters": parameters, "parameter_metadata": parameter_metadata}
     try:
         backend_root = FilePath(__file__).resolve().parents[5]
-        abs_path = FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename
-        if not abs_path.exists():
+        # Try multiple candidate paths (DB paths omit biomni_workflows/ prefix)
+        _candidates = [
+            FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename,
+            backend_root / "biomni_workflows" / nf_filename,
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / nf_filename,
+        ]
+        abs_path = next((c for c in _candidates if c.exists()), None)
+        if abs_path is None:
             return {"parameters": parameters, "parameter_metadata": parameter_metadata}
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
@@ -615,14 +646,9 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
                 val = raw_val
                 ptype = "string"
 
-            # Level
-            _REQUIRED_PARAMS = {"movies_path", "pixel_size", "voltage"}
+            # Level — any param with null value is required (user must supply it)
             _RECOMMENDED_PARAMS = {"spherical_aberration", "total_dose", "symmetry"}
-            if name == "movies_path":
-                level = "required"
-            elif ptype == "file" and val is None:
-                level = "optional"
-            elif name in _REQUIRED_PARAMS:
+            if val is None:
                 level = "required"
             elif name in _RECOMMENDED_PARAMS:
                 level = "recommended"
@@ -660,6 +686,47 @@ def search_nextflow_workflow(
         raise HTTPException(status_code=503, detail="Workflow search not available")
 
     try:
+        # ── Chain pre-check (Step 0) ─────────────────────────────────────────
+        # Before searching individual Nextflow workflows, check whether a
+        # curated multi-step chain matches the query.  Chains outrank any
+        # single-workflow match because they represent authoritative, vetted
+        # multi-tool pipelines for complex analyses.
+        # Use min_score=0.35 to avoid weak-overlap false positives.
+        # The internal default of 0.15 is too permissive — direct single-pipeline
+        # queries (e.g. "germline variant calling") would otherwise match complex
+        # chains (e.g. rare_disease_multimodal_workup) via 2-3 shared tokens.
+        chain_candidates = _workflow_search.search_chains(user_intent, min_score=0.35)
+        if chain_candidates:
+            best_chain = chain_candidates[0]
+            log.info(
+                f"[search_nextflow_workflow] Chain match '{best_chain.name}' — returning chain payload"
+            )
+            return {
+                "success": True,
+                "workflow_type": "chain",
+                "chain_name": best_chain.name,
+                "chain_display_name": best_chain.display_name,
+                "chain_domain": best_chain.domain,
+                "chain_description": best_chain.description,
+                "chain_steps": best_chain.steps,   # already List[dict]
+                "chain_connections": best_chain.connections,
+                "required_inputs": best_chain.required_inputs,
+                "expected_outputs": best_chain.expected_outputs,
+                "all_chains": [
+                    {"name": c.name, "display_name": c.display_name}
+                    for c in chain_candidates[:5]
+                ],
+                "source": "chain_lookup",
+                "confidence": 9,
+                "message": f"Multi-step pipeline: {best_chain.display_name}",
+                "note": best_chain.description,
+                "execution_engine": "chain",
+                "citations": [],
+                "methods_section": None,
+                "parameter_recommendations": {},
+                "pilot_run_suggested": False,
+            }
+        # ── Individual Nextflow workflow search ──────────────────────────────
         results = _workflow_search.search(user_intent, limit=5, include_workflow_json=False)
         if not results:
             return {"success": False, "message": "No matching workflows found"}
@@ -673,6 +740,10 @@ def search_nextflow_workflow(
 
             # Exclude known non-entry nf-core subworkflow library paths.
             if filename.startswith("nfcore/subworkflows/"):
+                return False
+            if filename.startswith("nf-core-modules/"):
+                return False
+            if "nf-core-modules/subworkflows/" in filename:
                 return False
             if "/nf-core-modules/subworkflows/" in filename:
                 return False
@@ -717,6 +788,32 @@ def search_nextflow_workflow(
             if runnable_executable:
                 best = runnable_executable
 
+        # Helper: resolve a DB filename to an absolute path, checking biomni_workflows/ prefix too
+        def _nf_file_exists(fname: str) -> bool:
+            if not fname:
+                return False
+            _root = FilePath(__file__).resolve().parents[5]
+            for candidate in [
+                FilePath(fname) if FilePath(fname).is_absolute() else _root / fname,
+                _root / "biomni_workflows" / fname,
+                _root / "biomni_workflows" / "nextflow_nfcore" / fname,
+            ]:
+                if candidate.exists():
+                    return True
+            return False
+
+        # Skip phantom DB entries whose .nf file doesn't exist on disk
+        if best.format == "nextflow" and best.filename and not _nf_file_exists(best.filename):
+            _disk_best = next(
+                (r for r in results if r is not best
+                 and _is_executable_nextflow_match(r)
+                 and getattr(r, "filename", "")
+                 and _nf_file_exists(r.filename)),
+                None,
+            )
+            if _disk_best:
+                best = _disk_best
+
         workflow_tools = getattr(best, "tools", []) or []
         hardware_requirements = _collect_workflow_hardware_requirements(workflow_tools)
         scientific_rationale = _build_scientific_rationale_from_tools(workflow_tools)
@@ -734,7 +831,53 @@ def search_nextflow_workflow(
         _wf_parameters = _nf_parsed.get("parameters", {})
         _wf_parameter_metadata = _nf_parsed.get("parameter_metadata", None) or _search_parameter_metadata
 
-        return {
+        # Build required/optional param lists consumed by nextflow-workflow-viewer.tsx
+        _req_params: list = []
+        _opt_params: list = []
+        for _pname, _pmeta in (_wf_parameter_metadata.items() if isinstance(_wf_parameter_metadata, dict) else []):
+            _entry = {
+                "name": _pname,
+                "label": _pmeta.get("label", _pname.replace("_", " ").title()),
+                "description": _pmeta.get("label", _pname.replace("_", " ").title()),
+                "default": _wf_parameters.get(_pname),
+            }
+            if _pmeta.get("level") == "required":
+                _req_params.append(_entry)
+            else:
+                _opt_params.append(_entry)
+
+        # Inject SRA accession into reads param when user provided one.
+        # Keeps reads in required_params (correct semantics) but sets default so the viewer
+        # pre-fills the field and the Run button is not blocked (hasUnfilledRequired uses p.value).
+        _sra_accession = re.search(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', user_intent, re.IGNORECASE)
+        if _sra_accession:
+            _acc = _sra_accession.group(1).upper()
+            _req_params = [
+                {**_p, 'default': _acc, 'sra_accession': True}
+                if _p['name'] in ('reads', 'input', 'fastq', 'sample', 'reads1', 'reads2')
+                else _p
+                for _p in _req_params
+            ]
+
+        # Only treat params as "missing" if they have no pre-filled default (e.g. SRR accession injected)
+        _truly_missing = [p for p in _req_params if not p.get('default')]
+        _prereq_validation = None
+        if _truly_missing:
+            _prereq_validation = {
+                "requirements": {
+                    "parameters": [
+                        {"stepId": "workflow", "paramName": p["name"], "optional": False, "defaultValue": None}
+                        for p in _truly_missing
+                    ]
+                },
+                "analysis": {
+                    "missingInputs": [],
+                    "missingParameters": [{"stepId": "workflow", "paramName": p["name"]} for p in _truly_missing],
+                    "inputMappings": [],
+                },
+            }
+
+        _return_dict: dict = {
             "success": True,
             "workflow_type": best.format,
             "nextflow_path": best.filename if best.format == "nextflow" else None,
@@ -748,6 +891,8 @@ def search_nextflow_workflow(
             "step_count": best.step_count,
             "scientific_rationale": scientific_rationale,
             "parameter_metadata": _wf_parameter_metadata,
+            "required_params": _req_params,
+            "optional_params": _opt_params,
             "workflow_ga": {
                 "name": best.name,
                 "description": best.description,
@@ -759,15 +904,20 @@ def search_nextflow_workflow(
                 "steps": _parse_nextflow_steps(best.filename) if best.format == "nextflow" and best.filename else {},
                 "parameters": _wf_parameters,
                 "parameter_metadata": _wf_parameter_metadata,
+                "required_params": _req_params,
+                "optional_params": _opt_params,
                 "hardware_requirements": hardware_requirements,
                 "scientific_rationale": scientific_rationale,
             },
             "hardware_requirements": hardware_requirements,
             "datasets_assigned": False,
-            "generated_parameters": [],
+            "generated_parameters": _req_params + _opt_params,
             "validation": {"is_valid": True, "issues": [], "warnings": [], "suggestions": []},
             "tool_installation": {"success": True, "message": "Nextflow workflow", "failed_tools": []}
         }
+        if _prereq_validation:
+            _return_dict["prerequisitesValidation"] = _prereq_validation
+        return _return_dict
     except Exception as e:
         log.error(f"Nextflow workflow search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1048,6 +1198,30 @@ def get_ai_status(
         }
 
 
+@router.get(
+    "/api/ai_assistant/workflow_catalog",
+    summary="Catalog statistics: workflow counts by source + chain count."
+)
+def workflow_catalog_stats(
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return indexed workflow counts and chain count for health monitoring."""
+    try:
+        if not WORKFLOW_SEARCH_AVAILABLE or not _workflow_search:
+            return {"error": "Workflow search not available", "total_workflows": 0}
+        stats = _workflow_search.get_stats()
+        chain_count = stats.get("chains", {}).get("total", 0)
+        return {
+            "total_workflows": stats.get("total", 0),
+            "by_source": stats.get("by_source", {}),
+            "by_format": stats.get("by_format", {}),
+            "chain_count": chain_count,
+        }
+    except Exception as exc:
+        log.error("workflow_catalog_stats error: %s", exc)
+        return {"error": str(exc), "total_workflows": 0}
+
+
 @router.post(
     "/api/ai_assistant/process_request",
     summary="Process a natural language research request."
@@ -1295,12 +1469,83 @@ def generate_workflow_unified(
         if request.available_datasets:
             uploaded_datasets = [ds.get('id') for ds in request.available_datasets if ds.get('id')]
 
-        # Generate workflow using unified approach
-        result = ai_assistant.generate_workflow_unified(
-            user_intent=request.request_text,
-            uploaded_datasets=uploaded_datasets,
-            user_id=str(trans.user.id) if getattr(trans, "user", None) else None,
+        user_id = str(trans.user.id) if getattr(trans, "user", None) else None
+
+        # Extract session_id from request context (threaded from frontend via context.session_id)
+        session_id = (
+            (request.context or {}).get("session_id")
+            or user_id
+            or "anon"
         )
+
+        # ── N4: WorkflowSession — inject prior session context into user_intent ─
+        # Load the active session for this user/session.  If prior steps exist,
+        # prepend a compact summary so the backend knows the active workflow state
+        # (enables "change the padj to 0.01" to find the right step without a
+        # full re-query from the frontend).
+        effective_intent = request.request_text
+        if _session_store:
+            try:
+                sess = _session_store.get(session_id)
+                if sess and sess.steps:
+                    last_step = sess.steps[-1]
+                    prior_ctx = (
+                        f"[Active pipeline: {last_step.workflow_name}, "
+                        f"step {last_step.index + 1}, status={last_step.status}, "
+                        f"params={list(last_step.params.keys())}] "
+                    )
+                    effective_intent = prior_ctx + request.request_text
+                    log.info(
+                        "[generate_workflow] Session %s has %d step(s); injected prior context",
+                        session_id, len(sess.steps),
+                    )
+            except Exception as _se:
+                log.debug("[generate_workflow] Session lookup failed (non-fatal): %s", _se)
+
+        # Route through LangGraph pipeline when BIOMATE_USE_LANGGRAPH=true.
+        # The pipeline wraps generate_workflow_unified with tracing + checkpointing.
+        # Falls back transparently to direct call on any failure.
+        use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
+        if use_langgraph:
+            result = ai_assistant.run_via_pipeline(
+                user_intent=effective_intent,
+                session_id=session_id,
+                user_id=user_id,
+                uploaded_datasets=uploaded_datasets,
+            )
+        else:
+            # Generate workflow using unified approach (default / stable path)
+            result = ai_assistant.generate_workflow_unified(
+                user_intent=effective_intent,
+                uploaded_datasets=uploaded_datasets,
+                user_id=user_id,
+            )
+
+        # Chain responses carry a different payload (no workflow_ga / citations).
+        # Return them directly so the frontend WorkflowChainPlan component can render.
+        if result.get('workflow_type') == 'chain':
+            return {
+                'success': True,
+                'workflow_type': 'chain',
+                'chain_name': result.get('chain_name'),
+                'chain_display_name': result.get('chain_display_name'),
+                'chain_domain': result.get('chain_domain'),
+                'chain_description': result.get('chain_description'),
+                'chain_steps': result.get('chain_steps', []),
+                'chain_connections': result.get('chain_connections', []),
+                'required_inputs': result.get('required_inputs', []),
+                'expected_outputs': result.get('expected_outputs', []),
+                'all_chains': result.get('all_chains', []),
+                'source': 'chain_lookup',
+                'confidence': result.get('confidence', 9),
+                'message': result.get('message', ''),
+                'note': result.get('note', ''),
+                'execution_engine': 'chain',
+                'citations': [],
+                'methods_section': None,
+                'parameter_recommendations': {},
+                'pilot_run_suggested': False,
+            }
 
         if result['success']:
             # Process citations from the result
@@ -1391,9 +1636,9 @@ def generate_workflow_unified(
                             _num_movies = int(_pd['parameters'][_key])
                         except (ValueError, TypeError):
                             pass
-            if _num_movies is None and request.message:
+            if _num_movies is None and request.request_text:
                 import re as _re
-                _m = _re.search(r'\bnum_movies\s*=\s*(\d+)', request.message, _re.IGNORECASE)
+                _m = _re.search(r'\bnum_movies\s*=\s*(\d+)', request.request_text, _re.IGNORECASE)
                 if _m:
                     try:
                         _num_movies = int(_m.group(1))
@@ -1418,6 +1663,35 @@ def generate_workflow_unified(
             # If the result doesn't carry it (e.g. generate_workflow_unified path),
             # fall back to an empty dict — the frontend treats missing metadata gracefully.
             _endpoint_parameter_metadata = result.get('parameter_metadata') or {}
+
+            # ── N4: Save workflow step to WorkflowSession ──────────────────────
+            _sess_store2 = _get_session_store()
+            if _sess_store2:
+                try:
+                    sess = _sess_store2.get_or_create(session_id, user_intent=request.request_text)
+                    wf_name = result.get('nextflow_path') or result.get('workflow_type', 'unknown')
+                    nf_path = result.get('nextflow_path', '')
+                    # Params: flatten generated_parameters into {tool_id: {params}}
+                    step_params: dict = {}
+                    for _pd in result.get('generated_parameters', []):
+                        step_params.update(_pd.get('parameters', {}))
+                    out_types = [
+                        p.get('output_type', '') for p in result.get('generated_parameters', [])
+                        if p.get('output_type')
+                    ]
+                    sess.add_step(
+                        workflow_name=wf_name,
+                        nextflow_path=nf_path,
+                        params=step_params,
+                        output_types=out_types or ['bam'],
+                    )
+                    _sess_store2.save(sess)
+                    log.info(
+                        "[generate_workflow] Saved step %d to session %s",
+                        len(sess.steps) - 1, session_id,
+                    )
+                except Exception as _se:
+                    log.debug("[generate_workflow] Session save failed (non-fatal): %s", _se)
 
             return {
                 'success': True,

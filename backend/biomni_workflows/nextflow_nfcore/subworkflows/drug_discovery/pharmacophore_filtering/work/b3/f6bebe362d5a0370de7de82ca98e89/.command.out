@@ -1,0 +1,21 @@
+Pharmacophore report written:
+  Screened:     20 compounds
+  Passed:       16 (80.0%)
+  Min features: 3
+  Model features: 6
+  -> PASS: aspirin_control  CC(=O)Oc1ccccc1C(=O)O  matched=4
+  -> PASS: weak_amide  Cc1ccc(cc1)NC(=O)c1ccc(CC)cc1  matched=4
+  -> PASS: paracetamol_control  CC(=O)Nc1ccc(O)cc1  matched=4
+  -> PASS: imatinib_exact  Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1  matched=4
+  -> PASS: chlorobenzamide  c1ccc(NC(=O)c2cccc(Cl)c2)cc1  matched=4
+  -> PASS: urea_derivative  CC(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1  matched=4
+  -> PASS: aminoquinazoline  c1ccc2c(c1)nc(-c1ccccc1)nc2N  matched=4
+  -> PASS: guanidine_scaffold  CCOc1ccc(-c2nc(N)c3ccccc3n2)cc1OCC  matched=4
+  -> PASS: pyridine_amide  Cc1ccc(NC(=O)c2cc(-c3ccncc3)ccc2F)cc1C  matched=4
+  -> PASS: imatinib_analogue  CN1CCN(Cc2ccc(NC(=O)c3ccc(Nc4nccc(-c5cccnc5)n4)cc3)cc2)CC1  matched=4
+  -> PASS: adenosine  Nc1ncnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O  matched=4
+  -> PASS: naphthalene_pyrimidine  c1ccc2c(c1)ccc(-c1ccc(Nc3nccc(-c4cccnc4)n3)cc1)n2  matched=4
+  -> PASS: aminothiazole_nitrile  Cc1ccc(-c2nc(N)c(C#N)s2)cc1  matched=4
+  -> PASS: thienopyrimidine_amide  CNC(=O)c1ccc(-c2cc3c(N)ncnc3s2)cc1  matched=4
+  -> PASS: boc_urea  CC(C)(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1  matched=4
+  -> PASS: oxazole_pyrimidine  Cc1cc(-c2ccc(Nc3ncc4cc(-c5ccco5)ccc4n3)cc2)no1  matched=4

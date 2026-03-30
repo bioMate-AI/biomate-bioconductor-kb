@@ -1,0 +1,3 @@
+digraph "dag" {
+rankdir=TB;
+}

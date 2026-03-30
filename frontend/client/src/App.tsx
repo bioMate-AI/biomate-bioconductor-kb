@@ -39,6 +39,7 @@ import ContactPage from "@/pages/contact";
 import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
+import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -296,6 +297,12 @@ function Router({
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
           <AdminFeedbackDashboardPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/pilot-exit-survey">
+        <AuthenticatedPageLayout>
+          <PilotExitSurveyPage />
         </AuthenticatedPageLayout>
       </Route>
 

@@ -1,0 +1,16 @@
+CC(=O)Oc1ccccc1C(=O)O  aspirin_control
+Cc1ccc(cc1)NC(=O)c1ccc(CC)cc1  weak_amide
+CC(=O)Nc1ccc(O)cc1  paracetamol_control
+Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1  imatinib_exact
+c1ccc(NC(=O)c2cccc(Cl)c2)cc1  chlorobenzamide
+CC(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1  urea_derivative
+c1ccc2c(c1)nc(-c1ccccc1)nc2N  aminoquinazoline
+CCOc1ccc(-c2nc(N)c3ccccc3n2)cc1OCC  guanidine_scaffold
+Cc1ccc(NC(=O)c2cc(-c3ccncc3)ccc2F)cc1C  pyridine_amide
+CN1CCN(Cc2ccc(NC(=O)c3ccc(Nc4nccc(-c5cccnc5)n4)cc3)cc2)CC1  imatinib_analogue
+Nc1ncnc2c1ncn2[C@@H]1O[C@H](CO)[C@@H](O)[C@H]1O  adenosine
+c1ccc2c(c1)ccc(-c1ccc(Nc3nccc(-c4cccnc4)n3)cc1)n2  naphthalene_pyrimidine
+Cc1ccc(-c2nc(N)c(C#N)s2)cc1  aminothiazole_nitrile
+CNC(=O)c1ccc(-c2cc3c(N)ncnc3s2)cc1  thienopyrimidine_amide
+CC(C)(C)c1ccc(NC(=O)Nc2ccc(Cl)cc2)cc1  boc_urea
+Cc1cc(-c2ccc(Nc3ncc4cc(-c5ccco5)ccc4n3)cc2)no1  oxazole_pyrimidine

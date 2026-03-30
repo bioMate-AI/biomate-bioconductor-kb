@@ -34,7 +34,7 @@ export class GalaxyAPIProxy {
   private connectionError: string | null = null;
 
   constructor(galaxyUrl?: string, apiKey?: string) {
-    this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8080';
+    this.galaxyUrl = galaxyUrl || process.env.GALAXY_URL || 'http://localhost:8081';
     this.apiKey = apiKey || process.env.GALAXY_API_KEY;
 
     // Warn if using default localhost
@@ -623,6 +623,10 @@ export class GalaxyAPIProxy {
         if (!payload || payload.success !== true) {
           return false;
         }
+        // Curated chain plans are always accepted — they render as WorkflowChainPlan
+        if (payload.workflow_type === 'chain') {
+          return true;
+        }
         const nextflowPath = payload.nextflow_path || payload.workflow_ga?.nextflow_path;
         if (isExecutableNextflowPath(nextflowPath)) {
           return true;
@@ -658,7 +662,9 @@ export class GalaxyAPIProxy {
       const backendRequest = {
         request_text: request.user_intent,  // Backend expects 'request_text' not 'user_intent'
         available_datasets: request.datasets || [],
-        context: {},
+        context: {
+          ...(request.session_id ? { session_id: request.session_id } : {}),
+        },
         preferred_tools: [],
         constraints: {
           max_tools_search: request.max_tools_search || 30

@@ -1,0 +1,88 @@
+{
+  "drug_name": "Erlotinib",
+  "target_gene": "EGFR",
+  "mock_mode": false,
+  "timestamp": "2026-03-24T20:50:06.693240+00:00",
+  "pathways": [
+    {
+      "pathway": "PI3K/AKT/mTOR  Signaling",
+      "description": "PI3K/AKT/mTOR  Signaling",
+      "NES": -1.6160284844040274,
+      "padj": 0.008235666772252138,
+      "pvalue": 0.01,
+      "leading_edge_genes": "PTEN;EGFR;AKT1"
+    },
+    {
+      "pathway": "UV Response Dn",
+      "description": "UV Response Dn",
+      "NES": -1.5331185181182814,
+      "padj": 0.019216555801921654,
+      "pvalue": 0.009615384615384616,
+      "leading_edge_genes": "PTEN;ERBB2"
+    },
+    {
+      "pathway": "Spermatogenesis",
+      "description": "Spermatogenesis",
+      "NES": -1.5335662084484374,
+      "padj": 0.028824833702882482,
+      "pvalue": 0.0,
+      "leading_edge_genes": "MTOR;BRAF"
+    },
+    {
+      "pathway": "Allograft Rejection",
+      "description": "Allograft Rejection",
+      "NES": -1.4633659686406737,
+      "padj": 0.05662020905923344,
+      "pvalue": 0.02127659574468085,
+      "leading_edge_genes": "EGFR;AKT1"
+    },
+    {
+      "pathway": "Apical Junction",
+      "description": "Apical Junction",
+      "NES": -1.429407566357632,
+      "padj": 0.06835603420969275,
+      "pvalue": 0.039603960396039604,
+      "leading_edge_genes": "PTEN;EGFR"
+    },
+    {
+      "pathway": "Complement",
+      "description": "Complement",
+      "NES": -1.2735447967190643,
+      "padj": 0.32256361524654203,
+      "pvalue": 0.15384615384615385,
+      "leading_edge_genes": "PIK3CA"
+    },
+    {
+      "pathway": "Notch Signaling",
+      "description": "Notch Signaling",
+      "NES": 1.183355006501951,
+      "padj": 0.5188268749785864,
+      "pvalue": 0.19230769230769232,
+      "leading_edge_genes": "CCND1"
+    },
+    {
+      "pathway": "Estrogen Response Late",
+      "description": "Estrogen Response Late",
+      "NES": 1.1958723467759884,
+      "padj": 0.547795251310515,
+      "pvalue": 0.2830188679245283,
+      "leading_edge_genes": "CCND1;BCL2"
+    },
+    {
+      "pathway": "Angiogenesis",
+      "description": "Angiogenesis",
+      "NES": 1.2151062805255552,
+      "padj": 0.5507246376811595,
+      "pvalue": 0.1875,
+      "leading_edge_genes": "VEGFA"
+    },
+    {
+      "pathway": "Unfolded Protein Response",
+      "description": "Unfolded Protein Response",
+      "NES": 1.2151062805255552,
+      "padj": 0.5507246376811595,
+      "pvalue": 0.1875,
+      "leading_edge_genes": "VEGFA"
+    }
+  ]
+}

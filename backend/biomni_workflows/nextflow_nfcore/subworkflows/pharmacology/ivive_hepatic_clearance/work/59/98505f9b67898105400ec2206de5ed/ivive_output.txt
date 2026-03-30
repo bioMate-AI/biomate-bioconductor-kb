@@ -1,0 +1,18 @@
+Biomni: IVIVE Hepatic Clearance Scaling
+============================================================
+
+Species:            Human
+Assay type:         microsomal
+Scaling model:      Well Stirred
+
+Input CLint:        100.00 μL/min/mg (or /10⁶ cells)
+Scaled CLint:       115.6500 mL/min/kg
+fu (plasma):        0.100
+
+Predicted CLh:      7.420 mL/min/kg
+90% CI:             1.298 – 13.541 mL/min/kg
+Hepatic QH:         20.7 mL/min/kg
+CLh/QH fraction:    35.8%
+Extraction class:   INTERMEDIATE
+
+Well-stirred model: Wilkinson & Shand 1975 Clin Pharmacol Ther 18:377. Scaling factors: Davies & Morris 1993 Pharm Res 10:1093; Barter et al. 2007 Drug Metab Dispos 35:1514. Uncertainty: Obach 1999 Drug Metab Dispos 27:1350.

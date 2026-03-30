@@ -1,0 +1,147 @@
+digraph "dag" {
+rankdir=TB;
+v0 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v0 -> v1;
+
+v1 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v1 -> v14 [label="ch_fasta"];
+
+v2 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.of"];
+v3 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v2 -> v3;
+
+v3 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v16 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v3 -> v16 [label="ch_ligand"];
+
+v4 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v5 [shape=point];
+v4 -> v5 [label="ch_struct_pdb"];
+
+v6 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v7 [shape=point];
+v6 -> v7 [label="ch_struct_cif"];
+
+v8 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v9 [shape=point];
+v8 -> v9 [label="ch_struct_pae"];
+
+v10 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v11 [shape=point];
+v10 -> v11 [label="ch_struct_scores"];
+
+v12 [shape=point,label="",fixedsize=true,width=0.1,xlabel="Channel.empty"];
+v13 [shape=point];
+v12 -> v13 [label="ch_pred_versions"];
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v15 [shape=point];
+v14 -> v15 [label="structure_cif"];
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v16 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v14 -> v16 [label="structure_pdb"];
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v24 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v14 -> v24 [label="pae"];
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v31 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v14 -> v31 [label="pred_scores"];
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v28 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v14 -> v28 [label="ch_pred_versions"];
+
+v16 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="combine"];
+v17 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v16 -> v17;
+
+v17 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v18 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v17 -> v18 [label="ch_pdb_ligand"];
+
+v18 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v18 -> v21;
+
+v17 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v19 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v17 -> v19 [label="ch_pdb_ligand"];
+
+v19 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v19 -> v21;
+
+v20 [shape=point,label="",fixedsize=true,width=0.1];
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v20 -> v21 [label="num_poses"];
+
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v23 [shape=point];
+v21 -> v23 [label="diffdock_top"];
+
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v22 [shape=point];
+v21 -> v22 [label="diffdock_all"];
+
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v33 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v21 -> v33 [label="diffdock_scores"];
+
+v21 [label="STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING"];
+v28 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v21 -> v28;
+
+v14 [label="STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION"];
+v24 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v14 -> v24 [label="structure_pdb"];
+
+v24 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="join"];
+v25 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v24 -> v25;
+
+v25 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v26 [label="STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING"];
+v25 -> v26 [label="ch_vina"];
+
+v3 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="map"];
+v26 [label="STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING"];
+v3 -> v26 [label="ch_ligand"];
+
+v26 [label="STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING"];
+v27 [shape=point];
+v26 -> v27 [label="vina_poses"];
+
+v26 [label="STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING"];
+v35 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v26 -> v35 [label="vina_scores"];
+
+v26 [label="STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING"];
+v29 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v26 -> v29;
+
+v28 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v29 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v28 -> v29;
+
+v29 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="mix"];
+v30 [shape=point];
+v29 -> v30 [label="versions"];
+
+v31 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v32 [shape=point];
+v31 -> v32;
+
+v33 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v34 [shape=point];
+v33 -> v34;
+
+v35 [shape=circle,label="",fixedsize=true,width=0.1,xlabel="view"];
+v36 [shape=point];
+v35 -> v36;
+
+}

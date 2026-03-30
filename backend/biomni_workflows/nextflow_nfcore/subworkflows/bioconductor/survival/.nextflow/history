@@ -1,0 +1,2 @@
+2026-03-04 21:14:26	1.8s	suspicious_kalman	OK	656dd5c74ed68d2755ddcc72ee9ee053	17724616-d839-44b6-b541-c5eea1f1c667	nextflow run main.nf -profile test
+2026-03-04 21:21:00	1.8s	agitated_legentil	OK	656dd5c74ed68d2755ddcc72ee9ee053	8bf2da18-95c4-4b97-a2bb-4edd993d74c6	nextflow run main.nf -profile test

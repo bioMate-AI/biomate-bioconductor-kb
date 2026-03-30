@@ -1,0 +1,41 @@
+{
+  "drug_name": "Erlotinib",
+  "target_gene": "EGFR",
+  "n_de_genes": 5,
+  "qc_status": "WARN",
+  "top_pathways": [
+    {
+      "name": "PI3K/AKT/mTOR  Signaling",
+      "NES": -1.6160284844040274,
+      "padj": 0.008235666772252138
+    },
+    {
+      "name": "Spermatogenesis",
+      "NES": -1.5335662084484374,
+      "padj": 0.028824833702882482
+    },
+    {
+      "name": "UV Response Dn",
+      "NES": -1.5331185181182814,
+      "padj": 0.019216555801921654
+    },
+    {
+      "name": "Allograft Rejection",
+      "NES": -1.4633659686406737,
+      "padj": 0.05662020905923344
+    },
+    {
+      "name": "Apical Junction",
+      "NES": -1.429407566357632,
+      "padj": 0.06835603420969275
+    }
+  ],
+  "cmap_top_match": {
+    "drug_name": "N/A",
+    "similarity": 0.0,
+    "moa_annotation": "N/A"
+  },
+  "moa_hypothesis": "Treatment with Erlotinib induces suppression of the PI3K/AKT/mTOR  Signaling pathway (NES=-1.62), consistent with N/A (CMap similarity=0.00), supporting EGFR engagement.",
+  "mock_mode": false,
+  "timestamp": "2026-03-24T20:50:07.227268Z"
+}

@@ -6,7 +6,7 @@ process SYNCRAFT {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:nextflow'
 
     input:
     tuple val(meta), val(smiles)  // Target molecule SMILES
@@ -43,7 +43,7 @@ process SYNCRAFT_BATCH {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ai-tools/syncraft:nextflow'
 
     input:
     tuple val(meta), path(smiles_file)  // File with SMILES, one per line

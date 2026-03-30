@@ -1,0 +1,5 @@
+    "STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING":
+        diffdock: "1.1.2"
+        python: 3.12.3
+        mock_mode: "true"
+    END_VERSIONS

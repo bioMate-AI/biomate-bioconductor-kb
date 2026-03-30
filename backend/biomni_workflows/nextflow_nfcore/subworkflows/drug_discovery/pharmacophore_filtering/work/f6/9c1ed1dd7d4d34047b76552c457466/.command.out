@@ -1,0 +1,11 @@
+Pharmacophore screening (mock): 2/10 compounds passed (min_features=3)
+  [FAIL] CPND001  matched=0  types=[]
+  [FAIL] CPND002  matched=0  types=[]
+  [FAIL] CPND003  matched=2  types=['Acceptor', 'Donor']
+  [FAIL] CPND004  matched=1  types=['Donor']
+  [PASS] CPND005  matched=4  types=['Donor', 'Acceptor', 'Acceptor', 'Aromatic']
+  [FAIL] CPND006  matched=0  types=[]
+  [FAIL] CPND007  matched=0  types=[]
+  [FAIL] CPND008  matched=1  types=['Acceptor']
+  [PASS] CPND009  matched=4  types=['Donor', 'Acceptor', 'Aromatic', 'Acceptor']
+  [FAIL] CPND010  matched=1  types=['Aromatic']

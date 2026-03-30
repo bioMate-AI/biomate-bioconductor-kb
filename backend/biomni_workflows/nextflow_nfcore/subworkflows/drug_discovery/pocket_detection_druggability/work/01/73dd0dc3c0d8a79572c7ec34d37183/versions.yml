@@ -1,0 +1,5 @@
+    "POCKET_DETECTION_DRUGGABILITY:FPOCKET_POCKET_DETECTION":
+        fpocket: "4.1"
+        python: 3.11.14
+        mock_mode: "false"
+    END_VERSIONS

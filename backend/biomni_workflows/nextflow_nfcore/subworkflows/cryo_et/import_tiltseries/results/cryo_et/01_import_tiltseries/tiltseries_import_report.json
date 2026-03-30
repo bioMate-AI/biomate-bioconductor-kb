@@ -1,0 +1,16 @@
+{
+  "step": "01_import_tiltseries",
+  "timestamp": "2026-03-05T16:38:04.091773",
+  "num_tiltseries": 3,
+  "num_tilts_per_series": 41,
+  "pixel_size_angstroms": 1.35,
+  "voltage_kv": 300,
+  "total_dose_e_per_a2": 120.0,
+  "tilt_range_deg": [
+    -60.0,
+    60.0
+  ],
+  "tilt_increment_deg": 3.0,
+  "mdoc_metadata_available": false,
+  "mock_mode": true
+}

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import type { OutputDataset } from "@shared/schema"
 import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } from "./viewers"
+import { CsvTableViewer } from "./viewers/csv-table-viewer"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
 import { emitUxEvent } from "@/lib/ux-telemetry"
@@ -303,6 +304,14 @@ function OutputRenderer({ output, invocationId, onDownload }: OutputRendererProp
     case 'interactive':
       return <InteractiveOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'table':
+      // Use sortable CsvTableViewer for structured data formats
+      if (['json', 'csv', 'tsv', 'tabular'].includes(output.extension?.toLowerCase() || '')) {
+        return (
+          <div data-testid="csv-table-viewer">
+            <CsvTableViewer output={output} className="w-full" />
+          </div>
+        )
+      }
       return <TableOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     case 'text':
       return <TextOutput output={output} invocationId={invocationId} onDownload={onDownload} />

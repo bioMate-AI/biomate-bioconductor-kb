@@ -1,0 +1,46 @@
+{
+  "source": "mock",
+  "n_references": 3,
+  "reference_smiles": [
+    "CC(=O)Oc1ccccc1C(=O)O",
+    "CC(=O)Oc1ccccc1C(=O)N",
+    "OC(=O)c1ccccc1O"
+  ],
+  "n_features": 4,
+  "features": [
+    {
+      "type": "Donor",
+      "label": "D",
+      "description": "Hydroxyl or NH hydrogen-bond donor",
+      "count_in_references": 3,
+      "fraction": 1.0,
+      "smarts": "[OX2H,NX3H2,NX3H1]"
+    },
+    {
+      "type": "Acceptor",
+      "label": "A1",
+      "description": "Carbonyl C=O acceptor (ester/acid/amide)",
+      "count_in_references": 3,
+      "fraction": 1.0,
+      "smarts": "[CX3](=[OX1])"
+    },
+    {
+      "type": "Acceptor",
+      "label": "A2",
+      "description": "Ester or hydroxyl oxygen acceptor",
+      "count_in_references": 3,
+      "fraction": 1.0,
+      "smarts": "[OX2][CX3](=[OX1])"
+    },
+    {
+      "type": "Aromatic",
+      "label": "Ar",
+      "description": "Aromatic benzene ring",
+      "count_in_references": 3,
+      "fraction": 1.0,
+      "smarts": "c1ccccc1"
+    }
+  ],
+  "timestamp": "2026-03-24T22:30:04.206563Z",
+  "mock_mode": true
+}

@@ -1,0 +1,260 @@
+Mar-12 19:44:06.658 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work' --outdir /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/output -with-trace /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/workflow-trace.txt -c /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/biomate_executor_override.config
+Mar-12 19:44:06.799 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-12 19:44:06.828 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/nextflow.config
+Mar-12 19:44:06.830 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/biomate_executor_override.config
+Mar-12 19:44:06.831 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/nextflow.config
+Mar-12 19:44:06.831 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/biomate_executor_override.config
+Mar-12 19:44:06.846 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-12 19:44:07.200 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-12 19:44:07.256 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-12 19:44:07.262 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-12 19:44:07.262 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-12 19:44:07.264 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-12 19:44:07.272 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-12 19:44:07.347 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-12 19:44:07.348 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Mar-12 19:44:07.348 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Mar-12 19:44:07.846 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Mar-12 19:44:07.866 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Mar-12 19:44:07.869 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Mar-12 19:44:10.253 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Mar-12 19:44:10.260 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Mar-12 19:44:10.260 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Mar-12 19:44:10.270 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Mar-12 19:44:10.278 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Mar-12 19:44:10.285 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/.nextflow/secrets/store.json
+Mar-12 19:44:10.287 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@603cabc4] - activable => nextflow.secret.LocalSecretsProvider@603cabc4
+Mar-12 19:44:10.287 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-12 19:44:10.299 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/main.nf` [thirsty_tesla] DSL2 - revision: 9772057b37
+Mar-12 19:44:10.324 [main] DEBUG nextflow.Session - Session UUID: aa7c4c90-5d75-423f-82a1-76539cb1c40d
+Mar-12 19:44:10.325 [main] DEBUG nextflow.Session - Run name: thirsty_tesla
+Mar-12 19:44:10.325 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-12 19:44:10.331 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
+Mar-12 19:44:10.340 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Mar-12 19:44:10.947 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-12 19:44:10.949 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-12 19:44:10.960 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 2673949@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.2 GB) - Swap: 16 GB (13.1 GB)
+Mar-12 19:44:11.307 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work
+
+Mar-12 19:44:11.308 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work [null]
+Mar-12 19:44:11.308 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/bin
+Mar-12 19:44:11.329 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Mar-12 19:44:11.340 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-12 19:44:11.344 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-12 19:44:11.386 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-12 19:44:11.390 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-12 19:44:11.436 [main] DEBUG nextflow.Session - Session start
+Mar-12 19:44:11.441 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/25e5ca60-d20d-4afa-b59d-de9081135d92/workflow-trace.txt
+Mar-12 19:44:11.662 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-12 19:44:11.739 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4
+Mar-12 19:44:11.747 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Mar-12 19:44:11.747 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Mar-12 19:44:11.751 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Mar-12 19:44:11.758 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Mar-12 19:44:11.760 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Mar-12 19:44:11.761 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Mar-12 19:44:11.764 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Mar-12 19:44:11.809 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:null, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Mar-12 19:44:11.821 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4': maxForks=0; fair=false; array=0
+Mar-12 19:44:11.849 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4, GET_RNA_SEQ_ARCHS4
+Mar-12 19:44:11.850 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Mar-12 19:44:11.850 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4
+Mar-12 19:44:11.851 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_40b5cf3f37e2de76: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/main.nf
+Mar-12 19:44:11.851 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-12 19:44:11.851 [main] DEBUG nextflow.Session - Session await
+Mar-12 19:44:13.028 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Created job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomni-lite-latest:1; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest
+Mar-12 19:44:13.186 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)` submitted > job=a32b73e6-4b0d-466c-8f5f-bc6b8f7950b5; work-dir=s3://biomate-nextflow-work/nextflow/work/f5/18bac484ccd3c2ab05904a578ef56e
+Mar-12 19:44:13.186 [AWSBatch-executor-1] INFO  nextflow.Session - [f5/18bac4] Submitted process > GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)
+Mar-12 19:47:22.390 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run); status: COMPLETED; exit: 255; error: nextflow.exception.ProcessException: Essential container in task exited; workDir: s3://biomate-nextflow-work/nextflow/work/f5/18bac484ccd3c2ab05904a578ef56e]
+Mar-12 19:47:22.391 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-12 19:47:22.600 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run); work-dir=s3://biomate-nextflow-work/nextflow/work/f5/18bac484ccd3c2ab05904a578ef56e
+  error [nextflow.exception.ProcessFailedException]: Process `GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)` failed
+Mar-12 19:47:22.661 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-6638361625389465664/.command.out
+Mar-12 19:47:22.665 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)'
+
+Caused by:
+  Essential container in task exited
+
+
+Command executed:
+
+  # Export parameters as environment variables
+      export PARAM_GENE_NAME="null"
+      export PARAM_K="10"
+  
+      python3 << 'PYEOF'
+  # Auto-generated from Galaxy wrapper - self-contained implementation
+  import gget
+  import json
+  import os
+  
+  def auto_convert(val):
+      # Auto-convert string to appropriate type
+      if val is None or val == '' or val == 'null':
+          return None
+      # Try bool
+      if isinstance(val, str) and val.lower() in ('true', 'false'):
+          return val.lower() == 'true'
+      # Try JSON for lists and dicts
+      if isinstance(val, str) and val.strip().startswith(('[', '{')):
+          try:
+              return json.loads(val)
+          except json.JSONDecodeError:
+              pass
+      # Try int
+      try:
+          if isinstance(val, str) and '.' not in val:
+              return int(val)
+      except ValueError:
+          pass
+      # Try float
+      try:
+          return float(val)
+      except ValueError:
+          pass
+      # Return as string
+      return val
+  
+  
+  
+  def get_rna_seq_archs4(gene_name: str, K: int = 10) -> str:
+      '''Given a gene name, this function returns the steps it performs and the max K transcripts-per-million (TPM)
+      per tissue from the RNA-seq expression.
+  
+      Parameters
+      ----------
+      - gene_name (str): The gene name for which RNA-seq data is being fetched.
+      - K (int): The number of tissues to return. Default is 10.
+  
+      Returns
+      -------
+      - str: The steps performed and the result.
+  
+      '''
+      steps_log = f"Starting RNA-seq data fetch for gene: {gene_name} with K: {K}\n"
+  
+      try:
+          # Fetch RNA-seq data using gget
+          steps_log += "Fetching RNA-seq data using gget.archs4...\n"
+          data = gget.archs4(gene_name, which="tissue")
+  
+          if data.empty:
+              steps_log += f"No RNA-seq data found for the gene {gene_name}.\n"
+              return steps_log
+  
+          # Create a readable output string
+          steps_log += f"RNA-seq expression data for {gene_name} fetched successfully. Formatting the top {K} tissues:\n"
+          readable_output = ""
+          for index, row in data.iterrows():
+              if index < K:
+                  tissue = row["id"]
+                  median_tpm = row["median"]
+                  readable_output += f"\nTissue: {tissue}\n  - Median TPM: {median_tpm}\n"
+              else:
+                  break
+  
+          steps_log += readable_output
+          return steps_log
+  
+      except Exception as e:
+          return f"An error occurred: {e}"
+  
+  # Execute the function
+  try:
+      result = get_rna_seq_archs4(
+          gene_name=auto_convert(os.environ.get("PARAM_GENE_NAME", "")),
+          K=auto_convert(os.environ.get("PARAM_K", "10")),
+      )
+      success = True
+      error_msg = None
+  except Exception as e:
+      result = None
+      success = False
+      error_msg = str(e)
+  
+  # Save results
+  output_data = {
+      "success": success,
+      "function": "get_rna_seq_archs4",
+      "domain": "genomics",
+  }
+  
+  if success:
+      if isinstance(result, (dict, list)):
+          output_data["result"] = result
+      else:
+          output_data["result"] = str(result)
+  else:
+      output_data["error"] = error_msg
+  
+  with open("get_rna_seq_archs4_results.json", "w") as f:
+      json.dump(output_data, f, indent=2, default=str)
+  
+  # Create human-readable output
+  NL = chr(10)  # newline character
+  with open("get_rna_seq_archs4_output.txt", "w") as f:
+      f.write("Biomni: Get Rna Seq Archs4" + NL)
+      f.write("=" * 60 + NL + NL)
+      if success:
+          if isinstance(result, str):
+              f.write(result)
+          elif isinstance(result, dict):
+              for key, value in result.items():
+                  f.write(f"{key}: {value}" + NL)
+          else:
+              f.write(str(result))
+      else:
+          f.write(f"ERROR: {error_msg}" + NL)
+  
+  if not success:
+      exit(1)
+  PYEOF
+  
+      cat <<-END_VERSIONS > versions.yml
+      "GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4":
+          python: $(python3 --version | cut -d' ' -f2)
+          biomni_function: "get_rna_seq_archs4"
+      END_VERSIONS
+
+Command exit status:
+  255
+
+Command output:
+  (empty)
+
+Command error:
+  exec /usr/bin/bash: exec format error
+
+Work dir:
+  s3://biomate-nextflow-work/nextflow/work/f5/18bac484ccd3c2ab05904a578ef56e
+
+Container:
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomni-lite:latest
+
+Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`
+Mar-12 19:47:22.670 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-12 19:47:22.726 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-12 19:47:22.779 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Mar-12 19:47:22.779 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-12 19:47:22.780 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-12 19:47:22.783 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=2s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
+Mar-12 19:47:22.880 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-12 19:47:22.886 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-12 19:47:23.262 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-12 19:47:23.298 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-12 19:47:23.302 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-12 19:47:23.324 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Mar-12 19:47:23.324 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Mar-12 19:47:23.324 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-12 19:47:23.324 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

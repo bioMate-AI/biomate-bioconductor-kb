@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: biomate-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-biomate}
+      POSTGRES_USER: ${POSTGRES_USER:-biomate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-biomate}
+    ports:
+      - "5432:5432"
+    volumes:
+      - biomate-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-biomate} -d ${POSTGRES_DB:-biomate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - biomate-network
+
+  galaxy-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: biomate-galaxy
+    ports:
+      - "8081:8080"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      GALAXY_CONFIG_FILE: /app/config/galaxy.yml
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - biomate-backend-db:/app/database
+      - biomate-backend-logs:/app/logs
+      - ./backend/config:/app/config
+    # Call gunicorn directly — foreground, no daemon, bypasses run.sh/Gravity entirely.
+    # --preload loads the app once in the master process before forking workers so
+    # workers start immediately ready (avoids the per-worker 5-min init that hits
+    # gunicorn's timeout and triggers the restart loop).
+    command: [
+      "gunicorn",
+      "galaxy.webapps.galaxy.fast_factory:factory()",
+      "--pythonpath", "lib",
+      "-k", "galaxy.webapps.galaxy.workers.Worker",
+      "--bind", "0.0.0.0:8080",
+      "--workers", "1",
+      "--timeout", "600",
+      "--preload",
+      "--log-level", "info"
+    ]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/version"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+    networks:
+      - biomate-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: biomate-frontend
+    ports:
+      - "5000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      GALAXY_URL: ${GALAXY_URL:-http://galaxy-backend:8080}
+      GALAXY_API_KEY: ${GALAXY_API_KEY:-}
+      REDIS_URL: ${REDIS_URL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-biomate}:${POSTGRES_PASSWORD:-biomate}@postgres:5432/${POSTGRES_DB:-biomate}}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      BILLING_INTERNAL_KEY: ${BILLING_INTERNAL_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      FORCE_HTTPS: ${FORCE_HTTPS:-0}
+      ENABLE_HSTS: ${ENABLE_HSTS:-0}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      galaxy-backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - biomate-network
+
+networks:
+  biomate-network:
+    driver: bridge
+
+volumes:
+  biomate-postgres-data:
+  biomate-backend-db:
+  biomate-backend-logs:

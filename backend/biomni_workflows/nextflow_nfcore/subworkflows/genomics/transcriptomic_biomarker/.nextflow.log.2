@@ -1,0 +1,357 @@
+Mar-17 18:54:05.530 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf -with-docker 'biomate/biomni-tools:latest' -profile standard -w /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/work --outdir /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/output -with-trace /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/workflow-trace.txt
+Mar-17 18:54:05.590 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-17 18:54:05.636 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-17 18:54:05.639 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-17 18:54:05.660 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-17 18:54:06.081 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools:latest`
+Mar-17 18:54:06.106 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-17 18:54:06.114 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-17 18:54:06.114 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-17 18:54:06.117 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-17 18:54:06.126 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-17 18:54:06.207 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-17 18:54:06.208 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-17 18:54:06.208 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-17 18:54:06.218 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/.nextflow/secrets/store.json
+Mar-17 18:54:06.220 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7c011174] - activable => nextflow.secret.LocalSecretsProvider@7c011174
+Mar-17 18:54:06.222 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-17 18:54:06.234 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf` [nice_hodgkin] DSL2 - revision: e126362047
+Mar-17 18:54:06.265 [main] DEBUG nextflow.Session - Session UUID: 8888f1ae-6384-4b9e-b44c-d760d53cf8b6
+Mar-17 18:54:06.266 [main] DEBUG nextflow.Session - Run name: nice_hodgkin
+Mar-17 18:54:06.266 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-17 18:54:06.271 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-17 18:54:06.274 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 18:54:06.286 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3318542@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (6.7 GB) - Swap: 16 GB (12.6 GB)
+Mar-17 18:54:06.299 [main] DEBUG nextflow.Session - Work-dir: /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/work [ext2/ext3]
+Mar-17 18:54:06.299 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/bin
+Mar-17 18:54:06.305 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-17 18:54:06.311 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-17 18:54:06.313 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-17 18:54:06.351 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-17 18:54:06.357 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-17 18:54:06.394 [main] DEBUG nextflow.Session - Session start
+Mar-17 18:54:06.398 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/workflow-trace.txt
+Mar-17 18:54:06.833 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-17 18:54:06.908 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Transcriptomic Biomarker Discovery Pipeline
+====================================================================
+Mode:              MOCK (synthetic data)
+Group column:      group
+Reference group:   control
+FDR threshold:     0.05
+|logFC| threshold: 1.0
+GSVA method:       gsva
+Output dir:        /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/output
+====================================================================
+
+Mar-17 18:54:06.951 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_INPUT_QC` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-17 18:54:06.962 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 18:54:06.962 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 18:54:06.970 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-17 18:54:06.977 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-17 18:54:06.979 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-17 18:54:06.996 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC': maxForks=0; fair=false; array=0
+Mar-17 18:54:07.020 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:LIMMA_DIFFERENTIAL_EXPRESSION` matches process TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-17 18:54:07.021 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 18:54:07.021 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 18:54:07.022 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-17 18:54:07.030 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_SIGNATURE_SCORING` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-17 18:54:07.031 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 18:54:07.031 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 18:54:07.032 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING': maxForks=0; fair=false; array=0
+Mar-17 18:54:07.040 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_REPORT` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 18:54:07.042 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 18:54:07.042 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 18:54:07.042 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT': maxForks=0; fair=false; array=0
+Mar-17 18:54:07.065 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LIMMA_DIFFERENTIAL_EXPRESSION, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC, BIOMARKER_SIGNATURE_SCORING, BIOMARKER_INPUT_QC, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING, TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION, BIOMARKER_REPORT, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 18:54:07.066 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-17 18:54:07.067 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-17 18:54:07.067 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-17 18:54:07.067 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-17 18:54:07.068 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 18:54:07.068 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_4a262b4feaeea3b9: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf
+Mar-17 18:54:07.068 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-17 18:54:07.068 [main] DEBUG nextflow.Session - Session await
+Mar-17 18:54:07.237 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 18:54:07.240 [Task submitter] INFO  nextflow.Session - [a5/c5114b] Submitted process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC (input_qc)
+Mar-17 18:55:09.615 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC (input_qc); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/work/a5/c5114b43762d0b19e0b11b0406f1d9]
+Mar-17 18:55:09.616 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 18:55:09.642 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 18:55:09.666 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 18:55:09.666 [Task submitter] INFO  nextflow.Session - [4e/9a8cba] Submitted process > TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION (limma_de)
+Mar-17 18:55:10.084 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION (limma_de); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/3d36276c-0c88-4551-bb0d-7b8b1bcf32b7/work/4e/9a8cba67caabc02d0360da693b4f9d]
+Mar-17 18:55:10.092 [Actor Thread 14] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING (signature_scoring); work-dir=null
+  error [nextflow.exception.ProcessUnrecoverableException]: Process `TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING (signature_scoring)` script contains error(s)
+Mar-17 18:55:10.101 [Actor Thread 14] ERROR nextflow.processor.TaskProcessor - Error executing process > 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING (signature_scoring)'
+
+Caused by:
+  No such variable: ref_group -- Check script 'main.nf' at line: 584
+
+
+Source block:
+      def mock          = params.mock_mode
+      def gsva_method   = params.gsva_method
+      def group_col     = params.group_column
+      def min_gs_size   = params.min_gene_set_size
+      def max_gs_size   = params.max_gene_set_size
+      """
+      if [ "${mock}" = "true" ]; then
+          python3 << 'EOF'
+  import csv
+  import json
+  import random
+  import math
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  n_samples  = 40
+  n_pathways = 50
+  
+  # -----------------------------------------------------------------------
+  # 1. Hallmark MSigDB pathway names (50 gene sets)
+  # -----------------------------------------------------------------------
+  hallmark_pathways = [
+      "HALLMARK_ADIPOGENESIS", "HALLMARK_ALLOGRAFT_REJECTION", "HALLMARK_ANDROGEN_RESPONSE",
+      "HALLMARK_ANGIOGENESIS", "HALLMARK_APICAL_JUNCTION", "HALLMARK_APICAL_SURFACE",
+      "HALLMARK_APOPTOSIS", "HALLMARK_BILE_ACID_METABOLISM", "HALLMARK_CHOLESTEROL_HOMEOSTASIS",
+      "HALLMARK_COAGULATION", "HALLMARK_COMPLEMENT", "HALLMARK_DNA_REPAIR",
+      "HALLMARK_E2F_TARGETS", "HALLMARK_EPITHELIAL_MESENCHYMAL_TRANSITION",
+      "HALLMARK_ESTROGEN_RESPONSE_EARLY", "HALLMARK_ESTROGEN_RESPONSE_LATE",
+      "HALLMARK_FATTY_ACID_METABOLISM", "HALLMARK_G2M_CHECKPOINT",
+      "HALLMARK_GLYCOLYSIS", "HALLMARK_HEDGEHOG_SIGNALING",
+      "HALLMARK_HEME_METABOLISM", "HALLMARK_HYPOXIA",
+      "HALLMARK_IL2_STAT5_SIGNALING", "HALLMARK_IL6_JAK_STAT3_SIGNALING",
+      "HALLMARK_INFLAMMATORY_RESPONSE", "HALLMARK_INTERFERON_ALPHA_RESPONSE",
+      "HALLMARK_INTERFERON_GAMMA_RESPONSE", "HALLMARK_KRAS_SIGNALING_DN",
+      "HALLMARK_KRAS_SIGNALING_UP", "HALLMARK_MITOTIC_SPINDLE",
+      "HALLMARK_MTORC1_SIGNALING", "HALLMARK_MYC_TARGETS_V1",
+      "HALLMARK_MYC_TARGETS_V2", "HALLMARK_MYOGENESIS",
+      "HALLMARK_NOTCH_SIGNALING", "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+      "HALLMARK_P53_PATHWAY", "HALLMARK_PANCREAS_BETA_CELLS",
+      "HALLMARK_PEROXISOME", "HALLMARK_PI3K_AKT_MTOR_SIGNALING",
+      "HALLMARK_PROTEIN_SECRETION", "HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY",
+      "HALLMARK_SPERMATOGENESIS", "HALLMARK_TGF_BETA_SIGNALING",
+      "HALLMARK_TNFA_SIGNALING_VIA_NFKB", "HALLMARK_UNFOLDED_PROTEIN_RESPONSE",
+      "HALLMARK_UV_RESPONSE_DN", "HALLMARK_UV_RESPONSE_UP",
+      "HALLMARK_WNT_BETA_CATENIN_SIGNALING", "HALLMARK_XENOBIOTIC_METABOLISM",
+  ]
+  
+  sample_ids   = [f"S{str(k+1).zfill(3)}" for k in range(n_samples)]
+  group_labels = ["control"] * (n_samples // 2) + ["treatment"] * (n_samples // 2)
+  
+  # -----------------------------------------------------------------------
+  # 2. Generate GSVA/ssGSEA score matrix (40 samples × 50 pathways)
+  #    GSVA scores range from −1 to +1; ssGSEA are normalised enrichment scores.
+  #    Treatment group has higher scores for immune/inflammation pathways.
+  # -----------------------------------------------------------------------
+  immune_pathways = {p for p in hallmark_pathways if any(kw in p for kw in
+      ["INTERFERON","INFLAMMATORY","IL","COMPLEMENT","ALLOGRAFT","TNFA","IMMUNE"])}
+  
+  header = ["sample_id", "group"] + hallmark_pathways
+  score_rows = [header]
+  
+  for k, (sid, grp) in enumerate(zip(sample_ids, group_labels)):
+      row = [sid, grp]
+      for pw in hallmark_pathways:
+          base = random.gauss(0.0, 0.25)
+          if grp == "treatment" and pw in immune_pathways:
+              base += random.gauss(0.35, 0.1)
+          elif grp == "treatment" and "MYC" in pw:
+              base += random.gauss(0.20, 0.08)
+          elif grp == "control" and "METABOL" in pw:
+              base += random.gauss(0.15, 0.08)
+          score = round(max(-1.0, min(1.0, base)), 5)
+          row.append(score)
+      score_rows.append(row)
+  
+  with open("signature_scores.csv", "w", newline="") as f:
+      writer = csv.writer(f)
+      writer.writerows(score_rows)
+  
+  # -----------------------------------------------------------------------
+  # 3. Pathway summary: mean score per group, delta, top 10 enriched per group
+  # -----------------------------------------------------------------------
+  pathway_stats = []
+  for j, pw in enumerate(hallmark_pathways):
+      ctrl_scores = [float(score_rows[k+1][j+2]) for k in range(n_samples // 2)]
+      trt_scores  = [float(score_rows[k+n_samples//2+1][j+2]) for k in range(n_samples // 2)]
+      mean_ctrl   = round(sum(ctrl_scores) / len(ctrl_scores), 5)
+      mean_trt    = round(sum(trt_scores)  / len(trt_scores),  5)
+      delta       = round(mean_trt - mean_ctrl, 5)
+      # Simple t-like statistic for ranking
+      pooled_sd   = math.sqrt(
+          (sum((x - mean_ctrl)**2 for x in ctrl_scores) +
+           sum((x - mean_trt)**2  for x in trt_scores)) /
+          (n_samples - 2)
+      )
+      se    = pooled_sd * math.sqrt(2.0 / (n_samples // 2))
+      t_val = round(delta / max(se, 1e-9), 4)
+      pathway_stats.append({
+          "pathway":    pw,
+          "mean_control":   mean_ctrl,
+          "mean_treatment": mean_trt,
+          "delta":          delta,
+          "t_statistic":    t_val,
+          "n_genes":        random.randint(32, 200),
+      })
+  
+  pathway_stats.sort(key=lambda x: abs(x["t_statistic"]), reverse=True)
+  top_treatment = [p for p in pathway_stats if p["delta"] > 0][:10]
+  top_control   = [p for p in pathway_stats if p["delta"] < 0][:10]
+  
+  summary = {
+      "pipeline":       "transcriptomic_biomarker",
+      "step":           "BIOMARKER_SIGNATURE_SCORING",
+      "timestamp":      datetime.utcnow().isoformat() + "Z",
+      "mock_mode":      True,
+      "method":         "${gsva_method}",
+      "gene_set_db":    "MSigDB_Hallmark_v2023.2",
+      "n_gene_sets":    n_pathways,
+      "n_samples":      n_samples,
+      "min_gene_set_size": int("${min_gs_size}"),
+      "max_gene_set_size": int("${max_gs_size}"),
+      "top_enriched_treatment": [p["pathway"] for p in top_treatment],
+      "top_enriched_control":   [p["pathway"] for p in top_control],
+      "pathway_stats":  pathway_stats,
+  }
+  with open("pathway_summary.json", "w") as f:
+      json.dump(summary, f, indent=2)
+  
+  print(f"BIOMARKER_SIGNATURE_SCORING mock complete")
+  print(f"  Samples:         {n_samples}")
+  print(f"  Pathways scored: {n_pathways}")
+  print(f"  Top treatment:   {top_treatment[0]['pathway']}")
+  print(f"  Top control:     {top_control[0]['pathway']}")
+  EOF
+  
+      else
+          # -----------------------------------------------------------------------
+          # Live: GSVA/ssGSEA via Bioconductor GSVA package
+          # -----------------------------------------------------------------------
+          Rscript - << 'REOF'
+  suppressPackageStartupMessages({
+      library(GSVA)
+      library(msigdbr)
+      library(limma)
+      library(jsonlite)
+  })
+  
+  group_col   <- "${group_col}"
+  method      <- "${gsva_method}"
+  min_gs_size <- as.integer("${min_gs_size}")
+  max_gs_size <- as.integer("${max_gs_size}")
+  
+  # Read inputs
+  mat      <- read.csv("${validated_matrix}",   row.names=1, check.names=FALSE)
+  metadata <- read.csv("${validated_metadata}", check.names=FALSE)
+  rownames(metadata) <- metadata[["sample_id"]]
+  metadata <- metadata[colnames(mat), , drop=FALSE]
+  
+  de       <- read.csv("${de_results}", check.names=FALSE)
+  
+  # Fetch MSigDB Hallmark gene sets (Human)
+  msig_h    <- msigdbr(species="Homo sapiens", category="H")
+  gene_sets <- split(msig_h[["gene_symbol"]], msig_h[["gs_name"]])
+  
+  # voom-normalise the count matrix before GSVA
+  dge <- edgeR::DGEList(counts=mat)
+  dge <- edgeR::calcNormFactors(dge)
+  v   <- voom(dge)
+  expr_mat <- v[["E"]]   # log2-CPM matrix
+  
+  # Run GSVA
+  if (method == "ssgsea") {
+      gsva_param <- ssgseaParam(expr_mat, gene_sets,
+                                 minSize=min_gs_size, maxSize=max_gs_size)
+  } else {
+      gsva_param <- gsvaParam(expr_mat, gene_sets,
+                               minSize=min_gs_size, maxSize=max_gs_size)
+  }
+  gsva_scores <- gsva(gsva_param, verbose=FALSE)
+  
+  # Write scores (samples as rows, pathways as columns)
+  scores_df           <- as.data.frame(t(gsva_scores))
+  scores_df[["sample_id"]] <- rownames(scores_df)
+  scores_df[["group"]]     <- metadata[rownames(scores_df), group_col]
+  scores_df <- scores_df[, c("sample_id", "group", colnames(scores_df)[!colnames(scores_df) %in% c("sample_id","group")])]
+  write.csv(scores_df, "signature_scores.csv", row.names=FALSE)
+  
+  # Pathway-level summary: mean per group + delta
+  pw_names <- rownames(gsva_scores)
+  groups   <- unique(metadata[[group_col]])
+  pw_stats <- lapply(pw_names, function(pw) {
+      scores_by_group <- tapply(gsva_scores[pw, ], metadata[[group_col]], mean, na.rm=TRUE)
+      ref_score <- scores_by_group["${ref_group}"]
+      trt_score <- scores_by_group[setdiff(names(scores_by_group), "${ref_group}")[1]]
+      list(pathway=pw,
+           mean_control=round(ref_score, 5),
+           mean_treatment=round(trt_score, 5),
+           delta=round(trt_score - ref_score, 5))
+  })
+  pw_stats <- pw_stats[order(sapply(pw_stats, function(x) -abs(x[["delta"]])))]
+  
+  top_trt  <- head(Filter(function(x) x[["delta"]] > 0, pw_stats), 10)
+  top_ctrl <- head(Filter(function(x) x[["delta"]] < 0, pw_stats), 10)
+  
+  summary_list <- list(
+      pipeline       = "transcriptomic_biomarker",
+      step           = "BIOMARKER_SIGNATURE_SCORING",
+      timestamp      = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ"),
+      mock_mode      = FALSE,
+      method         = method,
+      gene_set_db    = "MSigDB_Hallmark_v2023.2",
+      n_gene_sets    = nrow(gsva_scores),
+      n_samples      = ncol(gsva_scores),
+      top_enriched_treatment = sapply(top_trt,  function(x) x[["pathway"]]),
+      top_enriched_control   = sapply(top_ctrl, function(x) x[["pathway"]]),
+      pathway_stats  = pw_stats
+  )
+  write(toJSON(summary_list, auto_unbox=TRUE, pretty=TRUE), "pathway_summary.json")
+  
+  cat(sprintf("BIOMARKER_SIGNATURE_SCORING complete: %d pathways, %d samples\\n",
+              nrow(gsva_scores), ncol(gsva_scores)))
+  REOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "${task.process}":
+          GSVA: "1.50.0"
+          msigdbr: "7.5.1"
+          R: \$(Rscript --version 2>&1 | cut -d' ' -f4 || echo "N/A")
+          python: \$(python3 --version 2>&1 | cut -d' ' -f2 || echo "N/A")
+          mock_mode: "${mock}"
+      END_VERSIONS
+      """
+
+Container:
+  docker.io/bioconductor/bioconductor_docker:RELEASE_3_18
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Mar-17 18:55:10.103 [Actor Thread 14] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-17 18:55:10.107 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-17 18:55:10.108 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-17 18:55:10.108 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-17 18:55:10.108 [Actor Thread 20] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING; work-dir=null
+  error [java.lang.InterruptedException]: java.lang.InterruptedException
+Mar-17 18:55:10.110 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-17 18:55:10.110 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-17 18:55:10.114 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=2; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=228ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=16 GB; ]
+Mar-17 18:55:10.324 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-17 18:55:10.327 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-17 18:55:10.737 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-17 18:55:10.774 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-17 18:55:10.777 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-17 18:55:10.783 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-17 18:55:10.783 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

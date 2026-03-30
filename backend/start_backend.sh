@@ -18,6 +18,17 @@ export REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.
 # Lago (placeholder until configured)
 export LAGO_API_URL=https://api.getlago.com
 
+# Java billing service
+export JAVA_BILLING_SERVICE_URL=http://35.86.137.71:8080
+export JAVA_BILLING_ENABLED=true
+
+# Start billing monitoring stack (Prometheus + Grafana) if Docker is available
+MONITORING_DIR="$(dirname "$0")/../billing_system/monitoring"
+if command -v docker &>/dev/null && [ -f "$MONITORING_DIR/docker-compose.yml" ]; then
+  echo "[billing] Starting monitoring stack (Prometheus :9090, Grafana :3000)..."
+  docker compose -f "$MONITORING_DIR/docker-compose.yml" up -d --quiet-pull 2>&1 | grep -v "^time=" || true
+fi
+
 exec .venv/bin/gunicorn \
   "galaxy.webapps.galaxy.fast_factory:factory()" \
   --timeout 300 \

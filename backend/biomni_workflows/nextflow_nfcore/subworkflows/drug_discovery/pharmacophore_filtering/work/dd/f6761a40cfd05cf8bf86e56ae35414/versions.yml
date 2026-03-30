@@ -1,0 +1,6 @@
+    "PHARMACOPHORE_FILTERING:PHARMACOPHORE_SCREEN":
+        rdkit: 2023.09.6
+        python: 3.11.14
+        mock_mode: "false"
+        min_features: "3"
+    END_VERSIONS

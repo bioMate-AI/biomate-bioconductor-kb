@@ -1,0 +1,13 @@
+{
+  "mock_mode": false,
+  "seed_smiles": "CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1",
+  "design_mode": "scaffold_decoration",
+  "scoring_function": "qed_sa",
+  "n_steps": 500,
+  "batch_size": 128,
+  "molecules_generated": 1,
+  "molecules_after_filter": 0,
+  "final_mean_score": 0.7423,
+  "final_top_score": 0.7423,
+  "top_compound": null
+}

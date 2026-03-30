@@ -40,9 +40,10 @@ process ADMET_PRED {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
+    def smiles_param = params.smiles != null ? params.smiles.toString() : 'null'
     """
     # Export parameters as environment variables
-    export PARAM_SMILES="${params.smiles?.toString()?.replace('"', '\\"') ?: 'null'}"
+    export PARAM_SMILES='${smiles_param}'
 
     python3 << 'PYEOF'
 # ADMET safety screening using RDKit molecular descriptor heuristics.
@@ -75,17 +76,17 @@ def auto_convert(val):
 
 
 def compute_structural_safety(smiles_input):
-    """
+    '''
     Estimate ADMET safety flags from molecular descriptors (RDKit).
 
     hERG IC50 heuristic: Aronov 2008 J Med Chem 51:6632; Price et al. 2009
-    log10(IC50 [μM]) ≈ 1.4 - 0.30 * logP
+    log10(IC50 [uM]) approx 1.4 - 0.30 * logP
 
     DILI risk: Lammert et al. 2010 Toxicol Sci 116:536; Fontana et al. 2010
     High risk: logP > 4.0 AND MW > 400
 
     Returns worst-case metrics across all compounds (or {} if RDKit unavailable).
-    """
+    '''
     try:
         from rdkit import Chem
         from rdkit.Chem import Descriptors
@@ -156,14 +157,14 @@ def compute_structural_safety(smiles_input):
 
 
 def compute_ames_alerts(smiles_input):
-    """
+    '''
     Ames mutagenicity prediction via structural alerts.
 
-    Kazius et al. 2005 J Med Chem 48:312-320 — 13 mechanistic alert classes
+    Kazius et al. 2005 J Med Chem 48:312-320 -- 13 mechanistic alert classes
     covering the principal mutagens in the Salmonella Ames assay (TA98, TA100,
-    TA1535, TA1537). Returns ames_positive (bool), ames_probability (0–1),
+    TA1535, TA1537). Returns ames_positive (bool), ames_probability (0-1),
     and structural_alerts list. ICH S2(R1) still requires experimental confirmation.
-    """
+    '''
     try:
         from rdkit import Chem
     except ImportError:
@@ -227,7 +228,7 @@ def compute_ames_alerts(smiles_input):
 
 
 def ADMET_pred(smiles):
-    """ADMET safety screening using RDKit + optional DeepPurpose."""
+    '''ADMET safety screening using RDKit + optional DeepPurpose.'''
     safety = compute_structural_safety(smiles)
     per_compound = safety.pop("per_compound", None)
 

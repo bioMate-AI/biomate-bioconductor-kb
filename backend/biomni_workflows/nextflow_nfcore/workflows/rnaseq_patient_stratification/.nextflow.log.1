@@ -1,0 +1,89 @@
+Mar-04 21:17:39.417 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile test
+Mar-04 21:17:39.466 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-04 21:17:39.488 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/nextflow.config
+Mar-04 21:17:39.500 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/nextflow.config
+Mar-04 21:17:39.519 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
+Mar-04 21:17:39.859 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, docker]
+Mar-04 21:17:39.877 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nxf_home_test/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-04 21:17:39.883 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-04 21:17:39.884 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-04 21:17:39.885 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-04 21:17:39.894 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-04 21:17:39.980 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-04 21:17:39.981 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-04 21:17:39.981 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-04 21:17:39.990 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nxf_home_test/secrets/store.json
+Mar-04 21:17:39.992 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@66933239] - activable => nextflow.secret.LocalSecretsProvider@66933239
+Mar-04 21:17:39.998 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-04 21:17:40.007 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [nice_rosalind] DSL2 - revision: 91b15e1742
+Mar-04 21:17:40.036 [main] DEBUG nextflow.Session - Session UUID: 06878cb1-354e-4bac-bcf5-3669990f56f7
+Mar-04 21:17:40.036 [main] DEBUG nextflow.Session - Run name: nice_rosalind
+Mar-04 21:17:40.036 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-04 21:17:40.041 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-04 21:17:40.043 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:17:40.055 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3796331@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.6 GB) - Swap: 16 GB (14.8 GB)
+Mar-04 21:17:40.069 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/work [ext2/ext3]
+Mar-04 21:17:40.069 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/bin
+Mar-04 21:17:40.074 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-04 21:17:40.080 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-04 21:17:40.082 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-04 21:17:40.104 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-04 21:17:40.109 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-04 21:17:40.157 [main] DEBUG nextflow.Session - Session start
+Mar-04 21:17:40.338 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-04 21:17:40.698 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS
+Mar-04 21:17:40.712 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:17:40.713 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:17:40.719 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-04 21:17:40.724 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-04 21:17:40.725 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-04 21:17:40.742 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS': maxForks=0; fair=false; array=0
+Mar-04 21:17:40.789 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_low` matches labels `process_low` for process with name RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER
+Mar-04 21:17:40.791 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:17:40.791 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:17:40.791 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER': maxForks=0; fair=false; array=0
+Mar-04 21:17:40.797 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_low` matches labels `process_low` for process with name RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX
+Mar-04 21:17:40.798 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-04 21:17:40.798 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-04 21:17:40.799 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX': maxForks=0; fair=false; array=0
+Mar-04 21:17:40.802 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS, RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER, CRAN_SURVIVAL_KAPLANMEIER, CRAN_SURVIVAL_COX, RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX, BIOC_CONSENSUSCLUSTERPLUS
+Mar-04 21:17:40.805 [main] DEBUG nextflow.Session - Igniting dataflow network (7)
+Mar-04 21:17:40.806 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS
+Mar-04 21:17:40.806 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER
+Mar-04 21:17:40.807 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX
+Mar-04 21:17:40.807 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_497cd658b43ccfd6: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/main.nf
+  Script_dab2355ff7b6f69f: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/consensusclusterplus/main.nf
+  Script_0798569dfcfb4b9c: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/survival/main.nf
+Mar-04 21:17:40.807 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-04 21:17:40.807 [main] DEBUG nextflow.Session - Session await
+Mar-04 21:17:40.861 [Actor Thread 18] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_CLINICAL_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_CLINICAL_FILE
+Mar-04 21:17:40.861 [Actor Thread 20] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_FILE
+Mar-04 21:17:40.861 [Actor Thread 21] DEBUG nextflow.util.HashBuilder - Unable to get file attributes file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_CLINICAL_FILE -- Cause: java.nio.file.NoSuchFileException: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/NO_CLINICAL_FILE
+Mar-04 21:17:40.937 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:17:40.939 [Task submitter] INFO  nextflow.Session - [5a/56b21a] Submitted process > RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS (patient_stratification)
+Mar-04 21:17:40.951 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:17:40.952 [Task submitter] INFO  nextflow.Session - [3c/214407] Submitted process > RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER (patient_stratification)
+Mar-04 21:17:40.958 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS (patient_stratification); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/work/5a/56b21ae01078ad0e5303a3fef5cbe3]
+Mar-04 21:17:40.959 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-04 21:17:40.959 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-04 21:17:40.960 [Task submitter] INFO  nextflow.Session - [a4/51b071] Submitted process > RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX (patient_stratification)
+Mar-04 21:17:40.964 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_KAPLANMEIER (patient_stratification); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/work/3c/2144075c0257e67524e43042db45e1]
+Mar-04 21:17:40.970 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: RNASEQ_PATIENT_STRATIFICATION:CRAN_SURVIVAL_COX (patient_stratification); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/work/a4/51b07122e93f8e2a3d17c6e84923de]
+Mar-04 21:17:40.973 [TaskFinalizer-1] DEBUG n.processor.TaskFileCollector - Process `RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS (patient_stratification)` is unable to find [UnixPath]: `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/workflows/rnaseq_patient_stratification/work/5a/56b21ae01078ad0e5303a3fef5cbe3/patient_stratification_consensus_plots.pdf` (pattern: `patient_stratification_consensus_plots.pdf`)
+Mar-04 21:17:41.018 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Process RNASEQ_PATIENT_STRATIFICATION:BIOC_CONSENSUSCLUSTERPLUS_WORKFLOW:BIOC_CONSENSUSCLUSTERPLUS > Skipping output binding because one or more optional files are missing: fileoutparam<2:1>
+Mar-04 21:17:41.020 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-04 21:17:41.071 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-04 21:17:41.071 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-04 21:17:41.073 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-04 21:17:41.080 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=3; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=12ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=3; peakCpus=3; peakMemory=6 GB; ]
+Mar-04 21:17:41.082 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-04 21:17:41.090 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-04 21:17:41.090 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

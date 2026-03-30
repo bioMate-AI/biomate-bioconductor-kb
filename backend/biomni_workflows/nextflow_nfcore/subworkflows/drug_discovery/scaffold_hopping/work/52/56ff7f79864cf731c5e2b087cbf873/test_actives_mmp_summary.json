@@ -1,0 +1,8 @@
+{
+  "meta_id": "test_actives",
+  "reference_smiles": "CC(=O)Nc1ccc(O)cc1",
+  "total_pairs": 0,
+  "tool": "rdkit_brics",
+  "timestamp": "2026-03-24T20:59:36.799100Z",
+  "mock_mode": false
+}

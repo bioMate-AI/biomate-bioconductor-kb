@@ -1,0 +1,2 @@
+<stdin>:39: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/work/5f/025e55adb81d3769d4db1bee8c0654/.command.sh: line 60: warning: here-document at line 56 delimited by end-of-file (wanted `END_VERSIONS')

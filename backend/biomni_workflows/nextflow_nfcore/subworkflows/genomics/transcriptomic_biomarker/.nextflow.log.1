@@ -1,0 +1,668 @@
+Mar-17 21:13:15.690 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf -with-docker 'biomate/biomni-tools:latest' -profile standard -w /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work --outdir /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/output -with-trace /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/workflow-trace.txt
+Mar-17 21:13:15.741 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-17 21:13:15.782 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-17 21:13:15.783 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/nextflow.config
+Mar-17 21:13:15.799 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-17 21:13:16.191 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools:latest`
+Mar-17 21:13:16.208 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-17 21:13:16.223 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-17 21:13:16.224 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-17 21:13:16.226 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-17 21:13:16.234 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-17 21:13:16.313 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-17 21:13:16.314 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-17 21:13:16.314 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-17 21:13:16.322 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/.nextflow/secrets/store.json
+Mar-17 21:13:16.324 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7c011174] - activable => nextflow.secret.LocalSecretsProvider@7c011174
+Mar-17 21:13:16.326 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-17 21:13:16.338 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf` [astonishing_ochoa] DSL2 - revision: 659f0cf1da
+Mar-17 21:13:16.367 [main] DEBUG nextflow.Session - Session UUID: 2ac14499-d7e4-4656-8342-98ad43df7562
+Mar-17 21:13:16.368 [main] DEBUG nextflow.Session - Run name: astonishing_ochoa
+Mar-17 21:13:16.368 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-17 21:13:16.374 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-17 21:13:16.378 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 21:13:16.391 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3457848@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (2.8 GB) - Swap: 16 GB (12.6 GB)
+Mar-17 21:13:16.403 [main] DEBUG nextflow.Session - Work-dir: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work [ext2/ext3]
+Mar-17 21:13:16.404 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/bin
+Mar-17 21:13:16.410 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-17 21:13:16.415 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-17 21:13:16.417 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-17 21:13:16.453 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-17 21:13:16.459 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-17 21:13:16.504 [main] DEBUG nextflow.Session - Session start
+Mar-17 21:13:16.509 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/workflow-trace.txt
+Mar-17 21:13:16.926 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-17 21:13:17.002 [main] INFO  nextflow.Nextflow - 
+====================================================================
+BioMate | Transcriptomic Biomarker Discovery Pipeline
+====================================================================
+Mode:              MOCK (synthetic data)
+Group column:      group
+Reference group:   control
+FDR threshold:     0.05
+|logFC| threshold: 1.0
+GSVA method:       gsva
+Output dir:        /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/output
+====================================================================
+
+Mar-17 21:13:17.046 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_INPUT_QC` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-17 21:13:17.051 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 21:13:17.051 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 21:13:17.057 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-17 21:13:17.062 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-17 21:13:17.063 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-17 21:13:17.075 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC': maxForks=0; fair=false; array=0
+Mar-17 21:13:17.103 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:LIMMA_DIFFERENTIAL_EXPRESSION` matches process TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-17 21:13:17.104 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 21:13:17.105 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 21:13:17.105 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION': maxForks=0; fair=false; array=0
+Mar-17 21:13:17.108 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_SIGNATURE_SCORING` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-17 21:13:17.110 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 21:13:17.110 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 21:13:17.111 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING': maxForks=0; fair=false; array=0
+Mar-17 21:13:17.114 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:BIOMARKER_REPORT` matches process TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 21:13:17.115 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-17 21:13:17.115 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-17 21:13:17.116 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT': maxForks=0; fair=false; array=0
+Mar-17 21:13:17.134 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LIMMA_DIFFERENTIAL_EXPRESSION, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC, BIOMARKER_SIGNATURE_SCORING, BIOMARKER_INPUT_QC, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING, TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION, BIOMARKER_REPORT, TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 21:13:17.136 [main] DEBUG nextflow.Session - Igniting dataflow network (6)
+Mar-17 21:13:17.137 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC
+Mar-17 21:13:17.137 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION
+Mar-17 21:13:17.137 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING
+Mar-17 21:13:17.138 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT
+Mar-17 21:13:17.139 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_6cc9e6bddc9a5e62: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/transcriptomic_biomarker/main.nf
+Mar-17 21:13:17.139 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-17 21:13:17.139 [main] DEBUG nextflow.Session - Session await
+Mar-17 21:13:17.263 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 21:13:17.264 [Task submitter] INFO  nextflow.Session - [a5/a63cfe] Submitted process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC (input_qc)
+Mar-17 21:13:17.777 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_INPUT_QC (input_qc); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/a5/a63cfe79c29e2d6e20c1c87de231a1]
+Mar-17 21:13:17.777 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 21:13:17.795 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-17 21:13:17.847 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 21:13:17.848 [Task submitter] INFO  nextflow.Session - [f2/7a3c6a] Submitted process > TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION (limma_de)
+Mar-17 21:13:18.273 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: TRANSCRIPTOMIC_BIOMARKER:LIMMA_DIFFERENTIAL_EXPRESSION (limma_de); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/f2/7a3c6a04f434df8786127769d6b694]
+Mar-17 21:13:18.327 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 21:13:18.327 [Task submitter] INFO  nextflow.Session - [34/59c142] Submitted process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING (signature_scoring)
+Mar-17 21:13:18.695 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_SIGNATURE_SCORING (signature_scoring); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/34/59c142e21ad35e28c55cf4f262163b]
+Mar-17 21:13:18.729 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-17 21:13:18.729 [Task submitter] INFO  nextflow.Session - [4c/edecd1] Submitted process > TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report)
+Mar-17 21:13:19.129 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 4; name: TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report); status: COMPLETED; exit: 1; error: -; workDir: /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/4c/edecd1ef1127fcd4b50d56b97992af]
+Mar-17 21:13:19.137 [TaskFinalizer-4] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report); work-dir=/tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/4c/edecd1ef1127fcd4b50d56b97992af
+  error [nextflow.exception.ProcessFailedException]: Process `TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report)` terminated with an error exit status (1)
+Mar-17 21:13:19.163 [TaskFinalizer-4] ERROR nextflow.processor.TaskProcessor - Error executing process > 'TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report)'
+
+Caused by:
+  Process `TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT (biomarker_report)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  if [ "true" = "true" ]; then
+          python3 << 'EOF'
+  import json
+  import csv
+  import math
+  import random
+  from datetime import datetime
+  
+  # -----------------------------------------------------------------------
+  # Read inputs
+  # -----------------------------------------------------------------------
+  de_rows  = []
+  sig_rows = []
+  FDR_T    = float("0.05")
+  LOGFC_T  = float("1.0")
+  
+  with open("de_results.csv") as fh:
+      reader = csv.DictReader(fh)
+      for row in reader:
+          de_rows.append(row)
+          if float(row["adj.P.Val"]) < FDR_T and abs(float(row["logFC"])) >= LOGFC_T:
+              sig_rows.append(row)
+  
+  model_sum = json.load(open("limma_model_summary.json"))
+  pw_sum    = json.load(open("pathway_summary.json"))
+  
+  n_sig        = model_sum.get("n_significant", len(sig_rows))
+  n_up         = model_sum.get("n_upregulated", 0)
+  n_down       = model_sum.get("n_downregulated", 0)
+  top_gene     = model_sum.get("top_gene", "N/A")
+  top_logfc    = model_sum.get("top_logFC", 0) or 0
+  top_adj_p    = model_sum.get("top_adj_p", 1) or 1
+  contrast     = model_sum.get("contrast", "treatment_vs_control")
+  top_trt_pws  = pw_sum.get("top_enriched_treatment", [])[:5]
+  top_ctrl_pws = pw_sum.get("top_enriched_control", [])[:5]
+  
+  n_enriched_trt = len(top_trt_pws)
+  
+  ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+  
+  # -----------------------------------------------------------------------
+  # HTML helper functions — use % formatting to avoid f-string {} issues
+  # -----------------------------------------------------------------------
+  def make_table_rows(rows, max_rows=20):
+      parts = []
+      for r in rows[:max_rows]:
+          lfc   = float(r["logFC"])
+          adj_p = float(r["adj.P.Val"])
+          bg    = "#fff5f5" if lfc < 0 else "#f5fff5"
+          parts.append(
+              "<tr style='background:" + bg + "'>"
+              "<td><strong>" + r["gene"] + "</strong></td>"
+              "<td style='text-align:right'>" + ("%+.4f" % lfc) + "</td>"
+              "<td style='text-align:right'>" + ("%.2f" % float(r["AveExpr"])) + "</td>"
+              "<td style='text-align:right'>" + ("%.3f" % float(r["t"])) + "</td>"
+              "<td style='text-align:right'>" + ("%.4e" % float(r["P.Value"])) + "</td>"
+              "<td style='text-align:right'>" + ("%.4e" % adj_p) + "</td>"
+              "</tr>"
+          )
+      return "
+  ".join(parts)
+  
+  def make_pathway_list(pathways, color):
+      items = []
+      for pw in pathways:
+          short = pw.replace("HALLMARK_", "").replace("_", " ").title()
+          items.append(
+              "<li style='margin:4px 0'>"
+              "<span style='color:" + color + "'>&#9654;</span> " + short +
+              "</li>"
+          )
+      return "
+  ".join(items)
+  
+  table_rows_50 = make_table_rows(de_rows,  max_rows=50)
+  sig_rows_20   = make_table_rows(sig_rows, max_rows=20)
+  trt_pw_html   = make_pathway_list(top_trt_pws,  "#e74c3c")
+  ctrl_pw_html  = make_pathway_list(top_ctrl_pws, "#3498db")
+  
+  # -----------------------------------------------------------------------
+  # Volcano SVG dots
+  # -----------------------------------------------------------------------
+  random.seed(42)
+  svg_dots = []
+  for row in de_rows[:500]:
+      try:
+          lfc   = float(row["logFC"])
+          adj_p = float(row["adj.P.Val"])
+          nlp   = min(-math.log10(max(adj_p, 1e-10)), 12)
+          xp    = max(62, min(518, 60 + (lfc + 4) / 8 * 460))
+          yp    = max(22, min(278, 280 - nlp / 12 * 260))
+          if adj_p < FDR_T and abs(lfc) >= LOGFC_T:
+              col = "#e74c3c" if lfc < 0 else "#27ae60"
+              rad = 4
+          else:
+              col = "#bdc3c7"
+              rad = "2.5"
+          svg_dots.append(
+              "<circle cx='%.1f' cy='%.1f' r='%s' fill='%s' fill-opacity='0.7'/>" %
+              (xp, yp, rad, col)
+          )
+      except Exception:
+          pass
+  
+  # -----------------------------------------------------------------------
+  # Heatmap SVG cells
+  # -----------------------------------------------------------------------
+  random.seed(99)
+  heatmap_cells = []
+  cell_w, cell_h = 10, 8
+  for ri in range(20):
+      for ci in range(40):
+          grp = "treatment" if ci >= 20 else "control"
+          if ri < len(sig_rows):
+              lfc_v = float(sig_rows[ri]["logFC"]) if sig_rows else 0
+              base  = 0.6 if (grp == "treatment") == (lfc_v > 0) else -0.6
+          else:
+              base = 0
+          v   = max(-1.0, min(1.0, base + random.gauss(0, 0.3)))
+          rc  = int(255 * max(0, v)) + int(240 * max(0, -v))
+          gc_ = int(240 * (1 - abs(v)))
+          bc  = int(255 * max(0, -v)) + int(240 * max(0, v))
+          xs  = 60 + ci * cell_w
+          ys  = 10 + ri * cell_h
+          heatmap_cells.append(
+              "<rect x='%d' y='%d' width='%d' height='%d' fill='rgb(%d,%d,%d)'/>" %
+              (xs, ys, cell_w - 1, cell_h - 1, rc, gc_, bc)
+          )
+  
+  # -----------------------------------------------------------------------
+  # Assemble HTML — pure string concatenation, no f-strings
+  # -----------------------------------------------------------------------
+  html = (
+      "<!DOCTYPE html>
+  "
+      "<html lang='en'>
+  "
+      "<head>
+  "
+      "<meta charset='UTF-8'>
+  "
+      "<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  "
+      "<title>BioMate | Transcriptomic Biomarker Report</title>
+  "
+      "<style>
+  "
+      "  body {font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f4f6f8;color:#2c3e50}
+  "
+      "  .header {background:linear-gradient(135deg,#1a5276,#2980b9);color:#fff;padding:32px 40px}
+  "
+      "  .header h1 {margin:0 0 8px;font-size:28px}
+  "
+      "  .header p  {margin:0;opacity:0.85;font-size:14px}
+  "
+      "  .container {max-width:1100px;margin:28px auto;padding:0 20px}
+  "
+      "  .card {background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);"
+      "         padding:24px;margin-bottom:24px}
+  "
+      "  .card h2 {margin:0 0 16px;font-size:18px;border-bottom:2px solid #2980b9;"
+      "            padding-bottom:8px;color:#1a5276}
+  "
+      "  .metrics {display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  "
+      "  .metric {background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);"
+      "           padding:20px;text-align:center}
+  "
+      "  .metric .value {font-size:36px;font-weight:700;color:#2980b9}
+  "
+      "  .metric .label {font-size:12px;color:#7f8c8d;margin-top:4px}
+  "
+      "  .up   {color:#27ae60;font-weight:700}
+  "
+      "  .down {color:#e74c3c;font-weight:700}
+  "
+      "  table {width:100%;border-collapse:collapse;font-size:13px}
+  "
+      "  th {background:#2980b9;color:#fff;padding:8px 12px;text-align:left}
+  "
+      "  td {padding:7px 12px;border-bottom:1px solid #ecf0f1}
+  "
+      "  .badge {display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;"
+      "          font-weight:600;margin-right:4px}
+  "
+      "  .badge-sig  {background:#e8f8f0;color:#1e8449}
+  "
+      "  .badge-mock {background:#fef9e7;color:#9a7d0a}
+  "
+      "  .pw-grid {display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  "
+      "  .pw-box  {background:#f8f9fa;border-radius:8px;padding:16px}
+  "
+      "  .pw-box h3 {margin:0 0 10px;font-size:14px;color:#444}
+  "
+      "  ul {margin:0;padding-left:18px;list-style:none}
+  "
+      "  .footer {text-align:center;color:#95a5a6;font-size:12px;padding:20px 0 40px}
+  "
+      "</style>
+  "
+      "</head>
+  "
+      "<body>
+  "
+      "<div class='header'>
+  "
+      "  <h1>Transcriptomic Biomarker Discovery Report</h1>
+  "
+      "  <p>Contrast: <strong>" + contrast + "</strong> &nbsp;|&nbsp; "
+      "LIMMA-voom + GSVA (Hallmark MSigDB) &nbsp;|&nbsp; "
+      "Generated: " + ts + " &nbsp;"
+      "<span class='badge badge-mock'>MOCK DATA</span></p>
+  "
+      "</div>
+  "
+      "<div class='container'>
+  "
+  
+      # Metrics
+      "<div class='metrics'>
+  "
+      "  <div class='metric'><div class='value'>" + str(n_sig) + "</div>"
+      "<div class='label'>Significant DE Genes</div></div>
+  "
+      "  <div class='metric'><div class='value up'>" + str(n_up) + "</div>"
+      "<div class='label'>Up-regulated</div></div>
+  "
+      "  <div class='metric'><div class='value down'>" + str(n_down) + "</div>"
+      "<div class='label'>Down-regulated</div></div>
+  "
+      "  <div class='metric'><div class='value'>" + str(n_enriched_trt) + "</div>"
+      "<div class='label'>Enriched Pathways (treatment)</div></div>
+  "
+      "</div>
+  "
+  
+      # Volcano
+      "<div class='card'>
+  "
+      "  <h2>Volcano Plot <span class='badge badge-sig'>FDR &lt; " + str(FDR_T) + "</span></h2>
+  "
+      "  <div style='background:#f8f9fa;border-radius:8px;padding:20px;text-align:center'>
+  "
+      "    <svg width='560' height='320' viewBox='0 0 560 320' xmlns='http://www.w3.org/2000/svg'"
+      "         style='max-width:100%;font-family:Arial,sans-serif'>
+  "
+      "      <line x1='60' y1='280' x2='520' y2='280' stroke='#bdc3c7' stroke-width='1.5'/>
+  "
+      "      <line x1='60' y1='20'  x2='60'  y2='280' stroke='#bdc3c7' stroke-width='1.5'/>
+  "
+      "      <text x='290' y='310' text-anchor='middle' fill='#7f8c8d' font-size='12'>log2 Fold Change</text>
+  "
+      "      <text x='16' y='150' text-anchor='middle' fill='#7f8c8d' font-size='12'"
+      "            transform='rotate(-90,16,150)'>&#8722;log10(adj.P.Val)</text>
+  "
+      "      <line x1='60' y1='80' x2='520' y2='80' stroke='#f39c12' stroke-width='1'"
+      "            stroke-dasharray='5,3'/>
+  "
+      "      <line x1='240' y1='20' x2='240' y2='280' stroke='#3498db' stroke-width='1'"
+      "            stroke-dasharray='5,3'/>
+  "
+      "      <line x1='340' y1='20' x2='340' y2='280' stroke='#3498db' stroke-width='1'"
+      "            stroke-dasharray='5,3'/>
+  "
+      + "
+  ".join(svg_dots) + "
+  "
+      "      <circle cx='400' cy='35' r='5' fill='#27ae60' fill-opacity='0.7'/>
+  "
+      "      <text x='412' y='39' fill='#444' font-size='11'>Up-regulated</text>
+  "
+      "      <circle cx='400' cy='55' r='5' fill='#e74c3c' fill-opacity='0.7'/>
+  "
+      "      <text x='412' y='59' fill='#444' font-size='11'>Down-regulated</text>
+  "
+      "      <circle cx='400' cy='75' r='4' fill='#bdc3c7'/>
+  "
+      "      <text x='412' y='79' fill='#444' font-size='11'>Not significant</text>
+  "
+      "    </svg>
+  "
+      "    <p style='font-size:12px;margin:8px 0 0'>Orange dashed: FDR = " + str(FDR_T) +
+      " &nbsp;|&nbsp; Blue dashed: |logFC| = " + str(LOGFC_T) + "</p>
+  "
+      "  </div>
+  "
+      "</div>
+  "
+  
+      # Significant genes table
+      "<div class='card'>
+  "
+      "  <h2>Top Significant DE Genes "
+      "<span class='badge badge-sig'>" + str(n_sig) + " significant</span></h2>
+  "
+      "  <table>
+  "
+      "    <tr><th>Gene</th><th>logFC</th><th>AveExpr</th>"
+      "<th>t statistic</th><th>P.Value</th><th>adj.P.Val</th></tr>
+  "
+      + sig_rows_20 + "
+  "
+      "  </table>
+  "
+      "  <p style='font-size:12px;color:#7f8c8d;margin-top:8px'>Showing top 20 of "
+      + str(n_sig) + " significant genes (FDR &lt; " + str(FDR_T) +
+      ", |logFC| &ge; " + str(LOGFC_T) + "). "
+      "Green rows = up-regulated; red rows = down-regulated.</p>
+  "
+      "</div>
+  "
+  
+      # Heatmap
+      "<div class='card'>
+  "
+      "  <h2>Heatmap &mdash; Top 50 DE Genes</h2>
+  "
+      "  <div style='background:#f8f9fa;border-radius:8px;padding:20px;text-align:center'>
+  "
+      "    <svg width='560' height='200' viewBox='0 0 560 200'"
+      "         xmlns='http://www.w3.org/2000/svg' style='max-width:100%'>
+  "
+      + "
+  ".join(heatmap_cells) + "
+  "
+      "      <text x='60'  y='195' fill='#3498db' font-size='11'>Control (20 samples)</text>
+  "
+      "      <text x='260' y='195' fill='#e74c3c' font-size='11'>Treatment (20 samples)</text>
+  "
+      "      <text x='10'  y='90'  fill='#444'    font-size='10'"
+      "            transform='rotate(-90,10,90)'>Top 20 genes</text>
+  "
+      "    </svg>
+  "
+      "    <p style='font-size:12px;margin:6px 0 0'>"
+      "Red = up-regulated &nbsp;|&nbsp; Blue = down-regulated &nbsp;|&nbsp; White = no change</p>
+  "
+      "  </div>
+  "
+      "</div>
+  "
+  
+      # Pathway enrichment
+      "<div class='card'>
+  "
+      "  <h2>Pathway Enrichment &mdash; GSVA Hallmark MSigDB</h2>
+  "
+      "  <div class='pw-grid'>
+  "
+      "    <div class='pw-box'>
+  "
+      "      <h3 style='color:#e74c3c'>&#9650; Enriched in Treatment</h3>
+  "
+      "      <ul>" + trt_pw_html + "</ul>
+  "
+      "    </div>
+  "
+      "    <div class='pw-box'>
+  "
+      "      <h3 style='color:#3498db'>&#9660; Enriched in Control</h3>
+  "
+      "      <ul>" + ctrl_pw_html + "</ul>
+  "
+      "    </div>
+  "
+      "  </div>
+  "
+      "</div>
+  "
+  
+      # Full DE table
+      "<div class='card'>
+  "
+      "  <h2>Differential Expression Table &mdash; Top 50 Genes by adj.P.Val</h2>
+  "
+      "  <div style='overflow-x:auto;max-height:400px;overflow-y:auto'>
+  "
+      "    <table>
+  "
+      "      <tr><th>Gene</th><th>logFC</th><th>AveExpr</th>"
+      "<th>t statistic</th><th>P.Value</th><th>adj.P.Val</th></tr>
+  "
+      + table_rows_50 + "
+  "
+      "    </table>
+  "
+      "  </div>
+  "
+      "</div>
+  "
+  
+      # Methods
+      "<div class='card'>
+  "
+      "  <h2>Methods</h2>
+  "
+      "  <p style='font-size:13px;line-height:1.7'>
+  "
+      "    Raw count data were normalised using TMM (trimmed mean of M-values) with the
+  "
+      "    <code>edgeR</code> package. Voom mean-variance transformation was applied prior to
+  "
+      "    fitting a linear model with <code>limma</code> (Law et al., Genome Biology 2014).
+  "
+      "    Differential expression for the <em>" + contrast + "</em> contrast was assessed
+  "
+      "    with empirical Bayes moderation (eBayes), and genes with FDR-adjusted p-value &lt; "
+      + str(FDR_T) + " and |log2FC| &ge; " + str(LOGFC_T) + " were considered significant.
+  "
+      "    Gene set enrichment was computed using GSVA (Hanzelmann et al., BMC Bioinformatics 2013)
+  "
+      "    on the MSigDB Hallmark collection (v2023.2, n=50 gene sets).
+  "
+      "  </p>
+  "
+      "  <p style='font-size:12px;color:#e67e22'>
+  "
+      "    <strong>Note:</strong> This report was generated in MOCK mode with synthetic data.
+  "
+      "    All numerical values are simulated for pipeline testing purposes.
+  "
+      "  </p>
+  "
+      "</div>
+  "
+  
+      "</div>
+  "
+      "<div class='footer'>BioMate Transcriptomic Biomarker Pipeline &mdash; " + ts + "</div>
+  "
+      "</body></html>
+  "
+  )
+  
+  with open("biomarker_report.html", "w") as fh:
+      fh.write(html)
+  
+  print("BIOMARKER_REPORT mock complete: biomarker_report.html")
+  print("  Significant genes: %d (%d up, %d down)" % (n_sig, n_up, n_down))
+  print("  Top DE gene:       %s (logFC=%.4f, adj.P.Val=%.4e)" % (top_gene, top_logfc, top_adj_p))
+  print("  Top pathways:      %s" % ", ".join(top_trt_pws[:3]))
+  EOF
+  
+      else
+          # -----------------------------------------------------------------------
+          # Live: Render R Markdown report
+          # -----------------------------------------------------------------------
+          Rscript - << 'REOF'
+  suppressPackageStartupMessages({
+      library(rmarkdown)
+      library(knitr)
+      library(ggplot2)
+      library(pheatmap)
+      library(jsonlite)
+  })
+  
+  group_col <- "group"
+  ref_group <- "control"
+  fdr_t     <- as.numeric("0.05")
+  logfc_t   <- as.numeric("1.0")
+  
+  de       <- read.csv("de_results.csv", check.names=FALSE)
+  sig      <- read.csv("significant_genes.csv", check.names=FALSE)
+  scores   <- read.csv("signature_scores.csv", check.names=FALSE)
+  pw_sum   <- fromJSON("pathway_summary.json")
+  mod_sum  <- fromJSON("limma_model_summary.json")
+  
+  # Volcano plot
+  de[["neg_log10_adjp"]] <- -log10(pmax(de[["adj.P.Val"]], 1e-10))
+  de[["significance"]] <- "Not significant"
+  de[["significance"]][de[["adj.P.Val"]] < fdr_t & de[["logFC"]] >= logfc_t]  <- "Up"
+  de[["significance"]][de[["adj.P.Val"]] < fdr_t & de[["logFC"]] <= -logfc_t] <- "Down"
+  
+  p_volcano <- ggplot(de, aes(x=logFC, y=neg_log10_adjp, color=significance)) +
+      geom_point(alpha=0.6, size=1.5) +
+      scale_color_manual(values=c("Up"="#27ae60","Down"="#e74c3c","Not significant"="#bdc3c7")) +
+      geom_hline(yintercept=-log10(fdr_t), linetype="dashed", color="#f39c12") +
+      geom_vline(xintercept=c(-logfc_t, logfc_t), linetype="dashed", color="#3498db") +
+      theme_bw(base_size=12) +
+      labs(title="Volcano Plot", x="log2 Fold Change", y="-log10(adj.P.Val)")
+  ggsave("volcano_plot.png", p_volcano, width=7, height=5, dpi=150)
+  
+  # Heatmap (top 50 genes)
+  top50 <- head(de[order(de[["adj.P.Val"]]), "gene"], 50)
+  scores_mat <- as.matrix(scores[, !colnames(scores) %in% c("sample_id","group")])
+  rownames(scores_mat) <- scores[["sample_id"]]
+  
+  # Use DE log2FC values for heatmap (not GSVA scores)
+  # Render minimal HTML using knitr::knit2html
+  rmd_content <- paste0('---
+  title: "BioMate Transcriptomic Biomarker Report"
+  output: html_document
+  ---
+  
+  ## Summary
+  
+  - Contrast: ', mod_sum[["contrast"]], '
+  - Significant DE genes: ', mod_sum[["n_significant"]], '
+    (', mod_sum[["n_upregulated"]], ' up, ', mod_sum[["n_downregulated"]], ' down)
+  - FDR threshold: ', fdr_t, '
+  - |logFC| threshold: ', logfc_t, '
+  
+  ## Volcano Plot
+  
+  ![](volcano_plot.png)
+  
+  ## Top Significant Genes
+  
+  ')
+  
+  write(rmd_content, "report.Rmd")
+  rmarkdown::render("report.Rmd", output_file="biomarker_report.html", quiet=TRUE)
+  cat("BIOMARKER_REPORT live: biomarker_report.html\n")
+  REOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "TRANSCRIPTOMIC_BIOMARKER:BIOMARKER_REPORT":
+          ggplot2: "3.4.4"
+          pheatmap: "1.0.12"
+          rmarkdown: "2.25"
+          R: $(Rscript --version 2>&1 | cut -d' ' -f4 || echo "N/A")
+          python: $(python3 --version 2>&1 | cut -d' ' -f2 || echo "N/A")
+          mock_mode: "true"
+      END_VERSIONS
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+    File "<stdin>", line 58
+      return "
+             ^
+  SyntaxError: unterminated string literal (detected at line 58)
+
+Work dir:
+  /tmp/nextflow_runs/8a1b8d63-6ce2-4805-9aba-29ee50a163bb/work/4c/edecd1ef1127fcd4b50d56b97992af
+
+Container:
+  docker.io/bioconductor/bioconductor_docker:RELEASE_3_18
+
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Mar-17 21:13:19.166 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-17 21:13:19.169 [TaskFinalizer-4] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-17 21:13:19.174 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-17 21:13:19.174 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-17 21:13:19.176 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-17 21:13:19.176 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-17 21:13:19.180 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=3; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=386ms; failedDuration=668ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=32 GB; ]
+Mar-17 21:13:19.382 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-17 21:13:19.388 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-17 21:13:19.783 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-17 21:13:19.820 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-17 21:13:19.824 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-17 21:13:19.830 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-17 21:13:19.830 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

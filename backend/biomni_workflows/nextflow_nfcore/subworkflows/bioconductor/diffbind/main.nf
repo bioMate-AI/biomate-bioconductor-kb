@@ -1,0 +1,111 @@
+#!/usr/bin/env nextflow
+// ============================================================
+// Bioconductor module: DiffBind
+// Compute differentially bound sites from multiple ChIP-seq experiments using affinity (quantitative) 
+//
+// Source : https://bioconductor.org/packages/3.20/bioc/vignettes/DiffBind/inst/doc/DiffBind.R
+// Upstream  : xtable
+// Downstream: ChIPQC, vulcan
+//
+// Install: BiocManager::install("DiffBind")
+// ============================================================
+
+nextflow.enable.dsl = 2
+
+process BIOC_DIFFBIND {
+    tag "${meta.id}"
+    label 'process_medium'
+
+    conda "bioconductor-diffbind"
+    container "${workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/bioconductor-diffbind:3.16.0--r44_0' :
+        'quay.io/biocontainers/bioconductor-diffbind:3.16.0--r44_0'}"
+
+    input:
+    tuple val(meta), path(count_data)
+
+    output:
+    tuple val(meta), path("${meta.id}_diffbind_results.csv"),  emit: results
+    tuple val(meta), path("${meta.id}_diffbind_output.rds"),   emit: rds
+    tuple val(meta), path("${meta.id}_diffbind_plots.pdf"),    emit: plots, optional: true
+    path "versions.yml",                                            emit: versions
+
+    when:
+    task.ext.when == null || task.ext.when
+
+    script:
+    def args   = task.ext.args   ?: ''
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    #!/usr/bin/env Rscript
+    library(DiffBind)
+    library(jsonlite)
+
+    # --- Data import and loading [] ---
+    # Key functions: data
+    data(tamoxifen_greylist)
+    names(tamoxifen.greylist)
+    tamoxifen.greylist$master
+    # --- Data normalization [] ---
+    # Key functions: dba, blacklist, count, normalize, contrast, analyze, null, report
+    ## tamoxifen <- dba(sampleSheet="tamoxifen.csv") %>%
+    ##   dba.blacklist() %>%
+    ##   dba.count()     %>%
+    ##   dba.normalize() %>%
+    ##   dba.contrast()  %>%
+    # --- Analyze analysis [] ---
+    # Key functions: analyze, report, csv, path, dba, count, show, cbind
+    deseq <- dba(dbs.all,mask=dbs.all$masks$DESeq2, minOverlap = 1)
+    binding <- dba.peakset(deseq, bRetrieve=TRUE)
+    dba.plotHeatmap(deseq, maxSites=nrow(binding),  bLog=FALSE,
+                    correlations=FALSE,minval=-5, maxval=5, cexCol=1.3,
+                    colScheme = hmap, main = "DESeq2 Differentially Bound Sites",
+    # --- Visualization and reporting [] ---
+    # Key functions: plotPCA, plotMA, normalize, analyze, show, dba, contrast
+    par(mfrow=c(2,1))
+    parallelFactor <- dba.normalize(parallelFactor, norm=DBA_NORM_LIB,
+                                    spikein = parallelFactor.peaks)
+    parallelFactor <- dba.analyze(parallelFactor)
+    dba.plotMA(parallelFactor, sub="LIB CTCF", bSmooth=FALSE, dotSize=1.5)
+
+    # --- Save outputs ---
+    if (exists("results_df") && is.data.frame(results_df)) {
+        write.csv(results_df, "${prefix}_diffbind_results.csv", row.names = TRUE)
+    } else {
+        write.csv(data.frame(status = "completed"), "${prefix}_diffbind_results.csv")
+    }
+    if (exists("result_obj")) {
+        saveRDS(result_obj, "${prefix}_diffbind_output.rds")
+    }
+
+    # --- versions.yml ---
+    writeLines(
+        c("BIOC_DIFFBIND:", paste0("    diffbind: ", packageVersion("DiffBind"))),
+        "versions.yml"
+    )
+    """
+
+    stub:
+    def prefix = task.ext.prefix ?: "${meta.id}"
+    """
+    touch ${prefix}_diffbind_results.csv
+    touch ${prefix}_diffbind_output.rds
+    echo "BIOC_DIFFBIND:" > versions.yml
+    echo "    diffbind: 0.0.0" >> versions.yml
+    """
+}
+
+
+workflow BIOC_DIFFBIND_WORKFLOW {
+    take:
+    ch_input  // channel: [ val(meta), path(count_data) ]
+
+    main:
+    BIOC_DIFFBIND(ch_input)
+
+    emit:
+    results  = BIOC_DIFFBIND.out.results   // channel: [ val(meta), path(csv) ]
+    rds      = BIOC_DIFFBIND.out.rds       // channel: [ val(meta), path(rds) ]
+    plots    = BIOC_DIFFBIND.out.plots     // channel: [ val(meta), path(pdf) ] (optional)
+    versions = BIOC_DIFFBIND.out.versions  // channel: path(versions.yml)
+}

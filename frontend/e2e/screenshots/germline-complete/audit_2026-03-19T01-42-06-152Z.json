@@ -1,0 +1,78 @@
+{
+  "timestamp": "2026-03-19T01:42:06.152Z",
+  "suiteStartedAt": "2026-03-19T01:38:32.803Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Germline Complete E2E — LLM disambiguation → execution → outputs",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/germline-complete",
+  "billingCost": {
+    "error": "HTTP 401"
+  },
+  "scenarios": [
+    {
+      "name": "GC-1 Disambiguation → germline workflow → execute API wired",
+      "asserts": [
+        "Ambiguous query triggers clarification or default workflow (LLM-classified)",
+        "Germline answer routes to sarek/GATK germline (not somatic) — LLM-verified",
+        "AWAITING REVIEW state visible",
+        "Execute API accepts the germline workflow run",
+        "Status endpoint reachable for the run"
+      ]
+    },
+    {
+      "name": "GC-2 Direct mock germline execution → outputs → download",
+      "asserts": [
+        "No redundant clarification for explicit germline query — LLM-verified",
+        "Germline content in workflow (HaplotypeCaller/sarek/GATK) — LLM-verified",
+        "Confirm & Run triggers /api/workflows/execute",
+        "Poll to terminal state (completed or failed)",
+        "output_files API responds with run-specific data",
+        "download_commands API returns aws s3 sync command",
+        "Completion banner visible after completed run"
+      ]
+    },
+    {
+      "name": "GC-3 Information-flow audit",
+      "asserts": [
+        "Status endpoint: HTTP 200 with run data",
+        "Run record endpoint: HTTP 200 with id + workflowName",
+        "output_files endpoint: HTTP 200 with workflow_id",
+        "download_commands endpoint: HTTP 200 with aws s3 command",
+        "Invocations endpoint: reachable",
+        "UI shows execution state after run starts"
+      ]
+    },
+    {
+      "name": "GC-4 QC summary section",
+      "asserts": [
+        "QC Settings section absent (automated, not user-exposed)",
+        "QC summary section visible after completed run",
+        "Methods text non-empty"
+      ]
+    },
+    {
+      "name": "GC-5 Inline data provision — SRR accession in query",
+      "asserts": [
+        "BioMate does NOT ask for data when accession provided inline",
+        "Response mentions SRR1518169 or generates workflow",
+        "Germline workflow card appears"
+      ]
+    },
+    {
+      "name": "GC-6 Two-turn data provision — ask then provide",
+      "asserts": [
+        "Turn 1 (no data): BioMate asks for data OR generates with MISSING inputs",
+        "Turn 2 (SRR provided): BioMate generates or updates workflow",
+        "Turn 2 response references SRR1518169 or generates workflow",
+        "Germline tools (HaplotypeCaller/GATK/sarek) present in workflow card"
+      ]
+    }
+  ],
+  "notes": [
+    "Tests use real server at http://localhost:5000",
+    "LLM-based disambiguation (Haiku classifier + re-ranker) is under test",
+    "All test assertions use /api/llm/classify (Haiku) — no hardcoded keyword lists",
+    "Execution uses real Nextflow backend — no mock mode",
+    "No page.route() mocking anywhere in this file",
+    "GC-5/GC-6 test the data-provision conversational loop"
+  ]
+}

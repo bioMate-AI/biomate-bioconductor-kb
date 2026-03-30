@@ -1,0 +1,6 @@
+    "STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING":
+        autodock_vina: "1.2.5"
+        openbabel: 217:
+        python: 3.12.3
+        mock_mode: "true"
+    END_VERSIONS

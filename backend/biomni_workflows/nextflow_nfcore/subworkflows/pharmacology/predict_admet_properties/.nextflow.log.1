@@ -1,0 +1,73 @@
+Mar-24 22:33:07.011 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --outdir results/aspirin_vs_terfenadine
+Mar-24 22:33:07.052 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-24 22:33:07.098 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/nextflow.config
+Mar-24 22:33:07.105 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/nextflow.config
+Mar-24 22:33:07.146 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Mar-24 22:33:07.537 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, conda, singularity, aws, docker]
+Mar-24 22:33:07.570 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-24 22:33:07.577 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-24 22:33:07.578 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-24 22:33:07.579 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-24 22:33:07.586 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-24 22:33:07.673 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-24 22:33:07.675 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-24 22:33:07.675 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-24 22:33:07.684 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Mar-24 22:33:07.686 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@619f2afc] - activable => nextflow.secret.LocalSecretsProvider@619f2afc
+Mar-24 22:33:07.688 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-24 22:33:07.697 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [hopeful_euclid] DSL2 - revision: 2ada644817
+Mar-24 22:33:07.724 [main] DEBUG nextflow.Session - Session UUID: 37ebcd2a-b76b-4a34-b5fe-8cc7aeb92a7f
+Mar-24 22:33:07.724 [main] DEBUG nextflow.Session - Run name: hopeful_euclid
+Mar-24 22:33:07.724 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-24 22:33:07.730 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-24 22:33:07.733 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 22:33:07.745 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 1599168@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (12.4 GB) - Swap: 16 GB (11.2 GB)
+Mar-24 22:33:07.762 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/work [ext2/ext3]
+Mar-24 22:33:07.762 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/bin
+Mar-24 22:33:07.766 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-24 22:33:07.771 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-24 22:33:07.773 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-24 22:33:07.798 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-24 22:33:07.803 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-24 22:33:07.839 [main] DEBUG nextflow.Session - Session start
+Mar-24 22:33:07.843 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: results/aspirin_vs_terfenadine/pipeline_info/trace.txt
+Mar-24 22:33:08.046 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-24 22:33:08.117 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES
+Mar-24 22:33:08.126 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Mar-24 22:33:08.127 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-24 22:33:08.134 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-24 22:33:08.137 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-24 22:33:08.139 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-24 22:33:08.152 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES': maxForks=0; fair=false; array=0
+Mar-24 22:33:08.192 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: PREDICT_ADMET_PROPERTIES, PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES
+Mar-24 22:33:08.194 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Mar-24 22:33:08.194 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES
+Mar-24 22:33:08.195 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_7f2ce0a0ae5944d1: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf
+Mar-24 22:33:08.195 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-24 22:33:08.195 [main] DEBUG nextflow.Session - Session await
+Mar-24 22:33:08.342 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-24 22:33:08.345 [Task submitter] INFO  nextflow.Session - [a1/c1cebf] Submitted process > PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (run)
+Mar-24 22:33:08.814 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES (run); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/work/a1/c1cebffadd7e1c185ec8b123e436af]
+Mar-24 22:33:08.815 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 22:33:08.845 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-24 22:33:08.850 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-24 22:33:08.914 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-24 22:33:08.914 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-24 22:33:08.915 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-24 22:33:08.916 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Mar-24 22:33:08.921 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=516ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
+Mar-24 22:33:08.928 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-24 22:33:08.934 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-24 22:33:09.317 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-24 22:33:09.355 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-24 22:33:09.359 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-24 22:33:09.364 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-24 22:33:09.364 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

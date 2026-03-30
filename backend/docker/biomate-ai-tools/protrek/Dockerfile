@@ -1,6 +1,7 @@
 # ProTrek: Protein Sequence-Structure-Function Search
-# Supports: x86_64, ARM64
+# Built from local tools_repos/ProTrek (reliable, no network clone)
 # Requirements: 8GB+ GPU recommended, 16GB RAM
+# Build context: repo root  docker build -f backend/docker/biomate-ai-tools/protrek/Dockerfile .
 
 FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
@@ -21,12 +22,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create working directory
 WORKDIR /opt/protrek
 
-# Clone ProTrek repository
-RUN git clone --depth 1 https://github.com/westlake-repl/ProTrek.git .
+# Copy ProTrek source from local tools_repos (no GitHub clone dependency)
+COPY tools_repos/ProTrek/ /opt/protrek/
 
-# Install Python dependencies
+# Install Python dependencies (torch already in base image, exclude version pins)
 RUN pip install --no-cache-dir \
-    torch \
     transformers \
     faiss-cpu \
     biopython \
@@ -34,7 +34,23 @@ RUN pip install --no-cache-dir \
     numpy \
     tqdm \
     huggingface_hub \
-    sentencepiece
+    sentencepiece \
+    "gradio>=4.0,<5.0" \
+    torchmetrics \
+    pytorch-lightning \
+    scikit-learn \
+    tabulate \
+    easydict \
+    lmdb \
+    multiprocess \
+    pyspellchecker \
+    uvicorn \
+    fastapi
+
+# Copy CLI wrapper scripts into the demo directory
+COPY backend/docker/biomate-ai-tools/protrek/search.py /opt/protrek/demo/search.py
+COPY backend/docker/biomate-ai-tools/protrek/embed.py /opt/protrek/demo/embed.py
+RUN chmod +x /opt/protrek/demo/search.py /opt/protrek/demo/embed.py
 
 # Create models directory
 RUN mkdir -p /models/protrek
@@ -46,7 +62,7 @@ ENV PYTHONPATH="/opt/protrek:$PYTHONPATH"
 
 # Default entrypoint
 WORKDIR /workspace
-COPY entrypoint.sh /entrypoint.sh
+COPY backend/docker/biomate-ai-tools/protrek/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,6 @@
+    "STRUCTURE_PREDICTION_DOCKING:BOLTZ2_STRUCTURE_PREDICTION":
+        boltz2: "2.0.0"
+        python: 3.12.3
+        boltz2_mode: "local"
+        mock_mode: "true"
+    END_VERSIONS
