@@ -446,7 +446,7 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
       console.log(`[WorkflowComplete] Updated execution run ${executionRun.id} to ${finalStatus} (state=${data.state})`);
 
       // CRITICAL FIX: Retrieve and store workflow outputs from Galaxy
-      if (finalStatus === 'ok' && executionRun.execution.galaxyWorkflowId) {
+      if (finalStatus === 'completed' && executionRun.execution.galaxyWorkflowId) {
         try {
           // Get the actual history_id from the Galaxy invocation (may differ from what we requested)
           const galaxyInvocation = await galaxyAPIProxy.getInvocation(
@@ -6559,16 +6559,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/workflows/preflight", async (req, res) => {
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
     try {
-      const { workflowDefinition, parameters, inputFiles } = req.body || {};
+      const { workflowDefinition, parameters, inputFiles, input_files, required_params } = req.body || {};
 
       // Try to use the richer Galaxy backend preflight endpoint (C1)
       try {
         const backendBody = {
           workflow_path: workflowDefinition?.nextflowPath || workflowDefinition?.path || null,
-          workflow_name: workflowDefinition?.name || null,
-          parameters: parameters || {},
-          input_files: inputFiles || [],
-          required_params: (workflowDefinition?.parameters || []).filter(
+          workflow_name: workflowDefinition?.name || (req.body?.workflow_name ?? null),
+          parameters: parameters || req.body?.parameters || {},
+          // Accept inputFiles (camelCase from frontend), input_files (snake_case direct call), or empty
+          input_files: input_files || inputFiles || [],
+          // Accept required_params directly, or derive from workflowDefinition.parameters
+          required_params: required_params || (workflowDefinition?.parameters || []).filter(
             (p: any) => p.required === true || p.level === 'required'
           ),
         };

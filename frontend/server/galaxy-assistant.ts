@@ -1243,15 +1243,15 @@ Rules for multi-intent:
 
 A special case of multi-intent is an **ordered sequential pipeline** where each step's output is the input for the next step. This is different from parallel multi-intent.
 
-Signals for sequential pipeline (set `"is_sequential": true` in the intents response):
+Signals for sequential pipeline (set "is_sequential": true in the intents response):
 - Words: "then", "followed by", "after that", "next", "step 1 ... step 2", "pipeline of", "chain:"
 - Examples:
-  - "RNA-seq alignment then differential expression then pathway enrichment" → sequential
-  - "First run FastQC, then trim adapters, then align with STAR" → sequential
-  - "QC my FASTQ files, then align to hg38, then call variants" → sequential
-- Each intent in a sequential pipeline should have `"dependsOn": ["<prior_intent_id>"]`
-- Set `"input_from_description"` on each step (except the first) describing what it receives from the previous step
-- Sequential pipelines must ALL be `workflow_generation` type intents (each step = one runnable workflow)
+  - "RNA-seq alignment then differential expression then pathway enrichment" -> sequential
+  - "First run FastQC, then trim adapters, then align with STAR" -> sequential
+  - "QC my FASTQ files, then align to hg38, then call variants" -> sequential
+- Each intent in a sequential pipeline should have "dependsOn": ["<prior_intent_id>"]
+- Set "input_from_description" on each step (except the first) describing what it receives from the previous step
+- Sequential pipelines must ALL be workflow_generation type intents (each step = one runnable workflow)
 
 ## Parameter Extraction
 
@@ -1448,7 +1448,7 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
   ]
 }
 
-For SEQUENTIAL pipeline messages (step outputs feed the next step), use `"is_sequential": true` and chain `dependsOn`:
+For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
 {
   "is_sequential": true,
   "intents": [
