@@ -612,6 +612,35 @@ const MAX_FILE_SIZE_GB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 5GB
 
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
+
+// Clean up temp uploads older than UPLOAD_TTL_HOURS to prevent unbounded disk growth.
+const UPLOAD_TTL_MS = (parseInt(process.env.UPLOAD_TTL_HOURS || '48', 10)) * 60 * 60 * 1000;
+async function cleanStaleUploads(): Promise<void> {
+  try {
+    const entries = await fs.readdir(uploadDir);
+    const now = Date.now();
+    let removed = 0;
+    for (const name of entries) {
+      const p = path.join(uploadDir, name);
+      try {
+        const stat = await fs.stat(p);
+        if (stat.isFile() && now - stat.mtimeMs > UPLOAD_TTL_MS) {
+          await fs.unlink(p);
+          removed++;
+        }
+      } catch { /* file may have been deleted concurrently */ }
+    }
+    if (removed > 0) {
+      console.log(`[upload-cleanup] Removed ${removed} stale file(s) older than ${UPLOAD_TTL_MS / 3600000}h`);
+    }
+  } catch { /* uploadDir may not exist yet */ }
+}
+// Run cleanup on startup and every 6 hours
+fs.mkdir(uploadDir, { recursive: true }).then(() => {
+  cleanStaleUploads();
+  setInterval(cleanStaleUploads, 6 * 60 * 60 * 1000);
+}).catch(() => {});
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -8028,34 +8057,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      // Keyword fallback: look for affirmative signals in the text relative to the question
-      const combined = (text + " " + question).toLowerCase();
-      const affirmative = ["yes", "true", "correct", "mention", "contain", "include", "present", "generated", "workflow", "accession", "srr"];
-      const negative = ["no", "false", "not", "absent", "failed", "missing"];
-      const affCount = affirmative.filter(w => combined.includes(w)).length;
-      const negCount = negative.filter(w => combined.includes(w)).length;
-      res.json({ answer: affCount > negCount });
-      return;
+    const prompt = `Answer the following question about the provided text with ONLY "yes" or "no".\n\nText:\n${text.substring(0, 2000)}\n\nQuestion: ${question}`;
+
+    // Attempt 1: Anthropic API (primary)
+    if (apiKey) {
+      try {
+        const { default: Anthropic } = await import("@anthropic-ai/sdk");
+        const client = new Anthropic({ apiKey });
+        const msg = await client.messages.create({
+          model: "claude-haiku-4-5",
+          max_tokens: 10,
+          messages: [{ role: "user", content: prompt }],
+        });
+        const raw = (msg.content[0] as any)?.text?.trim().toLowerCase() ?? "";
+        res.json({ answer: raw.startsWith("yes") || raw === "true" });
+        return;
+      } catch (err: any) {
+        console.warn("[llm/classify] Anthropic failed, trying Ollama:", err.message);
+      }
     }
 
+    // Attempt 2: Local Ollama (fallback when Anthropic key absent or call fails)
+    const ollamaUrl = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
+    const ollamaModel = process.env.OLLAMA_CLASSIFY_MODEL ?? "llama3";
     try {
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const client = new Anthropic({ apiKey });
-      const msg = await client.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 10,
-        messages: [{
-          role: "user",
-          content: `Answer the following question about the provided text with ONLY "yes" or "no".\n\nText:\n${text.substring(0, 2000)}\n\nQuestion: ${question}`
-        }],
+      const ollamaRes = await fetch(`${ollamaUrl}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: ollamaModel, prompt, stream: false }),
+        signal: AbortSignal.timeout(8000),
       });
-      const raw = (msg.content[0] as any)?.text?.trim().toLowerCase() ?? "";
-      res.json({ answer: raw.startsWith("yes") || raw === "true" });
-    } catch (err: any) {
-      console.error("[llm/classify] Error:", err.message);
-      res.status(500).json({ error: err.message });
+      if (ollamaRes.ok) {
+        const ollamaData = await ollamaRes.json() as any;
+        const raw = (ollamaData?.response ?? "").trim().toLowerCase();
+        res.json({ answer: raw.startsWith("yes") || raw === "true" });
+        return;
+      }
+    } catch (ollamaErr: any) {
+      console.warn("[llm/classify] Ollama unavailable:", ollamaErr.message);
     }
+
+    // Attempt 3: Keyword regex (last resort — no LLM available)
+    const combined = (text + " " + question).toLowerCase();
+    const affirmative = ["yes", "true", "correct", "mention", "contain", "include", "present", "generated", "workflow", "accession", "srr"];
+    const negative = ["no", "false", "not", "absent", "failed", "missing"];
+    const affCount = affirmative.filter(w => combined.includes(w)).length;
+    const negCount = negative.filter(w => combined.includes(w)).length;
+    res.json({ answer: affCount > negCount });
   });
 
   // ============================================================================

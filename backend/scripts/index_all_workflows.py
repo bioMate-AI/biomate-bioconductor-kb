@@ -86,9 +86,8 @@ DOMAIN_OUTPUT_TYPES: dict = {
     "genomics":           ["bam", "bai", "fasta_assembly", "multiqc_report"],
     "single_cell":        ["h5ad", "loom", "tsv_barcodes", "multiqc_report"],
     "structural_biology": ["pdb", "cif", "json_scores"],
-    "drug_discovery":     ["sdf", "csv_scores", "tsv_admet"],
+    "drug_discovery":     ["sdf", "csv_scores", "tsv_admet", "tsv_pk", "pdf_report", "csv_nca"],
     "cryo_em":            ["mrcs", "star_particles", "mrc_map"],
-    "pharmacology":       ["tsv_pk", "pdf_report", "csv_nca"],
     "systems_biology":    ["csv_simulation", "pdf_plot", "json_model"],
     "synthetic_biology":  ["genbank", "fasta", "pdf_design"],
     "imaging":            ["tiff", "csv_measurements", "pdf_report"],
@@ -134,28 +133,83 @@ def _infer_output_types(pipeline_name: str, domain: str) -> list:
 
 
 # Domain inference from keyword text
+# Order matters: more specific keywords first to avoid false matches.
 DOMAIN_KEYWORDS = [
-    ("rna",         "transcriptomics"),
-    ("rnaseq",      "transcriptomics"),
-    ("expression",  "transcriptomics"),
-    ("align",       "genomics"),
-    ("assembly",    "genomics"),
-    ("genome",      "genomics"),
-    ("variant",     "variant_calling"),
-    ("vcf",         "variant_calling"),
-    ("snp",         "variant_calling"),
-    ("methylat",    "epigenomics"),
-    ("chip",        "epigenomics"),
-    ("atac",        "epigenomics"),
-    ("peak",        "epigenomics"),
-    ("protein",     "proteomics"),
-    ("proteom",     "proteomics"),
-    ("peptide",     "proteomics"),
-    ("metagen",     "metagenomics"),
-    ("microbiome",  "metagenomics"),
-    ("16s",         "metagenomics"),
-    ("imaging",     "imaging"),
-    ("image",       "imaging"),
+    # Single-cell (before rna/expression to catch scRNA)
+    ("single cell",     "single_cell"),
+    ("single-cell",     "single_cell"),
+    ("singlecell",      "single_cell"),
+    ("scrna",           "single_cell"),
+    ("scatac",          "single_cell"),
+    ("cellranger",      "single_cell"),
+    ("alevinqc",        "single_cell"),
+    ("alevin",          "single_cell"),
+    # Variant calling (specific before genome/align)
+    ("variant",         "variant_calling"),
+    ("vcf",             "variant_calling"),
+    ("snp",             "variant_calling"),
+    ("copy number",     "genomics"),
+    ("copynumber",      "genomics"),
+    ("cnv",             "genomics"),
+    # Epigenomics
+    ("methylat",        "epigenomics"),
+    ("bisulfite",       "epigenomics"),
+    ("chip",            "epigenomics"),
+    ("atac",            "epigenomics"),
+    ("cutandrun",       "epigenomics"),
+    ("hi-c",            "epigenomics"),
+    ("peak",            "epigenomics"),
+    # Transcriptomics
+    ("microarray",      "transcriptomics"),
+    ("affymetrix",      "transcriptomics"),
+    ("affy",            "transcriptomics"),
+    ("rna",             "transcriptomics"),
+    ("rnaseq",          "transcriptomics"),
+    ("expression",      "transcriptomics"),
+    ("transcriptom",    "transcriptomics"),
+    ("differential",    "transcriptomics"),
+    # Proteomics
+    ("proteom",         "proteomics"),
+    ("peptide",         "proteomics"),
+    ("mass spectrometry", "proteomics"),
+    # Metabolomics (before protein to catch NMR)
+    ("metabolom",       "metabolomics"),
+    ("metabolit",       "metabolomics"),
+    ("lipidom",         "metabolomics"),
+    ("nmr",             "metabolomics"),
+    ("massbank",        "metabolomics"),
+    ("lc-ms",           "metabolomics"),
+    ("gc-ms",           "metabolomics"),
+    # Metagenomics
+    ("metagen",         "metagenomics"),
+    ("microbiome",      "metagenomics"),
+    ("16s",             "metagenomics"),
+    # Drug discovery & pharmacology (merged)
+    ("admet",           "drug_discovery"),
+    ("docking",         "drug_discovery"),
+    ("pharmacophore",   "drug_discovery"),
+    ("qsar",            "drug_discovery"),
+    ("scaffold",        "drug_discovery"),
+    ("retrosynthesi",   "drug_discovery"),
+    ("pk/pd",           "drug_discovery"),
+    ("pkpd",            "drug_discovery"),
+    ("pharmacokin",     "drug_discovery"),
+    ("ivive",           "drug_discovery"),
+    ("drug repurpos",   "drug_discovery"),
+    ("drug combinat",   "drug_discovery"),
+    # Genomics (broad, after specifics)
+    ("align",           "genomics"),
+    ("assembly",        "genomics"),
+    ("genome",          "genomics"),
+    ("sequencing",      "genomics"),
+    ("annotati",        "genomics"),
+    # Proteomics (broad protein after metabolomics NMR etc.)
+    ("protein",         "proteomics"),
+    # Imaging
+    ("imaging",         "imaging"),
+    ("image",           "imaging"),
+    ("microscop",       "imaging"),
+    ("flow cytom",      "imaging"),
 ]
 
 
@@ -964,10 +1018,15 @@ def index_biomni_nextflow(conn: sqlite3.Connection) -> int:
     if not BIOMNI_NF_PATH.exists():
         print(f"  Path not found: {BIOMNI_NF_PATH}")
         return 0
+    # Folder-name → canonical domain mapping.
+    # pharmacology/ is merged into drug_discovery to avoid category overlap.
+    _FOLDER_DOMAIN_MAP = {
+        "pharmacology": "drug_discovery",
+    }
     for domain_dir in sorted(BIOMNI_NF_PATH.iterdir()):
         if not domain_dir.is_dir() or domain_dir.name == "bioconductor":
             continue
-        domain = domain_dir.name
+        domain = _FOLDER_DOMAIN_MAP.get(domain_dir.name, domain_dir.name)
         for wf_dir in sorted(domain_dir.iterdir()):
             if not wf_dir.is_dir():
                 continue

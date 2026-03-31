@@ -15,6 +15,14 @@ import Anthropic from '@anthropic-ai/sdk';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { userPatternsService, type UserContext } from './user-patterns-service';
 import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
+import {
+  CANONICAL_DOMAINS,
+  TECHNICAL_SUBDOMAINS,
+  SUBDOMAIN_TO_CANONICAL,
+  PREFERRED_DOMAINS_PROMPT_LIST,
+  type CanonicalDomain,
+  type TechnicalSubdomain,
+} from './domain-registry';
 import type {
   GalaxyTool,
   BioMNIDataset,
@@ -162,6 +170,107 @@ export interface ExtractedFact {
 }
 
 // ============================================================================
+// Clarification Fork-Point Fallbacks (S5)
+// ============================================================================
+// Static fallback questions for each workflowAmbiguity type.
+// Exported so tests can assert completeness against the system prompt fork list.
+// These are used when the Haiku contextualisation call fails.
+
+export const CLARIFICATION_FALLBACKS: Record<string, string> = {
+  variant_type:
+    "To generate the right workflow: is this **germline** variant calling " +
+    "(inherited variants, single sample) or **somatic** variant calling " +
+    "(tumor mutations — requires matched tumor + normal BAM)?",
+  assembly_type:
+    "For genome assembly: is this **de novo assembly** (no reference, e.g. SPAdes/Flye) " +
+    "or **reference-guided assembly** (mapping reads to an existing reference)?",
+  rnaseq_type:
+    "To select the right pipeline: is this **bulk RNA-seq** (differential expression, e.g. DESeq2) " +
+    "or **single-cell RNA-seq** (cell population profiling, e.g. Seurat/Scanpy)?",
+  scrna_type:
+    "For single-cell analysis: is this a **perturbation screen** (CRISPR KO library) " +
+    "or a standard **cell atlas / clustering** analysis?",
+  peak_calling_type:
+    "For chromatin analysis: is this **ChIP-seq** (antibody + input control) or " +
+    "**ATAC-seq** (transposase-accessible chromatin — no antibody needed)?",
+  chip_target:
+    "For ChIP-seq: are you profiling a **transcription factor** (narrow peaks) " +
+    "or a **histone modification** (broad peaks, e.g. H3K27me3)?",
+  rnaseq_focus:
+    "For RNA analysis: is this **mRNA / differential expression** (bulk RNA-seq, DESeq2/edgeR) " +
+    "or **small RNA / miRNA** (miRDeep2 — different library prep and references)?",
+  flow_cytometry_type:
+    "For flow cytometry: is the goal **immunophenotyping** (gating cell populations), " +
+    "**cell sorting**, or **unsupervised clustering** (e.g. flowSOM)?",
+  proteomics_type:
+    "For proteomics: is this **DDA** (data-dependent acquisition, e.g. MaxQuant) or " +
+    "**DIA** (data-independent acquisition, e.g. DIA-NN / Spectronaut)?",
+  cryoem_type:
+    "For cryo-EM: is this **single-particle analysis (SPA)** (purified protein → 3D reconstruction) " +
+    "or **cryo-ET** (tomography — in-situ structures inside cells)?",
+  cryoem_sample:
+    "For cryo-EM SPA: is your sample a **globular particle** (standard CryoSPARC/RELION pipeline) " +
+    "or a **filamentous assembly** (helical reconstruction needed)?",
+  somatic_paired:
+    "For somatic variant calling: do you have a **matched normal sample** " +
+    "(tumor + normal BAM) or is this **tumor-only** calling (panel of normals)?",
+  metagenomics_type:
+    "For microbiome analysis: is this **16S amplicon sequencing** (QIIME2/DADA2) " +
+    "or **shotgun metagenomics** (Kraken2/MetaPhlAn)?",
+  docking_type:
+    "For molecular docking: is this **blind docking** (binding site unknown, DiffDock) " +
+    "or **site-directed docking** (known binding pocket, AutoDock Vina)?",
+  admet_scope:
+    "To run the safety screen I need two things:\n" +
+    "1. **What molecule?** Please provide the SMILES string or upload an SDF file.\n" +
+    "2. **Which safety endpoints?** Options:\n" +
+    "   - **Full ADMET panel** (absorption, distribution, metabolism, excretion, toxicity)\n" +
+    "   - **hERG / cardiotoxicity** only (cardiac ion channel liability)\n" +
+    "   - **DILI / hepatotoxicity** only (drug-induced liver injury)\n" +
+    "   - **Ames mutagenicity** only\n" +
+    "   - **Custom subset** — let me know which ones matter most.",
+};
+
+// ============================================================================
+// Domain Workflow Catalogs (S6)
+// ============================================================================
+// When preferredDomains includes a domain that has a catalog entry, the catalog
+// block is injected into generateResponse() so the LLM knows what BioMate-specific
+// workflows exist without relying solely on FTS retrieval.
+//
+// Design rule: only add a catalog for domains where BioMate has a substantial set
+// of non-obvious or proprietary workflows the LLM cannot infer from general knowledge.
+// Standard domain tools (BWA, GATK, DESeq2…) don't need a catalog — the LLM already
+// knows them. Add an entry here when you've built 4+ workflows for a domain.
+//
+// Each entry is injected as-is inside a <domain_catalog> XML block in the system prompt.
+
+export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
+  drug_discovery: `Available BioMate drug discovery workflows (reference when making recommendations):
+- alphafold_db_search: Structural similarity search (Foldseek + MMseqs2) against AlphaFold DB human proteome (48k proteins). Input: FASTA or PDB.
+- structure_prediction_docking: Predict 3D structure (AlphaFold3 / Chai-1 / Boltz-2) then dock a ligand. Input: protein FASTA sequence + ligand SMILES/SDF.
+- amber_pmemd_md: AMBER pmemd.cuda GPU MD — GAFF2 parameterization → tleap → EM → NVT/NPT → production MD → RMSD/RMSF → MMPBSA.py ΔGbind. Input: receptor PDB + ligand SDF. License: free academic.
+- gromacs_protein_md: GROMACS 2025 + gmx_MMPBSA — 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory. Input: receptor PDB + ligand SDF.
+- schrodinger_glide_docking: Schrödinger Glide HTVS/SP/XP — LigPrep → PrepWiz → GridGen → Glide → ranked SDF. Input: receptor PDB + ligand SMILES/SDF. License: FlexNet (user must provide).
+- moe_covalent_docking: MOE CovDock SVL for covalent inhibitors — warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor, vinyl_sulfone, boronic_acid. Input: receptor PDB + ligand SDF. License: MOE FlexNet (user must provide).
+- reinvent4_lead_design: REINVENT4 AstraZeneca RL-based generative design — modes: de_novo, scaffold_decoration, linker_design, scaffold_hopping. Input: SMILES seed or SMARTS scaffold.
+- nca_pknca: Non-compartmental PK analysis (PKNCA R package) — outputs: AUC, Cmax, Tmax, t½, CL/F, Vz/F. Input: concentration-time CSV.`,
+  // Future: add cryo_em, lab_automation, etc. when their workflow sets reach 4+ entries.
+};
+
+/**
+ * Build a domain catalog block for injection into generateResponse() system prompts.
+ * Returns empty string if no catalog entry exists for any of the given domains.
+ */
+export function buildDomainCatalogBlock(preferredDomains: string[]): string {
+  const entries = preferredDomains
+    .map(d => DOMAIN_CATALOGS[d])
+    .filter((c): c is string => !!c);
+  if (entries.length === 0) return '';
+  return `<domain_catalog>\n${entries.join('\n\n')}\n</domain_catalog>\n`;
+}
+
+// ============================================================================
 // Multi-Intent Decomposition Types
 // ============================================================================
 
@@ -239,6 +348,8 @@ export interface DecomposedIntent {
   facts: Array<{ category: string; value: string; confidence: number; supersedes?: string }>;
   dependsOn: string[];
   actions: ActionCategories; // Which backend agents to invoke
+  /** Ambiguity fork point requiring clarification, or null when intent is unambiguous */
+  workflowAmbiguity?: string | null;
 }
 
 export interface IntentDecomposition {
@@ -247,6 +358,14 @@ export interface IntentDecomposition {
   primaryIntent: DecomposedIntent;
   /** True when the intents form an ordered pipeline (output of step N feeds step N+1) */
   isSequential?: boolean;
+  /** LLM-inferred domain preferences for workflow search ranking (replaces rule-based _infer_domain_preferences) */
+  preferredDomains?: string[];
+  /** LLM-extracted technical terms to boost in FTS (replaces ABBREVIATION_MAP expansion) */
+  keyTerms?: string[];
+  /** True when the query benefits from extended thinking (replaces shouldEnableThinking regex) */
+  needsThinking?: boolean;
+  /** Name of a known workflow chain if the query maps to one, else null */
+  chainHint?: string | null;
 }
 
 export interface SubIntentResult {
@@ -318,10 +437,157 @@ export interface GalaxyAssistantResponse {
   };
 }
 
+// ============================================================================
+// Session Memory — async LLM-maintained understanding of the current session
+// ============================================================================
+
+export interface SessionMemoryItem {
+  text: string;
+  /** Haiku-assigned confidence 0–1. Items below 0.7 are suppressed from injection. */
+  confidence: number;
+}
+
+export interface SessionMemory {
+  active_task: string;
+  /** Technical decisions with confidence scores. Only items ≥0.7 are injected into system prompts. */
+  key_decisions: SessionMemoryItem[];
+  uploaded_files: string[];
+  attempted_workflows: Array<{ path: string; status: string }>;
+  current_parameters: Record<string, any>;
+  /** Unresolved questions with confidence scores. Only items ≥0.7 are injected. */
+  open_questions: SessionMemoryItem[];
+}
+
+/**
+ * SessionMemoryUpdater: after each turn, enqueues an async (debounced) Haiku call
+ * that maintains a structured summary of the session.  The summary is injected
+ * into every subsequent system prompt via <session_memory> tags so the assistant
+ * retains context beyond the 6-turn sliding window.
+ *
+ * Architecture: DeerFlow-inspired — memory updates are async, injection is sync.
+ * The main conversation path is never blocked.
+ */
+class SessionMemoryUpdater {
+  private claude: Anthropic;
+  private memoryBySession: Map<string, { memory: SessionMemory; lastAccess: number }> = new Map();
+  private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private static readonly DEBOUNCE_MS = 30_000;  // 30 s — same as DeerFlow
+  private static readonly SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours idle eviction
+
+  private static readonly HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+
+  private static readonly UPDATE_PROMPT = `You are maintaining a session memory for a bioinformatics research session.
+Given the new conversation turn below and the current memory, produce an updated memory JSON.
+
+Rules:
+- active_task: what is the user currently trying to accomplish (1 sentence, present tense)
+- key_decisions: list of specific technical decisions made (max 8 items), each as {"text": "...", "confidence": 0.0-1.0}
+  confidence reflects how certain you are this is a firm decision (0.9=explicit user statement, 0.7=strong inference, <0.7=speculation)
+- uploaded_files: all files the user has uploaded or mentioned this session
+- attempted_workflows: workflows that were generated or run, each as {"path": "...", "status": "pending|running|completed|failed"}
+- current_parameters: concrete parameter values established (genome, strandedness, etc.)
+- open_questions: things that remain ambiguous or unresolved, each as {"text": "...", "confidence": 0.0-1.0}
+  confidence reflects how important/likely this question is to affect the next step
+
+Update incrementally — carry forward what is still relevant, update what has changed.
+Only include items you are confident about. If nothing changed for a field, keep it as-is.
+Return ONLY valid JSON with these exact keys. No explanation, no markdown fences.`;
+
+  constructor(claude: Anthropic) {
+    this.claude = claude;
+  }
+
+  /**
+   * Queue a memory update for the given session.  Debounced: if another turn
+   * arrives within 30 s, the earlier update is cancelled and replaced.
+   */
+  queue(sessionId: string, userMessage: string, assistantResponse: string): void {
+    // Clear any pending timer for this session
+    const existing = this.timers.get(sessionId);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      this.timers.delete(sessionId);
+      this._update(sessionId, userMessage, assistantResponse).catch(
+        (err) => console.warn('[SessionMemory] Update failed (non-fatal):', err)
+      );
+    }, SessionMemoryUpdater.DEBOUNCE_MS);
+
+    this.timers.set(sessionId, timer);
+  }
+
+  /** Return the current memory for a session, or null if none yet. Updates last-access time. */
+  get(sessionId: string): SessionMemory | null {
+    const entry = this.memoryBySession.get(sessionId);
+    if (!entry) return null;
+    entry.lastAccess = Date.now();
+    return entry.memory;
+  }
+
+  /** Evict sessions that have been idle longer than SESSION_TTL_MS. */
+  private _evictStale(): void {
+    const cutoff = Date.now() - SessionMemoryUpdater.SESSION_TTL_MS;
+    for (const [id, entry] of this.memoryBySession) {
+      if (entry.lastAccess < cutoff) {
+        this.memoryBySession.delete(id);
+        const t = this.timers.get(id);
+        if (t) { clearTimeout(t); this.timers.delete(id); }
+      }
+    }
+  }
+
+  private async _update(sessionId: string, userMessage: string, assistantResponse: string): Promise<void> {
+    // Evict stale sessions on each write (amortized cleanup)
+    this._evictStale();
+
+    const existing = this.memoryBySession.get(sessionId);
+    const currentJson = existing ? JSON.stringify(existing.memory, null, 2) : JSON.stringify({
+      active_task: '', key_decisions: [], uploaded_files: [],
+      attempted_workflows: [], current_parameters: {}, open_questions: [],
+    } as SessionMemory, null, 2);
+
+    const userContent = `## Current memory\n${currentJson}\n\n## New turn\nUser: ${userMessage.substring(0, 800)}\n\nAssistant: ${assistantResponse.substring(0, 800)}\n\nReturn the updated memory JSON:`;
+
+    const response = await this.claude.messages.create({
+      model: SessionMemoryUpdater.HAIKU_MODEL,
+      max_tokens: 600,
+      system: SessionMemoryUpdater.UPDATE_PROMPT,
+      messages: [{ role: 'user', content: userContent }],
+    });
+
+    const raw = (response.content as any[]).find((b: any) => b.type === 'text')?.text ?? '';
+    try {
+      // Strip markdown fences if present
+      const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+      const updated: SessionMemory = JSON.parse(cleaned);
+      // Type-guard: validate required array/object fields before storing
+      if (typeof updated !== 'object' || updated === null) throw new Error('not an object');
+      // Normalize key_decisions: accept objects {text,confidence} or plain strings (backward compat)
+      if (!Array.isArray(updated.key_decisions)) updated.key_decisions = [];
+      else updated.key_decisions = updated.key_decisions
+        .map((d: any) => typeof d === 'string' ? { text: d, confidence: 0.7 } : d)
+        .filter((d: any) => typeof d === 'object' && d !== null && typeof d.text === 'string') as SessionMemoryItem[];
+      if (!Array.isArray(updated.uploaded_files)) updated.uploaded_files = [];
+      if (!Array.isArray(updated.attempted_workflows)) updated.attempted_workflows = [];
+      if (typeof updated.current_parameters !== 'object' || Array.isArray(updated.current_parameters)) updated.current_parameters = {};
+      // Normalize open_questions: same pattern as key_decisions
+      if (!Array.isArray(updated.open_questions)) updated.open_questions = [];
+      else updated.open_questions = updated.open_questions
+        .map((q: any) => typeof q === 'string' ? { text: q, confidence: 0.7 } : q)
+        .filter((q: any) => typeof q === 'object' && q !== null && typeof q.text === 'string') as SessionMemoryItem[];
+      this.memoryBySession.set(sessionId, { memory: updated, lastAccess: Date.now() });
+      console.log(`[SessionMemory] Updated for session=${sessionId}, task="${updated.active_task}"`);
+    } catch {
+      console.warn('[SessionMemory] JSON parse/validation failed, keeping existing memory');
+    }
+  }
+}
+
 export class GalaxyAssistant {
   private claude: Anthropic;
   private galaxyAPI: GalaxyAPIProxy;
   private modelConfig: ModelConfig;
+  private sessionMemory: SessionMemoryUpdater;
 
   /** In-memory domain profile cache: userId → { domains, topics, fetchedAt } */
   private _domainProfileCache: Map<number, { domains: string[]; topics: string[]; fetchedAt: number }> = new Map();
@@ -331,6 +597,7 @@ export class GalaxyAssistant {
     this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
+    this.sessionMemory = new SessionMemoryUpdater(this.claude);
     console.log('[GalaxyAssistant] Initialized with model config:', this.modelConfig);
   }
 
@@ -372,6 +639,87 @@ export class GalaxyAssistant {
   /** Get current model configuration (for testing/debugging) */
   getModelConfig(): ModelConfig {
     return { ...this.modelConfig };
+  }
+
+  /**
+   * Build a session memory block to prepend to system prompts.
+   * Returns empty string if no memory exists for this session.
+   * The block is wrapped in <session_memory> tags so the LLM understands
+   * it supplements — not replaces — the conversation window.
+   */
+  private _buildSessionMemoryBlock(sessionId?: string): string {
+    if (!sessionId) return '';
+    const mem = this.sessionMemory.get(sessionId);
+    if (!mem || !mem.active_task) return '';
+
+    const parts: string[] = [];
+    if (mem.active_task) parts.push(`Current task: ${mem.active_task}`);
+    // Only inject high-confidence decisions (≥0.7) to avoid polluting the system prompt with speculation
+    const highConfDecisions = mem.key_decisions.filter(d => d.confidence >= 0.7);
+    if (highConfDecisions.length > 0) parts.push(`Key decisions: ${highConfDecisions.map(d => d.text).join('; ')}`);
+    if (mem.uploaded_files.length > 0) parts.push(`Files this session: ${mem.uploaded_files.join(', ')}`);
+    if (mem.attempted_workflows.length > 0) {
+      const wfs = mem.attempted_workflows.map(w => `${w.path} (${w.status})`).join(', ');
+      parts.push(`Previously attempted: ${wfs}`);
+    }
+    if (Object.keys(mem.current_parameters).length > 0) {
+      parts.push(`Parameters set: ${JSON.stringify(mem.current_parameters)}`);
+    }
+    const highConfQuestions = mem.open_questions.filter(q => q.confidence >= 0.7);
+    if (highConfQuestions.length > 0) parts.push(`Open questions: ${highConfQuestions.map(q => q.text).join('; ')}`);
+
+    return `<session_memory>\n${parts.join('\n')}\n</session_memory>\nNote: session memory supplements the conversation window — prior turns may have been compressed.\n\n`;
+  }
+
+  /**
+   * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
+   * question response before workflow generation proceeds.
+   *
+   * Returns a full GalaxyAssistantResponse to return immediately, or null if no gate fires.
+   * Callers should `return gate` when non-null.
+   */
+  private async _clarificationGate(
+    intent: any,
+    actions: any,
+    message: string,
+    recommendedTools: ToolRecommendation[],
+    recommendedDatasets: DatasetRecommendation[]
+  ): Promise<GalaxyAssistantResponse | null> {
+    const ambiguity = intent.workflowAmbiguity;
+    if (!ambiguity || !actions.needsWorkflowGeneration) return null;
+
+    const fallback = CLARIFICATION_FALLBACKS[ambiguity];
+    const question = fallback
+      ? await this._generateClarificationQuestion(message, ambiguity, fallback)
+      : undefined;
+    if (!question) return null;
+
+    return {
+      message: question,
+      intentType: intent.type,
+      intentConfidence: intent.confidence,
+      recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+      recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+      workflowSuggestion: {
+        shouldGenerate: false,
+        userIntent: message,
+        confidence: 0,
+        reasoning: `Ambiguity "${ambiguity}" requires clarification before workflow generation`,
+      },
+      generatedWorkflow: null,
+      researchResponse: undefined,
+      benchmarkEvidence: undefined,
+      truncated: false,
+      suggestions: [],
+      sources: {
+        toolSearchUsed: false,
+        datasetRAGUsed: false,
+        workflowGenerated: false,
+        thinkingUsed: false,
+        researchAgentUsed: false,
+        benchmarkAgentUsed: false,
+      },
+    };
   }
 
   /**
@@ -422,12 +770,9 @@ Ambiguity type → what to ask about:
     userIntent: string,
     currentWorkflowText?: string
   ): Promise<string | undefined> {
-    const VALID_DOMAINS = [
-      'cryo_em', 'rna_seq', 'variant_calling_germline', 'variant_calling_somatic',
-      'single_cell', 'epigenomics_chip', 'epigenomics_atac', 'proteomics',
-      'drug_discovery', 'metagenomics_16s', 'metagenomics_shotgun',
-      'methylation', 'genome_assembly', 'structural_biology',
-    ];
+    // Technical sub-domains sourced from domain-registry.ts
+    // These are finer-grained than user profile domains and map back via SUBDOMAIN_TO_CANONICAL.
+    const VALID_DOMAINS = [...TECHNICAL_SUBDOMAINS];
     try {
       const contextLine = currentWorkflowText
         ? `\nActive workflow context: "${currentWorkflowText}"`
@@ -436,7 +781,7 @@ Ambiguity type → what to ask about:
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 30,
         system: `Classify the bioinformatics domain of a query. Respond with ONLY one of these exact strings (no punctuation, no explanation):
-cryo_em | rna_seq | variant_calling_germline | variant_calling_somatic | single_cell | epigenomics_chip | epigenomics_atac | proteomics | drug_discovery | metagenomics_16s | metagenomics_shotgun | methylation | genome_assembly | structural_biology | other | unknown
+${TECHNICAL_SUBDOMAINS.join(' | ')} | other | unknown
 
 Rules:
 - cryo_em: cryo-EM, CryoSPARC, RELION, SPA, micrograph, CTF, tomography, tilt series
@@ -461,7 +806,7 @@ Rules:
         }]
       });
       const domain = resp.content[0].type === 'text' ? resp.content[0].text.trim() : 'unknown';
-      if (VALID_DOMAINS.includes(domain)) return domain;
+      if ((VALID_DOMAINS as readonly string[]).includes(domain)) return domain as TechnicalSubdomain;
       return undefined; // 'other' or 'unknown' → no restriction
     } catch {
       return undefined;
@@ -500,15 +845,22 @@ Rules:
       log('Domain profile loaded for user ' + context.userId);
     }
 
-    // Step 1: Analyze user intent with NLU (now supports multi-intent)
+    // Load session memory for long-session coherence (injected into system prompts)
+    const sessionMemoryBlock = this._buildSessionMemoryBlock(context.sessionId);
+    if (sessionMemoryBlock) {
+      log('Session memory loaded for session ' + context.sessionId);
+    }
+
+    // Step 1: Analyze user intent with NLU (supports all formats: single, multi, sequential)
+    // The LLM recognizes bullet lists, numbered steps, prose pipelines, and all other formats.
     log('Step 1: Analyzing intent');
-    const decomposition = await this.analyzeIntent(message, context);
+    const decomposition = await this.analyzeIntent(message, context, sessionMemoryBlock);
     const intent = decomposition.primaryIntent;
     log(`Step 1 complete - Intent: ${intent.type}, isMultiIntent: ${decomposition.isMultiIntent}, intents: ${decomposition.intents.length}`);
 
     // Multi-intent path: fan out to processSubIntent for each intent
     if (decomposition.isMultiIntent) {
-      return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext);
+      return this.processMultiIntent(decomposition, message, context, startTime, onResponseDelta, domainProfileContext, sessionMemoryBlock);
     }
 
     // Single-intent path: unchanged from original pipeline
@@ -573,86 +925,13 @@ Rules:
       actions.needsWorkflowGeneration = true;
     }
 
-    // If the intent is ambiguous, return a clarifying question before generating
-    const ambiguity = (intent as any).workflowAmbiguity;
-    if (ambiguity && actions.needsWorkflowGeneration) {
-      // Static fallback questions (used if Haiku call fails)
-      const CLARIFICATION_FALLBACKS: Record<string, string> = {
-        variant_type:
-          "To generate the right workflow: is this **germline** variant calling " +
-          "(inherited variants, single sample) or **somatic** variant calling " +
-          "(tumor mutations — requires matched tumor + normal BAM)?",
-        assembly_type:
-          "For genome assembly: is this **de novo assembly** (no reference, e.g. SPAdes/Flye) " +
-          "or **reference-guided assembly** (mapping reads to an existing reference)?",
-        rnaseq_type:
-          "To select the right pipeline: is this **bulk RNA-seq** (differential expression, e.g. DESeq2) " +
-          "or **single-cell RNA-seq** (cell population profiling, e.g. Seurat/Scanpy)?",
-        scrna_type:
-          "For single-cell analysis: is this a **perturbation screen** (CRISPR KO library) " +
-          "or a standard **cell atlas / clustering** analysis?",
-        peak_calling_type:
-          "For chromatin analysis: is this **ChIP-seq** (antibody + input control) or " +
-          "**ATAC-seq** (transposase-accessible chromatin — no antibody needed)?",
-        chip_target:
-          "For ChIP-seq: are you profiling a **transcription factor** (narrow peaks) " +
-          "or a **histone modification** (broad peaks, e.g. H3K27me3)?",
-        rnaseq_focus:
-          "For RNA analysis: is this **mRNA / differential expression** (bulk RNA-seq, DESeq2/edgeR) " +
-          "or **small RNA / miRNA** (miRDeep2 — different library prep and references)?",
-        flow_cytometry_type:
-          "For flow cytometry: is the goal **immunophenotyping** (gating cell populations), " +
-          "**cell sorting**, or **unsupervised clustering** (e.g. flowSOM)?",
-        proteomics_type:
-          "For proteomics: is this **DDA** (data-dependent acquisition, e.g. MaxQuant) or " +
-          "**DIA** (data-independent acquisition, e.g. DIA-NN / Spectronaut)?",
-        cryoem_type:
-          "For cryo-EM: is this **single-particle analysis (SPA)** (purified protein → 3D reconstruction) " +
-          "or **cryo-ET** (tomography — in-situ structures inside cells)?",
-        cryoem_sample:
-          "For cryo-EM SPA: is your sample a **globular particle** (standard CryoSPARC/RELION pipeline) " +
-          "or a **filamentous assembly** (helical reconstruction needed)?",
-        somatic_paired:
-          "For somatic variant calling: do you have a **matched normal sample** " +
-          "(tumor + normal BAM) or is this **tumor-only** calling (panel of normals)?",
-        metagenomics_type:
-          "For microbiome analysis: is this **16S amplicon sequencing** (QIIME2/DADA2) " +
-          "or **shotgun metagenomics** (Kraken2/MetaPhlAn)?",
-        docking_type:
-          "For molecular docking: is this **blind docking** (binding site unknown, DiffDock) " +
-          "or **site-directed docking** (known binding pocket, AutoDock Vina)?",
-      };
-      const fallback = CLARIFICATION_FALLBACKS[ambiguity];
-      // Generate a contextual question with Haiku (falls back to static string on failure)
-      const question = fallback
-        ? await this._generateClarificationQuestion(message, ambiguity, fallback)
-        : undefined;
-      if (question) {
-        log(`Step 4: Returning clarification question for ambiguity="${ambiguity}"`);
-        // Return early — workflow generation deferred until user clarifies
-        return {
-          message: question,
-          intentType: intent.type,
-          intentConfidence: intent.confidence,
-          recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
-          recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
-          workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0,
-            reasoning: `Ambiguity "${ambiguity}" requires clarification before workflow generation` },
-          generatedWorkflow: null,
-          researchResponse: undefined,
-          benchmarkEvidence: undefined,
-          truncated: false,
-          suggestions: [],
-          sources: {
-            toolSearchUsed: false,
-            datasetRAGUsed: false,
-            workflowGenerated: false,
-            thinkingUsed: false,
-            researchAgentUsed: false,
-            benchmarkAgentUsed: false,
-          },
-        };
-      }
+    // S1: ClarificationGate — returns early if ambiguity requires user clarification
+    const clarificationResponse = await this._clarificationGate(
+      intent, actions, message, recommendedTools, recommendedDatasets
+    );
+    if (clarificationResponse) {
+      log(`Step 4: Returning clarification question for ambiguity="${intent.workflowAmbiguity}"`);
+      return clarificationResponse;
     }
 
     // Workflow generation / modification
@@ -672,7 +951,9 @@ Rules:
             workflowSuggestion.userIntent,
             recommendedDatasets.map(d => d.dataset),
             intent.inlineParameters,
-            context
+            context,
+            decomposition.preferredDomains,
+            decomposition.keyTerms
           );
            workflowGenerated = !!(
              generatedWorkflow?.success &&
@@ -744,7 +1025,9 @@ Rules:
       researchResponse,
       benchmarkEvidence,
       onResponseDelta,
-      domainProfileContext
+      domainProfileContext,
+      sessionMemoryBlock,
+      decomposition.preferredDomains ?? []
     );
     log('Step 6 complete');
 
@@ -770,7 +1053,7 @@ Rules:
       supersedes: f.supersedes,
     }));
 
-    return {
+    const finalResult: GalaxyAssistantResponse = {
       message: response.message,
       intentType: intent.type,
       intentConfidence: intent.confidence,
@@ -796,8 +1079,21 @@ Rules:
         benchmarkAgentUsed: !!benchmarkEvidence,
       },
     };
+
+    // Queue async session memory update (non-blocking, debounced 30 s)
+    if (context.sessionId) {
+      this.sessionMemory.queue(context.sessionId, message, response.message);
+    }
+
+    return finalResult;
   }
 
+  /**
+   * Detect an explicitly bullet- or numbered-list formatted sequential pipeline.
+   * When the user writes steps as a list (e.g. "1. QC\n2. Align\n3. Call variants"
+   * or "- FastQC\n- Trim\n- STAR align"), we parse directly without an LLM call.
+   * Returns null if the message is not in list format.
+   */
   /**
    * Process a sequential pipeline request.
    *
@@ -922,7 +1218,8 @@ Rules:
     context: ChatContext,
     startTime: number,
     onResponseDelta?: (chunk: string) => void,
-    domainProfileContext: string = ''
+    domainProfileContext: string = '',
+    sessionMemoryBlock: string = ''
   ): Promise<GalaxyAssistantResponse> {
     const log = (step: string) => console.log(`[GalaxyAssistant] [${Date.now() - startTime}ms] ${step}`);
 
@@ -979,7 +1276,8 @@ Rules:
     log('Multi-intent Steps 4-5: Processing sub-intents in parallel');
     const subIntentResults = await Promise.all(
       decomposition.intents.map(intent =>
-        this.processSubIntent(intent, message, context, recommendedTools, recommendedDatasets)
+        this.processSubIntent(intent, message, context, recommendedTools, recommendedDatasets,
+          decomposition.preferredDomains, decomposition.keyTerms)
       )
     );
     log(`Multi-intent Steps 4-5 complete: ${subIntentResults.length} results`);
@@ -1030,7 +1328,9 @@ Rules:
       researchResult?.researchResponse,
       benchmarkResult?.benchmarkEvidence,
       onResponseDelta,
-      domainProfileContext
+      domainProfileContext,
+      sessionMemoryBlock,
+      decomposition.preferredDomains ?? []
     );
     log('Multi-intent Step 6 complete');
 
@@ -1057,7 +1357,7 @@ Rules:
       supersedes: f.supersedes,
     }));
 
-    return {
+    const multiIntentResult: GalaxyAssistantResponse = {
       message: response.message,
       intentType: primaryIntent.type,
       intentConfidence: primaryIntent.confidence,
@@ -1089,6 +1389,13 @@ Rules:
         benchmarkAgentUsed: !!benchmarkResult?.benchmarkEvidence,
       },
     };
+
+    // Queue async session memory update (non-blocking)
+    if (context.sessionId) {
+      this.sessionMemory.queue(context.sessionId, message, response.message);
+    }
+
+    return multiIntentResult;
   }
 
   /**
@@ -1100,7 +1407,9 @@ Rules:
     originalMessage: string,
     context: ChatContext,
     recommendedTools: ToolRecommendation[],
-    recommendedDatasets: DatasetRecommendation[]
+    recommendedDatasets: DatasetRecommendation[],
+    preferredDomains?: string[],
+    keyTerms?: string[]
   ): Promise<SubIntentResult> {
     const baseResult: SubIntentResult = {
       intentId: intent.id,
@@ -1138,7 +1447,9 @@ Rules:
             effectiveIntent,
             recommendedDatasets.map(d => d.dataset),
             intent.inlineParameters,
-            context
+            context,
+            preferredDomains,
+            keyTerms
           );
           baseResult.generatedWorkflow = workflow;
           if (!baseResult.recommendedTools) baseResult.recommendedTools = recommendedTools;
@@ -1183,9 +1494,10 @@ Rules:
    */
   private async analyzeIntent(
     message: string,
-    context: ChatContext
+    context: ChatContext,
+    sessionMemoryBlock: string = ''
   ): Promise<IntentDecomposition> {
-    const systemPrompt = `You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
+    const systemPrompt = `${sessionMemoryBlock}You are a bioinformatics intent analyzer. Classify user messages by their information need and declare which system agents should handle the request.
 
 ## Information Need Types
 
@@ -1243,15 +1555,37 @@ Rules for multi-intent:
 
 A special case of multi-intent is an **ordered sequential pipeline** where each step's output is the input for the next step. This is different from parallel multi-intent.
 
-Signals for sequential pipeline (set "is_sequential": true in the intents response):
-- Words: "then", "followed by", "after that", "next", "step 1 ... step 2", "pipeline of", "chain:"
-- Examples:
-  - "RNA-seq alignment then differential expression then pathway enrichment" -> sequential
-  - "First run FastQC, then trim adapters, then align with STAR" -> sequential
-  - "QC my FASTQ files, then align to hg38, then call variants" -> sequential
-- Each intent in a sequential pipeline should have "dependsOn": ["<prior_intent_id>"]
-- Set "input_from_description" on each step (except the first) describing what it receives from the previous step
+Your job is to recognize sequential intent in **any format the user chooses**. Do not require a specific syntax. Examples of all supported formats:
+
+**Numbered lists:**
+- "1. FastQC\n2. Trim Galore\n3. STAR alignment\n4. DESeq2" → 4-step sequential
+- "Step 1: QC the reads. Step 2: Trim adapters. Step 3: Align to hg38." → 3-step sequential
+- "1) Run FastQC 2) Align with BWA 3) Call variants with GATK" → 3-step sequential
+
+**Bulleted lists (any bullet character):**
+- "- RNA-seq QC\n- Adapter trimming\n- Alignment" → 3-step sequential
+- "* FastQC\n* Trim Galore\n* STAR" → 3-step sequential
+- "• QC\n• Trim\n• Align" → 3-step sequential
+
+**Labelled steps:**
+- "Step A: quality control, Step B: alignment, Step C: variant calling" → 3-step sequential
+
+**Prose with connectives:**
+- "RNA-seq alignment then differential expression then pathway enrichment" → 3-step sequential
+- "First run FastQC, then trim adapters, then align with STAR" → 3-step sequential
+- "QC my FASTQ files, followed by alignment, followed by variant calling" → 3-step sequential
+
+**Intro sentence + list (ignore the intro):**
+- "Please run the following pipeline:\n1. QC\n2. Trim\n3. Align" → 3-step sequential (ignore intro)
+- "I want to process my RNA-seq data:\n- FastQC\n- Trim Galore\n- STAR" → 3-step sequential
+
+Rules:
+- Set "is_sequential": true and populate "intents" in order
+- Each intent must have "dependsOn": ["<prior_intent_id>"] (except the first step)
+- Set "input_from_description" on each step (except the first) describing what it receives
+- Set "output_description" on each step describing what it produces for the next step
 - Sequential pipelines must ALL be workflow_generation type intents (each step = one runnable workflow)
+- If a step is ambiguous in isolation, still include it — resolution happens downstream
 
 ## Parameter Extraction
 
@@ -1299,6 +1633,25 @@ ${(() => {
   return '\n## Existing Facts from Prior Turns\n' + lines.join('\n') + '\n';
 })()}
 ## Ambiguity Detection
+
+IMPORTANT: Domain profile and research context do NOT resolve workflow ambiguity.
+If a user's query would normally trigger a clarification question, it MUST still
+trigger that question even when their domain profile suggests a context.
+
+The domain profile tells you WHICH tools to rank higher after you know the answer —
+it does NOT tell you WHAT the user wants.
+
+Examples:
+- User profile: oncology. Query: "analyze my expression data" → STILL ask: is this
+  bulk RNA-seq (differential expression, DESeq2/edgeR) or single-cell RNA-seq
+  (cell clustering, Seurat/Scanpy)? The profile informs preferred_domains but does
+  not answer the question "what kind of analysis?"
+- User profile: drug_discovery. Query: "run a docking analysis" → STILL ask: blind
+  docking (binding site unknown, DiffDock) or site-directed (known pocket, AutoDock Vina)?
+
+Rule: set workflowAmbiguity whenever the query is genuinely ambiguous at the technical
+level, regardless of what the user's domain profile contains. The profile informs
+preferred_domains (search ranking) but NEVER resolves workflowAmbiguity.
 
 GENERAL RULE: When a workflow request could map to two or more pipelines with fundamentally
 different inputs, tools, or scientific purposes — and the user has not provided enough context
@@ -1370,6 +1723,11 @@ DRUG DISCOVERY
 - "docking_type": "molecular docking" without specifying
   "blind docking" (no binding site known, DiffDock) vs
   "site-directed docking" (known binding site, AutoDock Vina)
+- "admet_scope": "toxicity" / "ADMET" / "safety screening" without providing a molecule AND
+  without specifying which assays — need to know: (a) what molecule (SMILES or file), and
+  (b) which safety endpoints: "hERG / cardiotoxicity", "DILI / hepatotoxicity",
+  "Ames mutagenicity", "full ADMET panel", or a specific subset.
+  Do NOT ask if the user already provided a SMILES string and named specific endpoints.
 
 Return null if the user already specifies enough to unambiguously select one pipeline.
 
@@ -1396,12 +1754,36 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
     {"category": "sequence", "value": "ATGCGATCG", "confidence": 1.0},
     {"category": "analysis_goal", "value": "reverse complement", "confidence": 0.95}
   ],
-  "workflowAmbiguity": null
+  "workflowAmbiguity": null,
+  "preferred_domains": [],
+  "key_terms": ["reverse complement"],
+  "needs_thinking": false,
+  "chain_hint": null
 }
+
+preferred_domains: list of 0–3 domain strings most relevant to this query, chosen from:
+  [${PREFERRED_DOMAINS_PROMPT_LIST}]
+  Leave empty [] when the query is domain-agnostic or unclear.
+
+key_terms: up to 8 specific technical terms (tool names, assay types, organisms) that should
+  boost workflow search recall. Omit generic words like "run", "analyze", "data".
+
+needs_thinking: true only when the query requires multi-step reasoning, pipeline design,
+  troubleshooting, or methodology comparison. false for simple workflow execution requests.
+
+chain_hint: if the query clearly maps to one of these curated workflow chains, return its name;
+  otherwise null.
+  Known chain names: [bulk_rnaseq_de_analysis, chip_seq_peak_calling, atac_seq_chromatin,
+  wgs_variant_calling, target_to_lead_full, scrnaseq_seurat_full, metagenomics_diversity,
+  proteomics_dda_full]
 
 For MULTI-intent messages (parallel), respond with an "intents" array:
 {
   "is_sequential": false,
+  "preferred_domains": ["transcriptomics"],
+  "key_terms": ["differential expression", "DESeq2", "edgeR"],
+  "needs_thinking": true,
+  "chain_hint": null,
   "intents": [
     {
       "id": "intent_1",
@@ -1451,6 +1833,10 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
 For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
 {
   "is_sequential": true,
+  "preferred_domains": ["transcriptomics"],
+  "key_terms": ["fastqc", "trim galore", "star", "hg38"],
+  "needs_thinking": false,
+  "chain_hint": "bulk_rnaseq_de_analysis",
   "intents": [
     {
       "id": "step_1",
@@ -1596,6 +1982,12 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       return inferActionsFromType(type);
     };
 
+    // Extract top-level UQU fields (present in both single and multi-intent responses)
+    const preferredDomains: string[] = Array.isArray(result.preferred_domains) ? result.preferred_domains : [];
+    const keyTerms: string[] = Array.isArray(result.key_terms) ? result.key_terms : [];
+    const needsThinking: boolean = result.needs_thinking === true;
+    const chainHint: string | null = typeof result.chain_hint === 'string' ? result.chain_hint : null;
+
     // Multi-intent format: { intents: [...] }
     if (Array.isArray(result.intents) && result.intents.length > 0) {
       const isSequential = result.is_sequential === true;
@@ -1623,7 +2015,9 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
 
       console.log(
         `[GalaxyAssistant] Multi-intent detected: ${intents.length} intents [${intents.map(i => i.type).join(', ')}]` +
-        (isSequential ? ' (SEQUENTIAL pipeline)' : '')
+        (isSequential ? ' (SEQUENTIAL pipeline)' : '') +
+        (preferredDomains.length ? ` domains=[${preferredDomains.join(',')}]` : '') +
+        (chainHint ? ` chain=${chainHint}` : '')
       );
 
       return {
@@ -1631,6 +2025,10 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         isMultiIntent: intents.length > 1,
         isSequential,
         primaryIntent,
+        preferredDomains,
+        keyTerms,
+        needsThinking,
+        chainHint,
       };
     }
 
@@ -1648,12 +2046,17 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       facts: parseFacts(result.facts),
       dependsOn: [],
       actions: parseActions(result.actions, intentType),
+      workflowAmbiguity: typeof result.workflowAmbiguity === 'string' ? result.workflowAmbiguity : null,
     };
 
     return {
       intents: [singleIntent],
       isMultiIntent: false,
       primaryIntent: singleIntent,
+      preferredDomains,
+      keyTerms,
+      needsThinking,
+      chainHint,
     };
   }
 
@@ -1968,7 +2371,9 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     userIntent: string,
     datasets: BioMNIDataset[],
     inlineParameters?: Record<string, string>,
-    context?: ChatContext
+    context?: ChatContext,
+    preferredDomains?: string[],
+    keyTerms?: string[]
   ): Promise<any> {
     // Build context text for domain inference (active workflow + recent turns)
     const currentWorkflowText = String(
@@ -2009,6 +2414,8 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
         name: d.name,
         type: d.type || 'unknown',
       })),
+      preferred_domains: preferredDomains?.length ? preferredDomains : undefined,
+      key_terms: keyTerms?.length ? keyTerms : undefined,
     });
 
     if (response.success) {
@@ -2043,7 +2450,9 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     researchResponse?: any,
     benchmarkEvidence?: any,
     onResponseDelta?: (chunk: string) => void,
-    domainProfileContext: string = ''
+    domainProfileContext: string = '',
+    sessionMemoryBlock: string = '',
+    preferredDomains: string[] = []
   ): Promise<{ message: string; thinking?: ThinkingDetectionResult; truncated?: boolean }> {
     const lowerMessage = (message || '').toLowerCase();
     const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
@@ -2071,7 +2480,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
 
     const isResearchIntent = !!researchResponse;
     const systemPrompt = isResearchIntent
-      ? `${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 Your role:
 - Provide accurate, evidence-based answers to scientific questions
@@ -2079,7 +2488,7 @@ Your role:
 - Only cite papers from the provided list — never fabricate citations
 - Structure answers clearly with headings and bullet points
 - End with a ## References section listing only the papers you cited`
-      : `${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 Your capabilities:
 - Access to 2,177 bioinformatics tools (real-time search)
@@ -2121,7 +2530,7 @@ Workflow routing (use these specific workflows when the user's intent matches):
 - "covalent docking", "covalent inhibitor", "warhead", "acrylamide docking", "irreversible inhibitor design", "MOE docking", or "targeted covalent drug": suggest the moe_covalent_docking workflow (MOE CovDock SVL, 5-step: LigPrep → QuickPrep → CovDock → GBVI/WSA dG → SDF report. Warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor. License: MOE FlexNet, user must provide.)
 - "generative drug design", "de novo design", "scaffold hopping", "lead generation", "molecule optimization", "REINVENT", or "fragment decoration": suggest the reinvent4_lead_design workflow (REINVENT4 AstraZeneca, RL-based SMILES generator, outputs ranked molecules + SDF + score trajectory)
 
-Style guide:
+${buildDomainCatalogBlock(preferredDomains)}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly

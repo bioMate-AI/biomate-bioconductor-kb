@@ -403,8 +403,11 @@ class AIAssistant:
             Response from the appropriate handler
         """
         # Step 0: Multi-task detection — surface clarification as plain text reply
-        if self._looks_like_multi_task(query):
-            return await self._handle_multi_task_clarification(query, context or {})
+        _ctx = context or {}
+        _uid = _ctx.get('userId', '') or _ctx.get('user_id', '')
+        _sid = _ctx.get('sessionId', '') or _ctx.get('session_id', '')
+        if self._looks_like_multi_task(query, user_id=_uid, session_id=_sid):
+            return await self._handle_multi_task_clarification(query, _ctx)
 
         # Step 1: Classify intent
         classification = self.classify_intent(query, context)
@@ -465,7 +468,7 @@ class AIAssistant:
     # Multi-task detection (Phase D)
     # ------------------------------------------------------------------
 
-    def _looks_like_multi_task(self, query: str) -> bool:
+    def _looks_like_multi_task(self, query: str, user_id: str = "", session_id: str = "") -> bool:
         """
         Use a fast LLM call to decide whether the query is requesting multiple
         distinct workflow tasks.  Results are cached (up to _MULTI_TASK_CACHE_MAX
@@ -481,7 +484,7 @@ class AIAssistant:
             return cached['is_multi_task']
 
         try:
-            result = self._classify_multi_task_llm(query)
+            result = self._classify_multi_task_llm(query, user_id=user_id, session_id=session_id)
             # Evict oldest entry when the cache is full
             if len(_MULTI_TASK_CACHE) >= _MULTI_TASK_CACHE_MAX:
                 oldest_key = next(iter(_MULTI_TASK_CACHE))
@@ -498,7 +501,7 @@ class AIAssistant:
             log.warning("[MultiTask] LLM classification failed (%s), defaulting to single-task", exc)
             return False
 
-    def _classify_multi_task_llm(self, query: str) -> dict:
+    def _classify_multi_task_llm(self, query: str, user_id: str = "", session_id: str = "") -> dict:
         """
         Single fast LLM call that returns a classification dict:
             {'is_multi_task': bool, 'task_count': int, 'reason': str}
@@ -517,7 +520,7 @@ class AIAssistant:
             '{"is_multi_task": true|false, "task_count": <integer>, "reason": "<one sentence>"}\n\n'
             f"Query: {query}"
         )
-        response_text = self._call_llm_fast(prompt)
+        response_text = self._call_llm_fast(prompt, user_id=user_id, session_id=session_id)
 
         # Strip markdown code fences if the model wrapped the JSON
         clean = response_text.strip()
@@ -535,11 +538,14 @@ class AIAssistant:
             'reason': str(parsed.get('reason', '')),
         }
 
-    def _call_llm_fast(self, prompt: str) -> str:
+    def _call_llm_fast(self, prompt: str, user_id: str = "", session_id: str = "") -> str:
         """
         Synchronous single LLM call using the cheapest/fastest model available
         for the configured provider.  The client is lazy-initialised and reused
         across calls (no new HTTP connection overhead per classification).
+
+        user_id and session_id are forwarded to the billing hook inside LLMClient
+        so classification calls are correctly attributed to the requesting user.
         """
         if self._fast_llm_client is None:
             from .llm_client import LLMClient
@@ -556,6 +562,12 @@ class AIAssistant:
                 self.workflow_search.set_llm_client(self._fast_llm_client)
             except Exception:
                 pass
+
+        # Update billing attribution on every call so events reach the right user
+        if user_id:
+            self._fast_llm_client.user_id = user_id
+        if session_id:
+            self._fast_llm_client.session_id = session_id
 
         return self._fast_llm_client.generate(prompt, max_tokens=128, temperature=0.0)
 
@@ -1660,8 +1672,8 @@ class AIAssistant:
                 return "pgx_clinical"
             return "pgx_research"
 
-        # --- Drug discovery compound sub-types ---
-        if any(k in d for k in ("drug", "compound", "pharmacol", "admet")):
+        # --- Drug discovery & pharmacology compound sub-types (merged domain) ---
+        if any(k in d for k in ("drug_discovery", "drug", "compound", "pharmacol", "admet", "pharmacokin")):
             if any(k in all_text for k in ("natural product", "natural_product", "fragment")):
                 return "compound_natural_product"
             if any(k in all_text for k in ("peptidomimetic", "peptide mimetic")):

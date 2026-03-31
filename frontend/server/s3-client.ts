@@ -2,6 +2,12 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, Head
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
+// URL-encodes S3 object tags so the billing Lambda can identify the owning user
+function buildTagging(userId: string, extra: Record<string, string> = {}): string {
+  const tags: Record<string, string> = { user_id: `bm_${userId}`, ...extra };
+  return Object.entries(tags).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+}
+
 interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
@@ -67,6 +73,7 @@ export class S3Service {
       Key: key,
       ContentType: contentType,
       ServerSideEncryption: 'AES256',
+      Tagging: buildTagging(userId, { upload_type: 'user_upload' }),
     });
 
     const uploadUrl = await getSignedUrl(this.s3Client, command, { expiresIn });
@@ -107,6 +114,7 @@ export class S3Service {
         Key: partKey,
         ContentType: contentType,
         ServerSideEncryption: 'AES256',
+        Tagging: buildTagging(userId, { upload_type: 'user_upload_multipart', part: String(partNumber) }),
       });
 
       const partUrl = await getSignedUrl(this.s3Client, command, { expiresIn });

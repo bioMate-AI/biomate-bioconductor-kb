@@ -24,6 +24,20 @@ def _emit_llm_billing(
     duration_ms: float,
 ) -> None:
     """Fire-and-forget billing emit after every successful Anthropic/OpenAI call."""
+    # Always write to the durable file-based cost log first (no external deps).
+    try:
+        from galaxy.ai import cost_log
+        cost_log.record(
+            user_id=user_id or "anonymous",
+            session_id=session_id,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            duration_ms=duration_ms,
+        )
+    except Exception as exc:
+        log.warning("[CostLog] emit failed: %s", exc)
+
     if not user_id or user_id in ("", "unknown"):
         return
     try:

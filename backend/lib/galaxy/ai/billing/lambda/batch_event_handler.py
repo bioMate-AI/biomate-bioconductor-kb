@@ -5,129 +5,145 @@ Triggered by EventBridge rule:
   source: ["aws.batch"]
   detail-type: ["Batch Job State Change"]
 
-Handles job transitions to RUNNING, SUCCEEDED, and FAILED.
-Writes cost events to the billing backend via an internal HTTP call
-(or directly to Redis + Lago if co-located).
+Design principle: NO extra AWS API calls. The EventBridge event already contains
+all fields we need (container.environment, container.vcpus, startedAt, stoppedAt).
+Calling describe_jobs() or any other AWS API fails when the Lambda's VPC subnets
+lack a NAT gateway route — this handler avoids that entirely.
 
-Deploy this as a Lambda function.  Set these environment variables:
-  BILLING_API_URL   - internal URL of the BioMate billing service
-  BILLING_API_KEY   - shared secret for service-to-service auth
-  LAGO_API_URL      - Lago base URL
-  LAGO_API_KEY      - Lago API key
-  REDIS_URL         - ElastiCache endpoint
+Billing data is written DIRECTLY to Redis. Keys follow realtime_cost_service.py:
+  billing:batch:job:{job_id}           HSET — per-job record (kept 30 days)
+  cost:{user_id}:month:{YYYY-MM}:total INCRBYFLOAT — monthly aggregate in USD
 
-The job tags (set when submitting the Batch job) carry the user context:
-  job.tags.user_id      - BioMate user ID
-  job.tags.workflow_id  - BioMate workflow run ID
-  job.tags.org_id       - Organisation ID (for team plans)
+User context arrives via container environment variables set by nextflow_executor.py:
+  BIOMATE_USER_ID  — BioMate user ID string
+  BIOMATE_RUN_ID   — Nextflow run UUID
+
+Required environment variable:
+  REDIS_URL — ElastiCache endpoint (redis://host:6379)
 """
 
 import json
 import os
 import time
 import logging
-import boto3
+from datetime import datetime, timezone
 
-# When running as Lambda, import from Lambda layer or vendored packages
 try:
-    import redis
-    import httpx
+    import redis as redis_lib
 except ImportError:
-    redis  = None  # type: ignore
-    httpx  = None  # type: ignore
+    redis_lib = None  # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
-BILLING_API_URL = os.environ.get("BILLING_API_URL", "")
-BILLING_API_KEY = os.environ.get("BILLING_API_KEY", "")
+REDIS_URL = os.environ.get("REDIS_URL", "")
 
-batch_client = boto3.client("batch")
+# ---------------------------------------------------------------------------
+# EC2 on-demand pricing (USD/vCPU-hour, us-west-2, 2026-Q1)
+# ---------------------------------------------------------------------------
+_USD_PER_VCPU_HOUR = {
+    "m5.large":    0.096 / 2,
+    "m5.xlarge":   0.192 / 4,
+    "m5.2xlarge":  0.384 / 8,
+    "m5.4xlarge":  0.768 / 16,
+    "g4dn.xlarge": 0.526 / 4,
+    "p3.2xlarge":  3.06  / 8,
+}
+_DEFAULT_USD_PER_VCPU_HOUR = 0.096 / 2  # m5.large fallback
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _describe_job(job_id: str) -> dict:
-    """Fetch full job detail from AWS Batch API."""
-    try:
-        resp = batch_client.describe_jobs(jobs=[job_id])
-        jobs = resp.get("jobs", [])
-        return jobs[0] if jobs else {}
-    except Exception as exc:
-        log.error("DescribeJobs failed for %s: %s", job_id, exc)
-        return {}
+def _redis_client():
+    if not REDIS_URL or redis_lib is None:
+        raise RuntimeError("REDIS_URL not set or redis package unavailable")
+    return redis_lib.from_url(REDIS_URL, decode_responses=True, socket_timeout=5)
 
 
-def _extract_user_tags(job: dict) -> tuple[str, str, str]:
-    """Pull user_id, workflow_id, org_id from job tags."""
-    tags = job.get("tags", {})
-    return (
-        tags.get("user_id", "unknown"),
-        tags.get("workflow_id", "unknown"),
-        tags.get("org_id", "unknown"),
-    )
-
-
-def _get_instance_info(job: dict) -> tuple[str, float, int, int, bool]:
+def _parse_container(detail: dict) -> tuple[str, str, float, int, str]:
     """
-    Returns (instance_type, vcpus, memory_mb, gpu_count, is_spot).
+    Parse user_id, run_id, vcpus, gpu_count, instance_type from EventBridge detail.
 
-    AWS Batch exposes container.vcpus and container.memory.
-    The actual EC2 instance type is in attempts[0].container.networkInterfaces
-    or can be inferred from the compute environment.
-    For a simpler path, store instance_type in job tags when submitting.
+    EventBridge 'Batch Job State Change' detail shape (relevant fields):
+      detail.container.environment  — list of {name, value}
+      detail.container.vcpus        — allocated vCPUs (string or int)
+      detail.container.resourceRequirements — [{type: GPU, value: N}]
+      detail.tags.instance_type     — set at job submit time (optional)
     """
-    container     = job.get("container", {})
-    vcpus         = float(container.get("vcpus", 1))
-    memory_mb     = int(container.get("memory", 2048))
+    container = detail.get("container", {})
 
-    # GPU: look for resourceRequirements list.
-    # AWS Batch supports multiple GPU resource types; any of these count as GPUs.
+    # User context from container environment (injected by nextflow_executor.py)
+    env_list = container.get("environment", [])
+    env = {item["name"]: item["value"] for item in env_list if "name" in item}
+    user_id = env.get("BIOMATE_USER_ID", "unknown")
+    run_id = env.get("BIOMATE_RUN_ID", "unknown")
+
+    # Resource info
+    vcpus = float(container.get("vcpus", 1) or 1)
     _GPU_TYPES = {"GPU", "NVIDIA_GPU", "AMD_GPU", "TRAINIUM", "HABANA"}
     gpu_count = 0
     for req in container.get("resourceRequirements", []):
         if req.get("type", "").upper() in _GPU_TYPES:
-            gpu_count += int(req.get("value", 0))
+            try:
+                gpu_count += int(req.get("value", 0))
+            except (ValueError, TypeError):
+                pass
 
-    # Instance type from tags (recommended: set this when submitting the job)
-    tags          = job.get("tags", {})
-    instance_type = tags.get("instance_type", "FARGATE")
-    is_spot       = tags.get("capacity_type", "ON_DEMAND").upper() == "SPOT"
+    # Instance type from job-level tags (optional, best-effort)
+    tags = detail.get("tags", {})
+    instance_type = tags.get("instance_type", "m5.large")
 
-    return instance_type, vcpus, memory_mb, gpu_count, is_spot
-
-
-def _write_heartbeat() -> None:
-    """Write current timestamp to Redis so health-check can detect Lambda staleness."""
-    redis_url = os.environ.get("REDIS_URL", "")
-    if not redis_url or redis is None:
-        return
-    try:
-        r = redis.from_url(redis_url, decode_responses=True)
-        r.set("billing:last_batch_event_ts", str(time.time()))
-    except Exception as exc:
-        log.warning("heartbeat write failed: %s", exc)
+    return user_id, run_id, vcpus, gpu_count, instance_type
 
 
-def _notify_billing_api(event_type: str, payload: dict) -> None:
-    """
-    POST to the BioMate billing service.
-    Fire-and-forget — Lambda does not wait for billing to process.
-    """
-    if not BILLING_API_URL or httpx is None:
-        log.warning("BILLING_API_URL not set; skipping billing notification")
-        return
-    try:
-        with httpx.Client(timeout=10.0) as client:
-            client.post(
-                f"{BILLING_API_URL}/internal/billing/{event_type}",
-                json=payload,
-                headers={"X-Internal-Key": BILLING_API_KEY},
-            )
-    except Exception as exc:
-        log.error("billing notify failed: %s", exc)
+def _estimate_cost_usd(instance_type: str, vcpus: float, duration_seconds: float) -> float:
+    rate = _USD_PER_VCPU_HOUR.get(instance_type, _DEFAULT_USD_PER_VCPU_HOUR)
+    billable_seconds = max(duration_seconds, 60.0)  # 1-min minimum
+    return round(rate * vcpus * (billable_seconds / 3600.0), 6)
+
+
+# ---------------------------------------------------------------------------
+# Redis writes
+# ---------------------------------------------------------------------------
+
+def _record_started(r, job_id: str, user_id: str, run_id: str,
+                    vcpus: float, gpu_count: int, instance_type: str,
+                    started_at_ms: int) -> None:
+    key = f"billing:batch:job:{job_id}"
+    r.hset(key, mapping={
+        "user_id": user_id, "run_id": run_id,
+        "instance_type": instance_type, "vcpus": str(vcpus),
+        "gpu_count": str(gpu_count), "started_at_ms": str(started_at_ms),
+        "status": "RUNNING",
+    })
+    r.expire(key, 86400 * 30)
+    log.info("Recorded STARTED job=%s user=%s vcpu=%.1f", job_id, user_id, vcpus)
+
+
+def _record_completed(r, job_id: str, user_id: str, run_id: str,
+                      vcpus: float, gpu_count: int, instance_type: str,
+                      duration_seconds: float, status: str) -> None:
+    cost_usd = _estimate_cost_usd(instance_type, vcpus, duration_seconds)
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+
+    job_key = f"billing:batch:job:{job_id}"
+    r.hset(job_key, mapping={
+        "status": status,
+        "duration_seconds": str(round(duration_seconds, 3)),
+        "cost_usd": str(cost_usd),
+    })
+    r.expire(job_key, 86400 * 30)
+
+    if status == "SUCCEEDED" and user_id != "unknown":
+        r.incrbyfloat(f"cost:{user_id}:month:{month}:total", cost_usd)
+        r.expire(f"cost:{user_id}:month:{month}:total", 86400 * 90)
+        r.incrbyfloat(f"billing:run:{run_id}:compute_usd", cost_usd)
+        r.expire(f"billing:run:{run_id}:compute_usd", 86400 * 90)
+
+    log.info("Recorded %s job=%s user=%s duration=%.1fs cost=$%.6f",
+             status, job_id, user_id, duration_seconds, cost_usd)
 
 
 # ---------------------------------------------------------------------------
@@ -136,84 +152,42 @@ def _notify_billing_api(event_type: str, payload: dict) -> None:
 
 def handler(event: dict, context) -> dict:
     """
-    EventBridge event shape:
-    {
-        "source": "aws.batch",
-        "detail-type": "Batch Job State Change",
-        "detail": {
-            "jobId": "...",
-            "jobName": "...",
-            "status": "RUNNING" | "SUCCEEDED" | "FAILED",
-            "jobQueue": "...",
-            "startedAt": 1700000000000,   # ms epoch (only when RUNNING+)
-            "stoppedAt": 1700003600000,   # ms epoch (only when terminal)
-            "container": { "vcpus": 4, "memory": 8192, ... }
-        }
-    }
+    EventBridge 'Batch Job State Change' handler.
+    All data is read from the event itself — no external API calls.
     """
-    _write_heartbeat()
-
     detail = event.get("detail", {})
     job_id = detail.get("jobId")
     status = detail.get("status")
 
     if not job_id or not status:
-        log.error("EventBridge event missing jobId or status: %s", json.dumps(detail))
-        return {"statusCode": 400, "body": "missing jobId or status"}
+        log.error("Missing jobId or status: %s", json.dumps(detail))
+        return {"statusCode": 400}
 
     log.info("Batch job %s → %s", job_id, status)
 
-    # Fetch full job details (tags, resource requirements)
-    job = _describe_job(job_id)
-    if not job:
-        log.warning("Job %s not found in Batch API", job_id)
-        return {"statusCode": 404}
+    user_id, run_id, vcpus, gpu_count, instance_type = _parse_container(detail)
 
-    user_id, workflow_id, org_id = _extract_user_tags(job)
-    instance_type, vcpus, memory_mb, gpu_count, is_spot = _get_instance_info(job)
+    try:
+        r = _redis_client()
+        r.set("billing:last_batch_event_ts", str(time.time()), ex=3600)
+    except Exception as exc:
+        log.error("Redis unavailable: %s — billing event lost for job %s", exc, job_id)
+        return {"statusCode": 500, "body": "redis unavailable"}
 
-    # -----------------------------------------------------------------------
     if status == "RUNNING":
-        started_at_ms = job.get("startedAt", int(time.time() * 1000))
-        log.info("Job STARTED user=%s job=%s instance=%s vcpu=%.1f gpu=%d",
-                 user_id, job_id, instance_type, vcpus, gpu_count)
-        _notify_billing_api("job_started", {
-            "user_id":       user_id,
-            "job_id":        job_id,
-            "workflow_id":   workflow_id,
-            "instance_type": instance_type,
-            "vcpus":         vcpus,
-            "memory_mb":     memory_mb,
-            "gpu_count":     gpu_count,
-            "started_at_ms": started_at_ms,
-            "is_spot":       is_spot,
-        })
+        started_at_ms = int(detail.get("startedAt") or time.time() * 1000)
+        _record_started(r, job_id, user_id, run_id, vcpus, gpu_count, instance_type, started_at_ms)
 
-    # -----------------------------------------------------------------------
     elif status in ("SUCCEEDED", "FAILED"):
-        started_at_ms = job.get("startedAt")
-        stopped_at_ms = job.get("stoppedAt", int(time.time() * 1000))
+        started_at_ms = detail.get("startedAt")
+        stopped_at_ms = int(detail.get("stoppedAt") or time.time() * 1000)
 
         if not started_at_ms:
-            # Job never reached RUNNING (failed at scheduling) → zero cost
             log.info("Job %s %s before RUNNING — no compute charge", job_id, status)
             return {"statusCode": 200}
 
-        duration_seconds = (stopped_at_ms - started_at_ms) / 1000.0
-        log.info("Job %s user=%s duration=%.1fs vcpu=%.1f gpu=%d",
-                 status, user_id, duration_seconds, vcpus, gpu_count)
-
-        _notify_billing_api("job_completed", {
-            "user_id":          user_id,
-            "job_id":           job_id,
-            "workflow_id":      workflow_id,
-            "status":           status,
-            "instance_type":    instance_type,
-            "vcpus":            vcpus,
-            "memory_mb":        memory_mb,
-            "gpu_count":        gpu_count,
-            "duration_seconds": duration_seconds,
-            "is_spot":          is_spot,
-        })
+        duration_seconds = (stopped_at_ms - int(started_at_ms)) / 1000.0
+        _record_completed(r, job_id, user_id, run_id, vcpus, gpu_count,
+                          instance_type, duration_seconds, status)
 
     return {"statusCode": 200}

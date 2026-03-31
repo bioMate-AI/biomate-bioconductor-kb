@@ -400,7 +400,9 @@ class UnifiedWorkflowSearch:
                format: Optional[str] = None,
                limit: int = 10,
                include_workflow_json: bool = False,
-               user_profile: Optional[Dict[str, Any]] = None) -> List[WorkflowMatch]:
+               user_profile: Optional[Dict[str, Any]] = None,
+               preferred_domains: Optional[List[str]] = None,
+               key_terms: Optional[List[str]] = None) -> List[WorkflowMatch]:
         """
         Search for workflows matching the query.
 
@@ -431,8 +433,20 @@ class UnifiedWorkflowSearch:
         cursor = conn.cursor()
 
         try:
-            # Build FTS query
-            fts_query = self._build_fts_query(query)
+            # Build FTS query — augment with LLM-extracted key_terms when provided
+            effective_query = query
+            if key_terms:
+                extra = " ".join(t for t in key_terms if t and t.lower() not in query.lower())
+                if extra:
+                    effective_query = f"{query} {extra}"
+            fts_query = self._build_fts_query(effective_query)
+
+            # Derive penalized_domains from preferred when caller only passes preferred
+            penalized_domains: Optional[List[str]] = None
+            if preferred_domains is not None:
+                # Keep penalized_domains as None (no explicit penalization from LLM yet);
+                # _calculate_score will handle the None → rule-based fallback correctly.
+                penalized_domains = None
 
             # Build SQL with filters
             sql = """
@@ -466,7 +480,8 @@ class UnifiedWorkflowSearch:
             # Re-rank with custom scoring
             results = []
             for row in rows:
-                match = self._create_match(row, query, include_workflow_json, user_profile=user_profile)
+                match = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
+                                           preferred_domains=preferred_domains, penalized_domains=penalized_domains)
                 # ── Pass-0 boost: workflows the LLM ranked get a graded bonus ──
                 # rank 0 → +3.0, rank 1 → +2.7, ..., rank 9 → +0.3
                 if llm_rank_map and row[0] in llm_rank_map:
@@ -515,7 +530,8 @@ class UnifiedWorkflowSearch:
                         rescued_rows = rc.fetchall()
                         rescue_conn.close()
                         for row in rescued_rows:
-                            m = self._create_match(row, query, include_workflow_json, user_profile=user_profile)
+                            m = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
+                                                   preferred_domains=preferred_domains, penalized_domains=penalized_domains)
                             rank = llm_rank_map.get(row[0], len(llm_ranked_ids))
                             # Synthetic score: 2.8 − 0.3*rank (one notch below top FTS+LLM hits)
                             m = WorkflowMatch(
@@ -599,7 +615,7 @@ class UnifiedWorkflowSearch:
                        'binding affinity', 'admet', 'herg', 'dili', 'pharmacokinetic', 'nca', 'pknca',
                        'drug', 'ligand', 'scaffold', 'smiles', 'molecular docking']
         if any(tok in q for tok in drug_tokens):
-            preferred.update({'pharmacology', 'drug_discovery', 'biochemistry', 'structural_biology'})
+            preferred.update({'drug_discovery', 'biochemistry', 'structural_biology'})
             penalized.update({'microbiology', 'metagenomics', 'transcriptomics'})
 
         return preferred, penalized
@@ -665,7 +681,9 @@ class UnifiedWorkflowSearch:
         return query
 
     def _create_match(self, row: tuple, query: str, include_json: bool,
-                      user_profile: Optional[Dict[str, Any]] = None) -> WorkflowMatch:
+                      user_profile: Optional[Dict[str, Any]] = None,
+                      preferred_domains: Optional[List[str]] = None,
+                      penalized_domains: Optional[List[str]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
         id_, name, description, domain, source, format_, step_count, tools_json, tags_json, filename, workflow_json, fts_score = row
 
@@ -680,8 +698,11 @@ class UnifiedWorkflowSearch:
         except:
             tags = []
 
-        # Calculate custom score
-        score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score, user_profile=user_profile)
+        # Calculate custom score — use LLM-derived domain lists when provided
+        score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
+                                      user_profile=user_profile,
+                                      preferred_domains=preferred_domains,
+                                      penalized_domains=penalized_domains)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -735,7 +756,9 @@ class UnifiedWorkflowSearch:
                          source: str,
                          workflow_domain: str,
                          fts_score: float,
-                         user_profile: Optional[Dict[str, Any]] = None) -> float:
+                         user_profile: Optional[Dict[str, Any]] = None,
+                         preferred_domains: Optional[List[str]] = None,
+                         penalized_domains: Optional[List[str]] = None) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
         # Expand abbreviations in query for keyword matching
@@ -789,18 +812,23 @@ class UnifiedWorkflowSearch:
                 score -= 5.0  # Bioconductor R packages are unlikely to be what they need
 
         # 6. Domain preference bias (critical for avoiding cross-domain QC mismatches)
-        preferred_domains, penalized_domains = self._infer_domain_preferences(query)
+        # Use LLM-derived domain lists when provided (UQU output); fall back to rule-based inference.
+        if preferred_domains is None and penalized_domains is None:
+            inferred_pref, inferred_pen = self._infer_domain_preferences(query)
+        else:
+            inferred_pref = set(preferred_domains or [])
+            inferred_pen = set(penalized_domains or [])
         domain_value = (workflow_domain or "general").lower()
-        if domain_value in preferred_domains:
+        if domain_value in inferred_pref:
             score += 4.0
-        if domain_value in penalized_domains:
+        if domain_value in inferred_pen:
             score -= 4.0
 
         # 7. User profile bias (starting bias; query context from step 6 takes precedence)
         # Only applied when query doesn't already express a strong domain preference.
         if user_profile:
             profile_domains = [d.lower() for d in (user_profile.get("domains") or [])]
-            if profile_domains and not preferred_domains:
+            if profile_domains and not inferred_pref:
                 # Normalise domain key: "single_cell" → matches workflow_domain "single_cell" etc.
                 if domain_value in profile_domains:
                     score += 2.0

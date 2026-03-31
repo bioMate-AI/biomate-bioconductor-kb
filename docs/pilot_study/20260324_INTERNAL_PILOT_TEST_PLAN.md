@@ -52,8 +52,8 @@ The pilot requires these BioMate workflows to be available and validated:
 | W1 | ADMET profiling | `pharmacology/ADMET_pred` | H1, H2, H3 |
 | W2 | Comprehensive ADMET | `pharmacology/predict_admet_properties` | H1, H2, H3 |
 | W3 | IVIVE hepatic clearance | `pharmacology/ivive_hepatic_clearance` | H1, H3 |
-| W4 | Pocket detection / druggability | `pharmacology/pocket_detection_druggability` | H1, H3 |
-| W5 | Pharmacophore filtering | `pharmacology/pharmacophore_filtering` | H1, H3 |
+| W4 | Pocket detection / druggability | `drug_discovery/pocket_detection_druggability` | H1, H3 |
+| W5 | Pharmacophore filtering | `drug_discovery/pharmacophore_filtering` | H1, H3 |
 | W6 | Integrated ranking + assay upload | `drug_discovery/assay_ingestion` API | H1, H3 |
 | W7 | CRO export | `drug_discovery/export` API | H1, H3 |
 
@@ -283,11 +283,11 @@ which pocket the kinase inhibitors would bind to?
 
 ### 3.2 Workflow Invoked
 
-`pharmacology/pocket_detection_druggability`
+`drug_discovery/pocket_detection_druggability`
 
 **Command-line equivalent:**
 ```bash
-nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/pocket_detection_druggability/main.nf \
+nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pocket_detection_druggability/main.nf \
   --mode live \
   --pdb_input /tmp/1IEP.pdb \
   --druggability_threshold 0.4 \
@@ -359,11 +359,11 @@ to identify which ones share the key pharmacophore features?
 
 ### 4.2 Workflow Invoked
 
-`pharmacology/pharmacophore_filtering`
+`drug_discovery/pharmacophore_filtering`
 
 **Command-line equivalent:**
 ```bash
-nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/pharmacophore_filtering/main.nf \
+nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/main.nf \
   --mode live \
   --reference_actives "$(cat data/pilot_study_datasets/reference_actives.smi)" \
   --compound_library "CPD007:CC1=CC=C(C=C1)NC(=O)C2=CC(=CC=C2)NC3=NC=CC(=N3)C4=CC=CN4|CPD008:CC1=CC=C(C=C1)NC(=O)C2=CC(=CC=C2)NC3=NC=CC(=N3)C4=CC=CN4CC|..." \
@@ -725,7 +725,7 @@ time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmaco
   -profile docker --outdir "$LOG_DIR/s2_ivive" 2>&1 | tee "$LOG_DIR/s2_ivive.log"
 
 echo "[S3] Pocket detection — 1IEP..."
-time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/pocket_detection_druggability/main.nf \
+time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pocket_detection_druggability/main.nf \
   --mode live \
   --pdb_input "$PDB_PATH" \
   --druggability_threshold 0.4 \
@@ -734,7 +734,7 @@ time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmaco
 echo "[S4] Pharmacophore filtering..."
 REFERENCE_SMILES="CC1=CC=C(C=C1)NC(=O)C2=CC=CC(=C2)NC3=NC=CC(=N3)C4=CC=CN4C Imatinib
 CC(=O)NC1=CC(=C(C=C1)Cl)NC(=O)C2=CC(=NC(=N2)NC3=CC=CC=C3)N4CCN(CC4)CC Dasatinib"
-time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/pharmacophore_filtering/main.nf \
+time nextflow run backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/pharmacophore_filtering/main.nf \
   --mode live \
   --reference_actives "$REFERENCE_SMILES" \
   --compound_library "CC1=CC=C(C=C1)NC(=O)C2=CC(=CC=C2)NC3=NC=CC(=N3)C4=CC=CN4 Gleevec-A1|OC(CCCC1=CC=CC=C1)(C1=CC=CC=C1)CCN1CCC(CC1)C(O)(C1=CC=C(C=C1)C(C)(C)C)C1=CC=C(C=C1)C(C)(C)C Terfenadine" \

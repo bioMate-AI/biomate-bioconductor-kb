@@ -66,9 +66,20 @@ class EventCode:
     S3_DATA_TRANSFER_GB = "s3_data_transfer_gb"
 
 
-def subscription_id(user_id: str) -> str:
-    """Deterministic subscription external_id for a user. Single place to change."""
-    return f"sub_{user_id}"
+def external_customer_id(user_id: str) -> str:
+    """Deterministic Lago external_id for a user — must match Java billing service convention.
+    Format: bm_{user_id}  (prefix avoids collisions with other tenants).
+    """
+    return f"bm_{user_id}" if not user_id.startswith("bm_") else user_id
+
+
+def subscription_id(user_id: str, plan_code: str = "base") -> str:
+    """Deterministic subscription external_id for a user.
+    Format: bm_{user_id}_{plan_code} — must match what the Java billing service creates.
+    Java CustomerService.java: subscriptionId = externalId + "_" + defaultPlan
+    """
+    ext_id = external_customer_id(user_id)
+    return f"{ext_id}_{plan_code}"
 
 
 @dataclass
@@ -195,6 +206,10 @@ class LagoClient:
     # Convenience builders
     # -----------------------------------------------------------------------
 
+    def _sub_id(self, user_id: str, plan_code: str = "base") -> str:
+        """Resolve subscription ID for event routing. Uses cached plan when available."""
+        return subscription_id(user_id, plan_code)
+
     def emit_llm(
         self,
         user_id: str,
@@ -202,20 +217,22 @@ class LagoClient:
         input_tokens: int,
         output_tokens: int,
         model: str,
+        plan_code: str = "base",
     ) -> None:
         ts  = time.time()
         uid = uuid.uuid4().hex[:12]   # unique per invocation; avoids sub-second collisions
+        sub = self._sub_id(user_id, plan_code)
         self.send_batch_events([
             LagoEvent(
                 transaction_id=f"llm-in-{session_id}-{uid}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.LLM_INPUT_TOKENS,
                 timestamp=ts,
                 properties={"tokens": input_tokens, "model": model},
             ),
             LagoEvent(
                 transaction_id=f"llm-out-{session_id}-{uid}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.LLM_OUTPUT_TOKENS,
                 timestamp=ts,
                 properties={"tokens": output_tokens, "model": model},
@@ -230,19 +247,21 @@ class LagoClient:
         gpu_count: int,
         memory_gb: float,
         duration_seconds: float,
+        plan_code: str = "base",
     ) -> None:
         ts = time.time()
+        sub = self._sub_id(user_id, plan_code)
         events: list[LagoEvent] = [
             LagoEvent(
                 transaction_id=f"batch-vcpu-{job_id}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.BATCH_VCPU_SECONDS,
                 timestamp=ts,
                 properties={"seconds": round(vcpus * duration_seconds, 3)},
             ),
             LagoEvent(
                 transaction_id=f"batch-mem-{job_id}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.BATCH_MEM_GB_SEC,
                 timestamp=ts,
                 properties={"gb_seconds": round(memory_gb * duration_seconds, 3)},
@@ -251,27 +270,28 @@ class LagoClient:
         if gpu_count > 0:
             events.append(LagoEvent(
                 transaction_id=f"batch-gpu-{job_id}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.BATCH_GPU_SECONDS,
                 timestamp=ts,
                 properties={"seconds": round(gpu_count * duration_seconds, 3)},
             ))
         self.send_batch_events(events)
 
-    def emit_s3_put(self, user_id: str, size_bytes: int, key: str) -> None:
+    def emit_s3_put(self, user_id: str, size_bytes: int, key: str, plan_code: str = "base") -> None:
         ts = time.time()
         gb = size_bytes / (1024 ** 3)
+        sub = self._sub_id(user_id, plan_code)
         self.send_batch_events([
             LagoEvent(
                 transaction_id=f"s3-put-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.S3_PUT_REQUESTS,
                 timestamp=ts,
                 properties={"count": 1, "key": key},
             ),
             LagoEvent(
                 transaction_id=f"s3-store-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.S3_STORAGE_GB_HR,
                 # 30-day default retention converted to GB-hours
                 timestamp=ts,
@@ -279,13 +299,14 @@ class LagoClient:
             ),
         ])
 
-    def emit_s3_get(self, user_id: str, size_bytes: int, key: str, is_cross_region: bool = False) -> None:
+    def emit_s3_get(self, user_id: str, size_bytes: int, key: str, is_cross_region: bool = False, plan_code: str = "base") -> None:
         ts = time.time()
         gb = size_bytes / (1024 ** 3)
+        sub = self._sub_id(user_id, plan_code)
         events = [
             LagoEvent(
                 transaction_id=f"s3-get-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.S3_GET_REQUESTS,
                 timestamp=ts,
                 properties={"count": 1, "key": key},
@@ -294,7 +315,7 @@ class LagoClient:
         if is_cross_region and gb > 0:
             events.append(LagoEvent(
                 transaction_id=f"s3-xfer-{user_id}-{uuid.uuid4().hex[:8]}",
-                external_subscription_id=subscription_id(user_id),
+                external_subscription_id=sub,
                 code=EventCode.S3_DATA_TRANSFER_GB,
                 timestamp=ts,
                 properties={"gb": round(gb, 6)},
@@ -310,12 +331,16 @@ class LagoClient:
         user_id: str,
         email: str,
         name: str,
+        plan_code: str = "base",
         metadata: Optional[dict] = None,
     ) -> bool:
-        """Create or update a Lago customer (idempotent)."""
+        """Create or update a Lago customer and subscribe to plan (idempotent).
+        external_id is always bm_{user_id} to match the Java billing service convention.
+        """
+        ext_id = external_customer_id(user_id)
         payload = {
             "customer": {
-                "external_id": user_id,
+                "external_id": ext_id,
                 "email": email,
                 "name": name,
                 "metadata": [
@@ -326,18 +351,26 @@ class LagoClient:
         }
         try:
             r = self._client.post("/api/v1/customers", json=payload)
-            return r.status_code in (200, 201)
+            ok = r.status_code in (200, 201)
+            if ok:
+                # Subscribe to plan using the same subscription_id format as Java service
+                self.assign_plan(user_id, plan_code)
+            return ok
         except Exception as exc:
             log.error("Lago upsert_customer failed: %s", exc)
             return False
 
-    def assign_plan(self, user_id: str, plan_code: str) -> bool:
-        """Subscribe a customer to a plan (overrides existing subscription)."""
+    def assign_plan(self, user_id: str, plan_code: str = "base") -> bool:
+        """Subscribe a customer to a plan (idempotent, updates existing subscription).
+        Subscription external_id format: bm_{user_id}_{plan_code} — matches Java service.
+        """
+        ext_id = external_customer_id(user_id)
+        sub_id = subscription_id(user_id, plan_code)
         payload = {
             "subscription": {
-                "external_customer_id": user_id,
+                "external_customer_id": ext_id,
                 "plan_code": plan_code,
-                "external_id": subscription_id(user_id),  # deterministic — matches event routing
+                "external_id": sub_id,  # deterministic — matches event routing
             }
         }
         try:

@@ -668,7 +668,10 @@ export class GalaxyAPIProxy {
         preferred_tools: [],
         constraints: {
           max_tools_search: request.max_tools_search || 30
-        }
+        },
+        // UQU fields: LLM-inferred domain preferences and key terms from analyzeIntent()
+        ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
+        ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
       };
 
       console.log('[GalaxyAPIProxy] Calling unified AI Assistant endpoint');
@@ -684,7 +687,11 @@ export class GalaxyAPIProxy {
           try {
             const trialResponse = await this.client.post<WorkflowGenerationResponse>(
               '/api/ai_assistant/search_nextflow_workflow',
-              { user_intent: trialIntent }
+              {
+                user_intent: trialIntent,
+                ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
+                ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
+              }
             );
             lastSearchResponse = trialResponse;
             console.log('[GalaxyAPIProxy] Nextflow search result:', trialResponse.data.workflow_name, trialResponse.data.format);

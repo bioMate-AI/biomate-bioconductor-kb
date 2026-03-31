@@ -46,7 +46,7 @@ except ImportError:
 from ..core.cost_calculator import CostCalculator
 from ..core.lago_client import get_lago_client, LAGO_API_KEY as _LAGO_API_KEY
 from ..core.realtime_cost_service import get_cost_service, _month_key
-from ..core.quota_enforcer import ensure_quota_set
+from ..core.quota_enforcer import ensure_quota_set, get_user_plan_code
 from ..java_billing_client import get_java_billing_client
 
 log = logging.getLogger(__name__)
@@ -350,6 +350,7 @@ def internal_job_completed(payload: JobCompletedPayload):
 
     # Emit to Lago
     lago = get_lago_client()
+    user_plan = get_user_plan_code(payload.user_id)
     lago.emit_batch_job(
         user_id=payload.user_id,
         job_id=payload.job_id,
@@ -357,6 +358,7 @@ def internal_job_completed(payload: JobCompletedPayload):
         gpu_count=payload.gpu_count,
         memory_gb=payload.memory_mb / 1024,
         duration_seconds=payload.duration_seconds,
+        plan_code=user_plan,
     )
 
     # Emit to Java billing service (dual-write — fire-and-forget)
@@ -464,14 +466,16 @@ def internal_llm_cost(payload: LLMCostPayload):
         output_tokens=cost.output_tokens,
     )
 
-    # Emit to Lago for usage-based billing
+    # Emit to Lago for usage-based billing (subscription routing uses the user's plan)
     lago = get_lago_client()
+    user_plan = get_user_plan_code(payload.user_id)
     lago.emit_llm(
         user_id=payload.user_id,
         session_id=payload.session_id,
         input_tokens=payload.input_tokens,
         output_tokens=payload.output_tokens,
         model=payload.model,
+        plan_code=user_plan,
     )
 
     # Emit to Java billing service (dual-write — fire-and-forget)
@@ -571,16 +575,14 @@ def internal_register_user(payload: RegisterUserPayload):
     """
     lago = get_lago_client()
 
-    # 1. Upsert Lago customer
+    # 1. Upsert Lago customer and subscribe to plan (combined to ensure subscription exists)
     lago.upsert_customer(
         user_id=payload.user_id,
         email=payload.email,
         name=payload.name,
+        plan_code=payload.plan,
         metadata=payload.metadata or {},
     )
-
-    # 2. Assign the plan subscription in Lago
-    lago.assign_plan(payload.user_id, payload.plan)
 
     # 3. Set quota in Redis so the quota enforcer can gate job submissions immediately
     ensure_quota_set(payload.user_id, payload.plan)

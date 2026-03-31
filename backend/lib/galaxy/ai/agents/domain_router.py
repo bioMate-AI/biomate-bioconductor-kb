@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
 import re
 
+from ..domain_registry import DOMAIN_KEYWORDS as _REGISTRY_KEYWORDS, DOMAIN_TO_GALAXY_CATEGORY as _REGISTRY_CATEGORIES
+
 log = logging.getLogger(__name__)
 
 
@@ -38,107 +40,10 @@ class DomainRouter:
     - Boost by user patterns when available
     """
 
-    # Domain keywords mapped to Biomni/Galaxy categories
-    # These map to tool_id patterns like 'biomni/genomics/...'
-    DOMAIN_KEYWORDS: Dict[str, Set[str]] = {
-        # Core omics domains
-        "genomics": {
-            "genome", "genomic", "dna", "sequencing", "alignment", "mapping", "bwa", "hisat",
-            "variant", "snp", "indel", "vcf", "bam", "sam", "fastq", "fasta",
-            "chromosome", "exome", "wgs", "wes", "chip-seq", "atac-seq", "dnase",
-            "methylation", "epigenetic", "chromatin", "nucleotide", "basepair"
-        },
-        "transcriptomics": {
-            "rna-seq", "rnaseq", "rna", "transcript", "gene expression", "mrna",
-            "differential expression", "deseq", "edger", "kallisto", "salmon",
-            "star", "featurecounts", "htseq", "cufflinks", "stringtie", "tpm", "fpkm",
-            "transcriptome", "transcriptomic", "transcriptomics"
-        },
-        "proteomics": {
-            "protein", "proteome", "proteomics", "proteomic",
-            "mass spec", "mass spectrometry", "ms/ms", "peptide",
-            "dia", "dda", "maxquant", "skyline", "fragpipe", "openms", "mascot",
-            "phospho", "ptm", "itraq", "tmt", "silac", "orbitrap", "maldi"
-        },
-        "metabolomics": {
-            "metabolite", "metabolome", "metabolomics", "metabolomic",
-            "xcms", "msdial", "metaboanalyst", "small molecule",
-            "lipid", "lipidomics", "mzml", "mzxml", "peak detection",
-            "compound identification", "lc-ms", "gc-ms", "nmr spectroscopy",
-            "untargeted metabolomics", "targeted metabolomics", "pathway"
-        },
-
-        # Specialized domains
-        "single-cell": {
-            "single-cell", "scrnaseq", "scrna", "10x", "cellranger", "seurat",
-            "scanpy", "harmony", "scvi", "cell type", "clustering", "umap",
-            "trajectory", "pseudotime", "velocity", "anndata"
-        },
-        "metagenomics": {
-            "metagenome", "microbiome", "16s", "shotgun", "kraken", "metaphlan",
-            "humann", "qiime", "dada2", "amplicon", "otu", "asv", "taxonomy"
-        },
-        "structural_biology": {
-            "structure", "pdb", "alphafold", "protein structure", "3d",
-            "molecular dynamics", "docking", "binding", "conformation",
-            "fold", "domain", "motif", "secondary structure"
-        },
-        "pharmacology": {
-            "drug", "admet", "pharmacokinetics", "toxicity", "binding affinity",
-            "compound", "therapeutic", "dose", "clinical", "adverse", "fda"
-        },
-        "immunology": {
-            "immune", "antibody", "antigen", "t-cell", "b-cell", "cytokine",
-            "flow cytometry", "facs", "immunophenotyping", "tcr", "bcr"
-        },
-        "cancer_biology": {
-            "cancer", "tumor", "oncology", "mutation", "somatic", "driver",
-            "copy number", "cnv", "tcga", "maf", "oncogene", "suppressor"
-        },
-
-        # Technical domains
-        "bioimaging": {
-            "image", "microscopy", "segmentation", "cell counting", "fluorescence",
-            "confocal", "nifti", "registration", "nnunet", "cellpose"
-        },
-        "molecular_biology": {
-            "primer", "pcr", "cloning", "plasmid", "restriction", "golden gate",
-            "crispr", "guide rna", "knockout", "knockin", "gibson"
-        },
-        "biochemistry": {
-            "enzyme", "kinetics", "michaelis", "binding", "thermodynamics",
-            "assay", "spectroscopy", "circular dichroism", "itc"
-        },
-
-        # Infrastructure domains
-        "database": {
-            "database", "query", "uniprot", "ncbi", "ensembl", "pubmed",
-            "kegg", "reactome", "go", "interpro", "blast", "fetch"
-        },
-        "literature": {
-            "literature", "paper", "pubmed", "arxiv", "scholar", "citation",
-            "search", "review", "abstract", "doi"
-        },
-    }
-
-    # Map domains to Galaxy categories for tool filtering
-    DOMAIN_TO_CATEGORY: Dict[str, List[str]] = {
-        "genomics": ["Sequence Analysis", "Variant Analysis", "Next Gen Mappers", "SAM"],
-        "transcriptomics": ["RNA", "Transcriptomics", "Sequence Analysis"],
-        "proteomics": ["Proteomics", "Mass Spectrometry"],
-        "metabolomics": ["Metabolomics", "Mass Spectrometry"],
-        "single-cell": ["Single-cell", "RNA", "Transcriptomics"],
-        "metagenomics": ["Metagenomics", "Ecology"],
-        "structural_biology": ["Structural Biology", "Computational chemistry"],
-        "pharmacology": ["Pharmacology", "Computational chemistry"],
-        "immunology": ["Immunology"],
-        "cancer_biology": ["Cancer Biology", "Variant Analysis"],
-        "bioimaging": ["Imaging", "Graphics"],
-        "molecular_biology": ["Molecular Biology", "Sequence Analysis"],
-        "biochemistry": ["Biochemistry"],
-        "database": ["Data Source", "Web Services"],
-        "literature": ["Literature"],
-    }
+    # Domain keywords and Galaxy category mapping — sourced from domain_registry.py
+    # DO NOT edit here; edit backend/lib/galaxy/ai/domain_registry.py instead.
+    DOMAIN_KEYWORDS: Dict[str, Set[str]] = _REGISTRY_KEYWORDS
+    DOMAIN_TO_CATEGORY: Dict[str, List[str]] = _REGISTRY_CATEGORIES
 
     # Complexity indicators
     COMPLEX_INDICATORS = {

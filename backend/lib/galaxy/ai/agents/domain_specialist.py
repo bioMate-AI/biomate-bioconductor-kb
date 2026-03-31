@@ -16,6 +16,8 @@ from typing import List, Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 
+from ..domain_registry import DOMAIN_SPECIALIST_PROMPTS as _REGISTRY_PROMPTS
+
 log = logging.getLogger(__name__)
 
 
@@ -62,43 +64,9 @@ class DomainSpecialistPool:
     3. Returns structured recommendations
     """
 
-    # Domain-specific prompt templates
-    DOMAIN_PROMPTS: Dict[str, str] = {
-        "genomics": """You are a genomics expert. Given the user's request and available tools,
-recommend the best tools for DNA/genome analysis including alignment, variant calling, and annotation.
-Consider: sequencing type (WGS/WES/targeted), organism, and data quality requirements.""",
-
-        "transcriptomics": """You are a transcriptomics expert. Given the user's request and available tools,
-recommend the best tools for RNA-seq analysis including alignment, quantification, and differential expression.
-Consider: library type, strandedness, and statistical analysis needs.""",
-
-        "proteomics": """You are a proteomics expert. Given the user's request and available tools,
-recommend the best tools for mass spectrometry data analysis including peptide identification and quantification.
-Consider: acquisition type (DIA/DDA), quantification method, and PTM analysis needs.""",
-
-        "metabolomics": """You are a metabolomics expert. Given the user's request and available tools,
-recommend the best tools for metabolite profiling including peak detection, annotation, and pathway analysis.
-Consider: platform (LC-MS/GC-MS), data format, and identification database needs.""",
-
-        "single-cell": """You are a single-cell genomics expert. Given the user's request and available tools,
-recommend the best tools for scRNA-seq analysis including QC, normalization, clustering, and cell type annotation.
-Consider: technology (10X/Smart-seq), integration needs, and trajectory analysis.""",
-
-        "metagenomics": """You are a metagenomics expert. Given the user's request and available tools,
-recommend the best tools for microbiome analysis including taxonomic profiling and functional annotation.
-Consider: sequencing type (16S/shotgun), database choice, and diversity analysis needs.""",
-
-        "structural_biology": """You are a structural biology expert. Given the user's request and available tools,
-recommend the best tools for protein structure analysis including prediction, docking, and visualization.
-Consider: model availability, binding site analysis, and molecular dynamics needs.""",
-
-        "pharmacology": """You are a pharmacology expert. Given the user's request and available tools,
-recommend the best tools for drug analysis including ADMET prediction, target identification, and safety assessment.
-Consider: compound type, therapeutic area, and regulatory requirements.""",
-
-        "default": """You are a bioinformatics expert. Given the user's request and available tools,
-recommend the most appropriate tools for the analysis. Prioritize well-validated tools with good documentation.""",
-    }
+    # Domain-specific prompt templates — sourced from domain_registry.py
+    # DO NOT edit here; edit backend/lib/galaxy/ai/domain_registry.py instead.
+    DOMAIN_PROMPTS: Dict[str, str] = _REGISTRY_PROMPTS
 
     def __init__(self, tool_search, llm_client, max_workers: int = 3):
         """

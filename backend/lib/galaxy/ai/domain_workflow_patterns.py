@@ -12,19 +12,35 @@ from dataclasses import dataclass
 from enum import Enum
 import logging
 
+from .domain_registry import CANONICAL_DOMAINS
+
 log = logging.getLogger(__name__)
 
 
 class AnalysisDomain(Enum):
-    """Supported analysis domains."""
-    TRANSCRIPTOMICS = "transcriptomics"
-    GENOMICS = "genomics"
-    PROTEOMICS = "proteomics"
-    EPIGENOMICS = "epigenomics"
-    METAGENOMICS = "metagenomics"
-    METABOLOMICS = "metabolomics"
-    DATA_QUERY = "data_query"  # Database queries
-    GENERAL = "general"
+    """
+    Supported analysis domains — mirrors CANONICAL_DOMAINS in domain_registry.py.
+
+    CANONICAL SOURCE OF TRUTH: backend/lib/galaxy/ai/domain_registry.py
+    When adding a new domain, add it there first, then add the enum member here.
+    """
+    GENOMICS          = "genomics"
+    TRANSCRIPTOMICS   = "transcriptomics"
+    SINGLE_CELL       = "single_cell"
+    EPIGENOMICS       = "epigenomics"
+    PROTEOMICS        = "proteomics"
+    METABOLOMICS      = "metabolomics"
+    METAGENOMICS      = "metagenomics"
+    STRUCTURAL_BIOLOGY = "structural_biology"
+    DRUG_DISCOVERY    = "drug_discovery"
+    CRYO_EM           = "cryo_em"
+    SYSTEMS_BIOLOGY   = "systems_biology"
+    SYNTHETIC_BIOLOGY = "synthetic_biology"
+    BIOIMAGING        = "bioimaging"
+    LAB_AUTOMATION    = "lab_automation"
+    # Non-profile catchalls
+    DATA_QUERY        = "data_query"
+    GENERAL           = "general"
 
 
 @dataclass

@@ -19,4 +19,18 @@ Lago webhook:
   POST /webhooks/lago
 """
 
-from galaxy.ai.billing.api.billing_router import router  # noqa: F401 — picked up by include_all_package_routers
+import logging as _logging
+
+_log = _logging.getLogger(__name__)
+
+try:
+    from galaxy.ai.billing.api.billing_router import router  # noqa: F401 — picked up by include_all_package_routers
+except ImportError as _e:
+    _log.warning(
+        "Full billing router unavailable (missing dependency: %s). "
+        "Billing endpoints are served by billing_lite.py instead.",
+        _e,
+    )
+    # Provide a no-op router so Galaxy's router scanner doesn't crash
+    from fastapi import APIRouter as _APIRouter
+    router = _APIRouter()

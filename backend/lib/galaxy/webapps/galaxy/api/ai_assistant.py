@@ -313,6 +313,8 @@ def _build_parameter_metadata_from_tools(
 class NextflowSearchRequest(BaseModel):
     user_intent: Optional[str] = None
     request_text: Optional[str] = None
+    preferred_domains: Optional[List[str]] = None
+    key_terms: Optional[List[str]] = None
 
 
 def _nextflow_workflow_key(filename: str) -> Optional[str]:
@@ -727,7 +729,11 @@ def search_nextflow_workflow(
                 "pilot_run_suggested": False,
             }
         # ── Individual Nextflow workflow search ──────────────────────────────
-        results = _workflow_search.search(user_intent, limit=5, include_workflow_json=False)
+        results = _workflow_search.search(
+            user_intent, limit=5, include_workflow_json=False,
+            preferred_domains=request.preferred_domains or None,
+            key_terms=request.key_terms or None,
+        )
         if not results:
             return {"success": False, "message": "No matching workflows found"}
 
@@ -2079,6 +2085,69 @@ def get_audit_statistics(
 
 
 # ============================================================================
+# Study Run Log Endpoints  (required by pilot study plan)
+# GET /api/sessions/{session_id}/audit  — per-session run log
+# GET /api/study/runs                   — all runs for the authenticated user
+# ============================================================================
+
+@router.get(
+    "/api/sessions/{session_id}/audit",
+    summary="Return the durable run log for a specific session/run."
+)
+def get_session_audit(
+    session_id: str,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Return the run-level JSON audit record written by StudyRunLogger for the
+    given session_id (== Nextflow invocation_id or run_id).
+
+    This endpoint satisfies the pilot study plan requirement:
+      GET /api/sessions/{session_id}/audit
+    """
+    try:
+        from galaxy.ai.study_run_logger import StudyRunLogger
+        record = StudyRunLogger.get_log(session_id)
+        if not record:
+            raise HTTPException(status_code=404, detail=f"No run log found for session {session_id}")
+        return {"success": True, "session_id": session_id, "run_log": record}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        log.error("Error fetching session audit %s: %s", session_id, exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get(
+    "/api/study/runs",
+    summary="List all durable run logs for the authenticated user."
+)
+def list_study_runs(
+    limit: int = Query(100, ge=1, le=1000),
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Return all run-level JSON logs written by StudyRunLogger for the current user.
+    Includes timing, status, workflow name, and output summary for every execution.
+    """
+    try:
+        from galaxy.ai.study_run_logger import StudyRunLogger
+        user_id = str(trans.user.id) if trans.user else None
+        all_runs = StudyRunLogger.list_logs(user_id=user_id)
+        # Most recent first
+        all_runs = sorted(all_runs, key=lambda r: r.get("result_delivered_at") or "", reverse=True)
+        return {
+            "success": True,
+            "user_id": user_id,
+            "count": len(all_runs),
+            "runs": all_runs[:limit],
+        }
+    except Exception as exc:
+        log.error("Error listing study runs: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ============================================================================
 # Pilot Run Endpoints
 # ============================================================================
 
@@ -2980,7 +3049,64 @@ try:
     from galaxy.ai.memory.agentic_memory import get_memory_service as _get_memory_service
     _DOMAIN_PROFILE_AVAILABLE = True
 except Exception as _dp_err:
-    logging.warning(f"Domain profile memory not available: {_dp_err}")
+    logging.warning(f"Domain profile memory not available (psycopg2/PostgreSQL): {_dp_err}")
+
+
+# ── SQLite fallback for domain profile persistence ───────────────────────────
+# Stores domain profiles in galaxy_ai_tools.db when PostgreSQL is unavailable.
+# galaxy_ai_tools.db is at backend/galaxy_ai_tools.db; this file is at
+# backend/lib/galaxy/webapps/galaxy/api/ → 5 levels up = backend/
+import json as _json_dp
+import os as _os_dp
+
+_PROFILE_DB_PATH = _os_dp.path.normpath(_os_dp.path.join(
+    _os_dp.path.dirname(_os_dp.path.abspath(__file__)),
+    "..", "..", "..", "..", "..", "galaxy_ai_tools.db"
+))
+
+
+def _ensure_profile_table() -> None:
+    with sqlite3.connect(_PROFILE_DB_PATH) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_domain_profiles (
+                user_email TEXT PRIMARY KEY,
+                domains    TEXT NOT NULL DEFAULT '[]',
+                topics     TEXT NOT NULL DEFAULT '[]',
+                updated_at TEXT
+            )
+        """)
+        conn.commit()
+
+
+def _sqlite_save_profile(email: str, domains: list, topics: list) -> None:
+    _ensure_profile_table()
+    import datetime as _dt
+    now = _dt.datetime.utcnow().isoformat()
+    with sqlite3.connect(_PROFILE_DB_PATH) as conn:
+        conn.execute("""
+            INSERT INTO user_domain_profiles (user_email, domains, topics, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_email) DO UPDATE SET
+                domains    = excluded.domains,
+                topics     = excluded.topics,
+                updated_at = excluded.updated_at
+        """, (email, _json_dp.dumps(domains), _json_dp.dumps(topics), now))
+        conn.commit()
+
+
+def _sqlite_load_profile(email: str) -> dict:
+    try:
+        _ensure_profile_table()
+        with sqlite3.connect(_PROFILE_DB_PATH) as conn:
+            row = conn.execute(
+                "SELECT domains, topics FROM user_domain_profiles WHERE user_email = ?",
+                (email,)
+            ).fetchone()
+        if row:
+            return {"domains": _json_dp.loads(row[0]), "topics": _json_dp.loads(row[1])}
+    except Exception as _load_err:
+        logging.warning(f"SQLite profile load error: {_load_err}")
+    return {"domains": [], "topics": []}
 
 
 class DomainProfileRequest(BaseModel):
@@ -2996,10 +3122,11 @@ def set_domain_profile(
     request: DomainProfileRequest,
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Store user research domain and topic selections in LTM."""
-    if not _DOMAIN_PROFILE_AVAILABLE:
-        raise HTTPException(status_code=503, detail="Domain profile service not available")
+    """Store user research domain and topic selections.
 
+    Primary storage: agentic_memory (PostgreSQL) when available.
+    Fallback: SQLite user_domain_profiles table in galaxy_ai_tools.db.
+    """
     user = getattr(trans, "user", None)
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
@@ -3008,21 +3135,26 @@ def set_domain_profile(
     if not user_email:
         raise HTTPException(status_code=400, detail="Cannot resolve user identity")
 
+    # Primary: PostgreSQL agentic_memory
+    if _DOMAIN_PROFILE_AVAILABLE:
+        try:
+            memory = _get_memory_service()
+            ltm_user = memory.users.get_or_create_user(email=user_email)
+            memory.update_domain_profile(
+                user_id=ltm_user["id"],
+                domains=request.domains,
+                topics=request.topics,
+            )
+            return {"success": True, "domains": request.domains, "topics": request.topics, "storage": "postgres"}
+        except Exception as exc:
+            logging.warning(f"Postgres domain profile save failed, falling back to SQLite: {exc}")
+
+    # Fallback: SQLite (always available, no extra dependencies)
     try:
-        memory = _get_memory_service()
-        ltm_user = memory.users.get_or_create_user(email=user_email)
-        memory.update_domain_profile(
-            user_id=ltm_user["id"],
-            domains=request.domains,
-            topics=request.topics,
-        )
-        return {
-            "success": True,
-            "domains": request.domains,
-            "topics": request.topics,
-        }
+        _sqlite_save_profile(user_email, request.domains, request.topics)
+        return {"success": True, "domains": request.domains, "topics": request.topics, "storage": "sqlite"}
     except Exception as exc:
-        log.error(f"Failed to save domain profile: {exc}")
+        log.error(f"Failed to save domain profile (SQLite fallback): {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
 
 
@@ -3033,10 +3165,10 @@ def set_domain_profile(
 def get_domain_profile(
     trans: ProvidesUserContext = DependsOnTrans
 ) -> Dict[str, Any]:
-    """Retrieve user research domain and topic selections from LTM."""
-    if not _DOMAIN_PROFILE_AVAILABLE:
-        return {"domains": [], "topics": []}
+    """Retrieve user research domain and topic selections.
 
+    Reads from agentic_memory (PostgreSQL) when available, falls back to SQLite.
+    """
     user = getattr(trans, "user", None)
     if not user:
         return {"domains": [], "topics": []}
@@ -3045,13 +3177,17 @@ def get_domain_profile(
     if not user_email:
         return {"domains": [], "topics": []}
 
-    try:
-        memory = _get_memory_service()
-        ltm_user = memory.users.get_or_create_user(email=user_email)
-        return memory.get_domain_profile(user_id=ltm_user["id"])
-    except Exception as exc:
-        log.error(f"Failed to get domain profile: {exc}")
-        return {"domains": [], "topics": []}
+    # Primary: PostgreSQL agentic_memory
+    if _DOMAIN_PROFILE_AVAILABLE:
+        try:
+            memory = _get_memory_service()
+            ltm_user = memory.users.get_or_create_user(email=user_email)
+            return memory.get_domain_profile(user_id=ltm_user["id"])
+        except Exception as exc:
+            logging.warning(f"Postgres domain profile read failed, falling back to SQLite: {exc}")
+
+    # Fallback: SQLite
+    return _sqlite_load_profile(user_email)
 
 
 @router.get(

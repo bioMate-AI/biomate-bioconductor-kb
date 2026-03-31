@@ -33,13 +33,17 @@ export function getSecurityConfig(): SecurityConfig {
     ? ['https://biomate.ai']
     : ['http://localhost:5173', 'http://localhost:5000'];
 
+  // Allow env vars to override prod defaults (for HTTP-terminated dev/staging servers)
+  const forceHTTPS = process.env.FORCE_HTTPS === '0' ? false : isProd;
+  const enableHSTS = process.env.ENABLE_HSTS === '0' ? false : isProd;
+
   return {
     env,
-    enableHSTS: isProd,
+    enableHSTS,
     enableCSP: true,
     enableCSRF: isProd,
     corsOrigins: process.env.CORS_ORIGINS?.split(',') || defaultOrigins,
-    forceHTTPS: isProd,
+    forceHTTPS,
     sessionTimeout: 15, // HIPAA requirement: 15-minute inactivity timeout
   };
 }
@@ -109,7 +113,8 @@ export function configureSecurityHeaders(app: Express) {
               ],
               frameSrc: ["'none'"],
               objectSrc: ["'none'"],
-              upgradeInsecureRequests: config.env === 'production' ? [] : null,
+              // Only upgrade insecure requests when HTTPS is actually available
+              upgradeInsecureRequests: (config.env === 'production' && config.forceHTTPS) ? [] : null,
             },
           }
         : false,

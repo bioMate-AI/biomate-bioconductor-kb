@@ -405,6 +405,10 @@ export interface WorkflowGenerationRequest {
     name: string;
     type: string;
   }>;
+  /** LLM-inferred domain preferences from analyzeIntent() UQU output — passed to backend search */
+  preferred_domains?: string[];
+  /** LLM-extracted technical key terms — boost FTS recall in backend search */
+  key_terms?: string[];
 }
 
 export interface WorkflowGenerationResponse {

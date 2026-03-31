@@ -743,7 +743,7 @@ def _generate_executor_config(
             # s3_output_files stays empty after the run.
             "params {",
             f"    container = '{container}'",
-            f"    outdir = 's3://{s3_bucket}/nextflow/outputs/{run_id}'",
+            f"    outdir = 's3://{s3_bucket}/nextflow/outputs/{user_id}/{run_id}'",
             "}",
             "process {",
             "    executor = 'awsbatch'",
@@ -800,7 +800,7 @@ def _generate_executor_config(
             "    }",
             "}",
             "docker.enabled = true",
-            f"workDir = 's3://{s3_bucket}/nextflow/work'",
+            f"workDir = 's3://{s3_bucket}/nextflow/work/{user_id}/{run_id}'",
         ]
 
         if not queue:
@@ -1174,6 +1174,54 @@ def _list_s3_output_files(s3_uri: str) -> list:
         return []
 
 
+def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
+    """
+    Tag all S3 output objects for a completed run with user_id and run_id.
+
+    This allows the biomate-s3-billing Lambda to attribute storage costs to the
+    correct user even when Nextflow writes files without object tags. Called
+    once after the run finishes — best-effort, never blocks the run itself.
+    """
+    user_id = run_meta.get("user_id") or ""
+    run_id = run_meta.get("run_id") or ""
+    outdir = run_meta.get("outdir") or ""
+
+    if not (user_id and run_id and str(outdir).startswith("s3://")):
+        return
+
+    try:
+        import boto3
+        parts = outdir.replace("s3://", "").split("/", 1)
+        bucket = parts[0]
+        prefix = parts[1] if len(parts) > 1 else ""
+
+        s3 = boto3.client("s3")
+        paginator = s3.get_paginator("list_objects_v2")
+        tag_set = [
+            {"Key": "user_id", "Value": user_id},
+            {"Key": "workflow_id", "Value": run_id},
+            {"Key": "tagged_by", "Value": "biomate-postrun"},
+        ]
+
+        count = 0
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                try:
+                    s3.put_object_tagging(
+                        Bucket=bucket,
+                        Key=key,
+                        Tagging={"TagSet": tag_set},
+                    )
+                    count += 1
+                except Exception as tag_err:
+                    log.warning("[S3 tag] Failed to tag s3://%s/%s: %s", bucket, key, tag_err)
+
+        log.info("[S3 tag] Tagged %d output objects for run=%s user=%s", count, run_id, user_id)
+    except Exception as exc:
+        log.warning("[S3 tag] Post-run tagging failed for run=%s: %s", run_id, exc)
+
+
 def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
     """Stream stdout+stderr to a log file and update run status when done."""
     try:
@@ -1196,6 +1244,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                         _runs[run_id]["s3_output_files"] = _list_s3_output_files(outdir)
                 run_meta = dict(_runs[run_id])
         log.info(f"[Nextflow run {run_id}] finished with exit code {returncode}")
+
+        # Tag all S3 output objects with user_id so the billing Lambda can attribute them.
+        # This is done as a best-effort background step after run completion.
+        _tag_s3_outputs(run_meta)
+
+        # C2a — Write durable per-run JSON study log (required by pilot study plan)
+        try:
+            from galaxy.ai.study_run_logger import StudyRunLogger
+            StudyRunLogger.record(run_meta)
+        except Exception as _log_err:
+            log.warning("[StudyRunLogger] log write failed for run %s: %s", run_id, _log_err)
 
         # C2b — Record workflow outcome in LTM (fire-and-forget; never blocks main flow)
         try:
@@ -1255,10 +1314,12 @@ def execute_nextflow(
     # Default to AWS Batch when NEXTFLOW_USE_AWS=true and no explicit executor is set.
     # This is the platform default: all workflows run on Batch unless explicitly overridden.
     _use_aws_env = os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes")
+    # Normalise user_id early for path construction (before run_id is generated)
+    _uid_for_path = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
     if _use_aws_env and not compute.get("executor"):
         s3_bucket_default = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
         run_uuid_short = str(uuid.uuid4())[:8]
-        _auto_outdir = f"s3://{s3_bucket_default}/nextflow/outputs/{run_uuid_short}"
+        _auto_outdir = f"s3://{s3_bucket_default}/nextflow/outputs/{_uid_for_path}/{run_uuid_short}"
         if not params.get("outdir"):
             params["outdir"] = _auto_outdir
             log.info(
@@ -1310,7 +1371,7 @@ def execute_nextflow(
         if not is_s3:
             s3_bucket_from_input = s3_inputs[0].split("/")[2]
             effective_outdir = (
-                f"s3://{s3_bucket_from_input}/nextflow/outputs/"
+                f"s3://{s3_bucket_from_input}/nextflow/outputs/{_uid_for_path}/"
                 + str(uuid.uuid4())[:8]
             )
             is_s3 = True
@@ -1408,7 +1469,7 @@ def execute_nextflow(
             (compute or {}).get("s3_bucket")
             or os.environ.get("NEXTFLOW_S3_BUCKET", "biomate-nextflow-work")
         )
-        _s3_work_dir = f"s3://{s3_bucket_for_work}/nextflow/work"
+        _s3_work_dir = f"s3://{s3_bucket_for_work}/nextflow/work/{_uid_for_path}/{run_id}"
         cmd += ["-w", _s3_work_dir]
     else:
         cmd += ["-w", str(work_dir)]
@@ -1453,7 +1514,7 @@ def execute_nextflow(
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.
-    billing_user_id = request.user_id or "unknown"
+    billing_user_id = _uid_for_path  # same sanitised value used in S3 path construction
     executor_config_path = _generate_executor_config(
         compute, log_dir, user_id=billing_user_id, run_id=run_id,
         credentials=dict(request.credentials or {}),

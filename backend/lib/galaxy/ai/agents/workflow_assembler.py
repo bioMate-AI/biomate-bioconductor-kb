@@ -226,11 +226,12 @@ class WorkflowAssembler:
             if user_context.get('domain_preference'):
                 user_context_text += f"- Preferred domain: {user_context['domain_preference']}\n"
 
+        user_context_section = f"User Context:\n{user_context_text}" if user_context_text else ""
         prompt = f"""Review and optimize this bioinformatics workflow for the user's request.
 
 User Request: {query}
 
-{f"User Context:\n{user_context_text}" if user_context_text else ""}
+{user_context_section}
 
 Recommended Tools:
 {tools_text}

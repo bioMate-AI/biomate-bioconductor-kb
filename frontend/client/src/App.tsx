@@ -131,6 +131,17 @@ function PlatformLayout({
   activeChatId?: string
   chatSessions: ChatSession[]
 }) {
+  const { isAuthenticated, isLoading } = useAuth()
+  const [, navigate] = useLocation()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/home')
+    }
+  }, [isAuthenticated, isLoading, navigate])
+
+  if (!isAuthenticated) return null
+
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)
   }

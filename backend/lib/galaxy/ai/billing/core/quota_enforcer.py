@@ -31,8 +31,10 @@ calculator = CostCalculator()
 # does not declare a fixed amount_cents value.
 DEFAULT_PLAN_LIMITS: dict[str, float] = {
     "free":       5.00,
+    "base":      50.00,    # $7/week ≈ $30/month; give $50 buffer
     "basic":     50.00,
     "pro":      500.00,
+    "test":     float("inf"),  # test plan: no quota, unlimited usage tracking
     "enterprise": float("inf"),  # custom limits set per customer in Lago
 }
 
@@ -59,6 +61,14 @@ def ensure_quota_set(user_id: str, plan: str) -> float:
 
     Returns the limit that was set (in USD).
     """
+    svc = get_cost_service()
+
+    # Cache the plan code in Redis so emit_* can look it up for subscription routing
+    try:
+        svc._redis.setex(f"user_plan:{user_id}", 86400 * 30, plan)
+    except Exception:
+        pass  # non-fatal — event routing falls back to "base"
+
     # Try Lago first so custom / enterprise plan amounts are respected
     lago_limit: float | None = None
     try:
@@ -70,12 +80,27 @@ def ensure_quota_set(user_id: str, plan: str) -> float:
         limit = lago_limit
         log.debug("quota from Lago: user=%s plan=%s limit=$%.2f", user_id, plan, limit)
     else:
-        limit = DEFAULT_PLAN_LIMITS.get(plan, DEFAULT_PLAN_LIMITS["free"])
+        # Test plan has no quota — treat as unlimited
+        if plan == "test":
+            limit = float("inf")
+        else:
+            limit = DEFAULT_PLAN_LIMITS.get(plan, DEFAULT_PLAN_LIMITS["free"])
         log.debug("quota from DEFAULT_PLAN_LIMITS: user=%s plan=%s limit=$%.2f",
                   user_id, plan, limit)
 
-    get_cost_service().set_quota(user_id, limit)
+    svc.set_quota(user_id, limit)
     return limit
+
+
+def get_user_plan_code(user_id: str) -> str:
+    """Look up the user's current plan code from Redis cache. Defaults to 'base'."""
+    try:
+        val = get_cost_service()._redis.get(f"user_plan:{user_id}")
+        if val:
+            return val.decode() if isinstance(val, bytes) else val
+    except Exception:
+        pass
+    return "base"
 
 
 def check_and_reserve(user_id: str, estimated_cost_usd: float = 0.0) -> None:

@@ -57,3 +57,24 @@ Thumbs.db
 
 # Test files
 tests/
+
+# Large workflow libraries not needed in container (indexed separately)
+biomni_workflows/nextflow_nfcore/subworkflows/bioconductor/
+biomni_workflows/nextflow_nfcore/subworkflows/genomics/
+biomni_workflows/nextflow_nfcore/
+
+# Docs and notes
+*.md
+*.xlsx
+*.pdf
+
+# Nextflow logs
+.nextflow/
+.nextflow.log*
+
+# Virtual environments
+.venv*/
+venv*/
+
+# Research repos
+../research_repos/
