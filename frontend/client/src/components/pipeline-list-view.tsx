@@ -48,6 +48,19 @@ export interface PipelineListViewProps {
   onClose?: () => void
   isReadOnly?: boolean
   chainRunId?: string
+  /**
+   * S4: Step-by-step approval gate.
+   * When true, "Confirm & Run" launches only the first step. Each subsequent
+   * step requires an explicit "Approve & Run Step N+1" action after the previous
+   * step completes, giving the user a chance to review intermediate outputs.
+   */
+  approvalGate?: boolean
+  /**
+   * S4: Called when the user approves the next step.
+   * @param completedStepId  The step that just finished
+   * @param nextStepId       The step about to be launched
+   */
+  onApproveStep?: (completedStepId: string, nextStepId: string) => void
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -137,9 +150,13 @@ interface StepRowProps {
   onModifyStep?: (id: string, message: string) => void
   isFirst: boolean
   isLast: boolean
+  /** S4: when true, show "Approve & Run Next Step" after this step completes */
+  showApproveButton?: boolean
+  nextStep?: PipelineStep
+  onApproveStep?: (completedStepId: string, nextStepId: string) => void
 }
 
-function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep }: StepRowProps) {
+function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep, showApproveButton, nextStep, onApproveStep }: StepRowProps) {
   const usesStep = step.usesStepId
     ? steps.find(s => s.id === step.usesStepId)
     : undefined
@@ -237,6 +254,24 @@ function StepRow({ step, steps, isReadOnly, onRemoveStep, onModifyStep }: StepRo
           </p>
         )}
 
+        {/* S4: Approval gate — shown when this step completed and next step is pending approval */}
+        {showApproveButton && nextStep && step.status === 'completed' && (
+          <div className="mt-2 flex items-center gap-2">
+            <Button
+              data-testid={`pipeline-approve-step-${nextStep.id}`}
+              size="sm"
+              onClick={() => onApproveStep?.(step.id, nextStep.id)}
+              className="h-7 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white"
+            >
+              <Play className="h-3 w-3" />
+              Approve &amp; Run Step {nextStep.stepNumber ?? '?'}
+            </Button>
+            <span className="text-[10px] text-muted-foreground">
+              Review outputs above before continuing
+            </span>
+          </div>
+        )}
+
         {/* Modify shortcut */}
         {!isReadOnly && onModifyStep && (
           <button
@@ -262,6 +297,8 @@ export function PipelineListView({
   onClose,
   isReadOnly = false,
   chainRunId,
+  approvalGate = false,
+  onApproveStep,
 }: PipelineListViewProps) {
   // Normalise steps: fill in stepNumber and field aliases
   const steps: PipelineStep[] = rawSteps.map((s, i) => ({
@@ -278,7 +315,15 @@ export function PipelineListView({
   }
 
   const anyRunning = steps.some(s => s.status === 'running')
-  const confirmDisabled = isReadOnly || anyRunning || steps.length === 0
+  const anyPending = steps.some(s => s.status === 'pending')
+
+  // S4: In approval-gate mode, the "Confirm & Run" button is only shown when
+  // the pipeline hasn't started (all steps are pending). Once running it's gated.
+  const pipelineStarted = steps.some(s => s.status !== 'pending')
+  const confirmLabel = approvalGate && !pipelineStarted
+    ? 'Confirm & Run Step 1'
+    : 'Confirm & Run Pipeline'
+  const confirmDisabled = isReadOnly || anyRunning || steps.length === 0 || (approvalGate && pipelineStarted)
 
   /**
    * Build a rendering plan: group parallel steps together so we can
@@ -370,6 +415,15 @@ export function PipelineListView({
         ) : (
           rendered.map((item, idx) => {
             if (item.type === 'step') {
+              // S4: determine if this step should show the approve button for the next step.
+              // Show the approve button when:
+              //   - approvalGate mode is on
+              //   - this step is completed
+              //   - the next rendered item is a single step (not a parallel group) that is still pending
+              const nextRendered = rendered[idx + 1]
+              const nextSingleStep = nextRendered?.type === 'step' ? nextRendered.step : undefined
+              const showApprove = approvalGate && nextSingleStep?.status === 'pending'
+
               return (
                 <StepRow
                   key={item.step.id}
@@ -380,6 +434,9 @@ export function PipelineListView({
                   onModifyStep={onModifyStep}
                   isFirst={item.isFirst}
                   isLast={item.isLast}
+                  showApproveButton={showApprove}
+                  nextStep={nextSingleStep}
+                  onApproveStep={onApproveStep}
                 />
               )
             }
@@ -435,24 +492,29 @@ export function PipelineListView({
             ? 'Pipeline is running…'
             : isReadOnly
             ? 'Run in progress — edits disabled'
+            : approvalGate && pipelineStarted
+            ? 'Awaiting step approval…'
             : `${steps.length} step${steps.length !== 1 ? 's' : ''} ready`}
         </span>
-        <Button
-          data-testid="pipeline-confirm-run"
-          onClick={handleConfirm}
-          disabled={confirmDisabled}
-          className={cn(
-            'gap-2',
-            !confirmDisabled && 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white',
-          )}
-        >
-          {anyRunning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {anyRunning ? 'Running…' : 'Confirm & Run Pipeline'}
-        </Button>
+        {/* S4: hide the footer run button once the pipeline has started in approval-gate mode */}
+        {!(approvalGate && pipelineStarted) && (
+          <Button
+            data-testid="pipeline-confirm-run"
+            onClick={handleConfirm}
+            disabled={confirmDisabled}
+            className={cn(
+              'gap-2',
+              !confirmDisabled && 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white',
+            )}
+          >
+            {anyRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            {anyRunning ? 'Running…' : confirmLabel}
+          </Button>
+        )}
       </div>
     </div>
   )
