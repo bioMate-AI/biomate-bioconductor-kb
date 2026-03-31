@@ -7,7 +7,14 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { inferActionsFromType, CLARIFICATION_FALLBACKS, type IntentDecomposition, type DecomposedIntent } from './galaxy-assistant';
+import {
+  inferActionsFromType,
+  CLARIFICATION_FALLBACKS,
+  DOMAIN_SPECIALIST_GUIDANCE,
+  buildDomainSpecialistBlock,
+  type IntentDecomposition,
+  type DecomposedIntent,
+} from './galaxy-assistant';
 
 // ── Minimal reimplementation of parseIntentResult for unit testing ────────────
 // This mirrors the real implementation so tests break if the real code diverges.
@@ -348,5 +355,76 @@ describe('S5: CLARIFICATION_FALLBACKS completeness', () => {
     const knownKeys = new Set<string>(SYSTEM_PROMPT_FORK_POINTS);
     const extraKeys = Object.keys(CLARIFICATION_FALLBACKS).filter(k => !knownKeys.has(k));
     expect(extraKeys).toEqual([]);
+  });
+});
+
+// ── S3: DOMAIN_SPECIALIST_GUIDANCE completeness ───────────────────────────────
+describe('S3: DOMAIN_SPECIALIST_GUIDANCE', () => {
+  // Domains that have registered workflows — each must have a specialist guidance entry.
+  const DOMAINS_WITH_WORKFLOWS = [
+    'genomics',
+    'transcriptomics',
+    'single_cell',
+    'epigenomics',
+    'proteomics',
+    'metabolomics',
+    'metagenomics',
+    'structural_biology',
+    'drug_discovery',
+    'cryo_em',
+    'systems_biology',
+    'synthetic_biology',
+    'bioimaging',
+    'lab_automation',
+    'cancer_biology',
+    'cell_biology',
+  ] as const;
+
+  it('DOMAIN_SPECIALIST_GUIDANCE is exported and is an object', () => {
+    expect(typeof DOMAIN_SPECIALIST_GUIDANCE).toBe('object');
+    expect(DOMAIN_SPECIALIST_GUIDANCE).not.toBeNull();
+  });
+
+  for (const domain of DOMAINS_WITH_WORKFLOWS) {
+    it(`has specialist guidance for domain "${domain}"`, () => {
+      expect(DOMAIN_SPECIALIST_GUIDANCE).toHaveProperty(domain);
+      const guidance = DOMAIN_SPECIALIST_GUIDANCE[domain];
+      expect(typeof guidance).toBe('string');
+      // Must be a non-trivial expert framing (at least 80 chars)
+      expect((guidance as string).length).toBeGreaterThan(80);
+      // Must start with "Expert framing" prefix for consistent formatting
+      expect(guidance as string).toMatch(/^Expert framing/);
+    });
+  }
+
+  it('buildDomainSpecialistBlock returns empty string for empty domains', () => {
+    expect(buildDomainSpecialistBlock([])).toBe('');
+  });
+
+  it('buildDomainSpecialistBlock returns empty string for unknown domain', () => {
+    expect(buildDomainSpecialistBlock(['unknown_domain_xyz'])).toBe('');
+  });
+
+  it('buildDomainSpecialistBlock wraps guidance in <domain_specialist> tags', () => {
+    const block = buildDomainSpecialistBlock(['genomics']);
+    expect(block).toMatch(/^<domain_specialist>/);
+    expect(block).toMatch(/<\/domain_specialist>/);
+    expect(block).toContain('Expert framing (genomics)');
+  });
+
+  it('buildDomainSpecialistBlock concatenates multiple domains', () => {
+    const block = buildDomainSpecialistBlock(['genomics', 'drug_discovery']);
+    expect(block).toContain('Expert framing (genomics)');
+    expect(block).toContain('Expert framing (drug discovery)');
+    // Only one wrapper pair
+    expect((block.match(/<domain_specialist>/g) || []).length).toBe(1);
+    expect((block.match(/<\/domain_specialist>/g) || []).length).toBe(1);
+  });
+
+  it('buildDomainSpecialistBlock skips unknown domains silently', () => {
+    const block = buildDomainSpecialistBlock(['genomics', 'no_such_domain', 'drug_discovery']);
+    expect(block).toContain('Expert framing (genomics)');
+    expect(block).toContain('Expert framing (drug discovery)');
+    expect(block).not.toContain('no_such_domain');
   });
 });

@@ -354,6 +354,67 @@ export function buildDomainCatalogBlock(preferredDomains: string[]): string {
 }
 
 // ============================================================================
+// Domain Specialist Guidance (S3)
+// ============================================================================
+// Mirrors backend/lib/galaxy/ai/domain_registry.py DOMAIN_SPECIALIST_PROMPTS.
+// Injected into generateResponse() system prompts as <domain_specialist> context
+// when preferredDomains includes a matching entry.
+//
+// Purpose: give the response-generator LLM domain-expert framing so it applies
+// the right decision criteria (e.g. DDA vs DIA for proteomics, SPA vs cryo-ET
+// for cryo-EM) without requiring a separate LLM specialist consultation on the
+// hot path.
+//
+// Activated by preferredDomains signal (intent classifier + user profile),
+// NOT by keyword regex on the message text.
+
+export const DOMAIN_SPECIALIST_GUIDANCE: Partial<Record<string, string>> = {
+  genomics: `Expert framing (genomics): Consider sequencing type (WGS/WES/targeted panel), organism and reference genome version, paired vs single-end reads, and coverage depth. For variant calling: distinguish germline (GATK HaplotypeCaller) vs somatic (Mutect2, matched tumor/normal) before recommending a pipeline. PCR duplicate rate and BQSR are required QC steps for clinical-grade variant calls.`,
+
+  transcriptomics: `Expert framing (transcriptomics): Consider library type (poly-A / total RNA / small RNA / CAGE), strandedness (RF/FR/unstranded), and analysis goal (differential expression vs splicing vs fusion). Statistical test selection: DESeq2 for small N (≤10/group), limma/voom for large studies or microarray, edgeR when counts are sparse. Pseudo-alignment (Salmon/kallisto) is faster than genome alignment (STAR) and suitable when splice-junction annotation is high quality.`,
+
+  single_cell: `Expert framing (single-cell): Consider technology (10X Chromium v2/v3/multiome, Smart-seq2, Parse, SPLiT-seq), batch correction strategy (Harmony for RNA; scVI for multi-modal), and downstream goal: clustering + annotation vs trajectory (Monocle3) vs perturbation (Perturb-seq/MAGeCK). Cell type annotation requires a reference atlas (CellTypist, Azimuth, scANVI label transfer). Ambient RNA (SoupX) and doublet removal (Scrublet) are standard QC steps.`,
+
+  epigenomics: `Expert framing (epigenomics): Assay type determines the entire pipeline — ChIP-seq (MACS2 peak calling, IP/input ratio), ATAC-seq (open chromatin, nucleosome-free reads), bisulfite-seq (methylation %), CUT&RUN (sparse background, SEACR caller), Hi-C (TAD/loop calling). Fragment size profiles differ between assays — do not mix callers. For TF ChIP-seq: narrow peaks (MACS2 --nomodel); for histone marks: broad peaks (MACS2 --broad).`,
+
+  proteomics: `Expert framing (proteomics): DDA (data-dependent acquisition) vs DIA (data-independent acquisition) is the primary fork. DDA: MaxQuant (label-free/SILAC/TMT) or Proteome Discoverer. DIA: requires a spectral library; use DIA-NN or Spectronaut. Quantification: label-free (LFQ intensity), TMT/iTRAQ (reporter ions), SILAC (heavy/light ratios). For phosphoproteomics: TiO₂/IMAC enrichment; for ubiquitinomics: GlyGly enrichment. PTM site localization score (phosphoRS/ptmRS) must be ≥0.75 to be confident.`,
+
+  metabolomics: `Expert framing (metabolomics): Platform distinguishes the pipeline — LC-MS (retention time + m/z annotation), GC-MS (RI matching + NIST library), NMR (chemical shift assignment). Targeted: known compounds with authentic standards → absolute quantification. Untargeted: feature detection (XCMS/MZmine) → putative annotation (level 2) → pathway analysis (MetaboAnalyst). Normalization: PQN or median-fold change; QC pooled samples must be injected every 10 samples.`,
+
+  metagenomics: `Expert framing (metagenomics): 16S amplicon (V3-V4 region most common) vs shotgun WGS (full taxonomic + functional). 16S: DADA2 for ASVs (preferred over OTU clustering), SILVA/GTDB reference. WGS: Kraken2 + Bracken for classification, HUMAnN3 for functional profiling. Alpha diversity (Shannon, Chao1) and beta diversity (UniFrac, Bray-Curtis) are standard outputs. Check for host contamination (remove human reads via BBSplit before analysis).`,
+
+  structural_biology: `Expert framing (structural biology): Check whether an experimental structure exists (PDB ID) before recommending structure prediction. Prediction tier: AlphaFold3 (state-of-the-art, with ligand co-folding), Boltz-2 (open-weights, MIT), Chai-1 (no auth required). For docking: pocket detection first (P2Rank/fpocket) → blind docking (DiffDock) or site-directed (AutoDock Vina/Glide). MD simulation for binding affinity: GROMACS (open-source) or AMBER pmemd.cuda (GPU-accelerated).`,
+
+  drug_discovery: `Expert framing (drug discovery): Mandatory decision tree — (1) Does a structure exist? If no: predict with AlphaFold3/Boltz-2. (2) Binding site known? If no: run pocket detection (P2Rank). (3) Docking type: global/blind (DiffDock) vs site-directed (AutoDock Vina/Glide). (4) Safety profiling: hERG (cardiac), DILI (hepato), Ames (mutagenicity), ADMET panel. (5) Lead optimization: REINVENT4 (generative), pharmacophore filtering, retrosynthesis (AiZynthFinder). Decision grade: state cutoffs (e.g. Glide XP GScore < −8 kcal/mol, hERG IC₅₀ > 1 μM) explicitly.`,
+
+  cryo_em: `Expert framing (cryo-EM): SPA vs cryo-ET distinction is critical — wrong pipeline wastes weeks. For SPA: MotionCor2 → CTFFIND4 → Topaz/crYOLO picking → CryoSPARC 2D/3D → non-uniform refinement. For tomography: IMOD alignment → AreTomo → Dynamo/STOPGAP subtomogram averaging. Key QC gates: motion correction B-factor < 80 Å²/frame; CTF resolution ≤ 4Å; 2D class fraction ≥ 60% should have secondary structure visible. Gold-standard FSC at 0.143 threshold is the resolution metric.`,
+
+  systems_biology: `Expert framing (systems biology): ODE modeling for signaling/gene regulatory circuits (deterministic); stochastic for small-number systems. FBA (COBRApy) for metabolic flux optimization under growth/production constraints. Multi-omics integration: MOFA+ (factor analysis), DIABLO (supervised), or COSMOS (causal). Network types: PPI (STRING), GRN (ARACNE/GENIE3), metabolic (SBML/BiGG). Pathway enrichment: over-representation (Fisher) for gene lists; GSEA for ranked lists.`,
+
+  synthetic_biology: `Expert framing (synthetic biology): Codon optimization is host-specific (CAI tables differ between E. coli K-12, S. cerevisiae, CHO). Gene circuit ODE models need explicit Hill coefficients and degradation rates. CRISPR guide design: Doench 2016 efficiency rules + Cas-OFFinder/CRISPOR off-target check. Barcode-seq: error-correction Hamming codes ≥ 3-edit distance to survive sequencing noise. Verify constructs with plasmid sequencing before expression.`,
+
+  bioimaging: `Expert framing (bioimaging): Image registration requires a reference channel (DAPI/nuclear) with consistent expression. Segmentation: nucleus-only (StarDist) vs full cell boundary (Cellpose/nnUNet). For time-lapse: track cells before quantifying intensity changes (avoid mis-assignment). Output: per-cell feature tables (area, intensity, morphology) compatible with scRNA-seq-style clustering (scanpy/UMAP). Batch correction: CellProfiler+Harmony or scVI for imaging features.`,
+
+  lab_automation: `Expert framing (lab automation): PyLabRobot abstracts liquid handling robots (Opentrons OT-2/Flex, Hamilton STAR, Tecan). Protocol execution: confirm deck layout and tip inventory before launch. Pipetting volumes: respect dead volume and tip capacity limits (min 1 μL for p10, max 300 μL for p300). Async execution pattern: start → poll status → retrieve results — never assume synchronous completion. Plate maps must be validated against physical layout before run.`,
+
+  cancer_biology: `Expert framing (cancer biology): Somatic variant calling requires matched tumor/normal pairs for maximum specificity (Mutect2); tumor-only is higher FDR. TMB threshold: ≥10 mut/Mb correlates with immunotherapy response (FDA-approved threshold). CNV calling: correct for purity/ploidy (PURPLE/ABSOLUTE) before copy number interpretation. SV calling: short-read callers (GRIDSS, DELLY, Manta) have high FDR — orthogonal long-read or WGS validation recommended. NMF mutational signature extraction: ≥50 SSNVs required for reliable signature decomposition.`,
+
+  cell_biology: `Expert framing (cell biology): Flow cytometry gating order: FSC/SSC live gate → doublet exclusion (FSC-A vs FSC-H) → dead cell exclusion (viability dye) → lineage markers → target markers. FACS purity sort: re-analyze post-sort sample to confirm ≥95% purity before downstream assays. Cell cycle: EdU/BrdU incorporation + PI staining is quantitative for S-phase fraction; Hoechst DNA content alone cannot distinguish G1 from G2/M without BrdU. Motility: velocity (μm/min), directionality ratio, and MSD should all be reported.`,
+};
+
+/**
+ * Build a domain specialist guidance block for injection into generateResponse() system prompts.
+ * Returns empty string if no guidance exists for any of the given domains.
+ */
+export function buildDomainSpecialistBlock(preferredDomains: string[]): string {
+  const guidance = preferredDomains
+    .map(d => DOMAIN_SPECIALIST_GUIDANCE[d])
+    .filter((g): g is string => !!g);
+  if (guidance.length === 0) return '';
+  return `<domain_specialist>\n${guidance.join('\n\n')}\n</domain_specialist>\n`;
+}
+
+// ============================================================================
 // Multi-Intent Decomposition Types
 // ============================================================================
 
@@ -2537,8 +2598,12 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     sessionMemoryBlock: string = '',
     preferredDomains: string[] = []
   ): Promise<{ message: string; thinking?: ThinkingDetectionResult; truncated?: boolean }> {
+    // S3: domain-signal-driven specialist framing — replaces the isDrugDevelopmentQuery keyword regex.
+    // preferredDomains comes from the intent classifier + user profile (not keyword matching).
+    const isDrugDiscoveryDomain = preferredDomains.includes('drug_discovery');
+    // Backward-compat fallback: if no preferredDomains signal, fall back to keyword regex for drug context.
     const lowerMessage = (message || '').toLowerCase();
-    const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
+    const isDrugDevelopmentQuery = isDrugDiscoveryDomain || /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
       lowerMessage
     );
     const runnableWorkflow = !!(
@@ -2613,7 +2678,7 @@ Workflow routing (use these specific workflows when the user's intent matches):
 - "covalent docking", "covalent inhibitor", "warhead", "acrylamide docking", "irreversible inhibitor design", "MOE docking", or "targeted covalent drug": suggest the moe_covalent_docking workflow (MOE CovDock SVL, 5-step: LigPrep → QuickPrep → CovDock → GBVI/WSA dG → SDF report. Warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor. License: MOE FlexNet, user must provide.)
 - "generative drug design", "de novo design", "scaffold hopping", "lead generation", "molecule optimization", "REINVENT", or "fragment decoration": suggest the reinvent4_lead_design workflow (REINVENT4 AstraZeneca, RL-based SMILES generator, outputs ranked molecules + SDF + score trajectory)
 
-${buildDomainCatalogBlock(preferredDomains)}Style guide:
+${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly
