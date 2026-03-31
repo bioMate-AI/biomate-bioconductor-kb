@@ -238,24 +238,107 @@ export const CLARIFICATION_FALLBACKS: Record<string, string> = {
 // block is injected into generateResponse() so the LLM knows what BioMate-specific
 // workflows exist without relying solely on FTS retrieval.
 //
-// Design rule: only add a catalog for domains where BioMate has a substantial set
-// of non-obvious or proprietary workflows the LLM cannot infer from general knowledge.
-// Standard domain tools (BWA, GATK, DESeq2…) don't need a catalog — the LLM already
-// knows them. Add an entry here when you've built 4+ workflows for a domain.
+// Principle: every domain with registered BioMate workflows gets a catalog entry.
+// The catalog is about BioMate workflow NAMES and their purpose — not about whether
+// the LLM knows the underlying tools. The LLM knows GATK but does not know that
+// BioMate's germline pipeline is called `wgs_germline_gatk` with specific QC gates.
 //
-// Each entry is injected as-is inside a <domain_catalog> XML block in the system prompt.
+// Add an entry for a domain when it has workflows registered under
+// backend/biomni_workflows/nextflow_nfcore/subworkflows/<domain>/
+//
+// Domains with no registered workflows yet (metabolomics, metagenomics,
+// structural_biology) have no entry — add one as workflows are built.
 
 export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
-  drug_discovery: `Available BioMate drug discovery workflows (reference when making recommendations):
+
+  genomics: `Available BioMate genomics workflows:
+- wgs_germline_gatk: Whole-genome germline variant calling — 14-step GATK4 best-practices pipeline (FastQC → fastp → BWA-MEM2 → MarkDuplicates → BQSR → HaplotypeCaller → GenotypeGVCFs → SnpEff). Input: FASTQ reads + reference genome. Outputs: annotated VCF + MultiQC report.
+- crispr_screen_mageck: Pooled CRISPR screen analysis (MAGeCK) — count → RRA test → pathway enrichment. Supports positive and negative selection screens. Input: screen FASTQ + guide library CSV. Outputs: gene-level scores, FDR, pathway enrichment.
+- perturb_seq_analysis: Perturb-seq pipeline — MAGeCK guide assignment + scVI/scANVI embedding for perturbation state. Input: FASTQ or h5ad with guide assignments. Outputs: hit genes, embedding, differential programs.
+- perform_chipseq_peak_calling_with_macs2: ChIP-seq peak calling with MACS2. Input: ChIP BAM + control BAM. Outputs: narrowPeak/broadPeak BED.
+- gene_set_enrichment_analysis: GSEA over ontology / Hallmarks / custom gene sets. Input: gene list + optional background. Outputs: enrichment table + plots.
+- trajectory_inference: Single-cell pseudotime (Monocle3) + RNA velocity (scVelo) in parallel. Input: AnnData h5ad. Outputs: pseudotime assignments + velocity plots.
+- geo_data_connector: Download GEO series/sample data (GEOquery). Input: GSE or GSM accession. Outputs: count matrix + clinical metadata, ready for downstream DE workflows.
+- analyze_chromatin_interactions: Hi-C / 3C chromatin interaction analysis. Input: Hi-C contact matrix. Outputs: TAD boundaries, loops, compartments.
+- transcriptomic_biomarker: Biomarker discovery from bulk or single-cell expression data.`,
+
+  single_cell: `Available BioMate single-cell workflows (within the genomics domain directory):
+- annotate_celltype_scRNA: Cell type annotation using reference-based label transfer (PanHuman atlas). Input: AnnData h5ad. Outputs: annotated h5ad with cell type labels.
+- create_harmony_embeddings_scRNA: Batch-corrected UMAP via Harmony integration. Input: AnnData h5ad with batch column. Outputs: corrected embedding.
+- create_scvi_embeddings_scRNA: Deep learning (scVI) latent embedding. Input: AnnData h5ad. Outputs: scVI latent space + UMAP.
+- trajectory_inference: Pseudotime (Monocle3) + RNA velocity (scVelo) — see genomics catalog.
+- perturb_seq_analysis: CRISPR perturbation-seq analysis — see genomics catalog.
+- unsupervised_celltype_transfer_between_scRNA_datasets: Cross-dataset label transfer without reference atlas.`,
+
+  epigenomics: `Available BioMate epigenomics workflows:
+- perform_chipseq_peak_calling_with_macs2: ChIP-seq peak calling — narrow peaks (TF) or broad peaks (histone marks). Input: ChIP BAM + input/control BAM. Outputs: peak BED + QC.
+- analyze_chromatin_interactions: Hi-C TAD / loop / compartment analysis. Input: contact matrix.
+- find_enriched_motifs_with_homer: TF motif enrichment in peak regions (HOMER). Input: peak BED + genome. Outputs: enriched motif table.`,
+
+  proteomics: `Available BioMate proteomics workflows:
+- chemoproteomics_pulldown: Affinity enrichment (pulldown) QC and enrichment scoring from MaxQuant proteinGroups.txt. Computes per-protein enrichment ratios (pulldown vs input/control). QC gate: median enrichment ratio ≥3×. Input: MaxQuant proteinGroups CSV. Outputs: enrichment_ratios.tsv + summary JSON.`,
+
+  cryo_em: `Available BioMate cryo-EM workflows:
+- cryosparc_standard_spa: Standard single-particle analysis (SPA) — 23-step CryoSPARC pipeline: import → motion correction → CTF estimation → particle picking (blob + template) → 2D classification → ab-initio → homogeneous refinement → local CTF → non-uniform refinement → local resolution. Input: raw micrograph movies (TIFF/MRC). License: CryoSPARC (user must provide).
+- helical_spa_pipeline: Helical reconstruction for filamentous assemblies (F-actin, amyloid, microtubules, viral tubes) — filament tracing → helical extraction → 2D classification → helical refinement with rise/twist symmetry. Input: raw movies. License: CryoSPARC.
+- focused_refinement_pipeline: Focus on a sub-region of a complex — particle subtraction → local refinement. For flexible multi-domain complexes. Input: particles + mask volume. License: CryoSPARC.
+- 3d_variability_analysis: Conformational heterogeneity analysis (3DVA) — PCA of particle orientations to reveal discrete states or continuous motions. Input: refined particles. License: CryoSPARC.
+- topaz_train / topaz_extract: Deep learning particle picker training and inference (Topaz). Input: micrographs + manually picked coordinates (train) or micrographs only (extract).
+- et_full_pipeline: Cryo-ET full pipeline — tilt-series import → tilt alignment → tomogram reconstruction → subtomogram averaging.`,
+
+  systems_biology: `Available BioMate systems biology workflows:
+- perform_flux_balance_analysis: Genome-scale metabolic flux balance analysis (COBRApy). Input: SBML metabolic model (.xml) + optional flux constraints. Outputs: optimal flux distribution CSV.
+- simulate_metabolic_network_perturbation: Simulate gene knockouts / metabolite perturbations in a metabolic network. Input: SBML model + perturbation spec. Outputs: flux comparison before/after.
+- simulate_protein_signaling_network: ODE-based signaling cascade simulation using normalized Hill functions. Input: network JSON (nodes + edges) + kinetic parameters. Outputs: time-series trajectories.
+- model_protein_dimerization_network: Dimerization ODE model with mass-action kinetics. Input: protein concentrations + rate constants. Outputs: equilibrium state + time course.
+- compare_protein_structures: Structural comparison (TM-align / RMSD) between two PDB structures. Input: two PDB files. Outputs: TM-score, RMSD, superposition.
+- create_biochemical_network_sbml_model: Build an SBML model from a reaction list definition. Input: reactions JSON. Outputs: validated SBML XML.`,
+
+  synthetic_biology: `Available BioMate synthetic biology workflows:
+- optimize_codons_for_heterologous_expression: Codon optimization for a target host organism using host codon usage table. Input: DNA/protein sequence + host codon table. Outputs: optimized sequence + CAI score.
+- engineer_bacterial_genome_for_therapeutic_delivery: Design bacterial genome edits for therapeutic payload delivery.
+- simulate_gene_circuit_with_growth_feedback: ODE simulation of synthetic gene circuits coupled to bacterial growth (Gompertz / logistic). Input: circuit topology + kinetic parameters. Outputs: time-series expression + growth curves.
+- analyze_barcode_sequencing_data: Barcode-seq analysis for combinatorial library screening. Input: barcode FASTQ. Outputs: barcode count table.
+- create_biochemical_network_sbml_model: Build SBML reaction network model — see systems_biology catalog.`,
+
+  bioimaging: `Available BioMate bioimaging workflows:
+- register_images: Multi-modal image registration (ANTs) — affine, rigid, or deformable transforms. Input: fixed NIfTI + moving NIfTI. Outputs: registered image + transform file.
+- batch_register_images: Register a batch of images to a common reference.
+- segment_with_nn_unet: nnUNet-based image segmentation (automatic model selection). Input: NIfTI image + task ID. Outputs: segmentation mask.
+- create_segmentation_visualization: Overlay segmentation masks on source images for QC.
+- calculate_similarity_metrics: Compute image similarity (SSIM, NCC, MI) between registered image pairs. Input: two NIfTI images. Outputs: metric table.`,
+
+  lab_automation: `Available BioMate lab automation workflows:
+- run_async: Execute a PyLabRobot liquid handling protocol asynchronously. Input: Python protocol script + robot config. Outputs: run log + executed liquid transfers.
+- get_pylabrobot_documentation_liquid: Retrieve PyLabRobot API documentation for liquid handling classes.
+- get_pylabrobot_documentation_material: Retrieve PyLabRobot API documentation for labware/material classes.`,
+
+  drug_discovery: `Available BioMate drug discovery workflows:
 - alphafold_db_search: Structural similarity search (Foldseek + MMseqs2) against AlphaFold DB human proteome (48k proteins). Input: FASTA or PDB.
 - structure_prediction_docking: Predict 3D structure (AlphaFold3 / Chai-1 / Boltz-2) then dock a ligand. Input: protein FASTA sequence + ligand SMILES/SDF.
-- amber_pmemd_md: AMBER pmemd.cuda GPU MD — GAFF2 parameterization → tleap → EM → NVT/NPT → production MD → RMSD/RMSF → MMPBSA.py ΔGbind. Input: receptor PDB + ligand SDF. License: free academic.
-- gromacs_protein_md: GROMACS 2025 + gmx_MMPBSA — 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory. Input: receptor PDB + ligand SDF.
-- schrodinger_glide_docking: Schrödinger Glide HTVS/SP/XP — LigPrep → PrepWiz → GridGen → Glide → ranked SDF. Input: receptor PDB + ligand SMILES/SDF. License: FlexNet (user must provide).
-- moe_covalent_docking: MOE CovDock SVL for covalent inhibitors — warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor, vinyl_sulfone, boronic_acid. Input: receptor PDB + ligand SDF. License: MOE FlexNet (user must provide).
-- reinvent4_lead_design: REINVENT4 AstraZeneca RL-based generative design — modes: de_novo, scaffold_decoration, linker_design, scaffold_hopping. Input: SMILES seed or SMARTS scaffold.
-- nca_pknca: Non-compartmental PK analysis (PKNCA R package) — outputs: AUC, Cmax, Tmax, t½, CL/F, Vz/F. Input: concentration-time CSV.`,
-  // Future: add cryo_em, lab_automation, etc. when their workflow sets reach 4+ entries.
+- amber_pmemd_md: AMBER pmemd.cuda GPU MD — GAFF2 → tleap → EM → NVT/NPT → production MD → RMSD/RMSF → MMPBSA.py ΔGbind. Input: receptor PDB + ligand SDF. License: free academic.
+- gromacs_protein_md: GROMACS 2025 + gmx_MMPBSA — 8-step pipeline, ΔGbind ± SE + RMSD trajectory. Input: receptor PDB + ligand SDF.
+- schrodinger_glide_docking: Glide HTVS/SP/XP — LigPrep → PrepWiz → GridGen → Glide → ranked SDF. License: FlexNet (user must provide).
+- moe_covalent_docking: MOE CovDock SVL — warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor, vinyl_sulfone, boronic_acid. License: MOE FlexNet (user must provide).
+- reinvent4_lead_design: REINVENT4 RL-based generative design — de_novo, scaffold_decoration, linker_design, scaffold_hopping. Input: SMILES seed or SMARTS scaffold.
+- nca_pknca: Non-compartmental PK analysis (PKNCA) — AUC, Cmax, Tmax, t½, CL/F, Vz/F. Input: concentration-time CSV.
+- aizynthfinder_retrosynthesis: Retrosynthesis route planning (AiZynthFinder). Input: target SMILES. Outputs: synthesis routes + reaction scores.
+- pocket_detection_druggability: Binding site detection and druggability scoring (fpocket). Input: PDB. Outputs: pocket table + druggability scores.
+- pharmacophore_filtering: Filter compound libraries against a pharmacophore model. Input: pharmacophore + SMILES/SDF library. Outputs: filtered hits.`,
+
+  // Routing-only domains (not user profile domains, but have registered workflows):
+  cancer_biology: `Available BioMate cancer biology workflows:
+- detect_and_annotate_somatic_mutations: Somatic SNV/indel calling (GATK Mutect2) + SnpEff annotation from tumor/normal BAM pair. Input: tumor BAM + normal BAM + reference.
+- analyze_copy_number_purity_ploidy_and_focal_events: CNVkit CNV segmentation + purity/ploidy estimation + focal amplification/deletion events + HRD approximation. Input: tumor BAM + optional normal BAM.
+- detect_and_characterize_structural_variations: SV calling and characterization from WGS data. Input: tumor BAM. Outputs: SV VCF + annotated breakpoint table.
+- perform_gene_expression_nmf_analysis: NMF decomposition of tumor expression matrix to identify molecular subtypes / transcriptional programs. Input: expression matrix. Outputs: NMF components + sample assignments.`,
+
+  cell_biology: `Available BioMate cell biology workflows:
+- analyze_flow_cytometry_immunophenotyping: Flow cytometry gating and immunophenotyping from FCS files. Input: FCS file + gating strategy JSON. Outputs: population counts + percentages.
+- perform_facs_cell_sorting: FACS sorting gate definition and cell fraction enumeration. Input: FCS file + sort gates. Outputs: sorted population report.
+- quantify_cell_cycle_phases_from_microscopy: Cell cycle phase quantification from microscopy images. Input: fluorescence images (DAPI + EdU). Outputs: G1/S/G2 fractions per field.
+- quantify_and_cluster_cell_motility: Cell motility tracking and clustering from time-lapse microscopy. Input: time-lapse image series. Outputs: trajectory table + motility clusters.`,
+
 };
 
 /**
