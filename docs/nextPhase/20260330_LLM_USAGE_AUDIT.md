@@ -562,8 +562,8 @@ Session memory update: ~1,000 tokens total (async — not on critical path). Amo
 | S1: ClarificationGate function | 2h | Eliminates accidental bypass risk | ✅ Done 2026-03-31 |
 | S2: Confidence-gated memory injection | 3h | Prevents uncertain inferences as stated facts | ✅ Done 2026-03-31 |
 | S6: Domain catalog injection (generalized) | 2h | Improves workflow awareness per active domain | ✅ Done 2026-03-31 |
-| S3: Connect DomainSpecialistPool → generateResponse() | 2h | Eliminates specialist reasoning dead-end | Next session |
-| S4: Step-by-step pipeline approval | 4h | Critical for multi-step safety + cost | Next sprint |
+| S3: Connect DomainSpecialistPool → generateResponse() | 2h | Eliminates specialist reasoning dead-end | ✅ Done 2026-03-31 |
+| S4: Step-by-step pipeline approval | 4h | Critical for multi-step safety + cost | ✅ Done 2026-03-31 |
 | Input dataset visualization | 3h | Lets users preview data before running workflows | Next sprint |
 | Galaxy Trackster / Charts connection | 5h | Unlocks native genomics/proteomics visualization | Future |
 | Large file pagination (>500 rows) | 3h | Essential for proteomics/metabolomics results | Next sprint |
