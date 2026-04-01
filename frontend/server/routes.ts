@@ -7855,14 +7855,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // without needing a direct connection to port 8081.
   // ---------------------------------------------------------------------------
   const GALAXY_URL = process.env.GALAXY_URL || 'http://localhost:8081';
+  // When the BFF and Galaxy backend use different JWT_SECRETs (common in dev),
+  // set GALAXY_JWT_SECRET to the backend's value so billing proxies can re-sign.
+  const _GALAXY_JWT_SECRET = process.env.GALAXY_JWT_SECRET || process.env.JWT_SECRET || 'dev-only-insecure-secret-do-not-use-in-production';
 
-  app.all("/api/billing/*", async (req, res) => {
+  app.all("/api/billing/*", optionalAuth, async (req: any, res) => {
     try {
       const target = `${GALAXY_URL}${req.path}${req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
-      // Forward Authorization header if present (JWT from frontend localStorage)
-      const auth = req.headers["authorization"];
-      if (auth) headers["Authorization"] = auth as string;
+      // Prefer re-signed Galaxy JWT from cookie auth (supports httpOnly cookie sessions).
+      // Fallback: forward raw Authorization header (for clients that still send Bearer tokens).
+      if (req.user) {
+        const import_jwt = (await import('jsonwebtoken')).default;
+        const galaxyToken = import_jwt.sign(
+          { user_id: req.user.id, email: req.user.email },
+          _GALAXY_JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+        headers["Authorization"] = `Bearer ${galaxyToken}`;
+      } else {
+        const auth = req.headers["authorization"];
+        if (auth) headers["Authorization"] = auth as string;
+      }
 
       const fetchInit: RequestInit = { method: req.method, headers };
       if (req.method !== "GET" && req.method !== "HEAD") {

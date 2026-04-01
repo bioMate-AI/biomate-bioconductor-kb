@@ -31,6 +31,28 @@ def _cost_log():
     return importlib.import_module("galaxy.ai.cost_log")
 
 
+def _cost_service():
+    """Lazy import of Redis-backed realtime cost service. Returns None on import failure."""
+    try:
+        import importlib
+        billing_svc = importlib.import_module("galaxy.ai.billing.core.realtime_cost_service")
+        return billing_svc.get_cost_service()
+    except Exception as exc:
+        log.debug("[BillingInternal] realtime_cost_service unavailable: %s", exc)
+        return None
+
+
+def _cost_calculator():
+    """Lazy import of cost calculator. Returns None on import failure."""
+    try:
+        import importlib
+        calc_mod = importlib.import_module("galaxy.ai.billing.core.cost_calculator")
+        return calc_mod.CostCalculator()
+    except Exception as exc:
+        log.debug("[BillingInternal] cost_calculator unavailable: %s", exc)
+        return None
+
+
 @router.post("/internal/billing/llm_cost", include_in_schema=False)
 async def record_llm_cost(request: Request) -> Dict[str, Any]:
     """
@@ -56,6 +78,7 @@ async def record_llm_cost(request: Request) -> Dict[str, Any]:
     duration_ms = float(body.get("duration_ms") or 0.0)
 
     try:
+        # 1. File-based durable audit log (always works, no dependencies)
         _cost_log().record(
             user_id=user_id,
             session_id=session_id,
@@ -64,6 +87,43 @@ async def record_llm_cost(request: Request) -> Dict[str, Any]:
             output_tokens=output_tokens,
             duration_ms=duration_ms,
         )
+
+        # 2. Redis-backed realtime cost service (powers /api/billing/usage dashboard)
+        svc = _cost_service()
+        if svc is not None:
+            try:
+                calc = _cost_calculator()
+                if calc is not None:
+                    cost = calc.llm_call_cost(
+                        user_id=user_id,
+                        session_id=session_id,
+                        model=model,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    )
+                    svc.record_llm_cost(
+                        user_id=user_id,
+                        input_usd=cost.input_cost,
+                        output_usd=cost.output_cost,
+                        input_tokens=cost.input_tokens,
+                        output_tokens=cost.output_tokens,
+                    )
+                else:
+                    # Fallback: estimate cost inline using same price table as cost_log
+                    from galaxy.ai.cost_log import compute_cost
+                    total = compute_cost(model, input_tokens, output_tokens)
+                    input_usd = round(total * (input_tokens / max(input_tokens + output_tokens, 1)), 8)
+                    output_usd = round(total - input_usd, 8)
+                    svc.record_llm_cost(
+                        user_id=user_id,
+                        input_usd=input_usd,
+                        output_usd=output_usd,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                    )
+            except Exception as redis_exc:
+                log.debug("[BillingInternal] Redis write skipped (non-fatal): %s", redis_exc)
+
         log.info(
             "[BillingInternal] Recorded LLM cost: user=%s model=%s in=%d out=%d",
             user_id, model, input_tokens, output_tokens,

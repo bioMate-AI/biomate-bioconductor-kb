@@ -10,17 +10,24 @@ export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
 
 # Billing settings
-export BILLING_DEV_MODE=true
+# LOCAL DEV:  Redis = biomate-redis-test Docker container on port 6379
+#             Lago  = lago-api Docker container on port 3010
+# PRODUCTION: Redis = redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
+#             Lago  = http://35.86.137.71:3000  key=01b71711-be39-49af-8d14-87a4ee827157
+#             Java  = http://35.86.137.71:8080  JAVA_BILLING_ENABLED=true
+export BILLING_DEV_MODE=false
 export BILLING_INTERNAL_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE
 export JWT_SECRET="grhFb+sJVOuSvQXQrxjjbSWWBby/w0oQFvg9tVv/KSc="
-export REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
+export REDIS_URL=redis://localhost:6379
 
-# Lago (placeholder until configured)
-export LAGO_API_URL=https://api.getlago.com
+# Lago billing (local Docker)
+export LAGO_API_URL=http://localhost:3010
+export LAGO_API_KEY=ba049ead-f0da-494a-b0ec-b76bdc26fc96
+export LAGO_WEBHOOK_SECRET=9ef2c8b4-9d99-47f5-98d8-520a22ed3bde
 
-# Java billing service
+# Java billing service — disabled in local dev (AWS EC2 instance stopped)
 export JAVA_BILLING_SERVICE_URL=http://35.86.137.71:8080
-export JAVA_BILLING_ENABLED=true
+export JAVA_BILLING_ENABLED=false
 
 # Start billing monitoring stack (Prometheus + Grafana) if Docker is available
 MONITORING_DIR="$(dirname "$0")/../billing_system/monitoring"

@@ -38,6 +38,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const BASE_URL = process.env.BIOMATE_URL || 'http://localhost:5000';
+// Rate-limit bypass for E2E — must match E2E_TEST_TOKEN in frontend/.env
+const E2E_TEST_TOKEN = process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only';
 const SS_DIR = path.join(__dirname, 'screenshots', 'drug-discovery-pilot');
 
 if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });
@@ -54,8 +56,10 @@ interface SharedAccount {
   jwt: string | null;
 }
 
+// Fixed test account — reused across runs to avoid hitting registration rate limit (3/hr).
+// Registration is attempted first; if it fails (already exists), we fall back to login.
 const SHARED_ACCOUNT: SharedAccount = {
-  email: `e2e_pilot_${Date.now()}@biomate.test`,
+  email: 'e2e_pilot_drug_discovery@biomate.test',
   password: 'TestPass123!',
   userId: null,
   jwt: null,
@@ -201,9 +205,14 @@ async function captureBilling(page: Page, jwt: string | null, label: string): Pr
     const result = await page.evaluate(
       async ({ url, token }: { url: string; token: string }) => {
         try {
+          // 8s timeout — Galaxy billing backend can be slow when Lago is unreachable
+          const ctrl = new AbortController();
+          const tid = setTimeout(() => ctrl.abort(), 8000);
           const r = await fetch(`${url}/api/billing/usage`, {
             headers: { Authorization: `Bearer ${token}` },
+            signal: ctrl.signal,
           });
+          clearTimeout(tid);
           if (!r.ok) return { ok: false, status: r.status, data: null };
           const d = await r.json();
           return { ok: true, status: r.status, data: d };
@@ -217,20 +226,30 @@ async function captureBilling(page: Page, jwt: string | null, label: string): Pr
       return { ts, llm_input_tokens: 0, llm_output_tokens: 0, llm_cost_usd: 0, compute_cost_usd: 0, storage_cost_usd: 0, total_usd: 0, quota_pct: 0, error: `http_${result.status}` };
     }
     const d = result.data;
+    // Response shape from billing_router: { breakdown: { llm: {...}, compute: {...}, storage: {...} }, total_usd, quota_pct }
+    const llm = d.breakdown?.llm ?? {};
+    const compute = d.breakdown?.compute ?? {};
+    const storage = d.breakdown?.storage ?? {};
     return {
       ts,
-      llm_input_tokens: d.llm_input_tokens ?? d.llm_tokens_input ?? 0,
-      llm_output_tokens: d.llm_output_tokens ?? d.llm_tokens_output ?? d.llm_tokens_used ?? 0,
-      llm_cost_usd: d.llm_cost_usd ?? (d.llm_input_cost_usd ?? 0) + (d.llm_output_cost_usd ?? 0),
-      compute_cost_usd: d.compute_cost_usd ?? (d.vcpu_cost_usd ?? 0) + (d.gpu_cost_usd ?? 0) + (d.mem_cost_usd ?? 0),
-      storage_cost_usd: d.storage_cost_usd ?? 0,
-      total_usd: d.total_usd ?? d.total_cost_usd ?? 0,
-      quota_pct: d.quota_pct ?? d.quota_used_pct ?? 0,
+      llm_input_tokens:  llm.input_tokens  ?? d.llm_input_tokens  ?? d.llm_tokens_input ?? 0,
+      llm_output_tokens: llm.output_tokens ?? d.llm_output_tokens ?? d.llm_tokens_output ?? d.llm_tokens_used ?? 0,
+      llm_cost_usd:      llm.total_usd     ?? d.llm_cost_usd ?? (d.llm_input_cost_usd ?? 0) + (d.llm_output_cost_usd ?? 0),
+      compute_cost_usd:  compute.total_usd ?? d.compute_cost_usd ?? (d.vcpu_cost_usd ?? 0) + (d.gpu_cost_usd ?? 0) + (d.mem_cost_usd ?? 0),
+      storage_cost_usd:  storage.total_usd ?? d.storage_cost_usd ?? 0,
+      total_usd:         d.total_usd ?? d.committed_usd ?? d.total_cost_usd ?? 0,
+      quota_pct:         d.quota_pct ?? d.quota_used_pct ?? 0,
     };
   } catch (err: any) {
     console.log(`[Billing:${label}] error: ${err.message}`);
     return { ts, llm_input_tokens: 0, llm_output_tokens: 0, llm_cost_usd: 0, compute_cost_usd: 0, storage_cost_usd: 0, total_usd: 0, quota_pct: 0, error: err.message };
   }
+}
+
+/** Wait for async billing events to land in Redis before reading usage. */
+async function captureBillingAfter(page: Page, jwt: string | null, label: string): Promise<BillingSnapshot> {
+  await page.waitForTimeout(2500);
+  return captureBilling(page, jwt, label);
 }
 
 function billingDelta(before: BillingSnapshot, after: BillingSnapshot) {
@@ -331,31 +350,29 @@ async function sendTurn(
 }
 
 // ---------------------------------------------------------------------------
-// Helper: login with shared account (reuse page, no fresh register)
+// Helper: login with shared account (inject cookie directly — no login form)
 // ---------------------------------------------------------------------------
 
 async function loginWithSharedAccount(page: Page): Promise<void> {
-  await page.goto(`${BASE_URL}/login`);
-  await page.waitForLoadState('load');
-  try {
-    await page.waitForSelector('#email', { state: 'visible', timeout: 8000 });
-    await page.fill('#email', SHARED_ACCOUNT.email);
-    await page.fill('#password', SHARED_ACCOUNT.password);
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(2000);
-  } catch {
-    // May already be on home page or form has different IDs
+  if (SHARED_ACCOUNT.jwt) {
+    // Set biomate_token cookie directly to avoid the rate-limited login endpoint.
+    // Rate limiter: max=5 per 15min (skipSuccessfulRequests=false).
+    // With 6 tests each calling login, the 6th would get 429 → silent fail → landing page.
+    const u = new URL(BASE_URL);
+    await page.context().addCookies([{
+      name: 'biomate_token',
+      value: SHARED_ACCOUNT.jwt,
+      domain: u.hostname,
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Strict',
+    }]);
   }
   await page.goto(BASE_URL);
   await page.waitForLoadState('load');
   await page.waitForSelector('textarea', { state: 'visible', timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  // Grab and store JWT for billing calls
-  if (!SHARED_ACCOUNT.jwt) {
-    SHARED_ACCOUNT.jwt = await extractJWT(page);
-    console.log(`[Account] JWT found: ${SHARED_ACCOUNT.jwt ? 'yes' : 'no'}`);
-  }
+  await page.waitForTimeout(500);
+  console.log(`[Account] JWT: ${SHARED_ACCOUNT.jwt ? 'cookie injected' : 'missing'}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -365,32 +382,44 @@ async function loginWithSharedAccount(page: Page): Promise<void> {
 test.beforeAll(async ({ browser }) => {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
+  const isJWT = (v: string) => /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v);
 
-  await page.goto(`${BASE_URL}/register`);
-  await page.waitForLoadState('load');
+  // E2E bypass header skips auth/register rate limits (requires E2E_TEST_TOKEN env var in BFF).
+  const e2eHeaders = { 'X-E2E-Test-Token': E2E_TEST_TOKEN };
 
+  // Try registration first — if already registered (400/409), fall back to login.
+  // Fixed email avoids registration rate limit (3/hr) across repeated E2E runs.
   try {
-    await page.waitForSelector('#name', { state: 'visible', timeout: 10000 });
-    await page.fill('#name', 'Pilot E2E User');
-    await page.fill('#email', SHARED_ACCOUNT.email);
-    await page.fill('#password', SHARED_ACCOUNT.password);
-    await page.fill('#confirmPassword', SHARED_ACCOUNT.password);
-    const terms = page.locator('#terms');
-    if (await terms.isVisible({ timeout: 2000 }).catch(() => false)) await terms.click();
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(3000);
-  } catch (err) {
-    console.log(`[Setup] Registration form not found or already registered: ${err}`);
+    const resp = await page.request.post(`${BASE_URL}/api/auth/register`, {
+      data: {
+        fullName: 'Pilot E2E User',
+        email: SHARED_ACCOUNT.email,
+        password: SHARED_ACCOUNT.password,
+        terms_accepted: true,
+      },
+      headers: e2eHeaders,
+    });
+    const body = await resp.json().catch(() => ({}));
+    if (body?.token && isJWT(body.token)) {
+      SHARED_ACCOUNT.jwt = body.token;
+    }
+  } catch {}
+
+  // Fallback: login (handles already-registered case)
+  if (!SHARED_ACCOUNT.jwt) {
+    try {
+      const resp = await page.request.post(`${BASE_URL}/api/auth/login`, {
+        data: { email: SHARED_ACCOUNT.email, password: SHARED_ACCOUNT.password },
+        headers: e2eHeaders,
+      });
+      const body = await resp.json().catch(() => ({}));
+      if (body?.token && isJWT(body.token)) {
+        SHARED_ACCOUNT.jwt = body.token;
+      }
+    } catch {}
   }
 
-  await page.goto(BASE_URL);
-  await page.waitForLoadState('load');
-  await page.waitForSelector('textarea', { state: 'visible', timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
-
-  SHARED_ACCOUNT.jwt = await extractJWT(page);
   console.log(`[Setup] Shared account ready: ${SHARED_ACCOUNT.email} | JWT: ${SHARED_ACCOUNT.jwt ? 'found' : 'not found'}`);
-
   await ctx.close();
 });
 
@@ -485,7 +514,7 @@ test('S1: ADMET profiling — 15 BCR-ABL1 compounds (hERG, DILI, BBB)', async ({
     }
   }
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S1-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S1-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;
@@ -579,7 +608,7 @@ test('S2: IVIVE hepatic clearance — Dasatinib, Bosutinib, Imatinib, Nilotinib'
   result.notes.push(`Data asked by AI: ${askedForData}. Turn 2 response: ${turn2.responseTimeMs}ms`);
   result.notes.push(`Expected ordering: Dasatinib(33%) > Bosutinib(9%) > Imatinib(5%) > Nilotinib(0.7%)`);
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S2-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S2-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;
@@ -667,7 +696,7 @@ test('S3: Pocket detection — BCR-ABL1 1IEP druggability assessment', async ({ 
     }
   }
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S3-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S3-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;
@@ -748,7 +777,7 @@ test('S4: Pharmacophore filtering — ABL1 inhibitor selectivity screen', async 
   result.notes.push('For production: use --generate_3d true for 3D distance constraints');
   result.notes.push(`Turn 1 response: ${turn1.responseTimeMs}ms`);
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S4-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S4-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;
@@ -854,7 +883,7 @@ test('S5: Assay data upload + compound ranking — hERG + potency integration', 
   result.notes.push(`Critical gate: terfenadine/cisapride mentioned: ${rankingCorrect}`);
   result.notes.push(`Expected rank: Asciminib #1 (score=0.6498), Terfenadine #13 (score=0.0000)`);
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S5-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S5-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;
@@ -941,7 +970,7 @@ test('S6: CRO export — top 5 compounds formatted for WuXi AppTec submission', 
   result.notes.push(`Expected: 5 compounds, all hERG IC50 > 1μM, no safety failures`);
   result.notes.push(`Pilot result: Asciminib(30μM), Bosutinib(30μM), Imatinib(30μM), analog-2(30μM), analog-1(30μM)`);
 
-  result.billingAfter = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S6-after');
+  result.billingAfter = await captureBillingAfter(page, SHARED_ACCOUNT.jwt, 'S6-after');
   result.billingDelta = billingDelta(result.billingBefore, result.billingAfter);
   result.endTs = new Date().toISOString();
   result.totalDurationMs = Date.now() - t0;

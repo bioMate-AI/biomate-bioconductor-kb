@@ -53,7 +53,13 @@ class RealtimeCostService:
     """
 
     def __init__(self, redis_url: str = REDIS_URL):
-        self._r = redis.from_url(redis_url, decode_responses=True)
+        self._r = redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_connect_timeout=3,   # fail fast if Redis unreachable (prevents 120s TCP timeout)
+            socket_timeout=5,           # per-command timeout
+            retry_on_timeout=False,     # don't retry on timeout; let caller handle gracefully
+        )
         self._running_jobs: dict[str, dict] = {}   # job_id → metadata
         self._lock = threading.Lock()
         self._pool_check_counter = 0  # Check pool health every N poll cycles

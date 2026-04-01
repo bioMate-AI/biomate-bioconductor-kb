@@ -29,6 +29,10 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import jwt as _jwt
+try:
+    import redis as _redis_mod
+except ImportError:
+    _redis_mod = None  # type: ignore
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 
@@ -174,18 +178,40 @@ async def get_usage(
     the response is enriched with `java_current` (live Lago data) and
     `java_invoices` (invoice list) for richer frontend display.
     """
-    svc  = get_cost_service()
-    data = svc.get_current_costs(user_id, month)
+    # Graceful degradation: Redis may be unreachable (e.g., dev machine without VPN to ElastiCache,
+    # or local Redis container stopped). Return zeros rather than 500 so the UI remains usable.
+    _redis_errors = (Exception,)
+    if _redis_mod:
+        _redis_errors = (
+            _redis_mod.exceptions.TimeoutError,
+            _redis_mod.exceptions.ConnectionError,
+            _redis_mod.exceptions.ResponseError,
+        )
+    try:
+        svc  = get_cost_service()
+        data = svc.get_current_costs(user_id, month)
+    except _redis_errors as _e:
+        log.warning("[billing] Redis unavailable for user %s: %s — returning zeros", user_id, _e)
+        data = {
+            "llm_input_tokens": 0, "llm_output_tokens": 0,
+            "llm_cost_usd": 0.0, "compute_cost_usd": 0.0,
+            "storage_cost_usd": 0.0, "total_usd": 0.0,
+            "quota_pct": 0.0,
+            "redis_status": "unavailable",
+        }
 
     # Enrich with Java billing service data (non-blocking — failures are ignored)
     jbc = get_java_billing_client()
     if jbc:
-        java_usage = jbc.get_current_usage(user_id)
-        if java_usage:
-            data["java_current"] = java_usage
-        java_invoices = jbc.get_invoices(user_id, page=0, per_page=6)
-        if java_invoices:
-            data["java_invoices"] = java_invoices
+        try:
+            java_usage = jbc.get_current_usage(user_id)
+            if java_usage:
+                data["java_current"] = java_usage
+            java_invoices = jbc.get_invoices(user_id, page=0, per_page=6)
+            if java_invoices:
+                data["java_invoices"] = java_invoices
+        except Exception as _e:
+            log.warning("[billing] Java billing client unavailable: %s", _e)
 
     return data
 
