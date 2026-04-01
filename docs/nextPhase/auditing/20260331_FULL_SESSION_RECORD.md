@@ -427,14 +427,16 @@ to this session — they were failing before any changes were made.
 
 ---
 
-## What Is Still Not Done (Next Session)
+## What Is Still Not Done
 
-The work above completed S1, S2, S5, S6. The remaining items from the audit:
+All 6 audit items (S1/S2/S3/S4/S5/S6) are now complete.
+
+See `docs/nextPhase/auditing/20260331_SESSION_IMPLEMENTATION_S3_S4.md` for S3 and S4.
+
+Remaining items (not part of the LLM usage audit):
 
 | Item | What it is |
 |------|-----------|
-| **S3** | Thread `DomainSpecialistPool` results (Python backend) into `generateResponse()` system prompt — the specialist already runs in parallel but its output is never forwarded to the final response generator |
-| **S4** | Step-by-step approval gate for sequential pipelines in `PipelineListView` |
-| **Populate DOMAIN_CATALOGS** | Add catalog entries for `genomics`, `cryo_em`, `lab_automation` based on the actual registered workflows in the filesystem |
 | **Input dataset visualization** | Preview uploaded/referenced datasets before workflow execution |
 | **Large file pagination** | Server-side cursor pagination for CSV/TSV files >500 rows |
+| **Drug discovery pilot E2E** | Multi-turn E2E test covering all 6 BCR-ABL1 pilot sessions with per-step timing and Lago billing capture (`frontend/e2e/drug-discovery-pilot-e2e.e2e.ts`) |
