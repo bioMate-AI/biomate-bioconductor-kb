@@ -6437,9 +6437,19 @@ Rules:
   // Output files for a run
   app.get("/api/workflows/runs/:id/output_files", async (req, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
+      // Primary lookup by run ID; fallback by galaxy invocation ID (chain runs store their
+      // invocation ID as the returned run ID but MemStorage keys by execution run UUID).
+      let run = await storage.getExecutionRun(req.params.id);
+      if (!run) run = await storage.getExecutionRunByGalaxyId(req.params.id);
       if (!run) {
-        return res.status(404).json({ error: 'Run not found' });
+        // Chain runs (/api/workflows/chain) proxy to Python and never register in MemStorage.
+        // Return 200 with empty outputs so callers get a valid response instead of a 404 error state.
+        return res.status(200).json({
+          output_files: [],
+          outputs: [],
+          outdir: null,
+          source: 'chain_unregistered',
+        });
       }
       const runId = req.params.id;
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';

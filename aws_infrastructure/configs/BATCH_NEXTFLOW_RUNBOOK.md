@@ -24,7 +24,8 @@ BioMate runs Nextflow pipelines on AWS Batch for cloud-scale bioinformatics. Eac
 | Min / Max vCPUs | 0 / 128 |
 | Subnets | `subnet-0254e4c3634b41bfc`, `subnet-03b277a7a08d388c1` |
 | Security group | Default VPC SG |
-| Launch template | None (no custom AMI needed) |
+| **AMI** | `ami-051fc3d11efefcb16` (`nextflow-ecs-al2-base-20251127-222233`) — set via `ec2Configuration.imageIdOverride` directly on the CE; **no launch template needed** |
+| Launch template | None |
 | Service role | `AWSServiceRoleForBatch` |
 | Instance role | `arn:aws:iam::399683337364:instance-profile/ecsInstanceRole` |
 
