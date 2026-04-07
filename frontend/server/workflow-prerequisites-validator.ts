@@ -46,10 +46,45 @@ export interface PrerequisitesValidatorOptions {
 export class WorkflowPrerequisitesValidator {
   private claude: Anthropic;
   private galaxyAPI: GalaxyAPIProxy;
+  private schemaCache = new Map<string, { schema: any; fetchedAt: number }>();
+  private readonly SCHEMA_TTL_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(options: PrerequisitesValidatorOptions) {
     this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
     this.galaxyAPI = options.galaxyAPIProxy;
+  }
+
+  /**
+   * Return a cached Galaxy tool schema, fetching from Galaxy API only when
+   * the entry is absent or older than SCHEMA_TTL_MS.
+   */
+  private async getCachedToolSchema(toolId: string): Promise<any> {
+    const cached = this.schemaCache.get(toolId);
+    if (cached && Date.now() - cached.fetchedAt < this.SCHEMA_TTL_MS) {
+      return cached.schema;
+    }
+    const schema = await this.galaxyAPI.getToolSchema(toolId);
+    this.schemaCache.set(toolId, { schema, fetchedAt: Date.now() });
+    return schema;
+  }
+
+  /**
+   * Rule-based fallback returned when the LLM analysis call times out.
+   * Conservative: marks everything as unresolved so the user is prompted
+   * to check prerequisites manually rather than proceeding blindly.
+   */
+  private ruleBasedFallbackValidation(): LLMAnalysis {
+    return {
+      inputMappings: [],
+      missingInputs: [],
+      missingParameters: [],
+      suggestions: [],
+      notes: [{
+        type: 'warning',
+        message: 'Validation timed out — please check prerequisites manually.',
+      }],
+      confidence: 0,
+    };
   }
 
   /**
@@ -156,7 +191,7 @@ export class WorkflowPrerequisitesValidator {
       // Handle tool steps - query tool database for schema
       if (step.tool_id) {
         try {
-          const toolSchema = await this.galaxyAPI.getToolSchema(step.tool_id);
+          const toolSchema = await this.getCachedToolSchema(step.tool_id);
 
           // Extract input requirements from tool schema
           // Note: Galaxy tool schemas can have additional properties not in our TypeScript types
@@ -290,7 +325,7 @@ export class WorkflowPrerequisitesValidator {
     // Fetch documentation for each tool
     for (const toolId of seenTools) {
       try {
-        const toolSchema = await this.galaxyAPI.getToolSchema(toolId);
+        const toolSchema = await this.getCachedToolSchema(toolId);
         const toolInfo = await this.galaxyAPI.getToolById(toolId).catch(() => null);
 
         const schemaAny = toolSchema as any; // Allow access to dynamic properties
@@ -421,15 +456,20 @@ ${context.userContext ? `USER CONTEXT: ${context.userContext}` : ''}
 
 Please analyze which datasets can satisfy which inputs, identify any missing requirements, and provide helpful suggestions.`;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
     try {
-      const response = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        messages: [
-          { role: 'user', content: userPrompt },
-        ],
-        system: systemPrompt,
-      });
+      const response = await this.claude.messages.create(
+        {
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          messages: [
+            { role: 'user', content: userPrompt },
+          ],
+          system: systemPrompt,
+        },
+        { signal: controller.signal }
+      );
 
       // Extract text content from response
       const textContent = response.content.find(c => c.type === 'text');
@@ -445,9 +485,13 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
 
       const analysis = JSON.parse(jsonMatch[0]) as LLMAnalysis;
       return analysis;
-    } catch (error) {
-      console.error('[PrerequisitesValidator] LLM analysis failed:', error);
-      // Return empty analysis on failure
+    } catch (e: any) {
+      if (e.name === 'AbortError' || e.message?.includes('aborted')) {
+        console.warn('[PrerequisitesValidator] LLM analysis timed out after 15s — using rule-based fallback');
+        return this.ruleBasedFallbackValidation();
+      }
+      console.error('[PrerequisitesValidator] LLM analysis failed:', e);
+      // Return empty analysis on other failures
       return {
         inputMappings: [],
         missingInputs: [],
@@ -459,6 +503,8 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
         }],
         confidence: 0,
       };
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

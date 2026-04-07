@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 /*
- * Topaz Extract — Apply Trained Neural Network Picker to Full Dataset
+ * Topaz Extract -- Apply Trained Neural Network Picker to Full Dataset
  *
  * Applies a pre-trained Topaz model to the complete micrograph set for
  * highly sensitive particle detection.  The log-likelihood threshold controls
@@ -22,7 +22,6 @@ nextflow.enable.dsl = 2
 
 params.topaz_threshold                    = -6.0   // log-likelihood threshold; lower = more sensitive
 params.expected_particles_per_micrograph  = 300    // used for output statistics
-params.mock_mode                          = true
 params.use_cryosparc                      = false
 params.outdir                             = './results/topaz_extract'
 
@@ -44,55 +43,76 @@ process TOPAZ_EXTRACT {
     path "topaz_extract_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
-    import math
+    import subprocess
+    import sys
+    import os
+    from pathlib import Path
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode  = ${mock}
-    threshold  = ${params.topaz_threshold}
-    exp_ppm    = ${params.expected_particles_per_micrograph}
+    threshold = ${params.topaz_threshold}
+    exp_ppm   = ${params.expected_particles_per_micrograph}
 
     mics_data  = json.load(open('${micrographs_cs}'))
     model_meta = json.load(open('${topaz_model}'))
 
     micrographs = mics_data.get('micrographs', [])
     num_mics    = len(micrographs)
+    model_path  = model_meta.get('model_path', '${topaz_model}')
+    architecture = model_meta.get('architecture', 'resnet16')
 
-    # Sensitivity relative to threshold:
-    # at threshold -6.0 Topaz typically yields ~80-120% of expected PPM
-    # lower threshold (e.g. -9.0) can yield 140-180%; higher (e.g. -3.0) ~60-80%
-    sensitivity_factor = 1.0 + (-6.0 - threshold) * 0.06   # 0.06 per unit below -6
-    sensitivity_factor = max(0.4, min(2.0, sensitivity_factor))
+    # Write micrograph list file for topaz
+    mic_list = Path('micrographs_for_extract.txt')
+    with open(mic_list, 'w') as fh:
+        for mic in micrographs:
+            fh.write(mic.get('filename', mic.get('micrograph_path', '')) + '\\n')
 
+    # Run topaz extract
+    cmd = [
+        'topaz', 'extract',
+        '--model', model_path,
+        '--threshold', str(threshold),
+        '--output', 'topaz_picks_raw.tsv',
+        '--num-workers', str(os.cpu_count() or 4)
+    ]
+    # Append micrograph paths
+    for mic in micrographs:
+        mic_path = mic.get('filename', mic.get('micrograph_path', ''))
+        if mic_path:
+            cmd.append(mic_path)
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"topaz extract stderr: {result.stderr}", file=sys.stderr)
+        raise RuntimeError(f"topaz extract failed with exit code {result.returncode}")
+
+    # Parse topaz TSV output: image_name, x_coord, y_coord, score
     all_picks   = []
     total_picks = 0
+    mic_name_to_idx = {
+        Path(mic.get('filename', mic.get('micrograph_path', ''))).stem: mic.get('micrograph_idx', i)
+        for i, mic in enumerate(micrographs)
+    }
 
-    for mic in micrographs:
-        mic_idx = mic.get('micrograph_idx', 0)
+    if Path('topaz_picks_raw.tsv').exists():
+        with open('topaz_picks_raw.tsv') as fh:
+            header = fh.readline()  # skip header
+            for line in fh:
+                parts = line.strip().split('\\t')
+                if len(parts) >= 4:
+                    img_name, x, y, score = parts[0], parts[1], parts[2], parts[3]
+                    mic_idx = mic_name_to_idx.get(Path(img_name).stem, 0)
+                    all_picks.append({
+                        'micrograph_idx':   mic_idx,
+                        'x':                float(x),
+                        'y':                float(y),
+                        'score':            float(score),
+                        'passed_threshold': float(score) >= threshold
+                    })
+                    total_picks += 1
 
-        # Number of picks for this micrograph
-        n_picks = max(1, int(random.gauss(exp_ppm * sensitivity_factor, exp_ppm * 0.15)))
-
-        for _ in range(n_picks):
-            # Score drawn from a logistic distribution centred above threshold
-            score = round(random.gauss(threshold + 2.0, 1.5), 4)
-            passed = score >= threshold
-            all_picks.append({
-                'micrograph_idx':   mic_idx,
-                'x':                round(random.uniform(100, 3900), 2),
-                'y':                round(random.uniform(100, 3900), 2),
-                'score':            score,
-                'passed_threshold': passed
-            })
-            total_picks += 1
-
-    # Count only picks that passed threshold
     passing_picks = [p for p in all_picks if p['passed_threshold']]
     avg_picks_per_mic = round(len(passing_picks) / num_mics, 1) if num_mics > 0 else 0.0
 
@@ -110,8 +130,7 @@ process TOPAZ_EXTRACT {
         'total_candidates':        total_picks,
         'avg_picks_per_micrograph': avg_picks_per_mic,
         'threshold_used':          threshold,
-        'model_architecture':      model_meta.get('architecture', 'unknown'),
-        'mock_mode':               mock_mode
+        'model_architecture':      architecture
     }
 
     with open('topaz_picks.cs', 'w') as f:
@@ -120,7 +139,7 @@ process TOPAZ_EXTRACT {
     with open('topaz_extract_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Topaz extraction complete")
+    print(f"Topaz extraction complete")
     print(f"  Micrographs processed : {num_mics}")
     print(f"  Picks passing threshold ({threshold}): {len(passing_picks)}")
     print(f"  Avg picks per micrograph : {avg_picks_per_mic}")
@@ -134,37 +153,23 @@ process TOPAZ_EXTRACT {
 workflow {
     log.info """
     ====================================================================
-    Topaz Extract — Apply Trained Picker to Full Dataset
+    Topaz Extract -- Apply Trained Picker to Full Dataset
     ====================================================================
     Threshold     : ${params.topaz_threshold}
     Expected PPM  : ${params.expected_particles_per_micrograph}
-    Mode          : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (Topaz)'}
     Output        : ${params.outdir}
     ====================================================================
     """.stripIndent()
 
-    def test_dir = file("${params.outdir}/test_input")
-    test_dir.mkdirs()
+    ch_mics = Channel.fromPath(
+        params.micrographs_cs ?: 'micrographs_ctf.cs',
+        checkIfExists: true
+    )
 
-    // Synthetic full-dataset micrographs
-    def mics_file = file("${test_dir}/micrographs_ctf.cs")
-    mics_file.text = groovy.json.JsonOutput.toJson([
-        micrographs: (0..499).collect { i ->
-            [micrograph_idx: i, defocus_u_angstroms: 12000 + (i % 500) * 20,
-             defocus_v_angstroms: 11800 + (i % 500) * 20, ctf_fit_resolution_angstroms: 5.1]
-        }
-    ])
-
-    // Synthetic trained model file (produced by TOPAZ_TRAIN)
-    def model_file = file("${test_dir}/topaz_model.pth")
-    model_file.text = groovy.json.JsonOutput.toJson([
-        format: 'topaz_model_mock', architecture: 'resnet16',
-        train_epochs: 10, expected_ppm: params.expected_particles_per_micrograph,
-        threshold: params.topaz_threshold, trained_at: new Date().toInstant().toString()
-    ])
-
-    ch_mics  = Channel.of(mics_file)
-    ch_model = Channel.of(model_file)
+    ch_model = Channel.fromPath(
+        params.topaz_model ?: 'topaz_model.pth',
+        checkIfExists: true
+    )
 
     TOPAZ_EXTRACT(ch_mics, ch_model)
 

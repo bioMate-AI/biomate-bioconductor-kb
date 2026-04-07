@@ -18,7 +18,7 @@
  *   params.search_mode   -- 'structural' | 'sequence' | 'both' (default: 'both')
  *   params.max_hits      -- max results to return (default: 50)
  *   params.evalue        -- e-value cutoff (default: 0.001)
- *   params.mock_mode     -- true/false (default: false)
+ *   (always live — no mock mode)
  *   params.s3_db_base    -- S3 base URI for pre-built indexes
  */
 
@@ -35,7 +35,6 @@ params.max_hits      = 50
 params.evalue        = 0.001
 params.min_seq_id    = 0.0
 params.coverage      = 0.8
-params.mock_mode     = false
 params.s3_db_base    = 's3://biomate-structure-db/alphafold/human'
 params.outdir        = 'results'
 params.publish_dir_mode = 'copy'
@@ -64,18 +63,7 @@ process FOLDSEEK_STRUCTURAL_SEARCH {
     path 'versions.yml',                           emit: versions
 
     script:
-    def mock = params.mock_mode
     """
-    if [ "${mock}" = "true" ]; then
-        cat > foldseek_hits.tsv << 'TSEOF'
-query\ttarget\tpident\talnlen\tmismatch\tgapopen\tqstart\tqend\ttstart\ttend\tevalue\tbitscore\ttdescription
-${meta.id}\tP04637-HUMAN-TP53\t45.2\t289\t142\t5\t1\t289\t1\t289\t1.2e-45\t178\tCellular tumor antigen p53
-${meta.id}\tP00533-HUMAN-EGFR\t32.1\t267\t168\t8\t12\t278\t8\t274\t3.5e-38\t152\tEpidermal growth factor receptor
-${meta.id}\tP62158-HUMAN-CALM1\t28.7\t148\t98\t3\t45\t192\t12\t159\t2.1e-22\t98\tCalmodulin-1
-${meta.id}\tP00441-HUMAN-SOD1\t38.4\t154\t87\t4\t5\t158\t3\t156\t4.7e-31\t124\tSuperoxide dismutase Cu-Zn
-${meta.id}\tP68871-HUMAN-HBB\t25.3\t146\t102\t6\t8\t153\t6\t151\t8.9e-18\t79\tHemoglobin subunit beta
-TSEOF
-    else
         mkdir -p tmp_query foldseek_db_local
         aws s3 sync ${db_base}/foldseek_db/ foldseek_db_local/ --quiet
         foldseek createdb ${query} query_db
@@ -89,7 +77,6 @@ TSEOF
             --format-output "query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,theader"
         # Add header
         sed -i '1s/^/query\\ttarget\\tpident\\talnlen\\tmismatch\\tgapopen\\tqstart\\tqend\\ttstart\\ttend\\tevalue\\tbitscore\\ttdescription\\n/' foldseek_hits.tsv
-    fi
 
     python3 << 'PYEOF'
 import csv, datetime, os
@@ -118,7 +105,7 @@ PYEOF
 
     cat > versions.yml << EOF
 FOLDSEEK_STRUCTURAL_SEARCH:
-  foldseek: \$(foldseek version 2>/dev/null || echo "mock")
+  foldseek: \$(foldseek version 2>/dev/null || echo "unknown")
 EOF
     """
 }
@@ -148,16 +135,7 @@ process MMSEQS2_SEQUENCE_SEARCH {
     path 'versions.yml',                          emit: versions
 
     script:
-    def mock = params.mock_mode
     """
-    if [ "${mock}" = "true" ]; then
-        cat > mmseqs2_hits.tsv << 'TSEOF'
-query\ttarget\tpident\talnlen\tmismatch\tgapopen\tqstart\tqend\ttstart\ttend\tevalue\tbitscore\ttdescription
-${meta.id}\tP04637-HUMAN-TP53\t52.3\t289\t138\t0\t1\t289\t1\t289\t4.1e-89\t312\tCellular tumor antigen p53
-${meta.id}\tP00533-HUMAN-EGFR\t41.8\t267\t155\t3\t12\t278\t8\t274\t2.3e-72\t264\tEpidermal growth factor receptor
-${meta.id}\tP10636-HUMAN-MAPT\t29.4\t441\t311\t10\t8\t448\t4\t444\t7.8e-41\t159\tMicrotubule-associated protein tau
-TSEOF
-    else
         mkdir -p tmp_mmseqs mmseqs2_db_local
         aws s3 sync ${db_base}/mmseqs2_db/ mmseqs2_db_local/ --quiet
         mmseqs createdb ${query} query_db
@@ -170,7 +148,6 @@ TSEOF
         mmseqs convertalis query_db mmseqs2_db_local/af_db result_db mmseqs2_hits.tsv \\
             --format-output "query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,theader"
         sed -i '1s/^/query\\ttarget\\tpident\\talnlen\\tmismatch\\tgapopen\\tqstart\\tqend\\ttstart\\ttend\\tevalue\\tbitscore\\ttdescription\\n/' mmseqs2_hits.tsv
-    fi
 
     python3 << 'PYEOF'
 import csv, datetime
@@ -199,7 +176,7 @@ PYEOF
 
     cat > versions.yml << EOF
 MMSEQS2_SEQUENCE_SEARCH:
-  mmseqs2: \$(mmseqs version 2>/dev/null || echo "mock")
+  mmseqs2: \$(mmseqs version 2>/dev/null || echo "unknown")
 EOF
     """
 }

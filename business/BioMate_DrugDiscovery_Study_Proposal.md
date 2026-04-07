@@ -2,10 +2,10 @@
 ## Evaluating AI-Native Computational Drug Discovery in a Clinical Medicine Setting
 
 **Proposing parties:** BioMate AI · Department of Medicine, Zhejiang People's Hospital  
-**Pilot window:** March 30 – April 8, 2026 (10 days, range 7–14)  
+**Pilot duration:** 10 days (range 7–14) from agreed start date  
 **Scope:** 10–20 compounds, one active therapeutic target  
 **Compute cost to partner:** $0  
-*March 2026 · Draft for discussion*
+*April 2026 · Draft for discussion*
 
 ---
 
@@ -66,9 +66,9 @@ The pilot runs across three structured arms over 10 days. Arms 1 and 2 run concu
 
 ---
 
-### Arm 1 — Workflow Quality (Days 1–6)
+### Arm 1 — Workflow Quality (Phase 2, Days 3–7)
 
-**What happens.** The research team submits queries covering the full pipeline: ADMET profiling of the compound set, docking against the target, and integrated ranking. Target: 5–8 sessions across Days 1–6 (one or two sessions per day, each taking ≤ 30 minutes). Sessions are conducted by the researchers themselves — not by BioMate engineers — to test real-world usability.
+**What happens.** The research team submits queries covering the full pipeline: ADMET profiling of the compound set, docking against the target, and integrated ranking. Target: 5–8 sessions across Days 3–7 (one or two sessions per day, each taking ≤ 30 minutes). Sessions are conducted by the researchers themselves — not by BioMate engineers — to test real-world usability.
 
 **What is measured.** For each query: did it complete without manual correction? If not, what type of correction was required (parameter error, tool failure, format issue, or ambiguous input)? Results are logged automatically.
 
@@ -78,7 +78,7 @@ The pilot runs across three structured arms over 10 days. Arms 1 and 2 run concu
 
 ---
 
-### Arm 2 — Time-to-Result (Days 1–6, concurrent with Arm 1)
+### Arm 2 — Time-to-Result (Phase 2, Days 3–7, concurrent with Arm 1)
 
 **What happens.** Every Arm 1 session automatically generates an Arm 2 data point — no separate sessions required. The time from query submission to result delivery is recorded for each run. At the end of Day 6, the research team provides a single estimate of how long the equivalent analysis would have taken by their existing process (manual search, outsourced core facility, or no prior process).
 
@@ -88,9 +88,9 @@ The pilot runs across three structured arms over 10 days. Arms 1 and 2 run concu
 
 ---
 
-### Arm 3 — QC Defensibility (Days 4–9, overlapping Arms 1 and 2)
+### Arm 3 — QC Defensibility (Phase 3, Days 7–9)
 
-**What happens.** From Day 4, results from Arms 1 and 2 are available for review as they are completed — no waiting for all sessions to finish. The research team reviews QC audit logs, quality gate decisions, and auto-generated methods reports as they accumulate, rating each on a five-point scale. The exit survey is completed on Day 9 to capture overall ratings across all sessions.
+**What happens.** From Day 7, results from Arms 1 and 2 are available for review as they are completed — no waiting for all sessions to finish. The research team reviews QC audit logs, quality gate decisions, and auto-generated methods reports as they accumulate, rating each on a five-point scale. The exit survey is completed on Day 9 to capture overall ratings across all sessions.
 
 Where existing results are available for the same compounds, the research team compares BioMate's rankings against them and identifies where they agree, diverge, and whether any divergence would have changed an advancement decision.
 
@@ -113,12 +113,12 @@ Where existing results are available for the same compounds, the research team c
 | Compute costs | | ✓ |
 | Data governance (platform Terms of Service via registration) | | ✓ |
 
-**Pre-pilot commitments (BioMate, by March 29):**
+**Pre-pilot commitments (BioMate, by Day 0 — agreed date before pilot begins):**
 - Platform configured with the department's target and compound set
 - ADMET profile set for the relevant disease area
 - QC audit log export and methods report format confirmed with the research team
 
-**Pre-pilot commitments (Department, by March 29):**
+**Pre-pilot commitments (Department, by Day 0 — agreed date before pilot begins):**
 - Pilot account registered on BioMate platform (user agreement completed at registration)
 - Target structure and compound SMILES (10–20 compounds) shared via secure upload
 - Designated point of contact for query submission and exit survey
@@ -127,28 +127,30 @@ Where existing results are available for the same compounds, the research team c
 
 ## Timeline
 
-| Phase | Days | Dates | Activities |
+The pilot runs for 10 days across three phases. Phase 1 is entirely internal — the partner invests no time until Phase 1 passes.
+
+| Phase | Days | Activities | Partner Time |
 |---|---|---|---|
-| **Pre-pilot setup** | −5 to 0 | March 25 – 29 | Account registered; target + compounds shared; ADMET profile configured |
-| **Arm 1 + Arm 2** | Days 1–6 | March 30 – April 4 | Workflow quality sessions + time-to-result logging; 5–8 runs; researchers self-directed |
-| **Arm 3** | Days 4–9 | April 2 – 7 | QC review of completed sessions; exit survey; concordance analysis where ground truth is available |
-| **Debrief** | Day 10 | April 8 | Results summary; go/no-go for full collaboration; next steps |
+| **Phase 1 — Internal Validation** | Days 1–2 | BioMate runs gold-standard validation checks on public data: docking RMSD vs PDB 7RFS (nirmatrelvir), pharmacophore AUC-ROC vs PDB 7KI0 (GLP-1R), mRNA CAI vs mRNA-1273, PKPD body weight vs SUSTAIN-1. Pass/fail report delivered to partner by end of Day 2. | 0 hrs |
+| **Phase 2 — Workflow Quality + Time-to-Result** | Days 3–7 | Partner submits 5–8 ADMET + docking sessions on their compound set. Arms 1 and 2 run concurrently — every session simultaneously logs a workflow quality data point and a time-to-result data point. BioMate team available for onboarding questions on Day 3. | ~1 hr/day |
+| **Phase 3 — QC Defensibility Review** | Days 7–9 | Partner reviews completed results from Phase 2. Rates each session on a five-point defensibility scale. Completes exit survey on Day 9. Concordance analysis against any existing results. | ~2 hrs total |
+| **Debrief** | Day 10 | Results summary across all three hypotheses (H1/H2/H3); go/no-go for full collaboration; next steps agreed. | 1 hr |
 
-**Duration range:** 7 days minimum (if researcher can run 2 sessions/day in the first week) · 14 days maximum (buffer for scheduling conflicts or extended review). The recommended baseline is 10 days.
+**Phase 1 gate:** If Phase 1 validation fails on any check, BioMate fixes the issue before Phase 2 begins — the partner's time is never spent on a workflow BioMate cannot validate internally. This is the key risk control: the partner cannot be exposed to a broken pipeline.
 
-**Risk note:** Because every Arm 1 session simultaneously satisfies Arm 2, and Arm 3 begins reviewing completed sessions from Day 4, there is no serial dependency between arms — the critical path is simply the number of sessions the researcher can complete in the available days.
+**Critical path:** Phase 2 is the bottleneck. Five sessions across five days requires roughly one session per working day, each taking ≤ 30 minutes. The debrief occurs on Day 10 regardless of whether optional sessions 6–8 were completed.
 
 ---
 
 ## Deliverables
 
-At the end of the 21-day pilot, the Department of Medicine receives:
+At the end of the 10-day pilot, the Department of Medicine receives:
 
 1. **QC audit log** — a complete record of every query, every tool run, every quality gate outcome, and every analyst decision across all pilot sessions. Formatted for inclusion in a research record or regulatory submission.
 
 2. **Exportable methods report** — a structured methods section for the computational analysis, ready to include in a manuscript without manual write-up. Tool versions, parameters, and evidence citations for each quality threshold included.
 
-3. **Pilot evaluation summary** — H1, H2, and H3 outcomes against targets; concordance analysis against any existing results; comparison of time-to-result versus current department baseline. Delivered by April 8.
+3. **Pilot evaluation summary** — H1, H2, and H3 outcomes against targets; concordance analysis against any existing results; comparison of time-to-result versus current department baseline. Delivered on Day 10.
 
 4. **Go/no-go recommendation** — a joint assessment of whether BioMate is ready to support a full research collaboration, and what (if anything) would need to change before the full study begins.
 
@@ -170,4 +172,4 @@ The full study design, timeline, and authorship arrangement will be agreed after
 
 ---
 
-*March 2026 · BioMate AI · Draft for discussion with Zhejiang People's Hospital, Department of Medicine*
+*April 2026 · BioMate AI · Draft for discussion with Zhejiang People's Hospital, Department of Medicine*

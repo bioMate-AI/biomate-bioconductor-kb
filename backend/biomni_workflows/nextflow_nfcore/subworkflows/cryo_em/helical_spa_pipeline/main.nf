@@ -8,25 +8,25 @@
  * module imports are required.
  *
  * Pipeline steps:
- *   01. IMPORT_MOVIES             — ingest raw movie stacks
- *   02. PATCH_MOTION_CORRECTION   — per-patch beam-induced motion
- *   03. PATCH_CTF_ESTIMATION      — per-patch CTF fitting (CTFFIND4 backend)
- *   04. FILAMENT_TRACER           — trace filament axes; generate helical picks
- *   05. EXTRACT_HELICAL_PARTICLES — extract boxes along filaments
- *   06. CLASSIFY_2D_HELICAL       — 2-D classification of helical segments
- *   07. SELECT_2D_HELICAL         — select clean 2-D class averages
- *   08. AB_INITIO_HELICAL         — initial helical volume (symmetry-free)
- *   09. HELICAL_REFINEMENT        — gold-standard helical reconstruction
- *   10. HELICAL_SHARPENING        — post-processing / B-factor sharpening
- *   11. HELICAL_PIPELINE_SUMMARY  — aggregate JSON report
+ *   01. IMPORT_MOVIES             -- ingest raw movie stacks
+ *   02. PATCH_MOTION_CORRECTION   -- per-patch beam-induced motion
+ *   03. PATCH_CTF_ESTIMATION      -- per-patch CTF fitting (CTFFIND4 backend)
+ *   04. FILAMENT_TRACER           -- trace filament axes; generate helical picks
+ *   05. EXTRACT_HELICAL_PARTICLES -- extract boxes along filaments
+ *   06. CLASSIFY_2D_HELICAL       -- 2-D classification of helical segments
+ *   07. SELECT_2D_HELICAL         -- select clean 2-D class averages
+ *   08. AB_INITIO_HELICAL         -- initial helical volume (symmetry-free)
+ *   09. HELICAL_REFINEMENT        -- gold-standard helical reconstruction
+ *   10. HELICAL_SHARPENING        -- post-processing / B-factor sharpening
+ *   11. HELICAL_PIPELINE_SUMMARY  -- aggregate JSON report
  *
  * References:
  *   Punjani et al. 2017 Nat Methods 14:290    (CryoSPARC)
  *   Bepler et al. 2019 Nat Methods 16:1153    (Topaz)
  *   He & Bharat 2021 eLife 10:e71636          (CryoSPARC helical refinement)
  *   Fromm et al. 2021 eLife 10:e68028         (filament picking strategy)
- *   Gremer et al. 2017 Science 358:116        (amyloid reference: rise 4.75 Å)
- *   Alushin et al. 2014 Cell 157:1117         (F-actin reference: rise 27.5 Å)
+ *   Gremer et al. 2017 Science 358:116        (amyloid reference: rise 4.75 A)
+ *   Alushin et al. 2014 Cell 157:1117         (F-actin reference: rise 27.5 A)
  *
  * Domain: Cryo-EM / CryoSPARC / Helical
  */
@@ -42,25 +42,24 @@ params.movies_path   = null                         // raw movie files (*.tif/*.
 params.outdir        = './results/helical_spa'
 
 // Acquisition
-params.pixel_size    = 1.05    // Å/px
+params.pixel_size    = 1.05    // A/px
 params.voltage       = 300     // kV
 params.cs            = 2.7     // spherical aberration (mm)
-params.total_dose    = 50.0    // e-/Å²
+params.total_dose    = 50.0    // e-/A2
 
 // Helical parameters
-params.filament_diameter_angstroms  = 150      // Å
-params.helical_rise_angstroms       = 4.75     // Å  (amyloid default)
-params.helical_twist_deg            = -166.15  // °  (actin default; amyloid: -179.35)
+params.filament_diameter_angstroms  = 150      // A
+params.helical_rise_angstroms       = 4.75     // A  (amyloid default)
+params.helical_twist_deg            = -166.15  // deg  (actin default; amyloid: -179.35)
 params.overlap_fraction             = 0.9
 params.min_filament_length_angstroms = 500
 
 // Refinement
 params.symmetry                = 'C1'
-params.initial_lowpass         = 12.0   // Å
+params.initial_lowpass         = 12.0   // A
 params.refine_helical_params   = true
 
-// Processing mode
-params.mock_mode      = true
+// CryoSPARC connection
 params.use_cryosparc  = false
 
 // ============================================================================
@@ -69,6 +68,20 @@ params.use_cryosparc  = false
 
 def step_label(String step) {
     return "[helical_spa] ${step}"
+}
+
+def cs_connect_block() {
+    return """
+    from cryosparc.tools import CryoSPARC
+    cs_conn = CryoSPARC(
+        host='${params.cryosparc_host ?: "localhost"}',
+        port=${params.cryosparc_port ?: 39000},
+        email='${params.cryosparc_email ?: ""}',
+        password='${params.cryosparc_password ?: ""}'
+    )
+    project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+    workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+    """
 }
 
 // ============================================================================
@@ -80,14 +93,13 @@ process IMPORT_MOVIES {
     publishDir "${params.outdir}/01_import_movies", mode: 'copy'
 
     input:
-    path movies
+    path movies_dir
 
     output:
     path "movies.cs",          emit: movies_cs
     path "import_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -95,27 +107,59 @@ process IMPORT_MOVIES {
     from pathlib import Path
     from datetime import datetime
 
-    movies = (sorted(Path('.').glob('*.tif')) +
-              sorted(Path('.').glob('*.mrc')) +
-              sorted(Path('.').glob('*.eer')))
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    cs_data = {
-        'movies': [
-            {'movie_path': str(m), 'movie_idx': i,
-             'num_frames': 40, 'total_dose': ${params.total_dose}}
-            for i, m in enumerate(movies)
-        ]
-    }
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('import_movies', params={
+            'movie_path':     '${params.movies_path ?: "."}',
+            'pixel_size_A':   ${params.pixel_size},
+            'kv':             ${params.voltage},
+            'cs_mm':          ${params.cs},
+            'total_dose_eA2': ${params.total_dose}
+        })
+        job.queue()
+        job.wait_for_done()
+
+        movies_out = list(job.load_output('movies'))
+        num_movies = len(movies_out)
+        cs_data = {'movies': movies_out}
+    else:
+        # Scan the movies directory for movie files
+        p = Path('${params.movies_path ?: "."}')
+        files = (sorted(p.glob('*.tif')) + sorted(p.glob('*.mrc')) +
+                 sorted(p.glob('*.eer')) + sorted(p.glob('*.tiff')))
+        num_movies = len(files)
+        if num_movies == 0:
+            raise RuntimeError(
+                f"No movie files (*.tif/*.mrc/*.eer) found in '{p}'. "
+                "Provide --movies_path pointing to your movie directory."
+            )
+        cs_data = {
+            'movies': [
+                {'movie_path': str(m), 'movie_idx': i,
+                 'num_frames': 40, 'total_dose': ${params.total_dose}}
+                for i, m in enumerate(files)
+            ]
+        }
 
     report = {
         'step':                    '01_import_movies',
         'timestamp':               datetime.now().isoformat(),
-        'num_movies':              len(movies),
+        'num_movies':              num_movies,
         'pixel_size_angstroms':    ${params.pixel_size},
         'voltage_kv':              ${params.voltage},
         'spherical_aberration_mm': ${params.cs},
-        'total_dose':              ${params.total_dose},
-        'mock_mode':               ${mock}
+        'total_dose':              ${params.total_dose}
     }
 
     with open('movies.cs', 'w') as f:
@@ -123,7 +167,7 @@ process IMPORT_MOVIES {
     with open('import_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Imported {len(movies)} movies")
+    print(f"Imported {num_movies} movies")
     """
 }
 
@@ -141,36 +185,49 @@ process PATCH_MOTION_CORRECTION {
     path "motion_report.json",  emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     movies_data  = json.load(open('${movies_cs}'))
-    num_movies   = len(movies_data.get('movies', []))
+    movies_list  = movies_data.get('movies', [])
+    num_movies   = len(movies_list)
 
-    micrographs = []
-    for i in range(num_movies):
-        total_motion = round(random.uniform(8.0, 45.0), 2)
-        early_motion = round(random.uniform(5.0, total_motion), 2)
-        micrographs.append({
-            'micrograph_idx':              i,
-            'micrograph_path':             f'micrograph_{i:05d}.mrc',
-            'total_motion_angstroms':      total_motion,
-            'early_motion_angstroms':      early_motion,
-            'late_motion_angstroms':       round(total_motion - early_motion, 2),
-            'dose_weighted':               True
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
+
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('patch_motion_correction', connections={
+            'movies': ('${params.cryosparc_import_job_uid ?: ""}', 'movies')
         })
+        job.queue()
+        job.wait_for_done()
+
+        mics_out = list(job.load_output('micrographs'))
+        micrographs = mics_out
+        stats = job.doc.get('output_stats', {})
+        avg_total_motion = stats.get('avg_total_motion_angstroms', 0.0)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for motion correction. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':                        '02_patch_motion_correction',
         'timestamp':                   datetime.now().isoformat(),
-        'num_micrographs':             num_movies,
-        'avg_total_motion_angstroms':  round(sum(m['total_motion_angstroms'] for m in micrographs) / max(num_movies, 1), 2),
-        'mock_mode':                   ${mock}
+        'num_micrographs':             len(micrographs),
+        'avg_total_motion_angstroms':  avg_total_motion
     }
 
     with open('micrographs.cs', 'w') as f:
@@ -178,7 +235,7 @@ process PATCH_MOTION_CORRECTION {
     with open('motion_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Motion corrected {num_movies} micrographs  |  avg motion: {report['avg_total_motion_angstroms']} Å")
+    print(f"Motion corrected {len(micrographs)} micrographs")
     """
 }
 
@@ -196,46 +253,57 @@ process PATCH_CTF_ESTIMATION {
     path "ctf_report.json",     emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     mics_data   = json.load(open('${micrographs_cs}'))
     micrographs = mics_data.get('micrographs', [])
 
-    ctf_data = []
-    for mic in micrographs:
-        defocus_u = round(random.uniform(10000, 35000), 1)
-        defocus_v = round(random.uniform(defocus_u * 0.9, defocus_u * 1.1), 1)
-        ctf_data.append({
-            **mic,
-            'defocus_u_angstroms':          defocus_u,
-            'defocus_v_angstroms':          defocus_v,
-            'astigmatism_angstroms':        abs(defocus_u - defocus_v),
-            'astigmatism_angle_degrees':    round(random.uniform(0, 180), 1),
-            'ctf_fit_resolution_angstroms': round(random.uniform(3.5, 8.0), 2),
-            'ctf_cross_correlation':        round(random.uniform(0.05, 0.20), 4)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
+
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('patch_ctf_estimation', connections={
+            'micrographs': ('${params.cryosparc_motion_job_uid ?: ""}', 'micrographs')
         })
+        job.queue()
+        job.wait_for_done()
+
+        ctf_out = list(job.load_output('micrographs'))
+        stats = job.doc.get('output_stats', {})
+        avg_defocus = stats.get('avg_defocus_angstroms', 0.0)
+        avg_fit_res = stats.get('avg_fit_resolution_angstroms', 0.0)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for CTF estimation. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':                        '03_patch_ctf_estimation',
         'timestamp':                   datetime.now().isoformat(),
-        'num_micrographs':             len(micrographs),
-        'avg_defocus_angstroms':       round(sum(m['defocus_u_angstroms'] for m in ctf_data) / max(len(ctf_data), 1), 1),
-        'avg_fit_resolution_angstroms': round(sum(m['ctf_fit_resolution_angstroms'] for m in ctf_data) / max(len(ctf_data), 1), 2),
-        'mock_mode':                   ${mock}
+        'num_micrographs':             len(ctf_out),
+        'avg_defocus_angstroms':       avg_defocus,
+        'avg_fit_resolution_angstroms': avg_fit_res
     }
 
     with open('micrographs_ctf.cs', 'w') as f:
-        json.dump({'micrographs': ctf_data}, f, indent=2)
+        json.dump({'micrographs': ctf_out}, f, indent=2)
     with open('ctf_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ CTF estimated: {len(micrographs)} micrographs  |  avg defocus: {report['avg_defocus_angstroms']} Å")
+    print(f"CTF estimated: {len(ctf_out)} micrographs  |  avg defocus: {avg_defocus} A")
     """
 }
 
@@ -253,15 +321,11 @@ process FILAMENT_TRACER {
     path "filament_tracer_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
-    import math
     from datetime import datetime
 
-    random.seed(None)
     mics_data   = json.load(open('${micrographs_ctf_cs}'))
     micrographs = mics_data.get('micrographs', [])
     num_mics    = len(micrographs)
@@ -269,51 +333,49 @@ process FILAMENT_TRACER {
     helical_rise     = ${params.helical_rise_angstroms}
     overlap_fraction = ${params.overlap_fraction}
     min_length       = ${params.min_filament_length_angstroms}
-    step_ang         = max(helical_rise * (1.0 - overlap_fraction), helical_rise * 0.1)
 
-    all_picks       = []
-    total_filaments = 0
-    total_picks     = 0
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    for mic in micrographs:
-        mic_idx      = mic.get('micrograph_idx', 0)
-        num_filaments = random.randint(15, 25)
-        for fil_id in range(num_filaments):
-            fil_length = random.uniform(min_length, min_length * random.uniform(2.0, 5.0))
-            num_picks  = max(2, int(fil_length / step_ang))
-            x0    = random.uniform(200, 3800)
-            y0    = random.uniform(200, 3800)
-            angle = random.uniform(0, 180)
-            dx    = math.cos(math.radians(angle)) * step_ang
-            dy    = math.sin(math.radians(angle)) * step_ang
-            for k in range(num_picks):
-                all_picks.append({
-                    'micrograph_idx':          mic_idx,
-                    'x':                       round(x0 + dx * k, 2),
-                    'y':                       round(y0 + dy * k, 2),
-                    'filament_id':             f'{mic_idx}_{fil_id}',
-                    'position_along_filament': round(k * step_ang, 2),
-                    'angle_deg':               round(angle, 2)
-                })
-                total_picks += 1
-            total_filaments += 1
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    avg_fil_len   = random.uniform(min_length, min_length * 3.0)
-    avg_picks_fil = total_picks / max(total_filaments, 1)
+        job = workspace.create_job('filament_tracer', connections={
+            'micrographs': ('${params.cryosparc_ctf_job_uid ?: ""}', 'micrographs')
+        }, params={
+            'fil_diameter':         ${params.filament_diameter_angstroms},
+            'fil_rise_A':           helical_rise,
+            'fil_overlap_fraction': overlap_fraction,
+            'fil_min_length_A':     min_length
+        })
+        job.queue()
+        job.wait_for_done()
 
-    cs_data = {'picks': all_picks, 'num_filaments': total_filaments,
-               'num_picks': total_picks, 'num_micrographs': num_mics}
+        picks_out       = list(job.load_output('particles'))
+        total_filaments = job.doc.get('output_stats', {}).get('num_filaments', len(picks_out))
+        total_picks     = len(picks_out)
+        cs_data = {'picks': picks_out, 'num_filaments': total_filaments,
+                   'num_picks': total_picks, 'num_micrographs': num_mics}
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for filament tracing. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':                          '04_filament_tracer',
         'timestamp':                     datetime.now().isoformat(),
         'num_micrographs':               num_mics,
-        'total_filaments_traced':        total_filaments,
-        'total_particles_picked':        total_picks,
-        'avg_filament_length_angstroms': round(avg_fil_len, 1),
-        'avg_picks_per_filament':        round(avg_picks_fil, 1),
-        'filament_diameter_angstroms':   ${params.filament_diameter_angstroms},
-        'mock_mode':                     ${mock}
+        'total_filaments_traced':        cs_data['num_filaments'],
+        'total_particles_picked':        cs_data['num_picks'],
+        'filament_diameter_angstroms':   ${params.filament_diameter_angstroms}
     }
 
     with open('filament_picks.cs', 'w') as f:
@@ -321,7 +383,7 @@ process FILAMENT_TRACER {
     with open('filament_tracer_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Filament tracing: {total_filaments} filaments | {total_picks} picks")
+    print(f"Filament tracing: {cs_data['num_filaments']} filaments | {cs_data['num_picks']} picks")
     """
 }
 
@@ -339,52 +401,65 @@ process EXTRACT_HELICAL_PARTICLES {
     path "extract_report.json",       emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     picks_data = json.load(open('${filament_picks_cs}'))
     picks      = picks_data.get('picks', [])
     num_picks  = len(picks)
 
-    # Box size derived from filament diameter (1.5× diameter, rounded to power of 2)
+    # Box size derived from filament diameter (1.5x diameter, rounded to power of 2)
     diameter_ang = ${params.filament_diameter_angstroms}
     pixel_size   = ${params.pixel_size}
     box_px_raw   = diameter_ang * 1.5 / pixel_size
     powers       = [64, 96, 128, 192, 256, 320, 384, 440, 512]
     box_size     = next((p for p in powers if p >= box_px_raw), 256)
 
-    particles = []
-    for i, pick in enumerate(picks):
-        particles.append({
-            **pick,
-            'particle_idx': i,
-            'box_size':     box_size,
-            'defocus_u':    round(random.uniform(8000, 35000), 1),
-            'defocus_v':    round(random.uniform(8000, 35000), 1),
-            'ctf_fom':      round(random.uniform(0.05, 0.25), 4),
-            'cross_corr':   round(random.uniform(0.02, 0.15), 4)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
+
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('extract_helical', connections={
+            'particles':    ('${params.cryosparc_filament_job_uid ?: ""}', 'particles'),
+            'micrographs':  ('${params.cryosparc_ctf_job_uid ?: ""}', 'micrographs')
+        }, params={
+            'box_size_pix': box_size
         })
+        job.queue()
+        job.wait_for_done()
+
+        particles_out = list(job.load_output('particles'))
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for particle extraction. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':            '05_extract_helical_particles',
         'timestamp':       datetime.now().isoformat(),
-        'num_particles':   len(particles),
+        'num_particles':   len(particles_out),
         'box_size_pixels': box_size,
-        'pixel_size':      pixel_size,
-        'mock_mode':       ${mock}
+        'pixel_size':      pixel_size
     }
 
     with open('helical_particles.cs', 'w') as f:
-        json.dump({'particles': particles}, f, indent=2)
+        json.dump({'particles': particles_out}, f, indent=2)
     with open('extract_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Extracted {len(particles)} helical segments  |  box size: {box_size} px")
+    print(f"Extracted {len(particles_out)} helical segments  |  box size: {box_size} px")
     """
 }
 
@@ -403,37 +478,47 @@ process CLASSIFY_2D_HELICAL {
     path "classify_2d_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     parts_data = json.load(open('${particles_cs}'))
     particles  = parts_data.get('particles', [])
     num_parts  = len(particles)
 
-    num_classes = 50   # standard for helical data
-    class_sizes = [0] * num_classes
-    for p in particles:
-        class_sizes[random.randint(0, num_classes - 1)] += 1
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    classes = []
-    for cls_idx in range(num_classes):
-        size         = class_sizes[cls_idx]
-        is_good_helix = random.random() < 0.55   # ~55% of classes show helical signal
-        classes.append({
-            'class_idx':       cls_idx,
-            'num_particles':   size,
-            'resolution_angstroms': round(random.uniform(5.0, 15.0) if is_good_helix else random.uniform(15.0, 30.0), 2),
-            'is_good_helical': is_good_helix,
-            'class_score':     round(random.uniform(0.3, 0.9) if is_good_helix else random.uniform(0.05, 0.3), 4)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('class_2D', connections={
+            'particles': ('${params.cryosparc_extract_job_uid ?: ""}', 'particles')
+        }, params={
+            'num_classes': 50
         })
+        job.queue()
+        job.wait_for_done()
 
-    num_good_classes  = sum(1 for c in classes if c['is_good_helical'])
-    good_particles    = sum(c['num_particles'] for c in classes if c['is_good_helical'])
+        classes_out  = list(job.load_output('class_averages'))
+        particles_out = list(job.load_output('particles'))
+        stats = job.doc.get('output_stats', {})
+        num_good_classes = stats.get('num_good_helical_classes', len(classes_out))
+        good_particles   = stats.get('particles_in_good_classes', len(particles_out))
+        num_classes      = len(classes_out)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for 2D classification. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':               '06_classify_2d_helical',
@@ -442,17 +527,15 @@ process CLASSIFY_2D_HELICAL {
         'num_classes':        num_classes,
         'num_good_helical_classes': num_good_classes,
         'particles_in_good_classes': good_particles,
-        'junk_fraction':      round(1.0 - good_particles / max(num_parts, 1), 4),
-        'mock_mode':          ${mock}
+        'junk_fraction':      round(1.0 - good_particles / max(num_parts, 1), 4)
     }
 
     with open('classes_2d_helical.cs', 'w') as f:
-        json.dump({'classes': classes, 'particles': particles}, f, indent=2)
+        json.dump({'classes': classes_out, 'particles': particles_out}, f, indent=2)
     with open('classify_2d_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ 2D classification: {num_good_classes}/{num_classes} good helical classes")
-    print(f"  Good particles: {good_particles}/{num_parts} ({report['junk_fraction']*100:.1f}% junk)")
+    print(f"2D classification: {num_good_classes}/{num_classes} good helical classes")
     """
 }
 
@@ -470,7 +553,6 @@ process SELECT_2D_HELICAL {
     path "select_2d_report.json",          emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -480,28 +562,53 @@ process SELECT_2D_HELICAL {
     classes   = data.get('classes', [])
     particles = data.get('particles', [])
 
-    good_classes = [c for c in classes if c.get('is_good_helical', False)]
-    good_idx_set = {c['class_idx'] for c in good_classes}
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
+
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        # Select classes interactively or by score threshold
+        job = workspace.create_job('select_2D', connections={
+            'particles':     ('${params.cryosparc_classify2d_job_uid ?: ""}', 'particles'),
+            'class_averages': ('${params.cryosparc_classify2d_job_uid ?: ""}', 'class_averages')
+        })
+        job.queue()
+        job.wait_for_done()
+
+        selected_out = list(job.load_output('particles'))
+        good_classes = job.doc.get('output_stats', {}).get('num_classes_selected', len(classes))
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for 2D selection. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     num_before = len(particles)
-    selected   = [p for i, p in enumerate(particles) if i % len(classes) in good_idx_set] if classes else particles
+    num_after  = len(selected_out)
 
     report = {
         'step':                '07_select_2d_helical',
         'timestamp':           datetime.now().isoformat(),
         'num_particles_before': num_before,
-        'num_particles_after':  len(selected),
-        'num_classes_selected': len(good_classes),
-        'fraction_retained':    round(len(selected) / max(num_before, 1), 4),
-        'mock_mode':            ${mock}
+        'num_particles_after':  num_after,
+        'num_classes_selected': good_classes,
+        'fraction_retained':    round(num_after / max(num_before, 1), 4)
     }
 
     with open('selected_helical_particles.cs', 'w') as f:
-        json.dump({'particles': selected}, f, indent=2)
+        json.dump({'particles': selected_out}, f, indent=2)
     with open('select_2d_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Selected {len(selected)}/{num_before} particles from {len(good_classes)} good classes")
+    print(f"Selected {num_after}/{num_before} particles from {good_classes} good classes")
     """
 }
 
@@ -520,31 +627,56 @@ process AB_INITIO_HELICAL {
     path "ab_initio_report.json",      emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     parts_data = json.load(open('${selected_particles_cs}'))
     particles  = parts_data.get('particles', [])
     num_parts  = len(particles)
 
-    # Ab-initio produces a low-resolution initial model (10-15 Å typical)
-    init_res = round(random.uniform(10.0, 18.0), 2)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    volume = {
-        'volume': {
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('ab_initio_reconstruction', connections={
+            'particles': ('${params.cryosparc_select2d_job_uid ?: ""}', 'particles')
+        }, params={
+            'symmetry':          '${params.symmetry}',
+            'helical_rise_A':    ${params.helical_rise_angstroms},
+            'helical_twist_deg': ${params.helical_twist_deg}
+        })
+        job.queue()
+        job.wait_for_done()
+
+        stats   = job.doc.get('output_stats', {})
+        init_res = stats.get('fsc_resolution_0143', 15.0)
+        vol_out  = list(job.load_output('volume'))
+        volume_data = {'volume': {
             'resolution_angstroms': init_res,
             'helical_rise':         ${params.helical_rise_angstroms},
             'helical_twist':        ${params.helical_twist_deg},
             'symmetry':             '${params.symmetry}',
-            'volume_path':          'initial_helical_volume.mrc',
-            'num_iterations':       50
-        }
-    }
+            'volume_path':          'initial_helical_volume.mrc'
+        }}
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for ab-initio reconstruction. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
+
+    with open('initial_helical_volume.cs', 'w') as f:
+        json.dump(volume_data, f, indent=2)
 
     report = {
         'step':                    '08_ab_initio_helical',
@@ -553,16 +685,13 @@ process AB_INITIO_HELICAL {
         'initial_resolution':      init_res,
         'helical_rise_angstroms':  ${params.helical_rise_angstroms},
         'helical_twist_deg':       ${params.helical_twist_deg},
-        'symmetry':                '${params.symmetry}',
-        'mock_mode':               ${mock}
+        'symmetry':                '${params.symmetry}'
     }
 
-    with open('initial_helical_volume.cs', 'w') as f:
-        json.dump(volume, f, indent=2)
     with open('ab_initio_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Ab-initio complete: initial resolution {init_res} Å")
+    print(f"Ab-initio complete: initial resolution {init_res} A")
     """
 }
 
@@ -582,43 +711,67 @@ process HELICAL_REFINEMENT {
     path "helical_refinement_report.json",  emit: report
 
     script:
-    def mock          = params.mock_mode           ? 'True' : 'False'
     def refine_params = params.refine_helical_params ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
+    refine_hel = ${refine_params}
     parts_data = json.load(open('${particles_cs}'))
     vol_data   = json.load(open('${volume_cs}'))
 
-    particles    = parts_data.get('particles', [])
-    num_parts    = len(particles)
+    particles  = parts_data.get('particles', [])
+    num_parts  = len(particles)
 
-    input_rise   = ${params.helical_rise_angstroms}
-    input_twist  = ${params.helical_twist_deg}
+    input_rise  = ${params.helical_rise_angstroms}
+    input_twist = ${params.helical_twist_deg}
 
-    if ${refine_params}:
-        refined_rise  = round(input_rise  + random.gauss(0, 0.05), 4)
-        refined_twist = round(input_twist + random.gauss(0, 0.02), 4)
-    else:
-        refined_rise  = input_rise
-        refined_twist = input_twist
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    base_res  = 2.5 if num_parts > 50000 else 3.0 if num_parts > 10000 else 4.0
-    final_res = round(random.uniform(base_res, base_res + 1.5), 2)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    volume_out = {
-        'volume': {
+        job = workspace.create_job('helical_refine', connections={
+            'particles': ('${params.cryosparc_select2d_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_abinitio_job_uid ?: ""}', 'volume')
+        }, params={
+            'helical_rise_A':    input_rise,
+            'helical_twist_deg': input_twist,
+            'symmetry':          '${params.symmetry}',
+            'init_res':          ${params.initial_lowpass},
+            'refine_helical':    refine_hel
+        })
+        job.queue()
+        job.wait_for_done()
+
+        stats         = job.doc.get('output_stats', {})
+        refined_rise  = stats.get('helical_rise_A', input_rise)
+        refined_twist = stats.get('helical_twist_deg', input_twist)
+        final_res     = stats.get('fsc_resolution_0143', 0.0)
+
+        volume_out = {'volume': {
             'resolution_angstroms': final_res,
             'helical_rise':         refined_rise,
             'helical_twist':        refined_twist,
             'symmetry':             '${params.symmetry}',
             'volume_path':          'helical_refined_volume.mrc'
-        }
-    }
+        }}
+        with open('helical_refined_volume.cs', 'w') as f:
+            json.dump(volume_out, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for helical refinement. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':                              '09_helical_refinement',
@@ -631,16 +784,13 @@ process HELICAL_REFINEMENT {
         'helical_rise_convergence_angstroms': round(abs(refined_rise - input_rise), 4),
         'helical_twist_convergence_deg':     round(abs(refined_twist - input_twist), 4),
         'num_particles':                     num_parts,
-        'symmetry':                          '${params.symmetry}',
-        'mock_mode':                         ${mock}
+        'symmetry':                          '${params.symmetry}'
     }
 
-    with open('helical_refined_volume.cs', 'w') as f:
-        json.dump(volume_out, f, indent=2)
     with open('helical_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Helical refinement: {final_res} Å  |  rise: {refined_rise} Å  |  twist: {refined_twist}°")
+    print(f"Helical refinement: {final_res} A  |  rise: {refined_rise} A  |  twist: {refined_twist} deg")
     """
 }
 
@@ -658,33 +808,51 @@ process HELICAL_SHARPENING {
     path "sharpening_report.json",       emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
     vol_data = json.load(open('${refined_volume_cs}'))
     volume   = vol_data.get('volume', {})
     res_in   = volume.get('resolution_angstroms', 4.0)
 
-    # B-factor sharpening: negative B enhances high-frequency signal
-    # Optimal B typically -50 to -200 Å² depending on resolution
-    b_factor = round(random.uniform(-200, -50), 1)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    # Post-sharpening FSC resolution improves slightly
-    res_out = round(res_in - random.uniform(0.1, 0.3), 2)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    sharpened_volume = {
-        'volume': {
+        job = workspace.create_job('sharpen_map', connections={
+            'volume': ('${params.cryosparc_refine_job_uid ?: ""}', 'volume')
+        })
+        job.queue()
+        job.wait_for_done()
+
+        stats    = job.doc.get('output_stats', {})
+        b_factor = stats.get('b_factor_angstroms_squared', 0.0)
+        res_out  = stats.get('fsc_resolution_0143', res_in)
+
+        sharpened_volume = {'volume': {
             **volume,
             'resolution_angstroms': res_out,
             'b_factor_applied':     b_factor,
             'volume_path':          'sharpened_helical_volume.mrc'
-        }
-    }
+        }}
+        with open('sharpened_helical_volume.cs', 'w') as f:
+            json.dump(sharpened_volume, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required for map sharpening. "
+            "Set --use_cryosparc true and provide CryoSPARC connection params."
+        )
 
     report = {
         'step':                          '10_helical_sharpening',
@@ -693,16 +861,13 @@ process HELICAL_SHARPENING {
         'output_resolution_angstroms':   res_out,
         'b_factor_angstroms_squared':    b_factor,
         'helical_rise_angstroms':        volume.get('helical_rise', ${params.helical_rise_angstroms}),
-        'helical_twist_deg':             volume.get('helical_twist', ${params.helical_twist_deg}),
-        'mock_mode':                     ${mock}
+        'helical_twist_deg':             volume.get('helical_twist', ${params.helical_twist_deg})
     }
 
-    with open('sharpened_helical_volume.cs', 'w') as f:
-        json.dump(sharpened_volume, f, indent=2)
     with open('sharpening_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Sharpening: B={b_factor} Å²  |  resolution: {res_in} → {res_out} Å")
+    print(f"Sharpening: B={b_factor} A2  |  resolution: {res_in} -> {res_out} A")
     """
 }
 
@@ -729,7 +894,6 @@ process HELICAL_PIPELINE_SUMMARY {
     path "helical_pipeline_summary.json", emit: summary
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -757,7 +921,6 @@ process HELICAL_PIPELINE_SUMMARY {
         'pipeline':          'helical_spa_pipeline',
         'timestamp':         datetime.now().isoformat(),
         'steps_completed':   11,
-        'mock_mode':         ${mock},
 
         'acquisition': {
             'num_movies':              imp.get('num_movies', 0),
@@ -779,7 +942,6 @@ process HELICAL_PIPELINE_SUMMARY {
         'filament_picking': {
             'total_filaments_traced':        fil.get('total_filaments_traced', 0),
             'total_particles_picked':        fil.get('total_particles_picked', 0),
-            'avg_filament_length_angstroms': fil.get('avg_filament_length_angstroms', 0),
             'filament_diameter_angstroms':   ${params.filament_diameter_angstroms}
         },
 
@@ -823,12 +985,12 @@ process HELICAL_PIPELINE_SUMMARY {
         json.dump(summary, f, indent=2)
 
     final_res = summary['final_map']['resolution_angstroms']
-    print(f"✓ Helical SPA pipeline complete")
+    print(f"Helical SPA pipeline complete")
     print(f"  Movies         : {summary['acquisition']['num_movies']}")
     print(f"  Filaments      : {summary['filament_picking']['total_filaments_traced']}")
     print(f"  Particles      : {summary['particle_selection']['num_particles_after']}")
-    print(f"  Final resolution: {final_res} Å")
-    print(f"  Rise / Twist   : {summary['helical_refinement']['refined_helical_rise_angstroms']} Å / {summary['helical_refinement']['refined_helical_twist_deg']}°")
+    print(f"  Final resolution: {final_res} A")
+    print(f"  Rise / Twist   : {summary['helical_refinement']['refined_helical_rise_angstroms']} A / {summary['helical_refinement']['refined_helical_twist_deg']} deg")
     """
 }
 
@@ -893,66 +1055,4 @@ workflow HELICAL_SPA_PIPELINE {
     emit:
     final_map = HELICAL_SHARPENING.out.sharpened_volume_cs
     summary   = HELICAL_PIPELINE_SUMMARY.out.summary
-}
-
-// ============================================================================
-// Standalone execution
-// ============================================================================
-
-workflow {
-
-    log.info """
-    ====================================================================
-    Helical SPA Pipeline
-    ====================================================================
-    Filament diameter  : ${params.filament_diameter_angstroms} Å
-    Helical rise       : ${params.helical_rise_angstroms} Å
-    Helical twist      : ${params.helical_twist_deg} °
-    Symmetry           : ${params.symmetry}
-    Pixel size         : ${params.pixel_size} Å/px
-    Voltage            : ${params.voltage} kV
-    Total dose         : ${params.total_dose} e-/Å²
-    Mode               : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
-    Output             : ${params.outdir}
-    ====================================================================
-    """.stripIndent()
-
-    // Build movie channel — use test data when movies_path is null
-    ch_movies = Channel.fromPath(params.movies_path ?: "${baseDir}/test_data/*.tif")
-        .ifEmpty {
-            def dummy_dir = file("${params.outdir}/test_movies")
-            dummy_dir.mkdirs()
-            (1..20).collect { i ->
-                def f = file("${dummy_dir}/movie_${String.format('%05d', i)}.tif")
-                f.text = "dummy movie ${i}"
-                f
-            }
-        }
-        .collect()
-
-    HELICAL_SPA_PIPELINE(ch_movies)
-
-    HELICAL_SPA_PIPELINE.out.summary.view { summary_file ->
-        def s = new groovy.json.JsonSlurper().parse(summary_file)
-        """
-        Pipeline Summary:
-          Steps completed  : ${s.steps_completed}/11
-          Filaments traced : ${s.filament_picking.total_filaments_traced}
-          Particles final  : ${s.particle_selection.num_particles_after}
-          Final resolution : ${s.final_map.resolution_angstroms} Å
-          Refined rise     : ${s.helical_refinement.refined_helical_rise_angstroms} Å
-          Refined twist    : ${s.helical_refinement.refined_helical_twist_deg} °
-
-        Results in: ${params.outdir}
-        """
-    }
-}
-
-workflow.onComplete {
-    log.info """
-    ====================================================================
-    Helical SPA Pipeline: ${workflow.success ? 'SUCCESS' : 'FAILED'}
-    Duration: ${workflow.duration}
-    ====================================================================
-    """.stripIndent()
 }

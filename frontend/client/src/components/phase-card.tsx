@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Play, Pause, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
-  FileText, FileImage, Table, FileCode, File, Loader2,
+  FileText, FileImage, Table, FileCode, File, Loader2, Settings2, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,12 +72,27 @@ interface PhaseCardProps {
   runDisabled?: boolean;
   runLoading?: boolean;
   runButtonTestId?: string;
+  /** Adjust parameters and rerun from this step */
+  onAdjustAndRerun?: () => void;
+  /** Structured output files (name, path, extension) for inline preview */
+  outputFiles?: Array<{ name: string; path: string; extension: string }>;
+  /** Called when the user clicks the eye/preview button on a file */
+  onPreviewFile?: (file: { name: string; path: string; extension: string }) => void;
   className?: string;
 }
+
+const VISUALIZABLE_EXTS = new Set([
+  'png','jpg','jpeg','gif','svg','pdf',
+  'csv','tsv','json','tabular','star',
+  'fasta','fa','fastq','fq',
+  'vcf','pdb','mmcif','cif','mrc','map','mrcs','rec',
+  'bed','gff','gtf','html','htm','log','txt',
+]);
 
 export function PhaseCard({
   phase, onExecute, onPause, onResume,
   onRun, runLabel, runDisabled, runLoading, runButtonTestId,
+  onAdjustAndRerun, outputFiles, onPreviewFile,
   className,
 }: PhaseCardProps) {
   const [filesExpanded, setFilesExpanded] = useState(false);
@@ -86,6 +101,15 @@ export function PhaseCard({
   const displayName = phase.processName ? shortProcessName(phase.processName) : phase.name;
   const fullName    = phase.processName ?? phase.name;
   const taskFiles   = phase.taskFiles ?? [];
+
+  // Prefer structured outputFiles; fall back to legacy taskFiles string array
+  const displayFiles: Array<{ name: string; path: string; extension: string }> =
+    outputFiles ??
+    taskFiles.map(f => ({
+      name: f,
+      path: f,
+      extension: f.split('.').pop()?.toLowerCase() ?? '',
+    }));
 
   const statusIcon = {
     completed: <CheckCircle className="h-4 w-4 text-green-500" />,
@@ -154,11 +178,23 @@ export function PhaseCard({
               {runLabel && <span className="ml-1">{runLabel}</span>}
             </Button>
           )}
+          {onAdjustAndRerun && status === 'completed' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs"
+              onClick={onAdjustAndRerun}
+              title="Adjust parameters and rerun from this step"
+              data-testid={`button-adjust-step-${phase.id}`}
+            >
+              <Settings2 className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </CardHeader>
 
       {/* Task output files — shown when available from trace work_dir scan */}
-      {taskFiles.length > 0 && (
+      {displayFiles.length > 0 && (
         <CardContent className="pt-0 pb-2 px-3">
           <button
             className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
@@ -167,16 +203,29 @@ export function PhaseCard({
             {filesExpanded
               ? <ChevronDown className="h-3 w-3" />
               : <ChevronRight className="h-3 w-3" />}
-            {taskFiles.length} output file{taskFiles.length !== 1 ? 's' : ''}
+            {displayFiles.length} output file{displayFiles.length !== 1 ? 's' : ''}
           </button>
           {filesExpanded && (
             <div className="mt-1.5 space-y-0.5 pl-3">
-              {taskFiles.map((f, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[11px]">
-                  {fileIcon(f)}
-                  <span className="font-mono truncate">{f}</span>
-                </div>
-              ))}
+              {displayFiles.map((f, i) => {
+                const canPreview = onPreviewFile && VISUALIZABLE_EXTS.has(f.extension.toLowerCase().replace(/^\./, ''));
+                return (
+                  <div key={i} className="flex items-center gap-1.5 text-[11px]">
+                    {fileIcon(f.name)}
+                    <span className="font-mono truncate">{f.name}</span>
+                    {canPreview && (
+                      <button
+                        className="ml-auto flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => onPreviewFile!(f)}
+                        title="Preview file"
+                        data-testid={`phase-card-preview-btn-${f.name}`}
+                      >
+                        <Eye className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>

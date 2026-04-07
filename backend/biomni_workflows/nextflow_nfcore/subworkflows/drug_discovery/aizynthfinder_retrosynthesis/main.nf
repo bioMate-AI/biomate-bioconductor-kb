@@ -7,7 +7,7 @@
  *
  * Inputs:
  *   smiles_list  — channel of SMILES strings (one per compound)
- *   mock_mode    — boolean (default true); synthetic data, no AiZynthFinder needed
+ *   (always live — no mock mode)
  *   max_routes   — max synthesis routes per compound (params, default 5)
  *   max_depth    — max retrosynthesis tree depth (params, default 6)
  *
@@ -18,7 +18,7 @@
  *   qc_summary_json  — machine-readable QC summary for CRO pipeline integration
  *
  * Pipeline Steps:
- * 1. AIZYNTHFINDER_PREDICT  — Run AiZynthFinder (or synthetic mock) per compound;
+ * 1. AIZYNTHFINDER_PREDICT  — Run AiZynthFinder per compound;
  *    output JSON: smiles, routes[]{steps, score, step_count, sa_score}, feasibility_rank
  * 2. RETROSYNTHESIS_FILTER  — QC gate per compound:
  *    PASS if ≥1 route has ≤4 steps AND score ≥0.6
@@ -41,9 +41,6 @@ nextflow.enable.dsl = 2
 params.outdir           = './results/aizynthfinder_retrosynthesis'
 params.publish_dir_mode = 'copy'
 
-// Mode flags
-params.mock_mode        = true   // true = synthetic data, no AiZynthFinder needed
-
 // AiZynthFinder search parameters
 params.max_routes       = 5      // max synthesis routes to return per compound
 params.max_depth        = 6      // max retrosynthesis tree depth
@@ -56,6 +53,10 @@ params.warn_max_steps   = 6      // WARN if best route step_count ≤ this (but 
 // AiZynthFinder config path (live mode only)
 params.aizynthfinder_config = '/opt/aizynthfinder/config.yml'
 
+// Input
+params.smiles_file      = null   // path to SMILES file OR inline SMILES (one per line); if null, uses seed_smiles
+params.seed_smiles      = null   // single SMILES string (e.g. 'Cc1ccc(NC(=O)...)cc1')
+
 // ============================================================================
 // Helper functions
 // ============================================================================
@@ -65,7 +66,6 @@ def log_workflow_header() {
     ====================================================================
     BioMate | AiZynthFinder Retrosynthesis Pipeline
     ====================================================================
-    Mode:               ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE (AiZynthFinder)'}
     Max routes:         ${params.max_routes}
     Max depth:          ${params.max_depth}
     PASS threshold:     steps ≤ ${params.pass_max_steps}  AND  score ≥ ${params.pass_min_score}
@@ -84,7 +84,9 @@ process AIZYNTHFINDER_PREDICT {
     label 'process_medium'
     publishDir "${params.outdir}/${compound_id}/01_predict", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(compound_id), val(smiles)
@@ -94,132 +96,12 @@ process AIZYNTHFINDER_PREDICT {
     path "versions.yml",                                         emit: versions
 
     script:
-    def mock       = params.mock_mode
     def max_routes = params.max_routes
     def max_depth  = params.max_depth
     def config     = params.aizynthfinder_config
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import random
-import hashlib
-from datetime import datetime
-
-compound_id = "${compound_id}"
-smiles      = "${smiles}"
-max_routes  = int("${max_routes}")
-max_depth   = int("${max_depth}")
-
-# ---------------------------------------------------------------------------
-# Seed RNG from SMILES for reproducible mock outputs across CI runs.
-# ---------------------------------------------------------------------------
-seed = int(hashlib.md5(smiles.encode()).hexdigest(), 16) % (2**31)
-rng  = random.Random(seed)
-
-MOCK_REAGENTS = [
-    ("Pd(OAc)2 / PPh3",      "Suzuki coupling"),
-    ("NaBH4 / MeOH",          "Carbonyl reduction"),
-    ("SOCl2 / pyridine",       "Chlorination"),
-    ("LiAlH4 / THF",           "Amide reduction"),
-    ("Ac2O / Et3N",            "Acetylation"),
-    ("EDCI / HOBt / DMF",      "Amide coupling"),
-    ("K2CO3 / DMF",            "N-alkylation"),
-    ("m-CPBA / CH2Cl2",        "Epoxidation"),
-    ("NBS / CCl4 / hv",        "Radical bromination"),
-    ("H2 / Pd-C / EtOH",      "Hydrogenation"),
-]
-
-MOCK_PRECURSORS = [
-    "c1ccccc1",
-    "CC(=O)O",
-    "NC(=O)O",
-    "c1ccc(Br)cc1",
-    "CCOC(=O)CCl",
-    "OC(=O)c1ccccc1",
-    "c1ccc(N)cc1",
-    "CC(C)=O",
-    "OCC",
-    "c1ccc(Cl)cc1",
-]
-
-def make_steps(rng, n_steps):
-    steps = []
-    for i in range(n_steps):
-        reagent, rxn_class = rng.choice(MOCK_REAGENTS)
-        precursor = rng.choice(MOCK_PRECURSORS)
-        steps.append({
-            "step":             i + 1,
-            "reaction_class":   rxn_class,
-            "reagent":          reagent,
-            "precursor_smiles": precursor,
-            "yield_pct":        round(rng.uniform(60.0, 95.0), 1),
-        })
-    return steps
-
-# ---------------------------------------------------------------------------
-# Basic validity check: balanced parentheses/brackets, non-empty, no spaces.
-# Full SMILES validation requires RDKit (not available in mock mode).
-# ---------------------------------------------------------------------------
-smiles_valid = (
-    len(smiles.strip()) > 0
-    and " " not in smiles.strip()
-    and smiles.count("(") == smiles.count(")")
-    and smiles.count("[") == smiles.count("]")
-)
-
-if not smiles_valid:
-    routes = []
-    feasibility_rank = []
-else:
-    n_routes = min(3, max_routes)
-    routes = []
-    for r_idx in range(n_routes):
-        n_steps  = rng.randint(2, min(4, max_depth))
-        score    = round(rng.uniform(0.50, 0.92), 3)
-        sa_score = round(rng.uniform(1.5, 4.5), 2)  # SA score: 1=easy, 10=very hard
-        steps    = make_steps(rng, n_steps)
-        routes.append({
-            "route_id":   r_idx + 1,
-            "score":      score,
-            "step_count": n_steps,
-            "sa_score":   sa_score,
-            "steps":      steps,
-        })
-    # Sort descending by score → position = feasibility_rank
-    routes.sort(key=lambda x: x["score"], reverse=True)
-    feasibility_rank = [r["route_id"] for r in routes]
-
-result = {
-    "compound_id":      compound_id,
-    "smiles":           smiles,
-    "smiles_valid":     smiles_valid,
-    "n_routes":         len(routes),
-    "routes":           routes,
-    "feasibility_rank": feasibility_rank,
-    "max_routes":       max_routes,
-    "max_depth":        max_depth,
-    "tool":             "aizynthfinder",
-    "version":          "3.7.0-mock",
-    "timestamp":        datetime.utcnow().isoformat() + "Z",
-    "mock_mode":        True,
-}
-
-with open(f"{compound_id}_routes.json", "w") as f:
-    json.dump(result, f, indent=2)
-
-print(f"AiZynthFinder predict (mock) [{compound_id}]: {len(routes)} routes  smiles={smiles[:50]}")
-for r in routes:
-    print(f"  Route {r['route_id']}: steps={r['step_count']}  score={r['score']}  sa_score={r['sa_score']}")
-if not smiles_valid:
-    print(f"  WARNING: SMILES failed validity check — 0 routes generated")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live: run aizynthcli and normalize its output into BioMate JSON format.
+        # Run aizynthcli and normalize its output into BioMate JSON format.
         # aizynthcli writes a JSON file containing a list of solved route trees.
-        # ---------------------------------------------------------------------------
         aizynthcli \
             --smiles "${smiles}" \
             --output ${compound_id}_routes_raw.json \
@@ -247,7 +129,6 @@ except (FileNotFoundError, json.JSONDecodeError) as exc:
         "routes":           [],
         "feasibility_rank": [],
         "error":            str(exc),
-        "mock_mode":        False,
     }
     with open(f"{compound_id}_routes.json", "w") as f:
         json.dump(result, f, indent=2)
@@ -308,33 +189,20 @@ result = {
     "tool":             "aizynthfinder",
     "version":          "3.7.0",
     "timestamp":        datetime.utcnow().isoformat() + "Z",
-    "mock_mode":        False,
 }
 
 with open(f"{compound_id}_routes.json", "w") as f:
     json.dump(result, f, indent=2)
 
-print(f"AiZynthFinder predict (live) [{compound_id}]: {len(routes)} routes found")
+print(f"AiZynthFinder predict [{compound_id}]: {len(routes)} routes found")
 for r in routes:
     print(f"  Route {r['route_id']}: steps={r['step_count']}  score={r['score']}  sa_score={r['sa_score']}")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        aizynthfinder: \$(aizynthcli --version 2>&1 | head -1 || echo "3.7.0-mock")
+        aizynthfinder: \$(aizynthcli --version 2>&1 | head -1 || echo "unknown")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    echo '{"compound_id":"${compound_id}","smiles_valid":true,"n_routes":3,"routes":[],"feasibility_rank":[1,2,3],"mock_mode":true}' > ${compound_id}_routes.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        aizynthfinder: "3.7.0"
-        python: "3.10.0"
     END_VERSIONS
     """
 }
@@ -348,7 +216,9 @@ process RETROSYNTHESIS_FILTER {
     label 'process_single'
     publishDir "${params.outdir}/${compound_id}/02_filter", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(compound_id), path(routes_json)
@@ -435,7 +305,6 @@ filtered = {
     "warn_max_steps":    warn_max_steps,
     "routes":            routes,
     "timestamp":         datetime.utcnow().isoformat() + "Z",
-    "mock_mode":         data.get("mock_mode", False),
 }
 
 with open(f"{compound_id}_filtered.json", "w") as f:
@@ -490,7 +359,9 @@ process RETROSYNTHESIS_REPORT {
     label 'process_low'
     publishDir "${params.outdir}/03_report", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path(filtered_jsons)   // collected list of *_filtered.json from RETROSYNTHESIS_FILTER
@@ -502,7 +373,6 @@ process RETROSYNTHESIS_REPORT {
     path "versions.yml",               emit: versions
 
     script:
-    def mock           = params.mock_mode
     def pass_max_steps = params.pass_max_steps
     def pass_min_score = params.pass_min_score
     """
@@ -547,7 +417,6 @@ if step_vals:
 # ---------------------------------------------------------------------------
 qc_summary = {
     "pipeline":         "aizynthfinder_retrosynthesis",
-    "mock_mode":        bool("${mock}" == "true"),
     "n_compounds":      n_total,
     "n_pass":           n_pass,
     "n_warn":           n_warn,
@@ -659,7 +528,7 @@ for bucket_label, count in buckets.items():
     )
 
 ts      = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-mode_lbl = "MOCK" if bool("${mock}" == "true") else "LIVE"
+mode_lbl = "LIVE"
 
 html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -685,7 +554,6 @@ html = f'''<!DOCTYPE html>
     .hist-table td{{padding:3px 8px;font-size:.9em}}
     .footer{{margin-top:40px;font-size:.8em;color:#95a5a6;text-align:center}}
     .badge{{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.8em;font-weight:bold}}
-    .badge-mock{{background:#e8f4fd;color:#2980b9}}
     .badge-live{{background:#e9f7ef;color:#27ae60}}
   </style>
 </head>
@@ -752,18 +620,6 @@ EOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    echo '<html><body>Stub report</body></html>' > retrosynthesis_report.html
-    printf 'compound_id,smiles,qc_status,best_route_steps,best_route_score,best_sa_score,n_routes,feasibility_tier\n' > retrosynthesis_results.csv
-    echo '{"n_compounds":0,"n_pass":0,"n_warn":0,"n_fail":0}' > qc_summary.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: "3.10.0"
     END_VERSIONS
     """
 }
@@ -849,24 +705,14 @@ workflow {
     // complexity (aspirin → imatinib).  In live mode, supply your own
     // SMILES list via --smiles_file <path> (one SMILES per line).
     // ------------------------------------------------------------------
-    if (params.mock_mode) {
-        ch_smiles = Channel.of(
-            "CC(=O)Oc1ccccc1C(=O)O",              // Aspirin
-            "CC(C)Cc1ccc(cc1)C(C)C(=O)O",         // Ibuprofen
-            "Cn1cnc2c1c(=O)n(c(=O)n2C)C",         // Caffeine
-            "CC(=O)Nc1ccc(O)cc1",                  // Paracetamol
-            "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C"  // Imatinib
-        )
-    } else {
-        if (!params.smiles_file) {
-            error "params.smiles_file is required in live mode. Pass --smiles_file <path>"
-        }
-        ch_smiles = Channel
-            .fromPath(params.smiles_file, checkIfExists: true)
-            .splitText()
-            .map { line -> line.trim() }
-            .filter { it && !it.startsWith("#") }
+    if (!params.smiles_file) {
+        error "params.smiles_file is required. Pass --smiles_file <path>"
     }
+    ch_smiles = Channel
+        .fromPath(params.smiles_file, checkIfExists: true)
+        .splitText()
+        .map { line -> line.trim() }
+        .filter { it && !it.startsWith("#") }
 
     // Run the pipeline
     AIZYNTHFINDER_RETROSYNTHESIS(ch_smiles)

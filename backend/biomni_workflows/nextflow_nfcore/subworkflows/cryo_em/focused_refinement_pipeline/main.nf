@@ -34,7 +34,6 @@ params.initial_lowpass  = 8.0       // Angstroms — initial lowpass for alignme
 params.max_iterations   = 20        // maximum refinement iterations
 
 // --- Global ---
-params.mock_mode        = true      // use mock mode for testing
 params.use_cryosparc    = false     // use live CryoSPARC API
 params.outdir           = './results/focused_refinement'
 
@@ -55,18 +54,12 @@ process PARTICLE_SUBTRACTION {
     path "subtraction_report.json",  emit: report
 
     script:
-    def mock        = params.mock_mode   ? 'True' : 'False'
     def invert_mask = params.invert_mask ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import math
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode   = ${mock}
     invert_mask = ${invert_mask}
     mask_param  = '${params.subtraction_mask}'
 
@@ -75,36 +68,50 @@ process PARTICLE_SUBTRACTION {
 
     particles    = particles_data.get('particles', [])
     num_particles = len(particles)
-
     volume = volume_data.get('volume', {})
     resolution_angstroms = volume.get('resolution_angstroms', 4.0)
 
-    if mask_param == 'auto':
-        mask_used = 'auto_spherical_mask'
-        mask_radius_angstroms = round(random.uniform(35.0, 65.0), 1)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
+
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job_params = {'invert_mask': invert_mask}
+        if mask_param != 'auto':
+            job_params['mask'] = mask_param
+
+        job = workspace.create_job('particle_subtract', connections={
+            'particles': ('${params.cryosparc_particles_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_volume_job_uid ?: ""}', 'volume')
+        }, params=job_params)
+        job.queue()
+        job.wait_for_done()
+
+        subtracted_out = list(job.load_output('particles'))
+        cs_data = {
+            'particles':      subtracted_out,
+            'num_subtracted': len(subtracted_out),
+            'mask_used':      mask_param
+        }
+        signal_fraction_removed = job.doc.get('output_stats', {}).get('signal_fraction_removed', 0.0)
+        mask_radius_angstroms   = job.doc.get('output_stats', {}).get('mask_radius_angstroms', 0.0)
+        mask_volume_angstroms   = 0.0
     else:
-        mask_used = mask_param
-        mask_radius_angstroms = round(random.uniform(30.0, 70.0), 1)
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
-    signal_fraction_removed = round(random.uniform(0.35, 0.65), 4)
-    mask_volume_angstroms = round(
-        (4.0 / 3.0) * math.pi * (mask_radius_angstroms ** 3), 1
-    )
-
-    subtracted = []
-    for p in particles:
-        entry = dict(p)
-        entry['subtracted']              = True
-        entry['signal_fraction_removed'] = signal_fraction_removed
-        entry['mask_used']               = mask_used
-        entry['invert_mask']             = invert_mask
-        subtracted.append(entry)
-
-    cs_data = {
-        'particles':      subtracted,
-        'num_subtracted': len(subtracted),
-        'mask_used':      mask_used
-    }
+    with open('subtracted_particles.cs', 'w') as f:
+        json.dump(cs_data, f, indent=2)
 
     report = {
         'step':                        'particle_subtraction',
@@ -113,20 +120,16 @@ process PARTICLE_SUBTRACTION {
         'signal_fraction_removed':     signal_fraction_removed,
         'mask_volume_angstroms_cubed': mask_volume_angstroms,
         'mask_radius_angstroms':       mask_radius_angstroms,
-        'mask_used':                   mask_used,
+        'mask_used':                   mask_param,
         'invert_mask':                 invert_mask,
-        'input_resolution_angstroms':  resolution_angstroms,
-        'mock_mode':                   mock_mode
+        'input_resolution_angstroms':  resolution_angstroms
     }
-
-    with open('subtracted_particles.cs', 'w') as f:
-        json.dump(cs_data, f, indent=2)
 
     with open('subtraction_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
     print(f"[1/3] Particle subtraction complete")
-    print(f"  Particles : {num_particles}  |  Signal removed: {signal_fraction_removed * 100:.1f}%")
+    print(f"  Particles : {num_particles}")
     """
 
     stub:
@@ -149,17 +152,12 @@ process LOCAL_REFINEMENT {
     path "local_refinement_report.json", emit: report
 
     script:
-    def mock       = params.mock_mode  ? 'True' : 'False'
     def focus_mask = params.focus_mask ? "'${params.focus_mask}'" : 'None'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode       = ${mock}
     symmetry        = '${params.symmetry}'
     initial_lowpass = ${params.initial_lowpass}
     max_iterations  = ${params.max_iterations}
@@ -171,24 +169,57 @@ process LOCAL_REFINEMENT {
     particles     = particles_data.get('particles', [])
     num_particles = len(particles)
     volume        = volume_data.get('volume', {})
+    initial_res   = volume.get('resolution_angstroms',
+                    particles_data.get('input_resolution_angstroms', 5.5))
 
-    initial_res = volume.get('resolution_angstroms',
-                  particles_data.get('input_resolution_angstroms', 5.5))
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    improvement_pct = round(random.uniform(15.0, 35.0), 2)
-    final_res       = round(initial_res * (1.0 - improvement_pct / 100.0), 2)
-    final_res       = max(2.0, min(10.0, final_res))
-    local_res       = round(final_res * random.uniform(0.85, 0.98), 2)
-    local_fsc_0143  = final_res
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    refined = {
-        'resolution_angstroms':         final_res,
-        'local_resolution_angstroms':   local_res,
-        'symmetry':                     symmetry,
-        'focus_mask':                   focus_mask,
-        'num_particles':                num_particles,
-        'initial_resolution_angstroms': initial_res
-    }
+        job_params = {
+            'symmetry':           symmetry,
+            'init_res':           initial_lowpass,
+            'max_iterations':     max_iterations
+        }
+        if focus_mask is not None:
+            job_params['mask'] = focus_mask
+
+        job = workspace.create_job('local_refine', connections={
+            'particles': ('${params.cryosparc_subtracted_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_volume_job_uid ?: ""}', 'volume')
+        }, params=job_params)
+        job.queue()
+        job.wait_for_done()
+
+        vol_out = job.doc.get('output_stats', {})
+        final_res = vol_out.get('fsc_resolution_0143', initial_res)
+        local_res = vol_out.get('local_resolution', final_res)
+        improvement_pct = round((initial_res - final_res) / initial_res * 100.0, 2) if initial_res > 0 else 0.0
+
+        refined = {
+            'resolution_angstroms':         final_res,
+            'local_resolution_angstroms':   local_res,
+            'symmetry':                     symmetry,
+            'focus_mask':                   focus_mask,
+            'num_particles':                num_particles,
+            'initial_resolution_angstroms': initial_res
+        }
+        with open('local_refined_volume.cs', 'w') as f:
+            json.dump({'volume': refined}, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
     report = {
         'step':                         'local_refinement',
@@ -197,24 +228,19 @@ process LOCAL_REFINEMENT {
         'initial_resolution_angstroms': initial_res,
         'final_resolution_angstroms':   final_res,
         'resolution_improvement_pct':   improvement_pct,
-        'local_fsc_0143_resolution':    local_fsc_0143,
+        'local_fsc_0143_resolution':    final_res,
         'local_resolution_angstroms':   local_res,
         'symmetry':                     symmetry,
         'focus_mask':                   focus_mask,
         'initial_lowpass_angstroms':    initial_lowpass,
-        'max_iterations':               max_iterations,
-        'mock_mode':                    mock_mode
+        'max_iterations':               max_iterations
     }
-
-    with open('local_refined_volume.cs', 'w') as f:
-        json.dump({'volume': refined}, f, indent=2)
 
     with open('local_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
     print(f"[2/3] Local refinement complete")
-    print(f"  Resolution : {initial_res:.2f} A -> {final_res:.2f} A  "
-          f"({improvement_pct:.1f}% improvement)")
+    print(f"  Resolution : {initial_res:.2f} A -> {final_res:.2f} A")
     """
 
     stub:
@@ -236,7 +262,6 @@ process FOCUSED_REFINEMENT_SUMMARY {
     path "focused_refinement_summary.json", emit: summary
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -253,7 +278,6 @@ process FOCUSED_REFINEMENT_SUMMARY {
         'version':                         '1.0',
         'completion_time':                 datetime.now().isoformat(),
         'steps_completed':                 2,
-        'mock_mode':                       ${mock},
 
         # Subtraction metrics
         'num_particles':                   sub_report['num_particles'],
@@ -336,29 +360,13 @@ workflow FOCUSED_REFINEMENT_PIPELINE {
 workflow {
     ch_particles = Channel.fromPath(
         params.particles_cs ?: 'particles.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/particles.cs")
-        f.parent.mkdirs()
-        f.text = '{"particles": [' +
-            (1..200).collect { i ->
-                """{"particle_idx": ${i}, "micrograph_idx": ${i % 50}, """ +
-                """"x_coord": ${(int)(Math.random() * 3800) + 100}, """ +
-                """"y_coord": ${(int)(Math.random() * 3800) + 100}, """ +
-                """"pick_score": 0.85, "pick_method": "template"}"""
-            }.join(',') + ']}'
-        f
-    }
+        checkIfExists: true
+    )
 
     ch_volume = Channel.fromPath(
         params.volume_cs ?: 'volume.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/volume.cs")
-        f.parent.mkdirs()
-        f.text = '{"volume": {"resolution_angstroms": 4.5, "symmetry": "C1", "num_particles": 200}}'
-        f
-    }
+        checkIfExists: true
+    )
 
     FOCUSED_REFINEMENT_PIPELINE(ch_particles, ch_volume)
 

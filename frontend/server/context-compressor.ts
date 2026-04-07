@@ -140,8 +140,9 @@ export class ContextCompressor {
       compressedAt: new Date()
     };
 
-    // Create compressed message list
-    const compressedMessages = [summaryMessage, ...recentMessages];
+    // Create compressed message list, then strip any tool_result blocks that
+    // reference tool_use IDs no longer present (orphaned pairs cause API errors).
+    const compressedMessages = this.sanitizeToolPairs([summaryMessage, ...recentMessages]);
 
     // Calculate tokens after compression
     const tokensAfterCount = this.estimateTokens(compressedMessages);
@@ -238,6 +239,30 @@ The summary will replace these older messages, and the user will continue their 
   }
 
   /**
+   * Remove tool_result blocks whose tool_use_id has no matching tool_use block
+   * in the message array. This prevents Anthropic API rejections after compression
+   * discards the assistant turns that contained the original tool_use blocks.
+   */
+  private sanitizeToolPairs(messages: any[]): any[] {
+    const toolUseIds = new Set<string>()
+    for (const msg of messages) {
+      const content = Array.isArray(msg.content) ? msg.content : []
+      for (const block of content) {
+        if (block.type === 'tool_use' && block.id) {
+          toolUseIds.add(block.id)
+        }
+      }
+    }
+    return messages.map(msg => {
+      if (!Array.isArray(msg.content)) return msg
+      const filtered = msg.content.filter((block: any) =>
+        block.type !== 'tool_result' || toolUseIds.has(block.tool_use_id)
+      )
+      return { ...msg, content: filtered }
+    })
+  }
+
+  /**
    * Estimate tokens in messages using same heuristic as token-counter.ts
    */
   private estimateTokens(messages: Message[]): number {
@@ -247,6 +272,7 @@ The summary will replace these older messages, and the user will continue their 
       const contentChars = msg.content.length;
 
       // Heuristic token counting based on content type
+      // TODO: replace with actual usage.input_tokens from Anthropic response when plumbed through
       let tokensPerChar = 0.25; // Default: 1 token per 4 chars
 
       // If content looks like code (has lots of special chars)

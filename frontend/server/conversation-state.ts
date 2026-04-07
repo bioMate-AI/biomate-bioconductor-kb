@@ -203,6 +203,29 @@ export interface IntentHistorySummary {
   [intentType: string]: number;
 }
 
+export interface ContextFrame {
+  /** What kind of tangent opened this sub-context */
+  tangentType: 'informational' | 'new_domain' | 'other';
+  /** Turn index when main context was suspended */
+  savedAtTurn: number;
+  /** Snapshot of the main context fields */
+  savedPhase: ConversationPhase;
+  savedFacts: RawFact[];
+  savedIntent: {
+    primaryType: string;
+    confidence: number;
+    history: IntentSnapshot[];
+    historySummary?: IntentHistorySummary;
+  };
+  savedReadiness: ReadinessAssessment;
+  savedClarifications: ClarificationRequest[];
+  savedWorkflowSteps: WorkflowStepRecord[];
+  savedTaskArcs?: TaskArc[];
+  savedActiveArcId?: string;
+  /** The active_task from SessionMemory at push time — used to detect return */
+  savedActiveTask?: string;
+}
+
 export interface ConversationState {
   sessionId: string;
   userId?: string;
@@ -246,6 +269,9 @@ export interface ConversationState {
   // context compression and browser refresh (stored in PostgreSQL via saveState)
   workflowSteps: WorkflowStepRecord[];
 
+  // Context stack for handling tangent sub-dialogues within an ongoing workflow session
+  contextStack: ContextFrame[];
+
   // Timestamp
   updatedAt: string;
 }
@@ -276,6 +302,7 @@ export function createEmptyState(sessionId: string, userId?: string, projectId?:
       missingOptional: [],
     },
     workflowSteps: [],
+    contextStack: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -870,6 +897,49 @@ export class ConversationStateManager {
    */
   clearWorkflowSteps(state: ConversationState): void {
     state.workflowSteps = [];
+  }
+
+  /**
+   * Push current workflow context onto the stack when entering a tangent.
+   * The state is modified in-place; caller must save after calling this.
+   */
+  pushContext(state: ConversationState, tangentType: ContextFrame['tangentType']): void {
+    state.contextStack.push({
+      tangentType,
+      savedAtTurn: state.currentTurn,
+      savedPhase: state.phase,
+      savedFacts: [...state.facts],
+      savedIntent: { ...state.intent, history: [...state.intent.history] },
+      savedReadiness: { ...state.readiness, missingRequired: [...state.readiness.missingRequired], missingOptional: [...state.readiness.missingOptional] },
+      savedClarifications: [...state.pendingClarifications],
+      savedWorkflowSteps: [...state.workflowSteps],
+      savedTaskArcs: state.taskArcs ? [...state.taskArcs] : undefined,
+      savedActiveArcId: state.activeArcId,
+    });
+    console.log(`[ConversationState] Pushed context frame (depth=${state.contextStack.length}), tangent=${tangentType}`);
+  }
+
+  /**
+   * Pop and restore the most recent context frame after returning from a tangent.
+   * Only restores workflow-related fields — currentTurn and facts from the tangent are kept.
+   * Returns the popped frame, or null if stack is empty.
+   */
+  popContext(state: ConversationState): ContextFrame | null {
+    const frame = state.contextStack.pop();
+    if (!frame) return null;
+    // Restore workflow state
+    state.phase = frame.savedPhase;
+    state.intent = frame.savedIntent;
+    state.readiness = frame.savedReadiness;
+    state.pendingClarifications = frame.savedClarifications;
+    state.workflowSteps = frame.savedWorkflowSteps;
+    state.taskArcs = frame.savedTaskArcs;
+    state.activeArcId = frame.savedActiveArcId;
+    // Merge tangent facts into restored facts (tangent may have produced useful facts)
+    const tangentFacts = state.facts.filter(f => f.source.turnIndex > frame.savedAtTurn);
+    state.facts = [...frame.savedFacts, ...tangentFacts];
+    console.log(`[ConversationState] Popped context frame (depth=${state.contextStack.length}), restored to phase=${state.phase}`);
+    return frame;
   }
 }
 

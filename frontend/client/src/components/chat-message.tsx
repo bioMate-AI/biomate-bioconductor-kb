@@ -2,6 +2,7 @@ import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
+import { CodeExecutionBlock, type ToolBlock } from "./code-execution-block"
 
 /**
  * Pre-processes assistant markdown to:
@@ -76,7 +77,6 @@ interface ChatMessageProps {
   onToolClick?: (tool: any) => void
   onDatasetClick?: (dataset: any) => void
   onRunWorkflow?: (workflow: any, steps: any[]) => void
-  onRequestPrereqRecovery?: () => void
   onStopWorkflow?: () => void
   onPauseWorkflow?: () => void
   onResumeWorkflow?: () => void
@@ -102,7 +102,6 @@ export function ChatMessage({
   onToolClick,
   onDatasetClick,
   onRunWorkflow,
-  onRequestPrereqRecovery,
   onStopWorkflow,
   onPauseWorkflow,
   onResumeWorkflow,
@@ -200,6 +199,11 @@ export function ChatMessage({
             {isUser ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
             ) : (
+              <>
+              {/* Agent tool blocks — shown above the text response */}
+              {(message.metadata?.toolBlocks as ToolBlock[] | undefined)?.map(block => (
+                <CodeExecutionBlock key={block.tool_use_id} block={block} />
+              ))}
               <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none
                 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
                 prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
@@ -232,6 +236,7 @@ export function ChatMessage({
                   {addCitationLinks(message.content || '')}
                 </ReactMarkdown>
               </div>
+              </>
             )}
           </Card>
 
@@ -317,14 +322,7 @@ export function ChatMessage({
                 message.metadata?.prerequisitesValidation,
                 {
                   executionBlockedReason,
-                  toolInstallationSuccess:
-                    message.metadata?.tool_installation?.success === false
-                      ? false
-                      : message.metadata?.tool_installation?.success === true
-                      ? true
-                      : undefined,
                   allowLowConfidenceOverride: !!executionBlockedReason,
-                  allowPrereqRecovery: !!message.metadata?.prereqRecovery?.approved,
                 }
               );
               const effectiveBlockedReason = executionBlockedReason;
@@ -486,7 +484,6 @@ export function ChatMessage({
                     onPause={onPauseWorkflow}
                     onResume={onResumeWorkflow}
                     onCancel={onStopWorkflow}
-                    onRequestPrereqRecovery={onRequestPrereqRecovery}
                     sessionId={sessionId}
                     runId={currentExecutionRun?.id}
                     executionEngine={currentExecutionRun?.execution?.executionEngine}

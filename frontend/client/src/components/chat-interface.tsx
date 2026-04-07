@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
@@ -55,7 +56,6 @@ interface ChatInterfaceProps {
   onToggleProgress?: () => void
   // Workflow execution props for inline artifacts
   onRunWorkflow?: (workflow: any, steps: any[]) => void
-  onRequestPrereqRecovery?: () => void
   onStopWorkflow?: () => void
   onPauseWorkflow?: () => void
   onResumeWorkflow?: () => void
@@ -81,7 +81,6 @@ export function ChatInterface({
   showProgress,
   onToggleProgress,
   onRunWorkflow,
-  onRequestPrereqRecovery,
   onStopWorkflow,
   onPauseWorkflow,
   onResumeWorkflow,
@@ -310,6 +309,8 @@ export function ChatInterface({
       let buffer = ''
       let accumulatedText = ''
       let finalPayload: any = null
+      // Agent tool blocks accumulate during streaming
+      const toolBlocksMap = new Map<string, ToolBlock>()
 
       try {
         while (true) {
@@ -334,19 +335,48 @@ export function ChatInterface({
 
             const payloadText = dataLines.join('\n')
             if (!payloadText) continue
-            const payload = JSON.parse(payloadText)
+            let payload: any
+            try {
+              payload = JSON.parse(payloadText)
+            } catch (parseErr: any) {
+              console.error('[ChatInterface] SSE JSON parse error for event:', eventName, parseErr?.message, payloadText.slice(0, 100))
+              continue
+            }
 
             if (eventName === 'delta' && typeof payload.text === 'string') {
               accumulatedText += payload.text
               updateMessageInSession(sessionId, placeholderId, { content: accumulatedText })
+            } else if (eventName === 'tool_event') {
+              const event = payload as AgentToolEvent
+              const id = event.tool_use_id
+              if (!toolBlocksMap.has(id)) {
+                toolBlocksMap.set(id, { tool_use_id: id, name: event.name })
+              }
+              const block = toolBlocksMap.get(id)!
+              if (event.type === 'tool_call') block.call = event
+              else if (event.type === 'tool_result') block.result = event
+              // Persist tool blocks into the placeholder message metadata (merge-safe)
+              const currentSession = chatHistoryService.getSession(sessionId)
+              const currentMsg = currentSession?.messages.find(m => m.id === placeholderId)
+              updateMessageInSession(sessionId, placeholderId, {
+                metadata: { ...(currentMsg?.metadata ?? {}), toolBlocks: Array.from(toolBlocksMap.values()) }
+              })
             } else if (eventName === 'final') {
-              finalPayload = payload
+              console.log('[ChatInterface] SSE final event received, workflow:', !!payload.workflow, 'keys:', Object.keys(payload))
+              // Merge accumulated tool blocks into final payload
+              if (toolBlocksMap.size > 0) {
+                finalPayload = { ...payload, toolBlocks: Array.from(toolBlocksMap.values()) }
+              } else {
+                finalPayload = payload
+              }
             } else if (eventName === 'error') {
               throw new Error(payload.message || 'Streaming chat failed')
             }
           }
         }
+        console.log('[ChatInterface] SSE stream complete, finalPayload set:', !!finalPayload)
       } catch (err: any) {
+        console.error('[ChatInterface] SSE read error:', err?.name, err?.message)
         if (err?.name === 'AbortError') {
           // Stream was stopped by user — not an error, just return what we have
           return finalPayload ?? { message: accumulatedText, aborted: true }
@@ -355,6 +385,7 @@ export function ChatInterface({
       }
 
       if (!finalPayload) {
+        console.error('[ChatInterface] No final payload received from stream')
         throw new Error('No final payload received from stream')
       }
       return finalPayload
@@ -371,19 +402,6 @@ export function ChatInterface({
       if (data.workflow && !workflowSuccess) {
         console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
         workflowData = null;
-      }
-
-      // Deterministic recovery fallback: if the recovery turn does not return a
-      // new workflow, carry forward the latest generated workflow so users can
-      // continue with the recovery-approved runnable path.
-      if (!workflowData && data.metadata?.prereqRecovery?.requested) {
-        const previousWorkflow = [...displayMessages]
-          .reverse()
-          .find((m) => m.role === "assistant" && m.metadata?.workflow)?.metadata?.workflow
-        if (previousWorkflow) {
-          workflowData = previousWorkflow
-          workflowSuccess = true
-        }
       }
 
       // Use the natural language response from /api/chat
@@ -403,9 +421,6 @@ export function ChatInterface({
         // Response already contains helpful context from Claude
         if (!workflowInfo.toLowerCase().includes('workflow')) {
           workflowInfo += '\n\n✅ I\'ve generated a workflow for you based on your request.';
-        }
-        if (data.metadata?.prereqRecovery?.requested) {
-          workflowInfo += '\n\n🔁 Recovery mode is active for this workflow. You can run with demo/sample input assumptions and refine with your real datasets afterward.';
         }
         if (data.workflow?.needs_user_feedback) {
           workflowInfo += `\n\n⚠️ ${data.workflow?.feedback_prompt || 'Confidence is not high enough yet. Please review and provide corrections before execution.'}`;
@@ -485,7 +500,6 @@ export function ChatInterface({
           sources: data.metadata?.sources || {},
           memoryUsed: data.metadata?.memoryUsed || false,
           domainGuard: data.metadata?.domainGuard,
-          prereqRecovery: data.metadata?.prereqRecovery,
           episodeId: data.episodeId,
           // Validation info from workflow if available
           validation: data.workflow?.validation || { is_valid: true, issues: [], warnings: [] },
@@ -1284,6 +1298,7 @@ export function ChatInterface({
         data-focused-run-id={focusedRunId || ""}
         data-focused-message-id={focusedAnchorMessageId || ""}
         data-highlighted-message-id={highlightedAnchorMessageId || ""}
+        data-generating={isTypingLocal ? "true" : "false"}
       />
       {/* Compression status badge */}
       {currentTokenCount > 0 && (
@@ -1313,7 +1328,6 @@ export function ChatInterface({
               }}
               // Workflow execution props for inline artifacts
               onRunWorkflow={onRunWorkflow}
-              onRequestPrereqRecovery={onRequestPrereqRecovery}
               onStopWorkflow={onStopWorkflow}
               onPauseWorkflow={onPauseWorkflow}
               onResumeWorkflow={onResumeWorkflow}

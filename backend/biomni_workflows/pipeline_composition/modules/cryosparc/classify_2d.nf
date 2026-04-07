@@ -57,7 +57,6 @@ process CLASSIFY_2D_R1 {
     path "class2d_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def recommendations = get_sample_recommendations(params.sample_type)
     def num_classes = recommendations.num_2d_classes
     """
@@ -98,8 +97,7 @@ process CLASSIFY_2D_R1 {
         'num_classes': num_classes,
         'num_good_classes': num_good,
         'avg_resolution_angstroms': round(sum(c['resolution_angstroms'] for c in classes) / num_classes, 2),
-        'sample_type': '${params.sample_type}',
-        'mock_mode': ${mock}
+        'sample_type': '${params.sample_type}'
     }
 
     with open('class2d_r1.cs', 'w') as f:

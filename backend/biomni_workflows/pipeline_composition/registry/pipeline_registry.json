@@ -336,7 +336,7 @@
       }
     },
 
-    "et_full_pipeline": {
+    "cryo_et_full_pipeline": {
       "description": "Full cryo-ET pipeline: tilt series import → alignment (AreTomo2/IMOD) → tomogram reconstruction (WBP/SIRT) → subtomogram averaging. All tilt series processed in parallel.",
       "entrypoint": "nextflow_nfcore/subworkflows/cryo_et/et_full_pipeline/main.nf",
       "sample_class": "et",

@@ -21,6 +21,8 @@ import {
 import type { OutputDataset } from "@shared/schema"
 import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } from "./viewers"
 import { CsvTableViewer } from "./viewers/csv-table-viewer"
+import { StructureViewer } from "./viewers/structure-viewer"
+import { DensityMapViewer } from "./viewers/density-map-viewer"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
 import { emitUxEvent } from "@/lib/ux-telemetry"
@@ -321,6 +323,12 @@ function OutputRenderer({ output, invocationId, onDownload }: OutputRendererProp
       return <SequenceViewer output={output} />
     case 'annotation':
       return <AnnotationViewer output={output} />
+    case 'structure':
+      // PDB / mmCIF / CIF — 3Dmol.js interactive 3D viewer
+      return <StructureViewer output={output} />
+    case 'density_map':
+      // MRC / MAP — orthogonal 2D slice viewer with contrast control
+      return <DensityMapViewer output={output} />
     case 'singlecell':
       return <FileOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     default:

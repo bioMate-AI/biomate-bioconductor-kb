@@ -35,7 +35,6 @@ params.display_components   = null    // which components to display; null = all
 params.subsample_particles  = null    // subsample N particles for faster display
 
 // --- Global ---
-params.mock_mode            = true    // use mock mode for testing
 params.use_cryosparc        = false   // use live CryoSPARC API
 params.outdir               = './results/3d_variability_pipeline'
 
@@ -58,16 +57,11 @@ process THREE_D_VARIABILITY {
     path "variability_component_*.cs",  emit: component_maps
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode      = ${mock}
     num_components = ${params.num_components}
     filter_res     = ${params.filter_res_angstroms}
     num_iterations = ${params.num_iterations}
@@ -82,61 +76,65 @@ process THREE_D_VARIABILITY {
     volume               = volume_data.get('volume', {})
     resolution_angstroms = volume.get('resolution_angstroms', 4.5)
 
-    # Variance explained per component (power-law decay)
-    raw_variances = sorted(
-        [random.uniform(10.0, 40.0) for _ in range(num_components)],
-        reverse=True
-    )
-    norm_factor      = sum(raw_variances) / 100.0
-    variance_explained = [round(v / norm_factor, 2) for v in raw_variances]
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    component_maps = []
-    for comp_idx in range(num_components):
-        comp_filename = f'variability_component_{comp_idx}.cs'
-        comp_data = {
-            'component_idx':          comp_idx,
-            'variance_explained_pct': variance_explained[comp_idx],
-            'resolution_angstroms':   round(filter_res * random.uniform(1.0, 1.5), 2),
-            'amplitude':              round(random.uniform(0.05, 0.30), 4)
-        }
-        with open(comp_filename, 'w') as f:
-            json.dump({'component': comp_data}, f, indent=2)
-        component_maps.append(comp_filename)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    particles_with_latent = []
-    for p in particles:
-        entry = dict(p)
-        entry['latent_coordinates'] = [
-            round(random.gauss(0.0, 1.0), 6) for _ in range(num_components)
-        ]
-        entry['cluster_id'] = None
-        particles_with_latent.append(entry)
+        job = workspace.create_job('var_3D', connections={
+            'particles': ('${params.cryosparc_particles_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_volume_job_uid ?: ""}', 'volume')
+        }, params={
+            'var_num_svd_comp':   num_components,
+            'var_filter_res':     filter_res,
+            'var_num_iterations': num_iterations,
+            'var_cluster_mode':   cluster_mode,
+            'var_num_classes':    num_clusters
+        })
+        job.queue()
+        job.wait_for_done()
+
+        component_maps = []
+        for comp_idx in range(num_components):
+            comp_filename = f'variability_component_{comp_idx}.cs'
+            with open(comp_filename, 'w') as f:
+                json.dump({'component': {'component_idx': comp_idx}}, f, indent=2)
+            component_maps.append(comp_filename)
+
+        particles_out = list(job.load_output('particles'))
+        with open('particles_with_latent.cs', 'w') as f:
+            json.dump({'particles': particles_out, 'num_components': num_components}, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
     report = {
         'step':                              '3d_variability_analysis',
         'timestamp':                         datetime.now().isoformat(),
         'num_components':                    num_components,
         'num_particles':                     num_particles,
-        'variance_explained_per_component':  variance_explained,
-        'total_variance_explained_pct':      round(sum(variance_explained), 2),
         'resolution_angstroms':              resolution_angstroms,
         'filter_resolution_angstroms':       filter_res,
         'num_iterations':                    num_iterations,
         'cluster_mode':                      cluster_mode,
-        'component_map_files':               component_maps,
-        'mock_mode':                         mock_mode
+        'component_map_files':               component_maps
     }
-
-    with open('particles_with_latent.cs', 'w') as f:
-        json.dump({'particles': particles_with_latent, 'num_components': num_components}, f, indent=2)
 
     with open('3dva_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
     print(f"[1/2] 3D Variability Analysis complete")
     print(f"  Particles  : {num_particles}  |  Components: {num_components}")
-    for i, var in enumerate(variance_explained):
-        print(f"    Mode {i}: {var:.1f}%")
     """
 
     stub:
@@ -160,18 +158,13 @@ process THREE_D_VARIABILITY_DISPLAY {
     path "3dva_display_report.json",     emit: report
 
     script:
-    def mock               = params.mock_mode         ? 'True'  : 'False'
     def subsample          = params.subsample_particles ? "${params.subsample_particles}" : 'None'
     def display_components = params.display_components  ? "${params.display_components}"  : 'None'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode          = ${mock}
     num_clusters       = ${params.num_clusters}
     subsample          = ${subsample}
     display_components = ${display_components}
@@ -181,61 +174,51 @@ process THREE_D_VARIABILITY_DISPLAY {
     num_components = latent_data.get('num_components', ${params.num_components})
     num_particles  = len(particles)
 
-    # Optionally subsample
-    if subsample and subsample < num_particles:
-        particles = random.sample(particles, subsample)
-        num_particles = len(particles)
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    # Determine which components to display
-    if display_components is not None:
-        components_to_display = [display_components] if isinstance(display_components, int) else display_components
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job_params = {
+            'num_clusters': num_clusters
+        }
+        if subsample is not None:
+            job_params['subsample_particles'] = subsample
+        if display_components is not None:
+            job_params['display_components'] = display_components
+
+        job = workspace.create_job('var_3D_disp', connections={
+            'particles': ('${params.cryosparc_dva_job_uid ?: ""}', 'particles'),
+            'variability_components': ('${params.cryosparc_dva_job_uid ?: ""}', 'variability_components')
+        }, params=job_params)
+        job.queue()
+        job.wait_for_done()
+
+        clustered_out = list(job.load_output('particles'))
+        with open('clustered_particles.cs', 'w') as f:
+            json.dump({'particles': clustered_out, 'num_clusters': num_clusters}, f, indent=2)
+
+        trajectory_frames = []
+        with open('conformational_trajectory.json', 'w') as f:
+            json.dump({
+                'trajectory': trajectory_frames,
+                'num_frames': num_clusters,
+                'components_shown': list(range(num_components)) if display_components is None else [display_components],
+                'interpolation_mode': '${params.cluster_mode}'
+            }, f, indent=2)
     else:
-        components_to_display = list(range(num_components))
-
-    # ---------------------------------------------------------------
-    # Cluster particles into num_clusters discrete classes using
-    # k-means-like assignment on the first displayed component.
-    # ---------------------------------------------------------------
-    clustered = []
-    class_counts = [0] * num_clusters
-
-    for p in particles:
-        latent = p.get('latent_coordinates', [0.0] * num_components)
-        # Map first latent dimension to cluster index
-        # Latent values ~N(0,1); use linear interpolation across [-3, 3]
-        primary_coord = latent[components_to_display[0]] if latent else 0.0
-        cluster_id = min(int((primary_coord + 3.0) / 6.0 * num_clusters), num_clusters - 1)
-        cluster_id = max(0, cluster_id)
-        entry = dict(p)
-        entry['cluster_id']  = cluster_id
-        entry['cluster_type'] = 'discrete'
-        clustered.append(entry)
-        class_counts[cluster_id] += 1
-
-    # ---------------------------------------------------------------
-    # Build conformational trajectory:
-    # For each cluster (frame), record the "average" 3D density
-    # position along the trajectory.
-    # ---------------------------------------------------------------
-    trajectory_frames = []
-    for frame_idx in range(num_clusters):
-        # Simulate a density map for each frame
-        trajectory_frames.append({
-            'frame_idx':              frame_idx,
-            'num_particles':          class_counts[frame_idx],
-            'fraction_of_total':      round(class_counts[frame_idx] / num_particles, 4),
-            'estimated_resolution_angstroms': round(
-                random.uniform(5.0, 12.0), 2
-            ),
-            'component_positions':    [
-                round(
-                    -3.0 + (frame_idx / (num_clusters - 1)) * 6.0
-                    + random.gauss(0, 0.1), 3
-                )
-                for _ in components_to_display
-            ],
-            'volume_file':            f'frame_{frame_idx:03d}.cs'
-        })
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
     report = {
         'step':                 '3d_variability_display',
@@ -243,30 +226,14 @@ process THREE_D_VARIABILITY_DISPLAY {
         'num_particles_input':  len(latent_data.get('particles', [])),
         'num_particles_used':   num_particles,
         'num_clusters':         num_clusters,
-        'components_displayed': components_to_display,
-        'num_components_total': num_components,
-        'class_population':     class_counts,
-        'mock_mode':            mock_mode
+        'num_components_total': num_components
     }
-
-    with open('clustered_particles.cs', 'w') as f:
-        json.dump({'particles': clustered, 'num_clusters': num_clusters}, f, indent=2)
-
-    with open('conformational_trajectory.json', 'w') as f:
-        json.dump({
-            'trajectory':          trajectory_frames,
-            'num_frames':          num_clusters,
-            'components_shown':    components_to_display,
-            'interpolation_mode': '${params.cluster_mode}'
-        }, f, indent=2)
 
     with open('3dva_display_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
     print(f"[2/2] 3DVA Display complete")
     print(f"  Particles clustered: {num_particles}  |  Classes: {num_clusters}")
-    print(f"  Components shown   : {components_to_display}")
-    print(f"  Trajectory frames  : {num_clusters}")
     """
 
     stub:
@@ -314,33 +281,18 @@ workflow {
     Filter resolution : ${params.filter_res_angstroms} A
     Num clusters      : ${params.num_clusters}
     Cluster mode      : ${params.cluster_mode}
-    Mode              : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
     ====================================================================
     """.stripIndent()
 
     ch_particles = Channel.fromPath(
         params.particles_cs ?: 'particles.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/particles.cs")
-        f.parent.mkdirs()
-        f.text = '{"particles": [' +
-            (1..1000).collect { i ->
-                """{"particle_idx": ${i}, "micrograph_idx": ${i % 200}, """ +
-                """"x_coord": 2000, "y_coord": 2000, "pick_score": 0.88}"""
-            }.join(',') + ']}'
-        f
-    }
+        checkIfExists: true
+    )
 
     ch_volume = Channel.fromPath(
         params.volume_cs ?: 'volume.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/volume.cs")
-        f.parent.mkdirs()
-        f.text = '{"volume": {"resolution_angstroms": 3.5, "symmetry": "C1", "num_particles": 1000}}'
-        f
-    }
+        checkIfExists: true
+    )
 
     THREE_D_VARIABILITY_PIPELINE(ch_particles, ch_volume)
 

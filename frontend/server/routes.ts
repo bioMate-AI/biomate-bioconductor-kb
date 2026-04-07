@@ -3,8 +3,8 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses } from "../shared/schema";
-import type { InsertInviteCode } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema } from "../shared/schema";
+import type { InsertInviteCode, ExecutionRunStatus } from "../shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
@@ -66,6 +66,16 @@ const galaxyAPIBackend = new GalaxyAPIProxy(); // Real Galaxy API for all operat
 const galaxyAPIProxy = galaxyAPIBackend; // Alias for consistency
 const tokenCounter = new TokenCounter();
 
+/**
+ * Returns a GalaxyAPIProxy scoped to the authenticated user's own Galaxy API key.
+ * Falls back to the shared admin proxy if the user has no personal key yet
+ * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
+ */
+function userProxy(req: express.Request): GalaxyAPIProxy {
+  const userApiKey = (req.user as any)?.galaxyApiKey as string | null | undefined;
+  return galaxyAPIBackend.forUser(userApiKey);
+}
+
 // Initialize state poller and SSE manager
 const galaxyPoller = createPoller(galaxyAPIBackend, { pollInterval: 2000 });
 const sseManager = new WorkflowSSEManager(galaxyPoller);
@@ -121,6 +131,33 @@ function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' {
 
   // Default to Nextflow (as per integration plan)
   return 'nextflow';
+}
+
+/**
+ * Validate and normalize a raw status string to a valid ExecutionRunStatus.
+ * Any value not in the enum is mapped to a safe equivalent and logged.
+ * This prevents invalid strings like 'error', 'ok', 'succeeded' from reaching the DB.
+ */
+function toValidRunStatus(raw: string | undefined | null): ExecutionRunStatus {
+  if (!raw) return 'failed';
+  const parsed = executionRunStatusSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+  // Map known external status names to canonical values
+  const mapping: Record<string, ExecutionRunStatus> = {
+    ok: 'completed',
+    succeeded: 'completed',
+    success: 'completed',
+    error: 'failed',
+    errored: 'failed',
+    aborted: 'cancelled',
+    stopped: 'cancelled',
+    scheduled: 'queued',
+    pending: 'queued',
+  };
+  const mapped = mapping[raw.toLowerCase()];
+  if (mapped) return mapped;
+  console.error(`[Status] Unknown status "${raw}" — mapping to "failed"`);
+  return 'failed';
 }
 
 type AutofixLifecycleState =
@@ -432,9 +469,9 @@ galaxyPoller.on('workflow_completed', async (data: { invocation_id: string; stat
     if (executionRun) {
       // Map Galaxy 'ok'/'scheduled' → 'completed' (consistent with Nextflow promotion).
       // Never downgrade an already-promoted 'completed' status.
-      const desiredStatus = data.state === 'ok' || data.state === 'scheduled' ? 'completed' : 'error';
-      const finalStatus = executionRun.execution?.status === 'completed' ? 'completed' : desiredStatus;
-      await storage.updateExecutionRunStatus(executionRun.id, finalStatus as any);
+      const desiredStatus = toValidRunStatus(data.state === 'ok' || data.state === 'scheduled' ? 'completed' : data.state);
+      const finalStatus: ExecutionRunStatus = executionRun.execution?.status === 'completed' ? 'completed' : desiredStatus;
+      await storage.updateExecutionRunStatus(executionRun.id, finalStatus);
       // Update progress to 100% — completedSteps == totalSteps, currentStepIndex == totalSteps - 1
       const totalSteps = executionRun.progress.totalSteps || 1;
       await storage.updateExecutionRunProgress(
@@ -881,6 +918,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Telemetry] Failed to fetch summary:", error);
       res.status(500).json({ error: "TelemetrySummaryError", message: error?.message || String(error) });
+    }
+  });
+
+  app.get("/api/telemetry/cost-summary", async (req, res) => {
+    try {
+      const { from, to } = req.query as { from?: string; to?: string };
+      const summary = await telemetryService.getCostSummary({ from, to });
+      res.json(summary);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -2076,7 +2123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           // Create a new history for this session
           const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-          historyId = await galaxyAPIProxy.createHistory(sessionName);
+          historyId = await userProxy(req).createHistory(sessionName);
           if (req.session) {
             req.session.galaxyHistoryId = historyId;
           }
@@ -2091,7 +2138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let galaxyDatasetId: string | undefined;
       if (historyId) {
         try {
-          galaxyDatasetId = await galaxyAPIProxy.uploadDataset(
+          galaxyDatasetId = await userProxy(req).uploadDataset(
             file.path,
             historyId,
             file.originalname
@@ -2115,6 +2162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: description,
           file_type: file.mimetype,
           file_size: file.size,
+          file_path: file.path,  // local path — Nextflow executor can read this directly
         });
       }
 
@@ -2168,7 +2216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!historyId) {
         try {
           const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-          historyId = await galaxyAPIProxy.createHistory(sessionName);
+          historyId = await userProxy(req).createHistory(sessionName);
           if (req.session) {
             req.session.galaxyHistoryId = historyId;
           }
@@ -2185,7 +2233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use Galaxy's URL fetch capability
       try {
         const datasetId = uuidv4();
-        const galaxyDatasetId = await galaxyAPIProxy.uploadFromUrl(
+        const galaxyDatasetId = await userProxy(req).uploadFromUrl(
           url,
           historyId,
           filename || url.split('/').pop() || 'imported-file'
@@ -2205,6 +2253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             description: `Imported from URL: ${url}`,
             file_type: 'auto',
             file_size: 0, // Size unknown until Galaxy fetches it
+            source_url: url,  // Nextflow can fetch HTTP/S3 URLs directly
           });
         }
 
@@ -2311,6 +2360,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Return session datasets with resolved paths for the parameter browser
+  app.get("/api/datasets/session", authenticateToken, async (req, res) => {
+    const raw: any[] = req.session?.uploadedDatasets || [];
+    const datasets = raw.map((d: any) => ({
+      id: d.dataset_id,
+      galaxy_dataset_id: d.galaxy_dataset_id,
+      name: d.name,
+      file_type: d.file_type,
+      file_size: d.file_size,
+      // file_path: local absolute path usable by Nextflow executor on the same host
+      file_path: d.file_path || null,
+      // source_url: for URL imports — Nextflow can fetch http/https/s3 directly
+      source_url: d.source_url || null,
+    }));
+    res.json({ datasets });
+  });
+
+  // Resolve a Galaxy dataset to a local path the Nextflow executor can use.
+  // Downloads the dataset into the uploads dir on first call; subsequent calls
+  // return the cached path so Nextflow can read it from disk.
+  app.get("/api/galaxy/datasets/:datasetId/resolve", authenticateToken, async (req, res) => {
+    const { datasetId } = req.params;
+    try {
+      // First check session — maybe we already have the local path
+      const session: any[] = req.session?.uploadedDatasets || [];
+      const cached = session.find((d: any) => d.galaxy_dataset_id === datasetId);
+      if (cached?.file_path) {
+        return res.json({ file_path: cached.file_path, name: cached.name });
+      }
+
+      // Fetch dataset metadata from Galaxy (raw Galaxy API, not BioMNI curated index)
+      const meta = await userProxy(req).getDatasetMetadata(datasetId);
+      if (!meta) {
+        return res.status(404).json({ error: 'Dataset not found in Galaxy' });
+      }
+
+      // Download via Galaxy streaming download endpoint into the local upload dir
+      const ext = meta.extension ? `.${meta.extension}` : '';
+      const localName = `${datasetId}${ext}`;
+      const localPath = path.join(uploadDir, localName);
+
+      // Only download if not already on disk
+      const localFs = await fs.access(localPath).then(() => true).catch(() => false);
+      if (!localFs) {
+        const stream = await userProxy(req).downloadDataset(datasetId);
+        if (!stream) {
+          return res.status(502).json({ error: 'Galaxy did not return a download stream' });
+        }
+        const { createWriteStream } = await import('fs');
+        await new Promise<void>((resolve, reject) => {
+          const out = createWriteStream(localPath);
+          stream.pipe(out);
+          out.on('finish', resolve);
+          out.on('error', reject);
+        });
+      }
+
+      // Cache in session
+      if (req.session) {
+        if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
+        const existing = (req.session.uploadedDatasets as any[]).find((d: any) => d.galaxy_dataset_id === datasetId);
+        if (!existing) {
+          (req.session.uploadedDatasets as any[]).push({
+            dataset_id: datasetId,
+            galaxy_dataset_id: datasetId,
+            description: '',
+            name: meta.name || localName,
+            file_type: (meta.extension as string) || 'unknown',
+            file_size: (meta.file_size as number) || 0,
+            file_path: localPath,
+          });
+        } else {
+          existing.file_path = localPath;
+        }
+      }
+
+      res.json({ file_path: localPath, name: meta.name || localName });
+    } catch (err: any) {
+      console.error('[DatasetResolve] Error:', err.message);
+      res.status(500).json({ error: err.message || 'Failed to resolve dataset' });
+    }
+  });
+
   // Step execution endpoint for step-by-step mode
   app.post("/api/workflow/step/execute", async (req, res) => {
     try {
@@ -2332,7 +2464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[StepExecution] Executing step ${step_id} with tool ${tool_id} in history ${historyId}`);
 
       // Submit tool job to Galaxy
-      const job = await galaxyAPIProxy.submitToolJob(tool_id, {
+      const job = await userProxy(req).submitToolJob(tool_id, {
         ...parameters,
         ...inputs
       }, historyId);
@@ -2585,7 +2717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('[InvokeWorkflow] Invoking workflow:', workflow_id, 'with params:', invokeParams);
 
-      const invocation = await galaxyAPIBackend.invokeWorkflow(workflow_id, inputs, invokeParams);
+      const invocation = await userProxy(req).invokeWorkflow(workflow_id, inputs, invokeParams);
       let workflowNameForNotification = 'Workflow';
 
       // Log successful invocation
@@ -2902,584 +3034,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chat endpoint with Galaxy Assistant integration
-  app.post("/api/chat", optionalAuth, async (req, res) => {
-    const requestStartTime = Date.now();
-    const timings: { step: string; elapsed: number }[] = [];
-    const addTiming = (step: string) => {
-      timings.push({ step, elapsed: Date.now() - requestStartTime });
-      console.log(`[Chat API] [${Date.now() - requestStartTime}ms] ${step}`);
-    };
-
-    try {
-      addTiming('Request received');
-      const { message, context } = req.body;
-
-      if (!message) {
-        addTiming('Error: Message missing');
-        return res.status(400).json({ error: "Message is required" });
-      }
-
-      if (!galaxyAssistant) {
-        addTiming('Error: Galaxy Assistant not available');
-        return res.status(503).json({
-          error: "Galaxy Assistant not available. ANTHROPIC_API_KEY is not configured."
-        });
-      }
-
-      addTiming('Validation passed');
-      console.log('[Chat API] Processing message with Galaxy Assistant:', message);
-
-      // ----------------------------------------------------------------
-      // Conversation State: Load persisted state (pre-compaction flush)
-      // ----------------------------------------------------------------
-      const sessionId = context?.memorySessionId || context?.sessionId;
-      let convState: ConversationState | undefined;
-
-      if (sessionId) {
-        convState = await conversationStateManager.loadState(sessionId);
-        convState.currentTurn += 1;
-
-        // Check if this message answers a pending clarification
-        const resolvedClarification = conversationStateManager.resolveClarifications(convState, message);
-        if (resolvedClarification) {
-          addTiming(`Clarification resolved: ${resolvedClarification.type}`);
-        }
-      }
-
-      // Check if memory integration should be used
-      const useMemory = memoryIntegration && (context?.memorySessionId || context?.projectId);
-      let assistantResponse;
-      let episodeId: number | undefined;
-
-      // Build enriched context for the LLM — pass accumulated facts so it can
-      // decide supersession, and turnIndex so facts get the right timestamp
-      const enrichedContext = {
-        ...(context || {}),
-        turnIndex: convState?.currentTurn,
-        accumulatedFacts: convState
-          ? conversationStateManager.getActiveFacts(convState).map(f => ({
-              id: f.id,
-              category: f.category,
-              value: f.value,
-            }))
-          : undefined,
-        // Billing: pass authenticated user id so the Python backend can track LLM costs
-        billingUserId: req.user ? String(req.user.id) : undefined,
-      };
-
-      addTiming('Starting AI processing');
-
-      if (useMemory) {
-        // Process with memory enhancement
-        addTiming('Using memory-enhanced processing');
-        const memoryResponse = await memoryIntegration!.processWithMemory(message, context as MemoryEnhancedContext);
-        assistantResponse = memoryResponse;
-        episodeId = memoryResponse.episodeId;
-        addTiming('Memory processing complete');
-      } else {
-        // Standard processing without memory
-        addTiming('Using standard processing');
-        assistantResponse = await galaxyAssistant.processMessage(message, enrichedContext);
-        addTiming('Standard processing complete');
-      }
-
-      // ----------------------------------------------------------------
-      // Conversation State: Update with extracted facts and intent
-      // ----------------------------------------------------------------
-      if (convState) {
-        // Update intent from assistant response
-        if (assistantResponse.intentType) {
-          conversationStateManager.updateIntent(
-            convState,
-            assistantResponse.intentType,
-            assistantResponse.intentConfidence || 0.8,
-          );
-        }
-
-        // Add extracted facts (turnIndex already set via enrichedContext)
-        if (assistantResponse.extractedFacts && assistantResponse.extractedFacts.length > 0) {
-          conversationStateManager.addFacts(convState, assistantResponse.extractedFacts);
-        } else if (assistantResponse.inlineParameters) {
-          // Backwards compatibility: convert inlineParameters to facts
-          const facts = Object.entries(assistantResponse.inlineParameters).map(([key, value]) =>
-            conversationStateManager.createFact(
-              key as any,
-              String(value),
-              convState!.currentTurn,
-            )
-          );
-          conversationStateManager.addFacts(convState, facts);
-        }
-
-        // Recommendations update removed
-
-        // Update phase if workflow was generated
-        if (assistantResponse.generatedWorkflow) {
-          convState.phase = 'generated';
-        }
-
-        // Track workflow steps in ConversationState for pipeline output→input wiring.
-        // When the AI returns a generated workflow, record it as a step so subsequent
-        // chained workflows can check type compatibility against it.
-        if (assistantResponse.generatedWorkflow && convState) {
-          const wf = assistantResponse.generatedWorkflow as any;
-          const workflowName: string = wf?.name || wf?.workflowName || wf?.nextflow_path || '';
-          if (workflowName) {
-            // Fetch type info from backend (fire-and-forget, don't block response)
-            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-            fetch(`${galaxyUrl}/api/workflows/${encodeURIComponent(workflowName)}/types`, {
-              signal: AbortSignal.timeout(3000),
-            })
-              .then(r => r.ok ? r.json() : null)
-              .then((typeInfo: any) => {
-                if (!typeInfo) return;
-                conversationStateManager.addWorkflowStep(convState!, {
-                  workflowId: String(wf?.id || ''),
-                  workflowName,
-                  domain: wf?.domain || typeInfo?.domain || 'general',
-                  inputTypes: typeInfo?.input_types ?? [],
-                  outputTypes: typeInfo?.output_types ?? [],
-                  status: 'planned',
-                  turnIndex: convState!.currentTurn,
-                });
-                conversationStateManager.saveState(convState!).catch(() => {});
-              })
-              .catch(() => {});
-          }
-        }
-
-        // Create task arcs for multi-intent responses
-        if (assistantResponse.isMultiIntent && assistantResponse.subIntentResults) {
-          conversationStateManager.createTaskArcs(convState,
-            assistantResponse.subIntentResults.map(r => ({
-              id: r.intentId,
-              type: r.intentType,
-              subQuery: r.subQuery,
-              facts: [],
-              dependsOn: [],
-            }))
-          );
-          // Update arc statuses based on results
-          for (const result of assistantResponse.subIntentResults) {
-            conversationStateManager.updateTaskArc(convState, result.intentId, {
-              status: result.status === 'success' ? 'completed' : 'failed',
-              resultSummary: result.message?.substring(0, 200),
-            });
-          }
-        }
-
-        // Evaluate readiness
-        conversationStateManager.evaluateReadiness(convState);
-
-        // Save state (pre-compaction flush — persists every turn)
-        await conversationStateManager.saveState(convState);
-
-        // Persist current turn's facts to the facts table for cross-session analysis
-        await conversationStateManager.persistFacts(convState);
-
-        // Periodic consolidation: every 10 turns, compact facts and intent history
-        if (convState.currentTurn > 0 && convState.currentTurn % 10 === 0) {
-          conversationStateManager.consolidateFacts(convState);
-          conversationStateManager.compactIntentHistory(convState);
-          await conversationStateManager.saveState(convState);
-        }
-
-        // Doom loop detection: check every turn
-        const doomLoop = conversationStateManager.detectDoomLoop(convState);
-        if (doomLoop.detected) {
-          console.log(`[Chat API] Doom loop detected: ${doomLoop.intentType} repeated ${doomLoop.occurrences} times`);
-        }
-
-        addTiming('Conversation state saved');
-      }
-
-      console.log('[Chat API] Galaxy Assistant response:', {
-        toolSearchUsed: assistantResponse.sources.toolSearchUsed,
-        datasetRAGUsed: assistantResponse.sources.datasetRAGUsed,
-        workflowGenerated: assistantResponse.sources.workflowGenerated,
-        thinkingUsed: assistantResponse.sources.thinkingUsed,
-        toolsFound: assistantResponse.recommendedTools?.length || 0,
-        datasetsFound: assistantResponse.recommendedDatasets?.length || 0,
-        memoryUsed: useMemory,
-        episodeId,
-      });
-
-      // If workflow was generated, validate prerequisites
-      let prerequisitesValidation = null;
-      if (assistantResponse.generatedWorkflow && prerequisitesValidator) {
-        try {
-          console.log('[Chat API] Validating workflow prerequisites...');
-          prerequisitesValidation = await prerequisitesValidator.validate({
-            workflowDefinition: assistantResponse.generatedWorkflow,
-            historyId: context?.historyId,
-            userContext: message, // Use original message as context
-          });
-          console.log('[Chat API] Prerequisites validation:', {
-            fulfilled: prerequisitesValidation.fulfilled,
-            missingInputs: prerequisitesValidation.analysis.missingInputs.length,
-            missingParams: prerequisitesValidation.analysis.missingParameters.length,
-          });
-        } catch (validationError: any) {
-          console.error('[Chat API] Prerequisites validation failed:', validationError.message);
-          // Non-fatal - continue without validation
-        }
-      }
-
-      // Domain-fit guardrail: block execution when generated tools are clearly off-domain.
-      const requestTextLower = (message || '').toLowerCase();
-      const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
-        String(message || "")
-      );
-      const requestedWesLike =
-        requestTextLower.includes('whole-exome') ||
-        requestTextLower.includes('whole exome') ||
-        /\bwes\b/.test(requestTextLower) ||
-        requestTextLower.includes('tumor-normal') ||
-        requestTextLower.includes('tumor normal');
-      const toolText = (assistantResponse.recommendedTools || [])
-        .map((t: any) => `${t?.tool?.name || ''} ${t?.tool?.tool_id || ''} ${t?.tool?.category || ''}`.toLowerCase())
-        .join(' ');
-      const hasWesPreferredSignals =
-        /picard|samtools|qualimap|mosdepth|bcftools|gatk|bamqc/.test(toolText);
-      const hasMicrobiomeSignals =
-        /qiime|microbiome|metagenom|16s/.test(toolText);
-      const selfReportedMismatch =
-        /not (the )?ideal match|aren't (the )?ideal match|not ideal for/.test(
-          (assistantResponse.message || '').toLowerCase()
-        );
-
-      const domainGuard =
-        (requestedWesLike && hasMicrobiomeSignals && !hasWesPreferredSignals) || selfReportedMismatch
-          ? {
-              blocked: true,
-              reason:
-                "Generated workflow appears domain-mismatched for your request. Please regenerate with domain-specific constraints before execution.",
-              detectedDomain: requestedWesLike ? "wes_qc" : "general",
-            }
-          : {
-              blocked: false,
-              reason: null,
-              detectedDomain: requestedWesLike ? "wes_qc" : "unspecified",
-            };
-
-      const prereqRecoveryRequested =
-        requestTextLower.includes("prepare runnable demo inputs") ||
-        requestTextLower.includes("sample/test inputs") ||
-        requestTextLower.includes("sample data") ||
-        requestTextLower.includes("test data");
-      const missingInputCount =
-        Array.isArray(prerequisitesValidation?.analysis?.missingInputs)
-          ? prerequisitesValidation.analysis.missingInputs.length
-          : 0;
-      const missingParamCount =
-        Array.isArray(prerequisitesValidation?.analysis?.missingParameters)
-          ? prerequisitesValidation.analysis.missingParameters.length
-          : 0;
-      // Trust the user's explicit recovery request unconditionally — approve whenever they
-      // clicked the recovery button. No need to check whether a new workflow was generated.
-      const prereqRecoveryApproved = prereqRecoveryRequested;
-      const prereqRecovery = {
-        requested: prereqRecoveryRequested,
-        approved: prereqRecoveryApproved,
-        reason: prereqRecoveryApproved
-          ? "Recovery mode approved: allow runnable demo/sample path while inputs are unresolved."
-          : null,
-      };
-
-      const workflowPayload = assistantResponse.generatedWorkflow;
-      const runnableWorkflow = !!(
-        workflowPayload?.success &&
-        !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
-      );
-      const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
-      const unresolvedWorkflowState = !runnableWorkflow;
-      const workflowGenerationDiagnostics = (() => {
-        if (!workflowGenerationFailed) return null;
-
-        const reasonText = String(workflowPayload?.error || workflowPayload?.message || "").toLowerCase();
-        const likelyReasons: string[] = [];
-        const recommendedActions: string[] = [];
-        const followUpQuestions: string[] = [];
-        const suggestionConfidence = Number(assistantResponse.workflowSuggestion?.confidence || 0);
-
-        if (domainGuard.blocked) {
-          likelyReasons.push("The generated candidate appears domain-mismatched for your request.");
-          recommendedActions.push("Regenerate with explicit domain constraints and required tool families.");
-        }
-        if (/timeout|timed out|deadline|temporar/.test(reasonText)) {
-          likelyReasons.push("Upstream workflow generation timed out or an upstream service was temporarily unavailable.");
-          recommendedActions.push("Retry generation with a narrower workflow scope (fewer stages) first.");
-        }
-        if (/auth|forbidden|permission|unauthor|401|403/.test(reasonText)) {
-          likelyReasons.push("Generation hit an authentication/permission boundary in a dependent service.");
-          recommendedActions.push("Confirm service credentials and retry after auth context is refreshed.");
-        }
-        if (/tool|runtime|install|dependency/.test(reasonText)) {
-          likelyReasons.push("Tool/runtime constraints prevented assembling a runnable workflow.");
-          recommendedActions.push("Constrain to currently available tools and rerun generation.");
-        }
-        if ((assistantResponse.recommendedTools?.length || 0) === 0) {
-          likelyReasons.push("No strong tool matches were found for the current request phrasing.");
-          recommendedActions.push("Provide required method/tool hints (must-use or must-avoid) to improve ranking.");
-        }
-        if (suggestionConfidence > 0 && suggestionConfidence < 0.7) {
-          likelyReasons.push("Intent-to-workflow confidence is low; requirements may still be underspecified.");
-          recommendedActions.push("Clarify organism/data type/input format/desired outputs before regenerating.");
-        }
-        if (prereqRecoveryRequested && missingInputCount > 0) {
-          likelyReasons.push("The candidate workflow requires inputs that are not currently available in context.");
-          recommendedActions.push("Use sample/test inputs first, then swap to real datasets once validated.");
-        }
-        if (likelyReasons.length === 0) {
-          likelyReasons.push("The generation pipeline returned a non-runnable candidate due to unmet constraints.");
-          recommendedActions.push("Regenerate with stricter constraints and explicit required outputs.");
-        }
-
-        followUpQuestions.push(
-          "What exact input data do you already have (format + example filenames)?",
-          "Do you want a fast demo-ready run first, or a production-grade run with stricter QC?",
-          "Any required tools/runtimes to include or avoid?"
-        );
-
-        return {
-          failed: true,
-          likelyReasons,
-          recommendedActions,
-          followUpQuestions,
-          processOutputs: {
-            error: workflowPayload?.error || null,
-            message: workflowPayload?.message || null,
-            source: workflowPayload?.source || null,
-            confidence: workflowPayload?.confidence ?? null,
-            templateMatchScore: workflowPayload?.template_match_score ?? null,
-            toolCount: assistantResponse.recommendedTools?.length || 0,
-            datasetCount: assistantResponse.recommendedDatasets?.length || 0,
-            domainGuard: domainGuard.blocked ? domainGuard.reason : null,
-          },
-        };
-      })();
-
-      let assistantMessage = String(assistantResponse.message || "");
-      const shouldApplyTruthfulnessGuard =
-        isDrugDevelopmentQuery &&
-        (unresolvedWorkflowState || /partial workflow|incomplete|only one/i.test(assistantMessage));
-      if (shouldApplyTruthfulnessGuard) {
-        // UX truthfulness guard: never claim a runnable workflow when payload is unresolved.
-        const overPromisedRunnable =
-          /runnable workflow has been generated|workflow has been generated and is technically|is ready for execution|ready to execute|click\s*"?run"?\s*to launch/i.test(
-            assistantMessage
-          );
-        if (overPromisedRunnable) {
-          assistantMessage = assistantMessage.replace(
-            /runnable workflow has been generated/gi,
-            "candidate workflow was drafted but execution payload is not yet runnable"
-          );
-          assistantMessage = assistantMessage.replace(
-            /workflow has been generated and is technically/gi,
-            "candidate workflow was drafted but is only partially validated and not guaranteed executable in this response"
-          );
-          assistantMessage = assistantMessage.replace(
-            /is ready for execution/gi,
-            "is currently not executable in this response"
-          );
-          assistantMessage = assistantMessage.replace(
-            /ready to execute/gi,
-            "not yet safe to execute end-to-end"
-          );
-          assistantMessage = assistantMessage.replace(
-            /click\s*"?run"?\s*to launch[^.\n]*/gi,
-            "confirm inputs and regenerate a runnable workflow"
-          );
-        }
-        if (!/workflow generation is currently unavailable|recovery plan|suggested next actions/i.test(assistantMessage)) {
-          assistantMessage = `Workflow generation is currently unavailable for immediate execution.\nRecovery Plan: confirm priority stage, provide minimal input examples, and regenerate.\n\n${assistantMessage}`;
-        }
-      }
-      if (workflowGenerationDiagnostics && !assistantMessage.includes("To unblock this quickly")) {
-        assistantMessage += `\n\nTo unblock this quickly, please confirm:\n- ${workflowGenerationDiagnostics.followUpQuestions.join("\n- ")}`;
-      }
-
-      // Format response for frontend
-      addTiming('Sending response');
-      const suggestions = generateSuggestions(
-        String(assistantResponse.message || ""),
-        String(message || "")
-      );
-
-      // Persist chat cost estimate for end-to-end process auditing.
-      // This is an approximation based on local token counting heuristics.
-      try {
-        const inCount = tokenCounter.countText(String(message || "")).tokens;
-        const outCount = tokenCounter.countText(String(assistantResponse.message || "")).tokens;
-        const pricing = tokenCounter.estimateCost([
-          { role: "user", content: String(message || "") },
-          { role: "assistant", content: String(assistantResponse.message || "") },
-        ]);
-        const estimatedCostUsd = Number((pricing.total || 0).toFixed(8));
-        const sessionId = String(context?.memorySessionId || context?.sessionId || "");
-        const runId = String(context?.runId || context?.executionRunId || "");
-        const invocationId = String(context?.invocationId || "");
-
-        telemetryService
-          .create("cost.chat.estimated", new Date(), {
-            userId: req.user ? String(req.user.id) : "anonymous",
-            sessionId: sessionId || undefined,
-            runId: runId || undefined,
-            invocationId: invocationId || undefined,
-            provider: "anthropic",
-            model: galaxyAssistant?.getModelConfig().responseModel || "claude-sonnet-4-6",
-            inputTokensEstimated: inCount,
-            outputTokensEstimated: outCount,
-            estimatedCostUsd,
-            estimationMethod: "token_counter_heuristic",
-          })
-          .catch((error) => {
-            console.warn("[CostAudit] Failed to persist chat cost estimate:", error?.message || error);
-          });
-
-        // Emit LLM cost event to Galaxy billing backend → Lago (fire-and-forget)
-        if (req.user) {
-          const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-          const billingKey = process.env.BILLING_INTERNAL_KEY;
-          if (billingKey) {
-            fetch(`${galaxyUrl}/internal/billing/llm_cost`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Internal-Key': billingKey,
-              },
-              body: JSON.stringify({
-                user_id: String(req.user.id),
-                session_id: sessionId || `chat-${Date.now()}`,
-                model: galaxyAssistant?.getModelConfig().responseModel || 'claude-sonnet-4-6',
-                input_tokens: inCount,
-                output_tokens: outCount,
-                duration_ms: 0,
-              }),
-              signal: AbortSignal.timeout(5000),
-            }).catch((err: any) => {
-              console.warn('[Billing] llm_cost emission failed:', err?.message || err);
-            });
-          }
-        }
-      } catch (costError: any) {
-        console.warn("[CostAudit] Failed to estimate chat cost:", costError?.message || costError);
-      }
-
-      res.json({
-        response: assistantMessage,
-        suggestions,
-        workflow: assistantResponse.generatedWorkflow,
-
-        // Pre-execution validation (if workflow was generated)
-        prerequisitesValidation,
-
-        // Thinking mode support
-        thinking_content: assistantResponse.thinking_content,
-        thinking_level: assistantResponse.thinking_level,
-
-        // Memory tracking
-        episodeId,
-
-        // Additional metadata for UI enhancement
-        metadata: {
-          intentType: assistantResponse.intentType,
-          inlineParameters: assistantResponse.inlineParameters,
-          workflowSuggestion: assistantResponse.workflowSuggestion,
-          sources: assistantResponse.sources,
-          memoryUsed: useMemory,
-          domainGuard,
-          prereqRecovery,
-          workflowGenerationDiagnostics,
-        },
-
-        // Multi-intent results
-        subIntentResults: assistantResponse.subIntentResults,
-        isMultiIntent: assistantResponse.isMultiIntent || false,
-
-        // Research and benchmark results (for specialized rendering)
-        researchResponse: assistantResponse.researchResponse,
-        benchmarkEvidence: assistantResponse.benchmarkEvidence,
-
-        // Conversation state snapshot for UI transparency
-        stateSnapshot: convState ? {
-          phase: convState.phase,
-          factCount: conversationStateManager.getActiveFacts(convState).length,
-          readinessScore: convState.readiness.score,
-          missingRequired: convState.readiness.missingRequired,
-          intentType: convState.intent.primaryType,
-          intentConfidence: convState.intent.confidence,
-          taskArcs: convState.taskArcs?.map(a => ({
-            id: a.id, intentType: a.intentType, status: a.status,
-          })),
-          doomLoop: (() => {
-            const dl = conversationStateManager.detectDoomLoop(convState);
-            return dl.detected ? { suggestion: dl.suggestion } : undefined;
-          })(),
-          // Pipeline chain state — surfaces type compatibility warnings to UI
-          pipelineSteps: convState.workflowSteps?.map(s => ({
-            stepIndex: s.stepIndex,
-            workflowName: s.workflowName,
-            status: s.status,
-            inputTypes: s.inputTypes,
-            outputTypes: s.outputTypes,
-            warnings: s.compatibilityWarnings,
-          })) ?? [],
-          pipelineWarnings: conversationStateManager.getPipelineWarnings(convState),
-        } : undefined,
-
-        // Clarification request (if system needs user input or doom loop detected)
-        clarification: (() => {
-          // Doom loop clarification takes priority if no pending clarifications
-          const pending = convState?.pendingClarifications.find(c => c.status === 'pending');
-          if (pending) {
-            return { id: pending.id, question: pending.question, options: pending.options, type: pending.type };
-          }
-          if (convState) {
-            const dl = conversationStateManager.detectDoomLoop(convState);
-            if (dl.detected && dl.suggestion) {
-              return { id: 'doom_loop', question: dl.suggestion, type: 'ambiguous_intent' as const };
-            }
-          }
-          return undefined;
-        })(),
-
-        // Debug: Include timings
-        _debug_timings: timings,
-      });
-      addTiming('Response sent');
-
-    } catch (error: any) {
-      addTiming(`Error: ${error.message}`);
-      console.error("Chat API error:", error);
-
-      // Track AI assistant errors for error-rate dashboard
-      telemetryService.create('ai_assistant_error', new Date(), {
-        error: (error as Error).message?.slice(0, 200),
-        path: req.path,
-      }).catch(() => {});
-
-      // Fallback response
-      const fallbackResponse = "I'm here to help you with bioinformatics analysis! What kind of data or workflow would you like to work on?";
-
-      res.json({
-        response: fallbackResponse,
-        suggestions: generateSuggestions(fallbackResponse, String(req.body?.message || "")),
-        workflow: null,
-        metadata: {
-          error: error.message,
-        },
-      });
-    }
-  });
-
   // Streaming chat endpoint (SSE) for token-level response updates
   app.post("/api/chat/stream", optionalAuth, async (req, res) => {
-    const sendEvent = (event: string, data: Record<string, any>) => {
-      res.write(`event: ${event}\n`);
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    const abortController = new AbortController();
+    req.on('close', () => abortController.abort());
+
+    let heartbeatTimer: NodeJS.Timeout | null = null;
+
+    const safeSend = (event: string, data: unknown): void => {
+      if (res.writableEnded || abortController.signal.aborted) return;
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
     try {
@@ -3501,17 +3065,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader("X-Accel-Buffering", "no");
       res.flushHeaders?.();
 
-      sendEvent("ready", { ok: true });
+      heartbeatTimer = setInterval(() => {
+        if (!res.writableEnded && !abortController.signal.aborted) {
+          res.write(': heartbeat\n\n');
+        }
+      }, 10_000);
+
+      safeSend("ready", { ok: true });
 
       const enrichedContext = {
         ...(context || {}),
         billingUserId: req.user ? String(req.user.id) : undefined,
+        // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
+        sessionDatasets: req.session?.uploadedDatasets?.length
+          ? req.session.uploadedDatasets.map((d: any) => ({
+              id: d.galaxy_dataset_id || d.dataset_id,
+              name: d.name,
+              type: d.file_type || 'unknown',
+            }))
+          : undefined,
       };
 
       const assistantResponse = await galaxyAssistant.processMessage(
         String(message),
         enrichedContext,
-        (chunk) => sendEvent("delta", { text: chunk })
+        (chunk) => safeSend("delta", { text: chunk }),
+        (event) => safeSend("tool_event", event)
       );
 
       let prerequisitesValidation = null;
@@ -3536,40 +3115,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const runnableWorkflow = !!(
         workflowPayload?.success &&
         !workflowPayload?.error &&
-        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path)
+        (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path ||
+         workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name)
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
-      const unresolvedWorkflowState = !runnableWorkflow;
-      const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
-        String(message || "")
-      );
 
       const workflowGenerationDiagnostics = (() => {
-        if (!unresolvedWorkflowState || !isDrugDevelopmentQuery) return null;
+        if (!workflowGenerationFailed) return null;
         const likelyReasons: string[] = [];
         const recommendedActions: string[] = [];
-        const followUpQuestions: string[] = [];
-        const errorText = `${workflowPayload?.error || ""} ${workflowPayload?.message || ""}`.toLowerCase();
+        const reasonText = String(workflowPayload?.error || workflowPayload?.message || "").toLowerCase();
+        const suggestionConfidence = Number(assistantResponse.workflowSuggestion?.confidence || 0);
 
-        likelyReasons.push("Tool gap: one or more required capabilities are unavailable for this exact request.");
-        likelyReasons.push("Input gap: required datasets/metadata are missing for immediate execution.");
-        if (/domain|mismatch|alignment|incompatible/.test(errorText)) {
-          likelyReasons.push("Domain mismatch: requested stages span incompatible domains and should be split into staged workflows.");
+        if (/timeout|timed out|deadline|temporar/.test(reasonText)) {
+          likelyReasons.push("Upstream workflow generation timed out or a dependent service was temporarily unavailable.");
+          recommendedActions.push("Retry generation with a narrower workflow scope (fewer stages) first.");
         }
-
-        recommendedActions.push("Confirm a priority stage (docking, ADMET, or PK/NCA), then build and validate that stage first.");
-        recommendedActions.push("Provide minimal required inputs (format + example filenames), then regenerate.");
-        recommendedActions.push("Define at least one decision gate (risk cutoff/threshold) for go-no-go filtering.");
-
-        followUpQuestions.push("Which stage is highest priority right now: docking, ADMET, or PK/NCA?");
-        followUpQuestions.push("What input files do you currently have (format and example filenames)?");
-        followUpQuestions.push("What cutoff/threshold should be used as your decision gate?");
+        if (/auth|forbidden|permission|unauthor|401|403/.test(reasonText)) {
+          likelyReasons.push("Generation hit an authentication/permission boundary in a dependent service.");
+          recommendedActions.push("Confirm service credentials and retry after auth context is refreshed.");
+        }
+        if (/tool|runtime|install|dependency/.test(reasonText)) {
+          likelyReasons.push("Tool/runtime constraints prevented assembling a runnable workflow.");
+          recommendedActions.push("Constrain to currently available tools and rerun generation.");
+        }
+        if (/domain|mismatch|alignment|incompatible/.test(reasonText)) {
+          likelyReasons.push("Domain mismatch: requested stages span incompatible domains and should be split into staged workflows.");
+          recommendedActions.push("Regenerate with explicit domain constraints and required tool families.");
+        }
+        if ((assistantResponse.recommendedTools?.length || 0) === 0) {
+          likelyReasons.push("No strong tool matches were found for the current request phrasing.");
+          recommendedActions.push("Provide required method/tool hints (must-use or must-avoid) to improve ranking.");
+        }
+        if (suggestionConfidence > 0 && suggestionConfidence < 0.7) {
+          likelyReasons.push("Intent-to-workflow confidence is low; requirements may still be underspecified.");
+          recommendedActions.push("Clarify organism/data type/input format/desired outputs before regenerating.");
+        }
+        if (likelyReasons.length === 0) {
+          likelyReasons.push("The generation pipeline returned a non-runnable candidate due to unmet constraints.");
+          recommendedActions.push("Regenerate with stricter constraints and explicit required outputs.");
+        }
 
         return {
           failed: true,
           likelyReasons,
           recommendedActions,
-          followUpQuestions,
+          followUpQuestions: [
+            "What exact input data do you already have (format + example filenames)?",
+            "Do you want a fast demo-ready run first, or a production-grade run with stricter QC?",
+            "Any required tools/runtimes to include or avoid?",
+          ],
           processOutputs: {
             error: workflowPayload?.error || null,
             message: workflowPayload?.message || null,
@@ -3582,67 +3177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       })();
 
-      let assistantMessage = String(assistantResponse.message || "");
-      if (isDrugDevelopmentQuery) {
-        assistantMessage = `Decision gate: set a risk threshold/cutoff before execution. Next step: confirm priority stage, required inputs, and follow-up questions.\n\n${assistantMessage}`;
-      }
-      const shouldApplyTruthfulnessGuard =
-        isDrugDevelopmentQuery &&
-        (unresolvedWorkflowState || /partial workflow|incomplete|only one/i.test(assistantMessage));
-      if (shouldApplyTruthfulnessGuard) {
-        // Ensure streamed UX never over-promises immediate executability.
-        const overPromisedRunnable =
-          /runnable workflow has been generated|workflow has been generated and is technically|is ready for execution|ready to execute|click\s*"?run"?\s*to launch/i.test(
-            assistantMessage
-          );
-        if (overPromisedRunnable) {
-          assistantMessage = assistantMessage.replace(
-            /runnable workflow has been generated/gi,
-            "candidate workflow was drafted but execution payload is not yet runnable"
-          );
-          assistantMessage = assistantMessage.replace(
-            /workflow has been generated and is technically/gi,
-            "candidate workflow was drafted but is only partially validated and not guaranteed executable in this response"
-          );
-          assistantMessage = assistantMessage.replace(
-            /is ready for execution/gi,
-            "is currently not executable in this response"
-          );
-          assistantMessage = assistantMessage.replace(
-            /ready to execute/gi,
-            "not yet safe to execute end-to-end"
-          );
-          assistantMessage = assistantMessage.replace(
-            /click\s*"?run"?\s*to launch[^.\n]*/gi,
-            "confirm inputs and regenerate a runnable workflow"
-          );
-        }
-        if (!/workflow generation is currently unavailable|recovery plan|suggested next actions/i.test(assistantMessage)) {
-          assistantMessage = `Workflow generation is currently unavailable for immediate execution.\nRecovery Plan: confirm priority stage, provide minimal input examples, and regenerate.\n\n${assistantMessage}`;
-        }
-      }
-      if (workflowGenerationDiagnostics && !assistantMessage.includes("To unblock this quickly")) {
-        assistantMessage += `\n\nTo unblock this quickly, please confirm:\n- ${workflowGenerationDiagnostics.followUpQuestions.join("\n- ")}`;
-      }
+      const assistantMessage = String(assistantResponse.message || "");
 
-      const requestTextLowerStream = (message || "").toLowerCase();
-      const prereqRecoveryRequested =
-        requestTextLowerStream.includes("prepare runnable demo inputs") ||
-        requestTextLowerStream.includes("sample/test inputs") ||
-        requestTextLowerStream.includes("sample data") ||
-        requestTextLowerStream.includes("test data");
-      // Trust the user's explicit recovery request unconditionally.
-      const prereqRecoveryApproved = prereqRecoveryRequested;
-      const prereqRecovery = {
-        requested: prereqRecoveryRequested,
-        approved: prereqRecoveryApproved,
-        reason: prereqRecoveryApproved
-          ? "Recovery mode approved: allow runnable demo/sample path while inputs are unresolved."
-          : null,
-      };
+      // ----------------------------------------------------------------
+      // Response state — one of four explicit states, not inferred from text:
+      //   workflow_ready  → runnable workflow generated, awaiting user confirmation
+      //   needs_input     → BioMate needs more information before it can proceed
+      //                     (covers: missing prereqs AND chain clarification requests)
+      //   workflow_failed → workflow generation attempted but failed; diagnostics attached
+      //   chat_only       → informational response, no workflow involved
+      // ----------------------------------------------------------------
+      const isClarificationRequest = workflowPayload?.workflow_type === "clarification";
+      const responseState: "workflow_ready" | "needs_input" | "workflow_failed" | "chat_only" =
+        runnableWorkflow ? "workflow_ready"
+        : isClarificationRequest ? "needs_input"
+        : workflowGenerationFailed ? "workflow_failed"
+        : (prerequisitesValidation && !(prerequisitesValidation as any).canRun) ? "needs_input"
+        : "chat_only";
 
       const responsePayload = {
         response: assistantMessage,
+        state: responseState,
         suggestions,
         workflow: assistantResponse.generatedWorkflow,
         prerequisitesValidation,
@@ -3654,7 +3209,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           workflowSuggestion: assistantResponse.workflowSuggestion,
           sources: assistantResponse.sources,
           memoryUsed: false,
-          prereqRecovery,
           workflowGenerationDiagnostics,
         },
         subIntentResults: assistantResponse.subIntentResults,
@@ -3692,20 +3246,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      sendEvent("final", responsePayload);
-      sendEvent("done", { ok: true });
+      // Emit a dedicated structured event for consumers that need a reliable signal
+      // (evaluation harness, frontend state machine, future integrations).
+      // This is authoritative — do not infer state from response text.
+      if (responseState === "workflow_ready" && workflowPayload) {
+        const ga = workflowPayload.workflow_ga || {};
+        // For chain results workflow_ga is empty; surface chain_display_name + step names
+        // so consumers (routing eval, UI) can identify constituent workflows.
+        const chainStepNames: string[] = (workflowPayload.chain_steps || [])
+          .map((s: any) => s.workflow_name || s.name || "")
+          .filter(Boolean);
+        safeSend("workflow_ready", {
+          // workflow_name resolution order:
+          //   1. workflow_ga.name  — Galaxy workflow (from catalog)
+          //   2. workflow_name     — Nextflow catalog match (top-level field from ai_assistant)
+          //   3. chain_display_name — chain result
+          //   4. ""               — generated/composed workflow (display name unknown at this point)
+          workflow_name: ga.name || workflowPayload.workflow_name || workflowPayload.chain_display_name || "",
+          workflow_id:   ga.id || "",
+          workflow_type: workflowPayload.workflow_type || workflowPayload.execution_engine || "",
+          nextflow_path: workflowPayload.nextflow_path || "",
+          source:        workflowPayload.source || "",
+          confidence:    workflowPayload.confidence ?? null,
+          chain_name:    workflowPayload.chain_name || "",
+          chain_steps:   chainStepNames,
+        });
+      } else if (responseState === "needs_input") {
+        // Two sub-cases both produce needs_input:
+        //   1. Prereq validation blocked (canRun=false) — missing items are param names
+        //   2. Chain clarification (workflow_type=clarification) — the question is the signal
+        const missingItems: string[] = isClarificationRequest
+          ? [workflowPayload.clarification_question || workflowPayload.message || ""].filter(Boolean)
+          : (prerequisitesValidation as any)?.items
+              ?.filter((i: any) => !i.satisfied)
+              .map((i: any) => i.param || i.name || "") || [];
+        safeSend("needs_input", { missing: missingItems });
+      }
+
+      safeSend("final", responsePayload);
+      safeSend("done", { ok: true });
       res.end();
     } catch (error: any) {
       console.error("Chat Stream API error:", error);
-      try {
-        sendEvent("error", {
-          message: error?.message || "Streaming chat failed",
-        });
-        sendEvent("done", { ok: false });
-      } catch {
-        // Ignore secondary write errors
-      }
+      safeSend("error", {
+        message: error?.message || "Streaming chat failed",
+      });
+      safeSend("done", { ok: false });
       res.end();
+    } finally {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
     }
   });
 
@@ -5667,12 +5256,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let targetHistoryId = historyId;
       if (!targetHistoryId) {
         // Get the most recent active history
-        const histories = await galaxyAPIProxy.getHistories();
+        const histories = await userProxy(req).getHistories();
         if (histories && histories.length > 0) {
           targetHistoryId = histories[0].id;
         } else {
           // Create a new history if none exists
-          targetHistoryId = await galaxyAPIProxy.createHistory('BioMate Interactive Session');
+          targetHistoryId = await userProxy(req).createHistory('BioMate Interactive Session');
         }
       }
 
@@ -5989,7 +5578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
 
       // Create Galaxy history
-      galaxyHistoryId = await galaxyAPIProxy.createHistory(historyName);
+      galaxyHistoryId = await userProxy(req).createHistory(historyName);
 
       // Apply data scope if specified
       let sampledInputs = inputs;
@@ -6162,7 +5751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
-      const invocationResult = await galaxyAPIProxy.invokeWorkflow(
+      const invocationResult = await userProxy(req).invokeWorkflow(
         galaxyWorkflow.id,
         galaxyInputs,
         {
@@ -6362,8 +5951,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Promote Nextflow terminal state into execution run state.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
-          if ((nfState === 'succeeded' || nfState === 'failed') && run.execution.status === 'running') {
-            const mappedStatus = nfState === 'succeeded' ? 'completed' : 'failed';
+          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && run.execution.status === 'running') {
+            const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
             const terminalMessage = nfState === 'failed'
               ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')
               : undefined;
@@ -6693,20 +6282,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ── D4: Workflow error explanation proxy ──────────────────────────────────
+  // ── D4: Workflow error explanation — Node.js LLM layer ───────────────────
+  // ANTHROPIC_API_KEY is guaranteed present here (same process as all other Anthropic calls).
+  // The Galaxy backend's explain_error endpoint is NOT called; LLM call happens here.
+  // Falls back to extended 8-type regex when key is absent or LLM fails.
+
+  const ERROR_ANALYSIS_SYSTEM_PROMPT = `You are a bioinformatics workflow debugging assistant.
+A Nextflow workflow has failed. Analyze the error log and respond ONLY with valid JSON:
+{
+  "error_type": "<one of: missing_parameter, missing_file, docker_pull, resource_limit, data_format, permission_denied, nextflow_syntax, tool_not_found, unknown>",
+  "human_summary": "<1-2 sentences: what went wrong in plain language a scientist can understand>",
+  "suggested_fix": "<1-2 sentences: the specific action to fix this>",
+  "chat_prompt": "<the exact message a user should paste in the chat to get help fixing this>"
+}
+Rules:
+- human_summary must avoid technical jargon. Write for a biologist, not a developer.
+- suggested_fix must be concrete and actionable (not "review the logs").
+- chat_prompt must be a complete, paste-ready sentence starting with context.
+- If the error is in a specific step, name the step in human_summary.
+- Respond with ONLY the JSON object, no markdown, no explanation.`;
+
+  function regexFallbackError(log: string): Record<string, unknown> {
+    const l = log.toLowerCase();
+    if (/no such file|file not found|cannot find file/.test(l))
+      return { error_type: 'missing_file', human_summary: 'A required input file was not found.', suggested_fix: 'Check that your input file paths are correct and the files exist.', chat_prompt: 'My workflow failed because an input file was not found. Can you help me fix the file path?', llm_used: false };
+    if (/docker.*pull|pull.*docker|container.*pull/.test(l))
+      return { error_type: 'docker_pull', human_summary: 'Docker could not pull the required container image.', suggested_fix: 'Ensure Docker is running and you have internet access.', chat_prompt: 'My workflow failed with a Docker pull error. What should I check?', llm_used: false };
+    if (/out of memory|oom killer|memory limit|killed.*memory/.test(l))
+      return { error_type: 'resource_limit', human_summary: 'The job ran out of memory.', suggested_fix: 'Increase the memory allocation in the workflow parameters.', chat_prompt: 'My workflow failed with an out-of-memory error. How do I increase memory?', llm_used: false };
+    if (/missing.*param|required.*param|param.*missing|no value.*param/.test(l))
+      return { error_type: 'missing_parameter', human_summary: 'A required parameter is missing.', suggested_fix: 'Provide all required parameter values before running.', chat_prompt: 'My workflow failed because a required parameter was missing. Which parameters do I need?', llm_used: false };
+    if (/invalid format|cannot parse|malformed|not a valid|unexpected.*format/.test(l))
+      return { error_type: 'data_format', human_summary: 'An input file has an unexpected format.', suggested_fix: 'Verify your input file format matches what the workflow expects.', chat_prompt: 'My workflow failed with a data format error. Can you help me check my input files?', llm_used: false };
+    if (/permission denied|access denied|cannot write|eacces|eperm/.test(l))
+      return { error_type: 'permission_denied', human_summary: 'The workflow cannot read or write a required file.', suggested_fix: 'Check file and directory permissions for the input and output paths.', chat_prompt: 'My workflow failed with a permission denied error. How do I fix file permissions?', llm_used: false };
+    if (/unexpected token|groovy.*error|compilation.*error|nextflow.*syntax/.test(l))
+      return { error_type: 'nextflow_syntax', human_summary: 'There is a syntax error in the workflow script.', suggested_fix: 'Review the workflow script for syntax errors and ensure all parameters are valid.', chat_prompt: 'My workflow failed with a Nextflow syntax error. Can you help me fix the script?', llm_used: false };
+    if (/command not found|executable not found|no such.*executable/.test(l))
+      return { error_type: 'tool_not_found', human_summary: 'A required tool or command was not found in the container.', suggested_fix: 'Ensure the correct container image is specified and all tools are installed.', chat_prompt: 'My workflow failed because a command was not found. What container or tool is missing?', llm_used: false };
+    return { error_type: 'unknown', human_summary: 'An unexpected error occurred during workflow execution.', suggested_fix: 'Review the error log below for details.', chat_prompt: 'My workflow failed. Can you help me understand this error log?', llm_used: false };
+  }
+
   app.post("/api/workflows/explain_error", optionalAuth, express.json(), async (req, res) => {
-    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const { run_id, workflow_name, error_log, failed_steps } = req.body as {
+      run_id?: string;
+      workflow_name?: string;
+      error_log?: string;
+      failed_steps?: Array<{ name: string; work_dir?: string }>;
+    };
+
+    // Build log context: start with provided error_log
+    let log = error_log || '';
+
+    // If run_id provided and log is thin, fetch more from Galaxy backend
+    if (!log.trim() && run_id) {
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const r = await fetch(`${galaxyUrl}/api/nextflow/status/${run_id}`, {
+          signal: AbortSignal.timeout(4000),
+        });
+        if (r.ok) {
+          const d = await r.json() as any;
+          log = (d.log_tail || d.logs || []).slice(-200).join('\n');
+        }
+      } catch { /* best-effort */ }
+    }
+
+    // Append .command.err content from failed steps (Solution 4)
+    if (failed_steps?.length) {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      for (const step of failed_steps) {
+        if (!step.work_dir) continue;
+        const errFile = path.join(step.work_dir, '.command.err');
+        try {
+          const content = await fs.readFile(errFile, 'utf8');
+          if (content.trim()) {
+            log += `\n\n[Step ${step.name} stderr]:\n${content.slice(0, 2000)}`;
+          }
+        } catch { /* file may not exist */ }
+      }
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      return res.json(regexFallbackError(log));
+    }
+
     try {
-      const resp = await fetch(`${galaxyUrl}/api/workflows/explain_error`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(req.body),
-        signal: AbortSignal.timeout(20000),
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey });
+      const completion = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 500,
+        temperature: 0.1,
+        system: ERROR_ANALYSIS_SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: `Workflow: ${workflow_name || 'unknown'}\n\nError log (last 4000 chars):\n${log.slice(-4000)}`,
+        }],
       });
-      const data = await resp.json();
-      res.status(resp.status).json(data);
+      const text = completion.content[0].type === 'text' ? completion.content[0].text : '';
+      const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const result = JSON.parse(cleaned);
+      result.llm_used = true;
+      return res.json(result);
     } catch (err: any) {
-      res.status(503).json({ error: String(err?.message ?? err) });
+      return res.json({ ...regexFallbackError(log), llm_error: String(err?.message ?? err) });
     }
   });
 
@@ -6760,8 +6443,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const runId = req.params.id;
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-      const outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
-      const outputFiles = (run.execution?.nextflowStatus?.output_files || []) as any[];
+      const nfStatus = run.execution?.nextflowStatus as any;
+
+      // Try S3 output files first (cloud runs), then local disk scan (dev runs)
+      let outputFiles = (nfStatus?.s3_output_files || nfStatus?.output_files || []) as any[];
+      let outdir = nfStatus?.outdir as string | undefined;
+
+      if (outputFiles.length === 0 && outdir && !String(outdir).startsWith('s3://')) {
+        // Local dev run: scan the outdir on disk
+        const { readdirSync, statSync } = await import('fs');
+        const { join, extname, basename } = await import('path');
+        const scanDir = (dir: string): any[] => {
+          const results: any[] = [];
+          try {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+              const fullPath = join(dir, entry.name);
+              if (entry.isDirectory()) {
+                results.push(...scanDir(fullPath));
+              } else if (entry.isFile()) {
+                const ext = extname(entry.name).replace('.', '').toLowerCase();
+                const stat = statSync(fullPath);
+                results.push({ name: basename(entry.name), path: fullPath, extension: ext, size: stat.size });
+              }
+            }
+          } catch { /* skip unreadable dirs */ }
+          return results;
+        };
+        outputFiles = scanDir(outdir);
+      }
+
+      if (!outdir || !String(outdir).startsWith('s3://')) {
+        outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
+      }
+
       res.json({
         workflow_id: runId,
         status: run.execution?.status || 'unknown',
@@ -6773,6 +6487,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[output_files] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Serve a single step output file for inline preview
+  app.get("/api/workflows/runs/:id/step-file", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) return res.status(404).json({ error: 'Run not found' });
+
+      const filePath = req.query.path as string;
+      const fileName = req.query.name as string || '';
+
+      if (!filePath) return res.status(400).json({ error: 'path query param required' });
+
+      // Security: reject path traversal
+      const { resolve, normalize } = await import('path');
+      const resolved = resolve(normalize(filePath));
+      if (resolved.includes('..') || filePath.includes('..')) {
+        return res.status(403).json({ error: 'Path traversal not allowed' });
+      }
+
+      // Only allow paths within known run directories (work_dir or outdir)
+      const nfStatus = run.execution?.nextflowStatus as any;
+      const allowedRoots = [
+        nfStatus?.work_dir,
+        nfStatus?.outdir,
+        '/tmp/nextflow_runs',
+      ].filter(Boolean).map((r: string) => resolve(r));
+
+      const isAllowed = allowedRoots.some(root => resolved.startsWith(root));
+      if (!isAllowed && !resolved.startsWith('/tmp/')) {
+        return res.status(403).json({ error: 'File outside allowed directories' });
+      }
+
+      // Infer Content-Type
+      const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
+      const contentTypeMap: Record<string, string> = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+        svg: 'image/svg+xml', pdf: 'application/pdf',
+        csv: 'text/csv', tsv: 'text/tab-separated-values',
+        json: 'application/json', txt: 'text/plain', log: 'text/plain',
+        html: 'text/html', htm: 'text/html',
+        fasta: 'text/plain', fa: 'text/plain', fastq: 'text/plain',
+        vcf: 'text/plain', bed: 'text/plain', gff: 'text/plain', gtf: 'text/plain',
+        star: 'text/plain', tabular: 'text/plain',
+      };
+      const ct = contentTypeMap[ext] || 'application/octet-stream';
+
+      if (fileName) {
+        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      }
+      res.setHeader('Content-Type', ct);
+
+      const { createReadStream, existsSync } = await import('fs');
+      if (!existsSync(resolved)) return res.status(404).json({ error: 'File not found' });
+      createReadStream(resolved).pipe(res);
+    } catch (error: any) {
+      console.error('[step-file] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -6802,6 +6575,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('[download_commands] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Rerun a Nextflow workflow from a specific step with parameter overrides
+  app.post("/api/workflows/runs/:id/rerun-from-step", async (req, res) => {
+    try {
+      const run = await storage.getExecutionRun(req.params.id);
+      if (!run) return res.status(404).json({ error: 'Run not found' });
+
+      const { step_name, param_overrides = {} } = req.body as {
+        step_name: string;
+        param_overrides?: Record<string, any>;
+      };
+
+      if (!step_name) return res.status(400).json({ error: 'step_name required' });
+
+      const nfStatus = run.execution?.nextflowStatus as any;
+      const prevWorkDir = nfStatus?.work_dir as string | undefined;
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+
+      // Get the original workflow definition from run
+      const workflowDef = (run.execution as any)?.workflowDefinition as any;
+      const nextflowPath = workflowDef?.nextflow_path || workflowDef?.workflow_path || '';
+
+      // Build override flags: --key value for each param_override
+      const overrideFlags = Object.entries(param_overrides)
+        .map(([k, v]) => `--${k} ${String(v)}`)
+        .join(' ');
+
+      // Build resume args
+      const resumeArgs = prevWorkDir ? `-resume -w ${prevWorkDir}` : '-resume';
+
+      // Construct a new run request to the Galaxy backend
+      const rerunBody = {
+        nextflow_path: nextflowPath,
+        parameters: { ...(workflowDef?.parameters || {}), ...param_overrides },
+        resume_args: resumeArgs,
+        extra_flags: overrideFlags,
+        prev_run_id: req.params.id,
+        rerun_from_step: step_name,
+      };
+
+      const response = await fetch(`${galaxyUrl}/api/nextflow/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rerunBody),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        return res.status(response.status).json({ error: errText });
+      }
+
+      const data = await response.json() as any;
+      const newRunId = data.run_id || data.id;
+
+      res.json({
+        new_run_id: newRunId,
+        message: `Rerunning from step ${step_name} with ${Object.keys(param_overrides).length} overridden parameter(s)`,
+        prev_run_id: req.params.id,
+      });
+    } catch (error: any) {
+      console.error('[rerun-from-step] Error:', error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -7377,13 +7214,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let historyId = req.session?.galaxyHistoryId as string | undefined;
       if (!historyId) {
         const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        historyId = await userProxy(req).createHistory(sessionName);
         if (req.session) {
           req.session.galaxyHistoryId = historyId;
         }
       }
 
-      const collection = await galaxyAPIProxy.createDatasetCollection(
+      const collection = await userProxy(req).createDatasetCollection(
         historyId,
         name,
         collection_type as 'list' | 'paired' | 'list:paired',
@@ -7509,13 +7346,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let historyId = req.session?.galaxyHistoryId as string | undefined;
       if (!historyId) {
         const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        historyId = await userProxy(req).createHistory(sessionName);
         if (req.session) {
           req.session.galaxyHistoryId = historyId;
         }
       }
 
-      const dataset = await galaxyAPIProxy.createDeferredDataset(
+      const dataset = await userProxy(req).createDeferredDataset(
         historyId,
         url,
         name,
@@ -7572,13 +7409,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let historyId = req.session?.galaxyHistoryId as string | undefined;
       if (!historyId) {
         const sessionName = `GalaxyChat-${new Date().toISOString().split('T')[0]}`;
-        historyId = await galaxyAPIProxy.createHistory(sessionName);
+        historyId = await userProxy(req).createHistory(sessionName);
         if (req.session) {
           req.session.galaxyHistoryId = historyId;
         }
       }
 
-      const result = await galaxyAPIProxy.launchInteractiveTool(
+      const result = await userProxy(req).launchInteractiveTool(
         tool_id,
         historyId,
         inputs
@@ -8122,6 +7959,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ============================================================================
 
+  // ── Agent code execution endpoint ────────────────────────────────────────────
+  // POST /api/code/run — used by the `run_code` agent tool.
+  // Runs Python / R / bash in a restricted subprocess and returns captured output.
+  app.post("/api/code/run", optionalAuth, express.json(), async (req, res) => {
+    const { language, code, input_datasets, timeout_seconds } = req.body ?? {};
+    if (!code || typeof language !== 'string' || !['python', 'r', 'bash'].includes(language)) {
+      return res.status(400).json({ error: 'language (python|r|bash) and code are required' });
+    }
+    try {
+      const { runCode } = await import('./code-runner');
+      const result = await runCode({
+        language: language as 'python' | 'r' | 'bash',
+        code,
+        input_datasets: Array.isArray(input_datasets) ? input_datasets : [],
+        timeout_seconds: typeof timeout_seconds === 'number' ? timeout_seconds : 15,
+        downloadDataset: (id: string) => galaxyAPIProxy.downloadDataset(id),
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message ?? String(err) });
+    }
+  });
+
+  // ============================================================================
+
   // Error rate tracking middleware (must be last, after all routes)
   app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
     // Log the full error for debugging
@@ -8444,7 +8306,7 @@ function validateDatasets(datasets: any): { valid: boolean; error?: string } {
 }
 
 // Helper function to classify file type from extension
-function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' {
+function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'binary' | 'interactive' | 'structure' | 'density_map' {
   const ext = extension.toLowerCase();
 
   const imageExts = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'tiff', 'bmp'];
@@ -8452,10 +8314,16 @@ function classifyFileType(extension: string): 'image' | 'table' | 'text' | 'bina
   const tableExts = ['tsv', 'csv', 'tabular', 'json', 'bed', 'gtf', 'gff', 'vcf'];
   const interactiveExts = ['html', 'htm'];
   const textExts = ['txt', 'log', 'md', 'xml', 'yaml', 'yml', 'nf', 'config'];
+  // Molecular structure files — rendered by StructureViewer (3Dmol.js)
+  const structureExts = ['pdb', 'cif', 'mmcif', 'ent'];
+  // Cryo-EM density map files — rendered by DensityMapViewer (2D slices)
+  const densityMapExts = ['mrc', 'map', 'rec'];
 
   if (imageExts.includes(ext)) return 'image';
   if (tableExts.includes(ext)) return 'table';
   if (interactiveExts.includes(ext)) return 'interactive';
+  if (structureExts.includes(ext)) return 'structure';
+  if (densityMapExts.includes(ext)) return 'density_map';
   if (textExts.includes(ext)) return 'text';
   return 'binary';
 }
@@ -8464,6 +8332,8 @@ function isVisualizable(extension: string): boolean {
   const visualizableExts = [
     'png', 'jpg', 'jpeg', 'svg', 'gif', 'pdf', 'html', 'htm',
     'json', 'csv', 'tsv', 'txt', 'fasta', 'fa', 'fastq', 'fq',
+    // Structure and density map files — have dedicated viewers
+    'pdb', 'cif', 'mmcif', 'ent', 'mrc', 'map', 'rec',
   ];
   return visualizableExts.includes(extension.toLowerCase());
 }

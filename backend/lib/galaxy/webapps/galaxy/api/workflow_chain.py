@@ -212,8 +212,17 @@ def _run_chain(chain_run_id: str) -> None:
         current["status"] = "running"
         _update_chain(current)
 
-        nextflow_path = step["nextflow_path"]
+        nextflow_path = step.get("nextflow_path") or ""
         params = dict(step.get("params", {}))
+
+        # Skip unresolved steps (no workflow path) — mark as failed and continue
+        if not nextflow_path:
+            log.warning("workflow_chain: step %d has no nextflow_path — marking failed", idx)
+            current["steps"][idx]["status"] = "failed"
+            current["steps"][idx]["error"] = "nextflow_path not resolved"
+            current["status"] = "failed"
+            _update_chain(current)
+            return
 
         # Auto-wire previous step's outputs as inputs (skip for first step)
         if idx > 0:
@@ -433,7 +442,7 @@ def check_step_compatibility(
 # ---------------------------------------------------------------------------
 
 class ChainStep(BaseModel):
-    nextflow_path: str
+    nextflow_path: Optional[str] = None  # Optional: may be unresolved for AI-generated pipelines
     params: Optional[Dict[str, Any]] = None
 
 

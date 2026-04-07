@@ -331,11 +331,14 @@ export const outputDatasetSchema = z.object({
   fileType: z.enum([
     'image', 'table', 'text', 'binary', 'interactive',
     // Bioinformatics-specific types
-    'sequence',    // FASTA, FASTQ
-    'alignment',   // BAM, SAM
-    'variants',    // VCF
-    'annotation',  // BED, GFF, GTF
-    'singlecell',  // h5ad, loom
+    'sequence',     // FASTA, FASTQ
+    'alignment',    // BAM, SAM
+    'variants',     // VCF
+    'annotation',   // BED, GFF, GTF
+    'singlecell',   // h5ad, loom
+    // Structural biology types
+    'structure',    // PDB, mmCIF, CIF — 3Dmol.js viewer
+    'density_map',  // MRC, MAP — cryo-EM density slice viewer
   ]),
   isVisualizable: z.boolean().default(false),
   previewAvailable: z.boolean().default(false),

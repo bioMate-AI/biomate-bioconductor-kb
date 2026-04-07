@@ -7,11 +7,9 @@
  *
  * Pipeline Steps:
  * 1. DIFFERENTIAL_EXPRESSION — Identify significantly DE genes between
- *    drug-treated and control samples using DESeq2 (live) or seeded
- *    synthetic data (mock); outputs ranked gene TSV and volcano JSON.
+ *    drug-treated and control samples using DESeq2; outputs ranked gene TSV and volcano JSON.
  * 2. GENE_SET_ENRICHMENT    — Run GSEA against MSigDB Hallmark gene sets
- *    (fgsea live; synthetic NES scores mock). Identifies enriched pathways
- *    and writes enrichment TSV + plot JSON.
+ *    using fgsea. Identifies enriched pathways and writes enrichment TSV + plot JSON.
  * 3. LINCS_CMAP_LOOKUP      — Match drug-induced transcriptomic signature
  *    against LINCS L1000 / CMap to identify similar drugs and confirm MoA.
  *    Outputs cmap_matches TSV and JSON.
@@ -39,9 +37,6 @@ nextflow.enable.dsl = 2
 params.outdir           = './results/drug_moa_rnaseq'
 params.publish_dir_mode = 'copy'
 
-// Mode flags
-params.mock_mode        = true    // true = synthetic output, no real tools needed
-
 // Drug / experiment parameters
 params.drug_name        = 'Imatinib'
 params.target_gene      = 'BCR-ABL1'
@@ -61,7 +56,7 @@ def log_workflow_header() {
     ====================================================================
     BioMate | Drug MoA Characterisation from RNA-seq  (Gap 9)
     ====================================================================
-    Mode:        ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE (DESeq2 + fgsea + CMap)'}
+    Mode:        LIVE (DESeq2 + fgsea + CMap)
     Drug:        ${params.drug_name}
     Target gene: ${params.target_gene}
     Replicates:  ${params.n_replicates}
@@ -80,10 +75,12 @@ process DIFFERENTIAL_EXPRESSION {
     label 'process_medium'
     publishDir "${params.outdir}/01_differential_expression", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
-    path treated_counts   // count matrix TSV: genes × treated samples (placeholder in mock mode)
+    path treated_counts   // count matrix TSV: genes × treated samples
     path control_counts   // count matrix TSV: genes × control samples
 
     output:
@@ -92,121 +89,13 @@ process DIFFERENTIAL_EXPRESSION {
     path "versions.yml",      emit: versions
 
     script:
-    def mock        = params.mock_mode
     def drug_name   = params.drug_name
     def target_gene = params.target_gene
     def n_reps      = params.n_replicates
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import math
-import random
-from datetime import datetime
-
-random.seed(42)
-
-drug_name   = "${drug_name}"
-target_gene = "${target_gene}"
-n_reps      = int("${n_reps}")
-
-# ---------------------------------------------------------------------------
-# Biologically plausible kinase-pathway genes for kinase inhibitor targets
-# ---------------------------------------------------------------------------
-KINASE_GENES = [
-    "MAPK1", "PIK3CA", "AKT1", "STAT3", "MYC",
-    "CDK2",  "BCL2",   "EGFR", "KRAS",  "TP53",
-    "MTOR",  "RAF1",   "BRAF", "JAK2",  "SRC",
-    "RB1",   "CCND1",  "CDKN1A", "MDM2", "PTEN",
-]
-
-# Pad to 200 genes with generic identifiers
-generic_genes = [f"GENE{i:04d}" for i in range(1, 181)]
-all_genes     = KINASE_GENES + generic_genes
-random.shuffle(all_genes)
-all_genes     = all_genes[:200]
-
-# ---------------------------------------------------------------------------
-# Assign DE statistics
-# ~20 % of genes are significantly DE (padj < 0.05, |log2FC| > 1).
-# Kinase genes get stronger signal (80 % sig probability).
-# ---------------------------------------------------------------------------
-rows = []
-for idx, gene_name in enumerate(all_genes, 1):
-    is_kinase = gene_name in KINASE_GENES
-    is_sig    = random.random() < (0.80 if is_kinase else 0.17)
-
-    if is_sig:
-        log2fc    = random.choice([-1, 1]) * random.uniform(1.0, 4.5 if is_kinase else 3.0)
-        padj      = random.uniform(0.0001, 0.045)
-        base_mean = random.uniform(500, 8000) if is_kinase else random.uniform(50, 3000)
-        lfcse     = round(abs(log2fc) * random.uniform(0.08, 0.25), 4)
-    else:
-        log2fc    = random.uniform(-0.9, 0.9)
-        padj      = random.uniform(0.052, 1.0)
-        base_mean = random.uniform(10, 2000)
-        lfcse     = round(abs(log2fc) * random.uniform(0.15, 0.4) + 0.01, 4)
-
-    pvalue = min(padj * random.uniform(1.5, 8.0), 1.0)
-    stat   = round(log2fc / (lfcse + 1e-6), 4)
-
-    rows.append({
-        "gene_id":        f"ENSG{idx:011d}",
-        "gene_name":      gene_name,
-        "log2FoldChange": round(log2fc, 4),
-        "padj":           round(padj, 6),
-        "pvalue":         round(pvalue, 6),
-        "baseMean":       round(base_mean, 2),
-        "lfcSE":          lfcse,
-        "stat":           stat,
-    })
-
-rows.sort(key=lambda r: r["padj"])
-
-# Write DE results TSV
-header = "gene_id\\tgene_name\\tlog2FoldChange\\tpadj\\tpvalue\\tbaseMean\\tlfcSE\\tstat"
-with open("de_results.tsv", "w") as f:
-    f.write(header + "\\n")
-    for r in rows:
-        f.write(
-            f"{r['gene_id']}\\t{r['gene_name']}\\t{r['log2FoldChange']}\\t"
-            f"{r['padj']}\\t{r['pvalue']}\\t{r['baseMean']}\\t"
-            f"{r['lfcSE']}\\t{r['stat']}\\n"
-        )
-
-# Volcano plot data JSON
-points = []
-for r in rows:
-    neg_log10 = -math.log10(max(r["padj"], 1e-300))
-    points.append({
-        "gene_id":        r["gene_id"],
-        "gene_name":      r["gene_name"],
-        "log2FoldChange": r["log2FoldChange"],
-        "neg_log10_padj": round(neg_log10, 4),
-        "significant":    r["padj"] < 0.05 and abs(r["log2FoldChange"]) > 1,
-    })
-
-volcano = {
-    "drug_name":   drug_name,
-    "target_gene": target_gene,
-    "mock_mode":   True,
-    "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "points":      points,
-}
-with open("volcano_data.json", "w") as f:
-    json.dump(volcano, f, indent=2)
-
-n_sig = sum(1 for r in rows if r["padj"] < 0.05 and abs(r["log2FoldChange"]) > 1)
-print(f"DE analysis (mock): {len(rows)} genes tested, {n_sig} significantly DE")
-print(f"  Drug: {drug_name}  Target: {target_gene}  n_replicates: {n_reps}")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live: run pydeseq2 (Python DESeq2) on pre-supplied count-matrix TSV files.
+        # Run pydeseq2 (Python DESeq2) on pre-supplied count-matrix TSV files.
         # Each TSV: rows = genes, columns = samples, first column = gene_id (header).
         # pydeseq2 is a faithful Python reimplementation of DESeq2 (Muzellec et al. 2022).
-        # ---------------------------------------------------------------------------
         python3 << 'PYEOF'
 import json, math, sys
 import numpy as np
@@ -272,7 +161,6 @@ for gene_id, row in res_df.iterrows():
 volcano = {
     "drug_name":   drug_name,
     "target_gene": target_gene,
-    "mock_mode":   False,
     "timestamp":   datetime.now(timezone.utc).isoformat(),
     "points":      points,
 }
@@ -282,24 +170,10 @@ with open("volcano_data.json", "w") as f:
 n_sig = sum(1 for p in points if p["significant"])
 print(f"DE analysis (live/pydeseq2): {len(res_df)} genes tested, {n_sig} significantly DE")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        deseq2: \$(Rscript -e "cat(as.character(packageVersion('DESeq2')))" 2>/dev/null || echo "mock")
-        python: \$(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "3.10.0")
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    printf 'gene_id\\tgene_name\\tlog2FoldChange\\tpadj\\tpvalue\\tbaseMean\\tlfcSE\\tstat\\n' > de_results.tsv
-    echo '{"drug_name":"mock","points":[]}' > volcano_data.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        deseq2: "1.42.0"
-        python: "3.10.0"
+        python: \$(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "unknown")
     END_VERSIONS
     """
 }
@@ -313,7 +187,9 @@ process GENE_SET_ENRICHMENT {
     label 'process_medium'
     publishDir "${params.outdir}/02_gene_set_enrichment", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // ranked gene list from DIFFERENTIAL_EXPRESSION
@@ -324,107 +200,11 @@ process GENE_SET_ENRICHMENT {
     path "versions.yml",         emit: versions
 
     script:
-    def mock        = params.mock_mode
     def drug_name   = params.drug_name
     def target_gene = params.target_gene
     def gmt_file    = params.gmt_file
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import random
-from datetime import datetime
-
-random.seed(123)
-
-drug_name   = "${drug_name}"
-target_gene = "${target_gene}"
-
-# ---------------------------------------------------------------------------
-# Biologically plausible MSigDB Hallmark pathways for a kinase inhibitor.
-# Base NES values reflect expected biology (positive = up-regulated on drug).
-# ---------------------------------------------------------------------------
-HALLMARK_PATHWAYS = [
-    ("HALLMARK_E2F_TARGETS",               "cell cycle / DNA replication",        2.31),
-    ("HALLMARK_G2M_CHECKPOINT",            "G2/M cell cycle checkpoint",           2.18),
-    ("HALLMARK_MYC_TARGETS_V1",            "MYC transcriptional targets",          1.95),
-    ("HALLMARK_PI3K_AKT_MTOR_SIGNALING",   "PI3K/AKT/mTOR pathway",               1.72),
-    ("HALLMARK_APOPTOSIS",                 "programmed cell death",               -1.88),
-    ("HALLMARK_P53_PATHWAY",               "TP53 tumour-suppressor pathway",      -2.05),
-    ("HALLMARK_DNA_REPAIR",                "DNA damage response",                  1.44),
-    ("HALLMARK_OXIDATIVE_PHOSPHORYLATION", "mitochondrial oxidative phosphorylation", -1.31),
-    ("HALLMARK_INFLAMMATORY_RESPONSE",     "innate immune / inflammatory response",-1.52),
-    ("HALLMARK_UNFOLDED_PROTEIN_RESPONSE", "ER stress / unfolded protein response", 1.19),
-]
-
-# Collect significant DE gene names for leading-edge annotation
-sig_genes = []
-with open("${de_results_tsv}") as fh:
-    next(fh)  # skip header
-    for line in fh:
-        parts = line.strip().split("\\t")
-        if len(parts) >= 4:
-            try:
-                padj   = float(parts[3])
-                log2fc = float(parts[2])
-                if padj < 0.05 and abs(log2fc) > 1:
-                    sig_genes.append(parts[1])
-            except ValueError:
-                pass
-
-if not sig_genes:
-    sig_genes = ["MAPK1", "AKT1", "MYC", "STAT3", "CDK2"]
-
-rows = []
-for pathway, description, base_nes in HALLMARK_PATHWAYS:
-    nes       = round(base_nes + random.uniform(-0.15, 0.15), 3)
-    padj      = round(random.uniform(0.001, 0.048), 4)
-    pvalue    = round(padj * random.uniform(1.2, 5.0), 6)
-    size      = random.randint(80, 350)
-    n_leading = min(random.randint(5, 20), len(sig_genes))
-    leading   = ",".join(random.sample(sig_genes, n_leading)) if n_leading > 0 else ""
-    rows.append({
-        "pathway":            pathway,
-        "description":        description,
-        "NES":                nes,
-        "padj":               padj,
-        "pvalue":             pvalue,
-        "size":               size,
-        "leading_edge_genes": leading,
-    })
-
-rows.sort(key=lambda r: abs(r["NES"]), reverse=True)
-
-# Write enrichment TSV
-header = "pathway\\tdescription\\tNES\\tpadj\\tpvalue\\tsize\\tleading_edge_genes"
-with open("enrichment.tsv", "w") as f:
-    f.write(header + "\\n")
-    for r in rows:
-        f.write(
-            f"{r['pathway']}\\t{r['description']}\\t{r['NES']}\\t"
-            f"{r['padj']}\\t{r['pvalue']}\\t{r['size']}\\t{r['leading_edge_genes']}\\n"
-        )
-
-# Write enrichment plot JSON
-plot_data = {
-    "drug_name":   drug_name,
-    "target_gene": target_gene,
-    "mock_mode":   True,
-    "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "pathways":    rows,
-}
-with open("enrichment_plot.json", "w") as f:
-    json.dump(plot_data, f, indent=2)
-
-print(f"GSEA (mock): {len(rows)} Hallmark pathways enriched for {drug_name}")
-for r in rows[:5]:
-    direction = "UP" if r["NES"] > 0 else "DOWN"
-    print(f"  [{direction}] {r['pathway']}  NES={r['NES']}  padj={r['padj']}")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live: run gseapy prerank against MSigDB Hallmark gene sets.
+        # Run gseapy prerank against MSigDB Hallmark gene sets.
         # gseapy is a Python GSEA implementation wrapping the GSEA Java algorithm.
         # Uses Wald stat from DE results as the gene ranking metric.
         # ---------------------------------------------------------------------------
@@ -497,7 +277,6 @@ for _, row in res_df.head(10).iterrows():
 plot_data = {
     "drug_name":   drug_name,
     "target_gene": target_gene,
-    "mock_mode":   False,
     "timestamp":   datetime.now(timezone.utc).isoformat(),
     "pathways":    rows,
 }
@@ -510,24 +289,10 @@ for r in rows[:5]:
     direction = "UP" if r["NES"] > 0 else "DOWN"
     print(f"  [{direction}] {r['pathway']}  NES={r['NES']:.3f}  padj={r['padj']:.4f}")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        fgsea: \$(Rscript -e "cat(as.character(packageVersion('fgsea')))" 2>/dev/null || echo "mock")
-        python: \$(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "3.10.0")
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    printf 'pathway\\tdescription\\tNES\\tpadj\\tpvalue\\tsize\\tleading_edge_genes\\n' > enrichment.tsv
-    echo '{"pathways":[]}' > enrichment_plot.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        fgsea: "1.28.0"
-        python: "3.10.0"
+        python: \$(python3 --version 2>&1 | cut -d' ' -f2 2>/dev/null || echo "unknown")
     END_VERSIONS
     """
 }
@@ -541,7 +306,9 @@ process LINCS_CMAP_LOOKUP {
     label 'process_single'
     publishDir "${params.outdir}/03_lincs_cmap", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // ranked gene list from DIFFERENTIAL_EXPRESSION
@@ -552,107 +319,22 @@ process LINCS_CMAP_LOOKUP {
     path "versions.yml",      emit: versions
 
     script:
-    def mock        = params.mock_mode
     def drug_name   = params.drug_name
     def target_gene = params.target_gene
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
+        # Derive top up/down gene signature from DE results and query the
+        # LINCS CMap API (clue.io). Set env var LINCS_API_KEY before running.
+        python3 << 'PYEOF'
 import json
-import random
+import os
+import sys
+import csv
+import urllib.request
 from datetime import datetime
-
-random.seed(77)
 
 drug_name   = "${drug_name}"
 target_gene = "${target_gene}"
 
-# ---------------------------------------------------------------------------
-# Mock CMap hits: 5 similar drug signatures with biologically coherent
-# annotations for a kinase-inhibitor query (e.g. Imatinib / BCR-ABL1).
-# ---------------------------------------------------------------------------
-CMAP_DRUGS = [
-    {
-        "drug_name":      "Dasatinib",
-        "target":         "BCR-ABL1 / Src",
-        "moa_annotation": "ABL/Src kinase inhibitor (2nd gen TKI)",
-        "cell_line":      "K562",
-    },
-    {
-        "drug_name":      "Nilotinib",
-        "target":         "BCR-ABL1",
-        "moa_annotation": "Selective BCR-ABL1 inhibitor (2nd gen TKI)",
-        "cell_line":      "K562",
-    },
-    {
-        "drug_name":      "Bosutinib",
-        "target":         "BCR-ABL1 / Src",
-        "moa_annotation": "Dual ABL/Src kinase inhibitor",
-        "cell_line":      "K562",
-    },
-    {
-        "drug_name":      "Ponatinib",
-        "target":         "BCR-ABL1 T315I",
-        "moa_annotation": "Pan-BCR-ABL1 inhibitor (3rd gen TKI)",
-        "cell_line":      "K562",
-    },
-    {
-        "drug_name":      "Gleevec_analogue_1",
-        "target":         "BCR-ABL1 / c-KIT",
-        "moa_annotation": "Imatinib-class RTK inhibitor",
-        "cell_line":      "HL60",
-    },
-]
-
-similarity_scores = [0.92, 0.88, 0.81, 0.74, 0.63]
-random.shuffle(similarity_scores)
-
-matches = []
-for drug, sim in zip(CMAP_DRUGS, similarity_scores):
-    matches.append({
-        "drug_name":           drug["drug_name"],
-        "target":              drug["target"],
-        "similarity_score":    round(sim, 3),
-        "moa_annotation":      drug["moa_annotation"],
-        "cell_line":           drug["cell_line"],
-        "cmap_perturbagen_id": f"BRD-K{random.randint(10000000, 99999999):08d}",
-    })
-
-matches.sort(key=lambda m: m["similarity_score"], reverse=True)
-
-# Write TSV
-header = "drug_name\\ttarget\\tsimilarity_score\\tmoa_annotation\\tcell_line\\tcmap_perturbagen_id"
-with open("cmap_matches.tsv", "w") as f:
-    f.write(header + "\\n")
-    for m in matches:
-        f.write(
-            f"{m['drug_name']}\\t{m['target']}\\t{m['similarity_score']}\\t"
-            f"{m['moa_annotation']}\\t{m['cell_line']}\\t{m['cmap_perturbagen_id']}\\n"
-        )
-
-# Write JSON
-payload = {
-    "query_drug":  drug_name,
-    "target_gene": target_gene,
-    "n_matches":   len(matches),
-    "mock_mode":   True,
-    "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "matches":     matches,
-}
-with open("cmap_matches.json", "w") as f:
-    json.dump(payload, f, indent=2)
-
-print(f"CMap lookup (mock): {len(matches)} similar drugs found for {drug_name}")
-for m in matches:
-    print(f"  [{m['similarity_score']:.3f}] {m['drug_name']} — {m['moa_annotation']}")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live: derive top up/down gene signature from DE results and query the
-        # LINCS CMap API (clue.io).  Set env var LINCS_API_KEY before running.
-        # ---------------------------------------------------------------------------
-        python3 << 'PYEOF'
 import json
 import os
 import sys
@@ -733,31 +415,18 @@ payload = {
     "query_drug":  drug_name,
     "target_gene": target_gene,
     "n_matches":   len(matches),
-    "mock_mode":   False,
     "timestamp":   datetime.utcnow().isoformat() + "Z",
     "matches":     matches,
 }
 with open("cmap_matches.json", "w") as f:
     json.dump(payload, f, indent=2)
 
-print(f"CMap lookup (live): {len(matches)} similar drugs found for {drug_name}")
+print(f"CMap lookup: {len(matches)} similar drugs found for {drug_name}")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    printf 'drug_name\\ttarget\\tsimilarity_score\\tmoa_annotation\\tcell_line\\tcmap_perturbagen_id\\n' > cmap_matches.tsv
-    echo '{"n_matches":0,"matches":[]}' > cmap_matches.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: "3.10.0"
     END_VERSIONS
     """
 }
@@ -771,7 +440,9 @@ process MOA_REPORT {
     label 'process_single'
     publishDir "${params.outdir}/04_moa_report", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path de_results_tsv   // from DIFFERENTIAL_EXPRESSION
@@ -784,7 +455,6 @@ process MOA_REPORT {
     path "versions.yml",     emit: versions
 
     script:
-    def mock        = params.mock_mode
     def drug_name   = params.drug_name
     def target_gene = params.target_gene
     """
@@ -796,7 +466,6 @@ from datetime import datetime
 
 drug_name   = "${drug_name}"
 target_gene = "${target_gene}"
-mock_mode   = "${mock}" == "true"
 
 # -------------------------------------------------------------------------
 # 1. Parse DE results
@@ -889,7 +558,6 @@ summary = {
         "moa_annotation": cmap_top.get("moa_annotation", "N/A"),
     },
     "moa_hypothesis": moa_hypothesis,
-    "mock_mode":    mock_mode,
     "timestamp":    datetime.utcnow().isoformat() + "Z",
 }
 with open("moa_summary.json", "w") as f:
@@ -1028,17 +696,6 @@ EOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
-    END_VERSIONS
-    """
-
-    stub:
-    """
-    echo '{"qc_status":"PASS","n_de_genes":42,"moa_hypothesis":"stub"}' > moa_summary.json
-    echo '<html><body>MoA Report stub</body></html>' > moa_report.html
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        python: "3.10.0"
     END_VERSIONS
     """
 }
@@ -1111,35 +768,14 @@ workflow {
     log_workflow_header()
 
     // ------------------------------------------------------------------
-    // In mock mode, create minimal placeholder count matrices.
-    // The DIFFERENTIAL_EXPRESSION process ignores them and generates
-    // synthetic data; they exist only to satisfy Nextflow's input contract.
-    // ------------------------------------------------------------------
-    if (params.mock_mode) {
-        ch_treated_counts = Channel.of(
-            "gene_id\tTreated_S1\tTreated_S2\tTreated_S3\n"
-        ).map { content ->
-            def f = file("${workDir}/mock_treated_counts.tsv")
-            f.text = content
-            f
-        }
-        ch_control_counts = Channel.of(
-            "gene_id\tControl_C1\tControl_C2\tControl_C3\n"
-        ).map { content ->
-            def f = file("${workDir}/mock_control_counts.tsv")
-            f.text = content
-            f
-        }
-    } else {
-        if (!params.treated_counts) {
-            error "params.treated_counts is required in live mode. Pass --treated_counts <path>"
-        }
-        if (!params.control_counts) {
-            error "params.control_counts is required in live mode. Pass --control_counts <path>"
-        }
-        ch_treated_counts = Channel.fromPath(params.treated_counts, checkIfExists: true)
-        ch_control_counts = Channel.fromPath(params.control_counts, checkIfExists: true)
+    if (!params.treated_counts) {
+        error "params.treated_counts is required. Pass --treated_counts <path>"
     }
+    if (!params.control_counts) {
+        error "params.control_counts is required. Pass --control_counts <path>"
+    }
+    ch_treated_counts = Channel.fromPath(params.treated_counts, checkIfExists: true)
+    ch_control_counts = Channel.fromPath(params.control_counts, checkIfExists: true)
 
     // Run the pipeline
     DRUG_MOA_RNASEQ(ch_treated_counts, ch_control_counts)

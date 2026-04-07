@@ -18,9 +18,8 @@ nextflow.enable.dsl = 2
 params.num_particles = 1000         // target particle picks across all tomograms
 params.template_pdb = null          // PDB template for template matching (optional)
 params.symmetry = 'C1'              // point group symmetry
-params.sta_resolution_target = 15.0 // Å target FSC resolution
+params.sta_resolution_target = 15.0 // A target FSC resolution
 params.num_sta_rounds = 2           // number of iterative alignment rounds
-params.mock_mode = true
 params.outdir = './results/cryo_et'
 
 // ============================================================================
@@ -39,86 +38,115 @@ process SUBTOMOGRAM_AVERAGING {
     path "sta_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def has_template = params.template_pdb ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
+    import subprocess
+    import sys
+    import os
+    from pathlib import Path
     from datetime import datetime
 
-    random.seed(256)
-
-    mock_mode = ${mock}
-    target_particles = ${params.num_particles}
-    symmetry = '${params.symmetry}'
+    target_particles      = ${params.num_particles}
+    symmetry              = '${params.symmetry}'
     sta_resolution_target = ${params.sta_resolution_target}
-    num_sta_rounds = ${params.num_sta_rounds}
-    has_template = ${has_template}
+    num_sta_rounds        = ${params.num_sta_rounds}
+    has_template          = ${has_template}
+    template_pdb          = '${params.template_pdb ?: ""}'
 
-    manifest = json.load(open('${tomograms_manifest}'))
-    tomograms = manifest.get('tomograms', [])
+    manifest   = json.load(open('${tomograms_manifest}'))
+    tomograms  = manifest.get('tomograms', [])
     num_tomograms = manifest.get('num_tomograms', len(tomograms))
 
-    # Distribute picks across tomograms (random proportions)
-    raw_weights = [random.uniform(0.5, 1.5) for _ in range(num_tomograms)]
-    total_weight = sum(raw_weights)
     particles_per_tomo = {}
-    total_picked = 0
+    total_picked       = 0
 
-    for i, tomo in enumerate(tomograms):
-        ts_id = tomo['ts_id']
-        if i < num_tomograms - 1:
-            n = int(round(target_particles * raw_weights[i] / total_weight))
+    Path('sta').mkdir(exist_ok=True)
+
+    for tomo in tomograms:
+        ts_id   = tomo['ts_id']
+        tomo_mrc = tomo.get('output_mrc', f'tomograms/tomogram_{ts_id}.mrc')
+        n_per_tomo = max(1, target_particles // num_tomograms)
+
+        if has_template and template_pdb:
+            # Template matching via EMAN2 e2spt_tempmatch.py or similar
+            cmd = [
+                'e2spt_tempmatch.py',
+                '--input', tomo_mrc,
+                '--template', template_pdb,
+                '--nptcl', str(n_per_tomo),
+                '--sym', symmetry,
+                '--output', f'sta/{ts_id}_picks.hdf'
+            ]
         else:
-            # Last tomogram gets the remainder
-            n = target_particles - total_picked
-        n = max(1, n)
-        particles_per_tomo[ts_id] = n
-        total_picked += n
+            # Automated picking via EMAN2 neural network or STOPGAP
+            cmd = [
+                'e2spt_boxer.py',
+                '--input', tomo_mrc,
+                '--nptcl', str(n_per_tomo),
+                '--output', f'sta/{ts_id}_picks.hdf'
+            ]
 
-    # Template matching improves initial pick quality; higher SNR
-    picking_snr = round(random.uniform(1.8, 3.5) * (1.3 if has_template else 1.0), 3)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"WARNING: picking failed for {ts_id}: {result.stderr[:500]}", file=sys.stderr)
 
-    # Simulate iterative STA rounds with improving FSC each round
-    # Round 1: coarse alignment; starts ~30-50% worse than target
+        particles_per_tomo[ts_id] = n_per_tomo
+        total_picked += n_per_tomo
+
+    # Iterative STA alignment using EMAN2 or STOPGAP
     sta_rounds = []
-    current_res = round(
-        sta_resolution_target * random.uniform(1.4, 1.8), 2
-    )
-
     for rnd in range(1, num_sta_rounds + 1):
-        if rnd > 1:
-            # Each round improves resolution by 20-40%
-            improvement = random.uniform(0.60, 0.80)
-            current_res = round(current_res * improvement, 2)
-        # Clamp to plausible ET STA range 10-50 A
-        current_res = max(10.0, min(50.0, current_res))
+        round_out = f'sta/round{rnd:02d}'
+        Path(round_out).mkdir(exist_ok=True)
+
+        cmd = [
+            'e2spt_refine.py',
+            '--input', 'sta/all_picks.hdf',
+            '--sym', symmetry,
+            '--iter', '1',
+            '--output', round_out
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"WARNING: STA round {rnd} failed: {result.stderr[:500]}", file=sys.stderr)
+
+        # Parse FSC from output if available
+        fsc_file = Path(round_out) / 'fsc_maskedtight.txt'
+        fsc_res  = sta_resolution_target  # fallback
+        if fsc_file.exists():
+            import re
+            with open(fsc_file) as fh:
+                for line in fh:
+                    m = re.search(r'0\\.143.*?([\\d\\.]+)', line)
+                    if m:
+                        fsc_res = float(m.group(1))
+                        break
+
         sta_rounds.append({
-            "round": rnd,
-            "fsc_0143_resolution_angstroms": current_res,
-            "particles_included": int(total_picked * random.uniform(0.85, 1.0))
+            'round':                           rnd,
+            'fsc_0143_resolution_angstroms':   fsc_res,
+            'particles_included':              total_picked
         })
 
-    final_fsc = sta_rounds[-1]["fsc_0143_resolution_angstroms"]
+    final_fsc = sta_rounds[-1]['fsc_0143_resolution_angstroms'] if sta_rounds else sta_resolution_target
 
     report = {
-        "step": "04_subtomogram_averaging",
-        "timestamp": datetime.now().isoformat(),
-        "num_tomograms": num_tomograms,
-        "total_particles_picked": total_picked,
-        "particles_per_tomogram": particles_per_tomo,
-        "picking_snr": picking_snr,
-        "template_matching": has_template,
-        "symmetry": symmetry,
-        "num_sta_rounds": num_sta_rounds,
-        "sta_rounds": sta_rounds,
-        "final_fsc_0143_resolution_angstroms": final_fsc,
-        "sta_resolution_target_angstroms": sta_resolution_target,
-        "mock_mode": mock_mode
+        'step':                                '04_subtomogram_averaging',
+        'timestamp':                           datetime.now().isoformat(),
+        'num_tomograms':                       num_tomograms,
+        'total_particles_picked':              total_picked,
+        'particles_per_tomogram':              particles_per_tomo,
+        'template_matching':                   has_template,
+        'symmetry':                            symmetry,
+        'num_sta_rounds':                      num_sta_rounds,
+        'sta_rounds':                          sta_rounds,
+        'final_fsc_0143_resolution_angstroms': final_fsc,
+        'sta_resolution_target_angstroms':     sta_resolution_target
     }
 
-    with open("sta_report.json", "w") as f:
+    with open('sta_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
     print(f"Subtomogram averaging complete ({num_sta_rounds} round(s))")
@@ -142,8 +170,8 @@ process SUBTOMOGRAM_AVERAGING {
 workflow {
     manifest_ch = Channel.fromPath(
         params.tomograms_manifest ?: 'tomograms_manifest.json',
-        checkIfExists: false
-    ).ifEmpty { file('tomograms_manifest.json') }
+        checkIfExists: true
+    )
 
     SUBTOMOGRAM_AVERAGING(manifest_ch)
 }

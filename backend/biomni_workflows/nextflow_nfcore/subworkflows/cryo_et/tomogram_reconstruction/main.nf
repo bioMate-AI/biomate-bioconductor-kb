@@ -17,8 +17,7 @@ nextflow.enable.dsl = 2
 params.reconstruction_method = 'wbp'  // 'wbp' (default) or 'sirt'
 params.sirt_iterations = 10           // only used when method = sirt
 params.tomogram_thickness_nm = 200    // nm
-params.binning_factor = 4             // reconstruct at N× binned resolution
-params.mock_mode = true
+params.binning_factor = 4             // reconstruct at Nx binned resolution
 params.outdir = './results/cryo_et'
 
 // ============================================================================
@@ -37,86 +36,109 @@ process TOMOGRAM_RECONSTRUCTION {
     path "tomograms_manifest.json",             emit: manifest
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
+    import subprocess
+    import sys
+    import os
+    from pathlib import Path
     from datetime import datetime
 
-    random.seed(77)
-
-    mock_mode = ${mock}
     reconstruction_method = '${params.reconstruction_method}'
-    sirt_iterations = ${params.sirt_iterations}
-    thickness_nm = ${params.tomogram_thickness_nm}
-    binning = ${params.binning_factor}
+    sirt_iterations       = ${params.sirt_iterations}
+    thickness_nm          = ${params.tomogram_thickness_nm}
+    binning               = ${params.binning_factor}
 
     alignment_data = json.load(open('${alignment_report}'))
-    ts_results = alignment_data.get('tiltseries_results', [])
-    num_ts = alignment_data.get('num_tiltseries_aligned', len(ts_results))
+    ts_results     = alignment_data.get('tiltseries_results', [])
+    xf_files_path  = alignment_data.get('xf_files_path', 'alignment_xf_files.json')
+    num_ts         = alignment_data.get('num_tiltseries_aligned', len(ts_results))
 
-    # Load pixel size from alignment report if available (fallback to 1.35 A)
     pixel_size_a = alignment_data.get('pixel_size_angstroms', 1.35)
     voxel_size_a = round(pixel_size_a * binning, 4)
 
-    # Tomogram lateral dimensions: typical 4kx4k camera, binned
-    lateral_px = 4096 // binning
-
-    # Thickness in voxels: thickness_nm * 10 A/nm / voxel_size_a
+    lateral_px    = 4096 // binning
     thickness_vox = int(round(thickness_nm * 10.0 / voxel_size_a))
 
+    Path('tomograms').mkdir(exist_ok=True)
     tomograms = []
+
     for ts in ts_results:
-        ts_id = ts['ts_id']
+        ts_id   = ts['ts_id']
+        xf_file = f'alignments/{ts_id}.xf'
+        out_mrc = f'tomograms/tomogram_{ts_id}_bin{binning}.mrc'
 
-        # Simulate contrast stats (normalised floating point MRC)
-        contrast_min = round(random.uniform(-0.08, -0.02), 4)
-        contrast_max = round(random.uniform(0.08, 0.20), 4)
+        if reconstruction_method == 'wbp':
+            # IMOD tilt command for WBP reconstruction
+            cmd = [
+                'tilt',
+                '-InputProjections', f'alignments/{ts_id}_aligned.mrc',
+                '-OutputFile', out_mrc,
+                '-TILTFILE', f'alignments/{ts_id}.rawtlt',
+                '-XAXISTILT', '0',
+                '-THICKNESS', str(thickness_vox),
+                '-IMAGEBINNED', str(binning),
+                '-PERPENDICULAR',
+                '-MODE', '2',
+                '-RADIAL', '0.35', '0.035',
+                '-SCALE', '0.0', '0.05'
+            ]
+        elif reconstruction_method == 'sirt':
+            # IMOD tilt with SIRT-like weighting, or imod sirtfilter
+            cmd = [
+                'tilt',
+                '-InputProjections', f'alignments/{ts_id}_aligned.mrc',
+                '-OutputFile', out_mrc,
+                '-TILTFILE', f'alignments/{ts_id}.rawtlt',
+                '-THICKNESS', str(thickness_vox),
+                '-IMAGEBINNED', str(binning),
+                '-PERPENDICULAR',
+                '-MODE', '2',
+                '-SIRTIterations', str(sirt_iterations)
+            ]
+        else:
+            raise RuntimeError(f"Unknown reconstruction_method: {reconstruction_method}. Use 'wbp' or 'sirt'.")
 
-        # SIRT produces slightly smoother contrast
-        if reconstruction_method == 'sirt':
-            contrast_min = round(contrast_min * 0.6, 4)
-            contrast_max = round(contrast_max * 0.6, 4)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"WARNING: reconstruction failed for {ts_id}: {result.stderr[:500]}", file=sys.stderr)
 
         tomograms.append({
-            "ts_id": ts_id,
-            "dimensions_voxels": [lateral_px, lateral_px, thickness_vox],
-            "voxel_size_angstroms": voxel_size_a,
-            "binning_factor": binning,
-            "contrast_min": contrast_min,
-            "contrast_max": contrast_max,
-            "output_mrc": f"tomogram_{ts_id}_bin{binning}.mrc",
-            "reconstruction_method": reconstruction_method,
-            "sirt_iterations": sirt_iterations if reconstruction_method == 'sirt' else None
+            'ts_id':                   ts_id,
+            'dimensions_voxels':       [lateral_px, lateral_px, thickness_vox],
+            'voxel_size_angstroms':    voxel_size_a,
+            'binning_factor':          binning,
+            'output_mrc':              out_mrc,
+            'reconstruction_method':   reconstruction_method,
+            'sirt_iterations':         sirt_iterations if reconstruction_method == 'sirt' else None
         })
 
     manifest = {
-        "num_tomograms": num_ts,
-        "reconstruction_method": reconstruction_method,
-        "binning_factor": binning,
-        "voxel_size_angstroms": voxel_size_a,
-        "tomogram_thickness_nm": thickness_nm,
-        "tomograms": tomograms
+        'num_tomograms':         num_ts,
+        'reconstruction_method': reconstruction_method,
+        'binning_factor':        binning,
+        'voxel_size_angstroms':  voxel_size_a,
+        'tomogram_thickness_nm': thickness_nm,
+        'tomograms':             tomograms
     }
 
     report = {
-        "step": "03_tomogram_reconstruction",
-        "timestamp": datetime.now().isoformat(),
-        "reconstruction_method": reconstruction_method,
-        "sirt_iterations": sirt_iterations if reconstruction_method == 'sirt' else None,
-        "binning_factor": binning,
-        "tomogram_thickness_nm": thickness_nm,
-        "voxel_size_angstroms": voxel_size_a,
-        "num_tomograms": num_ts,
-        "tomograms": tomograms,
-        "mock_mode": mock_mode
+        'step':                    '03_tomogram_reconstruction',
+        'timestamp':               datetime.now().isoformat(),
+        'reconstruction_method':   reconstruction_method,
+        'sirt_iterations':         sirt_iterations if reconstruction_method == 'sirt' else None,
+        'binning_factor':          binning,
+        'tomogram_thickness_nm':   thickness_nm,
+        'voxel_size_angstroms':    voxel_size_a,
+        'num_tomograms':           num_ts,
+        'tomograms':               tomograms
     }
 
-    with open("tomogram_reconstruction_report.json", "w") as f:
+    with open('tomogram_reconstruction_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    with open("tomograms_manifest.json", "w") as f:
+    with open('tomograms_manifest.json', 'w') as f:
         json.dump(manifest, f, indent=2)
 
     print(f"Tomogram reconstruction complete ({reconstruction_method.upper()})")
@@ -141,8 +163,8 @@ process TOMOGRAM_RECONSTRUCTION {
 workflow {
     alignment_ch = Channel.fromPath(
         params.alignment_report ?: 'tilt_alignment_report.json',
-        checkIfExists: false
-    ).ifEmpty { file('tilt_alignment_report.json') }
+        checkIfExists: true
+    )
 
     TOMOGRAM_RECONSTRUCTION(alignment_ch)
 }

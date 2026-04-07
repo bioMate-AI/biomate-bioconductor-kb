@@ -35,8 +35,6 @@ nextflow.enable.dsl = 2
 params.outdir           = './results/nca_pknca'
 params.publish_dir_mode = 'copy'
 
-// Mode flag
-params.mock_mode        = true   // true = synthetic output, no real tools needed
 
 // PK study settings
 params.input_csv        = null   // path to concentration-time CSV (live mode)
@@ -54,7 +52,7 @@ def log_workflow_header() {
     ====================================================================
     BioMate | Non-Compartmental Analysis (NCA) — PKNCA Pipeline
     ====================================================================
-    Mode:        ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE'}
+    Mode:        LIVE
     Route:       ${params.route}
     Dose:        ${params.dose}
     Time unit:   ${params.time_unit}
@@ -86,95 +84,9 @@ process NCA_INPUT_VALIDATION {
     path "versions.yml",            emit: versions
 
     script:
-    def mock  = params.mock_mode
     def route = params.route
     def dose  = params.dose
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-from datetime import datetime
-
-# ---------------------------------------------------------------------------
-# Generate a synthetic concentration-time CSV with 6 subjects
-# Oral PK profile: lag time 0.25 h, Tmax ~1.5 h, Cmax ~400-700 ng/mL,
-# t½ ~6-10 h.  Biexponential model: C(t) = A*(e^-alpha*t - e^-ka*t)
-# ---------------------------------------------------------------------------
-import math
-import random
-
-random.seed(42)
-
-time_points = [0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 24.0]
-n_subjects  = 6
-dose        = float("${dose}")
-route       = "${route}"
-
-def oral_pk(t, ka, ke, F, V, dose):
-    # One-compartment oral PK: C(t) = F*D*ka / (V*(ka-ke)) * (e^-ke*t - e^-ka*t)
-    if t == 0:
-        return 0.0
-    if abs(ka - ke) < 1e-9:
-        ke += 1e-6
-    c = (F * dose * ka) / (V * (ka - ke)) * (math.exp(-ke * t) - math.exp(-ka * t))
-    return max(c, 0.0)
-
-def iv_pk(t, ke, V, dose):
-    # One-compartment IV bolus: C(t) = (D/V)*e^-ke*t
-    if t < 0:
-        return 0.0
-    return (dose / V) * math.exp(-ke * t)
-
-rows = ["subject_id,time,conc,dose,route"]
-
-for subj in range(1, n_subjects + 1):
-    # Inter-subject variability (±20 %)
-    eta = random.gauss(0, 0.2)
-    ka  = 1.2  * math.exp(random.gauss(0, 0.3))   # absorption rate (h⁻¹)
-    ke  = 0.08 * math.exp(eta)                     # elimination rate (h⁻¹); t½ = ln2/ke
-    V   = 50.0 * math.exp(random.gauss(0, 0.15))   # apparent volume (L)
-    F   = 0.75 * math.exp(random.gauss(0, 0.1))    # bioavailability
-    F   = min(F, 1.0)
-
-    for t in time_points:
-        if route == "oral":
-            c_true = oral_pk(t, ka, ke, F, V, dose)
-        else:
-            c_true = iv_pk(t, ke, V, dose)
-        # Add proportional + additive residual error (CV ~10 %, additive 2 ng/mL)
-        noise = c_true * random.gauss(0, 0.10) + random.gauss(0, 2.0)
-        c_obs = max(c_true + noise, 0.0)
-        rows.append(f"SUBJ{subj:02d},{t},{c_obs:.4f},{dose},{route}")
-
-with open("validated_conc_time.csv", "w") as f:
-    f.write("\\n".join(rows) + "\\n")
-
-# Validation report
-report = {
-    "status":          "PASS",
-    "input_file":      "${input_csv}",
-    "n_subjects":      n_subjects,
-    "n_timepoints":    len(time_points),
-    "required_columns": ["subject_id", "time", "conc", "dose", "route"],
-    "columns_present": True,
-    "missing_values":  0,
-    "negative_conc":   0,
-    "negative_time":   0,
-    "dose_uniform":    True,
-    "route_uniform":   True,
-    "route_detected":  route,
-    "dose_detected":   dose,
-    "timestamp":       datetime.utcnow().isoformat() + "Z",
-    "mock_mode":       True,
-}
-with open("validation_report.json", "w") as f:
-    json.dump(report, f, indent=2)
-
-print(f"Input validation mock complete: {n_subjects} subjects × {len(time_points)} time points")
-print(f"  Route: {route}  |  Dose: {dose}")
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: validate the user-supplied CSV with R
         # ---------------------------------------------------------------------------
@@ -220,19 +132,16 @@ report <- list(
     negative_time    = n_neg_time,
     dose_detected    = unique(df\$dose)[1],
     route_detected   = unique(df\$route)[1],
-    timestamp        = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-    mock_mode        = FALSE
+    timestamp        = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
 )
 write_json(report, "validation_report.json", auto_unbox = TRUE, pretty = TRUE)
 cat("Validation PASS —", nrow(df), "rows,", length(unique(df\$subject_id)), "subjects\\n")
 REOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version 2>&1 | cut -d' ' -f2 || echo "N/A")
         R: \$(Rscript --version 2>&1 | grep -oP '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1 || echo "N/A")
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -270,162 +179,11 @@ process NCA_PKNCA_ANALYSIS {
     path "versions.yml",      emit: versions
 
     script:
-    def mock      = params.mock_mode
     def dose      = params.dose
     def route     = params.route
     def time_unit = params.time_unit
     def conc_unit = params.conc_unit
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import math
-import random
-from datetime import datetime
-
-random.seed(42)
-
-# ---------------------------------------------------------------------------
-# Six synthetic subjects with realistic oral PK NCA parameters.
-# Reference ranges (100 mg oral dose, hypothetical small molecule):
-#   AUClast  : 2000–4000 ng·h/mL
-#   AUCinf   : 2200–4400 ng·h/mL  (extrapolated tail adds ~5-10 %)
-#   Cmax     :  400–700  ng/mL
-#   Tmax     :  1.0–2.5  h         (time of Cmax)
-#   t½       :  6–10     h         (terminal elimination half-life)
-#   CL/F     :   25–50   L/h       (apparent oral clearance = Dose/AUCinf)
-#   Vd/F     :  250–400  L         (apparent volume = CL/F / ke)
-# ---------------------------------------------------------------------------
-
-n_subjects = 6
-dose       = float("${dose}")
-route      = "${route}"
-time_unit  = "${time_unit}"
-conc_unit  = "${conc_unit}"
-
-subjects   = []
-for i in range(n_subjects):
-    subj_id = f"SUBJ{i+1:02d}"
-
-    # Draw true PK parameters with log-normal inter-subject variability
-    ke_true   = 0.08 * math.exp(random.gauss(0, 0.20))   # h⁻¹
-    t_half    = round(math.log(2) / ke_true, 2)           # h
-
-    ka_true   = 1.2  * math.exp(random.gauss(0, 0.30))   # h⁻¹  (oral only)
-    V_true    = 50.0 * math.exp(random.gauss(0, 0.15))   # L
-    F_true    = 0.75 * math.exp(random.gauss(0, 0.10))   # bioavailability
-    F_true    = min(F_true, 1.0)
-
-    # Derived NCA quantities
-    CL_F   = dose / (F_true * V_true / ke_true)          # L/h  (= dose/AUCinf)
-    AUCinf = dose / CL_F                                 # ng·h/mL
-    Vd_F   = CL_F / ke_true                              # L
-
-    # Cmax / Tmax from analytical solution (oral 1-cpt)
-    # Tmax = ln(ka/ke)/(ka-ke)
-    if abs(ka_true - ke_true) > 1e-6:
-        Tmax = math.log(ka_true / ke_true) / (ka_true - ke_true)
-    else:
-        Tmax = 1.5
-    Tmax = max(Tmax, 0.5)
-
-    def oral_c(t):
-        if t <= 0:
-            return 0.0
-        c = (F_true * dose * ka_true) / (V_true * (ka_true - ke_true)) * \
-            (math.exp(-ke_true * t) - math.exp(-ka_true * t))
-        return max(c, 0.0)
-
-    Cmax = oral_c(Tmax)
-
-    # AUClast — trapezoid up to t=24 h
-    obs_times = [0, 0.25, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 24.0]
-    obs_concs = [oral_c(t) for t in obs_times]
-    AUClast   = 0.0
-    for j in range(len(obs_times) - 1):
-        dt = obs_times[j+1] - obs_times[j]
-        AUClast += 0.5 * (obs_concs[j] + obs_concs[j+1]) * dt
-
-    # Add mild assay noise to reported NCA values (~3 %)
-    def jitter(v, cv=0.03):
-        return round(v * (1 + random.gauss(0, cv)), 4)
-
-    subjects.append({
-        "subject_id": subj_id,
-        "AUClast":    jitter(AUClast),
-        "AUCinf":     jitter(AUCinf),
-        "Cmax":       jitter(Cmax),
-        "Tmax":       round(Tmax, 3),
-        "t_half":     round(t_half, 3),
-        "CL_F":       jitter(CL_F),
-        "Vd_F":       jitter(Vd_F),
-        "dose":       dose,
-        "route":      route,
-        "F_apparent": round(F_true, 4),
-    })
-
-# Write nca_results.csv
-header = "subject_id,AUClast,AUCinf,Cmax,Tmax,t_half,CL_F,Vd_F,dose,route"
-rows   = [header]
-for s in subjects:
-    rows.append(
-        f"{s['subject_id']},{s['AUClast']},{s['AUCinf']},"
-        f"{s['Cmax']},{s['Tmax']},{s['t_half']},"
-        f"{s['CL_F']},{s['Vd_F']},{s['dose']},{s['route']}"
-    )
-with open("nca_results.csv", "w") as f:
-    f.write("\\n".join(rows) + "\\n")
-
-# Compute summary statistics
-def stats(values):
-    n    = len(values)
-    mean = sum(values) / n
-    var  = sum((v - mean)**2 for v in values) / (n - 1)
-    sd   = math.sqrt(var)
-    cv   = sd / mean * 100
-    sorted_v = sorted(values)
-    med  = sorted_v[n // 2] if n % 2 == 1 else (sorted_v[n//2 - 1] + sorted_v[n//2]) / 2
-    return {"n": n, "mean": round(mean, 4), "sd": round(sd, 4),
-            "cv_pct": round(cv, 2), "median": round(med, 4),
-            "min": round(min(values), 4), "max": round(max(values), 4)}
-
-nca_summary = {
-    "study_info": {
-        "n_subjects":      n_subjects,
-        "dose":            dose,
-        "route":           route,
-        "time_unit":       time_unit,
-        "conc_unit":       conc_unit,
-        "auc_unit":        f"ng*{time_unit}/mL",
-        "cl_unit":         f"L/{time_unit}",
-        "vd_unit":         "L",
-        "analysis_method": "NCA (linear-up log-down trapezoidal)",
-        "software":        "PKNCA (mock mode)",
-        "timestamp":       datetime.utcnow().isoformat() + "Z",
-        "mock_mode":       True,
-    },
-    "population_summary": {
-        "AUClast":  stats([s["AUClast"] for s in subjects]),
-        "AUCinf":   stats([s["AUCinf"]  for s in subjects]),
-        "Cmax":     stats([s["Cmax"]    for s in subjects]),
-        "Tmax":     stats([s["Tmax"]    for s in subjects]),
-        "t_half":   stats([s["t_half"]  for s in subjects]),
-        "CL_F":     stats([s["CL_F"]    for s in subjects]),
-        "Vd_F":     stats([s["Vd_F"]    for s in subjects]),
-    },
-    "individual_results": subjects,
-}
-
-with open("nca_summary.json", "w") as f:
-    json.dump(nca_summary, f, indent=2)
-
-print(f"NCA mock complete: {n_subjects} subjects")
-for s in subjects:
-    print(f"  {s['subject_id']}: AUClast={s['AUClast']:.1f}  "
-          f"Cmax={s['Cmax']:.1f}  t½={s['t_half']:.1f} h  CL/F={s['CL_F']:.2f} L/h")
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: R/PKNCA analysis
         # ---------------------------------------------------------------------------
@@ -503,8 +261,7 @@ summary_list <- list(
         vd_unit         = "L",
         analysis_method = "NCA (linear-up log-down trapezoidal)",
         software        = paste("PKNCA", packageVersion("PKNCA")),
-        timestamp       = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
-        mock_mode       = FALSE
+        timestamp       = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
     ),
     population_summary = list(
         AUClast = pop_stats(params_wide\$AUClast),
@@ -520,14 +277,12 @@ summary_list <- list(
 write_json(summary_list, "nca_summary.json", auto_unbox = TRUE, pretty = TRUE)
 cat("PKNCA analysis complete — ", nrow(params_wide), "subjects\\n")
 REOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         PKNCA: \$(Rscript -e "cat(as.character(packageVersion('PKNCA')))" 2>/dev/null || echo "0.10.0")
         R: \$(Rscript --version 2>&1 | grep -oP '[0-9]+\\.[0-9]+\\.[0-9]+' | head -1 || echo "4.3.1")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2 || echo "N/A")
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -565,214 +320,11 @@ process NCA_REPORT_HTML {
     path "versions.yml",    emit: versions
 
     script:
-    def mock      = params.mock_mode
     def dose      = params.dose
     def route     = params.route
     def time_unit = params.time_unit
     def conc_unit = params.conc_unit
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import csv
-from datetime import datetime
-
-# Read NCA results for the HTML table
-rows = []
-with open("${nca_results_csv}") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        rows.append(row)
-
-summary = json.load(open("${nca_summary_json}"))
-pop  = summary.get("population_summary", {})
-info = summary.get("study_info", {})
-
-def fmt(val, dp=2):
-    try:
-        return ("{:." + str(dp) + "f}").format(float(val))
-    except Exception:
-        return str(val)
-
-def pop_mean(key):
-    v = pop.get(key, {}).get("mean", None)
-    return fmt(v) if v is not None else "—"
-
-def pop_cv(key):
-    v = pop.get(key, {}).get("cv_pct", None)
-    return fmt(v) if v is not None else "—"
-
-route     = "${route}"
-dose_val  = "${dose}"
-time_unit = "${time_unit}"
-conc_unit = "${conc_unit}"
-auc_unit  = info.get("auc_unit", "ng*h/mL")
-cl_unit   = info.get("cl_unit", "L/h")
-n_subj    = len(rows)
-now_date  = datetime.utcnow().strftime('%Y-%m-%d')
-now_ts    = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
-badge_cls = "badge-oral" if route == "oral" else "badge-iv"
-
-# Build individual rows HTML
-row_html_parts = []
-for r in rows:
-    row_html_parts.append(
-        "<tr>"
-        "<td>" + r.get('subject_id','') + "</td>"
-        "<td>" + fmt(r.get('AUClast','')) + "</td>"
-        "<td>" + fmt(r.get('AUCinf','')) + "</td>"
-        "<td>" + fmt(r.get('Cmax','')) + "</td>"
-        "<td>" + fmt(r.get('Tmax','')) + "</td>"
-        "<td>" + fmt(r.get('t_half','')) + "</td>"
-        "<td>" + fmt(r.get('CL_F','')) + "</td>"
-        "<td>" + fmt(r.get('Vd_F','')) + "</td>"
-        "</tr>"
-    )
-row_html = "\n    ".join(row_html_parts)
-
-pop_row = (
-    "<tr class='pop-row'>"
-    "<td>Mean (CV%)</td>"
-    "<td>" + pop_mean('AUClast') + " (" + pop_cv('AUClast') + "%)</td>"
-    "<td>" + pop_mean('AUCinf')  + " (" + pop_cv('AUCinf')  + "%)</td>"
-    "<td>" + pop_mean('Cmax')    + " (" + pop_cv('Cmax')    + "%)</td>"
-    "<td>" + pop_mean('Tmax')    + " (" + pop_cv('Tmax')    + "%)</td>"
-    "<td>" + pop_mean('t_half')  + " (" + pop_cv('t_half')  + "%)</td>"
-    "<td>" + pop_mean('CL_F')    + " (" + pop_cv('CL_F')    + "%)</td>"
-    "<td>" + pop_mean('Vd_F')    + " (" + pop_cv('Vd_F')    + "%)</td>"
-    "</tr>"
-)
-
-# Build HTML by joining lines — no triple-quoted strings to avoid Nextflow parser conflicts
-html_lines = [
-    "<!DOCTYPE html>",
-    "<html lang='en'>",
-    "<head>",
-    "  <meta charset='UTF-8'>",
-    "  <meta name='viewport' content='width=device-width, initial-scale=1.0'>",
-    "  <title>NCA Report &mdash; PKNCA</title>",
-    "  <style>",
-    "    body      { font-family: 'Segoe UI', Arial, sans-serif; margin: 2em 3em; color: #222; background: #fff; }",
-    "    h1        { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 0.3em; }",
-    "    h2        { color: #34495e; margin-top: 2em; }",
-    "    h3        { color: #5d6d7e; }",
-    "    table     { border-collapse: collapse; width: 100%; margin-top: 1em; font-size: 0.92em; }",
-    "    th        { background: #2c3e50; color: #fff; padding: 0.55em 0.9em; text-align: left; }",
-    "    td        { padding: 0.45em 0.9em; border-bottom: 1px solid #ddd; }",
-    "    tr:nth-child(even) { background: #f8f9fa; }",
-    "    tr.pop-row { font-weight: bold; background: #ebf5fb; }",
-    "    .badge    { display: inline-block; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.82em; }",
-    "    .badge-oral { background: #d5f5e3; color: #1e8449; }",
-    "    .badge-iv   { background: #d6eaf8; color: #1a5276; }",
-    "    .badge-mock { background: #fdebd0; color: #784212; }",
-    "    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1em; margin: 1em 0; }",
-    "    .info-card { background: #f0f3f4; border-radius: 6px; padding: 1em; }",
-    "    .info-card dt { font-weight: bold; color: #555; font-size: 0.85em; text-transform: uppercase; }",
-    "    .info-card dd { margin: 0.2em 0 0.8em 0; font-size: 1.05em; }",
-    "    .plot-placeholder { background: #f0f3f4; border: 2px dashed #aaa; border-radius: 8px;",
-    "                        padding: 3em; text-align: center; color: #888; margin: 1.5em 0; }",
-    "    .note     { background: #fef9e7; border-left: 4px solid #f1c40f; padding: 0.8em 1.2em;",
-    "                border-radius: 0 4px 4px 0; margin: 1em 0; font-size: 0.92em; }",
-    "    footer    { margin-top: 3em; font-size: 0.82em; color: #999; border-top: 1px solid #eee;",
-    "                padding-top: 1em; }",
-    "  </style>",
-    "</head>",
-    "<body>",
-    "",
-    "<h1>NCA Report &mdash; PKNCA</h1>",
-    "",
-    "<p>",
-    "  Generated by <strong>BioMate</strong> &bull;",
-    "  Analysis date: <strong>" + now_date + "</strong> &bull;",
-    "  Mode: <span class='badge badge-mock'>MOCK</span>",
-    "</p>",
-    "",
-    "<div class='note'>",
-    "  <strong>Mock mode:</strong> All concentration-time data and NCA parameters in this report",
-    "  are synthetically generated for demonstration purposes. No real PK data was used.",
-    "</div>",
-    "",
-    "<h2>1. Study Information</h2>",
-    "<div class='info-grid'>",
-    "  <div class='info-card'>",
-    "    <dl>",
-    "      <dt>Dose</dt><dd>" + dose_val + " mg</dd>",
-    "      <dt>Route</dt><dd><span class='badge " + badge_cls + "'>" + route.upper() + "</span></dd>",
-    "      <dt>Subjects (N)</dt><dd>" + str(n_subj) + "</dd>",
-    "    </dl>",
-    "  </div>",
-    "  <div class='info-card'>",
-    "    <dl>",
-    "      <dt>Time unit</dt><dd>" + time_unit + "</dd>",
-    "      <dt>Concentration unit</dt><dd>" + conc_unit + "</dd>",
-    "      <dt>AUC unit</dt><dd>" + auc_unit + "</dd>",
-    "      <dt>Software</dt><dd>PKNCA (R package, Beal / nlmixr2 team)</dd>",
-    "    </dl>",
-    "  </div>",
-    "</div>",
-    "",
-    "<h2>2. Concentration-Time Profile</h2>",
-    "<div class='plot-placeholder'>",
-    "  <p><strong>[Concentration-Time Plot]</strong></p>",
-    "  <p>In live mode, a ggplot2 semi-log plot (individual + geometric mean profiles)<br>",
-    "     is rendered here via knitr/Rmd.</p>",
-    "  <p style='font-size:0.85em'>",
-    "    X-axis: Time (" + time_unit + ") &nbsp;|&nbsp; Y-axis: Concentration (" + conc_unit + ", log scale)",
-    "  </p>",
-    "</div>",
-    "",
-    "<h2>3. NCA Parameters by Subject</h2>",
-    "<table>",
-    "  <thead><tr>",
-    "    <th>Subject</th>",
-    "    <th>AUC<sub>last</sub><br><small>" + auc_unit + "</small></th>",
-    "    <th>AUC<sub>inf</sub><br><small>" + auc_unit + "</small></th>",
-    "    <th>C<sub>max</sub><br><small>" + conc_unit + "</small></th>",
-    "    <th>T<sub>max</sub><br><small>" + time_unit + "</small></th>",
-    "    <th>t<sub>1/2</sub><br><small>" + time_unit + "</small></th>",
-    "    <th>CL/F<br><small>" + cl_unit + "</small></th>",
-    "    <th>V<sub>d</sub>/F<br><small>L</small></th>",
-    "  </tr></thead>",
-    "  <tbody>",
-    "    " + row_html,
-    "    " + pop_row,
-    "  </tbody>",
-    "</table>",
-    "",
-    "<h2>4. NCA Assumptions &amp; Limitations</h2>",
-    "<h3>Assumptions met in this analysis:</h3>",
-    "<ul>",
-    "  <li><strong>Linear pharmacokinetics</strong> &mdash; AUC scales proportionally with dose;</li>",
-    "  <li><strong>Steady-state not required</strong> &mdash; Single-dose NCA design.</li>",
-    "  <li><strong>Adequate sampling</strong> &mdash; Schedule covers absorption and at least 3x t&#189; terminal phase.</li>",
-    "  <li><strong>Terminal phase linearity</strong> &mdash; &lambda;<sub>z</sub> estimated from last 3+ time points above LLOQ.</li>",
-    "  <li><strong>Negligible urine contribution</strong> &mdash; All PK inferred from plasma concentration data.</li>",
-    "</ul>",
-    "<h3>Limitations:</h3>",
-    "<ul>",
-    "  <li>AUC<sub>inf</sub> reliability decreases when &gt;30% of AUC is extrapolated.</li>",
-    "  <li>CL/F and V<sub>d</sub>/F are <em>apparent</em> parameters; absolute F requires an IV arm.</li>",
-    "  <li>T<sub>max</sub> is a discrete, sampling-schedule-dependent estimate.</li>",
-    "  <li>NCA does not detect flip-flop kinetics.</li>",
-    "</ul>",
-    "",
-    "<footer>",
-    "  <p>NCA performed with <strong>PKNCA</strong> (Denney W et al. <em>J Pharmacokinet Pharmacodyn</em> 2015) &bull;",
-    "  Report generated by <strong>BioMate AI</strong> &bull; " + now_ts + "</p>",
-    "</footer>",
-    "",
-    "</body>",
-    "</html>",
-]
-
-with open("nca_report.html", "w") as fout:
-    fout.write("\n".join(html_lines) + "\n")
-
-print("NCA HTML report (mock) written: nca_report.html")
-print("  " + str(n_subj) + " subjects | route=" + route + " | dose=" + dose_val)
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: write Rmd via Python (avoids Groovy GString conflicts with
         # Rmd code-fence markers ```{r ...}) then render with knitr/rmarkdown.
@@ -915,7 +467,6 @@ if result.returncode != 0:
     raise RuntimeError(f"rmarkdown::render failed (exit {result.returncode})")
 print("nca_report.html rendered successfully.")
 EOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -923,7 +474,6 @@ EOF
         rmarkdown: \$(Rscript -e "cat(as.character(packageVersion('rmarkdown')))" 2>/dev/null || echo "N/A")
         ggplot2: \$(Rscript -e "cat(as.character(packageVersion('ggplot2')))" 2>/dev/null || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2 || echo "N/A")
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -999,46 +549,3 @@ workflow NCA_PKNCA {
 
 workflow {
     log_workflow_header()
-
-    if (params.mock_mode) {
-        // In mock mode, generate a synthetic CSV on the fly so no real file
-        // is needed (the validation process itself creates the data).
-        ch_input = Channel.of(
-            file("${projectDir}/test_data/conc_time.csv", checkIfExists: false)
-        ).map { csv ->
-            csv.exists() ? csv : {
-                def tmp = file("${workDir}/mock_conc_time.csv")
-                tmp.text = [
-                    "subject_id,time,conc,dose,route",
-                    "SUBJ01,0,0.0,${params.dose},${params.route}",
-                    "SUBJ01,1.0,450.2,${params.dose},${params.route}",
-                    "SUBJ01,2.0,620.8,${params.dose},${params.route}",
-                    "SUBJ01,4.0,410.1,${params.dose},${params.route}",
-                    "SUBJ01,8.0,185.3,${params.dose},${params.route}",
-                    "SUBJ01,12.0,82.0,${params.dose},${params.route}",
-                    "SUBJ01,24.0,12.5,${params.dose},${params.route}",
-                ].join("\n")
-                tmp
-            }()
-        }
-    } else {
-        if (!params.input_csv) {
-            error "params.input_csv is required in live mode. Pass --input_csv <path>"
-        }
-        ch_input = Channel.fromPath(params.input_csv, checkIfExists: true)
-    }
-
-    // Run the pipeline
-    NCA_PKNCA(ch_input)
-
-    // Display output locations
-    NCA_PKNCA.out.nca_results.view { f ->
-        "NCA results CSV  : ${f}"
-    }
-    NCA_PKNCA.out.nca_summary.view { f ->
-        "NCA summary JSON : ${f}"
-    }
-    NCA_PKNCA.out.report.view { f ->
-        "NCA HTML report  : ${f}"
-    }
-}

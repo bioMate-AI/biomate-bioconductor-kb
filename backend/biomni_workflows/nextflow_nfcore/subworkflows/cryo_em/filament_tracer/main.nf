@@ -31,7 +31,6 @@ params.filament_diameter_angstroms    = 150   // Å; e.g. microtubule ~250, acti
 params.helical_rise_angstroms         = 4.75  // Å; inter-subunit rise along helical axis
 params.overlap_fraction               = 0.9   // fraction of box overlapping between adjacent picks
 params.min_filament_length_angstroms  = 500   // minimum traceable filament length (Å)
-params.mock_mode                      = true  // use mock mode for testing
 params.use_cryosparc                  = false // use live CryoSPARC API
 params.outdir                         = './results/filament_tracer'
 
@@ -51,17 +50,10 @@ process FILAMENT_TRACER {
     path "filament_tracer_report.json",  emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
-    import math
     from datetime import datetime
-
-    random.seed(None)
-
-    mock_mode = ${mock}
 
     mics_data   = json.load(open('${micrographs_ctf_cs}'))
     micrographs = mics_data.get('micrographs', [])
@@ -72,98 +64,67 @@ process FILAMENT_TRACER {
     overlap_fraction    = ${params.overlap_fraction}
     min_length          = ${params.min_filament_length_angstroms}
 
-    # Step size along filament axis (in pixels; assume 1 Å/px for mock)
-    # Real pipeline would use actual pixel_size from CTF data
-    step_angstroms = helical_rise * (1.0 - overlap_fraction)
-    if step_angstroms <= 0:
-        step_angstroms = helical_rise * 0.1   # safety floor
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    all_picks        = []
-    total_filaments  = 0
-    total_picks      = 0
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    for mic in micrographs:
-        mic_idx = mic.get('micrograph_idx', 0)
+        job = workspace.create_job('filament_tracer', connections={
+            'micrographs': ('${params.cryosparc_ctf_job_uid ?: ""}', 'micrographs')
+        }, params={
+            'fil_diameter':        filament_diameter,
+            'fil_rise_A':          helical_rise,
+            'fil_overlap_fraction': overlap_fraction,
+            'fil_min_length_A':    min_length
+        })
+        job.queue()
+        job.wait_for_done()
 
-        # Simulate 15-25 filaments per micrograph
-        num_filaments = random.randint(15, 25)
+        picks_out = list(job.load_output('particles'))
+        total_filaments = job.doc.get('output_stats', {}).get('num_filaments', len(picks_out))
+        total_picks     = len(picks_out)
 
-        for fil_id in range(num_filaments):
-            # Filament length drawn from realistic distribution
-            fil_length = random.uniform(
-                min_length,
-                min_length * random.uniform(2.0, 5.0)
-            )
+        cs_data = {
+            'picks':           picks_out,
+            'num_filaments':   total_filaments,
+            'num_picks':       total_picks,
+            'num_micrographs': num_mics
+        }
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
-            # Number of picks proportional to length / step
-            num_picks = max(2, int(fil_length / step_angstroms))
-
-            # Random start point and orientation angle
-            x_start = random.uniform(200, 3800)
-            y_start = random.uniform(200, 3800)
-            angle_deg = random.uniform(0, 180)
-            angle_rad = math.radians(angle_deg)
-
-            dx = math.cos(angle_rad) * step_angstroms
-            dy = math.sin(angle_rad) * step_angstroms
-
-            for pick_idx in range(num_picks):
-                pos_along = pick_idx * step_angstroms
-                x = x_start + dx * pick_idx
-                y = y_start + dy * pick_idx
-                all_picks.append({
-                    'micrograph_idx':          mic_idx,
-                    'x':                       round(x, 2),
-                    'y':                       round(y, 2),
-                    'filament_id':             f'{mic_idx}_{fil_id}',
-                    'position_along_filament': round(pos_along, 2),
-                    'angle_deg':               round(angle_deg, 2)
-                })
-                total_picks += 1
-
-            total_filaments += 1
-
-    avg_filament_length = (
-        random.uniform(min_length, min_length * 3.0)
-        if total_filaments > 0 else 0.0
-    )
-    avg_picks_per_fil = (
-        total_picks / total_filaments if total_filaments > 0 else 0
-    )
-
-    cs_data = {
-        'picks':           all_picks,
-        'num_filaments':   total_filaments,
-        'num_picks':       total_picks,
-        'num_micrographs': num_mics
-    }
+    with open('filament_picks.cs', 'w') as f:
+        json.dump(cs_data, f, indent=2)
 
     report = {
         'step':                         'filament_tracer',
         'timestamp':                    datetime.now().isoformat(),
         'num_micrographs':              num_mics,
-        'total_filaments_traced':       total_filaments,
-        'total_particles_picked':       total_picks,
-        'avg_filament_length_angstroms': round(avg_filament_length, 1),
-        'avg_picks_per_filament':       round(avg_picks_per_fil, 1),
+        'total_filaments_traced':       cs_data['num_filaments'],
+        'total_particles_picked':       cs_data['num_picks'],
         'filament_diameter_angstroms':  filament_diameter,
         'helical_rise_angstroms':       helical_rise,
         'overlap_fraction':             overlap_fraction,
-        'min_filament_length_angstroms': min_length,
-        'mock_mode':                    mock_mode
+        'min_filament_length_angstroms': min_length
     }
-
-    with open('filament_picks.cs', 'w') as f:
-        json.dump(cs_data, f, indent=2)
 
     with open('filament_tracer_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Filament tracing complete on {num_mics} micrographs")
-    print(f"  Total filaments traced  : {total_filaments}")
-    print(f"  Total particles picked  : {total_picks}")
-    print(f"  Avg filament length     : {avg_filament_length:.1f} Å")
-    print(f"  Avg picks per filament  : {avg_picks_per_fil:.1f}")
+    print(f"Filament tracing complete on {num_mics} micrographs")
+    print(f"  Total filaments traced  : {cs_data['num_filaments']}")
+    print(f"  Total particles picked  : {cs_data['num_picks']}")
     """
 }
 
@@ -180,26 +141,14 @@ workflow {
     Helical rise       : ${params.helical_rise_angstroms} Å
     Overlap fraction   : ${params.overlap_fraction}
     Min filament length: ${params.min_filament_length_angstroms} Å
-    Mode               : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
     Output             : ${params.outdir}
     ====================================================================
     """.stripIndent()
 
-    // Expect a pre-existing CTF .cs file supplied via --micrographs_ctf_cs
-    if (!params.containsKey('micrographs_ctf_cs') || params.micrographs_ctf_cs == null) {
-        // Generate a small synthetic CTF .cs for testing
-        def dummy = file("${params.outdir}/test_input/micrographs_ctf.cs")
-        dummy.parent.mkdirs()
-        def mics = (0..2).collect { i ->
-            [micrograph_idx: i, micrograph_path: "micrograph_${String.format('%05d', i)}.mrc",
-             defocus_u_angstroms: 15000 + i * 1000, defocus_v_angstroms: 14800 + i * 1000,
-             ctf_fit_resolution_angstroms: 5.2]
-        }
-        dummy.text = groovy.json.JsonOutput.toJson([micrographs: mics])
-        ch_ctf = Channel.of(dummy)
-    } else {
-        ch_ctf = Channel.fromPath(params.micrographs_ctf_cs)
-    }
+    ch_ctf = Channel.fromPath(
+        params.micrographs_ctf_cs ?: 'micrographs_ctf.cs',
+        checkIfExists: true
+    )
 
     FILAMENT_TRACER(ch_ctf)
 

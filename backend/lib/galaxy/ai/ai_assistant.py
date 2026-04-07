@@ -1203,7 +1203,7 @@ class AIAssistant:
         user_id: Optional[str] = None,
         user_context: Optional[Dict[str, Any]] = None,
         session_id: Optional[str] = None,
-        uploaded_datasets: Optional[List[str]] = None
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Generate workflow using multi-agent system with LLM-enhanced routing.
@@ -1409,7 +1409,7 @@ class AIAssistant:
         self,
         workflow,
         user_intent: str,
-        uploaded_datasets: Optional[List[str]] = None
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Build Galaxy .ga workflow JSON from multi-agent assembled workflow."""
         steps = {}
@@ -1936,44 +1936,21 @@ class AIAssistant:
             "source": "ai_tool_db.execution_info",
         }
 
-    def _build_intent_trials(self, user_intent: str) -> List[str]:
+    def _build_intent_trials(self, user_intent: str, key_terms: Optional[List[str]] = None) -> List[str]:
         """
-        Build iterative retrieval trials from a user intent.
+        Build search trials from user intent.
 
-        Strategy:
-        1) Original user text
-        2) Punctuation-normalized variant
-        3) Domain-enriched query for known high-risk intents
+        Trial 1: original intent (always used).
+        Trial 2: intent augmented with LLM-extracted key_terms — only added when
+                 key_terms are present and meaningfully extend the original text.
+                 This replaces the previous hardcoded domain-keyword enrichments.
         """
-        normalized = " ".join(user_intent.replace("-", " ").split())
-        trials: List[str] = [user_intent, normalized]
-        q = user_intent.lower()
-
-        # High-risk domain enrichments to improve scientific fit.
-        if any(t in q for t in ["whole exome", "whole-exome", " wes ", "tumor-normal", "tumor normal", "somatic"]):
-            trials.append("WES BAM tumor normal somatic variant calling quality control")
-        if any(t in q for t in ["rna-seq", "rnaseq", "deseq2", "differential expression"]):
-            trials.append("RNA-seq differential expression DESeq2 quantification QC")
-        if any(t in q for t in ["microbiome", "metagenomics", "16s"]):
-            trials.append("metagenomics microbiome taxonomic profiling kraken2 metaphlan")
-        if any(t in q for t in ["admet", "herg", "dili", "toxicity", "cardiotoxicity", "ames mutagenicity", "clintox"]):
-            trials.append("ADMET toxicity screening hERG DILI drug safety pharmacology compound")
-        if any(t in q for t in ["docking", "binding affinity", "alphafold", "structure prediction", "diffdock", "autodock", "vina"]):
-            trials.append("structure prediction docking AlphaFold3 DiffDock AutoDock binding affinity drug discovery")
-        if any(t in q for t in ["nca", "pharmacokinetic", "pk analysis", "pknca", "auc", "cmax", "nlmixr"]):
-            trials.append("NCA pharmacokinetics PKNCA AUC Cmax half-life drug exposure")
-        if any(t in q for t in ["qsar", "scaffold hop", "scaffold-hop", "mmp", "drug-like", "lipinski", "smiles"]):
-            trials.append("QSAR scaffold hopping drug-like compounds RDKit molecular properties")
-
-        # De-duplicate while preserving order.
-        seen = set()
-        unique_trials: List[str] = []
-        for trial in trials:
-            key = trial.strip().lower()
-            if key and key not in seen:
-                seen.add(key)
-                unique_trials.append(trial.strip())
-        return unique_trials
+        trials: List[str] = [user_intent]
+        if key_terms:
+            extra = " ".join(t for t in key_terms if t.lower() not in user_intent.lower())
+            if extra.strip():
+                trials.append(f"{user_intent} {extra}")
+        return trials
 
     # -------------------------------------------------------------------------
     # Nextflow parameter extraction helpers
@@ -2005,6 +1982,50 @@ class AIAssistant:
                 return c
         return None
 
+    # Groups in nextflow_schema.json that are infrastructure / admin — skip them
+    # so users only see scientifically relevant parameters.
+    _SCHEMA_SKIP_GROUPS: frozenset = frozenset([
+        'institutional config options',
+        'generic options',
+        'max job request options',
+        'awsbatch job resources',
+    ])
+
+    # Parameter names that represent input data files — these get type="file" so the
+    # frontend renders a dataset browser instead of a plain text box.
+    _INPUT_FILE_PARAM_NAMES: frozenset = frozenset([
+        'input', 'reads', 'reads1', 'reads2', 'fastq', 'fastq1', 'fastq2',
+        'bam', 'genome', 'fasta', 'genome_fasta', 'reference', 'reference_genome',
+        'gtf', 'gff', 'bed', 'vcf', 'csv', 'samplesheet', 'sample_sheet',
+        'design', 'multiqc_config', 'star_index', 'hisat2_index', 'bwa_index',
+        'bowtie2_index', 'transcript_fasta', 'additional_fasta', 'transcript',
+        'probeset', 'annotation', 'blacklist', 'bait_intervals', 'target_intervals',
+    ])
+
+    def _detect_param_type(self, name: str, default_val: str) -> str:
+        """Heuristic type detection for a single Nextflow parameter."""
+        low = name.lower()
+        if low in self._INPUT_FILE_PARAM_NAMES or low.endswith('_file') or low.endswith('_path'):
+            return 'file'
+        if default_val in ('true', 'false', 'True', 'False'):
+            return 'boolean'
+        if default_val and (
+            default_val.startswith('/') or
+            default_val.startswith('s3://') or
+            default_val.startswith('gs://') or
+            '.' in default_val.split('/')[-1]
+        ):
+            return 'file'
+        try:
+            int(default_val); return 'integer'
+        except (ValueError, TypeError):
+            pass
+        try:
+            float(default_val); return 'float'
+        except (ValueError, TypeError):
+            pass
+        return 'string'
+
     def _parse_nextflow_params(self, filename: str) -> dict:
         """Parse params.* lines from .nf file. Returns {"required": [...], "optional": [...]}."""
         import re as _re
@@ -2026,20 +2047,178 @@ class AIAssistant:
             label = name.replace("_", " ").title()
             description = f"Workflow parameter: {label}"
             is_required = (val_raw == "null")
-            entry = {"name": name, "label": label, "description": description,
-                     "default": None if is_required else val_raw.strip("'\"")}
+            default_str = None if is_required else val_raw.strip("'\"")
+            param_type = self._detect_param_type(name, default_str or "")
+            # Convert boolean string defaults to actual Python bools so the JSON
+            # serialisation sends true/false (not the strings "true"/"false"),
+            # enabling the frontend Switch component to work correctly.
+            if param_type == 'boolean' and default_str in ('true', 'True'):
+                default_str = True
+            elif param_type == 'boolean' and default_str in ('false', 'False'):
+                default_str = False
+            entry = {
+                "name": name,
+                "label": label,
+                "description": description,
+                "type": param_type,
+                "default": default_str,
+            }
             if is_required:
                 required.append(entry)
             else:
                 optional.append(entry)
         return {"required": required, "optional": optional}
 
+    def _schema_type_to_param_type(self, name: str, param_def: dict) -> str:
+        """Map a JSON Schema property definition to BioMate's parameter type vocabulary."""
+        if 'enum' in param_def:
+            return 'select'
+        fmt = param_def.get('format', '')
+        if fmt == 'file-path' or param_def.get('mimetype'):
+            return 'file'
+        if fmt in ('directory-path', 'path'):
+            # Output directories are plain strings — not browsable datasets
+            return 'string'
+        json_type = param_def.get('type', 'string')
+        if json_type == 'boolean':
+            return 'boolean'
+        if json_type in ('integer', 'number'):
+            return 'number'
+        # Heuristic for unformatted strings that look like file inputs
+        low = name.lower()
+        if low in self._INPUT_FILE_PARAM_NAMES or low.endswith('_file') or low.endswith('_path'):
+            return 'file'
+        return 'string'
+
+    def _parse_nextflow_schema(self, filename: str) -> Optional[dict]:
+        """Parse nextflow_schema.json (nf-core JSON Schema) for authoritative parameter metadata.
+
+        Returns {"required": [...], "optional": [...]} with richer fields than the .nf parser,
+        or None when no schema file is found (custom workflows fall back to _parse_nextflow_params).
+
+        Each entry includes: name, label, description, type, default, required, group,
+        and optionally: options (select), minimum, maximum, pattern.
+        """
+        import json as _json
+        nf_path = self._find_nf_file(filename)
+        if not nf_path:
+            return None
+        schema_path = nf_path.parent / 'nextflow_schema.json'
+        if not schema_path.exists():
+            return None
+        try:
+            schema = _json.loads(schema_path.read_text(encoding='utf-8'))
+        except Exception:
+            return None
+
+        defs = schema.get('$defs') or schema.get('definitions') or {}
+        required_params = []
+        optional_params = []
+
+        for group_def in defs.values():
+            if not isinstance(group_def, dict):
+                continue
+            group_title = group_def.get('title', '')
+            if group_title.lower() in self._SCHEMA_SKIP_GROUPS:
+                continue
+            group_required = set(group_def.get('required', []))
+            properties = group_def.get('properties', {})
+
+            for param_name, param_def in properties.items():
+                if not isinstance(param_def, dict):
+                    continue
+                if param_def.get('hidden', False):
+                    continue
+
+                ptype = self._schema_type_to_param_type(param_name, param_def)
+                default = param_def.get('default', None)
+                # JSON Schema booleans are already Python bools; strings need no conversion
+                # since nf-core schemas emit native JSON true/false for boolean defaults.
+
+                description = param_def.get('description', '') or ''
+                help_text = param_def.get('help_text', '')
+                # Keep description short for UI; put help_text in description if no description
+                full_description = description or help_text
+
+                entry: dict = {
+                    'name': param_name,
+                    'label': param_name.replace('_', ' ').title(),
+                    'description': full_description,
+                    'type': ptype,
+                    'default': default,
+                    'group': group_title,
+                    'required': param_name in group_required,
+                }
+
+                if 'enum' in param_def:
+                    entry['options'] = [{'label': str(v), 'value': v} for v in param_def['enum']]
+                if 'minimum' in param_def:
+                    entry['minimum'] = param_def['minimum']
+                if 'maximum' in param_def:
+                    entry['maximum'] = param_def['maximum']
+                if 'pattern' in param_def:
+                    entry['pattern'] = param_def['pattern']
+
+                if param_name in group_required:
+                    required_params.append(entry)
+                else:
+                    optional_params.append(entry)
+
+        if not required_params and not optional_params:
+            return None  # schema was empty or all groups skipped — fall back
+        return {'required': required_params, 'optional': optional_params}
+
+    def _get_workflow_params(self, filename: str) -> dict:
+        """Get parameter metadata for a workflow.
+
+        Tries nextflow_schema.json (nf-core) first for authoritative types, groups, enums,
+        and min/max constraints. Falls back to parsing params.* from the .nf file when no
+        schema is found (custom drug-discovery workflows).
+        """
+        schema_params = self._parse_nextflow_schema(filename)
+        if schema_params is not None:
+            return schema_params
+        return self._parse_nextflow_params(filename)
+
     _SRA_ACCESSION_RE = re.compile(r'\b([SED]RR\d{6,9}|GSE\d{4,9}|GSM\d{4,9}|E-MTAB-\d{4,9}|PXD\d{4,9})\b', re.IGNORECASE)
+    _GENOME_BUILD_RE = re.compile(
+        r'\b(hg38|hg19|GRCh38|GRCh37|mm10|mm39|GRCm38|GRCm39|T2T-CHM13|dm6|ce11|danRer11|sacCer3)\b',
+        re.IGNORECASE,
+    )
+    # igenomes-style system defaults for common reference genome builds.
+    # Pre-filled when user mentions a genome build — unblocks the Run button
+    # without requiring the user to supply full S3/local paths.  The executor
+    # resolves these via the igenomes config or fails gracefully in mock mode.
+    _IGENOMES_REFERENCE: dict = {
+        'hg38':   's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg38/Sequence/WholeGenomeFasta/genome.fa',
+        'grch38': 's3://ngi-igenomes/igenomes/Homo_sapiens/Ensembl/GRCh38/Sequence/WholeGenomeFasta/genome.fa',
+        'hg19':   's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg19/Sequence/WholeGenomeFasta/genome.fa',
+        'grch37': 's3://ngi-igenomes/igenomes/Homo_sapiens/Ensembl/GRCh37/Sequence/WholeGenomeFasta/genome.fa',
+        'mm10':   's3://ngi-igenomes/igenomes/Mus_musculus/UCSC/mm10/Sequence/WholeGenomeFasta/genome.fa',
+        'mm39':   's3://ngi-igenomes/igenomes/Mus_musculus/Ensembl/GRCm39/Sequence/WholeGenomeFasta/genome.fa',
+    }
+    _IGENOMES_KNOWN_SITES: dict = {
+        'hg38':   's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg38/Annotation/GATKBundle/dbsnp_146.hg38.vcf.gz',
+        'grch38': 's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg38/Annotation/GATKBundle/dbsnp_146.hg38.vcf.gz',
+        'hg19':   's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg19/Annotation/GATKBundle/dbsnp_138.hg19.vcf.gz',
+        'grch37': 's3://ngi-igenomes/igenomes/Homo_sapiens/UCSC/hg19/Annotation/GATKBundle/dbsnp_138.hg19.vcf.gz',
+        'mm10':   's3://ngi-igenomes/igenomes/Mus_musculus/UCSC/mm10/Annotation/GATKBundle/mgp_v3_snps_rsIDdbSNPv137.vcf.gz',
+    }
 
     def _extract_sra_accession(self, user_intent: str) -> Optional[str]:
         """Return the first SRA/GEO/ArrayExpress/PRIDE accession found in the user's message."""
         m = self._SRA_ACCESSION_RE.search(user_intent)
         return m.group(1).upper() if m else None
+
+    def _extract_genome_build(self, user_intent: str) -> Optional[str]:
+        """Return the first recognised genome build mentioned in the user's message, normalised to lowercase."""
+        m = self._GENOME_BUILD_RE.search(user_intent)
+        if not m:
+            return None
+        raw = m.group(1)
+        # Normalise aliases: GRCh38→hg38, GRCh37→hg19, GRCm38→mm10, GRCm39→mm39
+        alias_map = {'grch38': 'hg38', 'grch37': 'hg19', 'grcm38': 'mm10', 'grcm39': 'mm39'}
+        return alias_map.get(raw.lower(), raw.lower())
 
     def _inject_sra_into_params(self, req_params: list, opt_params: list, accession: str) -> tuple:
         """If user provided an SRA accession, set it as the default for the 'reads' required param.
@@ -2056,6 +2235,31 @@ class AIAssistant:
             else:
                 new_req.append(p)
         return new_req, list(opt_params)
+
+    def _inject_genome_into_params(self, req_params: list, opt_params: list, genome_build: str) -> tuple:
+        """Pre-fill reference, known_sites, and genome params when user mentioned a genome build.
+        Uses igenomes-compatible S3 paths so the Run button is not blocked by empty required fields.
+        The executor resolves the paths; in mock/dev mode the workflow fails gracefully."""
+        _REFERENCE_NAMES = frozenset(['reference', 'genome_fasta', 'fasta', 'reference_fasta',
+                                      'ref_genome', 'reference_genome', 'ref', 'genome_file'])
+        _KNOWN_SITES_NAMES = frozenset(['known_sites', 'known_variants', 'dbsnp', 'known_indels',
+                                        'known_vcf', 'bqsr_known_sites', 'mills', 'dbsnp_vcf'])
+        _GENOME_NAMES = frozenset(['genome', 'genome_build', 'genome_id', 'assembly'])
+
+        ref_path = self._IGENOMES_REFERENCE.get(genome_build)
+        ks_path = self._IGENOMES_KNOWN_SITES.get(genome_build)
+
+        def _patch(p: dict) -> dict:
+            n = p['name']
+            if n in _REFERENCE_NAMES and not p.get('default') and ref_path:
+                return {**p, 'default': ref_path, 'genome_auto': True}
+            if n in _KNOWN_SITES_NAMES and not p.get('default') and ks_path:
+                return {**p, 'default': ks_path, 'genome_auto': True}
+            if n in _GENOME_NAMES and not p.get('default'):
+                return {**p, 'default': genome_build, 'genome_auto': True}
+            return p
+
+        return [_patch(p) for p in req_params], [_patch(p) for p in opt_params]
 
     def _build_prereq_validation(self, required_params: list) -> Optional[dict]:
         """Build prerequisitesValidation payload consumed by prereq-normalizer.ts.
@@ -2078,6 +2282,185 @@ class AIAssistant:
                 "inputMappings": [],
             },
         }
+
+    # ------------------------------------------------------------------
+    # Parameter pre-filling — layer 2 AI knowledge
+    # ------------------------------------------------------------------
+
+    def _apply_parameter_hints(
+        self,
+        req: list,
+        opt: list,
+        hints: list,
+    ) -> tuple:
+        """Merge tool_knowledge parameter_hints into the param lists.
+
+        Matches hints by param name (exact or lowercase comparison).
+        Sets autoFilled=True and adds rationale to matched params so the
+        frontend KnowledgeBadge and editability indicators are shown.
+        Returns (new_req, new_opt).
+        """
+        if not hints:
+            return req, opt
+
+        hint_map: dict = {}
+        for h in hints:
+            pname = h.get("param", "")
+            if pname:
+                hint_map[pname.lower()] = h
+
+        def _apply_hints_to_list(params: list) -> list:
+            out = []
+            for p in params:
+                key = p.get("name", "").lower()
+                h = hint_map.get(key)
+                if h and h.get("recommended"):
+                    p = dict(p)
+                    p["autoFilled"] = True
+                    p["rationale"] = h.get("rationale", "")
+                    # Only override value when no default already exists
+                    if not p.get("default"):
+                        p["default"] = h["recommended"]
+                out.append(p)
+            return out
+
+        return _apply_hints_to_list(req), _apply_hints_to_list(opt)
+
+    _PARAM_SUGGEST_SYSTEM = """You are a scientific parameter advisor for a bioinformatics platform.
+
+Given a workflow name, a list of its configurable parameters (with type and description), and a user's natural-language query, suggest pre-filled values for parameters that can be inferred from the user's context.
+
+Rules:
+- ONLY suggest values for parameters where the user's query makes the value unambiguous.
+- For select parameters, the value MUST be one of the listed enum values.
+- For boolean parameters, value must be true or false (unquoted).
+- Do NOT guess file paths — never suggest a value for file-type parameters.
+- Do NOT repeat the workflow's existing default value unless the user explicitly confirms it.
+- Limit to at most 5 suggestions. Prefer scientifically impactful parameters.
+- Return JSON array of objects: [{"name": "param_name", "value": <value>, "rationale": "one-sentence why"}]
+- Return [] if nothing can be confidently inferred.
+
+Examples of good inference:
+- User says "37°C" → temperature = 310 (Kelvin conversion, with rationale)
+- User says "XP precision" or "lead optimisation docking" → docking_precision = "XP"
+- User says "scaffold decoration of coumarin" → mode = "scaffold_decoration", seed_smiles = "c1ccc2c(c1)ccc(=O)o2"
+- User says "de novo design" → mode = "de_novo"
+- User says "SARS-CoV-2 Mpro" → reactive_residue = "CYS:145" for covalent docking
+- User says "oral drug" → route = "oral"
+- User says "GPU available" or "use GPU" → gpu = true"""
+
+    def _infer_params_from_intent_llm(
+        self,
+        user_intent: str,
+        workflow_name: str,
+        req: list,
+        opt: list,
+    ) -> list:
+        """Use Haiku to suggest parameter pre-fills from the user's natural language query.
+
+        Returns a list of {name, value, rationale} dicts for matched params.
+        Silently returns [] on any failure (non-blocking).
+        """
+        import os as _os
+        import json as _json
+
+        api_key = _os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return []
+
+        try:
+            import anthropic as _anthropic
+            client = _anthropic.Anthropic(api_key=api_key)
+        except Exception:
+            return []
+
+        # Build a compact param catalogue for the prompt
+        all_params = req + opt
+        # Skip file params — LLM should not fill paths
+        inferable = [p for p in all_params if p.get("type") not in ("file",)]
+        if not inferable:
+            return []
+
+        param_lines = []
+        for p in inferable:
+            name = p["name"]
+            ptype = p.get("type", "string")
+            desc = p.get("description", "")[:120]
+            enum_vals = [str(o["value"]) for o in p.get("options", [])] if p.get("options") else None
+            if enum_vals:
+                param_lines.append(f'- {name} (select: {"|".join(enum_vals)}): {desc}')
+            else:
+                param_lines.append(f'- {name} ({ptype}): {desc}')
+
+        params_text = "\n".join(param_lines)
+        user_msg = (
+            f"Workflow: {workflow_name}\n\n"
+            f"Available parameters:\n{params_text}\n\n"
+            f"User query: {user_intent[:400]}"
+        )
+
+        try:
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=512,
+                system=self._PARAM_SUGGEST_SYSTEM,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            text = response.content[0].text.strip()
+            # Extract JSON array from response
+            start = text.find("[")
+            end = text.rfind("]") + 1
+            if start < 0 or end <= start:
+                return []
+            suggestions = _json.loads(text[start:end])
+            if not isinstance(suggestions, list):
+                return []
+            # Validate: name must exist in inferable params, value must not be empty
+            valid_names = {p["name"] for p in inferable}
+            return [
+                s for s in suggestions
+                if isinstance(s, dict)
+                and s.get("name") in valid_names
+                and s.get("value") is not None
+                and str(s.get("value", "")).strip() != ""
+            ]
+        except Exception as exc:
+            log.debug("[ParamSuggest] LLM inference failed: %s", exc)
+            return []
+
+    def _apply_llm_suggestions(
+        self,
+        req: list,
+        opt: list,
+        suggestions: list,
+    ) -> tuple:
+        """Merge LLM intent-inferred suggestions into param lists.
+
+        If the suggestion is for a required param, moves it to having a pre-filled
+        default so the Run button is not blocked. Sets autoFilled=True + rationale.
+        """
+        if not suggestions:
+            return req, opt
+
+        sugg_map = {s["name"]: s for s in suggestions if s.get("name")}
+
+        def _apply(params: list) -> list:
+            out = []
+            for p in params:
+                s = sugg_map.get(p.get("name", ""))
+                if s:
+                    p = dict(p)
+                    p["autoFilled"] = True
+                    p["rationale"] = s.get("rationale", "AI-recommended based on your query.")
+                    # Pre-fill default so the Run button is not blocked for required params
+                    if p.get("default") is None:
+                        p["default"] = s["value"]
+                    # Also set as the working value
+                    p["value"] = s["value"]
+                out.append(p)
+            return out
+
+        return _apply(req), _apply(opt)
 
     # ------------------------------------------------------------------
     # LangGraph pipeline — observability wrapper around generate_workflow_unified
@@ -2109,7 +2492,7 @@ class AIAssistant:
         user_intent: str,
         session_id: str,
         user_id: Optional[str] = None,
-        uploaded_datasets: Optional[List[str]] = None,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Invoke ``generate_workflow_unified`` through the LangGraph StateGraph.
 
@@ -2171,11 +2554,98 @@ class AIAssistant:
             log.warning("[run_via_pipeline] pipeline invocation failed: %s — falling back", exc)
             return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
 
+    def _return_nextflow_match(
+        self,
+        match: Any,
+        score: float,
+        user_intent: str,
+        source: str,
+        needs_user_feedback: bool,
+        search_results: List[Any],
+        selected_trial: str,
+        trials: List[str],
+    ) -> Dict[str, Any]:
+        """Shared return path for high- and medium-confidence Nextflow template matches."""
+        scientific_rationale = self._build_scientific_rationale(
+            match.filename, match.name, workflow_tools=match.tools
+        )
+        hardware_requirements = self._collect_workflow_hardware_requirements(match.tools)
+        qc_profile = self._infer_qc_profile(match.domain, match.tags, match.name)
+        nf_params = self._get_workflow_params(match.filename)
+        req = nf_params['required']
+        opt = nf_params['optional']
+        sra = self._extract_sra_accession(user_intent)
+        if sra:
+            req, opt = self._inject_sra_into_params(req, opt, sra)
+        genome = self._extract_genome_build(user_intent)
+        if genome:
+            req, opt = self._inject_genome_into_params(req, opt, genome)
+        # Layer 2: apply DB-driven tool_knowledge hints
+        hints = (scientific_rationale or {}).get('parameter_hints', [])
+        req, opt = self._apply_parameter_hints(req, opt, hints)
+        # Layer 2: apply LLM intent-inferred suggestions (non-blocking)
+        llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
+        req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        warnings = [] if not needs_user_feedback else [
+            'Medium confidence match — please verify tool selection is appropriate'
+        ]
+        return {
+            'success': True,
+            'nextflow_path': match.filename,
+            'workflow_name': match.name,
+            'workflow_type': 'nextflow',
+            'source': source,
+            'confidence': int(score),
+            'template_match_score': int(score),
+            'needs_user_feedback': needs_user_feedback,
+            **(({'feedback_prompt': (
+                f"I found a workflow that partially matches your request: '{match.name}'. "
+                f"Please confirm it meets your needs or provide corrections."
+            )}) if needs_user_feedback else {}),
+            'message': f"{'Found' if not needs_user_feedback else 'Best available'} workflow: {match.name}",
+            'note': f'Found workflow with {match.step_count} step(s)',
+            'execution_engine': 'nextflow',
+            'format': 'nextflow',
+            'hardware_requirements': hardware_requirements,
+            **({'qc_profile': qc_profile} if qc_profile else {}),
+            'scientific_rationale': scientific_rationale,
+            'workflow_ga': {
+                'name': match.name,
+                'description': match.description,
+                'annotation': match.description,
+                'tags': match.tags,
+                'format': 'nextflow',
+                'nextflow_path': match.filename,
+                'workflow_type': 'nextflow',
+                'steps': {},
+                'scientific_rationale': scientific_rationale,
+                'hardware_requirements': hardware_requirements,
+                'required_params': req,
+                'optional_params': opt,
+            },
+            'datasets_assigned': False,
+            'required_params': req,
+            'optional_params': opt,
+            'generated_parameters': req + opt,
+            **({'prerequisitesValidation': self._build_prereq_validation(req)} if req else {}),
+            'validation': {'is_valid': True, 'issues': [], 'warnings': warnings, 'suggestions': []},
+            'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
+            'selected_trial': selected_trial,
+            'trial_count': len(trials),
+            'candidate_workflows': [
+                {'name': m.name, 'domain': m.domain, 'source': m.source, 'score': m.score, 'format': m.format}
+                for m in (search_results or [])[:3]
+            ],
+        }
+
     def generate_workflow_unified(
         self,
         user_intent: str,
-        uploaded_datasets: Optional[List[str]] = None,
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
         user_id: Optional[str] = None,
+        key_terms: Optional[List[str]] = None,
+        preferred_domains: Optional[List[str]] = None,
+        penalized_domains: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -2222,18 +2692,35 @@ class AIAssistant:
                 log.warning("[UnifiedWorkflowGeneration] LTM correction fetch failed: %s", _ltm_err)
 
         try:
+            # Initialise variables that may be set only in specific code paths
+            # so the final return dict can always reference them safely.
+            dataset_match_result: Dict[str, Any] = {}
+
             # Step 0: Chain lookup — preferred path for multi-step research projects.
-            # Curated chains encode expert step order and output→input connections,
-            # bypassing per-query LLM assembly entirely when a match is found.
-            log.info("[UnifiedWorkflowGeneration] Step 0: Checking workflow chains...")
+            # The search uses embedding similarity (threshold 0.42) + LLM scope check.
+            # If the LLM is uncertain it sets clarification_needed and returns a question.
             try:
-                chain_results = self.workflow_search.search_chains(user_intent, limit=3)
+                chain_results = self.workflow_search.search_chains(user_intent, min_score=0.35, limit=3)
                 if chain_results:
                     top_chain = chain_results[0]
-                    log.info(
-                        "[UnifiedWorkflowGeneration] Chain match: %s (%d steps, domain=%s)",
-                        top_chain.name, len(top_chain.steps), top_chain.domain,
-                    )
+                    # LLM requested clarification — surface the question; do NOT launch chain.
+                    if getattr(top_chain, 'clarification_needed', False):
+                        q = top_chain.clarification_question or (
+                            f"To select the right pipeline, could you clarify: "
+                            f"are you looking for the full {top_chain.display_name} workflow "
+                            f"({len(top_chain.steps)} steps), or a simpler single-step analysis?"
+                        )
+                        log.info("[UnifiedWorkflowGeneration] Chain clarification needed: %s", q)
+                        return {
+                            'success': False,
+                            'workflow_type': 'clarification',
+                            'source': 'chain_lookup',
+                            'confidence': 5,
+                            'message': q,
+                            'clarification_question': q,
+                            'candidate_chain': top_chain.name,
+                        }
+                    log.info("[UnifiedWorkflowGeneration] Chain match: %s (%d steps)", top_chain.name, len(top_chain.steps))
                     return {
                         'success': True,
                         'workflow_type': 'chain',
@@ -2247,14 +2734,8 @@ class AIAssistant:
                         'expected_outputs': top_chain.expected_outputs,
                         'source': 'chain_lookup',
                         'confidence': 9,
-                        'message': (
-                            f"Found curated pipeline: **{top_chain.display_name}** "
-                            f"({len(top_chain.steps)} steps). {top_chain.description}"
-                        ),
-                        'note': (
-                            f"Pre-validated {len(top_chain.steps)}-step pipeline "
-                            f"with explicit data-flow connections between steps."
-                        ),
+                        'message': f"Found curated pipeline: **{top_chain.display_name}** ({len(top_chain.steps)} steps). {top_chain.description}",
+                        'note': f"Pre-validated {len(top_chain.steps)}-step pipeline with explicit data-flow connections.",
                         'execution_engine': 'chain',
                         'format': 'chain',
                         'all_chains': [c.to_dict() for c in chain_results],
@@ -2264,7 +2745,7 @@ class AIAssistant:
 
             # Step 1: Iterative search trials until confidence is high.
             log.info("[UnifiedWorkflowGeneration] Step 1: Searching workflows iteratively...")
-            trials = self._build_intent_trials(user_intent)
+            trials = self._build_intent_trials(user_intent, key_terms=key_terms)
             selected_trial = user_intent
             search_results: List[Any] = []
             best_match = None
@@ -2273,7 +2754,12 @@ class AIAssistant:
             executable_nextflow_match = None
 
             for trial in trials:
-                trial_results = self.workflow_search.search(trial, limit=5, include_workflow_json=True)
+                trial_results = self.workflow_search.search(
+                    trial, limit=5, include_workflow_json=True,
+                    preferred_domains=preferred_domains or None,
+                    penalized_domains=penalized_domains or None,
+                    key_terms=key_terms or None,
+                )
                 if not trial_results:
                     continue
                 trial_best = trial_results[0]
@@ -2309,8 +2795,10 @@ class AIAssistant:
             generated_parameters = []  # Initialize for all paths
 
             # Step 2: Decide strategy based on template match confidence
-            # Use match_type from workflow search (high/medium/low_confidence)
-            # Thresholds: high_confidence >= 8.0, medium_confidence >= 4.0
+            # match_type is set by UnifiedWorkflowSearch._classify_match():
+            #   high_confidence  : score >= 12.0  → reuse workflow as-is
+            #   medium_confidence: score >= 6.0   → adapt template or compose via NextflowComposer
+            #   low_confidence / no_match         → compose from scratch via NextflowComposer
             if match_type == "high_confidence":
                 # High confidence - reuse existing workflow
                 log.info("[UnifiedWorkflowGeneration] High confidence match - reusing workflow")
@@ -2346,86 +2834,12 @@ class AIAssistant:
                                 )
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
-                    log.info(f"[UnifiedWorkflowGeneration] Matched Nextflow workflow: {best_match.filename}")
-
-                    # Build scientific rationale + parameter hints from Bioconductor KB.
-                    # Pass best_match.tools (the workflow's tools_used list) for
-                    # dynamic lookup; pattern dict supplements for R packages not listed.
-                    scientific_rationale = self._build_scientific_rationale(
-                        best_match.filename, best_match.name,
-                        workflow_tools=best_match.tools,
+                    log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
+                    return self._return_nextflow_match(
+                        match=best_match, score=score, user_intent=user_intent,
+                        source='template_reuse', needs_user_feedback=False,
+                        search_results=search_results, selected_trial=selected_trial, trials=trials,
                     )
-                    if scientific_rationale:
-                        log.info(
-                            f"[UnifiedWorkflowGeneration] Scientific rationale built for "
-                            f"{scientific_rationale.get('tools_used', [])}"
-                        )
-                    hardware_requirements = self._collect_workflow_hardware_requirements(best_match.tools)
-
-                    # Return Nextflow workflow format for direct execution
-                    _qc_profile = self._infer_qc_profile(
-                        best_match.domain, best_match.tags, best_match.name
-                    )
-                    _nf_params_tr = self._parse_nextflow_params(best_match.filename)
-                    _req_tr = _nf_params_tr['required']
-                    _opt_tr = _nf_params_tr['optional']
-                    _sra_tr = self._extract_sra_accession(user_intent)
-                    if _sra_tr:
-                        _req_tr, _opt_tr = self._inject_sra_into_params(_req_tr, _opt_tr, _sra_tr)
-                    return {
-                        'success': True,
-                        'nextflow_path': best_match.filename,
-                        'workflow_name': best_match.name,
-                        'workflow_type': 'nextflow',  # Critical: tells frontend to use Nextflow execution
-                        'source': 'template_reuse',
-                        'confidence': int(score),
-                        'template_match_score': int(score),
-                        'message': f"Reused existing Nextflow workflow: {best_match.name}",
-                        'note': f'Found Nextflow workflow with {best_match.step_count} step(s)',
-                        'execution_engine': 'nextflow',
-                        'format': 'nextflow',
-                        'hardware_requirements': hardware_requirements,
-                        **({'qc_profile': _qc_profile} if _qc_profile else {}),
-                        # Scientific rationale from Bioconductor knowledge base
-                        'scientific_rationale': scientific_rationale,
-                        # Include workflow metadata for UI display
-                        # scientific_rationale is also embedded here so the frontend
-                        # can access it via data.workflow?.workflow_ga?.scientific_rationale
-                        'workflow_ga': {
-                            'name': best_match.name,
-                            'description': best_match.description,
-                            'annotation': best_match.description,
-                            'tags': best_match.tags,
-                            'format': 'nextflow',
-                            'nextflow_path': best_match.filename,
-                            'workflow_type': 'nextflow',
-                            'steps': {},  # Nextflow steps are in the .nf file, not here
-                            'scientific_rationale': scientific_rationale,
-                            'hardware_requirements': hardware_requirements,
-                            'required_params': _req_tr,
-                            'optional_params': _opt_tr,
-                        },
-                        'datasets_assigned': False,  # Nextflow handles inputs via parameters
-                        'required_params': _req_tr,
-                        'optional_params': _opt_tr,
-                        'generated_parameters': _req_tr + _opt_tr,
-                        **({'prerequisitesValidation': self._build_prereq_validation(_req_tr)} if _req_tr else {}),
-                        'validation': {'is_valid': True, 'issues': [], 'warnings': [], 'suggestions': []},
-                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
-                        'needs_user_feedback': False,
-                        'selected_trial': selected_trial,
-                        'trial_count': len(trials),
-                        'candidate_workflows': [
-                            {
-                                'name': m.name,
-                                'domain': m.domain,
-                                'source': m.source,
-                                'score': m.score,
-                                'format': m.format,
-                            }
-                            for m in (search_results or [])[:3]
-                        ],
-                    }
 
                 # Parse workflow JSON if available (Galaxy format)
                 workflow_json = {}
@@ -2447,16 +2861,15 @@ class AIAssistant:
                                 'description': step_data.get('annotation', '')
                             })
 
-                # Assign datasets via WorkflowDatasetSelector
-                log.info("[UnifiedWorkflowGeneration] Assigning datasets...")
-                dataset_assignments = self.dataset_selector.select_datasets_for_workflow(
-                    workflow={'steps': workflow_steps},
-                    user_intent=user_intent
-                )
+                # WorkflowDatasetSelector is ready but requires actual Galaxy history dataset
+                # IDs (from getHistoryDatasets), not BioMNI catalog IDs which is what
+                # uploaded_datasets currently contains. Wire this when the history dataset
+                # source is connected to this call path.
+                dataset_match_result: Dict[str, Any] = {}
 
-                # Build Galaxy .ga JSON with datasets
-                workflow_ga = self._build_workflow_ga_from_template(workflow_json, dataset_assignments)
-                datasets_assigned = True
+                # Build Galaxy .ga JSON (dataset connections established at execution time)
+                workflow_ga = self._build_workflow_ga_from_template(workflow_json, {})
+                datasets_assigned = False
 
                 message = f"Reused existing workflow: {best_match.name}"
 
@@ -2470,76 +2883,12 @@ class AIAssistant:
 
                 nf_formats = {'nextflow', 'bioconductor_nf'}
                 if best_match and getattr(best_match, 'format', '') in nf_formats:
-                    log.info(
-                        f"[UnifiedWorkflowGeneration] Medium confidence Nextflow match "
-                        f"({best_match.format}): {best_match.filename} — returning for execution with review flag"
+                    log.info(f"[UnifiedWorkflowGeneration] Medium-confidence Nextflow match: {best_match.filename}")
+                    return self._return_nextflow_match(
+                        match=best_match, score=score, user_intent=user_intent,
+                        source='template_adapt', needs_user_feedback=True,
+                        search_results=search_results, selected_trial=selected_trial, trials=trials,
                     )
-                    scientific_rationale = self._build_scientific_rationale(
-                        best_match.filename, best_match.name,
-                        workflow_tools=best_match.tools,
-                    )
-                    hardware_requirements = self._collect_workflow_hardware_requirements(best_match.tools)
-                    _qc_profile = self._infer_qc_profile(
-                        best_match.domain, best_match.tags, best_match.name
-                    )
-                    _nf_params_ta = self._parse_nextflow_params(best_match.filename)
-                    _req_ta = _nf_params_ta['required']
-                    _opt_ta = _nf_params_ta['optional']
-                    _sra_ta = self._extract_sra_accession(user_intent)
-                    if _sra_ta:
-                        _req_ta, _opt_ta = self._inject_sra_into_params(_req_ta, _opt_ta, _sra_ta)
-                    return {
-                        'success': True,
-                        'nextflow_path': best_match.filename,
-                        'workflow_name': best_match.name,
-                        'workflow_type': 'nextflow',
-                        'source': 'template_adapt',
-                        'confidence': int(score),
-                        'template_match_score': int(score),
-                        'needs_user_feedback': True,
-                        'feedback_prompt': (
-                            f"I found a Nextflow workflow that partially matches your request "
-                            f"(confidence {int(score)}/12): '{best_match.name}'. "
-                            f"Please confirm it meets your needs or provide corrections."
-                        ),
-                        'message': f"Best available Nextflow workflow (medium confidence): {best_match.name}",
-                        'note': f'Found Nextflow workflow with {best_match.step_count} step(s) — medium confidence match',
-                        'execution_engine': 'nextflow',
-                        'format': 'nextflow',
-                        'hardware_requirements': hardware_requirements,
-                        **({'qc_profile': _qc_profile} if _qc_profile else {}),
-                        'scientific_rationale': scientific_rationale,
-                        'workflow_ga': {
-                            'name': best_match.name,
-                            'description': best_match.description,
-                            'annotation': best_match.description,
-                            'tags': best_match.tags,
-                            'format': 'nextflow',
-                            'nextflow_path': best_match.filename,
-                            'workflow_type': 'nextflow',
-                            'steps': {},
-                            'scientific_rationale': scientific_rationale,
-                            'hardware_requirements': hardware_requirements,
-                            'required_params': _req_ta,
-                            'optional_params': _opt_ta,
-                        },
-                        'datasets_assigned': False,
-                        'required_params': _req_ta,
-                        'optional_params': _opt_ta,
-                        'generated_parameters': _req_ta + _opt_ta,
-                        **({'prerequisitesValidation': self._build_prereq_validation(_req_ta)} if _req_ta else {}),
-                        'validation': {'is_valid': True, 'issues': [], 'warnings': [
-                            'Medium confidence match — please verify tool selection is appropriate'
-                        ], 'suggestions': []},
-                        'tool_installation': {'success': True, 'message': 'Nextflow workflow', 'failed_tools': []},
-                        'selected_trial': selected_trial,
-                        'trial_count': len(trials),
-                        'candidate_workflows': [
-                            {'name': m.name, 'domain': m.domain, 'source': m.source,
-                             'score': m.score, 'format': m.format}
-                            for m in (search_results or [])[:3]
-                        ],
-                    }
 
                 # Galaxy .ga format medium-confidence match — compose Nextflow via NextflowComposer
                 # using best_match as a structural reference (same path as low-confidence but with
@@ -2553,6 +2902,7 @@ class AIAssistant:
                     user_intent=user_intent,
                     reference_match=best_match,
                     max_tools=25,
+                    key_terms=key_terms,
                 )
                 if composed['success']:
                     cache_note = " (cache hit)" if composed.get("cache_hit") else ""
@@ -2561,12 +2911,15 @@ class AIAssistant:
                         f"{composed['composable_count']} NF-WRAPPER + {composed['adhoc_count']} generated"
                     )
                     validation = composed.get('validation', {})
-                    _nf_params_mc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _nf_params_mc = self._get_workflow_params(composed['nextflow_path'])
                     _req_mc = _nf_params_mc['required']
                     _opt_mc = _nf_params_mc['optional']
                     _sra_mc = self._extract_sra_accession(user_intent)
                     if _sra_mc:
                         _req_mc, _opt_mc = self._inject_sra_into_params(_req_mc, _opt_mc, _sra_mc)
+                    _genome_mc = self._extract_genome_build(user_intent)
+                    if _genome_mc:
+                        _req_mc, _opt_mc = self._inject_genome_into_params(_req_mc, _opt_mc, _genome_mc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2634,6 +2987,7 @@ class AIAssistant:
                     user_intent=user_intent,
                     reference_match=best_match,   # may be None for no_match
                     max_tools=30,
+                    key_terms=key_terms,
                 )
 
                 if composed['success']:
@@ -2643,12 +2997,15 @@ class AIAssistant:
                         f"{composed['adhoc_count']} generated processes"
                     )
                     validation = composed.get('validation', {})
-                    _nf_params_lc = self._parse_nextflow_params(composed['nextflow_path'])
+                    _nf_params_lc = self._get_workflow_params(composed['nextflow_path'])
                     _req_lc = _nf_params_lc['required']
                     _opt_lc = _nf_params_lc['optional']
                     _sra_lc = self._extract_sra_accession(user_intent)
                     if _sra_lc:
                         _req_lc, _opt_lc = self._inject_sra_into_params(_req_lc, _opt_lc, _sra_lc)
+                    _genome_lc = self._extract_genome_build(user_intent)
+                    if _genome_lc:
+                        _req_lc, _opt_lc = self._inject_genome_into_params(_req_lc, _opt_lc, _genome_lc)
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -2741,6 +3098,7 @@ class AIAssistant:
                 'confidence': score if score > 0 else 0.3,  # Default low confidence for scratch generation
                 'message': message,
                 'datasets_assigned': datasets_assigned,
+                'dataset_match_result': dataset_match_result,
                 'template_match_score': score,
                 'generated_parameters': generated_parameters,  # Include LLM-generated parameters with confidence scores
                 'tool_installation': tool_install_result,  # Include tool installation results
@@ -3048,9 +3406,15 @@ class AIAssistant:
                         rationale["do_not_use_when"].append(lim)
 
                 for param_name, rec in list((knowledge.recommended_parameters or {}).items())[:6]:
+                    # Extract scalar value — recommended_value may be a dict like
+                    # {'default': 'MPNN'} when stored from Nextflow param definitions.
+                    rv = rec.recommended_value
+                    if isinstance(rv, dict):
+                        rv = rv.get("default", rv.get("value", next(iter(rv.values()), "")))
+                    recommended_str = str(rv) if rv is not None else ""
                     hint = {
                         "param": param_name,
-                        "recommended": str(rec.recommended_value),
+                        "recommended": recommended_str,
                         "rationale": rec.description or "",
                         "tool": tool_name,
                     }
@@ -3103,6 +3467,24 @@ class AIAssistant:
         rationale["key_assumptions"] = rationale["key_assumptions"][:2]
         rationale["common_pitfalls"] = rationale["common_pitfalls"][:2]
         rationale["parameter_hints"] = rationale["parameter_hints"][:8]
+
+        # Final sanitization — ensure ALL string fields are plain scalars, never dicts.
+        # This prevents raw Python dict representations leaking into the UI.
+        def _to_scalar(v: object) -> str:
+            if isinstance(v, dict):
+                return v.get("default", v.get("value", str(next(iter(v.values()), ""))))  # type: ignore[arg-type]
+            return str(v) if v is not None else ""
+
+        rationale["when_to_use"]     = [_to_scalar(x) for x in rationale["when_to_use"]]
+        rationale["do_not_use_when"] = [_to_scalar(x) for x in rationale["do_not_use_when"]]
+        rationale["key_assumptions"] = [_to_scalar(x) for x in rationale["key_assumptions"]]
+        for hint in rationale["parameter_hints"]:
+            hint["param"]       = _to_scalar(hint.get("param", ""))
+            hint["recommended"] = _to_scalar(hint.get("recommended", ""))
+            hint["rationale"]   = _to_scalar(hint.get("rationale", ""))
+        for pitfall in rationale["common_pitfalls"]:
+            for field in ("error", "cause", "fix"):
+                pitfall[field] = _to_scalar(pitfall.get(field, ""))
 
         return rationale
 

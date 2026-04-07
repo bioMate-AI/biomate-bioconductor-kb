@@ -82,6 +82,91 @@ export class GalaxyAPIProxy {
     );
   }
 
+  /**
+   * Returns a new GalaxyAPIProxy instance scoped to a specific user's API key.
+   * All user-data operations (histories, datasets, invocations) should use this
+   * to achieve per-user isolation in Galaxy.
+   *
+   * Falls back to this (admin) proxy if userApiKey is null/undefined.
+   */
+  forUser(userApiKey: string | null | undefined): GalaxyAPIProxy {
+    if (!userApiKey) return this;
+    // Skip connection validation and logging for per-user proxies — they share the same Galaxy URL
+    const proxy = Object.create(GalaxyAPIProxy.prototype) as GalaxyAPIProxy;
+    (proxy as any).galaxyUrl = this.galaxyUrl;
+    (proxy as any).apiKey = userApiKey;
+    (proxy as any).isConnected = true;
+    (proxy as any).connectionError = null;
+    (proxy as any).client = axios.create({
+      baseURL: this.galaxyUrl,
+      timeout: 60000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': userApiKey,
+      },
+    });
+    (proxy as any).client.interceptors.response.use(
+      (response: any) => response,
+      (error: AxiosError) => {
+        const galaxyError: GalaxyAPIError = {
+          error: error.code || 'UNKNOWN_ERROR',
+          message: error.message || 'An unknown error occurred',
+          status_code: error.response?.status || 500,
+          detail: error.response?.data,
+        };
+        throw galaxyError;
+      }
+    );
+    return proxy;
+  }
+
+  /**
+   * Provision a new Galaxy user account and return their credentials.
+   * Requires the admin API key. Called once at BioMate user registration.
+   *
+   * @param biomateUserId - BioMate UUID used to derive a stable, non-PII Galaxy username
+   * @param email - User's email (stored in Galaxy for admin visibility)
+   * @returns galaxyUserId, galaxyApiKey, galaxyUsername
+   */
+  async provisionGalaxyUser(biomateUserId: string, email: string): Promise<{
+    galaxyUserId: string;
+    galaxyApiKey: string;
+    galaxyUsername: string;
+  }> {
+    // Use the internal provisioning endpoint — bypasses the broken admin API (which returns 501
+    // because the bootstrap_admin_api_key is expired / not recognized as is_admin=True).
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    const internalKey = process.env.BILLING_INTERNAL_KEY ?? 'dev-insecure-key';
+
+    const resp = await fetch(`${galaxyUrl}/internal/users/provision`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Key': internalKey,
+      },
+      body: JSON.stringify({ biomate_user_id: biomateUserId, email }),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`Galaxy user provisioning failed: ${resp.status} ${text}`);
+    }
+
+    const data = await resp.json() as {
+      galaxy_user_id: string;
+      galaxy_api_key: string;
+      galaxy_username: string;
+    };
+
+    const galaxyUserId = data.galaxy_user_id;
+    const galaxyApiKey = data.galaxy_api_key;
+    const resolvedUsername = data.galaxy_username;
+
+    console.log(`[GalaxyAPIProxy] Provisioned Galaxy user ${resolvedUsername} (${galaxyUserId}) for BioMate user ${biomateUserId}`);
+    return { galaxyUserId, galaxyApiKey, galaxyUsername: resolvedUsername };
+  }
+
   // ============================================================================
   // Tool Search API (leverages /tmp/lcms-platform-galaxy/lib/galaxy/webapps/galaxy/api/tool_search.py)
   // ============================================================================
@@ -641,122 +726,30 @@ export class GalaxyAPIProxy {
         );
       };
 
-      const lowerIntent = String(request.user_intent || '').toLowerCase();
-      const isPrereqRecoveryIntent =
-        lowerIntent.includes('blocked by missing prerequisites') ||
-        lowerIntent.includes('prepare runnable demo inputs') ||
-        lowerIntent.includes('sample/test inputs') ||
-        lowerIntent.includes('sample data') ||
-        lowerIntent.includes('test data') ||
-        lowerIntent.includes('do not have input files');
-
-      const searchTrials = isPrereqRecoveryIntent
-        ? [
-            request.user_intent,
-            'RNA-seq FASTQ quality control runnable nextflow workflow',
-            'RNA-seq QC demo sample data workflow with downloadable report',
-          ]
-        : [request.user_intent];
-
-      // Transform request to backend format
+      // Single entry point: generate_workflow_unified handles chain lookup,
+      // search (high/medium confidence), and composition (low confidence) internally.
       const backendRequest = {
-        request_text: request.user_intent,  // Backend expects 'request_text' not 'user_intent'
+        request_text: request.user_intent,
         available_datasets: request.datasets || [],
         context: {
           ...(request.session_id ? { session_id: request.session_id } : {}),
         },
         preferred_tools: [],
-        constraints: {
-          max_tools_search: request.max_tools_search || 30
-        },
-        // UQU fields: LLM-inferred domain preferences and key terms from analyzeIntent()
+        constraints: { max_tools_search: request.max_tools_search || 30 },
         ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
+        ...(request.penalized_domains?.length ? { penalized_domains: request.penalized_domains } : {}),
         ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
+        ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
       };
 
-      console.log('[GalaxyAPIProxy] Calling unified AI Assistant endpoint');
-      console.log('[GalaxyAPIProxy] User intent:', request.user_intent);
+      console.log('[GalaxyAPIProxy] Calling generate_workflow — intent:', request.user_intent);
 
-      // Use lightweight Nextflow search endpoint (no LLM required)
-      // Falls back to full generate_workflow if not available
-      let response: any;
-      try {
-        let matched = false;
-        let lastSearchResponse: any = null;
-        for (const trialIntent of searchTrials) {
-          try {
-            const trialResponse = await this.client.post<WorkflowGenerationResponse>(
-              '/api/ai_assistant/search_nextflow_workflow',
-              {
-                user_intent: trialIntent,
-                ...(request.preferred_domains?.length ? { preferred_domains: request.preferred_domains } : {}),
-                ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
-              }
-            );
-            lastSearchResponse = trialResponse;
-            console.log('[GalaxyAPIProxy] Nextflow search result:', trialResponse.data.workflow_name, trialResponse.data.format);
-            if (isRunnableWorkflowResponse(trialResponse.data)) {
-              response = trialResponse;
-              matched = true;
-              break;
-            }
-          } catch (trialError: any) {
-            console.warn('[GalaxyAPIProxy] Nextflow search trial failed:', {
-              trialIntent,
-              message: trialError?.message || String(trialError),
-            });
-          }
-        }
+      const response = await this.client.post<WorkflowGenerationResponse>(
+        '/api/ai_assistant/generate_workflow',
+        backendRequest
+      );
 
-        if (!matched) {
-          const generateTrials = isPrereqRecoveryIntent
-            ? [
-                request.user_intent,
-                'Generate a runnable RNA-seq FASTQ QC workflow with valid steps and demo/sample inputs',
-              ]
-            : [request.user_intent];
-
-          let generatedMatched = false;
-          let lastGenerateResponse: any = null;
-          for (const trialIntent of generateTrials) {
-            try {
-              const trialBackendRequest = {
-                ...backendRequest,
-                request_text: trialIntent,
-              };
-              const generatedResponse = await this.client.post<WorkflowGenerationResponse>(
-                '/api/ai_assistant/generate_workflow',
-                trialBackendRequest
-              );
-              lastGenerateResponse = generatedResponse;
-              if (isRunnableWorkflowResponse(generatedResponse.data)) {
-                response = generatedResponse;
-                generatedMatched = true;
-                break;
-              }
-            } catch (trialError: any) {
-              console.warn('[GalaxyAPIProxy] Workflow generation trial failed:', {
-                trialIntent,
-                message: trialError?.message || String(trialError),
-              });
-            }
-          }
-
-          if (!generatedMatched) {
-            response = lastGenerateResponse || lastSearchResponse;
-          }
-        }
-      } catch (searchErr: any) {
-        console.warn('[GalaxyAPIProxy] Nextflow search failed, falling back to generate_workflow:', searchErr.message);
-        response = await this.client.post<WorkflowGenerationResponse>(
-          '/api/ai_assistant/generate_workflow',
-          backendRequest
-        );
-      }
-
-      console.log('[GalaxyAPIProxy] Workflow found via:', response.data.source);
-      console.log('[GalaxyAPIProxy] Workflow type:', response.data.workflow_type);
-      console.log('[GalaxyAPIProxy] Nextflow path:', response.data.nextflow_path);
+      console.log('[GalaxyAPIProxy] source:', response.data.source, '| type:', response.data.workflow_type);
 
       return response.data;
     } catch (error: any) {

@@ -4,6 +4,8 @@ import { emitUxEvent } from "@/lib/ux-telemetry";
 import { Badge } from "@/components/ui/badge";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
+import { StepOutputPreview } from "./step-output-preview";
+import { StepAdjustModal } from "./step-adjust-modal";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
@@ -15,6 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
+import { useToast } from "@/hooks/use-toast";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -31,7 +35,6 @@ interface NextflowWorkflowViewerProps {
   errorMessage?: string;
   progress?: number;
   onParameterChange?: (id: string, value: any) => void;
-  onRequestPrereqRecovery?: () => void;
   sessionId?: string;
   runId?: string;
   autofix?: {
@@ -56,6 +59,14 @@ type ViewerParameter = {
   defaultValue?: any;
   description?: string;
   required?: boolean;
+  group?: string;
+  options?: { label: string; value: any }[];
+  minimum?: number;
+  maximum?: number;
+  /** Whether this value was pre-filled by the AI (shows KnowledgeBadge + Override button) */
+  autoFilled?: boolean;
+  /** Scientific rationale for the AI-recommended value */
+  rationale?: string;
 };
 
 type ViewerPhaseStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
@@ -68,6 +79,7 @@ type ViewerPhase = {
   toolId?: string;
   parameters?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
+  outputFiles?: Array<{ name: string; path: string; extension: string }>;
 };
 
 type StepExecutionState = {
@@ -97,7 +109,13 @@ type QCGateData = {
   }>;
 };
 
-function inferParamType(value: any): ViewerParameter['type'] {
+function inferParamType(value: any, backendType?: string): ViewerParameter['type'] {
+  // Backend now emits explicit type — trust it when present.
+  if (backendType === 'file') return 'file';
+  if (backendType === 'boolean') return 'boolean';
+  if (backendType === 'integer' || backendType === 'float') return 'number';
+  if (backendType === 'select') return 'select';
+  // Fallback: infer from JS typeof
   if (typeof value === "number") return "number";
   if (typeof value === "boolean") return "boolean";
   return "string";
@@ -125,12 +143,18 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
         return {
           id: p.name,
           name: p.name,
-          type: inferParamType(userValue ?? defaultVal),
+          type: inferParamType(userValue ?? defaultVal, p.type),
           label: p.label || prettifyParamLabel(p.name),
           description: p.description,
-          value: userValue !== undefined ? userValue : (defaultVal !== null ? defaultVal : ""),
+          value: userValue !== undefined ? userValue : (p.value !== undefined ? p.value : (defaultVal !== null ? defaultVal : "")),
           defaultValue: defaultVal,
           required: reqList.some((r: any) => r.name === p.name),
+          group: p.group || undefined,
+          options: Array.isArray(p.options) ? p.options : undefined,
+          minimum: p.minimum != null ? Number(p.minimum) : undefined,
+          maximum: p.maximum != null ? Number(p.maximum) : undefined,
+          autoFilled: p.autoFilled === true,
+          rationale: p.rationale || undefined,
         };
       });
   }
@@ -246,7 +270,6 @@ export function NextflowWorkflowViewer({
   errorMessage,
   progress = 0,
   onParameterChange,
-  onRequestPrereqRecovery,
   sessionId,
   runId,
   autofix,
@@ -254,11 +277,17 @@ export function NextflowWorkflowViewer({
   executionEngine,
   onAdjustViaChat,
 }: NextflowWorkflowViewerProps) {
+  const { toast } = useToast();
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
   );
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
+  const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
+  const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
+  // When user reruns from a step, track the new runId so the viewer polls the right run
+  const [rerunRunId, setRerunRunId] = useState<string | null>(null);
+  const activeRunId = rerunRunId ?? runId;
 
   // QC governance settings
   const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
@@ -273,6 +302,17 @@ export function NextflowWorkflowViewer({
   const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
   const [validateLog, setValidateLog] = useState<string[]>([]);
   const [validateLogOpen, setValidateLogOpen] = useState(false);
+
+  const [browsingForParam, setBrowsingForParam] = useState<{ id: string; label: string } | null>(null);
+  const [sessionDatasets, setSessionDatasets] = useState<Array<{ id: string; name: string; file_type?: string; file_path?: string | null; source_url?: string | null; galaxy_dataset_id?: string }>>([]);
+
+  // Fetch session-uploaded datasets so the param browser can return real file paths to Nextflow
+  useEffect(() => {
+    fetch('/api/datasets/session')
+      .then(r => r.ok ? r.json() : { datasets: [] })
+      .then(data => setSessionDatasets(data.datasets || []))
+      .catch(() => {});
+  }, []);
 
   // D4: error recovery state — auto-triggered when workflow fails
   const [errorExplanation, setErrorExplanation] = useState<{
@@ -316,7 +356,7 @@ export function NextflowWorkflowViewer({
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
-    if (workflowDefinition?.steps && typeof workflowDefinition.steps === "object") {
+    if (workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0) {
       return Object.entries(workflowDefinition.steps).map(([stepKey, rawStep], index) => {
         const step = (rawStep || {}) as Record<string, unknown>;
         return {
@@ -507,6 +547,18 @@ export function NextflowWorkflowViewer({
     }
   }, [beginStepStatusPolling, clearStepPoller, invocationId, workflowId]);
 
+  // Build a lookup of process data from nextflowStatus.processes keyed by process name / id
+  const nfProcessByName = React.useMemo<Record<string, any>>(() => {
+    const procs: any[] = Array.isArray(nextflowStatus?.processes) ? nextflowStatus.processes : [];
+    const map: Record<string, any> = {};
+    for (const proc of procs) {
+      if (proc?.name) map[String(proc.name).toLowerCase()] = proc;
+      if (proc?.process) map[String(proc.process).toLowerCase()] = proc;
+      if (proc?.id) map[String(proc.id).toLowerCase()] = proc;
+    }
+    return map;
+  }, [nextflowStatus?.processes]);
+
   const updatedPhases = phases.map((phase, index) => {
     let derivedStatus: ViewerPhaseStatus = phase.status;
     if (status === "completed") {
@@ -519,9 +571,24 @@ export function NextflowWorkflowViewer({
       else derivedStatus = "pending";
     }
 
+    // Merge outputFiles from nextflowStatus.processes when available
+    const nfProc =
+      nfProcessByName[phase.id.toLowerCase()] ||
+      nfProcessByName[phase.name.toLowerCase()] ||
+      null;
+    const outputFiles: Array<{ name: string; path: string; extension: string }> = (
+      nfProc
+        ? (nfProc.task_files || nfProc.taskFiles || []).map((f: string) => ({
+            name: f.split('/').pop() || f,
+            path: f,
+            extension: (f.split('.').pop() || '').toLowerCase(),
+          }))
+        : (phase.outputFiles || [])
+    );
+
     const stepExecution = stepExecutionById[phase.id];
     if (!stepExecution) {
-      return { ...phase, status: derivedStatus };
+      return { ...phase, status: derivedStatus, outputFiles };
     }
 
     return {
@@ -535,6 +602,7 @@ export function NextflowWorkflowViewer({
       outputsCount: stepExecution.outputsCount,
       errorMessage: stepExecution.errorMessage,
       isExecuting: stepExecution.isExecuting,
+      outputFiles,
     };
   });
 
@@ -627,7 +695,12 @@ export function NextflowWorkflowViewer({
       const matchedTool = Object.keys(toolHintMap).find(toolKey => pKey.includes(toolKey));
       if (!matchedTool) return p;
       const hint = toolHintMap[matchedTool];
-      return { ...p, rationale: `${hint.toolName.toUpperCase()} recommendations — ${hint.rationale}`, autoFilled: false };
+      // Preserve backend autoFilled=true; add rationale from tool hints if not already set
+      return {
+        ...p,
+        rationale: p.rationale || `${hint.toolName.toUpperCase()} recommendations — ${hint.rationale}`,
+        autoFilled: p.autoFilled === true,
+      };
     });
   }, [workflowDefinition, params, toolHintMap]);
 
@@ -655,8 +728,11 @@ export function NextflowWorkflowViewer({
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
     if (status === 'failed' && !errorExplanation && !errorExplaining) {
-      const rawLog = logs.slice(-30).join('\n') + (errorMessage ? `\n${errorMessage}` : '');
+      const rawLog = logs.slice(-50).join('\n') + (errorMessage ? `\n${errorMessage}` : '');
       if (!rawLog.trim()) return;
+      const failedSteps = updatedPhases
+        .filter((p: any) => p.status === 'failed')
+        .map((p: any) => ({ name: p.processName || p.name, work_dir: p.workDir }));
       setErrorExplaining(true);
       fetch('/api/workflows/explain_error', {
         method: 'POST',
@@ -665,6 +741,7 @@ export function NextflowWorkflowViewer({
           workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
           error_log: rawLog,
           run_id: runId,
+          failed_steps: failedSteps,
         }),
       })
         .then(r => r.json())
@@ -679,18 +756,32 @@ export function NextflowWorkflowViewer({
   }, [status, progress, errorMessage, nextflowStatus, stepExecutionById]);
 
   useEffect(() => {
-    if (initialParams) { setParams(initialParams); return; }
-    const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
-    const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
-    if (reqList.length > 0 || optList.length > 0) {
-      const defaults: Record<string, any> = {};
-      for (const p of [...reqList, ...optList]) {
-        if (p?.name && p.default != null) defaults[p.name] = p.default;
+    // Merge incoming defaults/initialParams WITHOUT overwriting keys the user has already edited.
+    // This prevents streaming workflowDefinition updates from wiping out user-typed param values.
+    const computeIncoming = (): Record<string, any> => {
+      if (initialParams) return initialParams;
+      const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
+      const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
+      if (reqList.length > 0 || optList.length > 0) {
+        const defaults: Record<string, any> = {};
+        for (const p of [...reqList, ...optList]) {
+          if (p?.name && p.default != null) defaults[p.name] = p.default;
+        }
+        return defaults;
       }
-      setParams(defaults);
-    } else {
-      setParams(workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {});
-    }
+      return workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {};
+    };
+    const incoming = computeIncoming();
+    setParams(prev => {
+      // For each incoming key: only apply if the user hasn't edited it (value is still null/undefined/'')
+      const merged: Record<string, any> = { ...prev };
+      for (const [k, v] of Object.entries(incoming)) {
+        if (merged[k] === undefined || merged[k] === null || merged[k] === '') {
+          merged[k] = v;
+        }
+      }
+      return merged;
+    });
   }, [initialParams, workflowDefinition]);
 
   useEffect(() => {
@@ -905,7 +996,7 @@ export function NextflowWorkflowViewer({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Nextflow Workflow: {workflowDefinition?.name || 'Untitled'}</span>
+            <span>{workflowDefinition?.name || 'Untitled'}</span>
             <div className="flex items-center gap-2">
                 {workflowDefinition?.qc_profile && (
                   <Badge variant="outline" className="text-xs font-normal text-emerald-700 border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20">
@@ -1026,14 +1117,47 @@ export function NextflowWorkflowViewer({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-4">
               <h3 className="text-lg font-semibold">Parameters</h3>
-              <ParameterGroup
-                id="main-params"
-                title="Workflow Parameters"
-                description={renderedParameters.length === 0 ? "No editable parameters detected for this workflow." : undefined}
-                parameters={renderedParameters}
-                onChange={handleParamChange}
-                defaultOpen={renderedParameters.length > 0}
-              />
+              {renderedParameters.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-1">No editable parameters detected for this workflow.</p>
+              ) : (() => {
+                // Group params by their schema group label; fall back to a single group.
+                const groups = new Map<string, typeof renderedParameters>();
+                for (const p of renderedParameters) {
+                  const g = p.group || 'Workflow Parameters';
+                  if (!groups.has(g)) groups.set(g, []);
+                  groups.get(g)!.push(p);
+                }
+                // Within each group: required first, then has-default, then optional
+                const sortGroup = (ps: typeof renderedParameters) => [
+                  ...ps.filter(p => p.required && (p.value === '' || p.value == null)),
+                  ...ps.filter(p => p.required && p.value !== '' && p.value != null),
+                  ...ps.filter(p => !p.required && p.defaultValue != null),
+                  ...ps.filter(p => !p.required && p.defaultValue == null),
+                ];
+                // Always open the first group; collapse the rest by default
+                let firstGroup = true;
+                return Array.from(groups.entries()).map(([groupTitle, groupParams]) => {
+                  const open = firstGroup;
+                  firstGroup = false;
+                  const sorted = sortGroup(groupParams);
+                  const requiredCount = sorted.filter(p => p.required).length;
+                  const desc = requiredCount > 0
+                    ? `${requiredCount} required · ${sorted.length - requiredCount} optional`
+                    : `${sorted.length} parameter${sorted.length !== 1 ? 's' : ''}`;
+                  return (
+                    <ParameterGroup
+                      key={groupTitle}
+                      id={`params-${groupTitle}`}
+                      title={groupTitle}
+                      description={desc}
+                      parameters={sorted}
+                      onChange={handleParamChange}
+                      onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                      defaultOpen={open}
+                    />
+                  );
+                });
+              })()}
               {hasUnfilledRequired && (
                 <p className="text-xs text-amber-700 dark:text-amber-400">
                   Fill in all required fields (*) before running.
@@ -1311,21 +1435,12 @@ export function NextflowWorkflowViewer({
                           </Badge>
                         </div>
                         {item.reason && <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>}
-                        {item.actionHint && <p className="mt-1 text-xs">{item.actionHint}</p>}
+                        {item.actionHint && (
+                          <p className="mt-1 text-xs">{item.actionHint}</p>
+                        )}
                       </div>
                     ))}
                   </div>
-                  {isPrereqBlocked && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      data-testid="button-prereq-recovery"
-                      onClick={onRequestPrereqRecovery}
-                    >
-                      Ask BioMate to prepare runnable demo inputs
-                    </Button>
-                  )}
                 </div>
               )}
               {executionBlockedReason && (
@@ -1464,10 +1579,39 @@ export function NextflowWorkflowViewer({
                     }
                     runLoading={phase.isExecuting === true}
                     runButtonTestId={`button-run-step-${phase.id}`}
+                    outputFiles={phase.outputFiles}
+                    onPreviewFile={(file) => setPreviewFile(file)}
+                    onAdjustAndRerun={() => setAdjustStep({
+                      id: phase.id,
+                      name: phase.name,
+                      processName: phase.processName,
+                      parameters: phase.parameters as Record<string, any> | undefined,
+                    })}
                   />
                 ))}
               </div>
               
+              {previewFile && activeRunId && (
+                <StepOutputPreview
+                  runId={activeRunId}
+                  file={previewFile}
+                  onClose={() => setPreviewFile(null)}
+                />
+              )}
+              {adjustStep && activeRunId && (
+                <StepAdjustModal
+                  open={!!adjustStep}
+                  onOpenChange={(open) => { if (!open) setAdjustStep(null); }}
+                  runId={activeRunId}
+                  step={adjustStep}
+                  workflowDefinition={workflowDefinition}
+                  onRerunSubmitted={(newRunId) => {
+                    setAdjustStep(null);
+                    setRerunRunId(newRunId);
+                    onAdjustViaChat?.(`Rerunning workflow from step ${adjustStep.name}. New run ID: ${newRunId}`);
+                  }}
+                />
+              )}
               <div className="mt-4 bg-muted p-4 rounded-md h-48 overflow-y-auto font-mono text-xs">
                 {logs.length === 0 ? <span className="text-muted-foreground">No logs available.</span> : logs.map((log, i) => (
                   <div key={i}>{log}</div>
@@ -1565,7 +1709,7 @@ export function NextflowWorkflowViewer({
                     ))}
                   </div>
                   <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-300">
-                    If the output cards are still empty, Galaxy output hydration may still be in progress.
+                    If the output cards are still empty, output processing may still be in progress.
                   </div>
                 </div>
               )}
@@ -1580,6 +1724,37 @@ export function NextflowWorkflowViewer({
           )}
         </CardContent>
       </Card>
+      <GalaxyDatasetBrowser
+        open={!!browsingForParam}
+        onClose={() => setBrowsingForParam(null)}
+        paramLabel={browsingForParam?.label}
+        sessionDatasets={sessionDatasets.map(d => ({
+          id: d.id,
+          name: d.name,
+          fileType: d.file_type || undefined,
+          // Prefer local path (Nextflow reads it directly), fallback to source URL, then Galaxy ID
+          path: d.file_path || d.source_url || undefined,
+          galaxyDatasetId: d.galaxy_dataset_id || undefined,
+        }))}
+        onSelect={async (value, name) => {
+          if (!browsingForParam) { setBrowsingForParam(null); return; }
+          let resolved = value;
+          // If value looks like a Galaxy dataset ID (no path separator, no protocol),
+          // resolve it to a local file path via the backend.
+          if (value && !value.includes('/') && !value.includes('://')) {
+            try {
+              const r = await fetch(`/api/galaxy/datasets/${encodeURIComponent(value)}/resolve`);
+              if (r.ok) {
+                const data = await r.json();
+                resolved = data.file_path || value;
+              }
+            } catch { /* keep original value on error */ }
+          }
+          handleParamChange(browsingForParam.id, resolved);
+          toast({ title: `"${name}" selected`, description: `Assigned to ${browsingForParam.label}.` });
+          setBrowsingForParam(null);
+        }}
+      />
     </div>
   );
 }

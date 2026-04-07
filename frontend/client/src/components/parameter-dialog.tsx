@@ -33,6 +33,7 @@ import { getSimpleToolName } from "@/lib/utils"
 import { type WorkflowStep } from "./workflow-step"
 import { InlineRecommendation } from "./parameter-recommendation-badge"
 import type { ParameterRecommendation } from "@shared/schema"
+import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 
 interface ParameterDialogProps {
   open: boolean
@@ -45,25 +46,27 @@ interface ParameterDialogProps {
 
 interface Parameter {
   name: string
-  type: 'text' | 'number' | 'boolean' | 'select'
+  type: 'text' | 'number' | 'boolean' | 'select' | 'file'
   value: any
   description?: string
   options?: string[]
+  /** Accepted file formats from Galaxy tool XML (e.g. "fastq,fasta,bam") */
+  format?: string
   required?: boolean
   min?: number
   max?: number
 }
 
 // Map Galaxy input types to simple types
-function mapInputType(galaxyType: string): 'text' | 'number' | 'boolean' | 'select' {
+// Galaxy types: text, integer, float, boolean, select, data, data_collection, genomebuild, ...
+function mapInputType(galaxyType: string): 'text' | 'number' | 'boolean' | 'select' | 'file' {
   if (!galaxyType) return 'text'
-
   const type = galaxyType.toLowerCase()
-
   if (type === 'boolean' || type === 'bool' || type === 'checkbox') return 'boolean'
   if (type === 'integer' || type === 'int' || type === 'float' || type === 'number') return 'number'
   if (type === 'select' || type === 'enum' || type === 'choice') return 'select'
-
+  // data and data_collection are Galaxy's file input types — always open the dataset browser
+  if (type === 'data' || type === 'data_collection') return 'file'
   return 'text'
 }
 
@@ -90,6 +93,7 @@ export function ParameterDialog({
   const [parameterSchema, setParameterSchema] = useState<Parameter[]>([])
   const [loading, setLoading] = useState(false)
   const [appliedRecs, setAppliedRecs] = useState<Set<string>>(new Set())
+  const [browsingForParam, setBrowsingForParam] = useState<{ name: string; label: string } | null>(null)
 
   // Get recommendation for a parameter
   const getRecommendation = (paramName: string): ParameterRecommendation | undefined => {
@@ -141,6 +145,7 @@ export function ParameterDialog({
               value: input.value ?? input.default ?? '',
               description: input.help || input.description,
               options: input.options?.map((o: any) => o.value || o) || undefined,
+              format: input.format || undefined,
               required: input.optional === false,
               min: input.min,
               max: input.max,
@@ -253,6 +258,7 @@ export function ParameterDialog({
                       param={param}
                       value={parameters[param.name]}
                       onChange={(value) => handleChange(param.name, value)}
+                      onBrowse={param.type === 'file' ? () => setBrowsingForParam({ name: param.name, label: param.name }) : undefined}
                       recommendation={getRecommendation(param.name)}
                       onApplyRecommendation={(value) => applyRecommendation(param.name, value)}
                       isRecommendationApplied={appliedRecs.has(param.name)}
@@ -274,6 +280,7 @@ export function ParameterDialog({
                       param={param}
                       value={parameters[param.name]}
                       onChange={(value) => handleChange(param.name, value)}
+                      onBrowse={param.type === 'file' ? () => setBrowsingForParam({ name: param.name, label: param.name }) : undefined}
                       recommendation={getRecommendation(param.name)}
                       onApplyRecommendation={(value) => applyRecommendation(param.name, value)}
                       isRecommendationApplied={appliedRecs.has(param.name)}
@@ -294,6 +301,17 @@ export function ParameterDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <GalaxyDatasetBrowser
+        open={!!browsingForParam}
+        onClose={() => setBrowsingForParam(null)}
+        paramLabel={browsingForParam?.label}
+        onSelect={(value, name) => {
+          if (browsingForParam) {
+            handleChange(browsingForParam.name, value)
+          }
+          setBrowsingForParam(null)
+        }}
+      />
     </Dialog>
   )
 }
@@ -303,6 +321,7 @@ function ParameterInput({
   param,
   value,
   onChange,
+  onBrowse,
   recommendation,
   onApplyRecommendation,
   isRecommendationApplied = false
@@ -310,6 +329,7 @@ function ParameterInput({
   param: Parameter
   value: any
   onChange: (value: any) => void
+  onBrowse?: () => void
   recommendation?: ParameterRecommendation
   onApplyRecommendation?: (value: any) => void
   isRecommendationApplied?: boolean
@@ -338,6 +358,21 @@ function ParameterInput({
           )}
         </div>
       </div>
+
+      {param.type === 'file' && (
+        <div className="flex gap-2">
+          <Input
+            id={param.name}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={param.format ? `Dataset (${param.format})` : 'Dataset path or ID'}
+            className="h-9"
+          />
+          <Button type="button" variant="outline" size="sm" className="h-9 flex-shrink-0" onClick={onBrowse}>
+            Browse
+          </Button>
+        </div>
+      )}
 
       {param.type === 'text' && (
         <Input

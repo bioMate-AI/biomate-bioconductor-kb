@@ -8,7 +8,7 @@
  * This replaces the 1612-line production monolith.
  * Promotion criteria (Phase 5): all regression tests pass.
  *
- * To run in mock mode:
+ * To run a stub test:
  *   nextflow run pipelines/cryosparc_standard_spa/main.nf -stub-run \
  *     --pixel_size 1.05 --voltage 300 --outdir /tmp/spa_staged/
  */
@@ -33,7 +33,6 @@ params.particle_diameter_angstroms      = null
 params.molecular_weight_kda             = null
 params.symmetry                         = 'C1'
 params.phase_plate                      = false
-params.mock_mode                        = true
 params.use_cryosparc                    = false
 params.cryosparc_license                = null
 params.cryosparc_host                   = 'localhost'

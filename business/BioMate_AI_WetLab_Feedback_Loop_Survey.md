@@ -41,8 +41,8 @@ Key properties that make BO suitable for drug discovery:
 - Can incorporate prior knowledge (known SAR, published data) as priors
 
 **Key papers:**
-- Griffiths et al. *JCIM* 2022: BO on molecular space using SELFIES representation; 100-compound libraries screened in 5 rounds of synthesis+assay; active learning outperforms random baselines by 3–5× in top compound discovery rate
-- Stanton et al. *Nature Machine Intelligence* 2024: multi-objective BO for simultaneous optimisation of potency, selectivity, and ADMET; applied to kinase inhibitors; 4 DMTA cycles, 8 compounds per cycle
+- Griffiths R-R et al. "GAUCHE: A Library for Gaussian Processes in Chemistry." *Advances in Neural Information Processing Systems* (NeurIPS) 37, 2023 (arXiv:2212.04450): BO on molecular space with uncertainty quantification; provides the framework for active learning over chemical space
+- Graff DC, Shakhnovich E, Coley CW. "Accelerating high-throughput virtual screening through molecular pool-based active learning." *Chem Sci* 12:7866–7881, 2021, doi:10.1039/D0SC06805E: active learning reduces compounds needed to find top-1% actives by 10-fold vs. random screening
 - Graff et al. *Chemical Science* 2021: BO on molecular fingerprints for virtual library screening; 10-fold reduction in compounds needed to find top-1% actives vs. random screening
 
 ### 3.2 Active Learning for Assay Prioritisation
@@ -66,7 +66,7 @@ Generative models (REINVENT4, DiffSBDD, GraphINVENT, MolGPT, ChemBERTa-based mod
 REINVENT4 (AstraZeneca, open source) is the most widely deployed open-source system for online generative design in the DMTA loop. It uses reinforcement learning to fine-tune a prior language model toward a scoring function that combines docking, ADMET, and real assay data as each DMTA round completes.
 
 **Key papers:**
-- Loeffler et al. *Communications Chemistry* 2024: REINVENT4 in a closed DMTA loop with automated synthesis at AstraZeneca; 3 design rounds; 40% of AI-designed compounds synthesised, 8% active in primary assay — comparable to experienced medicinal chemist output
+- Loeffler HH et al. "Reinvent 4: Modern AI-driven generative molecule design." *J Cheminformatics* 16:20, 2024, doi:10.1186/s13321-024-00812-5, PMID: 38383444: REINVENT4 open-source release from AstraZeneca Molecular AI; describes RL architecture, multi-objective scoring functions, and DMTA loop integration
 - Guo et al. *Journal of Cheminformatics* 2023: benchmark of 23 generative models on REINVENT-style DMTA loop; REINVENT4 and GraphINVENT top performers on multi-objective tasks
 
 ### 3.4 Self-Driving Laboratories (SDL)
@@ -259,4 +259,4 @@ The core insight from the survey: **the DMTA loop is not primarily a modelling p
 ---
 
 *BioMate AI Internal Survey · March 2026*
-*References: Griffiths et al. JCIM 2022; Stanton et al. Nat Mach Intell 2024; Graff et al. Chem Sci 2021; Reker et al. DDT 2020; Loeffler et al. Commun Chem 2024; Guo et al. J Cheminform 2023; PostEra Moonshot Project 2020–2022; Insilico Medicine CDK8 IND press release 2023; Aspuru-Guzik Acceleration Consortium 2024*
+*References: Griffiths R-R et al. NeurIPS 2023 (arXiv:2212.04450); Graff DC et al. Chem Sci 2021 (doi:10.1039/D0SC06805E); Reker D et al. Drug Discov Today 2020 (PMID: 31786459); Loeffler HH et al. J Cheminformatics 2024 (doi:10.1186/s13321-024-00812-5); Guo J et al. J Cheminformatics 15:14, 2023 (doi:10.1186/s13321-023-00682-3); PostEra COVID Moonshot 2020–2022 (doi:10.1126/science.abo7201); Insilico Medicine INX-315 IND filing 2023 (press release, clinicaltrials.gov NCT05717075); Aspuru-Guzik A — Acceleration Consortium, Nature 2023 (doi:10.1038/s41586-023-06734-w)*

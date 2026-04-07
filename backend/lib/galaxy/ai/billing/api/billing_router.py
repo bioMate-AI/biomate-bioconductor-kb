@@ -626,6 +626,170 @@ def internal_register_user(payload: RegisterUserPayload):
 
 
 # ---------------------------------------------------------------------------
+# Internal API: Galaxy user provisioning
+# ---------------------------------------------------------------------------
+
+class ProvisionGalaxyUserPayload(BaseModel):
+    biomate_user_id: str   # BioMate UUID → used to derive stable Galaxy username
+    email: str
+
+
+@router.post("/internal/users/provision", dependencies=[Depends(require_internal_key)])
+def internal_provision_galaxy_user(payload: ProvisionGalaxyUserPayload):
+    """
+    Create a Galaxy user account for a newly registered BioMate user.
+    Uses raw SQLAlchemy against Galaxy's SQLite DB — bypasses the broken admin API.
+    Returns galaxy_user_id, galaxy_api_key, galaxy_username.
+    Called from galaxy-api-proxy.ts on user registration.
+    """
+    import secrets
+    import os
+    from datetime import datetime, timezone
+    from base64 import b64encode
+    from os import urandom
+    import hashlib
+
+    # Derive a stable, non-PII username from BioMate UUID
+    safe_id = payload.biomate_user_id.replace("-", "")[:16]
+    galaxy_username = f"bm_{safe_id}"
+    galaxy_email = payload.email
+
+    # Generate a strong random password — user never logs in to Galaxy directly
+    galaxy_password_plain = secrets.token_urlsafe(24)
+
+    # Hash using Galaxy's PBKDF2 scheme (mirrors galaxy/security/passwords.py)
+    SALT_LENGTH = 12
+    KEY_LENGTH = 24
+    HASH_FUNCTION = "sha256"
+    COST_FACTOR = 100000
+
+    salt = b64encode(urandom(SALT_LENGTH))
+    hashed_bytes = hashlib.pbkdf2_hmac(
+        HASH_FUNCTION,
+        galaxy_password_plain.encode("utf-8"),
+        salt,
+        COST_FACTOR,
+        KEY_LENGTH,
+    )
+    encoded_password = b64encode(hashed_bytes).decode("utf-8")
+    galaxy_password_hash = f"PBKDF2${HASH_FUNCTION}${COST_FACTOR}${salt.decode('utf-8')}${encoded_password}"
+
+    # Locate Galaxy's SQLite database.
+    # Priority:
+    #   1. GALAXY_DB_PATH env var (explicit override)
+    #   2. GALAXY_CONFIG_DATABASE_CONNECTION env var (set by start_backend.sh)
+    #   3. Relative to this file: backend/database/universe.sqlite
+    _db_url = (
+        os.environ.get("GALAXY_DB_PATH")
+        or os.environ.get("GALAXY_CONFIG_DATABASE_CONNECTION")
+    )
+    if _db_url:
+        # Strip sqlite:/// or sqlite://// prefix if present to get bare path
+        _db_path = _db_url.replace("sqlite:////", "/").replace("sqlite:///", "")
+        if not _db_path.startswith("/"):
+            # Relative path — resolve from backend root
+            _this_dir = os.path.dirname(os.path.abspath(__file__))
+            _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+            _db_path = os.path.join(_galaxy_root, _db_path)
+    else:
+        _this_dir = os.path.dirname(os.path.abspath(__file__))
+        # billing/api/ → billing/ → ai/ → galaxy/ → lib/ → backend/
+        _galaxy_root = os.path.normpath(os.path.join(_this_dir, "..", "..", "..", "..", ".."))
+        _db_path = os.path.join(_galaxy_root, "database", "universe.sqlite")
+
+    try:
+        import sqlalchemy as _sa
+        engine = _sa.create_engine(
+            f"sqlite:///{_db_path}",
+            connect_args={"check_same_thread": False, "timeout": 10},
+        )
+    except Exception as exc:
+        log.error("provision_galaxy_user: cannot connect to Galaxy DB at %s: %s", _db_path, exc)
+        raise HTTPException(status_code=500, detail=f"Galaxy DB unavailable: {exc}")
+
+    now = datetime.now(timezone.utc)
+
+    with engine.connect() as conn:
+        # Check for existing user by email or username (idempotent)
+        existing = conn.execute(
+            _sa.text(
+                "SELECT id, username FROM galaxy_user WHERE email = :email OR username = :username LIMIT 1"
+            ),
+            {"email": galaxy_email, "username": galaxy_username},
+        ).fetchone()
+
+        if existing:
+            galaxy_user_id = existing[0]
+            log.info(
+                "provision_galaxy_user: user already exists id=%s username=%s",
+                galaxy_user_id, existing[1],
+            )
+        else:
+            result = conn.execute(
+                _sa.text(
+                    """
+                    INSERT INTO galaxy_user
+                        (create_time, update_time, email, username, password,
+                         external, deleted, purged, active, disk_usage)
+                    VALUES
+                        (:create_time, :update_time, :email, :username, :password,
+                         0, 0, 0, 1, 0)
+                    """
+                ),
+                {
+                    "create_time": now.isoformat(),
+                    "update_time": now.isoformat(),
+                    "email": galaxy_email,
+                    "username": galaxy_username,
+                    "password": galaxy_password_hash,
+                },
+            )
+            conn.commit()
+            galaxy_user_id = result.lastrowid
+            log.info(
+                "provision_galaxy_user: created user id=%s username=%s email=%s",
+                galaxy_user_id, galaxy_username, galaxy_email,
+            )
+
+        # Generate API key (32-char hex token)
+        # First check if an active key already exists
+        existing_key = conn.execute(
+            _sa.text(
+                'SELECT "key" FROM api_keys WHERE user_id = :uid AND deleted = 0 LIMIT 1'
+            ),
+            {"uid": galaxy_user_id},
+        ).fetchone()
+
+        if existing_key:
+            galaxy_api_key = existing_key[0]
+            log.info("provision_galaxy_user: reusing existing API key for user_id=%s", galaxy_user_id)
+        else:
+            galaxy_api_key = secrets.token_hex(16)   # 32 hex chars — matches Galaxy's key format
+            conn.execute(
+                _sa.text(
+                    """
+                    INSERT INTO api_keys (create_time, user_id, "key", deleted)
+                    VALUES (:create_time, :user_id, :key, 0)
+                    """
+                ),
+                {
+                    "create_time": now.isoformat(),
+                    "user_id": galaxy_user_id,
+                    "key": galaxy_api_key,
+                },
+            )
+            conn.commit()
+            log.info("provision_galaxy_user: created API key for user_id=%s", galaxy_user_id)
+
+    return {
+        "ok": True,
+        "galaxy_user_id": str(galaxy_user_id),
+        "galaxy_api_key": galaxy_api_key,
+        "galaxy_username": galaxy_username,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Admin monitoring endpoints
 # ---------------------------------------------------------------------------
 

@@ -11,9 +11,11 @@ Leverages:
 """
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import concurrent.futures
 import json
 
 from ..domain_registry import DOMAIN_SPECIALIST_PROMPTS as _REGISTRY_PROMPTS
@@ -86,7 +88,8 @@ class DomainSpecialistPool:
         query: str,
         domains: List[str],
         parallel: bool = True,
-        tools_per_domain: int = 15
+        tools_per_domain: int = 15,
+        available_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, DomainRecommendation]:
         """
         Consult domain specialists in parallel.
@@ -96,6 +99,9 @@ class DomainSpecialistPool:
             domains: List of domains to consult
             parallel: Run in parallel (default True)
             tools_per_domain: Max tools to retrieve per domain
+            available_datasets: Optional list of dataset dicts {id, name, type} the user
+                already has — injected into the specialist prompt so the workflow entry
+                point matches the available input data type.
 
         Returns:
             Dict mapping domain -> DomainRecommendation
@@ -106,15 +112,16 @@ class DomainSpecialistPool:
         log.info(f"Consulting specialists for domains: {domains}")
 
         if parallel and len(domains) > 1:
-            return self._consult_parallel(query, domains, tools_per_domain)
+            return self._consult_parallel(query, domains, tools_per_domain, available_datasets)
         else:
-            return self._consult_sequential(query, domains, tools_per_domain)
+            return self._consult_sequential(query, domains, tools_per_domain, available_datasets)
 
     def _consult_parallel(
         self,
         query: str,
         domains: List[str],
-        tools_per_domain: int
+        tools_per_domain: int,
+        available_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, DomainRecommendation]:
         """Run specialists in parallel using ThreadPoolExecutor."""
         results = {}
@@ -125,23 +132,30 @@ class DomainSpecialistPool:
                     self._consult_single,
                     query,
                     domain,
-                    tools_per_domain
+                    tools_per_domain,
+                    available_datasets,
                 ): domain
                 for domain in domains
             }
 
-            for future in as_completed(futures):
-                domain = futures[future]
-                try:
-                    results[domain] = future.result()
-                    log.info(f"Specialist for {domain} completed: "
-                            f"{len(results[domain].recommended_tools)} tools")
-                except Exception as e:
-                    log.error(f"Specialist for {domain} failed: {e}")
-                    results[domain] = DomainRecommendation(
-                        domain=domain,
-                        error=str(e)
-                    )
+            try:
+                for future in as_completed(futures, timeout=30):  # 30s total wall-clock for all domains
+                    domain = futures[future]
+                    try:
+                        results[domain] = future.result(timeout=25)  # 25s per individual specialist
+                        log.info(f"Specialist for {domain} completed: "
+                                f"{len(results[domain].recommended_tools)} tools")
+                    except concurrent.futures.TimeoutError:
+                        log.warning(f"Specialist for {domain} timed out after 25s — using fallback")
+                        results[domain] = DomainRecommendation(domain=domain, error="timeout")
+                    except Exception as e:
+                        log.error(f"Specialist for {domain} failed: {e}")
+                        results[domain] = DomainRecommendation(domain=domain, error=str(e))
+            except concurrent.futures.TimeoutError:
+                log.warning("Overall parallel specialist timeout (30s) — filling missing domains with fallback")
+                for domain in domains:
+                    if domain not in results:
+                        results[domain] = DomainRecommendation(domain=domain, error="timeout")
 
         return results
 
@@ -149,13 +163,14 @@ class DomainSpecialistPool:
         self,
         query: str,
         domains: List[str],
-        tools_per_domain: int
+        tools_per_domain: int,
+        available_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, DomainRecommendation]:
         """Run specialists sequentially."""
         results = {}
         for domain in domains:
             try:
-                results[domain] = self._consult_single(query, domain, tools_per_domain)
+                results[domain] = self._consult_single(query, domain, tools_per_domain, available_datasets)
             except Exception as e:
                 log.error(f"Specialist for {domain} failed: {e}")
                 results[domain] = DomainRecommendation(domain=domain, error=str(e))
@@ -165,13 +180,14 @@ class DomainSpecialistPool:
         self,
         query: str,
         domain: str,
-        tools_per_domain: int
+        tools_per_domain: int,
+        available_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> DomainRecommendation:
         """
         Consult a single domain specialist.
 
         1. Search tools filtered by domain
-        2. Build domain-specific prompt
+        2. Build domain-specific prompt (with dataset type context if provided)
         3. Get LLM recommendations
         4. Parse into structured format
         """
@@ -186,23 +202,31 @@ class DomainSpecialistPool:
             )
 
         # Step 2: Build domain-specific prompt
-        prompt = self._build_specialist_prompt(query, domain, tools)
+        prompt = self._build_specialist_prompt(query, domain, tools, available_datasets)
 
-        # Step 3: Get LLM recommendations
-        try:
-            response = self.llm_client.generate(
-                prompt=prompt,
-                max_tokens=1500,
-                temperature=0.3
-            )
-            response_text = response if isinstance(response, str) else response.get('text', '')
-        except Exception as e:
-            log.error(f"LLM call failed for {domain}: {e}")
-            # Fallback: return top tools without LLM ranking
-            return self._fallback_recommendation(domain, tools)
-
-        # Step 4: Parse response
-        return self._parse_specialist_response(domain, response_text, tools)
+        # Step 3: Get LLM recommendations (retry up to 2 times on transient errors)
+        last_err = None
+        for attempt in range(3):
+            try:
+                response = self.llm_client.generate(
+                    prompt=prompt,
+                    max_tokens=1500,
+                    temperature=0.3
+                )
+                response_text = response if isinstance(response, str) else response.get('text', '')
+                # Step 4: Parse response
+                return self._parse_specialist_response(domain, response_text, tools)
+            except Exception as e:
+                last_err = e
+                err_str = str(e).lower()
+                is_transient = any(x in err_str for x in ('rate_limit', 'overloaded', '529', '503', '502', 'timeout'))
+                if not is_transient or attempt == 2:
+                    log.error(f"LLM call failed for {domain} (attempt {attempt + 1}): {e}")
+                    return self._fallback_recommendation(domain, tools)
+                wait = 2 ** attempt  # 1s, 2s
+                log.warning(f"Transient error for {domain} (attempt {attempt + 1}), retrying in {wait}s: {e}")
+                time.sleep(wait)
+        return self._fallback_recommendation(domain, tools)
 
     def _get_domain_tools(
         self,
@@ -251,7 +275,8 @@ class DomainSpecialistPool:
         self,
         query: str,
         domain: str,
-        tools: List[Dict]
+        tools: List[Dict],
+        available_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         """Build domain-specific prompt for LLM."""
         domain_context = self.DOMAIN_PROMPTS.get(domain, self.DOMAIN_PROMPTS["default"])
@@ -259,13 +284,32 @@ class DomainSpecialistPool:
         tool_catalog = "\n".join([
             f"- {t.get('name', 'Unknown')} ({t.get('tool_id', '')}): "
             f"{(t.get('description', '') or '')[:150]}"
-            for t in tools[:20]  # Limit tools in prompt
+            for t in tools[:20]
         ])
+
+        # Inject relevant data format context derived from BioMNI catalog matches.
+        # These are not confirmed user files — they are reference datasets that matched
+        # the query, indicating the likely data modality of the analysis.
+        dataset_context = ""
+        if available_datasets:
+            type_summary = []
+            seen_types: set = set()
+            for ds in available_datasets:
+                fmt = (ds.get('type') or ds.get('fileType') or ds.get('extension') or '').lower()
+                if fmt and fmt not in seen_types:
+                    seen_types.add(fmt)
+                    type_summary.append(fmt)
+            if type_summary:
+                dataset_context = f"""
+Relevant Data Formats:
+This analysis involves data in these formats: {', '.join(type_summary)}
+Design the workflow entry point to accept these input types.
+"""
 
         return f"""{domain_context}
 
 User Request: {query}
-
+{dataset_context}
 Available Tools:
 {tool_catalog}
 

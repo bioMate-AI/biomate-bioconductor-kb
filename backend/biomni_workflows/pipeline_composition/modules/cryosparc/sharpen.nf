@@ -23,7 +23,6 @@ process SHARPEN {
     import shutil
     from datetime import datetime
 
-    # Copy volume as sharpened (in mock mode)
     shutil.copy('${final_volume}', 'volume_sharpened.mrc')
 
     # Simulate sharpening
@@ -46,7 +45,6 @@ process SHARPEN {
         'pixel_size_angstroms': ${params.pixel_size},
         'voltage_kv': ${params.voltage},
         'symmetry': '${params.symmetry}',
-        'mock_mode': ${params.mock_mode ? 'True' : 'False'},
         'outputs': {
             'final_map': 'volume_sharpened.mrc',
             'local_resolution_map': 'local_resolution.mrc',

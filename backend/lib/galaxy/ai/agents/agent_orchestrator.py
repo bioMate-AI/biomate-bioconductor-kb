@@ -116,7 +116,8 @@ class AgentOrchestrator:
         user_id: Optional[str] = None,
         user_context: Optional[Dict] = None,
         session_id: Optional[str] = None,
-        parallel: bool = True
+        parallel: bool = True,
+        available_datasets: Optional[List[Dict]] = None,
     ) -> OrchestrationResult:
         """
         Generate workflow using multi-agent pipeline.
@@ -189,7 +190,8 @@ class AgentOrchestrator:
             domain_recommendations = self.specialist_pool.consult_specialists(
                 query=query,
                 domains=domains_to_consult,
-                parallel=parallel
+                parallel=parallel,
+                available_datasets=available_datasets,
             )
             specialist_latency_ms = int((time.time() - specialist_start) * 1000)
             timing['specialists'] = time.time() - specialist_start

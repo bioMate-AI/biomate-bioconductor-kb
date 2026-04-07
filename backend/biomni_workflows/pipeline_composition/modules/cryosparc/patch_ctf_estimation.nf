@@ -16,7 +16,6 @@ process PATCH_CTF_ESTIMATION {
     path "ctf_diagnostics.json", emit: diagnostics
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def use_phase_plate = params.phase_plate ? 'True' : 'False'
     """
     #!/usr/bin/env python3
@@ -79,8 +78,7 @@ process PATCH_CTF_ESTIMATION {
         'avg_fit_resolution_angstroms': round(sum(m['ctf_fit_resolution_angstroms'] for m in ctf_data) / len(ctf_data), 2),
         'voltage_kv': ${params.voltage},
         'spherical_aberration_mm': ${params.spherical_aberration},
-        'phase_plate': use_phase_plate,
-        'mock_mode': ${mock}
+        'phase_plate': use_phase_plate
     }
 
     # Include phase plate aggregate when VPP data

@@ -32,7 +32,6 @@ params.helical_twist_deg       = -166.15   // °  inter-subunit rotation (actin 
 params.symmetry                = 'C1'      // point-group symmetry atop helical symmetry
 params.initial_lowpass         = 12.0      // Å  low-pass filter for initial reference
 params.refine_helical_params   = true      // allow CryoSPARC to refine rise and twist
-params.mock_mode               = true
 params.use_cryosparc           = false
 params.outdir                  = './results/helical_refinement'
 
@@ -54,17 +53,12 @@ process HELICAL_REFINEMENT {
     path "helical_refinement_report.json",  emit: report
 
     script:
-    def mock          = params.mock_mode           ? 'True' : 'False'
     def refine_params = params.refine_helical_params ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode       = ${mock}
     refine_hel      = ${refine_params}
 
     particles_data  = json.load(open('${particles_cs}'))
@@ -78,31 +72,53 @@ process HELICAL_REFINEMENT {
     symmetry        = '${params.symmetry}'
     initial_lowpass = ${params.initial_lowpass}
 
-    # Simulate helical parameter refinement (small perturbation around input values)
-    if refine_hel:
-        refined_rise  = round(input_rise  + random.gauss(0, 0.05), 4)   # ±0.05 Å
-        refined_twist = round(input_twist + random.gauss(0, 0.02), 4)   # ±0.02 °
-    else:
-        refined_rise  = input_rise
-        refined_twist = input_twist
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    rise_convergence  = abs(refined_rise  - input_rise)
-    twist_convergence = abs(refined_twist - input_twist)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    # Realistic final resolution: 2.5-4.5 Å for good helical cryo-EM data
-    # Lower resolution if fewer particles
-    base_res = 2.5 if num_particles > 50000 else 3.0 if num_particles > 10000 else 4.0
-    final_res = round(random.uniform(base_res, base_res + 1.5), 2)
-
-    volume_out = {
-        'volume': {
-            'resolution_angstroms': final_res,
-            'helical_rise':         refined_rise,
-            'helical_twist':        refined_twist,
+        job = workspace.create_job('helical_refine', connections={
+            'particles': ('${params.cryosparc_particles_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_volume_job_uid ?: ""}', 'volume')
+        }, params={
+            'helical_rise_A':       input_rise,
+            'helical_twist_deg':    input_twist,
             'symmetry':             symmetry,
-            'volume_path':          'helical_volume.mrc'
+            'init_res':             initial_lowpass,
+            'refine_helical':       refine_hel
+        })
+        job.queue()
+        job.wait_for_done()
+
+        stats = job.doc.get('output_stats', {})
+        refined_rise  = stats.get('helical_rise_A', input_rise)
+        refined_twist = stats.get('helical_twist_deg', input_twist)
+        final_res     = stats.get('fsc_resolution_0143', 0.0)
+
+        volume_out = {
+            'volume': {
+                'resolution_angstroms': final_res,
+                'helical_rise':         refined_rise,
+                'helical_twist':        refined_twist,
+                'symmetry':             symmetry,
+                'volume_path':          'helical_volume.mrc'
+            }
         }
-    }
+        with open('helical_volume.cs', 'w') as f:
+            json.dump(volume_out, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
     report = {
         'step':                              'helical_refinement',
@@ -112,26 +128,22 @@ process HELICAL_REFINEMENT {
         'refined_helical_rise_angstroms':    refined_rise,
         'refined_helical_twist_deg':         refined_twist,
         'final_fsc_0143_resolution':         final_res,
-        'helical_rise_convergence_angstroms': round(rise_convergence, 4),
-        'helical_twist_convergence_deg':     round(twist_convergence, 4),
+        'helical_rise_convergence_angstroms': round(abs(refined_rise - input_rise), 4),
+        'helical_twist_convergence_deg':     round(abs(refined_twist - input_twist), 4),
         'num_particles':                     num_particles,
         'symmetry':                          symmetry,
         'initial_lowpass_angstroms':         initial_lowpass,
-        'refine_helical_params':             refine_hel,
-        'mock_mode':                         mock_mode
+        'refine_helical_params':             refine_hel
     }
-
-    with open('helical_volume.cs', 'w') as f:
-        json.dump(volume_out, f, indent=2)
 
     with open('helical_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Helical refinement complete")
-    print(f"  Particles used          : {num_particles}")
-    print(f"  Final resolution (FSC=0.143): {final_res} Å")
-    print(f"  Refined rise            : {refined_rise} Å  (input: {input_rise} Å)")
-    print(f"  Refined twist           : {refined_twist}°  (input: {input_twist}°)")
+    print(f"Helical refinement complete")
+    print(f"  Particles used              : {num_particles}")
+    print(f"  Final resolution (FSC=0.143): {final_res} A")
+    print(f"  Refined rise                : {refined_rise} A  (input: {input_rise} A)")
+    print(f"  Refined twist               : {refined_twist} deg  (input: {input_twist} deg)")
     """
 }
 
@@ -144,37 +156,24 @@ workflow {
     ====================================================================
     CryoSPARC Helical Refinement
     ====================================================================
-    Helical rise  : ${params.helical_rise_angstroms} Å
-    Helical twist : ${params.helical_twist_deg} °
+    Helical rise  : ${params.helical_rise_angstroms} A
+    Helical twist : ${params.helical_twist_deg} deg
     Symmetry      : ${params.symmetry}
-    Initial lowpass: ${params.initial_lowpass} Å
+    Initial lowpass: ${params.initial_lowpass} A
     Refine params : ${params.refine_helical_params}
-    Mode          : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
     Output        : ${params.outdir}
     ====================================================================
     """.stripIndent()
 
-    // Build synthetic test inputs when no real data is provided
-    def test_dir = file("${params.outdir}/test_input")
-    test_dir.mkdirs()
+    ch_particles = Channel.fromPath(
+        params.particles_cs ?: 'particles.cs',
+        checkIfExists: true
+    )
 
-    def particles_file = file("${test_dir}/particles.cs")
-    particles_file.text = groovy.json.JsonOutput.toJson([
-        particles: (0..19999).collect { i ->
-            [particle_idx: i, defocus_u: 15000 + (i % 1000),
-             defocus_v: 14800 + (i % 1000), psi: Math.random() * 360,
-             phi: Math.random() * 180, theta: Math.random() * 360]
-        }
-    ])
-
-    def volume_file = file("${test_dir}/volume.cs")
-    volume_file.text = groovy.json.JsonOutput.toJson([
-        volume: [resolution_angstroms: 8.0, helical_rise: params.helical_rise_angstroms,
-                 helical_twist: params.helical_twist_deg, symmetry: params.symmetry]
-    ])
-
-    ch_particles = Channel.of(particles_file)
-    ch_volume    = Channel.of(volume_file)
+    ch_volume = Channel.fromPath(
+        params.volume_cs ?: 'volume.cs',
+        checkIfExists: true
+    )
 
     HELICAL_REFINEMENT(ch_particles, ch_volume)
 
@@ -183,9 +182,9 @@ workflow {
         """
         Helical Refinement Results:
           Particles         : ${r.num_particles}
-          Final resolution  : ${r.final_fsc_0143_resolution} Å
-          Refined rise      : ${r.refined_helical_rise_angstroms} Å
-          Refined twist     : ${r.refined_helical_twist_deg} °
+          Final resolution  : ${r.final_fsc_0143_resolution} A
+          Refined rise      : ${r.refined_helical_rise_angstroms} A
+          Refined twist     : ${r.refined_helical_twist_deg} deg
         Results in: ${params.outdir}
         """
     }

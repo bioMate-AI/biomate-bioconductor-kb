@@ -1,0 +1,205 @@
+Apr-05 03:17:12.422 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/assay_ingestion_and_ranking/main.nf -with-docker biomate/biomni-tools -profile standard -w /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/work --outdir /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/output -with-trace /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/workflow-trace.txt
+Apr-05 03:17:12.477 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-05 03:17:12.571 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools`
+Apr-05 03:17:12.590 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-05 03:17:12.604 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-05 03:17:12.605 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-05 03:17:12.606 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-05 03:17:12.615 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-05 03:17:12.689 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-05 03:17:12.690 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Apr-05 03:17:12.690 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Apr-05 03:17:12.699 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/.nextflow/secrets/store.json
+Apr-05 03:17:12.703 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@b18c4] - activable => nextflow.secret.LocalSecretsProvider@b18c4
+Apr-05 03:17:12.704 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-05 03:17:12.715 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/assay_ingestion_and_ranking/main.nf` [jovial_sax] DSL2 - revision: 68f0d7253d
+Apr-05 03:17:12.767 [main] DEBUG nextflow.Session - Session UUID: d886301e-0a21-40e4-bfad-4d7ca2aa3839
+Apr-05 03:17:12.767 [main] DEBUG nextflow.Session - Run name: jovial_sax
+Apr-05 03:17:12.767 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-05 03:17:12.773 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-05 03:17:12.778 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-05 03:17:12.796 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 2950386@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (7.9 GB) - Swap: 16 GB (3.5 GB)
+Apr-05 03:17:12.809 [main] DEBUG nextflow.Session - Work-dir: /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/work [ext2/ext3]
+Apr-05 03:17:12.809 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/assay_ingestion_and_ranking/bin
+Apr-05 03:17:12.814 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Apr-05 03:17:12.820 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-05 03:17:12.822 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-05 03:17:12.855 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-05 03:17:12.870 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-05 03:17:12.924 [main] DEBUG nextflow.Session - Session start
+Apr-05 03:17:12.929 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/workflow-trace.txt
+Apr-05 03:17:13.347 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-05 03:17:13.352 [main] INFO  nextflow.Nextflow - 
+============================================================
+  BioMate -- Assay Ingestion & Composite Ranking
+============================================================
+  Potency assay  : IC50_BCR_ABL1
+  Safety assay   : hERG_IC50
+  Weights        : potency=0.6 safety=0.4
+  hERG threshold : 1.0 uM
+  Top-N          : 10
+============================================================
+
+Apr-05 03:17:13.435 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Apr-05 03:17:13.435 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Apr-05 03:17:13.441 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Apr-05 03:17:13.445 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Apr-05 03:17:13.447 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Apr-05 03:17:13.467 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PARSE_ASSAY_DATA': maxForks=0; fair=false; array=0
+Apr-05 03:17:13.518 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Apr-05 03:17:13.518 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Apr-05 03:17:13.519 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'COMPUTE_COMPOSITE_SCORE': maxForks=0; fair=false; array=0
+Apr-05 03:17:13.524 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Apr-05 03:17:13.525 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Apr-05 03:17:13.534 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'RANK_AND_REPORT': maxForks=0; fair=false; array=0
+Apr-05 03:17:13.538 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: RANK_AND_REPORT, PARSE_ASSAY_DATA, COMPUTE_COMPOSITE_SCORE
+Apr-05 03:17:13.540 [main] DEBUG nextflow.Session - Igniting dataflow network (4)
+Apr-05 03:17:13.542 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PARSE_ASSAY_DATA
+Apr-05 03:17:13.543 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > COMPUTE_COMPOSITE_SCORE
+Apr-05 03:17:13.543 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > RANK_AND_REPORT
+Apr-05 03:17:13.545 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_c00da6b7f9994f5d: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/assay_ingestion_and_ranking/main.nf
+Apr-05 03:17:13.545 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-05 03:17:13.545 [main] DEBUG nextflow.Session - Session await
+Apr-05 03:17:13.737 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Apr-05 03:17:13.739 [Task submitter] INFO  nextflow.Session - [80/86515a] Submitted process > PARSE_ASSAY_DATA (parse_assay)
+Apr-05 03:17:15.384 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: PARSE_ASSAY_DATA (parse_assay); status: COMPLETED; exit: 1; error: -; workDir: /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/work/80/86515a0e1ee92a9cd9d8c1466544e5]
+Apr-05 03:17:15.386 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-05 03:17:15.392 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=PARSE_ASSAY_DATA (parse_assay); work-dir=/tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/work/80/86515a0e1ee92a9cd9d8c1466544e5
+  error [nextflow.exception.ProcessFailedException]: Process `PARSE_ASSAY_DATA (parse_assay)` terminated with an error exit status (1)
+Apr-05 03:17:15.403 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'PARSE_ASSAY_DATA (parse_assay)'
+
+Caused by:
+  Process `PARSE_ASSAY_DATA (parse_assay)` terminated with an error exit status (1)
+
+
+Command executed:
+
+  python3 - <<'PYEOF'
+  import csv, io, json, sys
+  
+  raw = '''compound_id,assay_type,value,unit,assay_date'''
+  
+  # Strip any leading/trailing whitespace lines
+  lines = [l for l in raw.strip().splitlines() if l.strip()]
+  
+  # Find header row
+  header_idx = 0
+  for i, l in enumerate(lines):
+      if 'compound_id' in l.lower() or 'cpd' in l.lower() and 'assay' in l.lower():
+          header_idx = i
+          break
+  
+  reader = csv.DictReader(lines[header_idx:])
+  rows = list(reader)
+  
+  if not rows:
+      sys.exit('ERROR: No data rows found in assay CSV')
+  
+  # Normalize column names
+  def norm_col(c):
+      return c.strip().lower().replace(' ', '_')
+  
+  rows_norm = [{norm_col(k): v.strip() for k, v in r.items()} for r in rows]
+  
+  # Pivot: one row per compound, columns per assay_type
+  from collections import defaultdict
+  data = defaultdict(dict)
+  for r in rows_norm:
+      cid = r.get('compound_id', r.get('cpd_id', ''))
+      atype = r.get('assay_type', '')
+      val = r.get('value', r.get('ic50', ''))
+      unit = r.get('unit', '')
+      data[cid][atype] = (val, unit)
+  
+  assay_types = sorted({atype for cid_data in data.values() for atype in cid_data})
+  
+  with open('wide_assay.csv', 'w', newline='') as f:
+      writer = csv.writer(f)
+      header = ['compound_id'] + [f'{a}_value' for a in assay_types] + [f'{a}_unit' for a in assay_types]
+      writer.writerow(header)
+      for cid, amap in sorted(data.items()):
+          row = [cid]
+          for a in assay_types:
+              v, u = amap.get(a, ('', ''))
+              row.append(v)
+          for a in assay_types:
+              v, u = amap.get(a, ('', ''))
+              row.append(u)
+          writer.writerow(row)
+  
+  with open('parse_report.txt', 'w') as f:
+      f.write(f'Compounds parsed: {len(data)}\n')
+      f.write(f'Assay types: {assay_types}\n')
+      f.write(f'Total rows: {len(rows)}\n')
+  
+  print(f'Parsed {len(data)} compounds, assays: {assay_types}')
+  PYEOF
+
+Command exit status:
+  1
+
+Command output:
+  (empty)
+
+Command error:
+  WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+  ERROR: No data rows found in assay CSV
+
+Work dir:
+  /tmp/nextflow_runs/672ae5c2-08ff-4970-b8e0-70d5a896a4cd/work/80/86515a0e1ee92a9cd9d8c1466544e5
+
+Container:
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Apr-05 03:17:15.418 [TaskFinalizer-1] DEBUG nextflow.Session - Session aborted -- Cause: Process `PARSE_ASSAY_DATA (parse_assay)` terminated with an error exit status (1)
+Apr-05 03:17:15.419 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-05 03:17:15.440 [TaskFinalizer-1] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=1.6s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-05 03:17:15.456 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Apr-05 03:17:15.457 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-05 03:17:15.459 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=1.6s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-05 03:17:15.458 [TaskFinalizer-1] DEBUG nextflow.Session - null
+java.lang.InterruptedException: null
+	at java.base/java.lang.Object.wait(Native Method)
+	at java.base/java.lang.Thread.join(Thread.java:1313)
+	at java.base/java.lang.Thread.join(Thread.java:1381)
+	at nextflow.trace.AnsiLogObserver.onFlowComplete(AnsiLogObserver.groovy:520)
+	at nextflow.Session$_notifyFlowComplete_lambda39.doCall(Session.groovy:1121)
+	at nextflow.Session.notifyEvent(Session.groovy:1151)
+	at nextflow.Session.notifyFlowComplete(Session.groovy:1121)
+	at nextflow.Session.shutdown0(Session.groovy:779)
+	at nextflow.Session.abort(Session.groovy:834)
+	at nextflow.Session.fault(Session.groovy:796)
+	at nextflow.processor.TaskPollingMonitor.finalizeTask(TaskPollingMonitor.groovy:753)
+	at nextflow.processor.TaskPollingMonitor.safeFinalizeTask(TaskPollingMonitor.groovy:736)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1339)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1094)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.processor.TaskPollingMonitor$_checkTaskStatus_lambda8.doCall(TaskPollingMonitor.groovy:726)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Apr-05 03:17:15.462 [TaskFinalizer-1] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-05 03:17:15.621 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-05 03:17:15.626 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-05 03:17:15.639 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

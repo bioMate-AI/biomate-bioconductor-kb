@@ -15,7 +15,6 @@ process IMPORT_MOVIES {
     path "import_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -32,11 +31,10 @@ process IMPORT_MOVIES {
         'pixel_size_angstroms': ${params.pixel_size},
         'voltage_kv': ${params.voltage},
         'spherical_aberration_mm': ${params.spherical_aberration},
-        'gain_reference': '${params.gain_ref}' if '${params.gain_ref}' != 'null' else None,
-        'mock_mode': ${mock}
+        'gain_reference': '${params.gain_ref}' if '${params.gain_ref}' != 'null' else None
     }
 
-    # Create CryoSPARC-style .cs file (mock format)
+    # Create CryoSPARC-style .cs file
     cs_data = {
         'movies': [
             {

@@ -1,7 +1,7 @@
-export type PrereqStatus = "ok" | "missing" | "warning" | "blocked";
+export type PrereqStatus = "ok" | "missing" | "warning";
 
 export interface PrereqItem {
-  id: "input_data" | "required_parameters" | "tool_runtime" | "confidence_gate";
+  id: "input_data" | "required_parameters";
   label: string;
   status: PrereqStatus;
   reason?: string;
@@ -16,9 +16,7 @@ export interface PrereqChecklist {
 
 interface NormalizeOptions {
   executionBlockedReason?: string;
-  toolInstallationSuccess?: boolean;
   allowLowConfidenceOverride?: boolean;
-  allowPrereqRecovery?: boolean;
 }
 
 export function normalizePrereqChecklist(
@@ -30,32 +28,21 @@ export function normalizePrereqChecklist(
   const inputMappings = prerequisitesValidation?.analysis?.inputMappings ?? [];
   const requirementParams = prerequisitesValidation?.requirements?.parameters ?? [];
   const hasValidatorPayload = !!prerequisitesValidation;
-  const hasConfidenceBlock = !!options.executionBlockedReason;
-  const allowPrereqRecovery = options.allowPrereqRecovery === true;
 
-  if (!hasValidatorPayload && !hasConfidenceBlock) {
-    // When recovery mode is active, return a minimal approval even without validator data.
-    // The recovery message carries forward a workflow but no prerequisitesValidation —
-    // we still want overrideAllowed=true so the Run button is unblocked.
-    if (allowPrereqRecovery) {
-      return { items: [], canRun: true, overrideAllowed: true };
-    }
+  if (!hasValidatorPayload) {
     return undefined;
   }
 
   const items: PrereqItem[] = [];
 
+  // Input data
   if (missingInputs.length > 0) {
     items.push({
       id: "input_data",
       label: "Input data",
       status: "warning",
-      reason: allowPrereqRecovery
-        ? `${missingInputs.length} input(s) are missing, but recovery mode can proceed with demo/sample data.`
-        : `${missingInputs.length} required input(s) are missing.`,
-      actionHint: allowPrereqRecovery
-        ? "Proceed to run demo/sample workflow path, or upload your own datasets for production execution."
-        : "Upload/select compatible datasets before running.",
+      reason: `${missingInputs.length} required input(s) are missing.`,
+      actionHint: "Upload or select your data files.",
     });
   } else if (inputMappings.length > 0) {
     items.push({
@@ -69,11 +56,12 @@ export function normalizePrereqChecklist(
       id: "input_data",
       label: "Input data",
       status: "warning",
-      reason: "No explicit input mappings detected yet.",
-      actionHint: "Confirm dataset assignments before execution.",
+      reason: "No input data detected yet.",
+      actionHint: "Upload or select your data files.",
     });
   }
 
+  // Required parameters
   const requiredParamKeys = new Set(
     requirementParams
       .filter((p: any) => p && p.optional === false)
@@ -102,15 +90,9 @@ export function normalizePrereqChecklist(
     items.push({
       id: "required_parameters",
       label: "Required parameters",
-      // When recovery mode is active, downgrade from hard "missing" to "warning"
-      // so the Run button is not permanently blocked — user approved demo/sample path.
-      status: allowPrereqRecovery ? "warning" : "missing",
-      reason: allowPrereqRecovery
-        ? `${requiredMissingWithoutDefaults.length} required parameter(s) missing, but recovery mode approved (using demo/sample data).`
-        : `${requiredMissingWithoutDefaults.length} required parameter(s) are missing and have no defaults.`,
-      actionHint: allowPrereqRecovery
-        ? "Parameters will use demo values for this run. Fill them in for production execution."
-        : "Set required parameters before execution.",
+      status: "missing",
+      reason: `${requiredMissingWithoutDefaults.length} required parameter(s) are missing and have no defaults.`,
+      actionHint: "Fill in the required fields above before running.",
     });
   } else if (requiredMissingWithDefaults.length > 0 || optionalOrSuggestedParams.length > 0) {
     const defaultCount = requiredMissingWithDefaults.length;
@@ -120,55 +102,28 @@ export function normalizePrereqChecklist(
       label: "Required parameters",
       status: "warning",
       reason:
-        `No hard parameter blocker. ` +
-        `${defaultCount > 0 ? `${defaultCount} required parameter(s) can use defaults. ` : ""}` +
-        `${optionalCount > 0 ? `${optionalCount} optional/suggested parameter(s) may improve results.` : ""}`.trim(),
-      actionHint: "Review parameters for quality, but execution can proceed.",
+        `${defaultCount > 0 ? `${defaultCount} required parameter(s) will use defaults. ` : ""}` +
+        `${optionalCount > 0 ? `${optionalCount} optional parameter(s) may improve results.` : ""}`.trim(),
+      actionHint: "Review parameters above; defaults will be used if left unchanged.",
     });
   } else if (hasValidatorPayload) {
     items.push({
       id: "required_parameters",
       label: "Required parameters",
       status: "ok",
-      reason: "Required parameters are satisfied (provided or defaulted).",
+      reason: "Required parameters are satisfied.",
     });
   }
 
-  if (options.toolInstallationSuccess === false) {
-    items.push({
-      id: "tool_runtime",
-      label: "Tool/runtime readiness",
-      status: "missing",
-      reason: "Required tools are not installed or runtime is not ready.",
-      actionHint: "Install missing tools or wait for environment setup.",
-    });
-  } else if (options.toolInstallationSuccess === true) {
-    items.push({
-      id: "tool_runtime",
-      label: "Tool/runtime readiness",
-      status: "ok",
-      reason: "Tool installation and runtime checks passed.",
-    });
-  }
+  // Confidence gate is NOT surfaced here — the amber alert + "Confirm and Run Anyway"
+  // button below the checklist already communicate domain/confidence blocks to the user.
+  // Adding it here would duplicate the same reason text twice on screen.
 
-  if (hasConfidenceBlock) {
-    items.push({
-      id: "confidence_gate",
-      label: "Scientific confidence gate",
-      status: "blocked",
-      reason: options.executionBlockedReason,
-      actionHint: options.allowLowConfidenceOverride
-        ? "Use Confirm and Run Anyway to continue with explicit override."
-        : "Regenerate workflow or refine request before execution.",
-    });
-  }
-
-  const hasHardBlocker = items.some((item) => item.status === "missing" || item.status === "blocked");
+  const hasHardBlocker = items.some((item) => item.status === "missing");
 
   return {
     items,
     canRun: !hasHardBlocker,
-    // overrideAllowed lets the viewer skip hasUnfilledRequired when recovery mode is active
-    overrideAllowed: !!options.allowLowConfidenceOverride || allowPrereqRecovery,
+    overrideAllowed: !!options.allowLowConfidenceOverride,
   };
 }

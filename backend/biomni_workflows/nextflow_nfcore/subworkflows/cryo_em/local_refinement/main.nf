@@ -26,7 +26,6 @@ params.focus_mask       = null      // path to focus mask .mrc; null = auto tigh
 params.symmetry         = 'C1'      // point group symmetry for the focused region
 params.initial_lowpass  = 8.0       // Angstroms — initial lowpass filter for alignment
 params.max_iterations   = 20        // maximum refinement iterations
-params.mock_mode        = true      // use mock mode for testing
 params.use_cryosparc    = false     // use live CryoSPARC API
 params.outdir           = './results/local_refinement'
 
@@ -48,18 +47,13 @@ process LOCAL_REFINEMENT {
     path "local_refinement_report.json",  emit: report
 
     script:
-    def mock       = params.mock_mode   ? 'True' : 'False'
     def focus_mask = params.focus_mask  ? "'${params.focus_mask}'" : 'None'
     """
     #!/usr/bin/env python3
     import json
-    import random
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode      = ${mock}
-    symmetry       = '${params.symmetry}'
+    symmetry        = '${params.symmetry}'
     initial_lowpass = ${params.initial_lowpass}
     max_iterations  = ${params.max_iterations}
     focus_mask      = ${focus_mask}
@@ -71,32 +65,57 @@ process LOCAL_REFINEMENT {
     num_particles = len(particles)
     volume        = volume_data.get('volume', {})
 
-    # Starting resolution from the input volume (or from subtracted particles metadata)
     initial_res = volume.get('resolution_angstroms',
                   particles_data.get('input_resolution_angstroms', 5.5))
 
-    # Local refinement on a subtracted domain typically improves resolution
-    # compared to global refinement — improvement factor 15-35%
-    improvement_pct = round(random.uniform(15.0, 35.0), 2)
-    final_res       = round(initial_res * (1.0 - improvement_pct / 100.0), 2)
-    # Clamp to physically plausible range 2.0-10.0 Å
-    final_res = max(2.0, min(10.0, final_res))
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    # Local resolution of the focused domain (slightly better than global FSC)
-    local_res = round(final_res * random.uniform(0.85, 0.98), 2)
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
 
-    # FSC 0.143 resolution for the focused region
-    local_fsc_0143 = final_res
+        job_params = {
+            'symmetry':       symmetry,
+            'init_res':       initial_lowpass,
+            'max_iterations': max_iterations
+        }
+        if focus_mask is not None:
+            job_params['mask'] = focus_mask
 
-    # Build output volume object
-    refined = {
-        'resolution_angstroms':       final_res,
-        'local_resolution_angstroms': local_res,
-        'symmetry':                   symmetry,
-        'focus_mask':                 focus_mask,
-        'num_particles':              num_particles,
-        'initial_resolution_angstroms': initial_res
-    }
+        job = workspace.create_job('local_refine', connections={
+            'particles': ('${params.cryosparc_particles_job_uid ?: ""}', 'particles'),
+            'volume':    ('${params.cryosparc_volume_job_uid ?: ""}', 'volume')
+        }, params=job_params)
+        job.queue()
+        job.wait_for_done()
+
+        stats = job.doc.get('output_stats', {})
+        final_res   = stats.get('fsc_resolution_0143', initial_res)
+        local_res   = stats.get('local_resolution', final_res)
+        improvement_pct = round((initial_res - final_res) / initial_res * 100.0, 2) if initial_res > 0 else 0.0
+
+        refined = {
+            'resolution_angstroms':       final_res,
+            'local_resolution_angstroms': local_res,
+            'symmetry':                   symmetry,
+            'focus_mask':                 focus_mask,
+            'num_particles':              num_particles,
+            'initial_resolution_angstroms': initial_res
+        }
+        with open('local_refined_volume.cs', 'w') as f:
+            json.dump({'volume': refined}, f, indent=2)
+    else:
+        raise RuntimeError(
+            "CryoSPARC connection required. Set --use_cryosparc true and provide "
+            "CryoSPARC connection params."
+        )
 
     report = {
         'step':                          'local_refinement',
@@ -105,17 +124,13 @@ process LOCAL_REFINEMENT {
         'initial_resolution_angstroms':  initial_res,
         'final_resolution_angstroms':    final_res,
         'resolution_improvement_pct':    improvement_pct,
-        'local_fsc_0143_resolution':     local_fsc_0143,
+        'local_fsc_0143_resolution':     final_res,
         'local_resolution_angstroms':    local_res,
         'symmetry':                      symmetry,
         'focus_mask':                    focus_mask,
         'initial_lowpass_angstroms':     initial_lowpass,
-        'max_iterations':                max_iterations,
-        'mock_mode':                     mock_mode
+        'max_iterations':                max_iterations
     }
-
-    with open('local_refined_volume.cs', 'w') as f:
-        json.dump({'volume': refined}, f, indent=2)
 
     with open('local_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
@@ -124,7 +139,7 @@ process LOCAL_REFINEMENT {
     print(f"  Particles      : {num_particles}")
     print(f"  Resolution     : {initial_res:.2f} A -> {final_res:.2f} A  "
           f"({improvement_pct:.1f}% improvement)")
-    print(f"  Local FSC 0.143: {local_fsc_0143:.2f} A")
+    print(f"  Local FSC 0.143: {final_res:.2f} A")
     print(f"  Symmetry       : {symmetry}")
     """
 
@@ -141,23 +156,13 @@ process LOCAL_REFINEMENT {
 workflow {
     ch_particles = Channel.fromPath(
         params.subtracted_particles_cs ?: 'subtracted_particles.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/subtracted_particles.cs")
-        f.parent.mkdirs()
-        f.text = '{"particles": [{"particle_idx": 0, "subtracted": true, "signal_fraction_removed": 0.45}], "num_subtracted": 1, "mask_used": "auto_spherical_mask"}'
-        f
-    }
+        checkIfExists: true
+    )
 
     ch_volume = Channel.fromPath(
         params.volume_cs ?: 'volume.cs',
-        checkIfExists: false
-    ).ifEmpty {
-        def f = file("${params.outdir}/test_inputs/volume.cs")
-        f.parent.mkdirs()
-        f.text = '{"volume": {"resolution_angstroms": 4.2, "symmetry": "C1", "num_particles": 1}}'
-        f
-    }
+        checkIfExists: true
+    )
 
     LOCAL_REFINEMENT(ch_particles, ch_volume)
 

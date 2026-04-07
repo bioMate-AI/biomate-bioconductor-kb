@@ -633,33 +633,60 @@ Design the workflow using ONLY tools from the AVAILABLE TOOLS list.
 Return valid JSON only - no additional text.
 """
 
-        try:
-            # Combine system and user prompts for LLMClient
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response_text = self.llm_client.generate(full_prompt, max_tokens=4096)
+        import re
 
-            log.info(f"LLM response received: {len(response_text)} chars")
+        # Combine system and user prompts for LLMClient
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
 
-            # Parse JSON response
-            import re
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
+        last_result = None
+        for attempt in range(2):  # at most 2 LLM calls
+            try:
+                response_text = self.llm_client.generate(full_prompt, max_tokens=4096)
+                log.info(f"LLM response received (attempt {attempt + 1}): {len(response_text)} chars")
+
+                # Parse JSON response
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if not json_match:
+                    log.error(f"Failed to parse LLM response on attempt {attempt + 1}")
+                    if attempt == 0:
+                        continue  # try once more
+                    return {"error": "JSON parsing failed", "response": response_text}
+
                 result = json.loads(json_match.group(0))
 
-                # Validate that all tools exist in catalog
-                valid = self._validate_tool_ids(result, available_tools)
-                if not valid['success']:
-                    log.warning(f"Tool validation failed: {valid['message']}")
-                    result['validation_errors'] = valid['errors']
+            except Exception as e:
+                log.error(f"LLM call failed on attempt {attempt + 1}: {e}", exc_info=True)
+                if attempt == 0:
+                    continue  # try once more
+                return {"error": str(e)}
 
-                return result
-            else:
-                log.error("Failed to parse LLM response")
-                return {"error": "JSON parsing failed", "response": response_text}
+            last_result = result
 
-        except Exception as e:
-            log.error(f"Workflow structure generation failed: {e}", exc_info=True)
-            return {"error": str(e)}
+            # Validate that all tools exist in catalog
+            valid = self._validate_tool_ids(result, available_tools)
+            if valid['success']:
+                return result  # valid — done
+
+            if attempt == 0:
+                invalid_ids = [e['invalid_tool_id'] for e in valid.get('errors', [])]
+                valid_ids = [t['tool_id'] for t in available_tools[:30]]
+                correction = (
+                    f"\n\nCORRECTION REQUIRED: Your previous response used these invalid tool IDs "
+                    f"that are not in the available tools list: {invalid_ids}\n"
+                    f"You MUST only use tool IDs from this list: {valid_ids}\n"
+                    f"Return a corrected workflow JSON using ONLY valid tool IDs from the list above."
+                )
+                full_prompt = full_prompt + correction
+                log.warning(f"Validation failed on attempt 1 (invalid IDs: {invalid_ids}), retrying with correction")
+
+        # After 2 attempts, return best effort with validation errors attached
+        log.error(f"Workflow validation failed after 2 attempts")
+        if last_result is not None:
+            valid = self._validate_tool_ids(last_result, available_tools)
+            if not valid['success']:
+                last_result['validation_errors'] = valid['errors']
+            return last_result
+        return {"error": "Workflow generation failed after 2 attempts"}
 
     def _build_tool_catalog(self, tools: List[Dict[str, Any]]) -> str:
         """

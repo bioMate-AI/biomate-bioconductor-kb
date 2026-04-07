@@ -21,8 +21,6 @@ nextflow.enable.dsl = 2
 // Parameters
 // ────────────────────────────────────────────────────────────
 params.outdir              = './results/immune_deconvolution'
-params.mock_mode           = true
-// Real inputs (ignored in mock mode)
 params.counts_matrix       = null   // TSV/CSV: genes × samples (raw counts)
 params.signature_matrix    = null   // TSV/CSV: genes × cell-types (LM22 or custom)
 params.clinical_metadata   = null   // TSV/CSV: sample → clinical variables (optional)
@@ -59,7 +57,6 @@ process BIOC_DECONRNASEQ {
 
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
-    def mock     = params.mock_mode
     def scale    = params.scale_counts
     def checksig = params.checksig
     """
@@ -68,84 +65,40 @@ process BIOC_DECONRNASEQ {
         library(DeconRNASeq)
     })
 
-    mock_mode  <- ${mock}
     scale      <- ${scale}
     checksig   <- ${checksig}
     prefix     <- "${prefix}"
 
-    # Eight canonical immune cell types present in LM22 / TIMER2.0
-    IMMUNE_CELL_TYPES <- c(
-        "CD8_T_cell", "CD4_T_cell", "NK_cell",
-        "B_cell", "Monocyte", "Dendritic_cell",
-        "Neutrophil", "Mast_cell"
-    )
+    counts_file <- "${counts_matrix}"
+    sig_file    <- "${signature_matrix}"
 
-    if (mock_mode) {
-        # ── Mock mode ──────────────────────────────────────────────
-        # Generate a synthetic fractions matrix (10 samples × 8 cell types).
-        # Each row sums to 1 (Dirichlet-like composition).
-        set.seed(42)
-        n_samples   <- 10
-        sample_ids  <- paste0("SAMPLE_", seq_len(n_samples))
-
-        # Simulate immune-hot vs immune-cold samples
-        fractions <- matrix(NA_real_, nrow = n_samples, ncol = length(IMMUNE_CELL_TYPES),
-                            dimnames = list(sample_ids, IMMUNE_CELL_TYPES))
-
-        for (i in seq_len(n_samples)) {
-            alpha <- if (i <= 5) {
-                # Immune-hot: T-cell enriched
-                c(0.25, 0.20, 0.10, 0.10, 0.15, 0.08, 0.07, 0.05)
-            } else {
-                # Immune-cold: monocyte/neutrophil enriched
-                c(0.05, 0.08, 0.04, 0.06, 0.30, 0.12, 0.28, 0.07)
-            }
-            # Add Dirichlet-like noise
-            raw      <- alpha + abs(rnorm(length(alpha), 0, 0.03))
-            fractions[i, ] <- raw / sum(raw)
-        }
-
-        result_df  <- as.data.frame(fractions)
-        decon_obj  <- list(
-            out.all     = result_df,
-            method      = "DeconRNASeq_mock",
-            mock        = TRUE,
-            cell_types  = IMMUNE_CELL_TYPES,
-            n_samples   = n_samples
-        )
-    } else {
-        # ── Live mode ──────────────────────────────────────────────
-        counts_file <- "${counts_matrix}"
-        sig_file    <- "${signature_matrix}"
-
-        # Read inputs — accept TSV or CSV
-        read_table_auto <- function(f) {
-            sep <- if (grepl("\\\\.tsv\$", f, ignore.case = TRUE)) "\\t" else ","
-            read.table(f, header = TRUE, sep = sep, row.names = 1,
-                       check.names = FALSE, stringsAsFactors = FALSE)
-        }
-
-        datasets   <- read_table_auto(counts_file)
-        signatures <- read_table_auto(sig_file)
-
-        # Align genes
-        common_genes <- intersect(rownames(datasets), rownames(signatures))
-        if (length(common_genes) < 50)
-            stop(sprintf("Only %d genes overlap between counts and signature matrix", length(common_genes)))
-
-        datasets   <- datasets[common_genes, , drop = FALSE]
-        signatures <- signatures[common_genes, , drop = FALSE]
-
-        decon_obj  <- DeconRNASeq(
-            datasets   = datasets,
-            signatures = signatures,
-            checksig   = checksig,
-            use.scale  = scale,
-            fig        = FALSE
-        )
-        result_df  <- as.data.frame(decon_obj\$out.all)
-        rownames(result_df) <- colnames(datasets)
+    # Read inputs -- accept TSV or CSV
+    read_table_auto <- function(f) {
+        sep <- if (grepl("\\.tsv$", f, ignore.case = TRUE)) "\\t" else ","
+        read.table(f, header = TRUE, sep = sep, row.names = 1,
+                   check.names = FALSE, stringsAsFactors = FALSE)
     }
+
+    datasets   <- read_table_auto(counts_file)
+    signatures <- read_table_auto(sig_file)
+
+    # Align genes
+    common_genes <- intersect(rownames(datasets), rownames(signatures))
+    if (length(common_genes) < 50)
+        stop(sprintf("Only %d genes overlap between counts and signature matrix", length(common_genes)))
+
+    datasets   <- datasets[common_genes, , drop = FALSE]
+    signatures <- signatures[common_genes, , drop = FALSE]
+
+    decon_obj  <- DeconRNASeq(
+        datasets   = datasets,
+        signatures = signatures,
+        checksig   = checksig,
+        use.scale  = scale,
+        fig        = FALSE
+    )
+    result_df  <- as.data.frame(decon_obj\$out.all)
+    rownames(result_df) <- colnames(datasets)
 
     # ── Write outputs ──────────────────────────────────────────
     write.csv(result_df, paste0(prefix, "_cell_fractions.csv"), row.names = TRUE)
@@ -221,7 +174,6 @@ process IMMUNEDECONV_SUMMARY {
 
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
-    def mock     = params.mock_mode
     def has_clin = (clinical_metadata.name != 'NO_FILE')
     """
     #!/usr/bin/env Rscript
@@ -231,7 +183,6 @@ process IMMUNEDECONV_SUMMARY {
     })
 
     prefix     <- "${prefix}"
-    mock_mode  <- ${mock}
     has_clin   <- ${has_clin}
 
     # ── Load cell fractions ────────────────────────────────────
@@ -297,35 +248,19 @@ process IMMUNEDECONV_SUMMARY {
     # ── Correlation heatmap ────────────────────────────────────
     pdf(paste0(prefix, "_correlation_heatmap.pdf"), width = 8, height = 8)
 
-    if (mock_mode || ncol(fractions) < 2) {
-        # Simple cell-type correlation matrix
-        cor_mat <- cor(fractions, use = "pairwise.complete.obs")
-        image(
-            x    = seq_len(nrow(cor_mat)),
-            y    = seq_len(ncol(cor_mat)),
-            z    = cor_mat,
-            col  = colorRampPalette(c("#2166AC", "white", "#D6604D"))(100),
-            xaxt = "n", yaxt = "n",
-            main = "Cell-type Correlation Matrix",
-            xlab = "", ylab = ""
-        )
-        axis(1, at = seq_len(nrow(cor_mat)), labels = rownames(cor_mat), las = 2, cex.axis = 0.7)
-        axis(2, at = seq_len(ncol(cor_mat)), labels = colnames(cor_mat), las = 1, cex.axis = 0.7)
-    } else {
-        # Fraction heatmap across samples
-        mat <- t(as.matrix(fractions))
-        image(
-            x    = seq_len(nrow(mat)),
-            y    = seq_len(ncol(mat)),
-            z    = mat,
-            col  = colorRampPalette(c("white", "#1A5276", "#E74C3C"))(100),
-            xaxt = "n", yaxt = "n",
-            main = "Immune Fractions Heatmap (samples × cell types)",
-            xlab = "Sample", ylab = "Cell type"
-        )
-        axis(1, at = seq_len(nrow(mat)), labels = rownames(mat), las = 2, cex.axis = 0.6)
-        axis(2, at = seq_len(ncol(mat)), labels = colnames(mat), las = 1, cex.axis = 0.7)
-    }
+    # Fraction heatmap across samples
+    mat <- t(as.matrix(fractions))
+    image(
+        x    = seq_len(nrow(mat)),
+        y    = seq_len(ncol(mat)),
+        z    = mat,
+        col  = colorRampPalette(c("white", "#1A5276", "#E74C3C"))(100),
+        xaxt = "n", yaxt = "n",
+        main = "Immune Fractions Heatmap (samples x cell types)",
+        xlab = "Sample", ylab = "Cell type"
+    )
+    axis(1, at = seq_len(nrow(mat)), labels = rownames(mat), las = 2, cex.axis = 0.6)
+    axis(2, at = seq_len(ncol(mat)), labels = colnames(mat), las = 1, cex.axis = 0.7)
     dev.off()
 
     # ── versions.yml ──────────────────────────────────────────
@@ -381,16 +316,11 @@ workflow IMMUNE_DECONVOLUTION {
 // ────────────────────────────────────────────────────────────
 
 workflow {
-    // In mock mode the actual file paths are ignored inside the R script.
-    // Supply placeholder paths so the channel tuple is well-formed.
-    // Use distinct names to avoid Nextflow filename-collision error in stub mode.
-    def counts_path = params.counts_matrix
-        ? file(params.counts_matrix)
-        : file('NO_COUNTS_FILE')
+    if (!params.counts_matrix)   error "params.counts_matrix is required: path to genes x samples TSV/CSV"
+    if (!params.signature_matrix) error "params.signature_matrix is required: path to signature matrix TSV/CSV (e.g. LM22)"
 
-    def sig_path = params.signature_matrix
-        ? file(params.signature_matrix)
-        : file('NO_SIGNATURE_FILE')
+    def counts_path = file(params.counts_matrix)
+    def sig_path    = file(params.signature_matrix)
 
     def clin_path = params.clinical_metadata
         ? file(params.clinical_metadata)

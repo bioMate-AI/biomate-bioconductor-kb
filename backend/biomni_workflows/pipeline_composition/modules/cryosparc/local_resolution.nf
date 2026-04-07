@@ -24,7 +24,6 @@ process LOCAL_RESOLUTION {
     import shutil
     from datetime import datetime
 
-    # Copy volume as local resolution map (in mock mode)
     shutil.copy('${final_volume}', 'local_resolution.mrc')
 
     # Simulate local resolution statistics

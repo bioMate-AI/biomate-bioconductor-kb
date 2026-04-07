@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 /*
- * Topaz Train — Custom Neural Network Particle Picker Training
+ * Topaz Train -- Custom Neural Network Particle Picker Training
  *
  * Trains a Topaz neural network particle picker on YOUR micrographs using
  * positive examples from a prior picking round (blob picker, template picker,
@@ -9,8 +9,8 @@
  * picking when subsequently applied to the full dataset.
  *
  * Architecture options:
- *   resnet8   — lightweight, suitable for small training sets
- *   resnet16  — default; better for diverse particle appearances
+ *   resnet8   -- lightweight, suitable for small training sets
+ *   resnet16  -- default; better for diverse particle appearances
  *
  * References:
  *   Bepler et al. 2019 Nat Methods 16:1153  (Topaz)
@@ -29,7 +29,6 @@ params.num_training_micrographs           = 50    // micrographs sampled for tra
 params.expected_particles_per_micrograph  = 300   // used for radius / normalization
 params.train_epochs                       = 10    // training iterations
 params.model_architecture                 = 'resnet16'  // 'resnet8' or 'resnet16'
-params.mock_mode                          = true
 params.use_cryosparc                      = false
 params.outdir                             = './results/topaz_train'
 
@@ -51,16 +50,15 @@ process TOPAZ_TRAIN {
     path "topaz_train_report.json",  emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
-    import random
+    import subprocess
+    import sys
+    import os
+    from pathlib import Path
     from datetime import datetime
 
-    random.seed(None)
-
-    mock_mode      = ${mock}
     architecture   = '${params.model_architecture}'
     num_train_mics = ${params.num_training_micrographs}
     exp_ppm        = ${params.expected_particles_per_micrograph}
@@ -74,39 +72,84 @@ process TOPAZ_TRAIN {
 
     # Subsample micrographs for training
     actual_train_mics = min(num_train_mics, len(micrographs))
+    train_mics = micrographs[:actual_train_mics]
 
-    # Simulate per-epoch training / validation loss curves
-    # Loss decreases with epochs; resnet16 achieves slightly lower loss
-    base_train_loss = 0.35 if architecture == 'resnet8' else 0.28
-    base_val_loss   = 0.40 if architecture == 'resnet8' else 0.33
-    decay           = 0.85  # geometric decay per epoch
+    # Write training micrograph list
+    mic_list_path = Path('train_micrographs.txt')
+    with open(mic_list_path, 'w') as fh:
+        for mic in train_mics:
+            fh.write(mic.get('filename', mic.get('micrograph_path', '')) + '\\n')
 
-    for ep in range(train_epochs):
-        base_train_loss *= decay
-        base_val_loss   *= decay
+    # Write positive coordinates file (topaz format: image_name x y)
+    coords_path = Path('train_particles.txt')
+    mic_idx_to_name = {
+        mic.get('micrograph_idx', i): Path(mic.get('filename', mic.get('micrograph_path', ''))).stem
+        for i, mic in enumerate(train_mics)
+    }
+    with open(coords_path, 'w') as fh:
+        fh.write('image_name\\tx_coord\\ty_coord\\n')
+        for p in particles:
+            mic_idx = p.get('micrograph_idx', 0)
+            mic_name = mic_idx_to_name.get(mic_idx, f'mic_{mic_idx:05d}')
+            x = p.get('x_coord', p.get('x', 0))
+            y = p.get('y_coord', p.get('y', 0))
+            fh.write(f'{mic_name}\\t{x}\\t{y}\\n')
 
-    final_train_loss = round(base_train_loss + random.uniform(-0.02, 0.02), 4)
-    final_val_loss   = round(base_val_loss   + random.uniform(-0.02, 0.03), 4)
-    # Clamp to realistic range
-    final_train_loss = max(0.08, min(0.30, final_train_loss))
-    final_val_loss   = max(0.10, min(0.35, final_val_loss))
+    # Run topaz train
+    cmd = [
+        'topaz', 'train',
+        '--train-images', str(mic_list_path),
+        '--train-targets', str(coords_path),
+        '--model', architecture,
+        '--num-particles', str(exp_ppm),
+        '--num-epochs', str(train_epochs),
+        '--save-prefix', 'topaz_model',
+        '--output', 'topaz_train_log.txt',
+        '--num-workers', str(min(os.cpu_count() or 4, 8))
+    ]
 
-    # Topaz estimates expected particles per micrograph for model scaling
-    estimated_ppm = round(exp_ppm * random.uniform(0.85, 1.15), 1)
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"topaz train stderr: {result.stderr}", file=sys.stderr)
+        raise RuntimeError(f"topaz train failed with exit code {result.returncode}")
 
-    # Mock model file — real Topaz writes a PyTorch state-dict (.pth);
-    # here we embed architecture metadata in JSON so downstream steps can read it.
+    # topaz saves model as topaz_model_epoch{N}.sav; find the final one
+    model_files = sorted(Path('.').glob('topaz_model*.sav')) + sorted(Path('.').glob('topaz_model*.pth'))
+    if not model_files:
+        raise RuntimeError("topaz train completed but no model file found")
+    final_model = model_files[-1]
+
+    # Rename to expected output name
+    import shutil
+    shutil.copy(str(final_model), 'topaz_model.pth')
+
+    # Parse training log for loss values
+    final_train_loss = 0.0
+    final_val_loss   = 0.0
+    if Path('topaz_train_log.txt').exists():
+        with open('topaz_train_log.txt') as fh:
+            for line in fh:
+                if 'loss' in line.lower():
+                    parts_line = line.strip().split()
+                    for i, tok in enumerate(parts_line):
+                        if tok.lower() in ('loss', 'train_loss') and i + 1 < len(parts_line):
+                            try:
+                                final_train_loss = float(parts_line[i + 1])
+                            except ValueError:
+                                pass
+
+    # Write model metadata alongside the binary
     model_meta = {
-        'format':        'topaz_model_mock',
+        'model_path':    'topaz_model.pth',
         'architecture':  architecture,
         'train_epochs':  train_epochs,
         'training_mics': actual_train_mics,
-        'final_train_loss': final_train_loss,
-        'final_val_loss':   final_val_loss,
-        'expected_ppm':  estimated_ppm,
+        'expected_ppm':  exp_ppm,
         'threshold':     -6.0,
         'trained_at':    datetime.now().isoformat()
     }
+    with open('topaz_model_meta.json', 'w') as f:
+        json.dump(model_meta, f, indent=2)
 
     report = {
         'step':                              'topaz_train',
@@ -117,23 +160,17 @@ process TOPAZ_TRAIN {
         'train_epochs':                      train_epochs,
         'final_train_loss':                  final_train_loss,
         'final_val_loss':                    final_val_loss,
-        'particles_per_micrograph_estimated': estimated_ppm,
-        'model_file':                        'topaz_model.pth',
-        'mock_mode':                         mock_mode
+        'particles_per_micrograph_expected': exp_ppm,
+        'model_file':                        'topaz_model.pth'
     }
-
-    with open('topaz_model.pth', 'w') as f:
-        json.dump(model_meta, f, indent=2)
 
     with open('topaz_train_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Topaz training complete ({architecture})")
+    print(f"Topaz training complete ({architecture})")
     print(f"  Training micrographs : {actual_train_mics}")
     print(f"  Train epochs         : {train_epochs}")
-    print(f"  Final train loss     : {final_train_loss:.4f}")
-    print(f"  Final val loss       : {final_val_loss:.4f}")
-    print(f"  Est. particles/mic   : {estimated_ppm}")
+    print(f"  Model saved          : topaz_model.pth")
     """
 }
 
@@ -144,40 +181,25 @@ process TOPAZ_TRAIN {
 workflow {
     log.info """
     ====================================================================
-    Topaz Train — Custom Particle Picker Training
+    Topaz Train -- Custom Particle Picker Training
     ====================================================================
     Architecture  : ${params.model_architecture}
     Train mics    : ${params.num_training_micrographs}
     Expected PPM  : ${params.expected_particles_per_micrograph}
     Train epochs  : ${params.train_epochs}
-    Mode          : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (Topaz)'}
     Output        : ${params.outdir}
     ====================================================================
     """.stripIndent()
 
-    def test_dir = file("${params.outdir}/test_input")
-    test_dir.mkdirs()
+    ch_mics = Channel.fromPath(
+        params.micrographs_cs ?: 'micrographs_ctf.cs',
+        checkIfExists: true
+    )
 
-    // Synthetic micrographs_ctf.cs
-    def mics_file = file("${test_dir}/micrographs_ctf.cs")
-    mics_file.text = groovy.json.JsonOutput.toJson([
-        micrographs: (0..99).collect { i ->
-            [micrograph_idx: i, defocus_u_angstroms: 15000 + i * 200,
-             defocus_v_angstroms: 14800 + i * 200, ctf_fit_resolution_angstroms: 5.0]
-        }
-    ])
-
-    // Synthetic blob-picker picks as positive examples
-    def picks_file = file("${test_dir}/particles.cs")
-    picks_file.text = groovy.json.JsonOutput.toJson([
-        particles: (0..14999).collect { i ->
-            [particle_idx: i, defocus_u: 15000, defocus_v: 14800,
-             psi: Math.random() * 360, phi: Math.random() * 180, theta: Math.random() * 360]
-        }
-    ])
-
-    ch_mics  = Channel.of(mics_file)
-    ch_parts = Channel.of(picks_file)
+    ch_parts = Channel.fromPath(
+        params.particles_cs ?: 'particles.cs',
+        checkIfExists: true
+    )
 
     TOPAZ_TRAIN(ch_mics, ch_parts)
 
@@ -187,8 +209,6 @@ workflow {
         Topaz Train Results:
           Architecture : ${r.architecture}
           Train epochs : ${r.train_epochs}
-          Final train loss : ${r.final_train_loss}
-          Final val loss   : ${r.final_val_loss}
           Model file   : ${r.model_file}
         Results in: ${params.outdir}
         """

@@ -13,6 +13,9 @@ for pkg, check in [
     ("scipy",          "import scipy; results['scipy'] = scipy.__version__"),
     ("sklearn",        "import sklearn; results['sklearn'] = sklearn.__version__"),
     ("numpy",          "import numpy; results['numpy'] = numpy.__version__"),
+    ("vina",           "from vina import Vina; results['vina'] = 'OK'"),
+    ("ViennaRNA",      "import RNA; results['ViennaRNA'] = 'OK'"),
+    ("meeko",          "import meeko; results['meeko'] = 'OK'"),
 ]:
     try:
         exec(check)

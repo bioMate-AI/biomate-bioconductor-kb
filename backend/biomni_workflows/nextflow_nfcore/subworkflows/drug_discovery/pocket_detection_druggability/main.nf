@@ -27,8 +27,9 @@ nextflow.enable.dsl = 2
 params.outdir              = './results/pocket_detection_druggability'
 params.publish_dir_mode    = 'copy'
 
-// Mode flags
-params.mock_mode           = true   // true = synthetic output, no real tools needed
+
+// Input
+params.pdb_input           = null   // path to PDB file OR 4-letter PDB ID (e.g. '1IEP')
 
 // QC gate thresholds (BRONZE tier — adjustable)
 params.min_druggability    = 0.5    // PASS threshold (druggability score 0–1)
@@ -44,7 +45,7 @@ def log_workflow_header() {
     ====================================================================
     BioMate | Pocket Detection + Druggability Assessment Pipeline
     ====================================================================
-    Mode:                ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE (fpocket)'}
+    Mode:                LIVE
     PASS threshold:      druggability ≥ ${params.min_druggability}  AND  volume ≥ ${params.min_volume} Å³
     WARN threshold:      druggability ≥ ${params.warn_druggability}
     Output dir:          ${params.outdir}
@@ -61,7 +62,9 @@ process FPOCKET_POCKET_DETECTION {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}/01_fpocket", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(protein_pdb)
@@ -73,125 +76,7 @@ process FPOCKET_POCKET_DETECTION {
     path "versions.yml",                                emit: versions
 
     script:
-    def mock = params.mock_mode
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-from datetime import datetime
-
-meta_id = "${meta.id}"
-
-# ---------------------------------------------------------------------------
-# 1. Synthetic pocket data for a kinase-like protein (3 pockets)
-#    Scores are realistic for an ATP-binding site + two allosteric pockets.
-# ---------------------------------------------------------------------------
-pockets = [
-    {
-        "pocket_id":         1,
-        "volume_A3":         847.0,
-        "druggability_score":0.78,
-        "hydrophobicity":    0.62,
-        "polarity":          0.31,
-        "center_x":          12.3,
-        "center_y":          -4.1,
-        "center_z":           8.7,
-    },
-    {
-        "pocket_id":         2,
-        "volume_A3":         412.0,
-        "druggability_score":0.54,
-        "hydrophobicity":    0.41,
-        "polarity":          0.45,
-        "center_x":          -3.2,
-        "center_y":           9.8,
-        "center_z":          -2.1,
-    },
-    {
-        "pocket_id":         3,
-        "volume_A3":         156.0,
-        "druggability_score":0.21,
-        "hydrophobicity":    0.28,
-        "polarity":          0.61,
-        "center_x":           0.1,
-        "center_y":          -1.4,
-        "center_z":          15.3,
-    },
-]
-
-# Sort by druggability_score descending (rank 1 = most druggable)
-pockets.sort(key=lambda p: p["druggability_score"], reverse=True)
-
-# ---------------------------------------------------------------------------
-# 2. Pockets JSON (ranked list)
-# ---------------------------------------------------------------------------
-payload = {
-    "target":      meta_id,
-    "tool":        "fpocket",
-    "version":     "4.1",
-    "num_pockets": len(pockets),
-    "pockets":     pockets,
-    "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "mock_mode":   True,
-}
-with open(f"{meta_id}_pockets.json", "w") as f:
-    json.dump(payload, f, indent=2)
-
-# ---------------------------------------------------------------------------
-# 3. Top-pocket PDB — HETATM alpha-spheres around Pocket 1's centre
-#    Five pseudo-atoms placed ±1.5 Å around the centroid, element "C"
-# ---------------------------------------------------------------------------
-top    = pockets[0]
-cx, cy, cz = top["center_x"], top["center_y"], top["center_z"]
-offsets = [
-    ( 1.5,  0.0,  0.0),
-    (-1.5,  0.0,  0.0),
-    ( 0.0,  1.5,  0.0),
-    ( 0.0, -1.5,  0.0),
-    ( 0.0,  0.0,  1.5),
-]
-pdb_lines = [
-    f"REMARK  BioMate mock fpocket alpha-spheres — top pocket (id={top['pocket_id']})",
-    f"REMARK  Target: {meta_id}",
-    f"REMARK  druggability_score={top['druggability_score']}  volume={top['volume_A3']} A3",
-    f"REMARK  Generated: {datetime.utcnow().isoformat()}Z",
-]
-for serial, (dx, dy, dz) in enumerate(offsets, 1):
-    x = cx + dx
-    y = cy + dy
-    z = cz + dz
-    pdb_lines.append(
-        f"HETATM{serial:5d}  C   STP A   1    "
-        f"{x:8.3f}{y:8.3f}{z:8.3f}  1.00  0.00           C"
-    )
-pdb_lines.append("END")
-with open(f"{meta_id}_top_pocket.pdb", "w") as f:
-    f.write("\\n".join(pdb_lines) + "\\n")
-
-# ---------------------------------------------------------------------------
-# 4. Druggability report TSV
-# ---------------------------------------------------------------------------
-header = "pocket_id\\tvolume_A3\\tdruggability_score\\thydrophobicity\\tpolarity\\tcenter_x\\tcenter_y\\tcenter_z"
-rows   = [header]
-for p in pockets:
-    rows.append(
-        f"{p['pocket_id']}\\t"
-        f"{p['volume_A3']}\\t"
-        f"{p['druggability_score']}\\t"
-        f"{p['hydrophobicity']}\\t"
-        f"{p['polarity']}\\t"
-        f"{p['center_x']}\\t"
-        f"{p['center_y']}\\t"
-        f"{p['center_z']}"
-    )
-with open(f"{meta_id}_druggability_report.tsv", "w") as f:
-    f.write("\\n".join(rows) + "\\n")
-
-print(f"fpocket mock complete: {len(pockets)} pockets detected for {meta_id}")
-print(f"  Top pocket: id={top['pocket_id']}  druggability={top['druggability_score']}  volume={top['volume_A3']} A3")
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: biotite-based geometric cavity detection (pure Python, no external binary)
         # Identifies solvent-excluded cavities by alpha-sphere approximation using
@@ -310,8 +195,7 @@ payload = {
     "num_pockets": len(pockets),
     "pockets":     pockets,
     "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "mock_mode":   False,
-}
+    }
 with open(f"{meta_id}_pockets.json", "w") as f:
     json.dump(payload, f, indent=2)
 
@@ -340,13 +224,11 @@ top_str = (f"id={top['pocket_id']} drug={top['druggability_score']} vol={top['vo
 print(f"Geometric pocket detection: {len(pockets)} pockets for {meta_id}")
 print(f"  Top pocket: {top_str}")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         fpocket: "4.1"
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -372,7 +254,9 @@ process DRUGGABILITY_QC_GATE {
     label 'process_single'
     publishDir "${params.outdir}/${meta.id}/02_qc_gate", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(pocket_json)
@@ -503,65 +387,3 @@ workflow POCKET_DETECTION_DRUGGABILITY {
 
 workflow {
     log_workflow_header()
-
-    if (params.mock_mode) {
-        ch_structures = Channel.of(
-            [
-                [
-                    id:          'EGFR_kinase',
-                    target_name: 'EGFR kinase domain (mock)',
-                    sample_type: 'kinase'
-                ],
-                file("${projectDir}/test_data/egfr_kinase.pdb", checkIfExists: false)
-            ]
-        ).map { meta, pdb ->
-            // In mock mode, create a minimal PDB on the fly if not present
-            def f = pdb.exists() ? pdb : {
-                def tmp = file("${workDir}/mock_${meta.id}.pdb")
-                tmp.text = [
-                    "REMARK  BioMate mock EGFR kinase domain — minimal test PDB",
-                    "REMARK  UniProt: P00533  EGFR_HUMAN  residues 712–979",
-                    "REMARK  Generated for pocket_detection_druggability mock mode",
-                    "ATOM      1  CA  LEU A 712      10.000  -3.500   8.000  1.00 20.00           C",
-                    "ATOM      2  CA  LYS A 713      11.200  -4.100   8.500  1.00 18.50           C",
-                    "ATOM      3  CA  ILE A 714      12.100  -3.900   9.100  1.00 17.30           C",
-                    "ATOM      4  CA  LEU A 715      13.000  -4.500   8.800  1.00 19.10           C",
-                    "ATOM      5  CA  ASP A 716      11.800  -5.200   7.900  1.00 21.40           C",
-                    "ATOM      6  CA  PHE A 717      10.500  -5.100   7.200  1.00 16.80           C",
-                    "ATOM      7  CA  GLY A 718       9.800  -4.300   6.500  1.00 15.20           C",
-                    "ATOM      8  CA  ALA A 719      10.200  -3.100   6.000  1.00 14.90           C",
-                    "ATOM      9  CA  LYS A 720      11.500  -2.700   6.800  1.00 22.00           C",
-                    "ATOM     10  CA  GLU A 721      12.400  -3.600   7.400  1.00 20.50           C",
-                    "END",
-                ].join("\n") + "\n"
-                tmp
-            }()
-            return tuple(meta, f)
-        }
-    } else {
-        if (!params.pdb_input) {
-            error "params.pdb_input is required in live mode. Pass --pdb_input <path>"
-        }
-        ch_structures = Channel
-            .fromPath(params.pdb_input, checkIfExists: true)
-            .map { pdb ->
-                def meta = [
-                    id:          pdb.baseName,
-                    target_name: pdb.baseName,
-                    sample_type: 'protein'
-                ]
-                tuple(meta, pdb)
-            }
-    }
-
-    // Run the pipeline
-    POCKET_DETECTION_DRUGGABILITY(ch_structures)
-
-    // Display summary
-    POCKET_DETECTION_DRUGGABILITY.out.pocket_json.view { meta, json_file ->
-        "Pocket JSON (${meta.id}): ${json_file}"
-    }
-    POCKET_DETECTION_DRUGGABILITY.out.qc_result.view { meta, qc_file ->
-        "QC result (${meta.id}): ${qc_file}"
-    }
-}

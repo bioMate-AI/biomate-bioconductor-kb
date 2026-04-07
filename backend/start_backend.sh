@@ -29,6 +29,14 @@ export LAGO_WEBHOOK_SECRET=9ef2c8b4-9d99-47f5-98d8-520a22ed3bde
 export JAVA_BILLING_SERVICE_URL=http://35.86.137.71:8080
 export JAVA_BILLING_ENABLED=false
 
+# AWS Batch execution — ALL Nextflow workflows run on AWS Batch by default
+export NEXTFLOW_USE_AWS=true
+export AWS_BATCH_QUEUE=biomate-nextflow-queue
+export AWS_S3_BUCKET=biomate-nextflow-work
+export AWS_DEFAULT_REGION=us-west-2
+export AWS_ACCESS_KEY_ID=AKIAV2DX3XSKGYVKVDET
+export AWS_SECRET_ACCESS_KEY=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
+
 # Start billing monitoring stack (Prometheus + Grafana) if Docker is available
 MONITORING_DIR="$(dirname "$0")/../billing_system/monitoring"
 if command -v docker &>/dev/null && [ -f "$MONITORING_DIR/docker-compose.yml" ]; then

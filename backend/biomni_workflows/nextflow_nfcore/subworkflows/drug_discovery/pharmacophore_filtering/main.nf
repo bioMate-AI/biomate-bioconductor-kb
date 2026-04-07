@@ -8,7 +8,7 @@
  * 1. PHARMACOPHORE_GENERATE — Derive a consensus pharmacophore model from known
  *    active SMILES; identifies the most common Donor (D), Acceptor (A),
  *    Aromatic (Ar), Hydrophobic (H), and PosIonizable (P) features via
- *    RDKit's chemical feature factory (live) or hardcoded rules (mock).
+ *    RDKit's chemical feature factory.
  * 2. PHARMACOPHORE_SCREEN   — Score each compound in a SMILES/SDF library by
  *    number of pharmacophore features matched; emit compounds that satisfy
  *    params.min_features (default 3).
@@ -29,10 +29,12 @@ nextflow.enable.dsl = 2
 params.outdir           = './results/pharmacophore_filtering'
 params.publish_dir_mode = 'copy'
 
-// Mode flags
-params.mock_mode        = true   // true = synthetic output, no RDKit needed
 params.min_features     = 3      // minimum pharmacophore features to match (PASS threshold)
 params.generate_3d      = false  // if true (live mode), generate 3D conformers for distance matching
+
+// Inputs
+params.reference_actives = null  // path to SMILES file OR inline SMILES (one per line) of known active compounds
+params.compound_library  = null  // path to SMILES/SDF file of compounds to screen
 
 // ============================================================================
 // Helper functions
@@ -43,7 +45,7 @@ def log_workflow_header() {
     ====================================================================
     BioMate | Pharmacophore-Based Compound Library Filtering
     ====================================================================
-    Mode:               ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE (RDKit)'}
+    Mode:               LIVE
     Min features to pass: ${params.min_features}
     Generate 3D conformers: ${params.generate_3d}
     Output dir:         ${params.outdir}
@@ -60,7 +62,9 @@ process PHARMACOPHORE_GENERATE {
     label 'process_medium'
     publishDir "${params.outdir}/01_pharmacophore_model", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path reference_actives   // one SMILES per line
@@ -70,84 +74,8 @@ process PHARMACOPHORE_GENERATE {
     path "versions.yml",             emit: versions
 
     script:
-    def mock        = params.mock_mode
     def generate_3d = params.generate_3d
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-from datetime import datetime
-
-# ---------------------------------------------------------------------------
-# Mock pharmacophore model derived from aspirin-like reference actives.
-# Hardcoded consensus features without importing RDKit.
-# Reference set (3 compounds):
-#   CC(=O)Oc1ccccc1C(=O)O   (aspirin)
-#   CC(=O)Oc1ccccc1C(=O)N   (aspirin amide analogue)
-#   OC(=O)c1ccccc1O          (salicylic acid)
-# ---------------------------------------------------------------------------
-
-ref_smiles = [
-    "CC(=O)Oc1ccccc1C(=O)O",
-    "CC(=O)Oc1ccccc1C(=O)N",
-    "OC(=O)c1ccccc1O",
-]
-
-# Consensus features observed across the reference set
-features = [
-    {
-        "type":                 "Donor",
-        "label":                "D",
-        "description":          "Hydroxyl or NH hydrogen-bond donor",
-        "count_in_references":  3,
-        "fraction":             1.0,
-        "smarts":               "[OX2H,NX3H2,NX3H1]",
-    },
-    {
-        "type":                 "Acceptor",
-        "label":                "A1",
-        "description":          "Carbonyl C=O acceptor (ester/acid/amide)",
-        "count_in_references":  3,
-        "fraction":             1.0,
-        "smarts":               "[CX3](=[OX1])",
-    },
-    {
-        "type":                 "Acceptor",
-        "label":                "A2",
-        "description":          "Ester or hydroxyl oxygen acceptor",
-        "count_in_references":  3,
-        "fraction":             1.0,
-        "smarts":               "[OX2][CX3](=[OX1])",
-    },
-    {
-        "type":                 "Aromatic",
-        "label":                "Ar",
-        "description":          "Aromatic benzene ring",
-        "count_in_references":  3,
-        "fraction":             1.0,
-        "smarts":               "c1ccccc1",
-    },
-]
-
-model = {
-    "source":           "mock",
-    "n_references":     len(ref_smiles),
-    "reference_smiles": ref_smiles,
-    "n_features":       len(features),
-    "features":         features,
-    "timestamp":        datetime.utcnow().isoformat() + "Z",
-    "mock_mode":        True,
-}
-
-with open("pharmacophore_model.json", "w") as f:
-    json.dump(model, f, indent=2)
-
-print(f"Pharmacophore model generated (mock): {len(features)} features from {len(ref_smiles)} references")
-for ft in features:
-    print(f"  [{ft['label']}] {ft['type']}: {ft['description']}  (frac={ft['fraction']})")
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: derive pharmacophore model from reference actives using RDKit
         # ---------------------------------------------------------------------------
@@ -240,8 +168,7 @@ model = {
     "features":         features,
     "generate_3d":      bool("${generate_3d}" == "true"),
     "timestamp":        datetime.utcnow().isoformat() + "Z",
-    "mock_mode":        False,
-}
+    }
 
 with open("pharmacophore_model.json", "w") as f:
     json.dump(model, f, indent=2)
@@ -250,13 +177,11 @@ print(f"Pharmacophore model (RDKit): {len(features)} features from {n_valid} val
 for ft in features:
     print(f"  [{ft['label']}] {ft['type']}: fraction={ft['fraction']}")
 EOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "mock")
+        rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "unknown")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -280,7 +205,9 @@ process PHARMACOPHORE_SCREEN {
     label 'process_medium'
     publishDir "${params.outdir}/02_screening", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path model_json    // pharmacophore_model.json from PHARMACOPHORE_GENERATE
@@ -292,86 +219,9 @@ process PHARMACOPHORE_SCREEN {
     path "versions.yml",            emit: versions
 
     script:
-    def mock         = params.mock_mode
     def min_features = params.min_features
     def generate_3d  = params.generate_3d
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import random
-from datetime import datetime
-
-random.seed(42)
-
-model = json.load(open("${model_json}"))
-n_model_features = model["n_features"]
-
-# ---------------------------------------------------------------------------
-# Mock compound library: 10 aspirin-inspired SMILES with simulated feature
-# counts (seeded random — reproducible).
-# ---------------------------------------------------------------------------
-library = [
-    ("CPND001", "CC(=O)Oc1ccccc1C(=O)O"),     # aspirin
-    ("CPND002", "CC(=O)Oc1ccccc1C(=O)N"),     # aspirin amide
-    ("CPND003", "OC(=O)c1ccccc1O"),            # salicylic acid
-    ("CPND004", "CC(=O)Nc1ccc(O)cc1"),         # paracetamol
-    ("CPND005", "c1ccc(cc1)C(=O)O"),           # benzoic acid
-    ("CPND006", "CCCC"),                       # butane (no features)
-    ("CPND007", "CC(=O)Oc1cccc(c1)C(=O)O"),   # 3-acetoxybenzoic acid
-    ("CPND008", "c1ccc2c(c1)cccc2"),           # naphthalene
-    ("CPND009", "CC(=O)Oc1ccc(cc1)C(=O)O"),   # 4-acetoxybenzoic acid
-    ("CPND010", "NC(=O)c1ccccc1N"),            # 2-aminobenzamide
-]
-
-# Assign seeded random feature match counts in range [0, n_model_features]
-results = []
-for cid, smi in library:
-    n_matched = random.randint(0, n_model_features)
-    # Choose which feature types are matched (random subset of model features)
-    all_feature_types = [ft["type"] for ft in model["features"]]
-    matched_types = random.sample(all_feature_types, min(n_matched, len(all_feature_types)))
-    passes = n_matched >= int("${min_features}")
-    results.append({
-        "compound_id":         cid,
-        "smiles":              smi,
-        "features_matched":    n_matched,
-        "feature_types":       matched_types,
-        "pass":                passes,
-    })
-
-# Write TSV report
-with open("match_report.tsv", "w") as f:
-    f.write("compound_id\\tsmiles\\tfeatures_matched\\tfeature_types_matched\\tpass\\n")
-    for r in results:
-        f.write(
-            f"{r['compound_id']}\\t{r['smiles']}\\t{r['features_matched']}\\t"
-            f"{','.join(r['feature_types'])}\\t{'PASS' if r['pass'] else 'FAIL'}\\n"
-        )
-
-# Write full scores JSON
-scores = {
-    "pharmacophore_model": "${model_json}",
-    "library":             "${compound_library}",
-    "n_screened":          len(results),
-    "n_passed":            sum(1 for r in results if r["pass"]),
-    "min_features":        int("${min_features}"),
-    "results":             results,
-    "timestamp":           datetime.utcnow().isoformat() + "Z",
-    "mock_mode":           True,
-}
-with open("screened_scores.json", "w") as f:
-    json.dump(scores, f, indent=2)
-
-n_pass = scores["n_passed"]
-n_total = scores["n_screened"]
-print(f"Pharmacophore screening (mock): {n_pass}/{n_total} compounds passed (min_features={int('${min_features}')})")
-for r in results:
-    tag = "PASS" if r["pass"] else "FAIL"
-    print(f"  [{tag}] {r['compound_id']}  matched={r['features_matched']}  types={r['feature_types']}")
-EOF
-
-    else
         # ---------------------------------------------------------------------------
         # Live: screen library with RDKit SMARTS-based pharmacophore matching
         # ---------------------------------------------------------------------------
@@ -459,8 +309,7 @@ scores = {
     "min_features":        min_features,
     "results":             results,
     "timestamp":           datetime.utcnow().isoformat() + "Z",
-    "mock_mode":           False,
-}
+    }
 with open("screened_scores.json", "w") as f:
     json.dump(scores, f, indent=2)
 
@@ -471,13 +320,11 @@ for r in results:
     tag = "PASS" if r["pass"] else "FAIL"
     print(f"  [{tag}] {r['compound_id']}  matched={r['features_matched']}")
 EOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "mock")
+        rdkit: \$(python3 -c "import rdkit; print(rdkit.__version__)" 2>/dev/null || echo "unknown")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
         min_features: "${min_features}"
     END_VERSIONS
     """
@@ -503,7 +350,9 @@ process PHARMACOPHORE_REPORT {
     label 'process_low'
     publishDir "${params.outdir}/03_report", mode: params.publish_dir_mode
 
-    container 'biomate/biomni-drug-discovery-nf:latest'
+    // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
+    // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path model_json      // pharmacophore_model.json
@@ -518,7 +367,6 @@ process PHARMACOPHORE_REPORT {
     path "versions.yml",             emit: versions
 
     script:
-    def mock         = params.mock_mode
     def min_features = params.min_features
     """
     python3 << 'EOF'
@@ -550,8 +398,7 @@ except shutil.SameFileError:
 # Write summary JSON
 summary = {
     "pipeline":         "pharmacophore_filtering",
-    "mock_mode":        bool("${mock}" == "true"),
-    "min_features":     int("${min_features}"),
+        "min_features":     int("${min_features}"),
     "n_reference_actives":  model.get("n_references", 0),
     "n_model_features":     model.get("n_features", 0),
     "n_library_screened":   scores["n_screened"],
@@ -578,7 +425,6 @@ EOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
@@ -656,65 +502,5 @@ workflow {
     log_workflow_header()
 
     // ------------------------------------------------------------------
-    // Reference actives: 3 aspirin-like SMILES
-    // In mock mode, written inline — no pre-existing file required.
+    // Reference actives: 3 aspirin-like SMILES (written inline)
     // ------------------------------------------------------------------
-    if (params.mock_mode) {
-        ch_reference = Channel.of(
-            "CC(=O)Oc1ccccc1C(=O)O\nCC(=O)Oc1ccccc1C(=O)N\nOC(=O)c1ccccc1O\n"
-        ).map { content ->
-            def ref_file = file("${workDir}/mock_reference_actives.smi")
-            ref_file.text = content
-            ref_file
-        }
-    } else {
-        if (!params.reference_actives) {
-            error "params.reference_actives is required in live mode. Pass --reference_actives <path>"
-        }
-        ch_reference = Channel.fromPath(params.reference_actives, checkIfExists: true)
-    }
-
-    // ------------------------------------------------------------------
-    // Compound library: 10-compound mock SMILES file
-    // In mock mode, written inline — no pre-existing file required.
-    // ------------------------------------------------------------------
-    if (params.mock_mode) {
-        ch_library = Channel.of(
-            [
-                "CC(=O)Oc1ccccc1C(=O)O CPND001",
-                "CC(=O)Oc1ccccc1C(=O)N CPND002",
-                "OC(=O)c1ccccc1O CPND003",
-                "CC(=O)Nc1ccc(O)cc1 CPND004",
-                "c1ccc(cc1)C(=O)O CPND005",
-                "CCCC CPND006",
-                "CC(=O)Oc1cccc(c1)C(=O)O CPND007",
-                "c1ccc2c(c1)cccc2 CPND008",
-                "CC(=O)Oc1ccc(cc1)C(=O)O CPND009",
-                "NC(=O)c1ccccc1N CPND010",
-            ].join("\n") + "\n"
-        ).map { content ->
-            def lib_file = file("${workDir}/mock_library.smi")
-            lib_file.text = content
-            lib_file
-        }
-    } else {
-        if (!params.compound_library) {
-            error "params.compound_library is required in live mode. Pass --compound_library <path>"
-        }
-        ch_library = Channel.fromPath(params.compound_library, checkIfExists: true)
-    }
-
-    // Run the pipeline
-    PHARMACOPHORE_FILTERING(ch_reference, ch_library)
-
-    // Display summary
-    PHARMACOPHORE_FILTERING.out.filtered_smiles.view { filtered ->
-        "Filtered compounds SMILES: ${filtered}"
-    }
-    PHARMACOPHORE_FILTERING.out.pharmacophore_json.view { model ->
-        "Pharmacophore model JSON:  ${model}"
-    }
-    PHARMACOPHORE_FILTERING.out.match_report.view { tsv ->
-        "Match report TSV:          ${tsv}"
-    }
-}

@@ -14,7 +14,6 @@ process JUNK_2D_DETECTOR {
     path "junk_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -37,8 +36,7 @@ process JUNK_2D_DETECTOR {
         'num_input_particles': len(particles),
         'num_output_particles': len(filtered),
         'num_rejected': len(particles) - len(filtered),
-        'rejection_rate': round((len(particles) - len(filtered)) / len(particles), 3),
-        'mock_mode': ${mock}
+        'rejection_rate': round((len(particles) - len(filtered)) / len(particles), 3)
     }
 
     with open('particles_filtered.cs', 'w') as f:

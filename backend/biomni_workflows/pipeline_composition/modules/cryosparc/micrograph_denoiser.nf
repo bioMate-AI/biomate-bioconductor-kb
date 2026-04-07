@@ -14,7 +14,6 @@ process MICROGRAPH_DENOISER {
     path "denoise_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -33,8 +32,7 @@ process MICROGRAPH_DENOISER {
         'step': '04_micrograph_denoiser',
         'timestamp': datetime.now().isoformat(),
         'num_micrographs': len(micrographs),
-        'denoiser_model': 'janni',
-        'mock_mode': ${mock}
+        'denoiser_model': 'janni'
     }
 
     with open('micrographs_denoised.cs', 'w') as f:

@@ -16,7 +16,6 @@ process PATCH_MOTION_CORRECTION {
     path "motion_trajectories.json", emit: trajectories
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def dose_weight = params.motion_correction_dose_weighting ? 'True' : 'False'
     def low_mem = (params.enable_low_memory_mode || params.gpu_memory_gb < 16) ? 'True' : 'False'
     """
@@ -59,8 +58,7 @@ process PATCH_MOTION_CORRECTION {
         'num_micrographs': num_movies,
         'avg_total_motion_angstroms': round(sum(m['total_motion_angstroms'] for m in micrographs) / num_movies, 2),
         'dose_weighting_enabled': ${dose_weight},
-        'low_memory_mode': ${low_mem},
-        'mock_mode': ${mock}
+        'low_memory_mode': ${low_mem}
     }
 
     with open('micrographs.cs', 'w') as f:

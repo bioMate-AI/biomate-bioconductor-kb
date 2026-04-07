@@ -76,8 +76,7 @@ except Exception as _dp_err:
 
 Also removed the guard in `get_domain_taxonomy()` since taxonomy is always available.
 
-**Verification**: Returns **13 domains** (pharmacology was merged into drug_discovery on 2026-03-30; see `20260330_WORKFLOW_ECOSYSTEM_AUDIT.md §A.1`):
-genomics, transcriptomics, single_cell, epigenomics, proteomics, metabolomics, metagenomics, structural_biology, **drug_discovery** (now includes PK/PD + pharmacology topics), cryo_em, systems_biology, synthetic_biology, bioimaging.
+**Verification**: Returns all 14 domains (genomics, transcriptomics, single_cell, epigenomics, proteomics, metabolomics, metagenomics, structural_biology, drug_discovery, cryo_em, pharmacology, systems_biology, synthetic_biology, bioimaging).
 
 ---
 
@@ -149,108 +148,7 @@ The `DomainProfileSelector` UI component is available in the registration flow
 
 | Item | Status | Notes |
 |------|--------|-------|
-| D4 LLM error analysis | Regex fallback only | `ANTHROPIC_API_KEY` IS set in `start_backend.sh` (line 7) and loaded by Galaxy; local Ollama also supported as secondary fallback in llm_client.py |
+| D4 LLM error analysis | Regex fallback only | Set `ANTHROPIC_API_KEY` in Galaxy env to enable LLM |
 | C2 Phase 2 UI auto-fill | Not implemented | Badges on param fields require threading input file list into viewer |
-| Domain profile persistence | **Fixed 2026-03-30** | SQLite fallback implemented (`user_domain_profiles` table in `galaxy_ai_tools.db`) — no psycopg2 required |
-| B4 sequential pipeline | **Fixed 2026-03-30** | Bullet/numbered list format now parsed pre-LLM via `detectBulletPipeline()` in galaxy-assistant.ts; prose "then/followed by" still handled by LLM |
-
----
-
-## Answers to User Feedback (2026-03-30)
-
-### Q1: Auto-recovery for missing packages at runtime
-
-**In container/Singularity mode (default for nf-core):** Containers are fully self-contained — no missing packages are possible because all dependencies are baked into the Docker/Singularity image specified per-process in each `main.nf`. This is the standard execution mode.
-
-**In host-mode execution (fallback):** `nextflow_executor.py` → `_auto_install_host_modules(modules)` attempts `pip install <module>` for missing Python packages. If install fails or the module is still missing, it returns a `still_missing` list which surfaces in the error response.
-
-**For R/Bioconductor packages:** No auto-recovery in host mode. The bioconductor wrappers specify `conda: "bioconductor-<package>"` and `container: quay.io/biocontainers/...` — these work in Docker/Singularity. Running without containers and without the package pre-installed will fail with an R library load error.
-
-**Summary:** Host-mode R package failures are not auto-recovered. Recommend always using `--profile docker` or `--profile singularity`.
-
----
-
-### Q2: ANTHROPIC_API_KEY and local LLM fallback
-
-**Key IS set:** `start_backend.sh` exports `ANTHROPIC_API_KEY=sk-ant-...` at line 7. Galaxy picks it up from the process environment. The session note about "key not set" was incorrect — the key is set, but `D4 explain_error` was reporting `llm_used=False` because the `anthropic` package was missing from the venv (fixed by `pip install anthropic`).
-
-**Ollama local LLM:**
-- `llm_client.py` already supports Ollama (qwen3, llama3, mistral) via provider=`local_ollama` config. This is the Python-side fallback inside the Galaxy backend.
-- `routes.ts /api/llm/classify` endpoint: now has a **3-tier fallback chain** (as of 2026-03-30):
-  1. Anthropic API (primary)
-  2. Ollama at `OLLAMA_BASE_URL` (default `http://localhost:11434`) with model `OLLAMA_CLASSIFY_MODEL` (default `llama3`)
-  3. Keyword regex (last resort)
-- To use Ollama: `ollama pull llama3 && export OLLAMA_BASE_URL=http://localhost:11434`
-
----
-
-### Q3: Domain taxonomy — consistency, topics, relation to workflows/tools
-
-**The taxonomy serves two distinct purposes:**
-
-| Taxonomy | Lives in | Scope | Usage |
-|----------|----------|-------|-------|
-| `DOMAIN_TAXONOMY` in `domain_taxonomy.py` | Code (static) | 13 user-facing research domains + topic lists | Registration UI, domain profile selector, search personalization (+2.0 score) |
-| `domain` field in `workflows` DB table | SQLite | 30 DB-level categories (broader, includes imaging, immunology, etc.) | Workflow indexing, FTS search domain filter, QC profile inference |
-| `topics`/`edam_topics` in `tools` table | SQLite | EDAM ontology topics per tool | Bioconductor domain inference (`infer_domain()`) |
-
-**Relationship:**
-- The 13 taxonomy domains are a **subset** of the 30 DB workflow domains. They cover the main research areas users care about.
-- DB domains like `imaging`, `immunology`, `cell_biology`, `lab_automation`, `database` exist in the DB but are NOT in the taxonomy (they're less commonly a user's primary research domain).
-- Bioconductor domains (`transcriptomics`, `genomics`, `proteomics`, etc.) map 1:1 with taxonomy keys.
-- Search personalization: user's taxonomy domains map to DB workflow domains via exact key match (e.g., `drug_discovery` → `domain='drug_discovery'` in DB).
-
-**How topics are determined:**
-1. For bioconductor packages: `tools.topics + tools.category` text → `infer_domain()` keyword match → assigned `domain` value in `workflows` table (no explicit per-topic storage)
-2. The `DOMAIN_TAXONOMY` topics list (e.g., `genomics: ["variant calling", "WGS", "WES", ...]`) is **display-only** — shown in the registration UI as checkboxes
-3. User selects topics at registration → stored in `user_domain_profiles.topics`
-4. At search time: topics are NOT used for scoring (only the domain keys are). Topics are informational for the profile UI.
-5. The direct relation between a topic (e.g., "WGS") and workflows: topics map via the `DOMAIN_TAXONOMY` dict to the workflow DB `domain` field — all `genomics` workflows are returned when the user has selected any `genomics` topic.
-
-**Domain profile function in BioMate:**
-1. User selects research domains + topics at registration (`DomainProfileSelector` component)
-2. Saved via `POST /api/user/domain-profile` → `user_domain_profiles` SQLite table (fixed 2026-03-30)
-3. Loaded at each chat session → `user_context.domain_profile`
-4. Injected into `unified_workflow_search.py`: workflows in matching domains get `+2.0` score boost (non-overriding — query-inferred intent at `±4.0` takes precedence)
-5. Also passed to multi-agent orchestrator for specialist routing
-
-**Fix applied:** Domain profile persistence now uses SQLite fallback (no PostgreSQL required). `POST /api/user/domain-profile` now returns `{"storage": "sqlite"}` when psycopg2 is unavailable.
-
----
-
-### Q4: What is "Preflight"?
-
-`POST /api/workflows/preflight` is a **pre-run validation check** that happens BEFORE clicking "Confirm & Run". It:
-
-1. **Validates required parameters** — checks if all required params (e.g., `--genome`, `--input`) have values. Returns `ready: false` with a list of failing params if any are missing.
-2. **Suggests parameter values** from uploaded input files — e.g., if a `.fastq.gz` file is present, suggests `strandedness: "auto"`, `input: <path>`. This is the "C2 Phase 2" feature.
-3. **Validates QC profile** — checks that the assigned QC profile is valid for the workflow domain.
-
-The "C2 Phase 2 UI auto-fill" gap refers to displaying these suggestions as badges/autofill on the param input fields IN the workflow viewer. Currently the suggestions come back in the API response but are not wired into the viewer UI controls.
-
----
-
-### Q5: Sequential Pipeline — Bullet Format (Fixed)
-
-**Before (LLM-only):** Sequential pipeline was detected by Claude noticing words like "then", "followed by" in prose. Unreliable for structured input.
-
-**After (2026-03-30 fix):** `detectBulletPipeline()` in `galaxy-assistant.ts` is called BEFORE the LLM intent analysis. It parses:
-- Numbered lists: `1. Step\n2. Step\n3. Step` or `Step 1: ...`
-- Bulleted lists: `- Step\n- Step` or `* Step\n* Step` or `• Step\n• Step`
-
-If 2+ items are found in list format and non-list lines are fewer than list items → returns a fully-formed `IntentDecomposition` with `isSequential: true` without any LLM call.
-
-**Usage:**
-```
-User input:
-1. FastQC quality control
-2. Adapter trimming with Trim Galore
-3. Align to hg38 with STAR
-4. Differential expression with DESeq2
-
-→ detectBulletPipeline() returns 4-step sequential pipeline directly
-→ No LLM intent call needed
-→ processSequentialPipeline() resolves each step to a workflow
-```
-
-**For curated chains:** The 8 curated chains (target_to_lead_full, bulk_rnaseq_de_analysis, etc.) represent natural multi-workflow sequences. Users can trigger them by naming the chain OR by writing the equivalent bullet list. The chain search in `unified_workflow_search.py` (`search_chains()`) handles the "find matching chain" path; `detectBulletPipeline()` handles the "user explicitly lists steps" path. Both result in `PipelineListView` rendering.
+| Domain profile persistence | Read-only | Writes need psycopg2/PostgreSQL for agentic memory |
+| B4 sequential pipeline | LLM-dependent | Quality depends on Claude detecting "then/followed by" in user messages |

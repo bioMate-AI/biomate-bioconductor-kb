@@ -4,7 +4,7 @@
  *
  * Imports preprocessed motion-corrected micrographs (MRC or TIFF) directly
  * into CryoSPARC, bypassing the motion-correction step.  This is the standard
- * starting point when motion correction was already performed externally —
+ * starting point when motion correction was already performed externally --
  * e.g., in CryoSPARC Live, MotionCor2 standalone, or another pipeline.
  * Corresponds to the CryoSPARC "import_micrographs" job type.
  *
@@ -26,7 +26,6 @@ params.pixel_size            = 1.05    // Å/pixel
 params.voltage               = 300     // kV
 params.spherical_aberration  = 2.7     // mm
 params.total_dose            = 50.0    // e-/Å²
-params.mock_mode             = true
 params.use_cryosparc         = false
 params.outdir                = './results/import_micrographs'
 
@@ -43,44 +42,48 @@ process IMPORT_MICROGRAPHS {
     path "import_micrographs_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
     import os
-    import random
     from pathlib import Path
     from datetime import datetime
 
-    random.seed(None)
+    mics_path  = '${params.micrographs_path}'
+    pixel_size = ${params.pixel_size}
+    voltage    = ${params.voltage}
+    cs_mm      = ${params.spherical_aberration}
+    total_dose = ${params.total_dose}
 
-    mock_mode      = ${mock}
-    mics_path      = '${params.micrographs_path}'
-    pixel_size     = ${params.pixel_size}
-    voltage        = ${params.voltage}
-    cs_mm          = ${params.spherical_aberration}
-    total_dose     = ${params.total_dose}
+    use_cryosparc = ${params.use_cryosparc ? 'True' : 'False'}
 
-    if mock_mode or mics_path == 'null' or not mics_path:
-        # Mock: simulate importing 30 preprocessed micrographs
-        num_mics = 30
+    if use_cryosparc:
+        from cryosparc.tools import CryoSPARC
+        cs_conn = CryoSPARC(
+            host='${params.cryosparc_host ?: "localhost"}',
+            port=${params.cryosparc_port ?: 39000},
+            email='${params.cryosparc_email ?: ""}',
+            password='${params.cryosparc_password ?: ""}'
+        )
+        project   = cs_conn.find_project('${params.cryosparc_project_uid ?: ""}')
+        workspace = project.find_workspace('${params.cryosparc_workspace_uid ?: ""}')
+
+        job = workspace.create_job('import_micrographs', params={
+            'micrograph_path': mics_path,
+            'pixel_size_A':    pixel_size,
+            'kv':              voltage,
+            'cs_mm':           cs_mm,
+            'total_dose_eA2':  total_dose
+        })
+        job.queue()
+        job.wait_for_done()
+
+        mics_out = list(job.load_output('micrographs'))
+        num_mics = len(mics_out)
         src_format = 'MRC'
-        micrographs = []
-        for i in range(num_mics):
-            micrographs.append({
-                'micrograph_idx':     i,
-                'filename':           f'micrograph_{i:05d}.mrc',
-                'pixel_size':         pixel_size,
-                'voltage':            voltage,
-                'spherical_aberration': cs_mm,
-                'dose':               total_dose,
-                'width':              4096,
-                'height':             4096,
-                'dose_weighted':      True,
-                'estimated_b_factor': round(random.uniform(-120, -40), 1)
-            })
+        micrographs = mics_out
     else:
-        # Live: scan the provided directory
+        # Scan the provided directory for micrograph files
         p = Path(mics_path)
         files = sorted(p.glob('*.mrc')) + sorted(p.glob('*.tif')) + sorted(p.glob('*.tiff'))
         num_mics = len(files)
@@ -88,15 +91,15 @@ process IMPORT_MICROGRAPHS {
         micrographs = []
         for i, f in enumerate(files):
             micrographs.append({
-                'micrograph_idx':     i,
-                'filename':           str(f),
-                'pixel_size':         pixel_size,
-                'voltage':            voltage,
+                'micrograph_idx':       i,
+                'filename':             str(f),
+                'pixel_size':           pixel_size,
+                'voltage':              voltage,
                 'spherical_aberration': cs_mm,
-                'dose':               total_dose,
-                'width':              4096,
-                'height':             4096,
-                'dose_weighted':      True
+                'dose':                 total_dose,
+                'width':                4096,
+                'height':               4096,
+                'dose_weighted':        True
             })
 
     cs_data = {
@@ -113,8 +116,7 @@ process IMPORT_MICROGRAPHS {
         'spherical_aberration_mm': cs_mm,
         'total_dose':    total_dose,
         'format':        src_format,
-        'source_path':   mics_path if mics_path != 'null' else 'mock',
-        'mock_mode':     mock_mode
+        'source_path':   mics_path
     }
 
     with open('micrographs_imported.cs', 'w') as f:
@@ -123,10 +125,10 @@ process IMPORT_MICROGRAPHS {
     with open('import_micrographs_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Imported {num_mics} micrographs ({src_format} format)")
-    print(f"  Pixel size : {pixel_size} Å/px")
+    print(f"Imported {num_mics} micrographs ({src_format} format)")
+    print(f"  Pixel size : {pixel_size} A/px")
     print(f"  Voltage    : {voltage} kV")
-    print(f"  Total dose : {total_dose} e-/Å²")
+    print(f"  Total dose : {total_dose} e-/A2")
     """
 }
 
@@ -139,12 +141,11 @@ workflow {
     ====================================================================
     CryoSPARC Import Micrographs
     ====================================================================
-    Source path  : ${params.micrographs_path ?: '(mock — 30 synthetic micrographs)'}
-    Pixel size   : ${params.pixel_size} Å/px
+    Source path  : ${params.micrographs_path ?: '(required: --micrographs_path)'}
+    Pixel size   : ${params.pixel_size} A/px
     Voltage      : ${params.voltage} kV
     Cs           : ${params.spherical_aberration} mm
-    Total dose   : ${params.total_dose} e-/Å²
-    Mode         : ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
+    Total dose   : ${params.total_dose} e-/A2
     Output       : ${params.outdir}
     ====================================================================
     """.stripIndent()
@@ -157,7 +158,7 @@ workflow {
         Import Micrographs Results:
           Micrographs imported : ${r.num_micrographs}
           Format               : ${r.format}
-          Pixel size           : ${r.pixel_size} Å/px
+          Pixel size           : ${r.pixel_size} A/px
         Results in: ${params.outdir}
         """
     }

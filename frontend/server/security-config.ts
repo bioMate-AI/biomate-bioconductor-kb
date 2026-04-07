@@ -233,6 +233,13 @@ export function configureCSRF(app: Express) {
   return csrfSynchronisedProtection;
 }
 
+// E2E test bypass — same pattern as rate-limit.ts; only active when env var is set.
+const _GLOBAL_E2E_TOKEN = process.env.E2E_TEST_TOKEN;
+function _isGlobalE2EBypass(req: Request): boolean {
+  if (!_GLOBAL_E2E_TOKEN) return false;
+  return req.headers['x-e2e-test-token'] === _GLOBAL_E2E_TOKEN;
+}
+
 /**
  * Global rate limiter for all API endpoints (SOC 2 CC7.3)
  */
@@ -242,6 +249,7 @@ export const globalRateLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
+  skip: _isGlobalE2EBypass,
   // Store in Redis for distributed rate limiting (optional)
   // store: new RedisStore({ client: redisClient }),
 });

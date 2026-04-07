@@ -20,6 +20,8 @@ export interface Parameter {
   options?: { label: string; value: any }[];
   description?: string;
   required?: boolean;
+  minimum?: number;
+  maximum?: number;
   /** Rationale for auto-filled value (from tool_knowledge or parameter_hints) */
   rationale?: string;
   /** Primary citation for the recommended value */
@@ -42,6 +44,8 @@ interface ParameterGroupProps {
   description?: string;
   parameters: Parameter[];
   onChange?: (id: string, value: any) => void;
+  /** Called when user clicks Browse on a file-type parameter. Parent opens the dataset browser. */
+  onBrowseDataset?: (paramId: string, paramLabel: string) => void;
   className?: string;
   /** Open the accordion by default (true when workflow has parameters to fill) */
   defaultOpen?: boolean;
@@ -155,7 +159,7 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
   );
 }
 
-export function ParameterGroup({ id, title, description, parameters, onChange, className, defaultOpen }: ParameterGroupProps) {
+export function ParameterGroup({ id, title, description, parameters, onChange, onBrowseDataset, className, defaultOpen }: ParameterGroupProps) {
   const renderParameterInput = (param: Parameter) => {
     const hasKnowledge = !!(param.rationale || param.citation);
     const LabelWithKnowledge = () => (
@@ -201,12 +205,25 @@ export function ParameterGroup({ id, title, description, parameters, onChange, c
         return (
           <div className="space-y-1">
             <LabelWithKnowledge />
-            <Input
-              id={param.id}
-              type="file"
-              onChange={(e) => onChange && onChange(param.id, e.target.files?.[0])}
-              className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"
-            />
+            <div className="flex gap-2">
+              <Input
+                id={param.id}
+                type="text"
+                value={param.value || ''}
+                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                placeholder="Dataset path or ID"
+                className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => onBrowseDataset?.(param.id, param.label)}
+              >
+                Browse
+              </Button>
+            </div>
           </div>
         );
       default:
@@ -219,11 +236,16 @@ export function ParameterGroup({ id, title, description, parameters, onChange, c
             <Input
               id={param.id}
               type={param.type === 'number' ? 'number' : 'text'}
-              value={param.value || ''}
-              onChange={(e) => onChange && onChange(param.id, e.target.value)}
-              placeholder={param.defaultValue ? String(param.defaultValue) : ''}
+              value={param.value ?? ''}
+              min={param.type === 'number' ? param.minimum : undefined}
+              max={param.type === 'number' ? param.maximum : undefined}
+              onChange={(e) => onChange && onChange(param.id, param.type === 'number' ? Number(e.target.value) : e.target.value)}
+              placeholder={param.defaultValue != null ? String(param.defaultValue) : ''}
               className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
             />
+            {param.minimum != null && param.maximum != null && (
+              <p className="text-[10px] text-muted-foreground">Range: {param.minimum} – {param.maximum}</p>
+            )}
           </div>
         );
     }

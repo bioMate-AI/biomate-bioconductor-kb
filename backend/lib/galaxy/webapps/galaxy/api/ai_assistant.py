@@ -1000,6 +1000,10 @@ class AIRequestModel(BaseModel):
     available_datasets: Optional[List[Dict[str, Any]]] = Field(None, description="Available datasets")
     preferred_tools: Optional[List[str]] = Field(None, description="Preferred tools")
     constraints: Optional[Dict[str, Any]] = Field(None, description="Execution constraints")
+    session_datasets: Optional[List[Dict[str, Any]]] = Field(None, description="User's actual session-uploaded datasets")
+    preferred_domains: Optional[List[str]] = Field(None, description="LLM-inferred domain preferences for search ranking")
+    penalized_domains: Optional[List[str]] = Field(None, description="LLM-inferred domains to penalize in search ranking")
+    key_terms: Optional[List[str]] = Field(None, description="LLM-extracted technical terms to boost FTS recall")
 
 
 class AIResponseModel(BaseModel):
@@ -1470,10 +1474,11 @@ def generate_workflow_unified(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # Extract uploaded dataset IDs if provided
-        uploaded_datasets = None
-        if request.available_datasets:
-            uploaded_datasets = [ds.get('id') for ds in request.available_datasets if ds.get('id')]
+        # uploaded_datasets = user's actual session-uploaded files (threaded from
+        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
+        # request.available_datasets contains BioMNI public reference datasets used for
+        # knowledge retrieval — NOT user input files.
+        uploaded_datasets = request.session_datasets or None
 
         user_id = str(trans.user.id) if getattr(trans, "user", None) else None
 
@@ -1489,22 +1494,60 @@ def generate_workflow_unified(
         # prepend a compact summary so the backend knows the active workflow state
         # (enables "change the padj to 0.01" to find the right step without a
         # full re-query from the frontend).
+        # Guard: only inject when the prior pipeline is TOPICALLY related to the current query.
+        # Extracting meaningful tokens from the workflow path and checking overlap prevents
+        # cross-domain contamination (e.g. a Schrodinger docking session bleeding into ADMET queries).
         effective_intent = request.request_text
+        _NOISE_WORDS = {"main", "nf", "nextflow", "nfcore", "subworkflows", "biomni", "core", "pipeline", "workflow"}
+
+        def _workflow_tokens(wf_name: str) -> set:
+            import re as _re
+            raw = wf_name.lower()
+            tokens: set = set()
+            for part in _re.split(r"[/_\-\.]", raw):
+                part = part.strip()
+                if len(part) >= 3 and part not in _NOISE_WORDS:
+                    tokens.add(part)
+            return tokens
+
+        def _query_is_related_to_prior(query: str, wf_name: str) -> bool:
+            wf_tokens = _workflow_tokens(wf_name)
+            q_lower = query.lower()
+            return any(tok in q_lower for tok in wf_tokens)
+
+        # "pending" means the step was generated but the run never started (the frontend
+        # executes independently). Only inject context for genuinely active runs.
+        _ACTIVE_STATUSES = {"running", "paused"}
+
         if _session_store:
             try:
                 sess = _session_store.get(session_id)
                 if sess and sess.steps:
                     last_step = sess.steps[-1]
-                    prior_ctx = (
-                        f"[Active pipeline: {last_step.workflow_name}, "
-                        f"step {last_step.index + 1}, status={last_step.status}, "
-                        f"params={list(last_step.params.keys())}] "
-                    )
-                    effective_intent = prior_ctx + request.request_text
-                    log.info(
-                        "[generate_workflow] Session %s has %d step(s); injected prior context",
-                        session_id, len(sess.steps),
-                    )
+                    # Only inject context when the prior run is still active — completed/failed
+                    # runs represent finished work; injecting them causes the LLM to treat a
+                    # new query as a continuation of the old task instead of a fresh request.
+                    if last_step.status not in _ACTIVE_STATUSES:
+                        log.info(
+                            "[generate_workflow] Session %s has %d step(s); skipping prior context (status=%s — terminal)",
+                            session_id, len(sess.steps), last_step.status,
+                        )
+                    elif _query_is_related_to_prior(request.request_text, last_step.workflow_name):
+                        prior_ctx = (
+                            f"[Active pipeline: {last_step.workflow_name}, "
+                            f"step {last_step.index + 1}, status={last_step.status}, "
+                            f"params={list(last_step.params.keys())}] "
+                        )
+                        effective_intent = prior_ctx + request.request_text
+                        log.info(
+                            "[generate_workflow] Session %s has %d step(s); injected prior context (related query)",
+                            session_id, len(sess.steps),
+                        )
+                    else:
+                        log.info(
+                            "[generate_workflow] Session %s has %d step(s); skipping prior context (unrelated query: '%s')",
+                            session_id, len(sess.steps), request.request_text[:60],
+                        )
             except Exception as _se:
                 log.debug("[generate_workflow] Session lookup failed (non-fatal): %s", _se)
 
@@ -1525,6 +1568,9 @@ def generate_workflow_unified(
                 user_intent=effective_intent,
                 uploaded_datasets=uploaded_datasets,
                 user_id=user_id,
+                key_terms=request.key_terms or None,
+                preferred_domains=request.preferred_domains or None,
+                penalized_domains=request.penalized_domains or None,
             )
 
         # Chain responses carry a different payload (no workflow_ga / citations).
@@ -1830,10 +1876,10 @@ def generate_workflow_multi_agent(
         raise HTTPException(status_code=503, detail="AI Assistant not available")
 
     try:
-        # Extract uploaded dataset IDs if provided
-        uploaded_datasets = None
-        if request.available_datasets:
-            uploaded_datasets = [ds.get('id') for ds in request.available_datasets if ds.get('id')]
+        # uploaded_datasets = user's actual session-uploaded files (threaded from
+        # req.session.uploadedDatasets via enrichedContext.sessionDatasets → session_datasets).
+        # request.available_datasets contains BioMNI public reference datasets — not user files.
+        uploaded_datasets = request.session_datasets or None
 
         # Generate session ID for audit tracking
         session_id = request.context.get('session_id') if request.context else None

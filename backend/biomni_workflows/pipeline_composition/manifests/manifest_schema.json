@@ -14,7 +14,7 @@
     "pipeline_id": {
       "type": "string",
       "description": "Must match a key in pipeline_registry.json.",
-      "examples": ["cryosparc_standard_spa", "et_full_pipeline", "particle_subtraction"]
+      "examples": ["cryosparc_standard_spa", "cryo_et_full_pipeline", "particle_subtraction"]
     },
     "invocation_id": {
       "type": "string",

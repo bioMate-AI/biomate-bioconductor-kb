@@ -734,19 +734,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setExternalPromptRequest({ id: promptRequestCounter.current, prompt })
   }
 
-  const handlePrereqRecoveryRequest = () => {
-    promptRequestCounter.current += 1
-    emitUxEvent("workflow.prereq_recovery_requested", {
-      sessionId: currentChatSession?.id,
-      runId: currentRun?.id,
-    })
-    setExternalPromptRequest({
-      id: promptRequestCounter.current,
-      prompt:
-        "My current workflow run is blocked by missing prerequisites. Please generate a runnable demo path with sample/test inputs and a workflow variant that can produce one visualizable report and downloadable outputs.",
-    })
-  }
-
   const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
@@ -1245,7 +1232,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           onToggleProgress={() => {}}
           // Workflow execution props - passed down to chat messages
           onRunWorkflow={handleRunWorkflow}
-          onRequestPrereqRecovery={handlePrereqRecoveryRequest}
           onStopWorkflow={handleStopWorkflow}
           onPauseWorkflow={handlePauseWorkflow}
           onResumeWorkflow={handleResumeWorkflow}

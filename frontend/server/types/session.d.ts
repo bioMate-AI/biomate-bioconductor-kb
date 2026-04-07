@@ -10,6 +10,10 @@ declare module 'express-session' {
       description: string;
       file_type: string;
       file_size: number;
+      /** Absolute local path for uploaded files — Nextflow executor reads this directly */
+      file_path?: string;
+      /** Original URL for URL-imported datasets — Nextflow can fetch http/https/s3 directly */
+      source_url?: string;
     }>;
     workflowJobs?: Record<string, {
       job_id: string;

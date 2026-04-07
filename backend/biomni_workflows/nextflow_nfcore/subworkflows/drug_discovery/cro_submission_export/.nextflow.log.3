@@ -1,0 +1,97 @@
+Apr-07 04:35:13.464 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cro_submission_export/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/2c9059d2-0e77-40bb-a12a-9c7cab7491be' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/337cd7f6' -with-trace /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/workflow-trace.txt -c /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/biomate_executor_override.config
+Apr-07 04:35:13.518 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 04:35:13.562 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/biomate_executor_override.config
+Apr-07 04:35:13.564 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/biomate_executor_override.config
+Apr-07 04:35:13.582 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 04:35:13.871 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 04:35:13.878 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 04:35:13.879 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 04:35:13.881 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 04:35:13.889 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 04:35:13.981 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 04:35:13.982 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 04:35:13.983 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 04:35:14.563 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-07 04:35:14.584 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 04:35:14.587 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 04:35:16.497 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 04:35:16.505 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 04:35:16.505 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 04:35:16.517 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 04:35:16.526 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 04:35:16.535 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/.nextflow/secrets/store.json
+Apr-07 04:35:16.536 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@6baf25d7] - activable => nextflow.secret.LocalSecretsProvider@6baf25d7
+Apr-07 04:35:16.537 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 04:35:16.546 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cro_submission_export/main.nf` [zen_mayer] DSL2 - revision: 8e0c46e484
+Apr-07 04:35:16.573 [main] DEBUG nextflow.Session - Session UUID: b56d61b7-2561-4bac-9d8a-cb88c09b26af
+Apr-07 04:35:16.573 [main] DEBUG nextflow.Session - Run name: zen_mayer
+Apr-07 04:35:16.573 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 04:35:16.579 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 04:35:16.587 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 04:35:17.196 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 04:35:17.198 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 04:35:17.208 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 762729@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (1.6 GB) - Swap: 16 GB (4 GB)
+Apr-07 04:35:17.431 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/2c9059d2-0e77-40bb-a12a-9c7cab7491be
+
+Apr-07 04:35:17.431 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/2c9059d2-0e77-40bb-a12a-9c7cab7491be [null]
+Apr-07 04:35:17.431 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cro_submission_export/bin
+Apr-07 04:35:17.444 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 04:35:17.451 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 04:35:17.454 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 04:35:17.480 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 04:35:17.486 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 04:35:17.521 [main] DEBUG nextflow.Session - Session start
+Apr-07 04:35:17.525 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/2c9059d2-0e77-40bb-a12a-9c7cab7491be/workflow-trace.txt
+Apr-07 04:35:17.746 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-07 04:35:17.751 [main] INFO  nextflow.Nextflow - 
+============================================================
+  BioMate -- CRO Submission Export
+============================================================
+  CRO target     : WuXiAppTec
+  Top-N          : 5
+  hERG threshold : 1.0 uM
+  Project code   : BIOMATE-BCR-ABL1-2026
+============================================================
+
+Apr-07 04:35:17.801 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_3133e9bfb4ff644f: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/cro_submission_export/main.nf
+Apr-07 04:35:17.801 [main] DEBUG nextflow.Session - Session aborted -- Cause: params.compound_csv is required. Provide a file path or inline CSV string.
+Apr-07 04:35:17.811 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Apr-07 04:35:17.925 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 04:35:17.934 [main] ERROR nextflow.cli.Launcher - @unknown
+nextflow.exception.WorkflowScriptErrorException: params.compound_csv is required. Provide a file path or inline CSV string.
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at nextflow.Nextflow.error(Nextflow.groovy:244)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at Script_3133e9bfb4ff644f$_runScript_closure4$_closure12.doCall(Script_3133e9bfb4ff644f:292)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovy.lang.Closure.call(Closure.java:412)
+	at nextflow.script.WorkflowDef.run0(WorkflowDef.groovy:205)
+	at nextflow.script.WorkflowDef.run(WorkflowDef.groovy:189)
+	at nextflow.script.BindableDef.invoke_a(BindableDef.groovy:51)
+	at nextflow.script.BaseScript.run0(BaseScript.groovy:249)
+	at nextflow.script.BaseScript.run(BaseScript.groovy:260)
+	at nextflow.script.parser.v1.ScriptLoaderV1.runScript(ScriptLoaderV1.groovy:246)
+	at nextflow.script.parser.v1.ScriptLoaderV1.runScript(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.run(ScriptRunner.groovy:246)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:139)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)

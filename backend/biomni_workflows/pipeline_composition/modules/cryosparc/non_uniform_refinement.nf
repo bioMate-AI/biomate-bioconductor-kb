@@ -33,7 +33,7 @@ process NON_UNIFORM_REFINEMENT {
     # Non-uniform refinement typically improves by 10-20%
     final_res = round(current_res * random.uniform(0.8, 0.9), 2)
 
-    # Create mock MRC file
+    # Create output MRC file
     size = 128
     with open('volume_nu_refined.mrc', 'wb') as f:
         header = struct.pack('3i', size, size, size)

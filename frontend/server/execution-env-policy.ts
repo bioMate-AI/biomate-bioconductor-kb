@@ -73,8 +73,8 @@ export function buildNextflowComputeConfig(
   };
 
   if (!nextflowComputeConfig.executor) {
-    // Default to local for development/testing; switch to "awsbatch" for production
-    nextflowComputeConfig.executor = process.env.NEXTFLOW_DEFAULT_EXECUTOR || "local";
+    // Default to awsbatch — BioMate platform standard; override with NEXTFLOW_DEFAULT_EXECUTOR=local for local dev
+    nextflowComputeConfig.executor = process.env.NEXTFLOW_DEFAULT_EXECUTOR || "awsbatch";
   }
 
   if (

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/cro_submission_export_schema.json",
+  "title": "CRO Submission Export",
+  "description": "Generate CRO-ready compound submission package with SMILES, assay data, and project metadata for outsourced synthesis/testing.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "compound_csv"
+      ],
+      "properties": {
+        "compound_csv": {
+          "description": "CSV with columns: compound_id, smiles, potency (IC50 nM), safety (hERG IC50 \u03bcM), composite_score.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "cro_target": {
+          "description": "CRO vendor name for the submission header and formatting.",
+          "type": "string",
+          "default": "WuXiAppTec"
+        },
+        "top_n": {
+          "description": "Number of top compounds to include in the submission package.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 5
+        },
+        "herg_safe_threshold": {
+          "description": "hERG IC50 safety threshold (\u03bcM). Compounds flagged if below this.",
+          "type": "number",
+          "minimum": 0.0,
+          "default": 1.0
+        },
+        "assay_name": {
+          "description": "Primary assay name for the CRO submission form.",
+          "type": "string",
+          "default": "BCR-ABL1 Kinase Inhibition"
+        },
+        "project_code": {
+          "description": "Internal project code for tracking.",
+          "type": "string",
+          "default": "BIOMATE-BCR-ABL1-2026"
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

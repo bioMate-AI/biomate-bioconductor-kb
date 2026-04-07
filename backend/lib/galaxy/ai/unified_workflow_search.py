@@ -28,6 +28,48 @@ from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, asdict
 from difflib import SequenceMatcher, get_close_matches
 
+# Optional embedding support — reuses the same all-MiniLM-L6-v2 model as VectorToolSearch.
+# Gracefully degraded: if sentence-transformers is unavailable the chain search falls back
+# to Jaccard scoring (existing behaviour).
+
+# Model and threshold are module-level constants so callers and tests can inspect
+# or override them without touching method bodies.  The model name matches
+# VectorToolSearch.DEFAULT_MODEL so both sub-systems share the same weights file.
+_CHAIN_EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
+# Minimum cosine similarity for a chain to be passed to LLM reranking.
+# Intentionally higher than single-workflow search (chains are broad; weak overlap
+# means the query is asking for a sub-step, not the full pipeline).
+_CHAIN_EMBED_MIN_SIMILARITY = 0.42
+
+# Score thresholds for _classify_match().
+# Calibrated to the raw scoring sum produced by _score_workflow().
+# High confidence requires meaningful keyword + category overlap; medium allows partial.
+_MATCH_SCORE_HIGH = 12.0
+_MATCH_SCORE_MED = 6.0
+
+# Shared stopword set for tokenisation.  Used in both single-workflow Jaccard
+# and chain Jaccard fallback — keep in one place so they stay in sync.
+_SEARCH_STOPWORDS: frozenset = frozenset({
+    "i", "want", "to", "the", "a", "an", "for", "with",
+    "and", "or", "from", "in", "on", "my", "run", "perform",
+    "execute", "do", "using", "via", "of", "at", "as", "by",
+})
+
+try:
+    import numpy as _np
+    from sentence_transformers import SentenceTransformer as _ST
+    _CHAIN_EMBED_MODEL: Optional[Any] = None      # lazy singleton
+    _CHAIN_EMBED_NAMES: List[str] = []            # chain names in index order
+    _CHAIN_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_chains × dim)
+    _EMBEDDINGS_AVAILABLE = True
+except ImportError:
+    _np = None
+    _ST = None
+    _CHAIN_EMBED_MODEL = None
+    _CHAIN_EMBED_NAMES = []
+    _CHAIN_EMBED_MATRIX = None
+    _EMBEDDINGS_AVAILABLE = False
+
 log = logging.getLogger(__name__)
 
 # Database path
@@ -92,6 +134,10 @@ class WorkflowChain:
     source: str                        # 'curated' | 'learned' | 'user_defined'
     usage_count: int
     success_rate: float
+    # Set by _llm_select_chain when LLM is uncertain about scope — caller should
+    # surface this question to the user rather than launching the chain directly.
+    clarification_needed: bool = False
+    clarification_question: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -197,9 +243,30 @@ class UnifiedWorkflowSearch:
             'micrograph': 3.0, 'ctf': 2.5, 'motion': 2.0,
             'reconstruction': 2.5, 'refinement': 2.5,
             'tomography': 3.0, 'cryo-et': 3.0, 'tiltseries': 2.5,
+            'subtomogram': 3.0, 'tomogram': 2.5, 'tilt': 2.0, 'lamella': 2.5,
             'electron': 2.0, 'microscopy': 2.0,
             'resolution': 2.0, 'map': 1.5, 'density': 1.5,
             'sharpening': 2.5, 'fsc': 2.5,
+            # Nanodisc / membrane protein reconstitution
+            'saposin': 4.0, 'nanodisc': 3.5, 'msp': 3.0, 'msp1d1': 3.5,
+            'lipid': 2.0, 'reconstitution': 2.5, 'detergent': 2.0,
+            'membrane': 2.0, 'transporter': 2.5,
+            # GPCR / G protein complex
+            'gpcr': 4.0, 'g-protein': 3.5, 'gprotein': 3.5, 'gi': 2.0, 'gs': 2.0,
+            'scfv16': 4.0, 'apyrase': 3.5, 'opioid': 3.0, 'dopamine': 2.5,
+            'receptor': 2.0, 'agonist': 2.5, 'biased': 2.5, 'arrestin': 2.5,
+            'pam': 2.5, 'allosteric': 2.5,
+            # Multi-drug / difference maps
+            'difference': 3.0, 'atlas': 2.5, 'multi-drug': 3.5, 'multidrug': 3.5,
+            'occupancy': 2.5, 'pharmacophore': 2.5, 'sigma': 2.0,
+            'calcium': 2.0, 'cav1': 3.0, 'ion-channel': 3.5, 'ionchannel': 2.5,
+            'apo': 2.0, 'drug-bound': 3.0,
+            # Pore-forming proteins / liposome SPA
+            'pore': 3.0, 'liposome': 3.5, 'bax': 3.5, 'cardiolipin': 3.0,
+            'lysis': 2.5, 'ants': 2.5, 'dpx': 2.5, 'gasdermin': 3.0, 'perforin': 3.0,
+            # RELION multi-body / flexible complexes
+            'multibody': 4.0, 'multi-body': 4.0, 'flexible': 2.0, 'domain-motion': 3.0,
+            'body-mask': 3.5, 'spliceosome': 3.5, 'ribosome': 2.5, 'relion': 3.0,
 
             # Drug discovery / Pharmacology / ADMET
             'admet': 3.0, 'herg': 3.0, 'dili': 3.0,
@@ -245,6 +312,17 @@ class UnifiedWorkflowSearch:
             'de novo design': 3.5, 'de novo': 3.0, 'scaffold hopping': 3.5,
             'lead generation': 3.0, 'lead optimization': 3.0,
             'molecule optimization': 3.0, 'fragment decoration': 3.0,
+
+            # Assay ingestion & ranking
+            'assay ingestion': 4.0, 'compound ranking': 3.5, 'safety potency ranking': 4.0,
+            'composite ranking': 3.5, 'composite score': 3.5, 'bcr abl1': 3.5,
+            'herg ranking': 3.5, 'potency safety': 3.5, 'multi assay': 3.0,
+            'assay data': 3.0, 'ingest assay': 4.0, 'rank compounds': 3.5,
+
+            # CRO submission export
+            'cro submission': 4.0, 'wuxi apptec': 4.5, 'cro export': 4.0,
+            'compound export': 3.5, 'cro outsourcing': 4.0, 'submission export': 3.5,
+            'wuxiapptec': 4.5, 'contract research': 3.0,
         }
 
         log.info(f"UnifiedWorkflowSearch initialized with DB: {self.db_path}")
@@ -402,6 +480,7 @@ class UnifiedWorkflowSearch:
                include_workflow_json: bool = False,
                user_profile: Optional[Dict[str, Any]] = None,
                preferred_domains: Optional[List[str]] = None,
+               penalized_domains: Optional[List[str]] = None,
                key_terms: Optional[List[str]] = None) -> List[WorkflowMatch]:
         """
         Search for workflows matching the query.
@@ -441,12 +520,10 @@ class UnifiedWorkflowSearch:
                     effective_query = f"{query} {extra}"
             fts_query = self._build_fts_query(effective_query)
 
-            # Derive penalized_domains from preferred when caller only passes preferred
-            penalized_domains: Optional[List[str]] = None
-            if preferred_domains is not None:
-                # Keep penalized_domains as None (no explicit penalization from LLM yet);
-                # _calculate_score will handle the None → rule-based fallback correctly.
-                penalized_domains = None
+            # When preferred_domains is provided (LLM-derived), use penalized_domains too
+            # if the caller passed them. When neither is provided, _calculate_score falls
+            # back to rule-based _infer_domain_preferences().
+            # (penalized_domains parameter already holds the caller's value, no reassignment needed)
 
             # Build SQL with filters
             sql = """
@@ -653,8 +730,7 @@ class UnifiedWorkflowSearch:
         words = re.findall(r"[a-z0-9]+", query.lower())
 
         # Remove common words
-        stopwords = {'i', 'want', 'to', 'the', 'a', 'an', 'for', 'with', 'and', 'or', 'from', 'in', 'on', 'my', 'run'}
-        words = [w for w in words if w not in stopwords and len(w) > 1]
+        words = [w for w in words if w not in _SEARCH_STOPWORDS and len(w) > 1]
 
         # Expand abbreviations — keep the original token AND add expansions
         # so "rnaseq" matches both the exact "rnaseq" token in FTS and
@@ -838,14 +914,15 @@ class UnifiedWorkflowSearch:
     def _classify_match(self, score: float) -> str:
         """Classify match confidence.
 
-        Thresholds calibrated to require meaningful keyword overlap:
+        Thresholds are module constants _MATCH_SCORE_HIGH / _MATCH_SCORE_MED.
+        Calibrated to require meaningful keyword overlap:
         - high_confidence: Strong keyword matches + name overlap (score >= 12)
         - medium_confidence: Some keyword matches (score >= 6)
         - low_confidence: Weak matches that need adaptation
         """
-        if score >= 12.0:
+        if score >= _MATCH_SCORE_HIGH:
             return "high_confidence"
-        elif score >= 6.0:
+        elif score >= _MATCH_SCORE_MED:
             return "medium_confidence"
         else:
             return "low_confidence"
@@ -953,57 +1030,263 @@ class UnifiedWorkflowSearch:
             "example_queries, tags, source, usage_count, success_rate"
         )
 
-    def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3, min_score: float = 0.15) -> List["WorkflowChain"]:
-        """Return workflow chains whose example_queries or description match the query.
+    # ------------------------------------------------------------------
+    # Chain embedding index helpers
+    # ------------------------------------------------------------------
 
-        Scoring uses three signals:
-          1. Any example_query token overlap with the user query (primary)
-          2. Tag overlap with query tokens
-          3. Domain match bonus
+    @staticmethod
+    def _chain_embed_text(chain: "WorkflowChain") -> str:
+        """Rich text for embedding: name + display_name + description + examples + tags.
 
-        A chain score ≥ 0.4 is considered a viable match.  The caller should
-        prefer chains over per-step LLM assembly when a match is found.
+        Including name and display_name ensures exact-name matches score very
+        high even when description/examples are sparse.
         """
-        conn = self._get_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute(
-                f"SELECT {self._chain_select_cols()} FROM workflow_chains"
-                + (" WHERE domain=?" if domain else ""),
-                ([domain] if domain else []),
-            )
-            rows = cursor.fetchall()
-        finally:
-            conn.close()
+        parts = [
+            chain.name.replace("_", " "),   # e.g. "bulk rnaseq de analysis"
+            chain.display_name,              # e.g. "Bulk RNA-seq Differential Expression Analysis"
+            chain.description or "",
+        ]
+        parts.extend(chain.example_queries)
+        parts.extend(chain.tags)
+        return ". ".join(p.strip() for p in parts if p.strip())
 
-        if not rows:
+    def _rebuild_chain_embedding_index(self, chains: List["WorkflowChain"]) -> None:
+        """Recompute the in-memory embedding index for all chains."""
+        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX
+        if not _EMBEDDINGS_AVAILABLE:
+            return
+        try:
+            if _CHAIN_EMBED_MODEL is None:
+                log.info("[ChainIndex] Loading %s for chain embedding search", _CHAIN_EMBED_MODEL_NAME)
+                # Reuse VectorToolSearch's GPU-safe device detection when available;
+                # fall back to cpu so we never block startup on a broken CUDA driver.
+                try:
+                    from .vector_search import _detect_device_safe
+                    device = _detect_device_safe(timeout_seconds=5.0)
+                except Exception:
+                    device = "cpu"
+                _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device)
+            texts = [self._chain_embed_text(c) for c in chains]
+            _CHAIN_EMBED_NAMES = [c.name for c in chains]
+            _CHAIN_EMBED_MATRIX = _CHAIN_EMBED_MODEL.encode(
+                texts, convert_to_numpy=True, show_progress_bar=False
+            )
+            log.info("[ChainIndex] Indexed %d chains", len(chains))
+        except Exception as exc:
+            log.warning("[ChainIndex] Failed to build embedding index: %s", exc)
+            _CHAIN_EMBED_NAMES = []
+            _CHAIN_EMBED_MATRIX = None
+
+    def _cosine_search_chains(
+        self,
+        query: str,
+        all_chains: List["WorkflowChain"],
+        limit: int,
+        min_similarity: float,
+    ) -> List[Tuple[float, "WorkflowChain"]]:
+        """Return (cosine_score, chain) pairs for chains above min_similarity."""
+        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX
+        if not _EMBEDDINGS_AVAILABLE or _CHAIN_EMBED_MODEL is None:
             return []
 
-        query_tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
+        # Rebuild index if chain set changed
+        current_names = [c.name for c in all_chains]
+        if current_names != _CHAIN_EMBED_NAMES:
+            self._rebuild_chain_embedding_index(all_chains)
 
+        if _CHAIN_EMBED_MATRIX is None or len(_CHAIN_EMBED_NAMES) == 0:
+            return []
+
+        try:
+            q_emb = _CHAIN_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            q_norm = q_emb / (_np.linalg.norm(q_emb) + 1e-9)
+            mat_norm = _CHAIN_EMBED_MATRIX / (
+                _np.linalg.norm(_CHAIN_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9
+            )
+            sims = _np.dot(mat_norm, q_norm)
+            top_idx = _np.argsort(sims)[::-1][:limit]
+            name_to_chain = {c.name: c for c in all_chains}
+            return [
+                (float(sims[i]), name_to_chain[_CHAIN_EMBED_NAMES[i]])
+                for i in top_idx
+                if float(sims[i]) >= min_similarity and _CHAIN_EMBED_NAMES[i] in name_to_chain
+            ]
+        except Exception as exc:
+            log.warning("[ChainIndex] Cosine search failed: %s", exc)
+            return []
+
+    def _llm_select_chain(
+        self,
+        query: str,
+        candidates: List["WorkflowChain"],
+    ) -> Optional[List["WorkflowChain"]]:
+        """Ask the LLM to match the query against candidate chains with scope checking.
+
+        Chains are multi-step clinical pipelines with broad scope.  The LLM must
+        verify that the user's request clearly covers the FULL scope of the chain —
+        not just one component.  If it is uncertain, it should ask for clarification
+        rather than guessing.
+
+        Returns:
+          [chain]           — LLM confirmed a specific chain with high confidence
+          [chain(clarify)]  — LLM wants to clarify before committing; chain has
+                               clarification_needed=True and clarification_question set
+          []                — LLM explicitly says no chain matches
+          None              — LLM unavailable; caller falls back to embedding ranking
+
+        Response format (LLM):
+          "chain:<name>"          → confident match
+          "clarify:<name>|<q>"   → match but needs one clarifying question first
+          "none"                  → no match
+        """
+        if self._llm_client is None or not candidates:
+            return None
+
+        options = "\n".join(
+            f"- {c.name}: {c.display_name}\n"
+            f"  Scope: {(c.description or '')[:200]}\n"
+            f"  Steps: {', '.join(s.get('workflow_name', '') or s.get('name', '') for s in c.steps[:5])}"
+            for c in candidates
+        )
+        prompt = (
+            f"You are a bioinformatics workflow router.\n"
+            f"User request: \"{query}\"\n\n"
+            f"Candidate multi-step chains:\n{options}\n\n"
+            f"RULES:\n"
+            f"1. A chain matches ONLY if the user's request clearly covers the chain's FULL scope (all major steps).\n"
+            f"2. If a chain is a subset match (user asked for one component of a larger chain), do NOT select it — return 'none'.\n"
+            f"3. If a chain likely matches but the query lacks key context (e.g. sample type, disease, data modality), "
+            f"ask ONE short clarifying question.\n"
+            f"4. Return EXACTLY one of:\n"
+            f"   chain:<name>          (confident full-scope match)\n"
+            f"   clarify:<name>|<question>   (probable match, need one detail)\n"
+            f"   none                  (no chain fits or query is too narrow)\n"
+            f"No other text."
+        )
+        try:
+            raw = (self._llm_client.generate(prompt, max_tokens=60, temperature=0.0) or "").strip()
+            log.info("[ChainIndex] LLM raw response: %r", raw)
+
+            if raw.lower().startswith("chain:"):
+                name = raw[6:].strip()
+                for c in candidates:
+                    if c.name == name or c.name in name:
+                        log.info("[ChainIndex] LLM confident match: %s", c.name)
+                        return [c]
+
+            if raw.lower().startswith("clarify:"):
+                body = raw[8:].strip()
+                parts = body.split("|", 1)
+                chain_name = parts[0].strip()
+                question = parts[1].strip() if len(parts) > 1 else (
+                    f"Could you confirm the full scope? This pipeline covers: "
+                    f"{candidates[0].description[:120]}"
+                )
+                for c in candidates:
+                    if c.name == chain_name or c.name in chain_name:
+                        import copy
+                        c_copy = copy.copy(c)
+                        c_copy.clarification_needed = True
+                        c_copy.clarification_question = question
+                        log.info("[ChainIndex] LLM wants clarification for %s: %s", c.name, question)
+                        return [c_copy]
+
+            if "none" in raw.lower():
+                log.info("[ChainIndex] LLM: no chain matches")
+                return []
+
+            log.warning("[ChainIndex] LLM response unrecognized: %r", raw)
+            return None  # fall back to embedding ranking
+        except Exception as exc:
+            log.warning("[ChainIndex] LLM chain selection failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # Chain search — embedding similarity + LLM reranking
+    # ------------------------------------------------------------------
+
+    def search_chains(self, query: str, domain: Optional[str] = None,
+                      limit: int = 3, min_score: float = 0.15) -> List["WorkflowChain"]:
+        """Return workflow chains matching the query.
+
+        Search pipeline (three tiers, each falling back to the next):
+
+          Tier 1 — Embedding similarity (all-MiniLM-L6-v2 cosine, threshold 0.42):
+            - Text per chain: name + display_name + description + example_queries + tags
+            - Threshold is intentionally high: chains are broad pipelines and should only
+              be considered when the query is semantically close to the whole chain scope
+            - Yields a ranked shortlist (up to 3 candidates) passed to LLM
+            - LLM checks full-scope match; may request clarification instead of guessing
+
+          Tier 2 — Jaccard token overlap (fallback when embeddings unavailable):
+            - Includes name + display_name tokens in addition to description/examples/tags
+            - min_score threshold applied
+
+        The chain name and display_name are always included in matching text so that
+        exact or near-exact name references in the user query score very high.
+        """
+        all_chains = self.list_chains(domain=domain)
+        if not all_chains:
+            return []
+
+        # ── Tier 1: embedding similarity ──────────────────────────────────────
+        if _EMBEDDINGS_AVAILABLE:
+            # Lazily build index on first call
+            if not _CHAIN_EMBED_NAMES:
+                self._rebuild_chain_embedding_index(all_chains)
+
+            embed_results = self._cosine_search_chains(
+                query, all_chains, limit=min(3, len(all_chains)),
+                min_similarity=_CHAIN_EMBED_MIN_SIMILARITY,
+            )
+            if embed_results:
+                top_candidates = [c for _, c in embed_results]
+                log.info(
+                    "[ChainIndex] Embedding top-%d for %r: %s",
+                    len(top_candidates), query[:60],
+                    [c.name for c in top_candidates],
+                )
+                # LLM reranking from short candidate list
+                # Returns [chain] (match), [] (explicit no-match), or None (unavailable)
+                llm_result = self._llm_select_chain(query, top_candidates)
+                if llm_result is not None:
+                    return llm_result  # trust LLM decision (including explicit [])
+                # LLM unavailable — trust embedding ranking
+                return top_candidates[:limit]
+
+        # ── Tier 2: Jaccard fallback ───────────────────────────────────────────
+        def _expand_tokens(text: str) -> set:
+            raw = re.findall(r"[a-z0-9]+", text.lower())
+            expanded: set = set()
+            for w in raw:
+                if w in _SEARCH_STOPWORDS or len(w) <= 1:
+                    continue
+                expanded.add(w)
+                if w in self.ABBREVIATION_MAP:
+                    expanded.update(self.ABBREVIATION_MAP[w])
+            return expanded
+
+        query_tokens = _expand_tokens(query)
         scored: List[Tuple[float, "WorkflowChain"]] = []
-        for row in rows:
-            chain = self._row_to_chain(row)
-
-            # Token overlap across all example queries
+        for chain in all_chains:
             chain_tokens: set = set()
+            # Include name + display_name (the fix: these were not used before)
+            chain_tokens.update(_expand_tokens(chain.name))
+            chain_tokens.update(_expand_tokens(chain.display_name))
             for eq in chain.example_queries:
-                chain_tokens.update(re.findall(r"[a-z0-9]+", eq.lower()))
-            chain_tokens.update(re.findall(r"[a-z0-9]+", chain.description.lower()))
-            chain_tokens.update(t.lower() for t in chain.tags)
+                chain_tokens.update(_expand_tokens(eq))
+            chain_tokens.update(_expand_tokens(chain.description or ""))
+            chain_tokens.update(_expand_tokens(" ".join(chain.tags)))
 
             overlap = len(query_tokens & chain_tokens)
             union   = len(query_tokens | chain_tokens) or 1
-            score   = overlap / union
-
-            # Domain match bonus: chains are broad, only boost if domain aligns
+            jaccard = overlap / union
+            precision = overlap / len(query_tokens) if query_tokens else 0.0
+            score = max(jaccard, precision * 0.7) if len(query_tokens) >= 8 else jaccard
             domain_bonus = 0.05 if (chain.domain and chain.domain == domain) else 0.0
-
             scored.append((min(score + domain_bonus, 1.0), chain))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        # Return chains above min_score threshold
         return [c for s, c in scored[:limit] if s >= min_score]
 
     def get_chain(self, name: str) -> Optional["WorkflowChain"]:

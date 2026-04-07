@@ -42,12 +42,10 @@ nextflow.enable.dsl = 2
 params.outdir               = './results/moe_covalent_docking'
 params.publish_dir_mode     = 'copy'
 
-// Mode
-params.mock_mode            = true   // true = synthetic output, no MOE license needed
 
 // Inputs
-params.receptor             = null   // receptor.pdb or receptor.mol2 (required unless mock)
-params.ligands              = null   // warhead_smiles.smi or ligands.sdf (required unless mock)
+params.receptor             = null   // receptor.pdb or receptor.mol2 (required)
+params.ligands              = null   // warhead_smiles.smi or ligands.sdf (required)
 
 // Covalent docking settings
 params.reactive_residue     = 'CYS:145'        // residue_name:residue_number
@@ -98,19 +96,6 @@ process LIGAND_PREP {
     path "ligprep.log",         emit: log
 
     script:
-    if (params.mock_mode) {
-        """
-        echo "[MOCK] LIGAND_PREP -- MOE LigPrep"                               > ligprep.log
-        echo "[MOCK] Input       : ${ligand_file}"                             >> ligprep.log
-        echo "[MOCK] Warhead type: ${params.warhead_type}"                     >> ligprep.log
-        echo "[MOCK] Tautomers/protonation states at pH 7.4"                   >> ligprep.log
-        echo "[MOCK] Partial charges: MMFF94x"                                 >> ligprep.log
-        echo "[MOCK] Generating 3D conformers for 5 compounds..."              >> ligprep.log
-        echo "[MOCK] ligands_prepped.mdb: 5 compounds prepared"               >> ligprep.log
-        echo "[MOCK] LIGAND_PREP complete"                                     >> ligprep.log
-        printf 'MOE_DB_MOCK_v2024\\x00LIGPREP:5\\x00WARHEAD:${params.warhead_type}\\x00' > ligands_prepped.mdb
-        """
-    } else {
         """
         set -euo pipefail
 
@@ -155,7 +140,6 @@ process LIGAND_PREP {
         fi
         echo "LigPrep complete" >> ligprep.log
         """
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -182,18 +166,6 @@ process RECEPTOR_PREP {
     path "prep.log",             emit: log
 
     script:
-    if (params.mock_mode) {
-        """
-        echo "[MOCK] RECEPTOR_PREP -- MOE QuickPrep"                              > prep.log
-        echo "[MOCK] Input          : ${receptor_file}"                           >> prep.log
-        echo "[MOCK] Protonate3D at pH 7.4"                                       >> prep.log
-        echo "[MOCK] Minimisation: AMBER FF, RMSD tol 0.5 A"                     >> prep.log
-        echo "[MOCK] Reactive residue: ${params.reactive_residue}"                >> prep.log
-        echo "[MOCK] receptor_prepped.moe: ready for CovDock"                    >> prep.log
-        echo "[MOCK] RECEPTOR_PREP complete"                                      >> prep.log
-        printf 'MOE_BINARY_MOCK_v2024\\x00RECPREP\\x00REACT:${params.reactive_residue}\\x00' > receptor_prepped.moe
-        """
-    } else {
         """
         set -euo pipefail
 
@@ -211,7 +183,6 @@ process RECEPTOR_PREP {
         fi
         echo "QuickPrep complete" >> prep.log
         """
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -251,26 +222,6 @@ process COVALENT_DOCK {
     path "covdock.log",        emit: log
 
     script:
-    if (params.mock_mode) {
-        """
-        echo "[MOCK] COVALENT_DOCK -- MOE CovDock SVL script"                        > covdock.log
-        echo "[MOCK] Receptor     : ${receptor_moe}"                                >> covdock.log
-        echo "[MOCK] Ligands      : ${ligands_mdb}"                                 >> covdock.log
-        echo "[MOCK] Protocol     : ${params.docking_protocol}"                     >> covdock.log
-        echo "[MOCK] Reactive res : ${params.reactive_residue}"                     >> covdock.log
-        echo "[MOCK] Warhead type : ${params.warhead_type}"                         >> covdock.log
-        echo "[MOCK] n_poses      : ${params.n_poses}"                              >> covdock.log
-        echo "[MOCK] Covalent bond: C-S (thia-Michael addition, acrylamide/CYS)"   >> covdock.log
-        echo "[MOCK] Screening 5 ligands..."                                         >> covdock.log
-        echo "[MOCK] Ligand 1 (acrylamide_001): 10 poses, best S=-8.42"            >> covdock.log
-        echo "[MOCK] Ligand 2 (acrylamide_002):  9 poses, best S=-7.89"            >> covdock.log
-        echo "[MOCK] Ligand 3 (acrylamide_003): 10 poses, best S=-7.34"            >> covdock.log
-        echo "[MOCK] Ligand 4 (acrylamide_004):  8 poses, best S=-6.71"            >> covdock.log
-        echo "[MOCK] Ligand 5 (acrylamide_005):  9 poses, best S=-5.88"            >> covdock.log
-        echo "[MOCK] CovDock complete: 5 ligands, reactive ${params.reactive_residue}" >> covdock.log
-        printf 'MOE_DB_MOCK_v2024\\x00POSES:46\\x00REACTIVE:${params.reactive_residue}\\x00WARHEAD:${params.warhead_type}\\x00' > covalent_poses.mdb
-        """
-    } else {
         """
         set -euo pipefail
 
@@ -291,7 +242,6 @@ process COVALENT_DOCK {
         fi
         echo "CovDock complete" >> covdock.log
         """
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -322,53 +272,6 @@ process POSE_ANALYSIS {
     path "pose_analysis.log", emit: log
 
     script:
-    if (params.mock_mode) {
-        """
-        echo "[MOCK] POSE_ANALYSIS -- MOE S score, E_Score1/2, GBVI/WSA dG" > pose_analysis.log
-        echo "[MOCK] Input        : ${poses_mdb}"                            >> pose_analysis.log
-        echo "[MOCK] Refine poses : ${params.refine_poses}"                  >> pose_analysis.log
-
-        python3 - << 'PYEOF'
-import csv
-
-rows = [
-    {'rank': 1, 'ligand_name': 'acrylamide_001',
-     'smiles': 'C=CC(=O)Nc1ccc(F)cc1CN2CCCC2=O',
-     's_score': -8.42, 'e_score1': -9.15, 'gbvi_wsa_dg': -10.23,
-     'covalent_bond_length_A': 1.81},
-    {'rank': 2, 'ligand_name': 'acrylamide_002',
-     'smiles': 'C=CC(=O)Nc1ccc(-c2ccncc2)cc1',
-     's_score': -7.89, 'e_score1': -8.54, 'gbvi_wsa_dg': -9.67,
-     'covalent_bond_length_A': 1.83},
-    {'rank': 3, 'ligand_name': 'acrylamide_003',
-     'smiles': 'C=CC(=O)Nc1cnc2ccccc2c1',
-     's_score': -7.34, 'e_score1': -7.91, 'gbvi_wsa_dg': -8.82,
-     'covalent_bond_length_A': 1.82},
-    {'rank': 4, 'ligand_name': 'acrylamide_004',
-     'smiles': 'C=CC(=O)Nc1ccc(OCC2CCCO2)cc1',
-     's_score': -6.71, 'e_score1': -7.23, 'gbvi_wsa_dg': -7.95,
-     'covalent_bond_length_A': 1.84},
-    {'rank': 5, 'ligand_name': 'acrylamide_005',
-     'smiles': 'C=CC(=O)Nc1ccc(Cl)c(Cl)c1',
-     's_score': -5.88, 'e_score1': -6.40, 'gbvi_wsa_dg': -7.01,
-     'covalent_bond_length_A': 1.85},
-]
-
-fieldnames = ['rank', 'ligand_name', 'smiles',
-              's_score', 'e_score1', 'gbvi_wsa_dg', 'covalent_bond_length_A']
-with open('scored_poses.csv', 'w', newline='') as f:
-    writer = csv.DictWriter(f, fieldnames=fieldnames)
-    writer.writeheader()
-    writer.writerows(rows)
-print('scored_poses.csv written: 5 rows')
-PYEOF
-
-        echo "[MOCK] Best S score: -8.42 (acrylamide_001)"                    >> pose_analysis.log
-        echo "[MOCK] GBVI/WSA dG range: -10.23 to -7.01 kcal/mol"            >> pose_analysis.log
-        echo "[MOCK] All covalent bond lengths within 1.80-1.85 A (C-S)"     >> pose_analysis.log
-        echo "[MOCK] POSE_ANALYSIS complete"                                   >> pose_analysis.log
-        """
-    } else {
         """
         set -euo pipefail
 
@@ -393,7 +296,6 @@ PYEOF
         fi
         echo "POSE_ANALYSIS complete" >> pose_analysis.log
         """
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -424,204 +326,6 @@ process REPORT {
     path "docking_report.html",  emit: report_html
 
     script:
-    if (params.mock_mode) {
-        """
-        python3 - << 'PYEOF'
-import csv, json
-
-def minimal_mol_block(name):
-    coords = [
-        ( 0.0000,  0.0000, 0.0000, 'C'),
-        ( 1.2124,  0.7004, 0.0000, 'C'),
-        ( 2.4249,  0.0000, 0.0000, 'C'),
-        ( 1.2124, -1.4008, 0.0000, 'C'),
-        ( 0.0000, -0.7004, 0.0000, 'N'),
-    ]
-    bonds = [(1,2,2),(2,3,1),(3,4,2),(4,5,1),(5,1,1)]
-    lines = [name, '  MOECovDock2024', '  Covalent docking pose (mock)']
-    lines.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000'.format(len(coords), len(bonds)))
-    for x, y, z, sym in coords:
-        lines.append('{:10.4f}{:10.4f}{:10.4f} {:<3s} 0  0  0  0  0  0  0  0  0  0  0  0'.format(x, y, z, sym))
-    for a, b, t in bonds:
-        lines.append('{:3d}{:3d}{:3d}  0  0  0  0'.format(a, b, t))
-    lines.append('M  END')
-    return '\n'.join(lines)
-
-rows = []
-with open('scored_poses.csv') as f:
-    for row in csv.DictReader(f):
-        rows.append(row)
-
-top_n    = 5
-top_rows = rows[:top_n] if len(rows) >= top_n else rows
-
-sdf_parts = []
-for i, row in enumerate(top_rows, start=1):
-    sdf_parts.append(minimal_mol_block(row['ligand_name']))
-    sdf_parts += [
-        '> <S_Score>',            row['s_score'],                '',
-        '> <GBVI_WSA_dG>',        row['gbvi_wsa_dg'],            '',
-        '> <CovalentBondLength>',  row['covalent_bond_length_A'], '',
-        '> <WarheadType>',         'acrylamide',                  '',
-        '> <ReactiveResidue>',     'CYS145',                      '',
-        '> <Rank>',                str(i),                        '',
-        '$$$$',
-    ]
-with open('top_poses.sdf', 'w') as f:
-    f.write('\n'.join(sdf_parts) + '\n')
-print('top_poses.sdf written: {} entries'.format(len(top_rows)))
-
-best = top_rows[0] if top_rows else {}
-summary = {
-    'pipeline': 'moe_covalent_docking',
-    'moe_version': '2024.0901',
-    'reactive_residue': 'CYS145',
-    'warhead_type': 'acrylamide',
-    'docking_protocol': 'induced_fit',
-    'n_poses_per_ligand': 10,
-    'top_n_reported': len(top_rows),
-    'total_compounds_docked': len(rows),
-    'best_ligand': best.get('ligand_name', 'N/A'),
-    'best_s_score': float(best.get('s_score', 0)),
-    'best_gbvi_wsa_dg': float(best.get('gbvi_wsa_dg', 0)),
-    'best_covalent_bond_length_A': float(best.get('covalent_bond_length_A', 0)),
-    'refine_poses': True,
-    'mock_mode': True,
-    'references': [
-        'Zhu et al. J. Chem. Inf. Model. 2014, 54:1932-1940 (MOE CovDock)',
-        'Labute J. Chem. Inf. Model. 2008, 48:1117-1128 (GBVI/WSA dG)',
-        'Baillie Nat. Chem. Biol. 2016, 12:401-405 (Covalent inhibitor review)',
-        'Chemical Computing Group ULC, MOE 2024.09, Montreal, Canada',
-    ],
-}
-with open('docking_summary.json', 'w') as f:
-    json.dump(summary, f, indent=2)
-print('docking_summary.json written')
-
-score_rows_html = ''
-for row in top_rows:
-    s = float(row['s_score'])
-    color = '#c8e6c9' if s <= -8.0 else ('#fff9c4' if s <= -7.0 else '#ffccbc')
-    score_rows_html += (
-        '<tr style="background:{c};">'
-        '<td>{rank}</td><td><code>{name}</code></td>'
-        '<td style="font-size:0.8em;max-width:220px;overflow:hidden;'
-        'text-overflow:ellipsis;white-space:nowrap;">{smiles}</td>'
-        '<td><strong>{s}</strong></td><td>{e1}</td><td>{gbvi}</td><td>{bl}</td>'
-        '</tr>\n'
-    ).format(
-        c=color, rank=row['rank'], name=row['ligand_name'],
-        smiles=row['smiles'], s=row['s_score'],
-        e1=row['e_score1'], gbvi=row['gbvi_wsa_dg'],
-        bl=row['covalent_bond_length_A'],
-    )
-
-meta_cards = (
-    '<div class="meta-card"><div class="mc-label">Compounds Docked</div>'
-    '<div class="mc-value">' + str(len(rows)) + '</div></div>\n'
-    '<div class="meta-card"><div class="mc-label">Best S Score (kcal/mol)</div>'
-    '<div class="mc-value">' + str(best.get('s_score', 'N/A')) + '</div></div>\n'
-    '<div class="meta-card"><div class="mc-label">Best GBVI/WSA dG (kcal/mol)</div>'
-    '<div class="mc-value">' + str(best.get('gbvi_wsa_dg', 'N/A')) + '</div></div>\n'
-    '<div class="meta-card"><div class="mc-label">Poses per Ligand</div>'
-    '<div class="mc-value">10</div></div>\n'
-    '<div class="meta-card"><div class="mc-label">Top Poses Reported</div>'
-    '<div class="mc-value">' + str(len(top_rows)) + '</div></div>\n'
-    '<div class="meta-card"><div class="mc-label">Best Ligand</div>'
-    '<div class="mc-value">' + str(best.get('ligand_name', 'N/A')) + '</div></div>\n'
-)
-
-html = (
-    '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
-    '  <meta charset="UTF-8">\n'
-    '  <title>MOE Covalent Docking Report</title>\n'
-    '  <style>\n'
-    '    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;'
-    '           margin: 2rem; background: #f5f5f5; color: #212121; }\n'
-    '    h1   { color: #1565c0; margin-bottom: 0.25rem; }\n'
-    '    h2   { color: #37474f; border-bottom: 2px solid #90a4ae;'
-    '           padding-bottom: 4px; margin-top: 2rem; }\n'
-    '    .sub { color: #607d8b; margin-top: 0; font-size: 0.9rem; }\n'
-    '    .hbox { background: #e3f2fd; border-left: 4px solid #1976d2;'
-    '            padding: 1rem 1.25rem; border-radius: 4px; margin: 1.25rem 0; }\n'
-    '    .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr);'
-    '                 gap: 1rem; margin: 1.5rem 0; }\n'
-    '    .meta-card { background: white; border-radius: 8px; padding: 1rem;'
-    '                 box-shadow: 0 1px 4px rgba(0,0,0,0.15); }\n'
-    '    .mc-label { font-size: 0.72rem; color: #607d8b; text-transform: uppercase;'
-    '                letter-spacing: 0.05em; }\n'
-    '    .mc-value { font-size: 1.3rem; font-weight: 700; color: #1565c0; margin-top: 4px; }\n'
-    '    table { border-collapse: collapse; width: 100%; background: white;'
-    '            border-radius: 8px; overflow: hidden;'
-    '            box-shadow: 0 1px 4px rgba(0,0,0,0.15); }\n'
-    '    th { background: #1565c0; color: white; padding: 10px 14px;'
-    '         text-align: left; font-size: 0.85rem; white-space: nowrap; }\n'
-    '    td { padding: 8px 14px; font-size: 0.9rem; border-bottom: 1px solid #eceff1; }\n'
-    '    .legend { display: flex; gap: 1.25rem; margin: 0.5rem 0 1.25rem; font-size: 0.8rem; }\n'
-    '    .li { display: flex; align-items: center; gap: 6px; }\n'
-    '    .sw { width: 16px; height: 16px; border-radius: 3px; }\n'
-    '    .refs { font-size: 0.78rem; color: #607d8b; }\n'
-    '    .refs li { margin: 3px 0; }\n'
-    '  </style>\n</head>\n<body>\n'
-    '  <h1>MOE Covalent Docking Report</h1>\n'
-    '  <p class="sub">Generated by BioMate &bull; MOE 2024.09 &bull; CovDock SVL pipeline</p>\n'
-    '  <div class="hbox">\n'
-    '    <strong>Reactive Residue:</strong> <code>CYS145</code>\n'
-    '    &emsp; <strong>Warhead Type:</strong> <code>acrylamide</code>\n'
-    '    &emsp; <strong>Protocol:</strong> <code>induced_fit</code>\n'
-    '    &emsp; <strong>Rescoring:</strong> GBVI/WSA dG (Labute 2008)\n'
-    '  </div>\n'
-    '  <div class="meta-grid">\n' + meta_cards + '  </div>\n'
-    '  <h2>Ranked Covalent Poses</h2>\n'
-    '  <div class="legend">\n'
-    '    <div class="li"><div class="sw" style="background:#c8e6c9;"></div>'
-    ' S score &le; -8.0 (excellent)</div>\n'
-    '    <div class="li"><div class="sw" style="background:#fff9c4;"></div>'
-    ' -8.0 to -7.0 (good)</div>\n'
-    '    <div class="li"><div class="sw" style="background:#ffccbc;"></div>'
-    ' &gt; -7.0 (moderate)</div>\n'
-    '  </div>\n'
-    '  <table>\n'
-    '    <thead><tr>\n'
-    '      <th>Rank</th><th>Ligand</th><th>SMILES</th>\n'
-    '      <th>S Score</th><th>E_Score1</th><th>GBVI/WSA dG</th><th>Cov Bond (A)</th>\n'
-    '    </tr></thead>\n'
-    '    <tbody>\n' + score_rows_html + '    </tbody>\n  </table>\n'
-    '  <h2>Scoring Definitions</h2>\n'
-    '  <ul>\n'
-    '    <li><strong>S Score</strong>: London dG docking score (kcal/mol); primary ranking; lower is better.</li>\n'
-    '    <li><strong>E_Score1</strong>: Force-field refinement score (MMFF94x/Amber) after constrained minimisation.</li>\n'
-    '    <li><strong>GBVI/WSA dG</strong>: Generalised Born Volume Integral / Weighted Surface Area\n'
-    '        binding free energy (Labute 2008); most accurate MOE rescoring.</li>\n'
-    '    <li><strong>Cov Bond Length</strong>: Length of newly formed covalent bond (A).\n'
-    '        Expected 1.80-1.85 A for C-S (thia-Michael, acrylamide/CYS).</li>\n'
-    '  </ul>\n'
-    '  <h2>Covalent Warhead Chemistry</h2>\n'
-    '  <ul>\n'
-    '    <li><strong>acrylamide</strong>: thia-Michael addition to CYS thiol; C-S bond; irreversible</li>\n'
-    '    <li><strong>chloroacetamide</strong>: SN2 alkylation of CYS thiol; C-S bond; irreversible</li>\n'
-    '    <li><strong>epoxide</strong>: ring-opening by thiol/amine/hydroxyl; tunable reversibility</li>\n'
-    '    <li><strong>aldehyde</strong>: reversible Schiff base (LYS) or hemithioacetal (CYS)</li>\n'
-    '    <li><strong>michael_acceptor</strong>: generalised 1,4-conjugate addition</li>\n'
-    '    <li><strong>vinyl_sulfone</strong>: thia-Michael addition (strong EWG); irreversible</li>\n'
-    '    <li><strong>boronic_acid</strong>: reversible covalent with SER/THR/TYR boronate ester</li>\n'
-    '  </ul>\n'
-    '  <h2>References</h2>\n'
-    '  <ul class="refs">\n'
-    '    <li>Zhu et al. <em>J. Chem. Inf. Model.</em> 2014, 54:1932-1940 -- MOE CovDock algorithm</li>\n'
-    '    <li>Labute, P. <em>J. Chem. Inf. Model.</em> 2008, 48:1117-1128 -- GBVI/WSA dG rescoring</li>\n'
-    '    <li>Baillie, T.A. <em>Nat. Chem. Biol.</em> 2016, 12:401-405 -- Targeted covalent inhibitors</li>\n'
-    '    <li>Chemical Computing Group ULC. <em>MOE 2024.09</em>. Montreal, QC, Canada, 2024.</li>\n'
-    '  </ul>\n</body>\n</html>\n'
-)
-with open('docking_report.html', 'w') as f:
-    f.write(html)
-print('docking_report.html written')
-PYEOF
-
-        echo "[MOCK] REPORT complete: top_poses.sdf, docking_summary.json, docking_report.html"
-        """
-    } else {
         """
         set -euo pipefail
 
@@ -648,7 +352,6 @@ summary = {
     'best_s_score': float(best.get('s_score', 0)),
     'best_gbvi_wsa_dg': float(best.get('gbvi_wsa_dg', 0)),
     'best_covalent_bond_length_A': float(best.get('covalent_bond_length_A', 0)),
-    'mock_mode': False,
 }
 with open('docking_summary.json', 'w') as f:
     json.dump(summary, f, indent=2)
@@ -686,7 +389,6 @@ HTMLEOF
 
         echo "REPORT complete" >> report.log
         """
-    }
 }
 
 // ============================================================================
@@ -698,15 +400,12 @@ workflow {
     // -------------------------------------------------------------------------
     // Parameter validation
     // -------------------------------------------------------------------------
-    if (!params.mock_mode) {
-        if (!params.receptor) {
-            error "params.receptor is required when mock_mode = false. " +
-                  "Provide a path to receptor.pdb or receptor.mol2."
-        }
-        if (!params.ligands) {
-            error "params.ligands is required when mock_mode = false. " +
-                  "Provide a path to warhead_smiles.smi or ligands.sdf."
-        }
+    if (!params.receptor) {
+        error "params.receptor is required. Provide a path to receptor.pdb or receptor.mol2."
+    }
+    if (!params.ligands) {
+        error "params.ligands is required. Provide a path to warhead_smiles.smi or ligands.sdf."
+    }
 
         def valid_warheads = ['acrylamide', 'chloroacetamide', 'epoxide', 'aldehyde',
                               'michael_acceptor', 'vinyl_sulfone', 'boronic_acid']
@@ -725,67 +424,5 @@ workflow {
     // -------------------------------------------------------------------------
     // Build input channels
     // -------------------------------------------------------------------------
-    if (params.mock_mode) {
-        ligand_ch   = Channel.of(file('/dev/null'))
-        receptor_ch = Channel.of(file('/dev/null'))
-    } else {
-        ligand_ch   = Channel.fromPath(params.ligands,   checkIfExists: true)
-        receptor_ch = Channel.fromPath(params.receptor,  checkIfExists: true)
-    }
-
-    // -------------------------------------------------------------------------
-    // Pipeline execution
-    // -------------------------------------------------------------------------
-
-    // Step 1: Prepare ligands -- protonation states, tautomers, MMFF94x charges
-    ligprep_out  = LIGAND_PREP(ligand_ch)
-
-    // Step 2: Prepare receptor -- add H, Protonate3D, constrained minimisation
-    recprep_out  = RECEPTOR_PREP(receptor_ch)
-
-    // Step 3: Covalent docking -- CovDock SVL, explicit covalent bond to reactive residue
-    covdock_out  = COVALENT_DOCK(recprep_out.prepped_moe, ligprep_out.prepped_mdb)
-
-    // Step 4: Score all poses -- S score, E_Score1/2, GBVI/WSA dG
-    analysis_out = POSE_ANALYSIS(covdock_out.poses_mdb)
-
-    // Step 5: Export top poses to SDF + generate HTML report + JSON summary
-    report_out   = REPORT(analysis_out.scores_csv)
-
-    // -------------------------------------------------------------------------
-    // Pipeline summary banner
-    // -------------------------------------------------------------------------
-    report_out.summary_json.view { json_file ->
-        def summary = new groovy.json.JsonSlurper().parse(json_file)
-        """
-============================================================
- MOE Covalent Docking -- Pipeline Complete
-============================================================
- Reactive residue    : ${summary.reactive_residue}
- Warhead type        : ${summary.warhead_type}
- Docking protocol    : ${summary.docking_protocol}
- Compounds docked    : ${summary.total_compounds_docked}
- Top poses reported  : ${summary.top_n_reported}
- Best ligand         : ${summary.best_ligand}
- Best S score        : ${summary.best_s_score} kcal/mol
- Best GBVI/WSA dG    : ${summary.best_gbvi_wsa_dg} kcal/mol
- Cov bond length     : ${summary.best_covalent_bond_length_A} A
-============================================================
- Results directory   : ${params.outdir}
- Key outputs:
-   01_ligand_prep/ligands_prepped.mdb
-   02_receptor_prep/receptor_prepped.moe
-   03_covalent_dock/covalent_poses.mdb
-   04_pose_analysis/scored_poses.csv
-   05_report/top_poses.sdf
-   05_report/docking_summary.json
-   05_report/docking_report.html
-============================================================
- References:
-   Zhu et al. J. Chem. Inf. Model. 2014, 54:1932-1940
-   Labute J. Chem. Inf. Model. 2008, 48:1117-1128
-   Chemical Computing Group ULC, MOE 2024.09
-============================================================
-        """
     }
 }

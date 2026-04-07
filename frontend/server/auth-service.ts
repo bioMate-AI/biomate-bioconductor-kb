@@ -7,6 +7,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import type { User, SafeUser, InviteCode } from '../shared/schema';
 import { emailService } from './email-service';
 import { billingPlanForTier } from './plan-config';
+import { GalaxyAPIProxy } from './galaxy-api-proxy';
 
 const GALAXY_URL = process.env.GALAXY_URL ?? 'http://localhost:8081';
 const BILLING_INTERNAL_KEY = process.env.BILLING_INTERNAL_KEY ?? 'dev-insecure-key';
@@ -170,11 +171,52 @@ export class AuthService {
     // Sync to billing service — fire-and-forget; don't block registration
     this.syncUserToBilling(newUser, resolvedCode?.quotaOverrideUsd ?? null);
 
+    // Provision Galaxy user account — fire-and-forget; falls back to admin key if it fails
+    this.provisionGalaxyUser(newUser.id, newUser.email);
+
     return {
       user: this.sanitizeUser(newUser),
       token,
       expiresIn: this.getTokenExpiresInSeconds(),
     };
+  }
+
+  /**
+   * Provision a Galaxy user account for a newly registered BioMate user and
+   * store the credentials back in the DB.  Fire-and-forget — registration
+   * succeeds even if Galaxy is unreachable; the user falls back to the shared
+   * admin key until provisioning succeeds (e.g. on next login).
+   */
+  private provisionGalaxyUser(biomateUserId: string, email: string): void {
+    const adminProxy = new GalaxyAPIProxy();
+
+    const attempt = async (attemptsLeft: number, delayMs: number): Promise<void> => {
+      try {
+        const { galaxyUserId, galaxyApiKey, galaxyUsername } =
+          await adminProxy.provisionGalaxyUser(biomateUserId, email);
+        await db
+          .update(users)
+          .set({ galaxyUserId, galaxyApiKey, galaxyUsername })
+          .where(eq(users.id, biomateUserId));
+        console.log(`[auth] Galaxy user provisioned for ${email}: ${galaxyUsername}`);
+      } catch (err: any) {
+        if (attemptsLeft > 1) {
+          console.warn(
+            `[auth] Galaxy provisioning attempt failed for ${email} — retrying in ${delayMs}ms (${attemptsLeft - 1} left):`,
+            err.message
+          );
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          return attempt(attemptsLeft - 1, delayMs * 2);
+        }
+        // All retries exhausted — BioMate account exists but no Galaxy isolation
+        console.error(
+          `[auth] Galaxy provisioning FAILED after 3 attempts for ${email}. ` +
+          `User will fall back to shared admin key until re-provisioned. Error: ${err.message}`
+        );
+      }
+    };
+
+    attempt(3, 1000).catch(() => {/* already logged */});
   }
 
   /**
@@ -279,6 +321,12 @@ export class AuthService {
 
     if (trialExpired && !subscriptionActive) {
       throw new Error('TRIAL_EXPIRED');
+    }
+
+    // Re-attempt Galaxy provisioning if it failed during registration
+    if (!user.galaxyApiKey) {
+      console.log(`[auth] User ${user.email} has no Galaxy API key — re-attempting provisioning`);
+      this.provisionGalaxyUser(user.id, user.email);
     }
 
     // Update last login

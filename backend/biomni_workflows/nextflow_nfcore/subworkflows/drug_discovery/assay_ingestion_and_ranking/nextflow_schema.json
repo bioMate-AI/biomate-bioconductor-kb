@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/assay_data_ingestion_and_compound_ranking_schema.json",
+  "title": "Assay Data Ingestion and Compound Ranking",
+  "description": "Ingest bioactivity assay data, compute potency/safety composite scores, and rank compounds.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "assay_csv"
+      ],
+      "properties": {
+        "assay_csv": {
+          "description": "CSV file with assay data. Must include compound_id and activity columns.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "potency_assay": {
+          "description": "Column name in CSV for the primary potency assay (e.g. IC50 against target kinase).",
+          "type": "string",
+          "default": "IC50_BCR_ABL1"
+        },
+        "safety_assay": {
+          "description": "Column name in CSV for safety counter-screen (e.g. hERG inhibition).",
+          "type": "string",
+          "default": "hERG_IC50"
+        },
+        "potency_weight": {
+          "description": "Weight for potency in composite score. Safety weight = 1 - potency_weight.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.6
+        },
+        "herg_safe_threshold": {
+          "description": "hERG IC50 safety threshold in \u03bcM. Compounds below this value flagged as unsafe.",
+          "type": "number",
+          "minimum": 0.0,
+          "default": 1.0
+        },
+        "top_n": {
+          "description": "Number of top-ranked compounds to highlight in the report.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

@@ -29,7 +29,6 @@ process EXTRACT_PARTICLES_R1 {
     path "extract_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def box_size = params.particle_box_size ?: estimate_box_size(
         params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
         params.pixel_size
@@ -53,8 +52,7 @@ process EXTRACT_PARTICLES_R1 {
         'timestamp': datetime.now().isoformat(),
         'num_particles': len(extracted),
         'box_size_pixels': ${box_size},
-        'pixel_size_angstroms': ${params.pixel_size},
-        'mock_mode': ${mock}
+        'pixel_size_angstroms': ${params.pixel_size}
     }
 
     with open('particles_extracted_r1.cs', 'w') as f:

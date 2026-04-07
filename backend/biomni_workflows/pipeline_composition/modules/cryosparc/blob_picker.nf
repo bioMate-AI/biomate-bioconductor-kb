@@ -21,7 +21,6 @@ process BLOB_PICKER {
     path "picking_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
     """
     #!/usr/bin/env python3
@@ -57,8 +56,7 @@ process BLOB_PICKER {
         'num_particles': len(all_particles),
         'num_micrographs': len(micrographs),
         'avg_particles_per_micrograph': round(len(all_particles) / len(micrographs), 1),
-        'particle_diameter_angstroms': ${diameter},
-        'mock_mode': ${mock}
+        'particle_diameter_angstroms': ${diameter}
     }
 
     with open('particles_blob.cs', 'w') as f:

@@ -407,8 +407,12 @@ export interface WorkflowGenerationRequest {
   }>;
   /** LLM-inferred domain preferences from analyzeIntent() UQU output — passed to backend search */
   preferred_domains?: string[];
+  /** LLM-inferred domains to penalize in backend search scoring */
+  penalized_domains?: string[];
   /** LLM-extracted technical key terms — boost FTS recall in backend search */
   key_terms?: string[];
+  /** User's actual session-uploaded datasets — wires WorkflowDatasetSelector + domain-specialist format context */
+  session_datasets?: Array<{ id: string; name: string; type: string }>;
 }
 
 export interface WorkflowGenerationResponse {

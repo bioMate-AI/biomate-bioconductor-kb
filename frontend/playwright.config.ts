@@ -32,6 +32,10 @@ export default defineConfig({
     },
     actionTimeout: 60000,
     navigationTimeout: 90000,
+    // Bypass global rate limiter for all browser-initiated requests
+    extraHTTPHeaders: {
+      'X-E2E-Test-Token': process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only',
+    },
   },
 
   // Output directories (override for isolated runs via PW_OUTPUT_DIR)
