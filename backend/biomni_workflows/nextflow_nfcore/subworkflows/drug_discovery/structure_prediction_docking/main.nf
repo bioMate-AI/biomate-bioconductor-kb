@@ -7,7 +7,7 @@
  *
  * Pipeline Steps:
  * 1. ALPHAFOLD3_STRUCTURE_PREDICTION  — Predict 3-D structure from sequence
- *    (server API mode or local model; mock for CI/testing)
+ *    (server API mode or local model)
  * 2. DIFFDOCK_BLIND_DOCKING           — Diffusion-model blind docking (no pocket required)
  * 3. AUTODOCK_VINA_DOCKING            — Classical docking with pocket from AF3 PAE
  *
@@ -29,8 +29,12 @@ params.outdir               = './results/structure_prediction_docking'
 params.publish_dir_mode     = 'copy'
 
 // Mode flags
-params.mock_mode            = true      // true  = synthetic output, no real tools needed
-params.af3_mode             = 'mock'    // 'mock' | 'server' | 'local'
+params.af3_mode = 'server'  // 'server' | 'local'
+
+// Inputs
+params.fasta_input          = null      // path to FASTA file OR inline sequence for structure prediction
+params.ligand_sdf           = null      // path to ligand SDF file for docking (required for Vina)
+params.json                 = null      // path to AlphaFold3 JSON input (alternative to fasta_input)
 
 // AlphaFold3 settings
 params.af3_api_token        = null      // Bearer token for alphafoldserver.com (server mode)
@@ -54,7 +58,7 @@ def log_workflow_header() {
     ====================================================================
     BioMate | Structure Prediction + Docking Pipeline
     ====================================================================
-    Mode:               ${params.mock_mode ? 'MOCK (synthetic data)' : 'LIVE'}
+    Mode:               LIVE
     AlphaFold3 mode:    ${params.af3_mode}
     DiffDock poses:     ${params.diffdock_poses}
     Vina exhaustiveness: ${params.vina_exhaustiveness}
@@ -86,157 +90,12 @@ process ALPHAFOLD3_STRUCTURE_PREDICTION {
     path "versions.yml",                             emit: versions
 
     script:
-    def mock      = params.mock_mode
-    def mode      = af3_mode ?: 'mock'
+    def mode      = af3_mode ?: 'server'
     def api_token = params.af3_api_token ?: ''
     def model_dir = params.af3_model_dir
     def recycles  = params.af3_num_recycles
     """
-    if [ "${mock}" = "true" ] || [ "${mode}" = "mock" ]; then
-        python3 << 'EOF'
-import json
-import math
-import random
-from datetime import datetime
-
-random.seed(42)
-
-meta_id    = "${meta.id}"
-target     = "${meta.target_name}"
-
-# ---------------------------------------------------------------------------
-# 1. Generate a synthetic 100-residue alpha-helix PDB (CA trace + full backbone)
-# ---------------------------------------------------------------------------
-aa_one  = list("ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY" * 3)[:100]
-aa_three = {
-    'A':'ALA','C':'CYS','D':'ASP','E':'GLU','F':'PHE','G':'GLY','H':'HIS',
-    'I':'ILE','K':'LYS','L':'LEU','M':'MET','N':'ASN','P':'PRO','Q':'GLN',
-    'R':'ARG','S':'SER','T':'THR','V':'VAL','W':'TRP','Y':'TYR'
-}
-
-lines = [
-    "REMARK  BioMate mock AlphaFold3 structure — synthetic alpha-helix",
-    f"REMARK  Target: {target}",
-    f"REMARK  Generated: {datetime.utcnow().isoformat()}Z",
-    "REMARK  pTM=0.85  ipTM=0.82  ranking_score=0.87",
-]
-atom_idx = 1
-for i, aa in enumerate(aa_one, 1):
-    # Ideal alpha-helix geometry: rise=1.5 A/residue, radius=2.3 A, twist=100 deg/residue
-    angle   = math.radians(i * 100.0)
-    x_ca    = 2.3 * math.cos(angle)
-    y_ca    = 2.3 * math.sin(angle)
-    z_ca    = i * 1.5
-    res3    = aa_three.get(aa, 'ALA')
-    bfac    = round(random.uniform(10.0, 30.0), 2)
-
-    # N  (approx offset from CA)
-    x_n = x_ca - 0.50 * math.cos(angle + 0.5)
-    y_n = y_ca - 0.50 * math.sin(angle + 0.5)
-    z_n = z_ca - 0.85
-    lines.append(
-        f"ATOM  {atom_idx:5d}  N   {res3:3s} A{i:4d}    "
-        f"{x_n:8.3f}{y_n:8.3f}{z_n:8.3f}  1.00 {bfac:5.2f}           N"
-    )
-    atom_idx += 1
-
-    # CA
-    lines.append(
-        f"ATOM  {atom_idx:5d}  CA  {res3:3s} A{i:4d}    "
-        f"{x_ca:8.3f}{y_ca:8.3f}{z_ca:8.3f}  1.00 {bfac:5.2f}           C"
-    )
-    atom_idx += 1
-
-    # C
-    x_c = x_ca + 0.48 * math.cos(angle - 0.4)
-    y_c = y_ca + 0.48 * math.sin(angle - 0.4)
-    z_c = z_ca + 0.85
-    lines.append(
-        f"ATOM  {atom_idx:5d}  C   {res3:3s} A{i:4d}    "
-        f"{x_c:8.3f}{y_c:8.3f}{z_c:8.3f}  1.00 {bfac:5.2f}           C"
-    )
-    atom_idx += 1
-
-    # O
-    x_o = x_c + 1.22 * math.cos(angle + math.pi / 3)
-    y_o = y_c + 1.22 * math.sin(angle + math.pi / 3)
-    z_o = z_c
-    lines.append(
-        f"ATOM  {atom_idx:5d}  O   {res3:3s} A{i:4d}    "
-        f"{x_o:8.3f}{y_o:8.3f}{z_o:8.3f}  1.00 {bfac:5.2f}           O"
-    )
-    atom_idx += 1
-
-lines.append("END")
-
-with open(f"{meta_id}_structure.pdb", "w") as f:
-    f.write("\\n".join(lines) + "\\n")
-
-# ---------------------------------------------------------------------------
-# 2. Minimal mmCIF (PDBx format)
-# ---------------------------------------------------------------------------
-cif_lines = [
-    f"data_{meta_id}",
-    f"_entry.id {meta_id}",
-    "_struct.title 'BioMate mock AlphaFold3 structure'",
-    "# Coordinates omitted in mock mode — use PDB file for coordinates",
-    "_ma_qa_metric_global.metric_id   1",
-    "_ma_qa_metric_global.metric_value  0.85",
-    "_ma_qa_metric_global.type        pTM",
-    "# end",
-]
-with open(f"{meta_id}_structure.cif", "w") as f:
-    f.write("\\n".join(cif_lines) + "\\n")
-
-# ---------------------------------------------------------------------------
-# 3. PAE matrix (100x100): low near diagonal, high off-diagonal
-#    Typical AF3 output: values in Angstroms, max ~31.75 A
-# ---------------------------------------------------------------------------
-N = 100
-pae = []
-for i in range(N):
-    row = []
-    for j in range(N):
-        dist    = abs(i - j)
-        base    = min(dist * 0.25 + random.uniform(0, 0.5), 15.0)
-        # add domain-like block structure (residues 0-49 / 50-99)
-        if (i < 50) == (j < 50):
-            base = max(base - 2.0, 0.1)
-        row.append(round(base, 3))
-    pae.append(row)
-
-with open(f"{meta_id}_pae.json", "w") as f:
-    json.dump({
-        "pae": pae,
-        "max_predicted_aligned_error": 31.75,
-        "residue_count": N,
-        "chain_breaks": []
-    }, f)
-
-# ---------------------------------------------------------------------------
-# 4. Per-model confidence scores
-# ---------------------------------------------------------------------------
-scores = {
-    "ptm":                0.85,
-    "iptm":               0.82,
-    "ranking_score":      0.87,
-    "fraction_disordered":0.02,
-    "has_clash":          False,
-    "num_recycles":       ${recycles},
-    "model_id":           f"{meta_id}_model_1",
-    "mean_plddt":         84.7,
-    "min_plddt":          52.3,
-    "timestamp":          datetime.utcnow().isoformat() + "Z",
-    "mock_mode":          True
-}
-with open(f"{meta_id}_af3_scores.json", "w") as f:
-    json.dump(scores, f, indent=2)
-
-print(f"AlphaFold3 mock complete: {meta_id}_structure.pdb ({N} residues)")
-print(f"  pTM={scores['ptm']}  ipTM={scores['iptm']}  ranking_score={scores['ranking_score']}")
-EOF
-
-    elif [ "${mode}" = "server" ]; then
+    if [ "${mode}" = "server" ]; then
         # ---------------------------------------------------------------------------
         # Live: AlphaFold3 server API
         # Requires AF3_API_TOKEN environment variable
@@ -365,22 +224,9 @@ PYEOF
         alphafold3: "3.0.0"
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
         af3_mode: "${mode}"
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
-    stub:
-    """
-    touch ${meta.id}_structure.cif
-    touch ${meta.id}_structure.pdb
-    echo '{"pae":[],"max_predicted_aligned_error":31.75}' > ${meta.id}_pae.json
-    echo '{"ptm":0.85,"iptm":0.82,"ranking_score":0.87}' > ${meta.id}_af3_scores.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        alphafold3: "3.0.0"
-        python: "3.10.0"
-    END_VERSIONS
-    """
 }
 
 // ============================================================================
@@ -406,139 +252,24 @@ process DIFFDOCK_BLIND_DOCKING {
     path "versions.yml",                                    emit: versions
 
     script:
-    def mock  = params.mock_mode
     def poses = num_poses ?: params.diffdock_poses
     def steps = params.diffdock_inference_steps
     """
     mkdir -p diffdock_results
 
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import os
-import random
-import math
-from datetime import datetime
+    # ---------------------------------------------------------------------------
+    # Live DiffDock inference
+    # ---------------------------------------------------------------------------
+    python -m diffdock.inference \\
+        --protein_path   ${protein_pdb} \\
+        --ligand_path    ${ligand_sdf} \\
+        --out_dir        diffdock_results/ \\
+        --samples_per_complex ${poses} \\
+        --inference_steps    ${steps} \\
+        --batch_size 10
 
-random.seed(42)
-
-meta_id   = "${meta.id}"
-ligand    = "${ligand_sdf}"
-num_poses = int("${poses}")
-
-# ---------------------------------------------------------------------------
-# Generate mock ranked SDF poses and confidence scores
-# ---------------------------------------------------------------------------
-# DiffDock confidence: log(P/(1-P)) in (-inf, +inf); higher = better
-# Typical range: top pose ~+2.0 → +0.9, tail ~-1.0
-confidence_scores = []
-base = 2.2
-for i in range(num_poses):
-    c = base - i * 0.19 + random.gauss(0, 0.04)
-    confidence_scores.append(round(c, 4))
-confidence_scores.sort(reverse=True)
-
-def mock_pose_sdf(rank, conf):
-    # Generate minimal valid SDF for a ligand pose (aspirin-like)
-    lines = [
-        f"     BioMate_mock_pose_rank{rank}",
-        "  DiffDock 3D",
-        "",
-        " 13 13  0  0  0  0  0  0  0  0999 V2000",
-        # atom block: 13 atoms rotated by rank * 5 degrees
-        f"    {1.5 + rank*0.1:.4f}    {0.0 + rank*0.05:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {0.7:.4f}    {1.2:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"   {-0.7:.4f}    {1.2:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"   {-1.4:.4f}    {0.0:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"   {-0.7:.4f}   {-1.2:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {0.7:.4f}   {-1.2:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {2.9:.4f}    {0.0:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {3.7:.4f}    {1.0:.4f}    {0.0:.4f} O   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {3.7:.4f}   {-1.0:.4f}    {0.0:.4f} O   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {5.1:.4f}   {-1.0:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {5.9:.4f}    {0.0:.4f}    {0.0:.4f} C   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {7.3:.4f}    {0.0:.4f}    {0.0:.4f} O   0  0  0  0  0  0  0  0  0  0  0  0",
-        f"    {5.1:.4f}    {1.3:.4f}    {0.0:.4f} O   0  0  0  0  0  0  0  0  0  0  0  0",
-        "  1  2  2  0  0  0  0",
-        "  2  3  1  0  0  0  0",
-        "  3  4  2  0  0  0  0",
-        "  4  5  1  0  0  0  0",
-        "  5  6  2  0  0  0  0",
-        "  6  1  1  0  0  0  0",
-        "  1  7  1  0  0  0  0",
-        "  7  8  2  0  0  0  0",
-        "  7  9  1  0  0  0  0",
-        "  9 10  1  0  0  0  0",
-        " 10 11  1  0  0  0  0",
-        " 11 12  2  0  0  0  0",
-        " 10 13  2  0  0  0  0",
-        "M  END",
-        f"> <DiffDock_confidence>",
-        f"{conf}",
-        "",
-        "\$\$\$\$",
-    ]
-    return "\\n".join(lines)
-
-# Write all ranked poses
-for rank, conf in enumerate(confidence_scores, 1):
-    sdf_path = f"diffdock_results/rank{rank}_confidence{conf:.4f}.sdf"
-    with open(sdf_path, "w") as f:
-        f.write(mock_pose_sdf(rank, conf))
-
-# Write rank1 with canonical name (required by output spec)
-top_conf = confidence_scores[0]
-top_path = f"diffdock_results/rank1_confidence{top_conf:.4f}.sdf"
-if not os.path.exists(top_path):
-    with open(top_path, "w") as f:
-        f.write(mock_pose_sdf(1, top_conf))
-
-# Summary JSON — mirrors DiffDock's actual output schema
-poses_summary = []
-for rank, conf in enumerate(confidence_scores, 1):
-    poses_summary.append({
-        "rank":            rank,
-        "confidence":      conf,
-        "sdf_file":        f"rank{rank}_confidence{conf:.4f}.sdf",
-        "rmsd_to_ref":     None,   # unknown without reference
-        "centroid":        [round(rank * 0.3, 3), round(rank * 0.1, 3), 0.0],
-    })
-
-summary = {
-    "target":          meta_id,
-    "ligand":          ligand,
-    "tool":            "DiffDock",
-    "version":         "1.1.2",
-    "num_poses":       num_poses,
-    "inference_steps": int("${steps}"),
-    "top_confidence":  confidence_scores[0],
-    "poses":           poses_summary,
-    "timestamp":       datetime.utcnow().isoformat() + "Z",
-    "mock_mode":       True,
-}
-
-with open(f"{meta_id}_diffdock_summary.json", "w") as f:
-    json.dump(summary, f, indent=2)
-
-print(f"DiffDock mock complete: {num_poses} poses")
-print(f"  Top confidence: {confidence_scores[0]:.4f}")
-print(f"  Poses directory: diffdock_results/")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live DiffDock inference
-        # ---------------------------------------------------------------------------
-        python -m diffdock.inference \\
-            --protein_path   ${protein_pdb} \\
-            --ligand_path    ${ligand_sdf} \\
-            --out_dir        diffdock_results/ \\
-            --samples_per_complex ${poses} \\
-            --inference_steps    ${steps} \\
-            --batch_size 10
-
-        # Normalise output: write summary JSON from DiffDock rank files
-        python3 << 'PYEOF'
+    # Normalise output: write summary JSON from DiffDock rank files
+    python3 << 'PYEOF'
 import json, glob, os, re
 from datetime import datetime
 
@@ -550,9 +281,9 @@ poses = []
 for sdf in sdf_files:
     m = re.search(r'rank(\\d+)_confidence([\\-\\d.]+)\\.sdf', sdf)
     if m:
-        rank = int(m.group(1))
-        conf = float(m.group(2))
-        poses.append({"rank": rank, "confidence": conf, "sdf_file": os.path.basename(sdf)})
+    rank = int(m.group(1))
+    conf = float(m.group(2))
+    poses.append({"rank": rank, "confidence": conf, "sdf_file": os.path.basename(sdf)})
 
 summary = {
     "target":      meta_id,
@@ -562,33 +293,19 @@ summary = {
     "poses":       sorted(poses, key=lambda x: x["rank"]),
     "top_confidence": poses[0]["confidence"] if poses else None,
     "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "mock_mode":   False,
-}
+    }
 with open(f"{meta_id}_diffdock_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 print(f"DiffDock live: {len(poses)} poses written to {out_dir}/")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         diffdock: "1.1.2"
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
-    stub:
-    """
-    mkdir -p diffdock_results
-    echo 'mock' > diffdock_results/rank1_confidence2.2000.sdf
-    echo '{"num_poses":10}' > ${meta.id}_diffdock_summary.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        diffdock: "1.1.2"
-        python: "3.10.0"
-    END_VERSIONS
-    """
 }
 
 // ============================================================================
@@ -612,142 +329,15 @@ process AUTODOCK_VINA_DOCKING {
     path "versions.yml",                          emit: versions
 
     script:
-    def mock          = params.mock_mode
     def exhaustiveness = params.vina_exhaustiveness
     def num_modes     = params.vina_num_modes
     """
-    if [ "${mock}" = "true" ]; then
-        python3 << 'EOF'
-import json
-import math
-import random
-from datetime import datetime
+    # ---------------------------------------------------------------------------
+    # Live AutoDock Vina
+    # ---------------------------------------------------------------------------
 
-random.seed(42)
-
-meta_id       = "${meta.id}"
-ligand        = "${ligand_sdf}"
-pae_file      = "${pae_json}"
-exhaustiveness = int("${exhaustiveness}")
-num_modes     = int("${num_modes}")
-
-# ---------------------------------------------------------------------------
-# 1. Identify binding pocket centre from PAE matrix
-#    Strategy: the residue with the lowest mean PAE to all neighbours
-#    (most structurally confident) is likely in the protein core / active site.
-# ---------------------------------------------------------------------------
-try:
-    pae_data = json.load(open(pae_file))
-    pae      = pae_data.get("pae", [])
-    N        = len(pae)
-
-    if N > 0:
-        row_means = [sum(row) / N for row in pae]
-        anchor    = row_means.index(min(row_means))
-        # Convert residue index to approximate Angstrom position (alpha-helix geometry)
-        angle  = math.radians(anchor * 100.0)
-        cx     = round(2.3 * math.cos(angle), 2)
-        cy     = round(2.3 * math.sin(angle), 2)
-        cz     = round(anchor * 1.5, 2)
-    else:
-        cx, cy, cz = 0.0, 0.0, 0.0
-        anchor = 0
-except Exception:
-    cx, cy, cz = 0.0, 0.0, 0.0
-    anchor = 0
-
-box_size = 20.0  # Angstroms (standard docking grid)
-
-# ---------------------------------------------------------------------------
-# 2. Generate 9 synthetic binding modes (PDBQT format)
-#    Energies: empirically best is ~-9 kcal/mol, tail ~-6 kcal/mol
-# ---------------------------------------------------------------------------
-energies = []
-base_energy = -9.2
-for i in range(num_modes):
-    e = base_energy + i * 0.34 + random.gauss(0, 0.05)
-    energies.append(round(e, 1))
-energies.sort()   # most negative first (best binding first)
-
-pdbqt_lines = []
-for mode_idx, energy in enumerate(energies, 1):
-    pdbqt_lines.append(f"MODEL        {mode_idx}")
-    pdbqt_lines.append(f"REMARK VINA RESULT:   {energy:.1f}      0.000      0.000")
-    # Minimal PDBQT atom block (aspirin-like, translated by pocket centre)
-    atoms = [
-        ("C1",  cx + 1.5,  cy + 0.0,  cz + 0.0,  "C"),
-        ("C2",  cx + 0.7,  cy + 1.2,  cz + 0.0,  "C"),
-        ("C3",  cx - 0.7,  cy + 1.2,  cz + 0.0,  "C"),
-        ("C4",  cx - 1.4,  cy + 0.0,  cz + 0.0,  "C"),
-        ("C5",  cx - 0.7,  cy - 1.2,  cz + 0.0,  "C"),
-        ("C6",  cx + 0.7,  cy - 1.2,  cz + 0.0,  "C"),
-        ("C7",  cx + 2.9,  cy + 0.0,  cz + 0.0,  "C"),
-        ("O1",  cx + 3.7,  cy + 1.0,  cz + 0.0,  "OA"),
-        ("O2",  cx + 3.7,  cy - 1.0,  cz + 0.0,  "OA"),
-        ("C8",  cx + 5.1,  cy - 1.0,  cz + 0.0,  "C"),
-        ("C9",  cx + 5.9,  cy + 0.0,  cz + 0.0,  "C"),
-        ("O3",  cx + 7.3,  cy + 0.0,  cz + 0.0,  "OA"),
-        ("O4",  cx + 5.1,  cy + 1.3,  cz + 0.0,  "OA"),
-    ]
-    # Rotate pose slightly per mode
-    theta = math.radians(mode_idx * 10)
-    for serial, (name, ax, ay, az, atype) in enumerate(atoms, 1):
-        rx = ax * math.cos(theta) - ay * math.sin(theta)
-        ry = ax * math.sin(theta) + ay * math.cos(theta)
-        rz = az
-        pdbqt_lines.append(
-            f"ATOM  {serial:5d} {name:<4s} LIG A   1    "
-            f"{rx:8.3f}{ry:8.3f}{rz:8.3f}  1.00  0.00    "
-            f"    0.000 {atype}"
-        )
-    pdbqt_lines.append("ENDMDL")
-
-with open(f"{meta_id}_vina_poses.pdbqt", "w") as f:
-    f.write("\\n".join(pdbqt_lines) + "\\n")
-
-# ---------------------------------------------------------------------------
-# 3. Summary JSON
-# ---------------------------------------------------------------------------
-modes_summary = []
-for mode_idx, energy in enumerate(energies, 1):
-    modes_summary.append({
-        "mode":           mode_idx,
-        "affinity_kcal_mol": energy,
-        "rmsd_lb":        round(random.uniform(0.0, 2.0), 3),
-        "rmsd_ub":        round(random.uniform(2.0, 5.0), 3),
-    })
-
-summary = {
-    "target":            meta_id,
-    "ligand":            ligand,
-    "tool":              "AutoDock Vina",
-    "version":           "1.2.5",
-    "pocket_centre_xyz": [cx, cy, cz],
-    "pocket_anchor_residue": anchor,
-    "box_size_angstrom": box_size,
-    "exhaustiveness":    exhaustiveness,
-    "num_modes":         num_modes,
-    "best_affinity_kcal_mol": energies[0],
-    "modes":             modes_summary,
-    "timestamp":         datetime.utcnow().isoformat() + "Z",
-    "mock_mode":         True,
-}
-
-with open(f"{meta_id}_vina_summary.json", "w") as f:
-    json.dump(summary, f, indent=2)
-
-print(f"AutoDock Vina mock complete: {num_modes} binding modes")
-print(f"  Pocket centre from PAE: ({cx}, {cy}, {cz}) A")
-print(f"  Best affinity: {energies[0]} kcal/mol")
-EOF
-
-    else
-        # ---------------------------------------------------------------------------
-        # Live AutoDock Vina
-        # ---------------------------------------------------------------------------
-
-        # 1. Extract pocket box from PAE
-        python3 << 'PYEOF'
+    # 1. Extract pocket box from PAE
+    python3 << 'PYEOF'
 import json, math
 
 pae_data = json.load(open("${pae_json}"))
@@ -769,33 +359,33 @@ with open("pocket_params.json", "w") as f:
 print(f"Pocket centre: ({cx}, {cy}, {cz})")
 PYEOF
 
-        CX=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_x'])")
-        CY=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_y'])")
-        CZ=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_z'])")
+    CX=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_x'])")
+    CY=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_y'])")
+    CZ=\$(python3 -c "import json; p=json.load(open('pocket_params.json')); print(p['center_z'])")
 
-        # 2. Prepare receptor PDBQT
-        prepare_receptor4.py -r ${protein_pdb} -o receptor.pdbqt -A hydrogens
+    # 2. Prepare receptor PDBQT
+    prepare_receptor4.py -r ${protein_pdb} -o receptor.pdbqt -A hydrogens
 
-        # 3. Convert ligand SDF → PDBQT
-        obabel ${ligand_sdf} -O ligand.pdbqt --gen3d --partialcharge gasteiger
+    # 3. Convert ligand SDF → PDBQT
+    obabel ${ligand_sdf} -O ligand.pdbqt --gen3d --partialcharge gasteiger
 
-        # 4. Run Vina
-        vina \\
-            --receptor receptor.pdbqt \\
-            --ligand   ligand.pdbqt \\
-            --center_x \$CX \\
-            --center_y \$CY \\
-            --center_z \$CZ \\
-            --size_x   20 \\
-            --size_y   20 \\
-            --size_z   20 \\
-            --exhaustiveness ${exhaustiveness} \\
-            --num_modes       ${num_modes} \\
-            --out             ${meta.id}_vina_poses.pdbqt \\
-            --log             vina.log
+    # 4. Run Vina
+    vina \\
+        --receptor receptor.pdbqt \\
+        --ligand   ligand.pdbqt \\
+        --center_x \$CX \\
+        --center_y \$CY \\
+        --center_z \$CZ \\
+        --size_x   20 \\
+        --size_y   20 \\
+        --size_z   20 \\
+        --exhaustiveness ${exhaustiveness} \\
+        --num_modes       ${num_modes} \\
+        --out             ${meta.id}_vina_poses.pdbqt \\
+        --log             vina.log
 
-        # 5. Parse log → summary JSON
-        python3 << 'PYEOF'
+    # 5. Parse log → summary JSON
+    python3 << 'PYEOF'
 import json, re
 from datetime import datetime
 
@@ -804,12 +394,12 @@ meta_id  = "${meta.id}"
 modes    = []
 
 for m in re.finditer(
-        r'\\s+(\\d+)\\s+([\\-\\d.]+)\\s+([\\-\\d.]+)\\s+([\\-\\d.]+)', log_text):
+    r'\\s+(\\d+)\\s+([\\-\\d.]+)\\s+([\\-\\d.]+)\\s+([\\-\\d.]+)', log_text):
     modes.append({
-        "mode":              int(m.group(1)),
-        "affinity_kcal_mol": float(m.group(2)),
-        "rmsd_lb":           float(m.group(3)),
-        "rmsd_ub":           float(m.group(4)),
+    "mode":              int(m.group(1)),
+    "affinity_kcal_mol": float(m.group(2)),
+    "rmsd_lb":           float(m.group(3)),
+    "rmsd_ub":           float(m.group(4)),
     })
 
 pocket = json.load(open("pocket_params.json"))
@@ -823,33 +413,20 @@ summary = {
     "best_affinity_kcal_mol": modes[0]["affinity_kcal_mol"] if modes else None,
     "modes":       modes,
     "timestamp":   datetime.utcnow().isoformat() + "Z",
-    "mock_mode":   False,
-}
+    }
 with open(f"{meta_id}_vina_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
 print(f"Vina live: {len(modes)} modes written.")
 PYEOF
-    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         autodock_vina: "1.2.5"
         openbabel: \$(obabel --version 2>&1 | head -1 | awk '{print \$3}' || echo "N/A")
         python: \$(python3 --version 2>&1 | cut -d' ' -f2)
-        mock_mode: "${mock}"
     END_VERSIONS
     """
 
-    stub:
-    """
-    echo 'MODEL 1\\nENDMDL' > ${meta.id}_vina_poses.pdbqt
-    echo '{"num_modes":9,"best_affinity_kcal_mol":-9.2}' > ${meta.id}_vina_summary.json
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        autodock_vina: "1.2.5"
-        python: "3.10.0"
-    END_VERSIONS
-    """
 }
 
 // ============================================================================
@@ -880,7 +457,7 @@ workflow STRUCTURE_PREDICTION_DOCKING {
     // ------------------------------------------------------------------
     ALPHAFOLD3_STRUCTURE_PREDICTION(
         ch_fasta,
-        params.af3_mode ?: 'mock'
+        params.af3_mode ?: 'server'
     )
 
     // ------------------------------------------------------------------
@@ -932,95 +509,4 @@ workflow STRUCTURE_PREDICTION_DOCKING {
 workflow {
     log_workflow_header()
 
-    // Default test inputs (mock mode — no real files needed)
-    if (params.mock_mode) {
-        ch_fasta = Channel.of(
-            [
-                [
-                    id:          'EGFR_kinase',
-                    target_name: 'EGFR kinase domain (mock)',
-                    sample_type: 'kinase'
-                ],
-                file("${projectDir}/test_data/egfr_kinase.fasta", checkIfExists: false)
-            ]
-        ).map { meta, fasta ->
-            // In mock mode, create a synthetic FASTA on the fly if not present
-            def f = fasta.exists() ? fasta : {
-                def tmp = file("${workDir}/mock_${meta.id}.fasta")
-                tmp.text = ">sp|P00533|${meta.id} ${meta.target_name}\\n" +
-                           "MRPSGTAGAALLALLAALCPASRALEEKKVCQGTSNKLTQLGTFEDHFLSLQRMFNNCEVVLGNLEITYVQRNYDLSFLKTIQEVAGYVLIALNTVERIPLENLQIIRGNMYYENSYALAVLSNYDANKTGLKELPMRNLQEILHGAVRFSNNPALCNVESIQWRDIVSSDFLSNMSMDFQNHLGSCQKCDPSCPNGSCWGAGEENCQKLTKIICAQQCSGRCRGKSPSDCCHNQCAAGCTGPRESDCLVCRKFRDEATCKDTCPPLMLYNPTTYQMDVNPEGKYSFGATCVKKCPRNYVVTDHGSCVRACGADSYEMEEDGVRKCKKCEGPCRKVCNGIGIGEFKDSLSINATNIKHFKNCTSISGDLHILPVAFRGDSFTHTPPLDPQELDILKTVKEITGFLLIQAWPENRTDLHAFENLEIIRGRTKQHGQFSLAVVSLNITSLGLRSLKEISDGDVIISGNKNLCYANTINWKKLFGTSGQKTKIISNRGENSCKATGQVCHALCSPEGCWGPEPRDCVSCRNVSRGRECVDKCNLLEGEPREFVENSECIQCHPECLPQAMNITCTGRGPDNCIQCAHYIDGPHCVKTCPAGVMGENNTLVWKYADAGHVCHLCHPNCTYGCTGPGLEGCPTNGPKIPSIATGMVGALLLLLVVALGIGLFMRRRHIVRKRTLRRLLQERELVEPLTPSGEAPNQALLRILKETEFKKIKVLGSGAFGTVYKGLWIPEGEKVKIPVAIKELREATSPKANKEILDEAYVMASVDNPHVCRLLGICLTSTVQLITQLMPFGCLLDYVREHKDNIGSQYLLNWCVQIAKGMNYLEDRRLVHRDLAARNVLVKTPQHVKITDFGLAKLLGAEEKEYHAEGGKVPIKWMALESILHRIYTHQSDVWSYGVTVWELMTFGSKPYDGIPASEISSILEKGERLPQPPICTIDVYMIMVKCWMIDADSRPKFRELIIEFSKMARDPQRYLVIQGDERMHLPSPTDSNFYRALMDEEDMDDVVDADEYLIPQQGFFSSPSTSRTPLLSSLSATSNNSTVACIDRNGLQSCPIKEDSFLQRYSSDPTGALTEDSIDDTFLPVPEYINQSVPKRPAGSVQNPVYHNQPLNPAPSRDPHYQDPHSTAVGNPEYLNTVQPTCVNSTFDSPAHWAQKGSHQISLDNPDYQQDFFPKEAKPNGIFKGSTAENAEYLRVAPQSSEFIGA\\n"
-                tmp
-            }()
-            return tuple(meta, f)
-        }
-    } else {
-        if (!params.fasta_input) {
-            error "params.fasta_input is required in live mode. Pass --fasta_input <path>"
-        }
-        ch_fasta = Channel
-            .fromPath(params.fasta_input, checkIfExists: true)
-            .map { fasta ->
-                def meta = [
-                    id:          fasta.baseName,
-                    target_name: fasta.baseName,
-                    sample_type: 'protein'
-                ]
-                tuple(meta, fasta)
-            }
-    }
-
-    // Ligand
-    if (params.mock_mode) {
-        ch_ligand = Channel.of(
-            file("${projectDir}/test_data/aspirin.sdf", checkIfExists: false)
-        ).map { sdf ->
-            // Create synthetic SDF if not present
-            sdf.exists() ? sdf : {
-                def tmp = file("${workDir}/mock_aspirin.sdf")
-                tmp.text = [
-                    "     BioMate_mock_aspirin",
-                    "  BioMate  3D",
-                    "",
-                    " 13 13  0  0  0  0  0  0  0  0999 V2000",
-                    "    1.5000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    0.7000    1.2000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "   -0.7000    1.2000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "   -1.4000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "   -0.7000   -1.2000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    0.7000   -1.2000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    2.9000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    3.7000    1.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    3.7000   -1.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    5.1000   -1.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    5.9000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    7.3000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "    5.1000    1.3000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0",
-                    "  1  2  2  0", "  2  3  1  0", "  3  4  2  0", "  4  5  1  0",
-                    "  5  6  2  0", "  6  1  1  0", "  1  7  1  0", "  7  8  2  0",
-                    "  7  9  1  0", "  9 10  1  0", " 10 11  1  0", " 11 12  2  0",
-                    " 10 13  2  0", "M  END", '$$$$',
-                ].join("\n")
-                tmp
-            }()
-        }
-    } else {
-        if (!params.ligand_sdf) {
-            error "params.ligand_sdf is required in live mode. Pass --ligand_sdf <path>"
-        }
-        ch_ligand = Channel.fromPath(params.ligand_sdf, checkIfExists: true)
-    }
-
-    // Run the pipeline
-    STRUCTURE_PREDICTION_DOCKING(ch_fasta, ch_ligand)
-
-    // Display summary
-    STRUCTURE_PREDICTION_DOCKING.out.af3_scores.view { meta, scores_file ->
-        "AF3 scores (${meta.id}): ${scores_file}"
-    }
-    STRUCTURE_PREDICTION_DOCKING.out.diffdock_scores.view { meta, summary_file ->
-        "DiffDock summary (${meta.id}): ${summary_file}"
-    }
-    STRUCTURE_PREDICTION_DOCKING.out.vina_scores.view { meta, summary_file ->
-        "AutoDock Vina summary (${meta.id}): ${summary_file}"
-    }
-}
+    // Default test inputs

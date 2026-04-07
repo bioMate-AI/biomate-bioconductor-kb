@@ -51,6 +51,184 @@ _runs_lock = threading.Lock()
 _qc_handlers: Dict[str, Any] = {}
 _qc_handlers_lock = threading.Lock()
 
+# ---------------------------------------------------------------------------
+# Public database accession detection
+# ---------------------------------------------------------------------------
+# Covers all major life-science databases so accession strings are never treated
+# as local file paths.  Each entry maps a human-readable type label to a compiled
+# regex (anchored) and a handler type used to choose the download strategy.
+#
+# handler types:
+#   "sequencing"   → nf-core/fetchngs pre-step (produces samplesheet.csv)
+#   "structure"    → RCSB / EMDB HTTP download  (produces .cif / .map.gz)
+#   "protein_seq"  → UniProt / NCBI protein API  (produces .fasta)
+#   "proteomics"   → PRIDE FTP or aspera         (produces raw MS files)
+#   "chemical"     → ChEMBL / PubChem API        (produces .sdf / .json)
+#   "genomic_ref"  → Ensembl REST / NCBI API     (produces .fasta / .vcf)
+#   "annotation"   → no file download; informational only (rs IDs, ClinVar)
+# ---------------------------------------------------------------------------
+
+_ACCESSION_REGISTRY: list[dict] = [
+    # ── Sequencing / raw reads ────────────────────────────────────────────
+    {
+        "label": "SRA run",
+        "handler": "sequencing",
+        "re": re.compile(r'^[SED]RR\d{6,9}$', re.IGNORECASE),
+        "example": "SRR628582",
+    },
+    {
+        "label": "ENA / SRA project",
+        "handler": "sequencing",
+        "re": re.compile(r'^[ES]RP\d{6,9}$', re.IGNORECASE),
+        "example": "SRP123456",
+    },
+    {
+        "label": "BioProject",
+        "handler": "sequencing",
+        "re": re.compile(r'^PRJ[NE][A-Z]\d{4,9}$', re.IGNORECASE),
+        "example": "PRJNA12345",
+    },
+    {
+        "label": "GEO series",
+        "handler": "sequencing",
+        "re": re.compile(r'^GSE\d{4,9}$', re.IGNORECASE),
+        "example": "GSE12345",
+    },
+    {
+        "label": "GEO sample",
+        "handler": "sequencing",
+        "re": re.compile(r'^GSM\d{5,9}$', re.IGNORECASE),
+        "example": "GSM123456",
+    },
+    {
+        "label": "ArrayExpress / BioStudies",
+        "handler": "sequencing",
+        "re": re.compile(r'^E-[A-Z]{4}-\d{4,9}$', re.IGNORECASE),
+        "example": "E-MTAB-1234",
+    },
+    # ── Macromolecular structure ──────────────────────────────────────────
+    {
+        "label": "PDB entry",
+        "handler": "structure",
+        # PDB IDs: digit + 3 alphanumeric chars, at least one must be a letter
+        # (pure-numeric 4-char strings like "1000" are not valid PDB IDs)
+        "re": re.compile(r'^[0-9](?=[A-Z0-9]{0,2}[A-Z])[A-Z0-9]{3}$', re.IGNORECASE),
+        "example": "4ZQK",
+    },
+    {
+        "label": "EMDB entry",
+        "handler": "structure",
+        "re": re.compile(r'^EMD-\d{4,6}$', re.IGNORECASE),
+        "example": "EMD-1234",
+    },
+    # ── Protein / gene sequences ─────────────────────────────────────────
+    {
+        "label": "UniProt accession",
+        "handler": "protein_seq",
+        # UniProtKB: [OPQ][0-9][A-Z0-9]{3}[0-9] or [A-NR-Z][0-9][A-Z][A-Z0-9]{2}[0-9]
+        "re": re.compile(
+            r'^[OPQ][0-9][A-Z0-9]{3}[0-9]$|^[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$',
+            re.IGNORECASE,
+        ),
+        "example": "P12345",
+    },
+    {
+        "label": "NCBI RefSeq protein",
+        "handler": "protein_seq",
+        "re": re.compile(r'^[NXW]P_\d{6,9}(\.\d+)?$', re.IGNORECASE),
+        "example": "NP_012345.1",
+    },
+    {
+        "label": "NCBI RefSeq nucleotide",
+        "handler": "genomic_ref",
+        "re": re.compile(r'^[NXW][CGMRTZ]_\d{6,9}(\.\d+)?$', re.IGNORECASE),
+        "example": "NC_000001.11",
+    },
+    {
+        "label": "Ensembl gene",
+        "handler": "genomic_ref",
+        "re": re.compile(r'^ENSG\d{11}(\.\d+)?$', re.IGNORECASE),
+        "example": "ENSG00000141510",
+    },
+    {
+        "label": "Ensembl transcript",
+        "handler": "genomic_ref",
+        "re": re.compile(r'^ENST\d{11}(\.\d+)?$', re.IGNORECASE),
+        "example": "ENST00000269305",
+    },
+    {
+        "label": "Ensembl protein",
+        "handler": "protein_seq",
+        "re": re.compile(r'^ENSP\d{11}(\.\d+)?$', re.IGNORECASE),
+        "example": "ENSP00000269305",
+    },
+    # ── Proteomics / mass spectrometry ───────────────────────────────────
+    {
+        "label": "PRIDE dataset",
+        "handler": "proteomics",
+        "re": re.compile(r'^PXD\d{6,9}$', re.IGNORECASE),
+        "example": "PXD001234",
+    },
+    {
+        "label": "MassIVE dataset",
+        "handler": "proteomics",
+        "re": re.compile(r'^MSV\d{9}$', re.IGNORECASE),
+        "example": "MSV000079033",
+    },
+    # ── Chemical / small molecules ───────────────────────────────────────
+    {
+        "label": "ChEMBL compound",
+        "handler": "chemical",
+        "re": re.compile(r'^CHEMBL\d{1,9}$', re.IGNORECASE),
+        "example": "CHEMBL25",
+    },
+    {
+        "label": "PubChem CID",
+        "handler": "chemical",
+        "re": re.compile(r'^CID\d{1,9}$', re.IGNORECASE),
+        "example": "CID2244",
+    },
+    # ── Variant / clinical annotation (no download, flag only) ───────────
+    {
+        "label": "dbSNP variant",
+        "handler": "annotation",
+        "re": re.compile(r'^rs\d{6,12}$', re.IGNORECASE),
+        "example": "rs1234567",
+    },
+    {
+        "label": "ClinVar variant",
+        "handler": "annotation",
+        "re": re.compile(r'^[RV]CV\d{9}$', re.IGNORECASE),
+        "example": "VCV000012345",
+    },
+]
+
+
+def _classify_accession(value: str) -> Optional[Dict[str, str]]:
+    """
+    Return accession metadata if *value* is a recognised public-database accession,
+    or None if it looks like a normal path/parameter value.
+
+    Returns: {"label": str, "handler": str, "accession": str} or None.
+    """
+    if not isinstance(value, str):
+        return None
+    v = value.strip()
+    if not v or len(v) < 4 or len(v) > 30:
+        return None
+    # Reject strings that look like file paths or URLs
+    if v.startswith("/") or v.startswith("s3://") or v.startswith("http") or "." in v.split("/")[-1].split("_")[0]:
+        return None
+    for entry in _ACCESSION_REGISTRY:
+        if entry["re"].match(v):
+            return {"label": entry["label"], "handler": entry["handler"], "accession": v.upper()}
+    return None
+
+
+def _is_public_accession(value: str) -> bool:
+    """Convenience wrapper: True if the value is a recognised public-database accession."""
+    return _classify_accession(value) is not None
+
 
 # ---------------------------------------------------------------------------
 # Request / response models
@@ -501,10 +679,17 @@ def _is_path_param(key: str, value: Any) -> bool:
         "samplesheet", "fasta", "fastq", "bam", "csv", "tsv", "mrc",
         "tif", "tiff", "mdoc", "ref", "genome",
     )
+    # Known non-path params that happen to contain path-like substrings
+    _NON_PATH_KEYS = frozenset({
+        "publish_dir_mode", "save_merged_fastq", "publish_dir",
+        "outdir_mode", "output_mode", "copy_mode", "dir_mode",
+    })
     key_l = key.lower()
+    if key_l in _NON_PATH_KEYS:
+        return False
     val = value.strip()
-    # Skip empty strings, booleans, numbers, URLs already handled separately
-    if not val or val.lower() in ("true", "false", "null", "none"):
+    # Skip empty strings, booleans, numbers, mode strings, URLs already handled separately
+    if not val or val.lower() in ("true", "false", "null", "none", "copy", "symlink", "move", "link"):
         return False
     if val.startswith("s3://") or val.startswith("http"):
         return False
@@ -547,6 +732,10 @@ def _validate_input_paths(params: dict) -> None:
         if isinstance(value, str) and value.startswith("s3://"):
             # Pre-flight: validate S3 input is accessible before job starts.
             _validate_s3_url(value, check_object=True)
+            continue
+        # Skip public-database accessions — they will be resolved by a pre-step
+        # download handler (_accession_chain_thread) before the main workflow runs.
+        if _is_public_accession(str(value)):
             continue
         if not _is_path_param(key, value):
             continue
@@ -797,6 +986,13 @@ def _generate_executor_config(
             "    client {",
             "        maxConnections = 20",
             "        uploadChunkSize = 104857600",   # 100 MB chunks
+            "    }",
+            "    batch {",
+            # Tell Nextflow the path to the AWS CLI on the host AMI.
+            # The biomate-nextflow-cpu-v1 CE uses ami-051fc3d11efefcb16 (AL2 base),
+            # which installs AWS CLI v2 via User Data to /usr/local/bin/aws.
+            # Nextflow mounts the binary into each task container for S3 staging.
+            "        cliPath = '/usr/local/bin/aws'",
             "    }",
             "}",
             "docker.enabled = true",
@@ -1288,6 +1484,403 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
 
 
 # ---------------------------------------------------------------------------
+# Public-database accession download handlers
+# ---------------------------------------------------------------------------
+
+def _run_fetchngs_prefetch(
+    accessions: list[str],
+    work_base: Path,
+    run_id: str,
+    nf_bin: str,
+    profile: str,
+    env: dict,
+    executor_config_path: Optional[Path],
+) -> Optional[str]:
+    """
+    Run nf-core/fetchngs synchronously to download sequencing data for *accessions*.
+
+    Returns the path to the generated samplesheet.csv, or None on failure.
+    The samplesheet can be passed as --input to the main workflow.
+    """
+    try:
+        fetchngs_path = _resolve_nextflow_path("nfcore/fetchngs/main.nf")
+    except FileNotFoundError:
+        log.warning("[fetchngs] nf-core/fetchngs not found in workflow search roots — skipping prefetch")
+        return None
+
+    fetch_run_dir = work_base / f"{run_id}_fetchngs"
+    fetch_run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write accession list file
+    ids_file = fetch_run_dir / "ids.csv"
+    ids_file.write_text("\n".join(accessions) + "\n")
+
+    fetch_outdir = fetch_run_dir / "output"
+    fetch_outdir.mkdir(exist_ok=True)
+    fetch_work = fetch_run_dir / "work"
+    fetch_work.mkdir(exist_ok=True)
+
+    cmd = [
+        nf_bin, "run", str(fetchngs_path),
+        "-profile", profile,
+        "-w", str(fetch_work),
+        "--input", str(ids_file),
+        "--outdir", str(fetch_outdir),
+        "--nf_core_pipeline", "rnaseq",  # generates samplesheet compatible with nf-core pipelines
+    ]
+    if executor_config_path:
+        cmd += ["-c", str(executor_config_path)]
+
+    log_path = fetch_run_dir / "fetchngs.log"
+    log.info(f"[fetchngs run_id={run_id}] Starting prefetch: {' '.join(accessions)}")
+    log.info(f"[fetchngs run_id={run_id}] cmd: {' '.join(cmd)}")
+
+    try:
+        with open(log_path, "w") as lf:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=lf,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=str(fetchngs_path.parent),
+                env=env,
+            )
+            proc.wait(timeout=3600)  # 1 hour max for prefetch
+
+        if proc.returncode != 0:
+            log.error(f"[fetchngs run_id={run_id}] Failed (rc={proc.returncode}) — check {log_path}")
+            return None
+
+        # nf-core/fetchngs writes samplesheet to outdir/samplesheet/samplesheet.csv
+        for candidate in [
+            fetch_outdir / "samplesheet" / "samplesheet.csv",
+            fetch_outdir / "fastq" / "samplesheet.csv",
+            fetch_outdir / "samplesheet.csv",
+        ]:
+            if candidate.exists():
+                log.info(f"[fetchngs run_id={run_id}] Samplesheet ready: {candidate}")
+                return str(candidate)
+
+        log.warning(f"[fetchngs run_id={run_id}] No samplesheet found in {fetch_outdir}")
+        return None
+
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        log.error(f"[fetchngs run_id={run_id}] Prefetch timed out after 1 hour")
+        return None
+    except Exception as exc:
+        log.error(f"[fetchngs run_id={run_id}] Prefetch error: {exc}")
+        return None
+
+
+def _download_pdb_structure(accession: str, out_dir: Path) -> Optional[str]:
+    """
+    Download a PDB/EMDB structure file via the RCSB / EMDB HTTP API.
+    Returns local file path or None on failure.
+    """
+    import urllib.request
+    import urllib.error
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    acc_upper = accession.upper()
+
+    if acc_upper.startswith("EMD-"):
+        emdb_id = acc_upper[4:]  # strip "EMD-"
+        url = f"https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-{emdb_id}/map/emd_{emdb_id}.map.gz"
+        dest = out_dir / f"emd_{emdb_id}.map.gz"
+    else:
+        # PDB mmCIF (more complete than legacy .pdb format)
+        url = f"https://files.rcsb.org/download/{acc_upper}.cif"
+        dest = out_dir / f"{acc_upper}.cif"
+
+    if dest.exists():
+        log.info(f"[accession] {acc_upper}: already downloaded at {dest}")
+        return str(dest)
+
+    try:
+        log.info(f"[accession] Downloading {acc_upper} from {url}")
+        urllib.request.urlretrieve(url, dest)
+        log.info(f"[accession] {acc_upper}: saved to {dest} ({dest.stat().st_size // 1024} KB)")
+        return str(dest)
+    except urllib.error.HTTPError as exc:
+        log.error(f"[accession] {acc_upper}: HTTP {exc.code} from {url}")
+        return None
+    except Exception as exc:
+        log.error(f"[accession] {acc_upper}: download failed: {exc}")
+        return None
+
+
+def _download_uniprot_fasta(accession: str, out_dir: Path) -> Optional[str]:
+    """
+    Download a protein sequence (UniProt / Ensembl protein / NCBI RefSeq) as FASTA.
+    Returns local file path or None on failure.
+    """
+    import urllib.request
+    import urllib.error
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    acc_upper = accession.upper()
+    dest = out_dir / f"{acc_upper}.fasta"
+
+    if dest.exists():
+        log.info(f"[accession] {acc_upper}: already downloaded at {dest}")
+        return str(dest)
+
+    # Choose URL based on accession prefix
+    if acc_upper.startswith("ENSP"):
+        url = f"https://rest.ensembl.org/sequence/id/{acc_upper}?content-type=text/x-fasta;type=protein"
+    elif acc_upper.startswith(("NP_", "XP_", "WP_")):
+        # NCBI efetch
+        url = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+            f"?db=protein&id={acc_upper}&rettype=fasta&retmode=text"
+        )
+    else:
+        # UniProtKB
+        url = f"https://rest.uniprot.org/uniprotkb/{acc_upper}.fasta"
+
+    try:
+        log.info(f"[accession] Downloading protein FASTA for {acc_upper} from {url}")
+        urllib.request.urlretrieve(url, dest)
+        log.info(f"[accession] {acc_upper}: saved to {dest} ({dest.stat().st_size} bytes)")
+        return str(dest)
+    except urllib.error.HTTPError as exc:
+        log.error(f"[accession] {acc_upper}: HTTP {exc.code} from {url}")
+        return None
+    except Exception as exc:
+        log.error(f"[accession] {acc_upper}: download failed: {exc}")
+        return None
+
+
+def _download_genomic_ref(accession: str, out_dir: Path) -> Optional[str]:
+    """
+    Download a genomic reference sequence (Ensembl gene/transcript or NCBI RefSeq nucleotide).
+    Returns local FASTA path or None on failure.
+    """
+    import urllib.request
+    import urllib.error
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    acc_upper = accession.upper()
+    dest = out_dir / f"{acc_upper}.fasta"
+
+    if dest.exists():
+        return str(dest)
+
+    if acc_upper.startswith("ENSG") or acc_upper.startswith("ENST"):
+        endpoint = "sequence/id"
+        type_param = "genomic" if acc_upper.startswith("ENSG") else "cdna"
+        url = f"https://rest.ensembl.org/{endpoint}/{acc_upper}?content-type=text/x-fasta;type={type_param}"
+    else:
+        # NCBI RefSeq nucleotide
+        url = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+            f"?db=nuccore&id={acc_upper}&rettype=fasta&retmode=text"
+        )
+
+    try:
+        log.info(f"[accession] Downloading genomic FASTA for {acc_upper}")
+        urllib.request.urlretrieve(url, dest)
+        return str(dest)
+    except Exception as exc:
+        log.error(f"[accession] {acc_upper}: download failed: {exc}")
+        return None
+
+
+def _download_chemical_structure(accession: str, out_dir: Path) -> Optional[str]:
+    """
+    Download a small-molecule structure (ChEMBL or PubChem) as SDF.
+    Returns local file path or None on failure.
+    """
+    import urllib.request
+    import urllib.error
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    acc_upper = accession.upper()
+    dest = out_dir / f"{acc_upper}.sdf"
+
+    if dest.exists():
+        return str(dest)
+
+    if acc_upper.startswith("CHEMBL"):
+        url = f"https://www.ebi.ac.uk/chembl/api/data/molecule/{acc_upper}.sdf"
+    elif acc_upper.startswith("CID"):
+        cid_num = acc_upper[3:]  # strip "CID"
+        url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid_num}/SDF"
+    else:
+        return None
+
+    try:
+        log.info(f"[accession] Downloading chemical structure for {acc_upper}")
+        urllib.request.urlretrieve(url, dest)
+        return str(dest)
+    except Exception as exc:
+        log.error(f"[accession] {acc_upper}: download failed: {exc}")
+        return None
+
+
+def _resolve_accession_file(
+    accession_info: Dict[str, str],
+    work_base: Path,
+    run_id: str,
+    nf_bin: str,
+    profile: str,
+    env: dict,
+    executor_config_path: Optional[Path],
+) -> Optional[str]:
+    """
+    Dispatch to the appropriate download handler for a single accession.
+    Returns the local file path (or samplesheet path for sequencing data), or None.
+    """
+    handler = accession_info["handler"]
+    accession = accession_info["accession"]
+    dl_dir = work_base / f"{run_id}_accession_downloads"
+
+    if handler == "sequencing":
+        return _run_fetchngs_prefetch(
+            [accession], work_base, run_id, nf_bin, profile, env, executor_config_path
+        )
+    elif handler == "structure":
+        return _download_pdb_structure(accession, dl_dir)
+    elif handler == "protein_seq":
+        return _download_uniprot_fasta(accession, dl_dir)
+    elif handler == "genomic_ref":
+        return _download_genomic_ref(accession, dl_dir)
+    elif handler == "chemical":
+        return _download_chemical_structure(accession, dl_dir)
+    elif handler == "proteomics":
+        # PRIDE datasets are large; provide the FTP URL as metadata instead of downloading
+        log.info(
+            f"[accession] {accession}: PRIDE download not automated. "
+            f"Retrieve from https://www.ebi.ac.uk/pride/archive/projects/{accession}"
+        )
+        return None
+    elif handler == "annotation":
+        # Variant / clinical IDs are looked up online; no file to download
+        log.info(f"[accession] {accession}: annotation-only ID ({accession_info['label']}) — no file to download")
+        return None
+    else:
+        log.warning(f"[accession] Unknown handler '{handler}' for {accession}")
+        return None
+
+
+def _accession_chain_thread(
+    *,
+    run_id: str,
+    accession_params: Dict[str, Dict[str, str]],  # param_key → accession_info
+    remaining_params: Dict[str, Any],
+    main_cmd: list[str],
+    nf_bin: str,
+    nf_path: Path,
+    profile: str,
+    work_base: Path,
+    log_path: Path,
+    trace_path: Path,
+    env: dict,
+    executor_config_path: Optional[Path],
+) -> None:
+    """
+    Background thread: resolve all public-database accessions, substitute resolved
+    file paths into the main Nextflow command, then launch and stream the main workflow.
+
+    Status transitions: fetching_accessions → running (or failed).
+    """
+    def _set_status(status: str, **extra: Any) -> None:
+        with _runs_lock:
+            if run_id in _runs:
+                _runs[run_id]["status"] = status
+                _runs[run_id].update(extra)
+
+    log.info(f"[accession chain run_id={run_id}] Starting accession resolution for params: {list(accession_params)}")
+
+    # Resolve each accession-valued parameter to a local file path
+    resolved: Dict[str, str] = {}
+    any_sequencing = any(v["handler"] == "sequencing" for v in accession_params.values())
+
+    if any_sequencing:
+        # Batch all sequencing accessions into a single fetchngs run
+        sequencing_keys = [k for k, v in accession_params.items() if v["handler"] == "sequencing"]
+        seq_accessions = [accession_params[k]["accession"] for k in sequencing_keys]
+        _set_status("fetching_accessions", accession_status="running fetchngs")
+
+        samplesheet = _run_fetchngs_prefetch(
+            seq_accessions, work_base, run_id, nf_bin, profile, env, executor_config_path
+        )
+        if samplesheet:
+            # Map the first sequencing param → samplesheet; others get the same path
+            for k in sequencing_keys:
+                resolved[k] = samplesheet
+            log.info(f"[accession chain run_id={run_id}] fetchngs done → {samplesheet}")
+        else:
+            _set_status("failed", error="fetchngs prefetch failed — check fetchngs logs")
+            return
+
+    # Resolve non-sequencing accessions individually
+    for key, info in accession_params.items():
+        if info["handler"] == "sequencing":
+            continue  # already resolved above
+        local_file = _resolve_accession_file(
+            info, work_base, run_id, nf_bin, profile, env, executor_config_path
+        )
+        if local_file:
+            resolved[key] = local_file
+        else:
+            # Non-sequencing download failures are warnings, not fatal — the main
+            # workflow may have its own retrieval logic (e.g. alphafold with PDB id)
+            log.warning(f"[accession chain run_id={run_id}] Could not resolve {info['accession']} for --{key}; passing original accession string")
+            resolved[key] = info["accession"]
+
+    # Substitute resolved paths into the main command
+    # Replace "--<key> <original_accession>" with "--<key> <resolved_path>"
+    substituted_cmd = []
+    skip_next = False
+    original_accession_values = {k: v["accession"] for k, v in accession_params.items()}
+    i = 0
+    while i < len(main_cmd):
+        token = main_cmd[i]
+        if skip_next:
+            skip_next = False
+            i += 1
+            continue
+        # Check if this is a --param flag whose value should be substituted
+        if token.startswith("--") and i + 1 < len(main_cmd):
+            param_name = token[2:]
+            next_val = main_cmd[i + 1]
+            if param_name in resolved and next_val.upper() == original_accession_values.get(param_name, "").upper():
+                substituted_cmd.append(token)
+                substituted_cmd.append(resolved[param_name])
+                skip_next = True
+                i += 1
+                log.info(f"[accession chain run_id={run_id}] Substituted --{param_name}: {next_val!r} → {resolved[param_name]!r}")
+                i += 1
+                continue
+        substituted_cmd.append(token)
+        i += 1
+
+    _set_status("running", accession_status="launching main workflow")
+    log.info(f"[accession chain run_id={run_id}] Launching main workflow: {' '.join(substituted_cmd)}")
+
+    try:
+        process = subprocess.Popen(
+            substituted_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=str(nf_path.parent),
+            env=env,
+        )
+        with _runs_lock:
+            if run_id in _runs:
+                _runs[run_id]["process"] = process
+    except Exception as exc:
+        _set_status("failed", error=f"Failed to launch main workflow: {exc}")
+        log.error(f"[accession chain run_id={run_id}] Launch error: {exc}")
+        return
+
+    _stream_logs(process, run_id, log_path)
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -1316,14 +1909,17 @@ def execute_nextflow(
     _use_aws_env = os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes")
     # Normalise user_id early for path construction (before run_id is generated)
     _uid_for_path = (request.user_id or "unknown").replace("/", "_").replace("..", "_")
-    if _use_aws_env and not compute.get("executor"):
+    # Route to AWS Batch when NEXTFLOW_USE_AWS=true OR when executor is already "awsbatch"
+    # (the frontend sends executor="awsbatch" by default as the platform standard).
+    _executor_requested = compute.get("executor", "")
+    if _use_aws_env or _executor_requested == "awsbatch":
         s3_bucket_default = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
         run_uuid_short = str(uuid.uuid4())[:8]
         _auto_outdir = f"s3://{s3_bucket_default}/nextflow/outputs/{_uid_for_path}/{run_uuid_short}"
         if not params.get("outdir"):
             params["outdir"] = _auto_outdir
             log.info(
-                f"[Nextflow] NEXTFLOW_USE_AWS=true — auto-routing to AWS Batch, "
+                f"[Nextflow] AWS Batch executor — auto-setting "
                 f"outdir={_auto_outdir}"
             )
         compute["executor"] = "awsbatch"
@@ -1522,19 +2118,6 @@ def execute_nextflow(
     if executor_config_path:
         cmd += ["-c", str(executor_config_path)]
 
-    try:
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            cwd=str(nf_path.parent),
-            env=env,
-        )
-    except Exception as exc:
-        log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
-        raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
-
     # Validate qc_overrides and qc_profile if provided
     qc_overrides = request.qc_overrides or {}
     qc_profile = request.qc_profile or None
@@ -1565,12 +2148,31 @@ def execute_nextflow(
 
     _is_batch = compute.get("executor") == "awsbatch"
 
-    # Register run
+    # ── Detect public-database accessions in parameters ───────────────────────
+    # If any parameter value is a recognised accession (SRA, PDB, UniProt, etc.)
+    # we launch an accession-chain thread that first downloads / resolves the data,
+    # then substitutes the local path into the Nextflow command and runs the workflow.
+    # This avoids the 422 "path does not exist" error for accession-valued params.
+    accession_params: Dict[str, Dict[str, str]] = {}
+    for key, value in params.items():
+        if key == "outdir":
+            continue
+        info = _classify_accession(str(value))
+        if info:
+            accession_params[key] = info
+            log.info(
+                f"[Nextflow run {run_id}] Detected {info['label']} accession in "
+                f"--{key}: {info['accession']} (handler={info['handler']})"
+            )
+
+    initial_status = "fetching_accessions" if accession_params else "running"
+
+    # Register run before starting any thread so status endpoint returns immediately
     with _runs_lock:
         _runs[run_id] = {
             "run_id": run_id,
             "invocation_id": invocation_id,
-            "status": "running",
+            "status": initial_status,
             "returncode": None,
             "outdir": str(outdir),
             "log_path": str(log_path),
@@ -1589,10 +2191,76 @@ def execute_nextflow(
             "host_arch": strategy.get("host_arch"),
             "image_arch": strategy.get("image_arch"),
             "is_batch": _is_batch,
-            # LTM tracking fields
             "user_id": request.user_id or "anonymous",
             "started_at": time.time(),
+            # Accession metadata (empty dict when not applicable)
+            "accession_params": {k: v["label"] for k, v in accession_params.items()},
         }
+
+    if accession_params:
+        # Accession path: run download pre-step then main workflow in one thread
+        t = threading.Thread(
+            target=_accession_chain_thread,
+            kwargs={
+                "run_id": run_id,
+                "accession_params": accession_params,
+                "remaining_params": {k: v for k, v in params.items() if k not in accession_params},
+                "main_cmd": cmd,
+                "nf_bin": nf_bin,
+                "nf_path": nf_path,
+                "profile": profile,
+                "work_base": work_base,
+                "log_path": log_path,
+                "trace_path": trace_path,
+                "env": env,
+                "executor_config_path": executor_config_path,
+            },
+            daemon=True,
+            name=f"nf-acc-{run_id[:8]}",
+        )
+        t.start()
+        # QC monitor is started here; the chain thread will launch the Nextflow
+        # process internally, but the monitor waits for the trace file to appear.
+        _start_qc_monitor(
+            invocation_id=invocation_id,
+            work_dir=work_dir,
+            qc_overrides=qc_overrides,
+            workflow_domain=workflow_domain,
+            qc_profile=qc_profile,
+            trace_path=trace_path,
+            is_batch=_is_batch,
+        )
+        return {
+            "success": True,
+            "run_id": run_id,
+            "invocation_id": invocation_id,
+            "status": "fetching_accessions",
+            "accessions": {k: v["label"] for k, v in accession_params.items()},
+            "outputs": {"outdir": str(outdir)},
+            "runtime": {
+                "mode": strategy["mode"],
+                "image": strategy["image"],
+                "entry": selected_entry,
+            },
+            "message": (
+                f"Downloading {len(accession_params)} accession(s) before launching workflow "
+                f"(run_id: {run_id})"
+            ),
+        }
+
+    # ── Normal path: no accessions — launch Nextflow directly ────────────────
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=str(nf_path.parent),
+            env=env,
+        )
+    except Exception as exc:
+        log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
+        raise HTTPException(status_code=500, detail=f"Failed to launch Nextflow: {exc}")
 
     # Stream logs in background
     t = threading.Thread(
@@ -1654,20 +2322,57 @@ def get_nextflow_status(
         output_dir = log_dir / "output"
         log_path_fallback = log_dir / "nextflow.log"
         log_tail_fallback: list = []
+        log_full_text = ""
         if log_path_fallback.exists():
             try:
                 with open(log_path_fallback) as fh:
-                    lines = fh.readlines()
+                    log_full_text = fh.read()
+                lines = log_full_text.splitlines()
                 log_tail_fallback = [l.rstrip() for l in lines[-20:]]
             except Exception:
                 pass
         if output_dir.exists():
-            # Output directory exists → run completed successfully
+            # Use the Nextflow log as the primary completion signal.
+            # Nextflow writes pipeline_info/ as soon as execution starts, so we cannot
+            # rely on directory presence alone — the run may still be in progress.
+            nf_done = "Execution complete" in log_full_text
+            nf_failed_log = (
+                "Workflow execution failed" in log_full_text
+                or "Pipeline failed" in log_full_text
+                or "ERROR ~ " in log_full_text
+            )
+            if not nf_done and not nf_failed_log:
+                # Log doesn't yet show completion → run is still in progress.
+                return {
+                    "run_id": run_id,
+                    "invocation_id": run_id,
+                    "status": "running",
+                    "returncode": None,
+                    "outdir": str(output_dir),
+                    "work_dir": str(log_dir / "work"),
+                    "log_tail": log_tail_fallback,
+                    "is_batch": False,
+                    "s3_output_files": [],
+                    "completedSteps": 0,
+                    "totalSteps": 0,
+                    "progressPercent": 50,
+                    "processes": [],
+                }
+
+            # Nextflow finished. Check whether result directories were produced.
+            nf_internal = {"pipeline_info"}
+            real_subdirs = [
+                d for d in output_dir.iterdir()
+                if d.is_dir() and d.name not in nf_internal
+            ] if output_dir.is_dir() else []
+            has_results = len(real_subdirs) > 0
+
+            fallback_status = "succeeded" if has_results else "failed"
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
-                "status": "succeeded",
-                "returncode": 0,
+                "status": fallback_status,
+                "returncode": 0 if has_results else 1,
                 "outdir": str(output_dir),
                 "work_dir": str(log_dir / "work"),
                 "log_tail": log_tail_fallback,

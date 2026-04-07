@@ -268,6 +268,11 @@ class UnifiedWorkflowSearch:
             'multibody': 4.0, 'multi-body': 4.0, 'flexible': 2.0, 'domain-motion': 3.0,
             'body-mask': 3.5, 'spliceosome': 3.5, 'ribosome': 2.5, 'relion': 3.0,
 
+            # Drug MoA RNA-seq
+            'drug moa': 4.5, 'moa rnaseq': 4.5, 'drug moa rnaseq': 5.0,
+            'mechanism of action rnaseq': 4.5, 'mechanism action rna': 4.0,
+            'drug mechanism rnaseq': 4.5, 'drug effect rna': 3.5,
+
             # Drug discovery / Pharmacology / ADMET
             'admet': 3.0, 'herg': 3.0, 'dili': 3.0,
             'toxicity': 2.5, 'cardiotoxicity': 3.0, 'hepatotoxicity': 2.5,
@@ -529,7 +534,8 @@ class UnifiedWorkflowSearch:
             sql = """
                 SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
                        w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
-                       bm25(workflows_fts) as fts_score
+                       bm25(workflows_fts) as fts_score,
+                       w.input_types, w.output_types
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
                 WHERE workflows_fts MATCH ?
@@ -596,7 +602,8 @@ class UnifiedWorkflowSearch:
                     rescue_sql = f"""
                         SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
                                w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
-                               0.0 as fts_score
+                               0.0 as fts_score,
+                               w.input_types, w.output_types
                         FROM workflows w
                         WHERE w.id IN ({placeholders})
                     """
@@ -761,7 +768,7 @@ class UnifiedWorkflowSearch:
                       preferred_domains: Optional[List[str]] = None,
                       penalized_domains: Optional[List[str]] = None) -> WorkflowMatch:
         """Create WorkflowMatch from database row."""
-        id_, name, description, domain, source, format_, step_count, tools_json, tags_json, filename, workflow_json, fts_score = row
+        id_, name, description, domain, source, format_, step_count, tools_json, tags_json, filename, workflow_json, fts_score, input_types_json, output_types_json = row
 
         # Parse JSON fields
         try:
@@ -774,11 +781,17 @@ class UnifiedWorkflowSearch:
         except:
             tags = []
 
+        try:
+            input_types = json.loads(input_types_json) if input_types_json else []
+        except:
+            input_types = []
+
         # Calculate custom score — use LLM-derived domain lists when provided
         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
                                       user_profile=user_profile,
                                       preferred_domains=preferred_domains,
-                                      penalized_domains=penalized_domains)
+                                      penalized_domains=penalized_domains,
+                                      input_types=input_types)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -834,7 +847,8 @@ class UnifiedWorkflowSearch:
                          fts_score: float,
                          user_profile: Optional[Dict[str, Any]] = None,
                          preferred_domains: Optional[List[str]] = None,
-                         penalized_domains: Optional[List[str]] = None) -> float:
+                         penalized_domains: Optional[List[str]] = None,
+                         input_types: Optional[List[str]] = None) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
         # Expand abbreviations in query for keyword matching
@@ -874,6 +888,8 @@ class UnifiedWorkflowSearch:
                 score += 15.0  # Exact name match (e.g., query="rnaseq", name="nf-core/rnaseq")
             elif bare_name.startswith(q_bare) or q_bare.startswith(bare_name):
                 score += 8.0   # Prefix match
+            elif len(bare_name) >= 6 and bare_name in q_bare:
+                score += 12.0  # Name appears as substring in query (e.g., "Generate the drug_moa_rnaseq workflow")
 
         # 5. Source priority — boosted to make nfcore clearly win over bioconductor
         source_bonus = SOURCE_PRIORITY.get(source, 0) / 15.0  # ~6.7 max (nfcore=6.67, bioconductor=5.0)
@@ -909,6 +925,23 @@ class UnifiedWorkflowSearch:
                 if domain_value in profile_domains:
                     score += 2.0
 
+        # 8. Input-type compatibility scoring (soft boost/penalty using DB input_types field).
+        # Only applied when the workflow has clean, non-channel input_types (skip "ch_*" names).
+        if input_types:
+            # Normalise: lowercase, strip whitespace; skip Nextflow channel names (ch_*)
+            wf_types = frozenset(
+                t.lower().strip() for t in input_types
+                if t and not t.lower().strip().startswith("ch_")
+            )
+            if wf_types:
+                user_types = self._detect_query_data_types(query)
+                if user_types:
+                    overlap = user_types & wf_types
+                    if overlap:
+                        score += 3.0  # user has exactly the right input type
+                    elif (user_types & self._RAW_TYPES) and (wf_types & self._PROCESSED_TYPES):
+                        score -= 4.0  # user has raw data but workflow needs processed input
+
         return round(score, 2)
 
     def _classify_match(self, score: float) -> str:
@@ -942,7 +975,8 @@ class UnifiedWorkflowSearch:
         try:
             sql = """
                 SELECT id, name, description, domain, source, format,
-                       step_count, tools_used, tags, filename, workflow_json, 0.0 as fts_score
+                       step_count, tools_used, tags, filename, workflow_json, 0.0 as fts_score,
+                       input_types, output_types
                 FROM workflows
                 WHERE name LIKE ? OR description LIKE ? OR tools_used LIKE ?
             """
@@ -986,7 +1020,8 @@ class UnifiedWorkflowSearch:
         try:
             cursor.execute("""
                 SELECT id, name, description, domain, source, format,
-                       step_count, tools_used, tags, filename, workflow_json
+                       step_count, tools_used, tags, filename, workflow_json,
+                       0.0 as fts_score, input_types, output_types
                 FROM workflows
                 WHERE id = ?
             """, (workflow_id,))
@@ -995,8 +1030,6 @@ class UnifiedWorkflowSearch:
             if not row:
                 return None
 
-            # Add dummy fts_score
-            row = row + (0.0,)
             return self._create_match(row, "", True)
 
         finally:
@@ -1036,16 +1069,28 @@ class UnifiedWorkflowSearch:
 
     @staticmethod
     def _chain_embed_text(chain: "WorkflowChain") -> str:
-        """Rich text for embedding: name + display_name + description + examples + tags.
+        """Rich text for embedding: name + display_name + description + examples + tags
+        + required_inputs summary.
 
         Including name and display_name ensures exact-name matches score very
         high even when description/examples are sparse.
+        Including required_inputs type names lets the embedding distinguish
+        chains that need raw FASTQ from those that need processed outputs.
         """
         parts = [
             chain.name.replace("_", " "),   # e.g. "bulk rnaseq de analysis"
             chain.display_name,              # e.g. "Bulk RNA-seq Differential Expression Analysis"
             chain.description or "",
         ]
+        # Include required input type names (e.g. "cellranger_output h5ad directory")
+        # so queries mentioning raw data types (fastq, bam) score lower for chains
+        # that require processed inputs.
+        if chain.required_inputs:
+            input_tokens = " ".join(
+                f"{inp.get('name','')} {inp.get('type','')} {inp.get('description','')[:40]}"
+                for inp in chain.required_inputs
+            )
+            parts.append(f"requires inputs: {input_tokens}")
         parts.extend(chain.example_queries)
         parts.extend(chain.tags)
         return ". ".join(p.strip() for p in parts if p.strip())
@@ -1142,16 +1187,25 @@ class UnifiedWorkflowSearch:
         if self._llm_client is None or not candidates:
             return None
 
+        def _format_inputs(c: "WorkflowChain") -> str:
+            if not c.required_inputs:
+                return "unspecified"
+            return ", ".join(
+                f"{inp.get('name','')} ({inp.get('type','')})"
+                for inp in c.required_inputs[:3]
+            )
+
         options = "\n".join(
             f"- {c.name}: {c.display_name}\n"
             f"  Scope: {(c.description or '')[:200]}\n"
+            f"  Required inputs: {_format_inputs(c)}\n"
             f"  Steps: {', '.join(s.get('workflow_name', '') or s.get('name', '') for s in c.steps[:5])}"
             for c in candidates
         )
         prompt = (
             f"You are a bioinformatics workflow router.\n"
             f"User request: \"{query}\"\n\n"
-            f"Candidate multi-step chains:\n{options}\n\n"
+            f"Candidate multi-step chains (all passed input-type compatibility check):\n{options}\n\n"
             f"RULES:\n"
             f"1. A chain matches ONLY if the user's request clearly covers the chain's FULL scope (all major steps).\n"
             f"2. If a chain is a subset match (user asked for one component of a larger chain), do NOT select it — return 'none'.\n"
@@ -1202,6 +1256,74 @@ class UnifiedWorkflowSearch:
             return None
 
     # ------------------------------------------------------------------
+    # ── Data-type helpers — code-based input/output compatibility ──────────
+    # Used by both chain filtering and workflow scoring.
+    # ------------------------------------------------------------------
+
+    # Raw/unprocessed data types a user might start with
+    _RAW_TYPES: frozenset = frozenset({"fastq", "fq", "bam", "cram", "vcf", "bcf", "fastq.gz", "fq.gz"})
+    # Processed/derived data types that result from a prior pipeline step
+    _PROCESSED_TYPES: frozenset = frozenset({
+        "directory", "h5ad", "h5", "mtx", "anndata", "cellranger_output",
+        "count_matrix", "counts_matrix", "loom", "rds",
+    })
+
+    @staticmethod
+    def _detect_query_data_types(query: str) -> frozenset:
+        """Return the set of data types the user appears to have from query text.
+
+        Only returns types the user *explicitly* mentions. Returns empty set when
+        the query doesn't describe input data (e.g. pure analysis questions).
+        """
+        q = query.lower()
+        types: set = set()
+        if re.search(r'\bfastq\b|\.fastq|\.fq\b|raw reads?|sequencing reads?|paired.end reads?', q):
+            types.add("fastq")
+        if re.search(r'\b\.bam\b|bam files?|aligned reads?|sorted bam', q):
+            types.add("bam")
+        if re.search(r'\b\.cram\b|cram files?', q):
+            types.add("cram")
+        if re.search(r'\bvcf\b|\.vcf|variant calls?', q):
+            types.add("vcf")
+        if re.search(r'count.?matrix|counts.?matrix|gene.?count|feature.count|expression matrix', q):
+            types.add("counts_matrix")
+        if re.search(r'\.h5ad\b|h5ad|anndata|scanpy object', q):
+            types.add("h5ad")
+        if re.search(r'cell.?ranger output|cellranger output|10x output|\.h5 file|matrix\.mtx', q):
+            types.add("cellranger_output")
+        if re.search(r'\.pdb\b|protein structure|crystal structure', q):
+            types.add("pdb")
+        if re.search(r'\bsmiles\b|compound.?library|ligand.?library|\.sdf\b', q):
+            types.add("smiles")
+        return frozenset(types)
+
+    @classmethod
+    def _chain_input_compatible(cls, chain: "WorkflowChain", user_types: frozenset) -> bool:
+        """Return False when user's data types are structurally incompatible with
+        the chain's required_inputs.
+
+        Specifically: if the user only has raw data (FASTQ/BAM/VCF) and the chain
+        requires processed outputs (Cell Ranger directory, h5ad, count matrix, etc.),
+        reject. This is a hard check — no LLM needed.
+
+        When user_types is empty (query didn't mention explicit input data), returns
+        True so we don't over-filter ambiguous queries.
+        """
+        if not chain.required_inputs or not user_types:
+            return True
+        # If user has only raw data but no processed data
+        user_has_raw_only = bool(user_types & cls._RAW_TYPES) and not (user_types & cls._PROCESSED_TYPES)
+        if not user_has_raw_only:
+            return True
+        # Check if any required input is a processed type
+        for inp in chain.required_inputs:
+            inp_type = inp.get("type", "").lower()
+            # Handle pipe-separated alternatives: "fastq|bam" → {"fastq","bam"}
+            inp_subtypes = frozenset(t.strip() for t in inp_type.split("|"))
+            if inp_subtypes & cls._PROCESSED_TYPES:
+                return False
+        return True
+
     # Chain search — embedding similarity + LLM reranking
     # ------------------------------------------------------------------
 
@@ -1246,6 +1368,23 @@ class UnifiedWorkflowSearch:
                     len(top_candidates), query[:60],
                     [c.name for c in top_candidates],
                 )
+                # ── Code-based input-type pre-filter (before LLM) ─────────────
+                # Hard-reject chains whose required_inputs are structurally
+                # incompatible with what the user's query says they have.
+                # E.g. user says "FASTQ files" → reject chains needing Cell Ranger output.
+                user_types = self._detect_query_data_types(query)
+                if user_types:
+                    compatible = [c for c in top_candidates if self._chain_input_compatible(c, user_types)]
+                    if len(compatible) < len(top_candidates):
+                        log.info(
+                            "[ChainIndex] Input-type pre-filter removed %d/%d candidates for %r "
+                            "(user_types=%s)",
+                            len(top_candidates) - len(compatible), len(top_candidates),
+                            query[:60], sorted(user_types),
+                        )
+                    top_candidates = compatible
+                if not top_candidates:
+                    return []  # all candidates filtered out — fall through to workflow search
                 # LLM reranking from short candidate list
                 # Returns [chain] (match), [] (explicit no-match), or None (unavailable)
                 llm_result = self._llm_select_chain(query, top_candidates)

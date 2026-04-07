@@ -44,10 +44,19 @@ NFCORE_MOD_BASE = BACKEND_ROOT / "nf-core-modules" / "modules" / "nf-core"
 GENERATED_BASE = BACKEND_ROOT / "biomni_workflows" / "nextflow_generated"
 LIBRARY_PATH   = BACKEND_ROOT / "database" / "subworkflow_library"
 
-# Relative path prefix used in include{} directives (relative to the generated workflow dir)
-_BIOC_INCLUDE_PREFIX    = "../../../nextflow_nfcore/subworkflows/bioconductor"
-_NFCORE_INCLUDE_PREFIX  = "../../../../nf-core-modules/modules/nf-core"
-_BIOMNI_INCLUDE_PREFIX  = "../../../nextflow_nfcore/subworkflows"
+# Relative path prefix used in include{} directives (relative to the generated workflow dir).
+#
+# Generated workflows live at:
+#   GENERATED_BASE / "{ts}_{slug}" / main.nf
+# i.e. backend/biomni_workflows/nextflow_generated/{ts}_{slug}/main.nf
+#
+# From that directory:
+#   ../  → nextflow_generated/
+#   ../../  → biomni_workflows/          ← bioc + biomni targets are here
+#   ../../../  → backend/               ← nf-core-modules target is here
+_BIOC_INCLUDE_PREFIX    = "../../nextflow_nfcore/subworkflows/bioconductor"
+_NFCORE_INCLUDE_PREFIX  = "../../../nf-core-modules/modules/nf-core"
+_BIOMNI_INCLUDE_PREFIX  = "../../nextflow_nfcore/subworkflows"
 
 # Cache quality threshold: only return cached workflows with this minimum score.
 _CACHE_MIN_QUALITY = 70.0
@@ -413,10 +422,21 @@ class NextflowComposer:
 
     # ── Tool retrieval ────────────────────────────────────────────────────────
 
-    def _retrieve_tools(self, user_intent: str) -> List[_ToolContext]:
-        """Search tools table and return enriched tool contexts."""
+    def _retrieve_tools(self, user_intent: str, key_terms: Optional[List[str]] = None) -> List[_ToolContext]:
+        """Search tools table and return enriched tool contexts.
+
+        key_terms (LLM-extracted domain terms from intent decomposition) are appended
+        to the search query when they add new vocabulary not already present in user_intent.
+        This improves FTS recall without double-searching.
+        """
         ts = self._get_tool_search()
-        raw = ts.search(user_intent, limit=self.MAX_TOOLS)
+        query = user_intent
+        if key_terms:
+            extra = " ".join(t for t in key_terms if t.lower() not in user_intent.lower())
+            if extra.strip():
+                query = f"{user_intent} {extra}"
+                log.debug(f"[NextflowComposer] Augmented search query with key_terms: +{extra.strip()!r}")
+        raw = ts.search(query, limit=self.MAX_TOOLS)
         if not raw:
             log.warning("[NextflowComposer] No tools found for intent")
             return []
@@ -487,6 +507,13 @@ class NextflowComposer:
                - Selected tools and why
                - Expected inputs/outputs
 
+            7. Declare ALL user-configurable inputs in a `params {{ }}` block at the top:
+               - Required inputs: `params.reads = null` (null signals required)
+               - Optional inputs: `params.outdir = 'results'` (provide a sensible default)
+               - Add `if (!params.reads) error "Required parameter: --reads"` guard in the
+                 workflow body for each required parameter.
+               This ensures the BioMate UI can display and fill in parameters before execution.
+
             ## OUTPUT FORMAT
             Return ONLY the raw Nextflow DSL2 `main.nf` content.
             Do NOT wrap in markdown fences or add extra explanation.
@@ -547,14 +574,14 @@ class NextflowComposer:
         include_pattern = re.compile(
             r"include\s*\{[^}]+\}\s*from\s*['\"]([^'\"]+)['\"]"
         )
-        wf_dir = GENERATED_BASE  # approximate; exact dir not known here
+        # All generated workflows live one level inside GENERATED_BASE, so any
+        # single-level placeholder subdir gives the correct relative-path math.
+        _wf_placeholder = GENERATED_BASE / "_validation_ref"
         for m in include_pattern.finditer(nf_content):
             raw_path = m.group(1)
             # Convert relative path to absolute (relative to the generated wf dir)
             if raw_path.startswith("."):
-                # Paths like ../../../nextflow_nfcore/bioconductor/deseq2/main.nf
-                # are relative to the workflow directory inside nextflow_generated/
-                candidate = (GENERATED_BASE / "dummy_slug" / raw_path).resolve()
+                candidate = (_wf_placeholder / raw_path).resolve()
             else:
                 candidate = BACKEND_ROOT / raw_path
             if not candidate.exists():
@@ -590,22 +617,25 @@ class NextflowComposer:
         user_intent: str,
         reference_match=None,
         max_tools: int = 25,
+        key_terms: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Compose a Nextflow DSL2 workflow for the given user intent.
 
         Pipeline (single LLM call in the hot path):
           L0  Cache check            → 0 LLM calls on hit
-          L1  Tool retrieval         → SQLite FTS
+          L1  Tool retrieval         → SQLite FTS (augmented by key_terms when supplied)
           L2  Wrapper-path validation→ disk stat, substitutes bad paths
           L3  LLM generates DSL2     → one call with pre-validated tools
           L4  Syntax validation + write to disk
+              If missing_includes found → strip bad includes, retry LLM once (max 2 calls total)
               Store in library (background thread)
 
         Args:
             user_intent:     Natural language description of the analysis goal.
             reference_match: Optional medium-confidence WorkflowMatch for structural context.
             max_tools:       Number of tools retrieved from the index.
+            key_terms:       LLM-extracted domain terms to augment tool search.
 
         Returns dict with keys:
             success          bool
@@ -625,7 +655,7 @@ class NextflowComposer:
         log.info(f"[NextflowComposer] Composing workflow for: {user_intent}")
 
         # L1: Retrieve tools from index (always needed; also used for cache key)
-        tools = self._retrieve_tools(user_intent)
+        tools = self._retrieve_tools(user_intent, key_terms=key_terms)
         if not tools:
             return {
                 "success": False,
@@ -651,29 +681,78 @@ class NextflowComposer:
         # L3: Build prompt with pre-validated tool list and call LLM (single call)
         prompt = self._build_prompt(user_intent, tools)
         if reference_match:
+            # Convert opaque Galaxy tool IDs (ToolShed URLs) to readable names.
+            # e.g. "toolshed.g2.bx.psu.edu/repos/devteam/fastqc/fastqc/0.73+galaxy0"
+            #   → "fastqc"
+            # Nextflow or plain tool IDs are passed through unchanged.
+            def _readable_tool_id(tid: str) -> str:
+                if "/" in tid and "toolshed" in tid.lower():
+                    parts = tid.rstrip("/").split("/")
+                    # ToolShed URL pattern: .../repos/<owner>/<repo>/<tool_id>/<version>
+                    # The tool name is the 4th segment from the end (tool_id field)
+                    return parts[-2] if len(parts) >= 2 else parts[-1]
+                return tid
+
+            readable_tools = [_readable_tool_id(t) for t in (reference_match.tools or [])]
+            # Deduplicate while preserving order
+            seen: set = set()
+            unique_tools = [t for t in readable_tools if not (t in seen or seen.add(t))]  # type: ignore[func-returns-value]
             prompt += (
                 f"\n\n## REFERENCE WORKFLOW (medium-confidence match — use as structural guide)\n"
                 f"Name: {reference_match.name}\n"
                 f"Description: {reference_match.description}\n"
-                f"Tools used: {reference_match.tools}\n"
+                f"Steps include: {', '.join(unique_tools)}\n"
+                f"Use this as a structural guide for the biologically correct step order.\n"
             )
 
-        try:
-            nf_content = self._call_llm(prompt)
-        except Exception as e:
-            log.error(f"[NextflowComposer] LLM error: {e}")
-            return {"success": False, "error": str(e), "message": "LLM workflow generation failed"}
+        # L3+L4 loop: up to 2 LLM calls total.
+        # Attempt 0 is the normal single call.  If include paths are still missing
+        # after L4 validation, we strip the bad include{} lines and retry once so the
+        # LLM can regenerate those blocks as inline process definitions instead.
+        nf_content = ""
+        validation: Dict[str, Any] = {}
+        for attempt in range(2):
+            try:
+                nf_content = self._call_llm(prompt)
+            except Exception as e:
+                log.error(f"[NextflowComposer] LLM error (attempt {attempt}): {e}")
+                if attempt == 0:
+                    return {"success": False, "error": str(e), "message": "LLM workflow generation failed"}
+                break  # use best-effort content from attempt 0 if available; we have none here
 
-        if not nf_content or len(nf_content) < 100:
-            return {"success": False, "error": "LLM returned empty workflow", "message": "Empty response from LLM"}
+            if not nf_content or len(nf_content) < 100:
+                if attempt == 0:
+                    return {"success": False, "error": "LLM returned empty workflow", "message": "Empty response from LLM"}
+                break
 
-        # L4: Syntax validation (include paths, DSL2 marker, brace balance)
-        validation = self.validate_workflow(nf_content)
-        if validation["missing_includes"]:
-            log.warning(
-                f"[NextflowComposer] {len(validation['missing_includes'])} include paths "
-                "still unresolved after L2 — LLM may have invented names outside the tool list."
-            )
+            # L4: Syntax validation (include paths, DSL2 marker, brace balance)
+            validation = self.validate_workflow(nf_content)
+            if not validation["missing_includes"]:
+                break  # all includes resolved — done
+
+            if attempt == 0:
+                missing = validation["missing_includes"]
+                log.warning(
+                    f"[NextflowComposer] L4 attempt 0: {len(missing)} include path(s) unresolved "
+                    f"— retrying with correction prompt: {missing}"
+                )
+                # Strip broken include{} lines from the content and add a correction note
+                correction_lines = [
+                    f"  {p}" for p in missing
+                ]
+                prompt += (
+                    "\n\n## CORRECTION REQUIRED — Include Paths\n"
+                    "The following `include{}` paths you generated do NOT exist on disk:\n"
+                    + "\n".join(correction_lines)
+                    + "\n\nFor each of these broken includes, replace the `include{}` directive with an "
+                    "inline `process` block (GENERATE style) using `container 'biomate/biomni-tools:latest'` "
+                    "and `label 'process_medium'`. Do NOT use those include{} paths again."
+                )
+            else:
+                log.warning(
+                    f"[NextflowComposer] L4 attempt 1: {len(validation['missing_includes'])} "
+                    "include path(s) still unresolved — writing best-effort result"
+                )
 
         # Write to disk
         slug = _slugify(user_intent)

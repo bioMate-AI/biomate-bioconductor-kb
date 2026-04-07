@@ -2236,6 +2236,25 @@ class AIAssistant:
                 new_req.append(p)
         return new_req, list(opt_params)
 
+    _MAX_SPOTS_RE = re.compile(r'\bmax_spots\s*[=:]\s*(\d+)', re.IGNORECASE)
+
+    def _extract_max_spots(self, user_intent: str) -> Optional[int]:
+        """Return max_spots value if user explicitly specified it (e.g. 'max_spots=500000')."""
+        m = self._MAX_SPOTS_RE.search(user_intent)
+        return int(m.group(1)) if m else None
+
+    def _inject_max_spots_into_params(self, opt_params: list, max_spots: int) -> list:
+        """Set max_spots in optional params (add it if not present)."""
+        for p in opt_params:
+            if p['name'] == 'max_spots':
+                return [{**p, 'default': max_spots} if p['name'] == 'max_spots' else p
+                        for p in opt_params]
+        # Not in opt_params yet — append it
+        return list(opt_params) + [{
+            'name': 'max_spots', 'default': max_spots, 'required': False,
+            'description': 'Limit SRA spots downloaded (0 = unlimited)',
+        }]
+
     def _inject_genome_into_params(self, req_params: list, opt_params: list, genome_build: str) -> tuple:
         """Pre-fill reference, known_sites, and genome params when user mentioned a genome build.
         Uses igenomes-compatible S3 paths so the Run button is not blocked by empty required fields.
@@ -2580,6 +2599,9 @@ Examples of good inference:
         genome = self._extract_genome_build(user_intent)
         if genome:
             req, opt = self._inject_genome_into_params(req, opt, genome)
+        max_spots = self._extract_max_spots(user_intent)
+        if max_spots:
+            opt = self._inject_max_spots_into_params(opt, max_spots)
         # Layer 2: apply DB-driven tool_knowledge hints
         hints = (scientific_rationale or {}).get('parameter_hints', [])
         req, opt = self._apply_parameter_hints(req, opt, hints)
