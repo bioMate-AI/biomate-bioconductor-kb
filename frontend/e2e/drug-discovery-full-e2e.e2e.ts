@@ -437,23 +437,24 @@ test.afterAll(async () => {
 // TIER A — Full execution expected
 // ===========================================================================
 
+// S3 test data (uploaded by update_ce_ami.sh / CI setup)
+const S3_TESTDATA = 's3://biomate-nextflow-work/e2e-testdata';
+
 // DA-1: NCA/PK Analysis
 test('DA-1: NCA/PK analysis — plasma concentration-time curve (rocker/PKNCA)', async ({ page }) => {
-  const pkCsv =
-    'time_h,conc_ngmL\n0,0\n0.25,850\n0.5,680\n1,520\n2,340\n4,210\n8,95\n12,42\n24,8.5';
   const result = await runWorkflowTest(page, {
     id: 'DA1_NCA',
     tier: 'A',
     name: 'NCA/PKNCA Pharmacokinetics',
     workflowId: 'nca_pknca',
     query:
-      'Run NCA pharmacokinetic analysis on this single-dose IV plasma data for Compound A. ' +
-      'Calculate Cmax, Tmax, AUC0-inf, t1/2, clearance, Vd.\n\n' +
-      pkCsv + '\n\n' +
+      'Run NCA pharmacokinetic analysis on single-dose IV plasma data for Compound A. ' +
+      'Calculate Cmax, Tmax, AUC0-inf, t1/2, clearance, Vd. ' +
+      'Input CSV is at ' + S3_TESTDATA + '/nca_test.csv. ' +
       'Dose: 10 mg/kg IV bolus. Molecular weight: 412 g/mol. Generate the workflow now.',
-    forceQuery: 'Generate the nca_pknca NCA pharmacokinetics workflow now with the data above.',
-    prefillParams: { input_csv: pkCsv },
-    maxPollSecs: 300,
+    forceQuery: 'Generate the nca_pknca NCA pharmacokinetics workflow now.',
+    prefillParams: { input_csv: `${S3_TESTDATA}/nca_test.csv` },
+    maxPollSecs: 900,  // AWS Batch: ~5 min cold start + execution
   });
   expect(result.h1Pass, 'DA-1: NCA workflow not generated').toBe(true);
   expect(result.outputFilesHttp, 'DA-1: output_files endpoint failed').toBe(200);
@@ -461,7 +462,6 @@ test('DA-1: NCA/PK analysis — plasma concentration-time curve (rocker/PKNCA)',
 
 // DA-2: Scaffold Hopping
 test('DA-2: Scaffold hopping — BCR-ABL1 imatinib scaffold with RDKit', async ({ page }) => {
-  const imatinibSmiles = 'Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1 imatinib';
   const result = await runWorkflowTest(page, {
     id: 'DA2_SCAFFOLD',
     tier: 'A',
@@ -472,8 +472,8 @@ test('DA-2: Scaffold hopping — BCR-ABL1 imatinib scaffold with RDKit', async (
       'Generate 10 bioisosteric scaffold replacements while retaining the BCR-ABL1 kinase pharmacophore. ' +
       'Filter by Lipinski rule-of-5. Generate the scaffold_hopping workflow now.',
     forceQuery: 'Generate the scaffold_hopping workflow now with imatinib as the reference compound.',
-    prefillParams: { input_smiles: imatinibSmiles },
-    maxPollSecs: 300,
+    prefillParams: { input_smiles: 'Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1' },
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DA-2: Scaffold hopping workflow not generated').toBe(true);
   expect(result.outputFilesHttp, 'DA-2: output_files endpoint failed').toBe(200);
@@ -499,8 +499,11 @@ test('DA-3: Drug MoA RNA-seq — imatinib differential expression', async ({ pag
       'Expected: downregulation of BCR-ABL1 target genes (MYC, MCL1), upregulation of apoptosis. ' +
       'Generate the drug_moa_rnaseq workflow now.',
     forceQuery: 'Generate the drug_moa_rnaseq DESeq2 differential expression workflow now.',
-    prefillParams: { treated_counts: treatedCounts, control_counts: controlCounts },
-    maxPollSecs: 600,
+    prefillParams: {
+      treated_counts: `${S3_TESTDATA}/treated_counts.tsv`,
+      control_counts: `${S3_TESTDATA}/control_counts.tsv`,
+    },
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DA-3: MoA RNA-seq workflow not generated').toBe(true);
   // output_files may 404 on multi-worker Node if the run record lands on a different
@@ -521,7 +524,7 @@ test('DA-4: AlphaFold DB search — BCR-ABL1 kinase domain structural homologs',
       'Find top-10 structural neighbors with TM-score > 0.7, identify off-target kinases. ' +
       'Generate the alphafold_db_search workflow now.',
     forceQuery: 'Generate the alphafold_db_search Foldseek structural homology workflow now.',
-    maxPollSecs: 600,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DA-4: AlphaFold DB search workflow not generated').toBe(true);
   expect(result.outputFilesHttp, 'DA-4: output_files endpoint failed').toBe(200);
@@ -544,7 +547,7 @@ test('DB-1: AiZynthFinder retrosynthesis — asciminib synthetic route', async (
       'Find top-3 synthetic routes with AiZynthFinder. Max depth 5 steps. ' +
       'Generate the aizynthfinder_retrosynthesis workflow now.',
     forceQuery: 'Generate the aizynthfinder_retrosynthesis retrosynthesis workflow for asciminib.',
-    maxPollSecs: 600,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-1: AiZynthFinder workflow not generated').toBe(true);
   expect(result.executionStarted, 'DB-1: Execution did not start').toBe(true);
@@ -565,8 +568,8 @@ test('DB-2: REINVENT4 generative lead design — BCR-ABL1 de novo compounds', as
       'Generate the reinvent4_lead_design workflow now.',
     forceQuery: 'Generate the reinvent4_lead_design de novo SMILES generation workflow now.',
     // receptor is null in workflow but only used for docking mode; provide placeholder
-    prefillParams: { receptor: 's3://biomate-nextflow-runs/test/1IEP.pdb' },
-    maxPollSecs: 600,
+    prefillParams: { receptor: 's3://biomate-nextflow-work/e2e-testdata/1IEP.pdb' },
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-2: REINVENT4 workflow not generated').toBe(true);
   expect(result.executionStarted, 'DB-2: Execution did not start').toBe(true);
@@ -610,10 +613,10 @@ test('DB-4: GROMACS MD — imatinib/BCR-ABL1 complex stability (graceful GPU fai
       'Generate the gromacs_protein_md workflow now.',
     forceQuery: 'Generate the gromacs_protein_md GROMACS molecular dynamics workflow now.',
     prefillParams: {
-      receptor: 's3://biomate-nextflow-runs/test/1IEP.pdb',
-      ligand:   's3://biomate-nextflow-runs/test/imatinib.sdf',
+      receptor: 's3://biomate-nextflow-work/e2e-testdata/1IEP.pdb',
+      ligand:   's3://biomate-nextflow-work/e2e-testdata/imatinib.sdf',
     },
-    maxPollSecs: 300,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-4: GROMACS workflow not generated').toBe(true);
   expect(result.executionStarted, 'DB-4: Execution did not start').toBe(true);
@@ -634,11 +637,11 @@ test('DB-5: AMBER pmemd MD — BCR-ABL1/asciminib myristoyl pocket (license gate
       'AMBER license is available. Generate the amber_pmemd_md workflow now.',
     forceQuery: 'Generate the amber_pmemd_md AMBER GPU molecular dynamics workflow now.',
     prefillParams: {
-      receptor: 's3://biomate-nextflow-runs/test/5MO4.pdb',
-      ligand:   's3://biomate-nextflow-runs/test/asciminib.sdf',
+      receptor: 's3://biomate-nextflow-work/e2e-testdata/5MO4.pdb',
+      ligand:   's3://biomate-nextflow-work/e2e-testdata/asciminib.sdf',
     },
     acceptGateBlocked: true, // AMBER ECR requires license — gate blocking is expected
-    maxPollSecs: 300,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-5: AMBER workflow not generated').toBe(true);
   // Execution starts OR license gate correctly blocks it — both are valid outcomes
@@ -666,11 +669,11 @@ test('DB-6: Schrödinger Glide docking — BCR-ABL1 virtual screening (license g
       'Schrödinger license is available. Generate the schrodinger_glide_docking workflow now.',
     forceQuery: 'Generate the schrodinger_glide_docking Glide HTVS virtual screening workflow now.',
     prefillParams: {
-      receptor: 's3://biomate-nextflow-runs/test/1IEP.pdb',
+      receptor: 's3://biomate-nextflow-work/e2e-testdata/1IEP.pdb',
       ligands:  ligandSmiles,
     },
     acceptGateBlocked: true,
-    maxPollSecs: 300,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-6: Glide docking workflow not generated').toBe(true);
   expect(
@@ -694,11 +697,11 @@ test('DB-7: MOE covalent docking — acrylamide warhead BCR-ABL1 T315I (license 
       'MOE license is available. Generate the moe_covalent_docking workflow now.',
     forceQuery: 'Generate the moe_covalent_docking covalent docking workflow now.',
     prefillParams: {
-      receptor: 's3://biomate-nextflow-runs/test/3IK3.pdb',
+      receptor: 's3://biomate-nextflow-work/e2e-testdata/3IK3.pdb',
       ligands:  'C=CC(=O)NCCCNC(=O)c1ccc(Nc2ncnc3cc4c(cc23)OCO4)cc1 warhead_compound',
     },
     acceptGateBlocked: true,
-    maxPollSecs: 300,
+    maxPollSecs: 900,
   });
   expect(result.h1Pass, 'DB-7: MOE covalent docking workflow not generated').toBe(true);
   expect(
