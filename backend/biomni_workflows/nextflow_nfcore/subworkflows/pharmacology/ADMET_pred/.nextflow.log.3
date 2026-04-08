@@ -1,73 +1,462 @@
-Mar-25 04:17:28.817 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf -with-docker biomate/biomni-tools -profile standard -w /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/work --outdir /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/output --smiles 'OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC' -with-trace /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/workflow-trace.txt
-Mar-25 04:17:28.870 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
-Mar-25 04:17:28.912 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
-Mar-25 04:17:28.915 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
-Mar-25 04:17:28.935 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
-Mar-25 04:17:29.320 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools`
-Mar-25 04:17:29.333 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
-Mar-25 04:17:29.340 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-25 04:17:29.341 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-25 04:17:29.342 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
-Mar-25 04:17:29.350 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
-Mar-25 04:17:29.441 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-25 04:17:29.442 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
-Mar-25 04:17:29.442 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
-Mar-25 04:17:29.452 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/.nextflow/secrets/store.json
-Mar-25 04:17:29.454 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7ce85af2] - activable => nextflow.secret.LocalSecretsProvider@7ce85af2
-Mar-25 04:17:29.457 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-25 04:17:29.466 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` [boring_stallman] DSL2 - revision: 26285d71a3
-Mar-25 04:17:29.496 [main] DEBUG nextflow.Session - Session UUID: 44fd1a93-39ea-4f87-ac02-ae35d05cde6b
-Mar-25 04:17:29.496 [main] DEBUG nextflow.Session - Run name: boring_stallman
-Mar-25 04:17:29.497 [main] DEBUG nextflow.Session - Executor pool size: 20
-Mar-25 04:17:29.502 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-25 04:17:29.505 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:17:29.517 [main] DEBUG nextflow.cli.CmdRun - 
+Apr-07 19:01:14.621 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/7ddd086c' -with-trace /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/workflow-trace.txt -c /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/biomate_executor_override.config
+Apr-07 19:01:14.741 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 19:01:14.769 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
+Apr-07 19:01:14.771 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/biomate_executor_override.config
+Apr-07 19:01:14.771 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
+Apr-07 19:01:14.771 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/biomate_executor_override.config
+Apr-07 19:01:14.788 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 19:01:15.143 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 19:01:15.203 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 19:01:15.210 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 19:01:15.210 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 19:01:15.212 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 19:01:15.220 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 19:01:15.294 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 19:01:15.296 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 19:01:15.296 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 19:01:15.877 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-07 19:01:15.897 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 19:01:15.901 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 19:01:17.885 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 19:01:17.893 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 19:01:17.893 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 19:01:17.903 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 19:01:17.911 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 19:01:17.925 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/.nextflow/secrets/store.json
+Apr-07 19:01:17.927 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@5a7df831] - activable => nextflow.secret.LocalSecretsProvider@5a7df831
+Apr-07 19:01:17.929 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 19:01:17.937 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` [sharp_ekeblad] DSL2 - revision: 26285d71a3
+Apr-07 19:01:17.968 [main] DEBUG nextflow.Session - Session UUID: ca0d7bc4-bad7-4abe-8224-d610044ddd6c
+Apr-07 19:01:17.969 [main] DEBUG nextflow.Session - Run name: sharp_ekeblad
+Apr-07 19:01:17.969 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 19:01:17.979 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/opt/aws-cli/bin/aws], client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 19:01:17.996 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 19:01:18.632 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 19:01:18.638 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:01:18.655 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 25.10.0 build 10289
   Created: 22-10-2025 16:26 UTC 
   System: Linux 6.11.0-1016-nvidia
   Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
   Encoding: UTF-8 (UTF-8)
-  Process: 1888208@spark-d816 [127.0.0.1]
-  CPUs: 20 - Mem: 119.7 GB (11.5 GB) - Swap: 16 GB (10.9 GB)
-Mar-25 04:17:29.530 [main] DEBUG nextflow.Session - Work-dir: /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/work [ext2/ext3]
-Mar-25 04:17:29.530 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/bin
-Mar-25 04:17:29.535 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
-Mar-25 04:17:29.540 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
-Mar-25 04:17:29.542 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
-Mar-25 04:17:29.578 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-25 04:17:29.583 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
-Mar-25 04:17:29.631 [main] DEBUG nextflow.Session - Session start
-Mar-25 04:17:29.636 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/workflow-trace.txt
-Mar-25 04:17:29.838 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-25 04:17:29.953 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name ADMET_PRED_WORKFLOW:ADMET_PRED
-Mar-25 04:17:29.965 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-25 04:17:29.966 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-25 04:17:29.974 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
-Mar-25 04:17:29.980 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
-Mar-25 04:17:29.982 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
-Mar-25 04:17:30.005 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'ADMET_PRED_WORKFLOW:ADMET_PRED': maxForks=0; fair=false; array=0
-Mar-25 04:17:30.060 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: ADMET_PRED_WORKFLOW:ADMET_PRED, ADMET_PRED
-Mar-25 04:17:30.062 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
-Mar-25 04:17:30.063 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > ADMET_PRED_WORKFLOW:ADMET_PRED
-Mar-25 04:17:30.063 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Process: 1576574@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (28.7 GB) - Swap: 16 GB (341.5 MB)
+Apr-07 19:01:18.908 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649
+
+Apr-07 19:01:18.908 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649 [null]
+Apr-07 19:01:18.908 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/bin
+Apr-07 19:01:18.920 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 19:01:18.926 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 19:01:18.927 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 19:01:18.955 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 19:01:18.960 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 19:01:19.006 [main] DEBUG nextflow.Session - Session start
+Apr-07 19:01:19.177 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/1c75e32f-1040-404e-b6af-0ccbd436c649/workflow-trace.txt
+Apr-07 19:01:19.415 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-07 19:01:19.509 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name ADMET_PRED_WORKFLOW:ADMET_PRED
+Apr-07 19:01:19.517 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 19:01:19.517 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 19:01:19.521 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-07 19:01:19.528 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 19:01:19.531 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 19:01:19.532 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-07 19:01:19.535 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-07 19:01:19.579 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:/opt/aws-cli/bin/aws, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:/opt/aws-cli/bin/aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-07 19:01:19.592 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'ADMET_PRED_WORKFLOW:ADMET_PRED': maxForks=0; fair=false; array=0
+Apr-07 19:01:19.624 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: ADMET_PRED_WORKFLOW:ADMET_PRED, ADMET_PRED
+Apr-07 19:01:19.625 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Apr-07 19:01:19.626 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > ADMET_PRED_WORKFLOW:ADMET_PRED
+Apr-07 19:01:19.626 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
   Script_604b5d2b89c48df7: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf
-Mar-25 04:17:30.063 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
-Mar-25 04:17:30.063 [main] DEBUG nextflow.Session - Session await
-Mar-25 04:17:30.222 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-25 04:17:30.225 [Task submitter] INFO  nextflow.Session - [b6/b221d8] Submitted process > ADMET_PRED_WORKFLOW:ADMET_PRED (run)
-Mar-25 04:17:31.855 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: ADMET_PRED_WORKFLOW:ADMET_PRED (run); status: COMPLETED; exit: 0; error: -; workDir: /tmp/nextflow_runs/3bbe25eb-886e-4c9a-ba64-dbe7e7833e2d/work/b6/b221d8b0b695e94697520dff7e65cb]
-Mar-25 04:17:31.856 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:17:31.890 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:17:31.897 [main] DEBUG nextflow.Session - Session await > all processes finished
-Mar-25 04:17:31.954 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
-Mar-25 04:17:31.955 [main] DEBUG nextflow.Session - Session await > all barriers passed
-Mar-25 04:17:31.956 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
-Mar-25 04:17:31.957 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
-Mar-25 04:17:31.961 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=672ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
-Mar-25 04:17:32.068 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
-Mar-25 04:17:32.068 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
-Mar-25 04:17:32.468 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
-Mar-25 04:17:32.508 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
-Mar-25 04:17:32.512 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
-Mar-25 04:17:32.520 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
-Mar-25 04:17:32.521 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
+Apr-07 19:01:19.626 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-07 19:01:19.626 [main] DEBUG nextflow.Session - Session await
+Apr-07 19:01:20.588 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-biomate-biomni-tools-latest:2; container=biomate/biomni-tools:latest
+Apr-07 19:01:20.727 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` submitted > job=d04ab0b7-b7f0-41d6-8768-f627641e8e09; work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649/b1/dd423bb6e8812294a751eaba546f12
+Apr-07 19:01:20.727 [AWSBatch-executor-1] INFO  nextflow.Session - [b1/dd423b] Submitted process > ADMET_PRED_WORKFLOW:ADMET_PRED (run)
+Apr-07 19:02:49.908 [Task monitor] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Cannot read exit status for task: `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` | /biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649/b1/dd423bb6e8812294a751eaba546f12/.exitcode
+Apr-07 19:02:50.325 [Task monitor] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Unable to find AWS Cloudwatch logs for Batch Job id=d04ab0b7-b7f0-41d6-8768-f627641e8e09 - The specified log stream does not exist. (Service: CloudWatchLogs, Status Code: 400, Request ID: 40c90b78-7276-45ec-81cc-d376183cf76c) (SDK Attempt Count: 1)
+Apr-07 19:02:50.326 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: ADMET_PRED_WORKFLOW:ADMET_PRED (run); status: COMPLETED; exit: -; error: nextflow.exception.ProcessException: Task failed to start - CannotPullImageManifestError: Error response from daemon: errors:
+denied: requested access to the resource is denied
+unauthorized: authentication required; workDir: s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649/b1/dd423bb6e8812294a751eaba546f12]
+Apr-07 19:02:50.327 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:02:50.381 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=ADMET_PRED_WORKFLOW:ADMET_PRED (run); work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649/b1/dd423bb6e8812294a751eaba546f12
+  error [nextflow.exception.ProcessFailedException]: Process `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` failed
+Apr-07 19:02:50.447 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-18433020332152924389/.command.out
+Apr-07 19:02:50.497 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-7195443845241466756/.command.err
+Apr-07 19:02:50.502 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)'
+
+Caused by:
+  Task failed to start - CannotPullImageManifestError: Error response from daemon: errors:
+  denied: requested access to the resource is denied
+  unauthorized: authentication required
+
+
+Command executed:
+
+  # Export parameters as environment variables
+      export PARAM_SMILES='OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC'
+  
+      python3 << 'PYEOF'
+  # ADMET safety screening using RDKit molecular descriptor heuristics.
+  # Phase 1: RDKit structural safety (always runs, no heavy dependencies)
+  # Phase 2: DeepPurpose ClinTox model (optional, runs when installed)
+  import json
+  import os
+  import re
+  
+  def auto_convert(val):
+      if val is None or val == '' or val == 'null':
+          return None
+      if isinstance(val, str) and val.lower() in ('true', 'false'):
+          return val.lower() == 'true'
+      if isinstance(val, str) and val.strip().startswith(('[', '{')):
+          try:
+              return json.loads(val)
+          except json.JSONDecodeError:
+              pass
+      try:
+          if isinstance(val, str) and '.' not in val:
+              return int(val)
+      except ValueError:
+          pass
+      try:
+          return float(val)
+      except ValueError:
+          pass
+      return val
+  
+  
+  def compute_structural_safety(smiles_input):
+      '''
+      Estimate ADMET safety flags from molecular descriptors (RDKit).
+  
+      hERG IC50 heuristic: Aronov 2008 J Med Chem 51:6632; Price et al. 2009
+      log10(IC50 [uM]) approx 1.4 - 0.30 * logP
+  
+      DILI risk: Lammert et al. 2010 Toxicol Sci 116:536; Fontana et al. 2010
+      High risk: logP > 4.0 AND MW > 400
+  
+      Returns worst-case metrics across all compounds (or {} if RDKit unavailable).
+      '''
+      try:
+          from rdkit import Chem
+          from rdkit.Chem import Descriptors
+      except ImportError:
+          return {}
+  
+      # Accept single SMILES string or JSON list
+      if isinstance(smiles_input, list):
+          items = smiles_input
+      elif isinstance(smiles_input, str) and smiles_input.strip().startswith('['):
+          try:
+              items = json.loads(smiles_input)
+          except json.JSONDecodeError:
+              items = [smiles_input]
+      else:
+          items = [smiles_input] if smiles_input else []
+  
+      compound_results = []
+      for smiles in items:
+          smiles = str(smiles).strip()
+          if not smiles:
+              continue
+          mol = Chem.MolFromSmiles(smiles)
+          if mol is None:
+              compound_results.append({"smiles": smiles, "error": "Invalid SMILES"})
+              continue
+  
+          logp = Descriptors.MolLogP(mol)
+          mw = Descriptors.MolWt(mol)
+  
+          # hERG IC50 heuristic (Aronov 2008)
+          log10_ic50 = 1.4 - 0.30 * logp
+          herg_ic50 = round(max(0.01, 10 ** log10_ic50), 3)
+  
+          # DILI risk (Lammert 2010)
+          if logp > 4.0 and mw > 400:
+              dili_risk = "high"
+              dili_prob = round(min(0.90, 0.55 + 0.05 * (logp - 4.0)), 3)
+          elif logp > 2.5 or mw > 350:
+              dili_risk = "medium"
+              dili_prob = round(min(0.70, 0.30 + 0.04 * max(0, logp)), 3)
+          else:
+              dili_risk = "low"
+              dili_prob = round(max(0.05, 0.08 + 0.02 * max(0, logp)), 3)
+  
+          compound_results.append({
+              "smiles": smiles,
+              "logP": round(logp, 2),
+              "mw": round(mw, 1),
+              "herg_ic50_uM": herg_ic50,
+              "dili_risk": dili_risk,
+              "dili_probability": dili_prob,
+          })
+  
+      valid = [r for r in compound_results if "error" not in r]
+      if not valid:
+          return {}
+  
+      min_herg = min(r["herg_ic50_uM"] for r in valid)
+      worst_dili = max(valid, key=lambda r: r["dili_probability"])
+  
+      return {
+          "herg_ic50_uM": min_herg,
+          "dili_risk": worst_dili["dili_risk"],
+          "dili_probability": worst_dili["dili_probability"],
+          "per_compound": compound_results,
+      }
+  
+  
+  def compute_ames_alerts(smiles_input):
+      '''
+      Ames mutagenicity prediction via structural alerts.
+  
+      Kazius et al. 2005 J Med Chem 48:312-320 -- 13 mechanistic alert classes
+      covering the principal mutagens in the Salmonella Ames assay (TA98, TA100,
+      TA1535, TA1537). Returns ames_positive (bool), ames_probability (0-1),
+      and structural_alerts list. ICH S2(R1) still requires experimental confirmation.
+      '''
+      try:
+          from rdkit import Chem
+      except ImportError:
+          return {}
+  
+      ALERTS = [
+          ("n_nitroso",               "[NX3]-N=O",                    0.90),
+          ("aromatic_nitro",          "c[N+](=O)[O-]",                0.85),
+          ("primary_aromatic_amine",  "[NH2]c",                       0.80),
+          ("organic_azide",           "[NX2]=[NX2+]=[NX1-]",         0.80),
+          ("azo_aromatic",            "c-[NX2]=[NX2]-c",             0.70),
+          ("alkyl_nitrite",           "[OX2][NX2]=O",                 0.65),
+          ("alkylating_epoxide",      "[O;r3]",                       0.65),
+          ("haloacetyl",              "[F,Cl,Br,I][CH2][CX3]=O",      0.60),
+          ("furan",                   "c1ccoc1",                      0.60),
+          ("beta_lactone",            "C1(=O)CCO1",                   0.60),
+          ("michael_acceptor",        "[CX3]=[CX3][CX3](=O)[#6]",    0.55),
+          ("hydroxamic_acid",         "[CX3](=O)[NX3][OH]",           0.55),
+          ("alpha_haloketone",        "[F,Cl,Br,I][CX4][CX3](=O)",   0.55),
+      ]
+  
+      items = smiles_input if isinstance(smiles_input, list) else [smiles_input]
+      triggered = []
+      alert_lookup = {name: w for name, _s, w in ALERTS}
+  
+      for smiles in items:
+          smiles = str(smiles).strip()
+          if not smiles:
+              continue
+          mol = Chem.MolFromSmiles(smiles)
+          if mol is None:
+              continue
+          for name, smarts, _w in ALERTS:
+              if name in triggered:
+                  continue
+              try:
+                  pattern = Chem.MolFromSmarts(smarts)
+                  if pattern and mol.HasSubstructMatch(pattern):
+                      triggered.append(name)
+              except Exception:
+                  continue
+  
+      if not triggered:
+          return {
+              "ames_positive": False,
+              "ames_probability": 0.10,
+              "structural_alerts": [],
+              "n_alerts_triggered": 0,
+              "ames_method": "kazius_structural_alerts",
+          }
+  
+      max_w = max(alert_lookup.get(a, 0.5) for a in triggered)
+      prob = round(min(0.95, max_w + 0.05 * (len(triggered) - 1)), 3)
+      return {
+          "ames_positive": True,
+          "ames_probability": prob,
+          "structural_alerts": triggered,
+          "n_alerts_triggered": len(triggered),
+          "ames_method": "kazius_structural_alerts",
+      }
+  
+  
+  def ADMET_pred(smiles):
+      '''ADMET safety screening using RDKit + optional DeepPurpose.'''
+      safety = compute_structural_safety(smiles)
+      per_compound = safety.pop("per_compound", None)
+  
+      # Ames mutagenicity structural alerts
+      ames_result = compute_ames_alerts(smiles)
+  
+      # Build toxicity_report (QC-gate-ready)
+      tox = dict(safety)
+      if ames_result:
+          tox["ames_positive"] = ames_result.get("ames_positive", False)
+          tox["ames_probability"] = ames_result.get("ames_probability", 0.10)
+          tox["ames_structural_alerts"] = ames_result.get("structural_alerts", [])
+          tox["ames_method"] = ames_result.get("ames_method", "kazius_structural_alerts")
+  
+      tox_report = {
+          "compounds_assessed": len(per_compound) if per_compound else 1,
+          "model_type": "rdkit_descriptors",
+          "estimation_method": "rdkit_descriptors",
+          "toxicity": tox,
+      }
+      if per_compound:
+          tox_report["per_compound"] = per_compound
+  
+      # Try DeepPurpose ClinTox for enhanced prediction
+      clintox_prob = None
+      try:
+          import sys, subprocess
+          from DeepPurpose import CompoundPred, utils
+          items = smiles if isinstance(smiles, list) else [smiles]
+          model = CompoundPred.model_pretrained(model="ClinTox_MPNN_model")
+          clintox_values = []
+          for s in items:
+              X = utils.data_process(X_drug=[str(s)], y=[0], drug_encoding="MPNN",
+                                     split_method="no_split")
+              clintox_values.append(float(model.predict(X)[0]))
+          if clintox_values:
+              clintox_prob = max(clintox_values)
+              tox_report["toxicity"]["clintox_probability"] = round(clintox_prob, 3)
+              tox_report["estimation_method"] = "rdkit_descriptors+deeppurpose_clintox"
+              if clintox_prob >= 0.80:
+                  tox_report["toxicity"]["dili_risk"] = "high"
+                  tox_report["toxicity"]["dili_probability"] = round(clintox_prob, 3)
+              elif clintox_prob >= 0.50:
+                  if tox_report["toxicity"].get("dili_risk") != "high":
+                      tox_report["toxicity"]["dili_risk"] = "medium"
+                      tox_report["toxicity"]["dili_probability"] = round(clintox_prob * 0.85, 3)
+      except Exception:
+          pass  # RDKit estimates are used
+  
+      # Write toxicity_report.json (QC gate parser reads this first)
+      with open("toxicity_report.json", "w") as f:
+          json.dump(tox_report, f, indent=2, default=str)
+  
+      # Return structured predictions for the main results JSON
+      predictions = {
+          "herg_ic50_uM": tox_report["toxicity"].get("herg_ic50_uM"),
+          "dili_risk": tox_report["toxicity"].get("dili_risk"),
+          "dili_probability": tox_report["toxicity"].get("dili_probability"),
+      }
+      if clintox_prob is not None:
+          predictions["clintox_probability"] = round(clintox_prob, 3)
+  
+      return {
+          "smiles": smiles,
+          "toxicity": tox_report["toxicity"],
+          "predictions": predictions,
+          "estimation_method": tox_report["estimation_method"],
+          "note": (
+              "hERG IC50 estimated from LogP (Aronov 2008). "
+              "DILI risk from lipophilicity+MW model (Lammert 2010). "
+              "Install DeepPurpose for ML-based ClinTox prediction."
+          ),
+      }
+  
+  
+  # ── Execute ──────────────────────────────────────────────────────────────────
+  smiles_raw = auto_convert(os.environ.get("PARAM_SMILES", ""))
+  
+  try:
+      result = ADMET_pred(smiles=smiles_raw)
+      success = True
+      error_msg = None
+  except Exception as e:
+      result = None
+      success = False
+      error_msg = str(e)
+  
+  # ── Save main results JSON ───────────────────────────────────────────────────
+  output_data = {
+      "success": success,
+      "function": "ADMET_pred",
+      "domain": "pharmacology",
+  }
+  if success:
+      output_data["result"] = result if isinstance(result, (dict, list)) else str(result)
+  else:
+      output_data["error"] = error_msg
+  
+  with open("ADMET_pred_results.json", "w") as f:
+      json.dump(output_data, f, indent=2, default=str)
+  
+  # ── Save human-readable output ───────────────────────────────────────────────
+  NL = chr(10)
+  with open("ADMET_pred_output.txt", "w") as f:
+      f.write("Biomni: ADMET Safety Screening" + NL)
+      f.write("=" * 60 + NL + NL)
+      if success and isinstance(result, dict):
+          tox = result.get("toxicity", {})
+          f.write(f"Estimation method: {result.get('estimation_method', 'N/A')}" + NL + NL)
+          herg = tox.get("herg_ic50_uM")
+          if herg is not None:
+              risk_label = "HIGH RISK" if herg < 1.0 else ("MODERATE" if herg < 10.0 else "LOW RISK")
+              f.write(f"hERG IC50: {herg:.3f} μM [{risk_label}]" + NL)
+          dili = tox.get("dili_risk")
+          if dili:
+              f.write(f"DILI risk: {dili.upper()}" + NL)
+          clintox = tox.get("clintox_probability")
+          if clintox is not None:
+              f.write(f"ClinTox probability: {clintox:.3f}" + NL)
+          f.write(NL + result.get("note", "") + NL)
+      elif not success:
+          f.write(f"ERROR: {error_msg}" + NL)
+  
+  # ── Guarantee toxicity_report.json always exists ─────────────────────────────
+  if not os.path.exists("toxicity_report.json"):
+      with open("toxicity_report.json", "w") as f:
+          json.dump({
+              "compounds_assessed": 0,
+              "toxicity": {},
+              "note": "No structural data available — check SMILES input",
+          }, f, indent=2)
+  
+  if not success:
+      exit(1)
+  PYEOF
+  
+      cat <<-END_VERSIONS > versions.yml
+      "ADMET_PRED_WORKFLOW:ADMET_PRED":
+          python: $(python3 --version | cut -d' ' -f2)
+          biomni_function: "ADMET_pred"
+      END_VERSIONS
+
+Command exit status:
+  -
+
+Command output:
+  (empty)
+
+Work dir:
+  s3://biomate-nextflow-work/nextflow/work/unknown/1c75e32f-1040-404e-b6af-0ccbd436c649/b1/dd423bb6e8812294a751eaba546f12
+
+Container:
+  biomate/biomni-tools:latest
+
+Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
+Apr-07 19:02:50.508 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-07 19:02:50.567 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Apr-07 19:02:50.692 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-4144212817922992596/.command.err
+Apr-07 19:02:50.739 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-3678366356725520043/.command.out
+Apr-07 19:02:50.741 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-07 19:02:50.741 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-07 19:02:50.741 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-07 19:02:50.787 [main] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-10260288048453416996/.command.err
+Apr-07 19:02:50.837 [main] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-10630910526316101407/.command.out
+Apr-07 19:02:50.843 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=2.5s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
+Apr-07 19:02:51.243 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-12217927829896957636.dot to=s3://biomate-nextflow-work/nextflow/outputs/unknown/7ddd086c/pipeline_info/dag.dot
+Apr-07 19:02:51.245 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:02:51.565 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Apr-07 19:02:51.565 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-07 19:02:52.552 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-07 19:02:52.856 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 19:02:52.862 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-07 19:02:52.873 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-07 19:02:52.874 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-07 19:02:52.874 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-07 19:02:52.874 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)
+Apr-07 19:02:52.874 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

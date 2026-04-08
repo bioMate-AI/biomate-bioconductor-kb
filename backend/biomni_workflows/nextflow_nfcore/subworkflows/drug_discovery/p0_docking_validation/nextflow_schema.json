@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/p0_docking_validation_benchmark_schema.json",
+  "title": "P0 Docking Validation Benchmark",
+  "description": "Validation benchmark: re-dock a known co-crystal ligand into its binding site and compute RMSD for pose quality assessment.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "pdb_id": {
+          "description": "PDB ID of the co-crystal structure. Structure will be fetched from RCSB.",
+          "type": "string",
+          "default": "7RFS"
+        },
+        "ligand_smiles": {
+          "description": "SMILES of the ligand to re-dock (nirmatrelvir default for 7RFS).",
+          "type": "string",
+          "default": "CC1(C2CC2NC(=O)C(F)(F)F)C(=O)N1CC(CC3CC(=O)N(C)C3=O)NC(=O)c4cncc(C#N)c4"
+        },
+        "box_center": {
+          "description": "Docking grid center [x, y, z] in \u00c5 (from co-crystal ligand centroid).",
+          "type": "string",
+          "default": "[-10.2, 17.5, 50.1]"
+        },
+        "box_size": {
+          "description": "Docking box dimensions [x, y, z] in \u00c5.",
+          "type": "string",
+          "default": "[22.0, 22.0, 22.0]"
+        },
+        "exhaustiveness": {
+          "description": "AutoDock Vina search exhaustiveness.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512,
+          "default": 16
+        },
+        "n_poses": {
+          "description": "Number of poses to generate.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "rmsd_threshold": {
+          "description": "RMSD cutoff (\u00c5) for a pose to be considered a correct re-dock. < 2 \u00c5 is the standard criterion.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10.0,
+          "default": 2.0
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

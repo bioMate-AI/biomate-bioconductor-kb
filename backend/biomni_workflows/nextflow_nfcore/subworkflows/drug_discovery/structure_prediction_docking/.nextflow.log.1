@@ -1,99 +1,130 @@
-Mar-19 01:36:12.203 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf --prediction_tool chai1 --mock_mode true -profile standard
-Mar-19 01:36:12.257 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
-Mar-19 01:36:12.303 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
-Mar-19 01:36:12.306 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
-Mar-19 01:36:12.322 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
-Mar-19 01:36:12.755 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
-Mar-19 01:36:12.762 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-19 01:36:12.763 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-19 01:36:12.765 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
-Mar-19 01:36:12.775 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
-Mar-19 01:36:12.854 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-19 01:36:12.856 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
-Mar-19 01:36:12.856 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
-Mar-19 01:36:12.865 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
-Mar-19 01:36:12.867 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@10a98392] - activable => nextflow.secret.LocalSecretsProvider@10a98392
-Mar-19 01:36:12.869 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-19 01:36:12.881 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [admiring_euclid] DSL2 - revision: 2220b615b9
-Mar-19 01:36:12.906 [main] DEBUG nextflow.Session - Session UUID: 50f658df-3a62-4f54-93af-7bf66b8aaf40
-Mar-19 01:36:12.907 [main] DEBUG nextflow.Session - Run name: admiring_euclid
-Mar-19 01:36:12.907 [main] DEBUG nextflow.Session - Executor pool size: 20
-Mar-19 01:36:12.912 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-19 01:36:12.915 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-19 01:36:12.926 [main] DEBUG nextflow.cli.CmdRun - 
+Apr-07 06:58:58.790 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/769d20c8-90a8-4c00-b07d-d889914a53d8' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/883dab8e' -with-trace /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/workflow-trace.txt -c /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/biomate_executor_override.config
+Apr-07 06:58:58.856 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 06:58:58.899 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
+Apr-07 06:58:58.901 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/biomate_executor_override.config
+Apr-07 06:58:58.902 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
+Apr-07 06:58:58.902 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/biomate_executor_override.config
+Apr-07 06:58:58.924 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 06:58:59.444 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 06:58:59.523 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 06:58:59.531 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 06:58:59.531 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 06:58:59.533 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 06:58:59.542 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 06:58:59.629 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 06:58:59.630 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 06:58:59.630 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 06:59:00.235 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-07 06:59:00.256 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 06:59:00.259 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 06:59:02.111 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 06:59:02.118 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 06:59:02.118 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 06:59:02.129 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 06:59:02.138 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 06:59:02.147 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/.nextflow/secrets/store.json
+Apr-07 06:59:02.149 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1da1380b] - activable => nextflow.secret.LocalSecretsProvider@1da1380b
+Apr-07 06:59:02.150 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 06:59:02.159 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf` [high_jennings] DSL2 - revision: 760b269ddc
+Apr-07 06:59:02.187 [main] DEBUG nextflow.Session - Session UUID: 5ab97d8d-7841-440b-a37d-fb3bed3f4df2
+Apr-07 06:59:02.187 [main] DEBUG nextflow.Session - Run name: high_jennings
+Apr-07 06:59:02.187 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 06:59:02.194 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/opt/aws-cli/bin/aws], client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 06:59:02.206 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 06:59:02.822 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 06:59:02.829 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 06:59:02.846 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 25.10.0 build 10289
   Created: 22-10-2025 16:26 UTC 
   System: Linux 6.11.0-1016-nvidia
   Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
   Encoding: UTF-8 (UTF-8)
-  Process: 4018823@spark-d816 [127.0.0.1]
-  CPUs: 20 - Mem: 119.7 GB (2.7 GB) - Swap: 16 GB (12.6 GB)
-Mar-19 01:36:12.940 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work [ext2/ext3]
-Mar-19 01:36:12.940 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/bin
-Mar-19 01:36:12.945 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
-Mar-19 01:36:12.950 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
-Mar-19 01:36:12.951 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
-Mar-19 01:36:12.981 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-19 01:36:12.988 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
-Mar-19 01:36:13.037 [main] DEBUG nextflow.Session - Session start
-Mar-19 01:36:13.042 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: ./results/structure_prediction_docking/pipeline_info/trace.txt
-Mar-19 01:36:13.618 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-19 01:36:13.713 [main] INFO  nextflow.Nextflow - 
-====================================================================
-BioMate | Structure Prediction + Docking Pipeline
-====================================================================
-Mode:               MOCK (synthetic data)
-AlphaFold3 mode:    mock
-DiffDock poses:     10
-Vina exhaustiveness: 32
-Output dir:         ./results/structure_prediction_docking
-====================================================================
+  Process: 1148159@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.3 GB) - Swap: 16 GB (140 KB)
+Apr-07 06:59:03.088 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/769d20c8-90a8-4c00-b07d-d889914a53d8
 
-Mar-19 01:36:13.757 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:CHAI1_STRUCTURE_PREDICTION` matches process STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION
-Mar-19 01:36:13.765 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-19 01:36:13.765 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-19 01:36:13.770 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
-Mar-19 01:36:13.773 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
-Mar-19 01:36:13.774 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
-Mar-19 01:36:13.792 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION': maxForks=0; fair=false; array=0
-Mar-19 01:36:13.827 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:DIFFDOCK_BLIND_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
-Mar-19 01:36:13.828 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-19 01:36:13.829 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-19 01:36:13.829 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING': maxForks=0; fair=false; array=0
-Mar-19 01:36:13.841 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:AUTODOCK_VINA_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
-Mar-19 01:36:13.843 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-19 01:36:13.843 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-19 01:36:13.843 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING': maxForks=0; fair=false; array=0
-Mar-19 01:36:13.853 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: CHAI1_STRUCTURE_PREDICTION, BOLTZ2_STRUCTURE_PREDICTION, DIFFDOCK_BLIND_DOCKING, AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION, STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING, ALPHAFOLD3_STRUCTURE_PREDICTION
-Mar-19 01:36:13.855 [main] DEBUG nextflow.Session - Igniting dataflow network (10)
-Mar-19 01:36:13.856 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION
-Mar-19 01:36:13.856 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
-Mar-19 01:36:13.856 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
-Mar-19 01:36:13.857 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
-  Script_4b9858682c399ada: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf
-Mar-19 01:36:13.857 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
-Mar-19 01:36:13.857 [main] DEBUG nextflow.Session - Session await
-Mar-19 01:36:14.015 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-19 01:36:14.018 [Task submitter] INFO  nextflow.Session - [31/76ad30] Submitted process > STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION (EGFR_kinase)
-Mar-19 01:36:14.110 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: STRUCTURE_PREDICTION_DOCKING:CHAI1_STRUCTURE_PREDICTION (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/31/76ad3096ab453bfb197338dd0d6ad6]
-Mar-19 01:36:14.111 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-19 01:36:14.136 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-19 01:36:14.162 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-19 01:36:14.163 [Task submitter] INFO  nextflow.Session - [94/8a1a85] Submitted process > STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING (EGFR_kinase)
-Mar-19 01:36:14.170 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-19 01:36:14.171 [Task submitter] INFO  nextflow.Session - [6a/66b58b] Submitted process > STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING (EGFR_kinase)
-Mar-19 01:36:14.245 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/94/8a1a85007d232d0d31311ab00fa87c]
-Mar-19 01:36:14.268 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/6a/66b58b2af63b1ca671a2a59515c3d5]
-Mar-19 01:36:14.273 [main] DEBUG nextflow.Session - Session await > all processes finished
-Mar-19 01:36:14.369 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
-Mar-19 01:36:14.370 [main] DEBUG nextflow.Session - Session await > all barriers passed
-Mar-19 01:36:14.371 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
-Mar-19 01:36:14.372 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
-Mar-19 01:36:14.377 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=3; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=660ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=12; peakMemory=48 GB; ]
-Mar-19 01:36:14.475 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
-Mar-19 01:36:14.479 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
-Mar-19 01:36:14.873 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
-Mar-19 01:36:14.921 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
-Mar-19 01:36:14.924 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
-Mar-19 01:36:14.931 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
-Mar-19 01:36:14.931 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
+Apr-07 06:59:03.089 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/769d20c8-90a8-4c00-b07d-d889914a53d8 [null]
+Apr-07 06:59:03.089 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/bin
+Apr-07 06:59:03.103 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 06:59:03.109 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 06:59:03.111 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 06:59:03.138 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 06:59:03.144 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 06:59:03.183 [main] DEBUG nextflow.Session - Session start
+Apr-07 06:59:03.359 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/769d20c8-90a8-4c00-b07d-d889914a53d8/workflow-trace.txt
+Apr-07 06:59:03.596 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Apr-07 06:59:03.610 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Apr-07 06:59:04.115 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-7739257631137534032.dot to=s3://biomate-nextflow-work/nextflow/outputs/unknown/883dab8e/pipeline_info/dag.dot
+Apr-07 06:59:04.116 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 06:59:04.409 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Apr-07 06:59:04.409 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-07 06:59:05.415 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-07 06:59:05.754 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 06:59:05.769 [main] ERROR nextflow.cli.Launcher - Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf
+- cause: Unexpected input: '{' @ line 509, column 10.
+   workflow {
+            ^
+
+1 error
+
+NOTE: If this is the beginning of a process or workflow, there may be a syntax error in the body, such as a missing or extra comma, for which a more specific error message could not be produced.
+nextflow.exception.ScriptCompilationException: Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf
+- cause: Unexpected input: '{' @ line 509, column 10.
+   workflow {
+            ^
+
+1 error
+
+NOTE: If this is the beginning of a process or workflow, there may be a syntax error in the body, such as a missing or extra comma, for which a more specific error message could not be produced.
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:204)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy:215)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.parseScript(ScriptRunner.groovy:232)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:137)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)
+Caused by: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Script_30933ee3aad06615: 509: Unexpected input: '{' @ line 509, column 10.
+   workflow {
+            ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:292)
+	at org.codehaus.groovy.control.ErrorCollector.addFatalError(ErrorCollector.java:148)
+	at org.apache.groovy.parser.antlr4.AstBuilder.collectSyntaxError(AstBuilder.java:4739)
+	at org.apache.groovy.parser.antlr4.AstBuilder.access$100(AstBuilder.java:169)
+	at org.apache.groovy.parser.antlr4.AstBuilder$3.syntaxError(AstBuilder.java:4750)
+	at groovyjarjarantlr4.v4.runtime.ProxyErrorListener.syntaxError(ProxyErrorListener.java:44)
+	at groovyjarjarantlr4.v4.runtime.Parser.notifyErrorListeners(Parser.java:543)
+	at groovyjarjarantlr4.v4.runtime.DefaultErrorStrategy.notifyErrorListeners(DefaultErrorStrategy.java:154)
+	at org.apache.groovy.parser.antlr4.internal.DescriptiveErrorStrategy.reportInputMismatch(DescriptiveErrorStrategy.java:104)
+	at org.apache.groovy.parser.antlr4.internal.DescriptiveErrorStrategy.recover(DescriptiveErrorStrategy.java:55)
+	at org.apache.groovy.parser.antlr4.internal.DescriptiveErrorStrategy.recoverInline(DescriptiveErrorStrategy.java:68)
+	at groovyjarjarantlr4.v4.runtime.Parser.match(Parser.java:213)
+	at org.apache.groovy.parser.antlr4.GroovyParser.compilationUnit(GroovyParser.java:368)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:243)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:221)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildAST(AstBuilder.java:262)
+	at org.apache.groovy.parser.antlr4.Antlr4ParserPlugin.buildAST(Antlr4ParserPlugin.java:58)
+	at org.codehaus.groovy.control.SourceUnit.buildAST(SourceUnit.java:256)
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133)
+	at java.base/java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1845)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:631)
+	at groovy.lang.GroovyClassLoader.doParseClass(GroovyClassLoader.java:365)
+	at groovy.lang.GroovyClassLoader.lambda$parseClass$2(GroovyClassLoader.java:314)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.compute(StampedCommonCache.java:163)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.getAndPut(StampedCommonCache.java:154)
+	at groovy.lang.GroovyClassLoader.parseClass(GroovyClassLoader.java:314)
+	at groovy.lang.GroovyShell.parseClass(GroovyShell.java:572)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:585)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:639)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:643)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:183)
+	... 7 common frames omitted

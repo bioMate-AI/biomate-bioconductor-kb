@@ -22,7 +22,6 @@ nextflow.enable.dsl = 2
 // ─── Parameters ─────────────────────────────────────────────────────────────
 
 params.outdir    = './results'
-params.mock_mode = true
 
 // GEO accession: either a series (GSE…) or a sample (GSM…)
 params.accession = 'GSE999999'
@@ -61,96 +60,8 @@ process GEO_FETCH {
 
     script:
     def accession = meta.accession ?: params.accession
-    if (params.mock_mode) {
-        """
-        Rscript - <<'REOF'
-# Mock mode: generate a synthetic ExpressionSet-like RDS and pData CSV
-# so downstream processes can be developed and tested without network access.
-set.seed(42)
-
-n_genes   <- 200L
-n_samples <- 20L
-
-accession <- "${accession}"
-
-# ── Gene symbols ─────────────────────────────────────────────────────────────
-landmark_genes <- c(
-    "GAPDH", "TP53", "BRCA1", "BRCA2", "EGFR", "MYC", "KRAS", "PTEN",
-    "RB1",   "AKT1", "VEGFA", "CDKN2A", "CDH1", "VHL", "MLH1",
-    "MTOR",  "PIK3CA", "BRAF", "NRAS",  "ERBB2"
-)
-extra_genes <- paste0("GENE", formatC(seq_len(n_genes - length(landmark_genes)),
-                                      width = 4, flag = "0"))
-gene_symbols <- c(landmark_genes, extra_genes)
-
-# ── Sample IDs (GSM-style accessions) ───────────────────────────────────────
-gsm_start <- 1234567L
-gsm_ids   <- paste0("GSM", seq(gsm_start, gsm_start + n_samples - 1L))
-
-# ── Simulated count / expression matrix ─────────────────────────────────────
-# Negative-binomial-like: base expression + treatment effect for half samples
-set.seed(1)
-base_expr <- matrix(
-    rnbinom(n_genes * n_samples, mu = 500, size = 10),
-    nrow = n_genes, ncol = n_samples,
-    dimnames = list(gene_symbols, gsm_ids)
-)
-# Introduce a mild treatment effect in samples 11-20 for first 20 genes
-treatment_mask <- c(rep(FALSE, 10), rep(TRUE, 10))
-base_expr[1:20, treatment_mask] <- base_expr[1:20, treatment_mask] *
-    round(runif(20, 1.5, 3.0), 1)
-
-# ── pData (phenotype / sample metadata) ─────────────────────────────────────
-set.seed(2)
-pdata <- data.frame(
-    geo_accession       = gsm_ids,
-    title               = paste0("Sample_", seq_len(n_samples)),
-    source_name_ch1     = rep(c("tumor", "normal"), each = n_samples / 2),
-    organism_ch1        = "Homo sapiens",
-    treatment_protocol_ch1 = ifelse(treatment_mask, "Drug_A_100nM", "Vehicle"),
-    age                 = round(runif(n_samples, 35, 75)),
-    Sex                 = sample(c("Male", "Female"), n_samples, replace = TRUE),
-    overall_survival_months = round(runif(n_samples, 6, 60), 1),
-    vital_status        = sample(c("Alive", "Dead"), n_samples, replace = TRUE,
-                                 prob = c(0.6, 0.4)),
-    platform_id         = "GPL570",
-    data_processing     = "RMA normalised",
-    stringsAsFactors    = FALSE,
-    row.names           = gsm_ids
-)
-
-# ── Build a minimal list mimicking GEOquery's getGEO() output ────────────────
-geo_obj <- list(
-    accession    = accession,
-    exprs        = base_expr,
-    pData        = pdata,
-    featureData  = data.frame(
-        ID     = gene_symbols,
-        Symbol = gene_symbols,
-        row.names = gene_symbols,
-        stringsAsFactors = FALSE
-    )
-)
-class(geo_obj) <- "BioMateMockGEO"
-
-saveRDS(geo_obj, "series_matrix.rds")
-write.csv(pdata, "sample_metadata.csv", row.names = TRUE, quote = TRUE)
-
-cat("Mock GEO_FETCH complete\\n")
-cat("  Accession :", accession, "\\n")
-cat("  Genes     :", n_genes,   "\\n")
-cat("  Samples   :", n_samples, "\\n")
-REOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-geoquery: "2.72.0 (mock)"
-        END_VERSIONS
-        """
-    } else {
-        """
-        Rscript - <<'REOF'
+    """
+    Rscript - <<'REOF'
 suppressPackageStartupMessages({
     library(GEOquery)
     library(Biobase)
@@ -160,7 +71,7 @@ accession <- "${accession}"
 
 message("Fetching GEO accession: ", accession)
 
-# Download — handle both GSE and GSM prefixes
+# Download -- handle both GSE and GSM prefixes
 # Use temp dir inside workdir to avoid container permission issues
 tmp_dir <- file.path(getwd(), ".geo_cache")
 dir.create(tmp_dir, showWarnings = FALSE, recursive = TRUE)
@@ -198,13 +109,12 @@ if (is(geo_obj, "ExpressionSet")) {
 }
 REOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: \$(R --version | head -1 | awk '{print \$3}')
+        bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
+    END_VERSIONS
+    """
 }
 
 // ─── PROCESS 2: GEO_COUNT_MATRIX ────────────────────────────────────────────
@@ -238,53 +148,8 @@ process GEO_COUNT_MATRIX {
     """
 
     script:
-    if (params.mock_mode) {
-        """
-        Rscript - <<'REOF'
-geo_obj <- readRDS("${series_matrix_rds}")
-
-# ── Extract expression matrix ─────────────────────────────────────────────
-if (inherits(geo_obj, "BioMateMockGEO")) {
-    # Mock object produced by GEO_FETCH mock mode
-    expr_mat  <- geo_obj\$exprs
-    feat_data <- geo_obj\$featureData
-} else {
-    suppressPackageStartupMessages(library(Biobase))
-    expr_mat  <- exprs(geo_obj)
-    feat_data <- as.data.frame(fData(geo_obj))
-}
-
-# ── count_matrix.csv — rows=genes, cols=samples, first col=gene_id ────────
-count_df <- as.data.frame(expr_mat)
-count_df  <- cbind(gene_id = rownames(count_df), count_df)
-rownames(count_df) <- NULL
-
-write.csv(count_df, "count_matrix.csv", row.names = FALSE, quote = TRUE)
-
-# ── feature_metadata.csv ──────────────────────────────────────────────────
-if (is.data.frame(feat_data)) {
-    write.csv(feat_data, "feature_metadata.csv", row.names = TRUE, quote = TRUE)
-} else {
-    write.csv(
-        data.frame(ID = rownames(expr_mat), Symbol = rownames(expr_mat)),
-        "feature_metadata.csv", row.names = FALSE
-    )
-}
-
-cat("GEO_COUNT_MATRIX complete\\n")
-cat("  Genes   :", nrow(expr_mat), "\\n")
-cat("  Samples :", ncol(expr_mat), "\\n")
-REOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-geoquery: "2.72.0 (mock)"
-        END_VERSIONS
-        """
-    } else {
-        """
-        Rscript - <<'REOF'
+    """
+    Rscript - <<'REOF'
 suppressPackageStartupMessages({
     library(Biobase)
 })
@@ -296,7 +161,7 @@ if (is.list(geo_obj) && !is(geo_obj, "ExpressionSet")) {
     geo_obj <- geo_obj[[1]]
 }
 
-# ── Extract expression matrix ─────────────────────────────────────────────
+# -- Extract expression matrix
 if (is(geo_obj, "ExpressionSet")) {
     expr_mat  <- exprs(geo_obj)
     feat_data <- as.data.frame(fData(geo_obj))
@@ -305,7 +170,7 @@ if (is(geo_obj, "ExpressionSet")) {
     expr_mat  <- assay(geo_obj)
     feat_data <- as.data.frame(rowData(geo_obj))
 } else {
-    # Fallback: try list slot \$exprs (BioMate mock or plain list)
+    # Fallback: try list slot \$exprs
     expr_mat  <- geo_obj\$exprs
     feat_data <- geo_obj\$featureData
     if (!is.data.frame(feat_data)) {
@@ -317,14 +182,14 @@ if (is.null(expr_mat) || nrow(expr_mat) == 0) {
     stop("No expression matrix found in the RDS object.")
 }
 
-# ── count_matrix.csv ─────────────────────────────────────────────────────
+# -- count_matrix.csv
 count_df <- as.data.frame(expr_mat)
 count_df  <- cbind(gene_id = rownames(count_df), count_df)
 rownames(count_df) <- NULL
 
 write.csv(count_df, "count_matrix.csv", row.names = FALSE, quote = TRUE)
 
-# ── feature_metadata.csv ─────────────────────────────────────────────────
+# -- feature_metadata.csv
 write.csv(feat_data, "feature_metadata.csv", row.names = TRUE, quote = TRUE)
 
 message("GEO_COUNT_MATRIX complete")
@@ -332,13 +197,12 @@ message("  Genes   : ", nrow(expr_mat))
 message("  Samples : ", ncol(expr_mat))
 REOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-biobase: \$(Rscript -e 'cat(as.character(packageVersion("Biobase")))')
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: \$(R --version | head -1 | awk '{print \$3}')
+        bioconductor-biobase: \$(Rscript -e 'cat(as.character(packageVersion("Biobase")))')
+    END_VERSIONS
+    """
 }
 
 // ─── PROCESS 3: GEO_CLINICAL_METADATA ───────────────────────────────────────
@@ -369,93 +233,14 @@ process GEO_CLINICAL_METADATA {
     """
 
     script:
-    if (params.mock_mode) {
-        """
-        Rscript - <<'REOF'
+    """
+    Rscript - <<'REOF'
 raw <- read.csv("${sample_metadata_csv}", row.names = 1, stringsAsFactors = FALSE,
                 check.names = FALSE)
 
-# ── Canonical column renaming map ─────────────────────────────────────────
-# Maps GEO free-text column variants → standardised names used by survival /
+# -- Canonical column renaming map
+# Maps GEO free-text column variants to standardised names used by survival /
 # DE tools downstream.
-rename_map <- list(
-    # Survival / event
-    time  = c("overall_survival_months", "os_months", "survival_months",
-               "days_to_last_followup",  "time",      "survival_time",
-               "follow_up_months",       "months_to_event"),
-    event = c("vital_status",  "os_event",    "event",
-               "death_event",  "status",      "deceased",
-               "overall_survival_status"),
-    # Treatment
-    treatment = c("treatment_protocol_ch1", "treatment",    "drug",
-                   "drug_treatment",         "condition",    "arm",
-                   "intervention"),
-    # Demographics
-    age = c("age", "age_at_diagnosis", "age_years",
-             "patient_age",   "age_at_enrollment"),
-    sex = c("Sex", "sex", "gender", "Gender",
-             "biological_sex", "patient_sex")
-)
-
-clean <- raw
-
-for (std_name in names(rename_map)) {
-    candidates <- rename_map[[std_name]]
-    matched    <- intersect(candidates, colnames(clean))
-    if (length(matched) > 0 && !(std_name %in% colnames(clean))) {
-        # Use the first matching column, rename it to the standard name
-        colnames(clean)[colnames(clean) == matched[1]] <- std_name
-    }
-}
-
-# ── Standardise event coding ──────────────────────────────────────────────
-if ("event" %in% colnames(clean)) {
-    ev <- tolower(trimws(as.character(clean\$event)))
-    clean\$event <- ifelse(
-        ev %in% c("dead", "deceased", "1", "true", "yes", "died"), 1L,
-        ifelse(ev %in% c("alive", "living", "0", "false", "no", "censored"), 0L,
-               NA_integer_)
-    )
-}
-
-# ── Standardise sex coding ────────────────────────────────────────────────
-if ("sex" %in% colnames(clean)) {
-    sx <- tolower(trimws(as.character(clean\$sex)))
-    clean\$sex <- ifelse(sx %in% c("male", "m"), "male",
-                  ifelse(sx %in% c("female", "f"), "female", sx))
-}
-
-# ── Coerce numeric columns ────────────────────────────────────────────────
-for (col in c("time", "age")) {
-    if (col %in% colnames(clean)) {
-        clean[[col]] <- suppressWarnings(as.numeric(clean[[col]]))
-    }
-}
-
-# ── Add sample_id as explicit column ─────────────────────────────────────
-clean <- cbind(sample_id = rownames(clean), clean)
-rownames(clean) <- NULL
-
-write.csv(clean, "clinical_metadata_clean.csv", row.names = FALSE, quote = TRUE)
-
-cat("GEO_CLINICAL_METADATA complete\\n")
-cat("  Samples :", nrow(clean), "\\n")
-cat("  Columns :", paste(colnames(clean), collapse = ", "), "\\n")
-REOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-geoquery: "2.72.0 (mock)"
-        END_VERSIONS
-        """
-    } else {
-        """
-        Rscript - <<'REOF'
-raw <- read.csv("${sample_metadata_csv}", row.names = 1, stringsAsFactors = FALSE,
-                check.names = FALSE)
-
-# ── Canonical column renaming map ─────────────────────────────────────────
 rename_map <- list(
     time  = c("overall_survival_months", "os_months", "survival_months",
                "days_to_last_followup",  "time",      "survival_time",
@@ -482,7 +267,7 @@ for (std_name in names(rename_map)) {
     }
 }
 
-# ── Standardise event coding ──────────────────────────────────────────────
+# -- Standardise event coding
 if ("event" %in% colnames(clean)) {
     ev <- tolower(trimws(as.character(clean\$event)))
     clean\$event <- ifelse(
@@ -492,21 +277,21 @@ if ("event" %in% colnames(clean)) {
     )
 }
 
-# ── Standardise sex coding ────────────────────────────────────────────────
+# -- Standardise sex coding
 if ("sex" %in% colnames(clean)) {
     sx <- tolower(trimws(as.character(clean\$sex)))
     clean\$sex <- ifelse(sx %in% c("male", "m"), "male",
                   ifelse(sx %in% c("female", "f"), "female", sx))
 }
 
-# ── Coerce numeric columns ────────────────────────────────────────────────
+# -- Coerce numeric columns
 for (col in c("time", "age")) {
     if (col %in% colnames(clean)) {
         clean[[col]] <- suppressWarnings(as.numeric(clean[[col]]))
     }
 }
 
-# ── Add sample_id as explicit column ─────────────────────────────────────
+# -- Add sample_id as explicit column
 clean <- cbind(sample_id = rownames(clean), clean)
 rownames(clean) <- NULL
 
@@ -517,13 +302,12 @@ message("  Samples : ", nrow(clean))
 message("  Columns : ", paste(colnames(clean), collapse = ", "))
 REOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            r-base: \$(R --version | head -1 | awk '{print \$3}')
-            bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        r-base: \$(R --version | head -1 | awk '{print \$3}')
+        bioconductor-geoquery: \$(Rscript -e 'cat(as.character(packageVersion("GEOquery")))')
+    END_VERSIONS
+    """
 }
 
 // ─── ENTRY WORKFLOW ──────────────────────────────────────────────────────────

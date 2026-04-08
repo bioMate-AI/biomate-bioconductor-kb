@@ -1,0 +1,5 @@
+    "P0_MRNA_VALIDATION_WORKFLOW:P0_MRNA_VALIDATION":
+        python: 3.11.15
+        ViennaRNA: 2.7.2
+        biopython: 1.87
+    END_VERSIONS

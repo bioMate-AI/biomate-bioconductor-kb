@@ -22,7 +22,7 @@ process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -42,19 +42,6 @@ process ANALYZE_INTRACELLULAR_CALCIUM_WITH_RHOD2 {
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Create mock images for testing (Rhod-2 calcium imaging simulation)
-    python3 << 'MOCKEOF'
-import numpy as np
-import cv2
-# Background: low uniform noise (autofluorescence)
-bg = np.random.normal(10, 2, (100, 100)).astype(np.uint8)
-cv2.imwrite('mock_background.png', bg)
-# Control: baseline cellular fluorescence (low calcium)
-ctrl = np.random.normal(30, 5, (100, 100)).astype(np.uint8)
-cv2.imwrite('mock_control.png', ctrl)
-# Sample: elevated calcium (brighter signal after stimulation)
-sample = np.random.normal(120, 15, (100, 100)).astype(np.uint8)
-cv2.imwrite('mock_sample.png', sample)
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

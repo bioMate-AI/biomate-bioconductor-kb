@@ -1,0 +1,29 @@
+{
+  "genbank_id": "MN908947.3",
+  "cai_threshold": 0.9,
+  "mfe_threshold": -150.0,
+  "mrna_length_nt": 4085,
+  "orf_length_nt": 3819,
+  "stabilisation_mutations": [
+    "K986P",
+    "V987P"
+  ],
+  "cai": 1.0,
+  "cai_pass": true,
+  "mfe_kcal_mol": -1480.5,
+  "n_base_pairs": 1206,
+  "pct_paired": 29.5,
+  "premature_stop": false,
+  "premature_stop_position": null,
+  "validation": {
+    "cai": 1.0,
+    "cai_pass": true,
+    "mfe_kcal_mol": -1480.5,
+    "mfe_pass": true,
+    "stop_pass": true,
+    "overall_pass": true,
+    "verdict": "PASS"
+  },
+  "success": true,
+  "log": "Step 1: Fetching MN908947.3 from NCBI Entrez...\n  Genome length: 29,903 nt\n  Spike ORF (raw): 3822 nt (21563-25384)\nStep 2: Translating and applying 2P prefusion stabilisation...\n  Protein length: 1274 aa (incl. stop if present)\n  2P stabilisation mutations applied: K986P, V987P\n  Back-translating with human codon optimisation...\n  Optimised ORF length: 3819 nt\nStep 3: Assembling full mRNA construct...\n  Full mRNA length: 4085 nt (5-UTR + ORF + 3-UTR + polyA)\nStep 4: Calculating Codon Adaptation Index (CAI)...\n  CAI = 1.0 (threshold: >= 0.9)\nStep 5: Running ViennaRNA RNAfold...\n  MFE = -1480.5 kcal/mol (threshold: <= -150.0)\n  Structure length: 4085 nt\n  Base pairs: 1206 (29.5% paired)\nStep 6: Checking for premature stop codons...\n  PASS: No premature stop codons in ORF\nStep 7: Overall validation...\n\nFINAL VERDICT: PASS\n  CAI=1.0 >=0.9 PASS\n  MFE=-1480.5 kcal/mol (stable)\n  Premature stops: none (PASS)"
+}

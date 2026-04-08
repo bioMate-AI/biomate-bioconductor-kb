@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/reinvent4_generative_lead_design_schema.json",
+  "title": "REINVENT4 Generative Lead Design",
+  "description": "Reinforcement-learning based molecular generation using REINVENT4. Supports de novo design, scaffold decoration, linker design, and scaffold hopping.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "seed_smiles": {
+          "description": "Seed scaffold SMILES for scaffold_decoration, linker_design, and scaffold_hopping modes. Coumarin (default) is a common drug scaffold.",
+          "help_text": "Provide a chemically valid SMILES string of the core scaffold to decorate or hop from.",
+          "type": "string",
+          "default": "c1ccc2c(c1)ccc(=O)o2"
+        },
+        "mode": {
+          "description": "Generation mode. scaffold_decoration adds substituents to a fixed core; de_novo generates freely; linker_design connects two fragments; scaffold_hopping replaces the core scaffold.",
+          "help_text": "de_novo requires no seed. scaffold_hopping uses mol2mol prior and bioisostere replacement.",
+          "type": "string",
+          "enum": [
+            "scaffold_decoration",
+            "de_novo",
+            "linker_design",
+            "scaffold_hopping"
+          ],
+          "default": "scaffold_decoration"
+        },
+        "scoring_function": {
+          "description": "Reward function for RL training. qed_sa optimises drug-likeness + synthetic accessibility; docking_gnina uses AutoDock-GNINA docking score (requires receptor); custom_toml uses user-supplied TOML.",
+          "type": "string",
+          "enum": [
+            "qed_sa",
+            "docking_gnina",
+            "custom_toml"
+          ],
+          "default": "qed_sa"
+        },
+        "receptor": {
+          "description": "Receptor PDB file. Required when scoring_function=docking_gnina.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "custom_toml": {
+          "description": "Custom REINVENT TOML configuration. Required when scoring_function=custom_toml.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "n_steps": {
+          "description": "RL training epochs. 500 = ~15 min on GPU; 200 = quick demo run.",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000,
+          "default": 500
+        },
+        "batch_size": {
+          "description": "Molecules sampled per epoch. Larger batches improve diversity but increase memory.",
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 512,
+          "default": 128
+        },
+        "top_n": {
+          "description": "Number of top-scoring molecules to include in final SDF output.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 500,
+          "default": 50
+        },
+        "min_qed": {
+          "description": "Minimum QED (drug-likeness) score for output molecules. QED > 0.6 is drug-like.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.4
+        },
+        "max_sa_score": {
+          "description": "Maximum synthetic accessibility score. SA < 3 = easy, > 6 = difficult.",
+          "type": "number",
+          "minimum": 1.0,
+          "maximum": 10.0,
+          "default": 5.0
+        },
+        "max_mw": {
+          "description": "Maximum molecular weight (Da). Lipinski: MW \u2264 500.",
+          "type": "number",
+          "minimum": 100,
+          "maximum": 1000,
+          "default": 500
+        },
+        "min_tanimoto_novelty": {
+          "description": "Minimum Tanimoto distance from seed to ensure novelty of generated molecules.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.4
+        },
+        "pains_filter": {
+          "description": "Remove PAINS (pan-assay interference compounds) from output. Recommended for hit-to-lead.",
+          "type": "boolean",
+          "default": true
+        },
+        "gpu": {
+          "description": "Enable GPU-accelerated RL training. Strongly recommended for n_steps > 200.",
+          "type": "boolean",
+          "default": false
+        },
+        "n_cpus": {
+          "description": "CPU cores for scoring and filtering steps.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 4
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/moe_covalent_docking_schema.json",
+  "title": "MOE Covalent Docking",
+  "description": "Covalent docking of warhead-bearing compounds using MOE CovDock SVL with GBVI/WSA-dG rescoring.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "receptor",
+        "ligands"
+      ],
+      "properties": {
+        "receptor": {
+          "description": "Receptor PDB or MOL2 file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        },
+        "ligands": {
+          "description": "Warhead SMILES (.smi) or ligand SDF file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "reactive_residue": {
+          "description": "Target nucleophilic residue in format 'RESNAME:RESNUM' (e.g. CYS:145 for SARS-CoV-2 Mpro).",
+          "type": "string",
+          "default": "CYS:145"
+        },
+        "warhead_type": {
+          "description": "Electrophilic warhead chemotype. Acrylamide and chloroacetamide are the most clinically validated covalent warheads (ibrutinib, afatinib).",
+          "help_text": "Acrylamide is reversible-covalent with soft thiols (CYS). Chloroacetamide is irreversible. Boronic acids target SER/THR (proteasome).",
+          "type": "string",
+          "enum": [
+            "acrylamide",
+            "chloroacetamide",
+            "epoxide",
+            "aldehyde",
+            "michael_acceptor",
+            "vinyl_sulfone",
+            "boronic_acid"
+          ],
+          "default": "acrylamide"
+        },
+        "docking_protocol": {
+          "description": "Receptor flexibility during docking. Induced fit resamples side chains; rigid is faster.",
+          "type": "string",
+          "enum": [
+            "induced_fit",
+            "rigid"
+          ],
+          "default": "induced_fit"
+        },
+        "n_poses": {
+          "description": "Number of docked poses to retain per ligand before rescoring.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10
+        },
+        "top_n": {
+          "description": "Top poses to include in final SDF output after GBVI/WSA rescoring.",
+          "type": "integer",
+          "minimum": 5,
+          "default": 20
+        },
+        "refine_poses": {
+          "description": "Apply GBVI/WSA-dG rescoring after initial CovDock placement. Improves pose ranking.",
+          "type": "boolean",
+          "default": true
+        },
+        "n_cpus": {
+          "description": "CPU cores for docking and rescoring.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128,
+          "default": 8
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

@@ -1,0 +1,20 @@
+BioMate P0-D Pharmacophore Validation: 7KI0 (GLP-1R)
+============================================================
+
+Dataset: 20 GLP-1R actives, 20 decoys
+Step 1: Downloading 7KI0 from RCSB...
+  Downloaded 818,748 bytes
+Step 2: Defining GLP-1R pharmacophore features from 7KI0 ligand...
+  Ligand atoms: 26, centroid: (99.8,122.4,162.4)
+Step 3: Scoring compounds against 5 pharmacophore features...
+  Scored 40 compounds
+Step 4: Computing AUC-ROC...
+  n_actives=20, n_decoys=20
+  AUC-ROC = 0.92 (threshold: >= 0.75)
+  Active scores: mean=6.60, max=8.00, min=4.50
+  Decoy scores:  mean=3.33, max=8.00, min=0.00
+Step 5: Evaluation...
+  AUC-ROC=0.92 >=0.75 PASS
+
+FINAL VERDICT: PASS
+  PDB 7KI0 GLP-1R pharmacophore enrichment AUC-ROC=0.92

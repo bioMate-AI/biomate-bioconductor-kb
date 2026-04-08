@@ -1,0 +1,130 @@
+Apr-08 17:55:13.930 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile gpu_batch -name gromacs-gpu-test-202604081255 --receptor 's3://biomate-workflow-inputs/gromacs-gpu-test/bcrabl1_receptor.pdb' --ligand 's3://biomate-workflow-inputs/gromacs-gpu-test/imatinib_ligand.sdf' --n_steps 50000 --temperature 300 --outdir 's3://biomate-nextflow-outputs/gromacs-gpu-test/' -work-dir 's3://biomate-nextflow-work/gromacs-gpu-test/'
+Apr-08 17:55:13.979 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-08 17:55:14.005 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/nextflow.config
+Apr-08 17:55:14.007 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/nextflow.config
+Apr-08 17:55:14.037 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `gpu_batch`
+Apr-08 17:55:14.471 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, gpu_batch, test, singularity, aws, gpu, docker]
+Apr-08 17:55:14.519 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-08 17:55:14.529 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-08 17:55:14.530 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-08 17:55:14.532 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-08 17:55:14.542 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-08 17:55:14.627 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-08 17:55:14.629 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-08 17:55:14.629 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-08 17:55:15.178 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-08 17:55:15.213 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-08 17:55:15.222 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-08 17:55:15.222 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-08 17:55:15.307 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-08 17:55:15.324 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-08 17:55:15.350 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Apr-08 17:55:15.355 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@d88f893] - activable => nextflow.secret.LocalSecretsProvider@d88f893
+Apr-08 17:55:15.358 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-08 17:55:15.382 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [gromacs-gpu-test-202604081255] DSL2 - revision: 5725b2e38e
+Apr-08 17:55:15.441 [main] DEBUG nextflow.Session - Session UUID: 89859a72-d752-44a7-9446-ead72c3e4048
+Apr-08 17:55:15.441 [main] DEBUG nextflow.Session - Run name: gromacs-gpu-test-202604081255
+Apr-08 17:55:15.441 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-08 17:55:15.449 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/usr/local/bin/aws]]
+Apr-08 17:55:15.461 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {max_error_retry=5}
+Apr-08 17:55:16.275 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-08 17:55:16.277 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 17:55:16.287 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 2759342@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (6.6 GB) - Swap: 16 GB (214.5 MB)
+Apr-08 17:55:16.545 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/gromacs-gpu-test
+
+Apr-08 17:55:16.545 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/gromacs-gpu-test [null]
+Apr-08 17:55:16.546 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/bin
+Apr-08 17:55:16.571 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-08 17:55:16.576 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-08 17:55:16.577 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-08 17:55:16.581 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/usr/local/bin/aws]]
+Apr-08 17:55:16.582 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {max_error_retry=5}
+Apr-08 17:55:16.904 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-08 17:55:16.921 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-08 17:55:16.969 [main] DEBUG nextflow.Session - Session start
+Apr-08 17:55:17.506 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: s3://biomate-nextflow-outputs/gromacs-gpu-test/pipeline_info/trace.txt
+Apr-08 17:55:17.872 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Apr-08 17:55:17.892 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Apr-08 17:55:17.976 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-08 17:55:19.468 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-08 17:55:19.874 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-08 17:55:20.071 [main] ERROR nextflow.cli.Launcher - Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf
+- cause: token recognition error at: ' \\n        -o FINAL_RESULTS_MMPBSA.dat \\n        -eo FINAL_RESULTS_MMPBSA.csv \\n        -nogui \\n        2>&1 | tee mmgbsa_run.log || true\n\n    # Parse gmx_MMPBSA output into standardised formats\n    python3 << 'PYEOF'\nimport json, csv, os, re, sys\nfrom datetime import datetime\n\n# -- Parse binding free energy from FINAL_RESULTS_MMPBSA.dat --\ndg_bind  = None\ndg_err   = None\ndat_file = 'FINAL_RESULTS_MMPBSA.dat'\nif os.path.exists(dat_file):\n    with open(dat_file) as f:\n        for line in f:\n            m = re.search(r'DELTA TOTAL\s+([-\d' @ line 791, column 19.
+           -cp ${top} \
+                     ^
+
+1 error
+
+nextflow.exception.ScriptCompilationException: Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf
+- cause: token recognition error at: ' \\n        -o FINAL_RESULTS_MMPBSA.dat \\n        -eo FINAL_RESULTS_MMPBSA.csv \\n        -nogui \\n        2>&1 | tee mmgbsa_run.log || true\n\n    # Parse gmx_MMPBSA output into standardised formats\n    python3 << 'PYEOF'\nimport json, csv, os, re, sys\nfrom datetime import datetime\n\n# -- Parse binding free energy from FINAL_RESULTS_MMPBSA.dat --\ndg_bind  = None\ndg_err   = None\ndat_file = 'FINAL_RESULTS_MMPBSA.dat'\nif os.path.exists(dat_file):\n    with open(dat_file) as f:\n        for line in f:\n            m = re.search(r'DELTA TOTAL\s+([-\d' @ line 791, column 19.
+           -cp ${top} \
+                     ^
+
+1 error
+
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:204)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy:215)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.parseScript(ScriptRunner.groovy:232)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:137)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)
+Caused by: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Script_d389b23994354978: 791: token recognition error at: ' \\n        -o FINAL_RESULTS_MMPBSA.dat \\n        -eo FINAL_RESULTS_MMPBSA.csv \\n        -nogui \\n        2>&1 | tee mmgbsa_run.log || true\n\n    # Parse gmx_MMPBSA output into standardised formats\n    python3 << 'PYEOF'\nimport json, csv, os, re, sys\nfrom datetime import datetime\n\n# -- Parse binding free energy from FINAL_RESULTS_MMPBSA.dat --\ndg_bind  = None\ndg_err   = None\ndat_file = 'FINAL_RESULTS_MMPBSA.dat'\nif os.path.exists(dat_file):\n    with open(dat_file) as f:\n        for line in f:\n            m = re.search(r'DELTA TOTAL\s+([-\d' @ line 791, column 19.
+           -cp ${top} \
+                     ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:292)
+	at org.codehaus.groovy.control.ErrorCollector.addFatalError(ErrorCollector.java:148)
+	at org.apache.groovy.parser.antlr4.AstBuilder.collectSyntaxError(AstBuilder.java:4739)
+	at org.apache.groovy.parser.antlr4.AstBuilder.access$100(AstBuilder.java:169)
+	at org.apache.groovy.parser.antlr4.AstBuilder$3.syntaxError(AstBuilder.java:4750)
+	at groovyjarjarantlr4.v4.runtime.ProxyErrorListener.syntaxError(ProxyErrorListener.java:44)
+	at groovyjarjarantlr4.v4.runtime.Lexer.notifyListeners(Lexer.java:381)
+	at groovyjarjarantlr4.v4.runtime.Lexer.nextToken(Lexer.java:145)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.fetch(BufferedTokenStream.java:170)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.sync(BufferedTokenStream.java:153)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.consume(BufferedTokenStream.java:137)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.execDFA(ParserATNSimulator.java:562)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.adaptivePredict(ParserATNSimulator.java:400)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.adaptivePredict(ParserATNSimulator.java:355)
+	at org.apache.groovy.parser.antlr4.GroovyParser.commandExpression(GroovyParser.java:9702)
+	at org.apache.groovy.parser.antlr4.GroovyParser.statementExpression(GroovyParser.java:8233)
+	at org.apache.groovy.parser.antlr4.GroovyParser.statement(GroovyParser.java:7078)
+	at org.apache.groovy.parser.antlr4.GroovyParser.scriptStatement(GroovyParser.java:517)
+	at org.apache.groovy.parser.antlr4.GroovyParser.scriptStatements(GroovyParser.java:427)
+	at org.apache.groovy.parser.antlr4.GroovyParser.compilationUnit(GroovyParser.java:363)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:243)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:221)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildAST(AstBuilder.java:262)
+	at org.apache.groovy.parser.antlr4.Antlr4ParserPlugin.buildAST(Antlr4ParserPlugin.java:58)
+	at org.codehaus.groovy.control.SourceUnit.buildAST(SourceUnit.java:256)
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133)
+	at java.base/java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1845)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:631)
+	at groovy.lang.GroovyClassLoader.doParseClass(GroovyClassLoader.java:365)
+	at groovy.lang.GroovyClassLoader.lambda$parseClass$2(GroovyClassLoader.java:314)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.compute(StampedCommonCache.java:163)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.getAndPut(StampedCommonCache.java:154)
+	at groovy.lang.GroovyClassLoader.parseClass(GroovyClassLoader.java:314)
+	at groovy.lang.GroovyShell.parseClass(GroovyShell.java:572)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:585)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:639)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:643)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:183)
+	... 7 common frames omitted

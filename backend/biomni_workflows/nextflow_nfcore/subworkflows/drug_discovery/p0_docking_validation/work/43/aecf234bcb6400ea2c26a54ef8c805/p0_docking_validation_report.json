@@ -1,0 +1,53 @@
+{
+  "pdb_id": "7RFS",
+  "ligand_smiles": "CC1(C2CC2NC(=O)C(F)(F)F)C(=O)N1CC(CC3CC(=O)N(C)C3=O)NC(=O)c4cncc(C#N)c4",
+  "exhaustiveness": 16,
+  "n_poses": 20,
+  "rmsd_threshold_A": 2.0,
+  "crystal_ligand_centroid": [
+    9.78,
+    1.54,
+    21.53
+  ],
+  "crystal_n_heavy_atoms": 35,
+  "vina_best_affinity_kcal_mol": 0.0,
+  "vina_all_affinities": [
+    0.0,
+    0.0,
+    0.001,
+    0.001,
+    0.001,
+    0.002,
+    0.002,
+    0.002,
+    0.003,
+    0.003,
+    0.003,
+    0.004,
+    0.004,
+    0.004,
+    0.004,
+    0.005,
+    0.005,
+    0.007,
+    0.007,
+    0.009
+  ],
+  "rmsd_top1_pose_vs_crystal_A": 3.183,
+  "validation": {
+    "rmsd_A": 3.183,
+    "rmsd_pass": false,
+    "hbonds_found": [
+      "HIS163",
+      "GLU166",
+      "CYS145",
+      "HIS41"
+    ],
+    "hbond_count": 4,
+    "hbond_pass": true,
+    "overall_pass": false,
+    "verdict": "FAIL"
+  },
+  "log": "Step 1: Downloading 7RFS from RCSB...\n  Downloaded 238,950 bytes\nStep 2: Extracting crystal ligand coordinates from 7RFS...\n  Found 35 heavy atoms in crystal ligand\n  Crystal ligand centroid: (9.8, 1.5, 21.5)\nStep 3: Preparing receptor PDBQT (stripping HETATM, adding H)...\n  Receptor PDBQT prepared via obabel (189,584 bytes)\nStep 4: Preparing ligand from SMILES...\n  3D conformation: 60 atoms (37 heavy)\n  Ligand PDBQT written (3830 bytes)\nStep 5: Running AutoDock Vina (exhaustiveness=16)...\n  Best binding affinity: 0.0 kcal/mol\n  All scores: [0.0, 0.0, 0.001, 0.001, 0.001] ...\nStep 6: Computing RMSD vs crystal pose...\n  Atom count mismatch: pose=37, crystal=35\n  Using SMILES-based comparison as fallback\n  Conformation RMSD (SMILES-based): 3.183 A\nStep 7: Evaluating success criteria...\n  RMSD 3.183 A vs threshold 2.0 A: FAIL\n  H-bond residues within 8A of crystal centroid: ['HIS163', 'GLU166', 'CYS145', 'HIS41']\n  H-bond count 4/5 (need >= 4): PASS\n\nFINAL VERDICT: FAIL\n  P0-C docking validation FAILED\n    - RMSD 3.183A > threshold 2.0A",
+  "success": false
+}

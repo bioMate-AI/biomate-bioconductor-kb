@@ -22,7 +22,7 @@ process COUNT_BACTERIAL_COLONIES {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -36,37 +36,6 @@ process COUNT_BACTERIAL_COLONIES {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     # Generate mock agar plate image with bacterial colonies
-    python3 << 'MOCKEOF'
-import numpy as np
-import cv2
-
-# Create mock agar plate image with colonies
-np.random.seed(42)
-# Create light beige/cream colored agar background
-img = np.ones((512, 512, 3), dtype=np.uint8) * np.array([200, 210, 220], dtype=np.uint8)
-
-# Add some texture noise to agar
-noise = np.random.normal(0, 5, (512, 512, 3)).astype(np.int16)
-img = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
-
-# Add bacterial colonies as dark spots
-for _ in range(25):
-    x = np.random.randint(50, 462)
-    y = np.random.randint(50, 462)
-    radius = np.random.randint(8, 20)
-    # Colonies appear as darker spots
-    color = (
-        np.random.randint(80, 120),
-        np.random.randint(80, 120),
-        np.random.randint(80, 120)
-    )
-    cv2.circle(img, (x, y), radius, color, -1)
-
-# Add slight blur for realism
-img = cv2.GaussianBlur(img, (3, 3), 0.5)
-cv2.imwrite('mock_agar_plate.png', img)
-print("Mock agar plate image created")
-MOCKEOF
 
     # Export parameters as environment variables
     export PARAM_IMAGE_PATH="${params.image_path?.toString()?.replace('"', '\\"') ?: 'null'}"

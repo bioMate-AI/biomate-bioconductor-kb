@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/p0_pharmacophore_validation_schema.json",
+  "title": "P0 Pharmacophore Validation",
+  "description": "Validation benchmark: assess pharmacophore model quality by measuring ROC-AUC on a known active/decoy dataset.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "pdb_id": {
+          "description": "PDB ID of the reference structure used to derive the pharmacophore.",
+          "type": "string",
+          "default": "7KI0"
+        },
+        "auc_threshold": {
+          "description": "Minimum ROC-AUC for the pharmacophore model to PASS validation. AUC > 0.75 = discriminating model.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "default": 0.75
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

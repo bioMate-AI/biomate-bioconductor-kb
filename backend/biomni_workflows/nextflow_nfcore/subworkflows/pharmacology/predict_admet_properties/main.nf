@@ -26,8 +26,8 @@ process PREDICT_ADMET_PROPERTIES {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    // biomni-tools has RDKit + AWS CLI baked in (biomni-pharma:x86 is stale, lacks aws)
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run

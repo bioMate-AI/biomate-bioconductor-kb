@@ -1,0 +1,3 @@
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+[20:46:07] Can't kekulize mol.  Unkekulized atoms: 33 34 35 36 37
+/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pharmacophore_validation/work/0b/de2c3aa43cc28c0ce43ceec221ca8c/.command.sh: line 296: warning: here-document at line 292 delimited by end-of-file (wanted `END_VERSIONS')

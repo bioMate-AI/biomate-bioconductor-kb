@@ -22,7 +22,7 @@ process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -42,43 +42,6 @@ process ANALYZE_FATTY_ACID_COMPOSITION_BY_GC {
     export PARAM_OUTPUT_DIRECTORY="${params.output_directory?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Generate mock GC data file for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-import pandas as pd
-
-# Create mock gas chromatography data for fatty acid analysis
-# Retention times match the fatty acid standards in the analysis function
-np.random.seed(42)
-
-# Define typical retention times and relative abundances for liver tissue
-fatty_acids = [
-    (2.2, 500),    # Myristic acid (C14:0)
-    (2.9, 2500),   # Palmitic acid (C16:0) - most abundant
-    (3.2, 800),    # Palmitoleic acid (C16:1)
-    (3.8, 1200),   # Stearic acid (C18:0)
-    (4.1, 2000),   # Oleic acid (C18:1)
-    (4.5, 1500),   # Linoleic acid (C18:2)
-    (4.8, 300),    # alpha-Linolenic acid (C18:3)
-    (5.2, 600),    # Arachidonic acid (C20:4)
-    (5.6, 200),    # EPA (C20:5)
-    (6.4, 400),    # DHA (C22:6)
-]
-
-data = []
-for rt, area in fatty_acids:
-    # Add main peak with some noise
-    data.append({'retention_time': rt + np.random.normal(0, 0.02),
-                 'peak_area': area + np.random.normal(0, area * 0.05)})
-    # Add some baseline noise
-    for _ in range(3):
-        noise_rt = np.random.uniform(rt - 0.2, rt + 0.2)
-        noise_area = np.random.uniform(5, 20)
-        data.append({'retention_time': noise_rt, 'peak_area': noise_area})
-
-df = pd.DataFrame(data)
-df.to_csv('mock_gc_data.csv', index=False)
-print("Mock GC data file created: mock_gc_data.csv")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

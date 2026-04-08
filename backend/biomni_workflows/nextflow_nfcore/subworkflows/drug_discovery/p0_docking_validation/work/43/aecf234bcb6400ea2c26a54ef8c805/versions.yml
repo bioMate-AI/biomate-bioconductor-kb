@@ -1,0 +1,6 @@
+    "P0_DOCKING_VALIDATION_WORKFLOW:P0_DOCKING_VALIDATION":
+        python: 3.11.15
+        vina: 1.2
+        rdkit: 2025.09.6
+        meeko: 0.7.1
+    END_VERSIONS

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/pharmacophore-based_compound_filtering_schema.json",
+  "title": "Pharmacophore-Based Compound Filtering",
+  "description": "Extract a pharmacophore model from known active compounds and screen a compound library for pharmacophore matches.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "reference_actives",
+        "compound_library"
+      ],
+      "properties": {
+        "reference_actives": {
+          "description": "SMILES file of known active compounds (one per line) used to derive the pharmacophore model.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "compound_library": {
+          "description": "SMILES or SDF file of compounds to screen against the pharmacophore.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "min_features": {
+          "description": "Minimum number of pharmacophore features a compound must match to pass. 3 = reasonable selectivity.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        "generate_3d": {
+          "description": "Generate 3D conformers for distance-based pharmacophore matching. Slower but more accurate.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

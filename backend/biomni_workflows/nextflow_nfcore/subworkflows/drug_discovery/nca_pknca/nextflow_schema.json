@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/non-compartmental_pk_analysis_(pknca)_schema.json",
+  "title": "Non-Compartmental PK Analysis (PKNCA)",
+  "description": "Non-compartmental pharmacokinetic analysis of concentration-time data using PKNCA. Computes AUC, Cmax, t\u00bd, CL, Vd.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "input_csv"
+      ],
+      "properties": {
+        "input_csv": {
+          "description": "CSV with columns: subject_id, time, concentration. Must match time_unit and conc_unit.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "dose": {
+          "description": "Administered dose amount in the same unit system as CL/F denominator.",
+          "type": "number",
+          "minimum": 0.001,
+          "default": 100
+        },
+        "route": {
+          "description": "Route of administration. iv = intravenous bolus; oral = extravascular. Affects AUC integration and F calculation.",
+          "type": "string",
+          "enum": [
+            "oral",
+            "iv",
+            "sc",
+            "im",
+            "inhaled"
+          ],
+          "default": "oral"
+        },
+        "time_unit": {
+          "description": "Time axis unit label (e.g. h, min, d). Used for axis labels and t\u00bd units.",
+          "type": "string",
+          "default": "h"
+        },
+        "conc_unit": {
+          "description": "Concentration unit label (e.g. ng/mL, \u03bcM, nM). Used for axis labels and CL units.",
+          "type": "string",
+          "default": "ng/mL"
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/drug_mechanism_of_action_rna-seq_schema.json",
+  "title": "Drug Mechanism of Action RNA-seq",
+  "description": "Differential expression and gene set enrichment analysis to elucidate drug mechanism of action from RNA-seq count data.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "treated_counts",
+        "control_counts"
+      ],
+      "properties": {
+        "treated_counts": {
+          "description": "TSV count matrix (genes \u00d7 treated samples). Rows = genes, columns = treated replicates.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "control_counts": {
+          "description": "TSV count matrix (genes \u00d7 control samples).",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "drug_name": {
+          "description": "Drug name for report labelling.",
+          "type": "string",
+          "default": "Imatinib"
+        },
+        "target_gene": {
+          "description": "Primary target gene or pathway for enrichment annotation.",
+          "type": "string",
+          "default": "BCR-ABL1"
+        },
+        "gmt_file": {
+          "description": "Gene set GMT file (MSigDB format). Falls back to gseapy built-in Hallmarks if not provided.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "n_replicates": {
+          "description": "Expected number of replicates per condition (for QC warnings).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 20,
+          "default": 3
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

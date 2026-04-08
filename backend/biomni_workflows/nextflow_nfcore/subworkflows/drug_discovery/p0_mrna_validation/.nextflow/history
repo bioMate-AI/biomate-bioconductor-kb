@@ -1,0 +1,1 @@
+2026-04-08 20:16:59	1m 44s	marvelous_bernard	OK	7cc0d8983cb658734a040a56497be289	196e97c0-2188-47de-97c0-de0c7eb8d06b	nextflow run main.nf -profile docker --outdir /tmp/p0_mrna_results -resume

@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/structure_prediction_and_molecular_docking_schema.json",
+  "title": "Structure Prediction and Molecular Docking",
+  "description": "Predict protein 3D structure (AlphaFold3/Chai-1/Boltz-2) and dock small molecule ligands using DiffDock or Vina.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [],
+      "properties": {
+        "fasta_input": {
+          "description": "FASTA file or inline sequence for structure prediction. Provide either this or json.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "ligand_sdf": {
+          "description": "Ligand SDF file for molecular docking step.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "json": {
+          "description": "AlphaFold3 JSON input file (alternative to fasta_input for AF3 server mode).",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "af3_mode": {
+          "description": "AlphaFold3 prediction mode. 'server' uses alphafoldserver.com API (requires token); 'local' uses on-premise weights.",
+          "type": "string",
+          "enum": [
+            "server",
+            "local"
+          ],
+          "default": "server"
+        },
+        "af3_api_token": {
+          "description": "Bearer token for alphafoldserver.com. Required for af3_mode=server.",
+          "type": "string"
+        },
+        "af3_num_recycles": {
+          "description": "Number of recycling iterations for structure refinement. More = higher accuracy but slower.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40,
+          "default": 10
+        },
+        "diffdock_poses": {
+          "description": "Number of docked poses DiffDock generates.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40,
+          "default": 10
+        },
+        "diffdock_inference_steps": {
+          "description": "Diffusion model inference steps. More = better pose quality but slower.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 100,
+          "default": 20
+        },
+        "vina_exhaustiveness": {
+          "description": "AutoDock Vina search exhaustiveness. Higher = more thorough grid search.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512,
+          "default": 32
+        },
+        "vina_num_modes": {
+          "description": "Number of binding modes (poses) Vina reports.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 9
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

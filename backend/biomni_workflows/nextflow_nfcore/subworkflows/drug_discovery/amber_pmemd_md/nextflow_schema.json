@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/amber_pmemd_molecular_dynamics_schema.json",
+  "title": "AMBER PMEMD Molecular Dynamics",
+  "description": "GPU-accelerated molecular dynamics simulation using AMBER PMEMD with GAFF2 ligand parameterisation and MM-GBSA binding free energy calculation.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "receptor",
+        "ligand"
+      ],
+      "properties": {
+        "receptor": {
+          "description": "Receptor PDB file or S3 URI (protein structure).",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        },
+        "ligand": {
+          "description": "Ligand SDF or MOL2 file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "force_field": {
+          "description": "AMBER protein force field. ff19SB is recommended for modern MD (2019+); ff14SB is the previous standard.",
+          "help_text": "ff19SB (Tian et al., 2020, JCTC) supersedes ff14SB for most protein simulations.",
+          "type": "string",
+          "enum": [
+            "ff19SB",
+            "ff14SB"
+          ],
+          "default": "ff19SB"
+        },
+        "water_model": {
+          "description": "Explicit water model. TIP3P is fast and widely used; OPC is more accurate for thermodynamic properties.",
+          "help_text": "OPC (Izadi et al., 2014) gives better solvation free energies but is ~30% slower.",
+          "type": "string",
+          "enum": [
+            "tip3p",
+            "tip4p-ew",
+            "opc"
+          ],
+          "default": "tip3p"
+        },
+        "gaff_version": {
+          "description": "GAFF ligand force field version. gaff2 is preferred for new projects.",
+          "help_text": "GAFF2 (Wang et al., 2004 extended) improves torsion parameters for drug-like molecules.",
+          "type": "string",
+          "enum": [
+            "gaff2",
+            "gaff"
+          ],
+          "default": "gaff2"
+        },
+        "box_padding": {
+          "description": "Distance (\u00c5) from protein surface to simulation box edge. 12 \u00c5 is standard.",
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 30,
+          "default": 12
+        },
+        "n_steps": {
+          "description": "Number of MD steps. At dt=0.002 ps, 5,000,000 steps = 10 ns.",
+          "type": "integer",
+          "minimum": 100000,
+          "default": 5000000
+        },
+        "dt": {
+          "description": "Integration timestep in picoseconds. 2 fs is the standard for H-bond constrained systems.",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.004,
+          "default": 0.002
+        },
+        "temperature": {
+          "description": "Simulation temperature in Kelvin. 300 K (27\u00b0C) is physiological standard.",
+          "type": "integer",
+          "minimum": 250,
+          "maximum": 400,
+          "default": 300
+        },
+        "pressure": {
+          "description": "Pressure in atm for NPT ensemble. 1.0 atm = standard conditions.",
+          "type": "number",
+          "default": 1.0
+        },
+        "mmgbsa_startframe": {
+          "description": "Skip first N trajectory frames for MM-GBSA (equilibration buffer). 500 frames = first 1 ns.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 500
+        },
+        "mmgbsa_interval": {
+          "description": "Analyse every Nth frame for MM-GBSA to control cost.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "n_cpus": {
+          "description": "CPU cores to allocate.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 8
+        },
+        "gpu": {
+          "description": "Enable GPU acceleration. Strongly recommended \u2014 GPU runs ~100\u00d7 faster than CPU for production MD.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

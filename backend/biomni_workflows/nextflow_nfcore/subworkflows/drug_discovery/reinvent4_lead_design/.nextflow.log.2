@@ -1,233 +1,184 @@
-Mar-24 22:00:05.378 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --seed_smiles 'CCc1cc(Nc2ncnc3cc(OCC)c(OCC)cc23)no1' --outdir /tmp/test_reinvent4_out
-Mar-24 22:00:05.423 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
-Mar-24 22:00:05.454 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/nextflow.config
-Mar-24 22:00:05.457 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/nextflow.config
-Mar-24 22:00:05.479 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
-Mar-24 22:00:05.829 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, test, singularity, gpu, docker]
-Mar-24 22:00:05.866 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
-Mar-24 22:00:05.875 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-24 22:00:05.876 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-24 22:00:05.877 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
-Mar-24 22:00:05.886 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
-Mar-24 22:00:05.995 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-24 22:00:05.996 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
-Mar-24 22:00:05.996 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
-Mar-24 22:00:06.007 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
-Mar-24 22:00:06.010 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@7d32e714] - activable => nextflow.secret.LocalSecretsProvider@7d32e714
-Mar-24 22:00:06.012 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-24 22:00:06.025 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [sad_kay] DSL2 - revision: 42890dc322
-Mar-24 22:00:06.057 [main] DEBUG nextflow.Session - Session UUID: 075643c6-fd8d-4a79-8b55-a5cf5de26d59
-Mar-24 22:00:06.062 [main] DEBUG nextflow.Session - Run name: sad_kay
-Mar-24 22:00:06.063 [main] DEBUG nextflow.Session - Executor pool size: 20
-Mar-24 22:00:06.071 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-24 22:00:06.078 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-24 22:00:06.096 [main] DEBUG nextflow.cli.CmdRun - 
+Apr-07 06:57:34.334 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/f0c3fe02' -with-trace /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/workflow-trace.txt -c /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/biomate_executor_override.config
+Apr-07 06:57:34.399 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 06:57:34.441 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/nextflow.config
+Apr-07 06:57:34.443 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/biomate_executor_override.config
+Apr-07 06:57:34.444 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/nextflow.config
+Apr-07 06:57:34.444 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/biomate_executor_override.config
+Apr-07 06:57:34.461 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 06:57:34.864 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 06:57:34.943 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 06:57:34.949 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 06:57:34.949 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 06:57:34.951 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 06:57:34.960 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 06:57:35.033 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 06:57:35.034 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 06:57:35.034 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 06:57:35.547 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-07 06:57:35.575 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 06:57:35.582 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 06:57:37.469 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 06:57:37.476 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 06:57:37.477 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 06:57:37.488 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 06:57:37.496 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 06:57:37.505 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/.nextflow/secrets/store.json
+Apr-07 06:57:37.507 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@25a94b55] - activable => nextflow.secret.LocalSecretsProvider@25a94b55
+Apr-07 06:57:37.508 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 06:57:37.518 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/main.nf` [special_fermi] DSL2 - revision: dc0739a518
+Apr-07 06:57:37.551 [main] DEBUG nextflow.Session - Session UUID: 3f418298-74c6-4662-bc40-5fd5e318f2c3
+Apr-07 06:57:37.552 [main] DEBUG nextflow.Session - Run name: special_fermi
+Apr-07 06:57:37.552 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 06:57:37.558 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/opt/aws-cli/bin/aws], client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 06:57:37.565 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 06:57:38.234 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 06:57:38.236 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 06:57:38.247 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 25.10.0 build 10289
   Created: 22-10-2025 16:26 UTC 
   System: Linux 6.11.0-1016-nvidia
   Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
   Encoding: UTF-8 (UTF-8)
-  Process: 1519823@spark-d816 [127.0.0.1]
-  CPUs: 20 - Mem: 119.7 GB (5.6 GB) - Swap: 16 GB (11.2 GB)
-Mar-24 22:00:06.118 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work [ext2/ext3]
-Mar-24 22:00:06.119 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/bin
-Mar-24 22:00:06.125 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
-Mar-24 22:00:06.134 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
-Mar-24 22:00:06.137 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
-Mar-24 22:00:06.171 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-24 22:00:06.177 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
-Mar-24 22:00:06.227 [main] DEBUG nextflow.Session - Session start
-Mar-24 22:00:06.233 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/test_reinvent4_out/pipeline_info/trace.txt
-Mar-24 22:00:06.794 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-24 22:00:06.943 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-24 22:00:06.943 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-24 22:00:06.958 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
-Mar-24 22:00:06.964 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
-Mar-24 22:00:06.965 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
-Mar-24 22:00:06.979 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'VALIDATE_INPUT': maxForks=0; fair=false; array=0
-Mar-24 22:00:07.031 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-24 22:00:07.031 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-24 22:00:07.032 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'REINVENT_DESIGN': maxForks=0; fair=false; array=0
-Mar-24 22:00:07.038 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-24 22:00:07.038 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-24 22:00:07.039 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FILTER_RANK': maxForks=0; fair=false; array=0
-Mar-24 22:00:07.046 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-24 22:00:07.047 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-24 22:00:07.048 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'REPORT': maxForks=0; fair=false; array=0
-Mar-24 22:00:07.065 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: VALIDATE_INPUT, REINVENT_DESIGN, FILTER_RANK, REPORT
-Mar-24 22:00:07.070 [main] WARN  nextflow.Session - There's no process matching config selector: REINVENT4_GENERATE
-Mar-24 22:00:07.072 [main] DEBUG nextflow.Session - Igniting dataflow network (4)
-Mar-24 22:00:07.072 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > VALIDATE_INPUT
-Mar-24 22:00:07.072 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > REINVENT_DESIGN
-Mar-24 22:00:07.072 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FILTER_RANK
-Mar-24 22:00:07.073 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > REPORT
-Mar-24 22:00:07.073 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
-  Script_2552e5b9ca3af1bc: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/main.nf
-Mar-24 22:00:07.073 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
-Mar-24 22:00:07.073 [main] DEBUG nextflow.Session - Session await
-Mar-24 22:00:07.271 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-24 22:00:07.273 [Task submitter] INFO  nextflow.Session - [ba/17a444] Submitted process > VALIDATE_INPUT (validate)
-Mar-24 22:00:07.867 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: VALIDATE_INPUT (validate); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work/ba/17a444f18fba0535d04dd6f6593f74]
-Mar-24 22:00:07.868 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-24 22:00:07.906 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-24 22:00:07.967 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-24 22:00:07.968 [Task submitter] INFO  nextflow.Session - [5d/46e93f] Submitted process > REINVENT_DESIGN (reinvent4_rl)
-Mar-24 22:00:16.496 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: REINVENT_DESIGN (reinvent4_rl); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work/5d/46e93ff85230d4b9a1a4583bac367d]
-Mar-24 22:00:16.499 [TaskFinalizer-2] DEBUG n.processor.TaskFileCollector - Process `REINVENT_DESIGN (reinvent4_rl)` is unable to find [UnixPath]: `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work/5d/46e93ff85230d4b9a1a4583bac367d/reinvent.log` (pattern: `reinvent.log`)
-Mar-24 22:00:16.504 [TaskFinalizer-2] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
-  task: name=REINVENT_DESIGN (reinvent4_rl); work-dir=/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work/5d/46e93ff85230d4b9a1a4583bac367d
-  error [nextflow.exception.MissingFileException]: Missing output file(s) `reinvent.log` expected by process `REINVENT_DESIGN (reinvent4_rl)`
-Mar-24 22:00:16.539 [TaskFinalizer-2] ERROR nextflow.processor.TaskProcessor - Error executing process > 'REINVENT_DESIGN (reinvent4_rl)'
+  Process: 1145523@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (1.8 GB) - Swap: 16 GB (3.4 GB)
+Apr-07 06:57:38.504 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575
+
+Apr-07 06:57:38.504 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575 [null]
+Apr-07 06:57:38.504 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/bin
+Apr-07 06:57:38.519 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 06:57:38.526 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 06:57:38.528 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 06:57:38.560 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 06:57:38.567 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 06:57:38.605 [main] DEBUG nextflow.Session - Session start
+Apr-07 06:57:38.723 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/20dd448e-d198-4a62-b6c3-857e22c8c575/workflow-trace.txt
+Apr-07 06:57:39.059 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-07 06:57:39.142 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 06:57:39.143 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 06:57:39.147 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-07 06:57:39.157 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 06:57:39.160 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 06:57:39.161 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-07 06:57:39.164 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-07 06:57:39.208 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:/opt/aws-cli/bin/aws, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:/opt/aws-cli/bin/aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-07 06:57:39.223 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'VALIDATE_INPUT': maxForks=0; fair=false; array=0
+Apr-07 06:57:39.257 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 06:57:39.257 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 06:57:39.258 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'REINVENT_DESIGN': maxForks=0; fair=false; array=0
+Apr-07 06:57:39.263 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 06:57:39.263 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 06:57:39.264 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'FILTER_RANK': maxForks=0; fair=false; array=0
+Apr-07 06:57:39.270 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 06:57:39.270 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 06:57:39.271 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'REPORT': maxForks=0; fair=false; array=0
+Apr-07 06:57:39.288 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: VALIDATE_INPUT, REINVENT_DESIGN, FILTER_RANK, REPORT
+Apr-07 06:57:39.293 [main] WARN  nextflow.Session - There's no process matching config selector: REINVENT4_GENERATE
+Apr-07 06:57:39.296 [main] DEBUG nextflow.Session - Igniting dataflow network (4)
+Apr-07 06:57:39.296 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > VALIDATE_INPUT
+Apr-07 06:57:39.296 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > REINVENT_DESIGN
+Apr-07 06:57:39.297 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > FILTER_RANK
+Apr-07 06:57:39.297 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > REPORT
+Apr-07 06:57:39.297 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_c5981573811866ef: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/main.nf
+Apr-07 06:57:39.298 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-07 06:57:39.298 [main] DEBUG nextflow.Session - Session await
+Apr-07 06:57:40.225 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomate-biomni-drug-discovery-nf-x86:1; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
+Apr-07 06:57:40.371 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `VALIDATE_INPUT (validate)` submitted > job=8e139a0b-8fa2-422d-8cea-80d486af22af; work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575/a0/4df09cc17ca786347b13c2e726ba16
+Apr-07 06:57:40.372 [AWSBatch-executor-1] INFO  nextflow.Session - [a0/4df09c] Submitted process > VALIDATE_INPUT (validate)
+Apr-07 06:57:59.768 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: VALIDATE_INPUT (validate); status: COMPLETED; exit: 127; error: nextflow.exception.ProcessException: Essential container in task exited; workDir: s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575/a0/4df09cc17ca786347b13c2e726ba16]
+Apr-07 06:57:59.769 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 06:57:59.946 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=VALIDATE_INPUT (validate); work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575/a0/4df09cc17ca786347b13c2e726ba16
+  error [nextflow.exception.ProcessFailedException]: Process `VALIDATE_INPUT (validate)` failed
+Apr-07 06:58:00.002 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'VALIDATE_INPUT (validate)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-6479006129651972240/.command.out
+Apr-07 06:58:00.005 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'VALIDATE_INPUT (validate)'
 
 Caused by:
-  Missing output file(s) `reinvent.log` expected by process `REINVENT_DESIGN (reinvent4_rl)`
+  Essential container in task exited
 
 
 Command executed:
 
   python3 << 'PYEOF'
-  import json, csv, sys, random
-  from datetime import datetime
+  import json, sys
   from rdkit import Chem
-  from rdkit.Chem import BRICS, Descriptors, QED, AllChem, rdMolDescriptors
-  from rdkit.Chem.Scaffolds import MurckoScaffold
+  from rdkit.Chem import Descriptors, QED
+  from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
   
-  with open('validated_input.json') as f:
-      cfg = json.load(f)
+  seed_smi = 'c1ccc2c(c1)ccc(=O)o2'
+  mode = 'scaffold_decoration'
   
-  seed_smi = cfg['validated_smiles']
-  n_steps  = 500
-  batch    = 128
-  top_n    = min(50, n_steps * batch)
-  
-  seed_mol = Chem.MolFromSmiles(seed_smi)
-  if seed_mol is None:
-      print(f"ERROR: invalid seed SMILES: {seed_smi}", file=sys.stderr)
+  mol = Chem.MolFromSmiles(seed_smi)
+  if mol is None:
+      print(f"ERROR: Invalid SMILES: {seed_smi}", file=sys.stderr)
       sys.exit(1)
   
-  # BRICS-based analogue generation: decompose + reassemble with enumeration
-  seed_frags = list(BRICS.BRICSDecompose(seed_mol))
-  all_frags  = set(seed_frags)
+  # For scaffold decoration: ensure [*] attachment points
+  validated_smi = seed_smi
+  attachment_added = False
+  if mode == 'scaffold_decoration' and '[*]' not in seed_smi and '*' not in seed_smi:
+      # Auto-detect likely attachment position (longest terminal chain atom)
+      # Simple heuristic: annotate first terminal atom
+      from rdkit.Chem import AllChem
+      validated_smi = Chem.MolToSmiles(mol) + '[*]'
+      attachment_added = True
   
-  # Add some common bioisosteric fragments (scaffold decoration)
-  extra_frags = [
-      "c1ccccc1", "c1ccncc1", "c1ccnc(N)c1", "c1cnc(N)cn1",
-      "[*]C(=O)N", "[*]C(=O)O", "[*]S(=O)(=O)N", "[*]OC",
-      "[*]CC", "[*]CCC", "[*]CF", "[*]CC(F)(F)F",
-  ]
-  all_frags.update(extra_frags)
-  frag_list = [f for f in all_frags if Chem.MolFromSmiles(f) is not None]
-  
-  # Generate analogues by BRICS reassembly
-  random.seed(42)
-  candidates = set()
-  candidates.add(seed_smi)
-  
-  # Use BRICS.BRICSBuild for combinatorial reassembly
+  # Compute properties
   try:
-      builder_gen = BRICS.BRICSBuild([seed_mol])
-      for mol in builder_gen:
-          smi = Chem.MolToSmiles(mol)
-          if smi and Chem.MolFromSmiles(smi):
-              candidates.add(smi)
-          if len(candidates) >= n_steps * 2:
-              break
+      import sa_scorer  # optional, from RDKit contrib
+      sa = sa_scorer.calculateScore(mol)
   except Exception:
-      pass
+      sa = None
   
-  # Also try pairwise assembly of seed fragments with extra fragments
-  seed_mols_list = [Chem.MolFromSmiles(f) for f in seed_frags if Chem.MolFromSmiles(f) is not None]
-  extra_mols_list = [Chem.MolFromSmiles(f) for f in extra_frags if Chem.MolFromSmiles(f) is not None]
+  result = {
+          "seed_smiles": seed_smi,
+      "mode": mode,
+      "scoring_function": 'qed_sa',
+      "validated_smiles": validated_smi,
+      "seed_qed": round(QED.qed(mol), 3),
+      "seed_sa_score": round(sa, 2) if sa else None,
+      "seed_mw": round(Descriptors.MolWt(mol), 2),
+      "attachment_points_added": attachment_added,
+      "n_steps": 500,
+      "batch_size": 128,
+      "notes": "Validation passed"
+  }
   
-  for base_frag in seed_mols_list[:5]:
-      for extra_frag in extra_mols_list:
-          try:
-              gen = BRICS.BRICSBuild([base_frag, extra_frag])
-              for mol in gen:
-                  smi = Chem.MolToSmiles(mol)
-                  if smi and Chem.MolFromSmiles(smi):
-                      candidates.add(smi)
-                  if len(candidates) >= n_steps * batch:
-                      break
-          except Exception:
-              pass
-          if len(candidates) >= n_steps * batch:
-              break
-  
-  # Score all candidates
-  scored = []
-  for smi in candidates:
-      mol = Chem.MolFromSmiles(smi)
-      if mol is None:
-          continue
-      try:
-          q = round(QED.qed(mol), 4)
-          sa = round(rdMolDescriptors.CalcNumRotatableBonds(mol) * 0.05 + 2.0, 2)
-          mw = round(Descriptors.MolWt(mol), 1)
-          logp = round(Descriptors.MolLogP(mol), 3)
-          # Combined score: favour high QED, low SA proxy, drug-like MW
-          score = round(q * 0.6 + max(0, (1 - sa/10)) * 0.2 + max(0, (1 - abs(mw-350)/300)) * 0.2, 4)
-          scored.append({"smiles": smi, "score": score, "qed": q, "sa_score": sa, "mw": mw, "logp": logp})
-      except Exception:
-          pass
-  
-  scored.sort(key=lambda r: -r["score"])
-  
-  # Write raw_molecules.csv (for FILTER_RANK downstream)
-  with open("raw_molecules.csv", "w", newline="") as csvf:
-      writer = csv.DictWriter(csvf, fieldnames=["smiles","score","qed","sa_score","mw","logp"])
-      writer.writeheader()
-      writer.writerows(scored[:top_n])
-  
-  # Write score_history.json (simulated RL trajectory)
-  history = []
-  chunk = max(1, len(scored) // max(n_steps, 1))
-  for step in range(1, n_steps + 1):
-      batch_items = scored[(step-1)*chunk:step*chunk]
-      if not batch_items:
-          break
-      history.append({
-          "epoch": step,
-          "mean_score": round(sum(r["score"] for r in batch_items) / len(batch_items), 4),
-          "top_score": round(max(r["score"] for r in batch_items), 4),
-      })
-  
-  with open("score_history.json", "w") as jf:
-      json.dump({
-          "n_steps_total": n_steps,
-          "batch_size": batch,
-          "final_mean_score": history[-1]["mean_score"] if history else 0,
-          "final_top_score": history[-1]["top_score"] if history else 0,
-          "history": history,
-          "tool": "rdkit_brics_generation",
-      }, jf, indent=2)
-  
-  print(f"RDKit BRICS generation complete: {len(scored)} candidates, top score={scored[0]['score'] if scored else 0}")
+  with open('validated_input.json', 'w') as f:
+      json.dump(result, f, indent=2)
+  print(json.dumps(result, indent=2))
   PYEOF
 
 Command exit status:
-  0
+  127
 
 Command output:
-  RDKit BRICS generation complete: 1 candidates, top score=0.7423
+  (empty)
+
+Command error:
+  bash: line 1: /opt/aws-cli/bin/aws: No such file or directory
+  bash: line 1: /opt/aws-cli/bin/aws: No such file or directory
 
 Work dir:
-  /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/reinvent4_lead_design/work/5d/46e93ff85230d4b9a1a4583bac367d
+  s3://biomate-nextflow-work/nextflow/work/unknown/20dd448e-d198-4a62-b6c3-857e22c8c575/a0/4df09cc17ca786347b13c2e726ba16
 
 Container:
-  biomate/biomni-drug-discovery-nf:latest
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
 
-Tip: view the complete command output by changing to the process work dir and entering the command `cat .command.out`
-Mar-24 22:00:16.543 [main] DEBUG nextflow.Session - Session await > all processes finished
-Mar-24 22:00:16.543 [TaskFinalizer-2] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
-Mar-24 22:00:16.551 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
-Mar-24 22:00:16.552 [main] DEBUG nextflow.Session - Session await > all barriers passed
-Mar-24 22:00:16.553 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
-Mar-24 22:00:16.553 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
-Mar-24 22:00:16.558 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=144ms; failedDuration=8.1s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
-Mar-24 22:00:16.558 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
-Mar-24 22:00:16.967 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
-Mar-24 22:00:17.007 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
-Mar-24 22:00:17.010 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
-Mar-24 22:00:17.017 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
-Mar-24 22:00:17.017 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Apr-07 06:58:00.011 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-07 06:58:00.062 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Apr-07 06:58:00.113 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-07 06:58:00.113 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-07 06:58:00.114 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-07 06:58:00.117 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=478ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-07 06:58:00.210 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-07 06:58:01.535 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-07 06:58:01.805 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 06:58:01.809 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-07 06:58:01.815 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-07 06:58:01.815 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-07 06:58:01.816 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-07 06:58:01.816 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

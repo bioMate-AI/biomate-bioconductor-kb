@@ -10,8 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Uses inline-generated mock xenograft tumor data (created in script)
-params.data_path = 'mock_tumor_data.csv'
+params.data_path = null  // Required: path to CSV/TSV with tumor volume measurements (columns: Mouse_ID, Treatment, Day, Volume_mm3)
 params.time_column = 'Day'
 params.volume_column = 'Volume_mm3'
 params.group_column = 'Treatment'
@@ -24,7 +23,7 @@ process ANALYZE_XENOGRAFT_TUMOR_GROWTH_INHIBITION {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -44,53 +43,6 @@ process ANALYZE_XENOGRAFT_TUMOR_GROWTH_INHIBITION {
     export PARAM_GROUP_COLUMN="${params.group_column?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_SUBJECT_COLUMN="${params.subject_column?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
-
-    # Create mock xenograft tumor growth data for testing
-    python3 << 'MOCKEOF'
-import pandas as pd
-import numpy as np
-
-np.random.seed(42)
-
-# Treatment groups
-groups = ['Vehicle', 'Drug_A_10mg', 'Drug_A_30mg', 'Drug_B_50mg']
-# Time points (days)
-days = [0, 3, 7, 10, 14, 17, 21]
-# Mice per group
-mice_per_group = 8
-
-data = []
-for group_idx, group in enumerate(groups):
-    # Different growth rates for different treatments
-    if group == 'Vehicle':
-        growth_rate = 0.15  # Fast growth
-    elif group == 'Drug_A_10mg':
-        growth_rate = 0.10  # Moderate inhibition
-    elif group == 'Drug_A_30mg':
-        growth_rate = 0.05  # Strong inhibition
-    else:  # Drug_B_50mg
-        growth_rate = 0.08  # Good inhibition
-
-    for mouse in range(1, mice_per_group + 1):
-        mouse_id = f'{group[:3]}_{mouse:02d}'
-        initial_volume = np.random.uniform(80, 120)  # Starting tumor volume
-
-        for day in days:
-            # Exponential growth model with some noise
-            volume = initial_volume * np.exp(growth_rate * day) * (1 + np.random.normal(0, 0.1))
-            volume = max(volume, 10)  # Minimum volume
-
-            data.append({
-                'Mouse_ID': mouse_id,
-                'Treatment': group,
-                'Day': day,
-                'Volume_mm3': round(volume, 1)
-            })
-
-df = pd.DataFrame(data)
-df.to_csv('mock_tumor_data.csv', index=False)
-print(f"Created mock tumor growth data with {len(df)} measurements")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

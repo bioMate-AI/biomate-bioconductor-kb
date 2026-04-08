@@ -22,7 +22,7 @@ process CALCULATE_BRAIN_ADC_MAP {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -42,51 +42,6 @@ process CALCULATE_BRAIN_ADC_MAP {
     export PARAM_MASK_FILE_PATH="${params.mask_file_path?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Generate mock DWI data for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-import nibabel as nib
-
-# Create mock 4D diffusion-weighted MRI data
-# Shape: (32, 32, 16, 3) - small volume with 3 b-values
-np.random.seed(42)
-shape_3d = (32, 32, 16)
-n_bvals = 3
-b_values = [0, 500, 1000]
-
-# Create a simple brain-like structure
-x, y, z = np.ogrid[:shape_3d[0], :shape_3d[1], :shape_3d[2]]
-center = (shape_3d[0]//2, shape_3d[1]//2, shape_3d[2]//2)
-dist = np.sqrt((x-center[0])**2 + (y-center[1])**2 + (z-center[2])**2)
-brain_mask = dist < 12
-
-# Create DWI data following S = S0 * exp(-b * ADC)
-S0 = 1000  # Signal at b=0
-ADC_gray = 0.0008  # Gray matter ADC (mm2/s)
-ADC_white = 0.0007  # White matter ADC (mm2/s)
-
-# Create ADC map with gray/white matter
-adc_map = np.zeros(shape_3d)
-adc_map[brain_mask] = ADC_gray
-inner_mask = dist < 8
-adc_map[inner_mask] = ADC_white
-
-# Generate signal for each b-value
-dwi_data = np.zeros((*shape_3d, n_bvals))
-for i, b in enumerate(b_values):
-    signal = S0 * np.exp(-b * adc_map)
-    # Add noise
-    noise = np.random.normal(0, 20, shape_3d)
-    dwi_data[:, :, :, i] = signal + noise
-
-# Set non-brain regions to low signal
-dwi_data[~brain_mask] = np.random.normal(50, 10, (*shape_3d, n_bvals))[~brain_mask]
-
-# Save as NIfTI
-affine = np.eye(4)
-nii_img = nib.Nifti1Image(dwi_data.astype(np.float32), affine)
-nib.save(nii_img, 'mock_dwi.nii.gz')
-print("Mock DWI data created: mock_dwi.nii.gz")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

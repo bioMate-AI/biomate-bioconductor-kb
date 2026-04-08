@@ -1,0 +1,2 @@
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_docking_validation/work/43/aecf234bcb6400ea2c26a54ef8c805/.command.sh: line 312: warning: here-document at line 306 delimited by end-of-file (wanted `END_VERSIONS')

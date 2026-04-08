@@ -22,7 +22,7 @@ process QUANTIFY_CORNEAL_NERVE_FIBERS {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -42,23 +42,6 @@ process QUANTIFY_CORNEAL_NERVE_FIBERS {
     export PARAM_THRESHOLD_METHOD="${params.threshold_method?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Create mock corneal nerve fiber image for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-import cv2
-# Simulate nerve fiber pattern: branching lines on dark background
-img = np.zeros((256, 256), dtype=np.uint8)
-# Draw branching nerve-like structures
-pts = [(50, 128), (100, 100), (150, 120), (200, 80)]
-for i in range(len(pts)-1):
-    cv2.line(img, pts[i], pts[i+1], 180, 2)
-pts2 = [(100, 100), (120, 150), (160, 180)]
-for i in range(len(pts2)-1):
-    cv2.line(img, pts2[i], pts2[i+1], 160, 2)
-# Add noise
-noise = np.random.normal(20, 10, img.shape).astype(np.uint8)
-img = cv2.add(img, noise)
-cv2.imwrite('mock_corneal_nerve.png', img)
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

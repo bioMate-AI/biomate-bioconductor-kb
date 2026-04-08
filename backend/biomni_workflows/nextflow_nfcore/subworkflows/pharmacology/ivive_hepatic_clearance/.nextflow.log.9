@@ -1,0 +1,415 @@
+Apr-07 04:27:24.697 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/5f63cd4a' -with-trace /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/workflow-trace.txt -c /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/biomate_executor_override.config
+Apr-07 04:27:24.748 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 04:27:24.789 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/biomate_executor_override.config
+Apr-07 04:27:24.790 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/biomate_executor_override.config
+Apr-07 04:27:24.807 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 04:27:25.077 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 04:27:25.083 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 04:27:25.083 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 04:27:25.086 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 04:27:25.094 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 04:27:25.170 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 04:27:25.171 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 04:27:25.171 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 04:27:25.770 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-07 04:27:25.791 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 04:27:25.796 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 04:27:28.615 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 04:27:28.624 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 04:27:28.624 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 04:27:28.636 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 04:27:28.645 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 04:27:28.655 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/.nextflow/secrets/store.json
+Apr-07 04:27:28.657 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@6baf25d7] - activable => nextflow.secret.LocalSecretsProvider@6baf25d7
+Apr-07 04:27:28.659 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 04:27:28.667 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf` [cranky_gutenberg] DSL2 - revision: 9cb0b1129c
+Apr-07 04:27:28.696 [main] DEBUG nextflow.Session - Session UUID: 1d088045-49e2-4c9e-a506-ece0a5d77fb6
+Apr-07 04:27:28.696 [main] DEBUG nextflow.Session - Run name: cranky_gutenberg
+Apr-07 04:27:28.697 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 04:27:28.703 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 04:27:28.711 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 04:27:29.377 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 04:27:29.382 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 04:27:29.398 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 749475@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3 GB) - Swap: 16 GB (4 GB)
+Apr-07 04:27:29.633 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1
+
+Apr-07 04:27:29.633 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1 [null]
+Apr-07 04:27:29.633 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/bin
+Apr-07 04:27:29.647 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 04:27:29.653 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 04:27:29.655 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 04:27:29.677 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 04:27:29.682 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 04:27:29.725 [main] DEBUG nextflow.Session - Session start
+Apr-07 04:27:29.729 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/workflow-trace.txt
+Apr-07 04:27:29.965 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-07 04:27:30.064 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 04:27:30.064 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 04:27:30.070 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-07 04:27:30.079 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 04:27:30.089 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 04:27:30.091 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-07 04:27:30.096 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-07 04:27:30.142 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:null, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-07 04:27:30.153 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE': maxForks=0; fair=false; array=0
+Apr-07 04:27:30.185 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE, IVIVE_HEPATIC_CLEARANCE
+Apr-07 04:27:30.187 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Apr-07 04:27:30.187 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE
+Apr-07 04:27:30.188 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_792f9147fadf758a: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf
+Apr-07 04:27:30.188 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-07 04:27:30.188 [main] DEBUG nextflow.Session - Session await
+Apr-07 04:27:31.388 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Created job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomate-biomni-pharma-x86:1; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86
+Apr-07 04:27:31.529 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)` submitted > job=1b510ab6-fe6c-4288-a217-6726b214976f; work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/46/9168222cfc32851c1f269e7ae7c139
+Apr-07 04:27:31.530 [AWSBatch-executor-1] INFO  nextflow.Session - [46/916822] Submitted process > IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)
+Apr-07 04:30:00.724 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run); status: COMPLETED; exit: 127; error: nextflow.exception.ProcessException: Essential container in task exited; workDir: s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/46/9168222cfc32851c1f269e7ae7c139]
+Apr-07 04:30:00.724 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 04:30:00.917 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run); work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/46/9168222cfc32851c1f269e7ae7c139
+  error [nextflow.exception.ProcessFailedException]: Process `IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)` failed
+Apr-07 04:30:00.973 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-13407704928405342613/.command.out
+Apr-07 04:30:00.976 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)'
+
+Caused by:
+  Essential container in task exited
+
+
+Command executed:
+
+  export PARAM_CLINT_IN_VITRO="100.0"
+      export PARAM_ASSAY_TYPE="microsomal"
+      export PARAM_FU_PLASMA="0.10"
+      export PARAM_FU_INC="1.0"
+      export PARAM_SPECIES="human"
+      export PARAM_SCALING_MODEL="well_stirred"
+      export PARAM_SMILES=""
+  
+      python3 << 'PYEOF'
+  import json
+  import os
+  import math
+  
+  def auto_convert(val):
+      if val is None or val == '' or val == 'null':
+          return None
+      if isinstance(val, str) and val.lower() in ('true', 'false'):
+          return val.lower() == 'true'
+      try:
+          if isinstance(val, str) and '.' not in val:
+              return int(val)
+      except ValueError:
+          pass
+      try:
+          return float(val)
+      except ValueError:
+          pass
+      return val
+  
+  
+  # ── Physiological constants ──────────────────────────────────────────────────
+  # Source: Davies & Morris 1993 Pharm Res 10:1093 (human, rat, mouse, dog)
+  # Q_liver: hepatic blood flow (mL/min/kg)
+  # MPPGL: microsomal protein per gram liver (mg protein/g liver)
+  # hepatocellularity: hepatocytes per gram liver (10^6 cells/g liver)
+  # liver_weight_g_per_kg: liver weight (g/kg body weight)
+  SPECIES_PARAMS = {
+      "human": {
+          "Q_liver_ml_min_kg":     20.7,   # hepatic blood flow (mL/min/kg BW) — 1450 mL/min for 70kg
+          "MPPGL":                 45.0,   # mg microsomal protein / g liver (Barter et al. 2007)
+          "hepatocellularity":    120.0,   # 10^6 hepatocytes / g liver (Barter et al. 2007)
+          "liver_weight_g_per_kg": 25.7,   # g liver / kg BW
+          "body_weight_kg":        70.0,
+      },
+      "rat": {
+          "Q_liver_ml_min_kg":     55.2,
+          "MPPGL":                 45.0,
+          "hepatocellularity":    117.0,
+          "liver_weight_g_per_kg": 40.0,
+          "body_weight_kg":         0.25,
+      },
+      "mouse": {
+          "Q_liver_ml_min_kg":     90.0,
+          "MPPGL":                 45.0,
+          "hepatocellularity":    135.0,
+          "liver_weight_g_per_kg": 55.0,
+          "body_weight_kg":         0.02,
+      },
+      "dog": {
+          "Q_liver_ml_min_kg":     30.9,
+          "MPPGL":                 77.0,
+          "hepatocellularity":    215.0,
+          "liver_weight_g_per_kg": 32.0,
+          "body_weight_kg":        10.0,
+      },
+  }
+  
+  
+  def scale_clint(clint_uL_min, assay_type, species_data, fu_inc=1.0):
+      '''
+      Scale in vitro CLint to mL/min/kg body weight.
+  
+      Microsomal scaling (Obach 1999):
+        CLint_in_vivo = CLint_uL/min/mg × MPPGL × liver_weight_g/kg × fu_inc / 1000
+  
+      Hepatocyte scaling (Naritomi et al. 2001 Drug Metab Dispos 29:1316):
+        CLint_in_vivo = CLint_uL/min/10^6cells × hepatocellularity × liver_weight_g/kg × fu_inc / 1000
+      '''
+      liver_weight = species_data["liver_weight_g_per_kg"]
+  
+      if assay_type == "microsomal":
+          # clint in μL/min/mg protein → mL/min/kg
+          scaling_factor = species_data["MPPGL"] * liver_weight * fu_inc / 1000.0
+      else:  # hepatocyte
+          # clint in μL/min/10^6 cells → mL/min/kg
+          scaling_factor = species_data["hepatocellularity"] * liver_weight * fu_inc / 1000.0
+  
+      return clint_uL_min * scaling_factor
+  
+  
+  def well_stirred_model(clint_scaled, Q_liver, fu_plasma):
+      '''
+      Well-stirred (venous equilibrium) liver model.
+  
+      CLh = Q_liver × fu × CLint / (Q_liver + fu × CLint)
+  
+      Wilkinson & Shand 1975; Pang & Rowland 1977 J Pharmacokinet Biopharm 5:625.
+      Assumes rapid equilibration between blood and hepatocyte compartment.
+      Valid across extraction ratios, most reliable for intermediate-extraction compounds.
+      '''
+      numerator = Q_liver * fu_plasma * clint_scaled
+      denominator = Q_liver + fu_plasma * clint_scaled
+      if denominator == 0:
+          return 0.0
+      return numerator / denominator
+  
+  
+  def parallel_tube_model(clint_scaled, Q_liver, fu_plasma):
+      '''
+      Parallel tube (sinusoidal perfusion) model.
+  
+      E = 1 - exp(-fu × CLint / Q_liver)
+      CLh = Q_liver × E
+  
+      Assumes plug flow of blood through sinusoids. Generally gives higher CLh
+      predictions than the well-stirred model for high-extraction compounds.
+      Rowland et al. 1973 J Pharmacokinet Biopharm 1:123.
+      '''
+      E = 1.0 - math.exp(-fu_plasma * clint_scaled / max(Q_liver, 0.001))
+      return Q_liver * E
+  
+  
+  def dispersion_model(clint_scaled, Q_liver, fu_plasma, RN=0.17):
+      '''
+      Dispersion model (Roberts & Rowland 1986 J Pharmacokinet Biopharm 14:227).
+  
+      RN = dispersion number (default 0.17 for human liver, Weisiger 1996).
+      Numerically integrates the dispersion PDE; simplified analytic solution used here.
+      Intermediate between well-stirred and parallel tube.
+      '''
+      DN = fu_plasma * clint_scaled / Q_liver
+      # Analytic solution from Roberts & Rowland 1986 Eq. 6a
+      a = math.sqrt(1 + 4 * DN * RN)
+      E = (2 * a) / ((1 + a) * math.exp((a - 1) / (2 * RN)) - (1 - a) * math.exp(-(1 + a) / (2 * RN)))
+      E = max(0.0, min(1.0, 1.0 - E))
+      return Q_liver * E
+  
+  
+  def compute_uncertainty(clint_in_vitro, fu_plasma, clh_predicted, Q_liver):
+      '''
+      Approximate 90% confidence bounds using reported IVIVE variability.
+  
+      Obach 1999 (Drug Metab Dispos 27:1350): inter-laboratory CLint CV ~50%.
+      fu_plasma measurement error ±20% of measured value.
+      Propagated through well-stirred model analytically.
+      Returns (clh_lower, clh_upper) as 90% CI.
+      '''
+      clint_cv = 0.50  # 50% CV on CLint measurement
+      fu_cv    = 0.20  # 20% CV on fu measurement
+  
+      # Partial derivatives via finite difference (1%)
+      delta_c = clint_in_vitro * 0.01
+      delta_f = fu_plasma * 0.01
+  
+      # This is a simplified bound — uses additive uncertainty
+      clh_lo = max(0.0, clh_predicted * (1 - 1.65 * clint_cv))
+      clh_hi = min(Q_liver, clh_predicted * (1 + 1.65 * clint_cv))
+      return round(clh_lo, 3), round(clh_hi, 3)
+  
+  
+  def run_ivive(clint_in_vitro, assay_type, fu_plasma, fu_inc, species, scaling_model):
+      '''Full IVIVE pipeline with uncertainty estimation.'''
+      species = species.lower().strip()
+      assay_type = assay_type.lower().strip()
+      scaling_model = scaling_model.lower().strip()
+  
+      sp = SPECIES_PARAMS.get(species, SPECIES_PARAMS["human"])
+      Q_liver = sp["Q_liver_ml_min_kg"]
+  
+      clint_scaled = scale_clint(clint_in_vitro, assay_type, sp, fu_inc)
+  
+      if scaling_model == "parallel_tube":
+          clh = parallel_tube_model(clint_scaled, Q_liver, fu_plasma)
+          model_name = "parallel_tube"
+      elif scaling_model == "dispersion":
+          clh = dispersion_model(clint_scaled, Q_liver, fu_plasma)
+          model_name = "dispersion"
+      else:
+          clh = well_stirred_model(clint_scaled, Q_liver, fu_plasma)
+          model_name = "well_stirred"
+  
+      clh_frac_qh = round(clh / Q_liver, 4) if Q_liver > 0 else None
+      clh_lower, clh_upper = compute_uncertainty(clint_in_vitro, fu_plasma, clh, Q_liver)
+  
+      # Extraction ratio classification
+      if clh_frac_qh is not None:
+          if clh_frac_qh > 0.70:
+              extraction_class = "high"
+          elif clh_frac_qh > 0.30:
+              extraction_class = "intermediate"
+          else:
+              extraction_class = "low"
+      else:
+          extraction_class = "unknown"
+  
+      return {
+          "clint_in_vitro": clint_in_vitro,
+          "assay_type": assay_type,
+          "clint_scaled_ml_min_kg": round(clint_scaled, 4),
+          "clh_predicted_ml_min_kg": round(clh, 3),
+          "clh_fraction_of_qh": clh_frac_qh,
+          "clh_lower_ci": clh_lower,
+          "clh_upper_ci": clh_upper,
+          "extraction_class": extraction_class,
+          "Q_liver_ml_min_kg": Q_liver,
+          "fu_plasma": fu_plasma,
+          "fu_inc": fu_inc,
+          "species": species,
+          "scaling_model": model_name,
+          "mppgl": sp["MPPGL"] if assay_type == "microsomal" else None,
+          "hepatocellularity": sp["hepatocellularity"] if assay_type == "hepatocyte" else None,
+          "liver_weight_g_per_kg": sp["liver_weight_g_per_kg"],
+          "reference": (
+              "Well-stirred model: Wilkinson & Shand 1975 Clin Pharmacol Ther 18:377. "
+              "Scaling factors: Davies & Morris 1993 Pharm Res 10:1093; "
+              "Barter et al. 2007 Drug Metab Dispos 35:1514. "
+              "Uncertainty: Obach 1999 Drug Metab Dispos 27:1350."
+          ),
+      }
+  
+  
+  # ── Execute ──────────────────────────────────────────────────────────────────
+  clint_val    = auto_convert(os.environ.get("PARAM_CLINT_IN_VITRO", "100.0")) or 100.0
+  assay_type   = os.environ.get("PARAM_ASSAY_TYPE", "microsomal") or "microsomal"
+  fu_plasma    = auto_convert(os.environ.get("PARAM_FU_PLASMA", "0.10")) or 0.10
+  fu_inc       = auto_convert(os.environ.get("PARAM_FU_INC", "1.0")) or 1.0
+  species      = os.environ.get("PARAM_SPECIES", "human") or "human"
+  scal_model   = os.environ.get("PARAM_SCALING_MODEL", "well_stirred") or "well_stirred"
+  smiles_str   = os.environ.get("PARAM_SMILES", "") or ""
+  
+  try:
+      result = run_ivive(
+          clint_in_vitro=float(clint_val),
+          assay_type=assay_type,
+          fu_plasma=float(fu_plasma),
+          fu_inc=float(fu_inc),
+          species=species,
+          scaling_model=scal_model,
+      )
+      success = True
+      error_msg = None
+  except Exception as e:
+      result = None
+      success = False
+      error_msg = str(e)
+  
+  # ── Save ivive_results.json ───────────────────────────────────────────────────
+  output_data = {
+      "success": success,
+      "function": "ivive_hepatic_clearance",
+      "domain": "pharmacology",
+  }
+  if success:
+      output_data.update(result)
+      if smiles_str:
+          output_data["smiles"] = smiles_str
+  else:
+      output_data["error"] = error_msg
+  
+  with open("ivive_results.json", "w") as f:
+      json.dump(output_data, f, indent=2, default=str)
+  
+  # ── Save human-readable output ────────────────────────────────────────────────
+  NL = chr(10)
+  with open("ivive_output.txt", "w") as f:
+      f.write("Biomni: IVIVE Hepatic Clearance Scaling" + NL)
+      f.write("=" * 60 + NL + NL)
+      if success and result:
+          f.write(f"Species:            {result['species'].capitalize()}" + NL)
+          f.write(f"Assay type:         {result['assay_type']}" + NL)
+          f.write(f"Scaling model:      {result['scaling_model'].replace('_', ' ').title()}" + NL + NL)
+          f.write(f"Input CLint:        {result['clint_in_vitro']:.2f} μL/min/mg (or /10⁶ cells)" + NL)
+          f.write(f"Scaled CLint:       {result['clint_scaled_ml_min_kg']:.4f} mL/min/kg" + NL)
+          f.write(f"fu (plasma):        {result['fu_plasma']:.3f}" + NL + NL)
+          f.write(f"Predicted CLh:      {result['clh_predicted_ml_min_kg']:.3f} mL/min/kg" + NL)
+          f.write(f"90% CI:             {result['clh_lower_ci']:.3f} – {result['clh_upper_ci']:.3f} mL/min/kg" + NL)
+          f.write(f"Hepatic QH:         {result['Q_liver_ml_min_kg']:.1f} mL/min/kg" + NL)
+          f.write(f"CLh/QH fraction:    {result['clh_fraction_of_qh']*100:.1f}%" + NL)
+          f.write(f"Extraction class:   {result['extraction_class'].upper()}" + NL + NL)
+          if result['extraction_class'] == 'high':
+              f.write("NOTE: High-extraction compound — oral bioavailability will be low " + NL)
+              f.write("due to first-pass effect. CLh prediction least reliable in this range." + NL + NL)
+          elif result['extraction_class'] == 'low':
+              f.write("NOTE: Low-extraction compound — sensitive to fu_plasma and CLint " + NL)
+              f.write("variability. Verify binding measurements carefully." + NL + NL)
+          f.write(result['reference'] + NL)
+      elif not success:
+          f.write(f"ERROR: {error_msg}" + NL)
+  
+  if not success:
+      exit(1)
+  PYEOF
+  
+      cat <<-END_VERSIONS > versions.yml
+      "IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE":
+          python: $(python3 --version | cut -d' ' -f2)
+          biomni_function: "ivive_hepatic_clearance"
+      END_VERSIONS
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  bash: line 1: aws: command not found
+  bash: line 1: aws: command not found
+
+Work dir:
+  s3://biomate-nextflow-work/nextflow/work/unknown/3bdbed9c-b9a0-42e8-87b3-5be72665a5e1/46/9168222cfc32851c1f269e7ae7c139
+
+Container:
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Apr-07 04:30:00.981 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-07 04:30:01.029 [TaskFinalizer-1] DEBUG nextflow.Session - Session aborted -- Cause: Process `IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)` failed
+Apr-07 04:30:01.039 [TaskFinalizer-1] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=495ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-07 04:30:01.186 [TaskFinalizer-1] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 04:30:01.189 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-07 04:30:01.189 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-07 04:30:01.189 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=495ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-07 04:30:01.189 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 04:30:01.193 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-07 04:30:01.198 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-07 04:30:01.198 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-07 04:30:01.198 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

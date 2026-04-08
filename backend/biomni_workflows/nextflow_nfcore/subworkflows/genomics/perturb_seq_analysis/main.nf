@@ -17,7 +17,6 @@ nextflow.enable.dsl = 2
 // ─── Parameters ─────────────────────────────────────────────────────────────
 
 params.outdir         = './results'
-params.mock_mode      = true
 
 // Guide library / screen inputs
 params.fastq          = null          // Path to FASTQ file(s) (glob OK)
@@ -52,71 +51,20 @@ process MAGECK_COUNT {
 
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
-    if (params.mock_mode) {
-        """
-        # Mock mode: generate realistic MAGeCK count output
-        python3 - <<'PYEOF'
-import json, random, csv, os
-random.seed(42)
-n_guides = 500
-n_cells  = 5000
+    """
+    # Combine all FASTQ files when multiple are supplied
+    cat ${fastq_files} > combined.fastq.gz 2>/dev/null || cp ${fastq_files[0]} combined.fastq.gz
 
-# Simulate count table
-with open("${meta.id}.count.txt", "w") as f:
-    f.write("sgRNA\\tGene\\t${sample_label}\\n")
-    for i in range(n_guides):
-        gene  = f"GENE{i//5+1:04d}"
-        count = max(0, int(random.gauss(100, 30)))
-        f.write(f"sg{gene}_{i%5+1}\\t{gene}\\t{count}\\n")
+    mageck count \\
+        --list-seq ${library_csv} \\
+        --fastq combined.fastq.gz \\
+        --sample-label "${sample_label}" \\
+        --output-prefix "${meta.id}" \\
+        --norm-method median \\
+        --no-hdr-info
 
-# Simulated normalized count table
-with open("${meta.id}.count_normalized.txt", "w") as f:
-    f.write("sgRNA\\tGene\\t${sample_label}\\n")
-    for i in range(n_guides):
-        gene  = f"GENE{i//5+1:04d}"
-        count = max(0, int(random.gauss(1e6 / n_guides, 50)))
-        f.write(f"sg{gene}_{i%5+1}\\t{gene}\\t{count}\\n")
-
-open("${meta.id}.count.log", "w").write(
-    "Mock MAGeCK count log\\n"
-    "Total reads: 15000000\\n"
-    "Mapped: 13500000 (90.0%)\\n"
-)
-
-qc = {
-    "guide_library_coverage_pct"  : round(random.gauss(85, 5), 1),
-    "transfection_efficiency_pct" : round(random.gauss(70, 8), 1),
-    "total_reads"                 : 15000000,
-    "mapped_reads"                : 13500000,
-    "mapping_rate_pct"            : 90.0,
-    "n_guides"                    : n_guides,
-    "n_cells_estimated"           : n_cells,
-}
-json.dump(qc, open("mageck_count_summary.json", "w"), indent=2)
-print(f"Mock MAGeCK count complete: {n_guides} guides, {n_cells} estimated cells")
-PYEOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            mageck: "0.5.9.5 (mock)"
-            python: \$(python3 --version | cut -d' ' -f2)
-        END_VERSIONS
-        """
-    } else {
-        """
-        # Combine all FASTQ files when multiple are supplied
-        cat ${fastq_files} > combined.fastq.gz 2>/dev/null || cp ${fastq_files[0]} combined.fastq.gz
-
-        mageck count \\
-            --list-seq ${library_csv} \\
-            --fastq combined.fastq.gz \\
-            --sample-label "${sample_label}" \\
-            --output-prefix "${meta.id}" \\
-            --norm-method median \\
-            --no-hdr-info
-
-        # Parse MAGeCK log to produce a structured QC JSON
-        python3 - <<'PYEOF'
+    # Parse MAGeCK log to produce a structured QC JSON
+    python3 - <<'PYEOF'
 import json, re
 
 log_text = open("${meta.id}.count.log").read()
@@ -142,13 +90,12 @@ qc["n_guides"] = len(count_lines)
 json.dump(qc, open("mageck_count_summary.json", "w"), indent=2)
 PYEOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
-            python: \$(python3 --version | cut -d' ' -f2)
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
+        python: \$(python3 --version | cut -d' ' -f2)
+    END_VERSIONS
+    """
 }
 
 // ─── PROCESS 2: Hit calling via MAGeCK MLE ──────────────────────────────────
@@ -171,56 +118,14 @@ process MAGECK_MLE {
     path "versions.yml"                                  , emit: versions
 
     script:
-    if (params.mock_mode) {
-        """
-        python3 - <<'PYEOF'
-import random, csv
-random.seed(42)
-n_genes = 100
+    """
+    mageck mle \\
+        --count-table ${count_table} \\
+        --design-matrix ${design_matrix} \\
+        --output-prefix "${meta.id}" \\
+        --norm-method median
 
-# Gene summary in MAGeCK MLE format
-with open("${meta.id}.gene_summary.txt", "w") as f:
-    f.write("Gene\\tbeta\\tz\\tp.value\\tFDR\\n")
-    for i in range(n_genes):
-        gene = f"GENE{i+1:04d}"
-        beta = random.gauss(0, 1)
-        z    = beta / 0.3
-        p    = max(1e-10, min(1, abs(random.gauss(0.05, 0.1))))
-        fdr  = min(1, p * n_genes / (i + 1))
-        f.write(f"{gene}\\t{beta:.4f}\\t{z:.4f}\\t{p:.6f}\\t{fdr:.6f}\\n")
-
-open("${meta.id}.sgrna_summary.txt", "w").write("sgRNA\\tGene\\tLFC\\n")
-
-# Curated hits table (FDR < 0.1 flagged)
-with open("hits_table.csv", "w") as f:
-    w = csv.writer(f)
-    w.writerow(["gene", "beta", "z_score", "p_value", "FDR", "significant"])
-    for i in range(n_genes):
-        gene = f"GENE{i+1:04d}"
-        beta = random.gauss(0, 1)
-        fdr  = max(0.001, random.uniform(0, 0.3))
-        sig  = "True" if fdr < 0.1 else "False"
-        w.writerow([gene, f"{beta:.4f}", f"{beta/0.3:.4f}",
-                    f"{fdr*0.1:.6f}", f"{fdr:.6f}", sig])
-
-print("Mock MAGeCK MLE complete: 100 genes analyzed")
-PYEOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            mageck: "0.5.9.5 (mock)"
-            python: \$(python3 --version | cut -d' ' -f2)
-        END_VERSIONS
-        """
-    } else {
-        """
-        mageck mle \\
-            --count-table ${count_table} \\
-            --design-matrix ${design_matrix} \\
-            --output-prefix "${meta.id}" \\
-            --norm-method median
-
-        python3 - <<'PYEOF'
+    python3 - <<'PYEOF'
 import csv
 
 hits = []
@@ -242,13 +147,12 @@ with open("hits_table.csv", "w", newline="") as fh:
     w.writerows(hits)
 PYEOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
-            python: \$(python3 --version | cut -d' ' -f2)
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        mageck: \$(mageck --version 2>&1 | head -1 | awk '{print \$NF}')
+        python: \$(python3 --version | cut -d' ' -f2)
+    END_VERSIONS
+    """
 }
 
 // ─── PROCESS 3: scVI perturbation state inference ───────────────────────────
@@ -258,7 +162,7 @@ process SCVI_PERTURBATION {
     label 'process_high'
     publishDir "${params.outdir}/${meta.id}/scvi_perturbation", mode: 'copy'
 
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     tuple val(meta), path(anndata_h5ad)  // AnnData with guide assignments stored in obs
@@ -273,49 +177,12 @@ process SCVI_PERTURBATION {
     path "versions.yml"                                      , emit: versions
 
     script:
-    if (params.mock_mode) {
-        """
-        export NUMBA_CACHE_DIR=/tmp/numba_cache
-        export MPLCONFIGDIR=/tmp/matplotlib
-        mkdir -p /tmp/numba_cache /tmp/matplotlib
+    """
+    export NUMBA_CACHE_DIR=/tmp/numba_cache
+    export MPLCONFIGDIR=/tmp/matplotlib
+    mkdir -p /tmp/numba_cache /tmp/matplotlib
 
-        python3 - <<'PYEOF'
-import csv, random
-random.seed(42)
-
-n_cells         = 500
-n_perturbations = 20
-
-with open("perturbation_state_summary.csv", "w", newline="") as fh:
-    w = csv.writer(fh)
-    w.writerow(["perturbation", "n_cells", "mean_embedding_shift", "signature_score"])
-    for i in range(n_perturbations):
-        name  = f"GENE{i+1:04d}_sg1" if i < n_perturbations - 1 else "non-targeting"
-        n     = random.randint(20, 80)
-        shift = random.gauss(0.5, 0.3) if i < 10 else random.gauss(0.1, 0.05)
-        score = max(0.0, shift + random.gauss(0, 0.1))
-        w.writerow([name, n, round(shift, 3), round(score, 3)])
-
-# Placeholder output files — real run produces proper h5ad / PNG
-open("scvi_perturbation_emb.h5ad", "w").write("MOCK_H5AD_PLACEHOLDER")
-open("umap_perturbation.png",      "w").write("MOCK_PNG_PLACEHOLDER")
-
-print(f"Mock scVI perturbation: {n_cells} cells, {n_perturbations} perturbations")
-PYEOF
-
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            python: \$(python3 --version | cut -d' ' -f2)
-            scvi_tools: "mock"
-        END_VERSIONS
-        """
-    } else {
-        """
-        export NUMBA_CACHE_DIR=/tmp/numba_cache
-        export MPLCONFIGDIR=/tmp/matplotlib
-        mkdir -p /tmp/numba_cache /tmp/matplotlib
-
-        python3 - <<'PYEOF'
+    python3 - <<'PYEOF'
 import scanpy as sc
 import scvi
 import pandas as pd
@@ -326,14 +193,14 @@ import matplotlib.pyplot as plt
 
 adata = sc.read_h5ad("${anndata_h5ad}")
 
-# ── scVI training ────────────────────────────────────────────────────────────
+# -- scVI training
 batch = "${batch_key}" if "${batch_key}" != "none" else None
 scvi.model.SCVI.setup_anndata(adata, batch_key=batch)
 model = scvi.model.SCVI(adata)
 model.train(max_epochs=100, early_stopping=True)
 adata.obsm["X_scVI"] = model.get_latent_representation()
 
-# ── scANVI for perturbation label transfer ───────────────────────────────────
+# -- scANVI for perturbation label transfer
 labels_key = "${label_key}" if "${label_key}" != "Unknown" else None
 lvae = scvi.model.SCANVI.from_scvi_model(
     model,
@@ -344,7 +211,7 @@ lvae = scvi.model.SCANVI.from_scvi_model(
 lvae.train(max_epochs=20)
 adata.obsm["X_scANVI"] = lvae.get_latent_representation(adata)
 
-# ── UMAP on scVI latent space ────────────────────────────────────────────────
+# -- UMAP on scVI latent space
 sc.pp.neighbors(adata, use_rep="X_scVI")
 sc.tl.umap(adata)
 
@@ -353,7 +220,7 @@ sc.pl.umap(adata, color=guide_col, save=False)
 plt.savefig("umap_perturbation.png", bbox_inches="tight", dpi=150)
 plt.close()
 
-# ── Per-perturbation embedding shift vs. non-targeting control ───────────────
+# -- Per-perturbation embedding shift vs. non-targeting control
 rows = []
 if guide_col and guide_col in adata.obs.columns:
     emb         = adata.obsm["X_scVI"]
@@ -377,14 +244,13 @@ pd.DataFrame(rows).to_csv("perturbation_state_summary.csv", index=False)
 adata.write_h5ad("scvi_perturbation_emb.h5ad")
 PYEOF
 
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            python: \$(python3 --version | cut -d' ' -f2)
-            scvi_tools: \$(python3 -c "import scvi; print(scvi.__version__)")
-            scanpy: \$(python3 -c "import scanpy; print(scanpy.__version__)")
-        END_VERSIONS
-        """
-    }
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        python: \$(python3 --version | cut -d' ' -f2)
+        scvi_tools: \$(python3 -c "import scvi; print(scvi.__version__)")
+        scanpy: \$(python3 -c "import scanpy; print(scanpy.__version__)")
+    END_VERSIONS
+    """
 }
 
 // ─── WORKFLOW ENTRY POINT ───────────────────────────────────────────────────

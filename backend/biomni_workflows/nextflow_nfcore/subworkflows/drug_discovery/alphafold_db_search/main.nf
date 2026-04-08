@@ -190,7 +190,9 @@ process MERGE_SEARCH_RESULTS {
     label 'process_low'
     publishDir "${params.outdir}/${meta.id}", mode: params.publish_dir_mode
 
-    container 'python:3.11-slim'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest' \
+        : 'biomate-nextflow-base:latest'
 
     input:
     tuple val(meta), path(foldseek_hits)

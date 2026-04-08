@@ -1,0 +1,341 @@
+Apr-08 22:13:04.004 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile gpu_batch --receptor 's3://biomate-workflow-inputs/gromacs-gpu-test/bcrabl1_receptor.pdb' --ligand 's3://biomate-workflow-inputs/gromacs-gpu-test/imatinib_ligand.sdf' --outdir 's3://biomate-nextflow-work/gromacs-gpu-test/results' --n_steps 50000 -resume
+Apr-08 22:13:04.065 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-08 22:13:04.098 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/nextflow.config
+Apr-08 22:13:04.099 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/nextflow.config
+Apr-08 22:13:04.114 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `gpu_batch`
+Apr-08 22:13:04.486 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, gpu_batch, test, singularity, aws, gpu, docker]
+Apr-08 22:13:04.520 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-08 22:13:04.527 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-08 22:13:04.527 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-08 22:13:04.529 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-08 22:13:04.543 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-08 22:13:04.621 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-08 22:13:04.623 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-08 22:13:04.623 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-08 22:13:05.216 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-08 22:13:05.237 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-08 22:13:05.245 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-08 22:13:05.245 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-08 22:13:05.259 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-08 22:13:05.268 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-08 22:13:05.277 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Apr-08 22:13:05.279 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@c7f4457] - activable => nextflow.secret.LocalSecretsProvider@c7f4457
+Apr-08 22:13:05.280 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-08 22:13:05.289 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [angry_lavoisier] DSL2 - revision: 07ac2ae893
+Apr-08 22:13:05.316 [main] DEBUG nextflow.Session - Session UUID: 7cb44a33-0f54-47fd-aedc-de727abcd9da
+Apr-08 22:13:05.317 [main] DEBUG nextflow.Session - Run name: angry_lavoisier
+Apr-08 22:13:05.317 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-08 22:13:05.323 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/usr/local/bin/aws]]
+Apr-08 22:13:05.330 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {max_error_retry=5}
+Apr-08 22:13:06.025 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-08 22:13:06.030 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 22:13:06.051 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3234488@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (38.8 GB) - Swap: 16 GB (2.4 GB)
+Apr-08 22:13:06.313 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/gromacs-gpu-test/work
+
+Apr-08 22:13:06.313 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/gromacs-gpu-test/work [null]
+Apr-08 22:13:06.314 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/bin
+Apr-08 22:13:06.337 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-08 22:13:06.348 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-08 22:13:06.352 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-08 22:13:06.395 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-08 22:13:06.400 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-08 22:13:06.450 [main] DEBUG nextflow.Session - Session start
+Apr-08 22:13:06.574 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: s3://biomate-nextflow-work/gromacs-gpu-test/results/pipeline_info/trace.txt
+Apr-08 22:13:07.006 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-08 22:13:07.080 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:LIGAND_PREP` matches process LIGAND_PREP
+Apr-08 22:13:07.087 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.087 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.091 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-08 22:13:07.099 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-08 22:13:07.102 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-08 22:13:07.102 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-08 22:13:07.105 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-08 22:13:07.142 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:/usr/local/bin/aws, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:/usr/local/bin/aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-08 22:13:07.154 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'LIGAND_PREP': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.178 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:SYSTEM_SETUP` matches process SYSTEM_SETUP
+Apr-08 22:13:07.179 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.179 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.180 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'SYSTEM_SETUP': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.182 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:ENERGY_MINIMIZATION` matches process ENERGY_MINIMIZATION
+Apr-08 22:13:07.183 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.183 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.184 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'ENERGY_MINIMIZATION': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.186 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:NVT_EQUILIBRATION` matches process NVT_EQUILIBRATION
+Apr-08 22:13:07.187 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.187 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.187 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'NVT_EQUILIBRATION': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.190 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:NPT_EQUILIBRATION` matches process NPT_EQUILIBRATION
+Apr-08 22:13:07.191 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.191 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.192 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'NPT_EQUILIBRATION': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.195 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:PRODUCTION_MD` matches process PRODUCTION_MD
+Apr-08 22:13:07.195 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.195 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.197 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'PRODUCTION_MD': maxForks=1; fair=false; array=0
+Apr-08 22:13:07.198 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:TRAJECTORY_ANALYSIS` matches process TRAJECTORY_ANALYSIS
+Apr-08 22:13:07.199 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.199 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.199 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'TRAJECTORY_ANALYSIS': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.202 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:MM_GBSA` matches process MM_GBSA
+Apr-08 22:13:07.202 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 22:13:07.202 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 22:13:07.203 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'MM_GBSA': maxForks=0; fair=false; array=0
+Apr-08 22:13:07.214 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: LIGAND_PREP, SYSTEM_SETUP, ENERGY_MINIMIZATION, NVT_EQUILIBRATION, TRAJECTORY_ANALYSIS, MM_GBSA, PRODUCTION_MD, NPT_EQUILIBRATION
+Apr-08 22:13:07.215 [main] DEBUG nextflow.Session - Igniting dataflow network (10)
+Apr-08 22:13:07.218 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > LIGAND_PREP
+Apr-08 22:13:07.218 [PathVisitor-1] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/usr/local/bin/aws]]
+Apr-08 22:13:07.219 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > SYSTEM_SETUP
+Apr-08 22:13:07.219 [PathVisitor-1] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {max_error_retry=5}
+Apr-08 22:13:07.219 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > ENERGY_MINIMIZATION
+Apr-08 22:13:07.219 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > NVT_EQUILIBRATION
+Apr-08 22:13:07.219 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > NPT_EQUILIBRATION
+Apr-08 22:13:07.220 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > PRODUCTION_MD
+Apr-08 22:13:07.220 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > TRAJECTORY_ANALYSIS
+Apr-08 22:13:07.220 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > MM_GBSA
+Apr-08 22:13:07.221 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_913443835b847562: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/gromacs_protein_md/main.nf
+Apr-08 22:13:07.221 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-08 22:13:07.221 [main] DEBUG nextflow.Session - Session await
+Apr-08 22:13:08.380 [Actor Thread 14] INFO  nextflow.processor.TaskProcessor - [c7/109f7c] Cached process > LIGAND_PREP (ligand_prep)
+Apr-08 22:13:08.516 [Actor Thread 14] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 22:13:09.438 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomate-ambertools-gromacs-nf-latest:1; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest
+Apr-08 22:13:09.592 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `SYSTEM_SETUP (system_setup)` submitted > job=98e7a9f9-a9cd-46e1-bb56-b4d01d49024b; work-dir=s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a
+Apr-08 22:13:09.592 [AWSBatch-executor-1] INFO  nextflow.Session - [fc/8bffc4] Submitted process > SYSTEM_SETUP (system_setup)
+Apr-08 22:18:17.117 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:23:17.121 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:28:17.129 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:33:17.137 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:38:17.153 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:43:17.164 [Task monitor] DEBUG n.processor.TaskPollingMonitor - !! executor awsbatch > tasks to be completed: 1 -- submitted tasks are shown below
+~> TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: RUNNING; exit: -; error: -; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:44:08.234 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: SYSTEM_SETUP (system_setup); status: COMPLETED; exit: 21; error: nextflow.exception.ProcessException: Essential container in task exited; workDir: s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a]
+Apr-08 22:44:08.235 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 22:44:08.389 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=SYSTEM_SETUP (system_setup); work-dir=s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a
+  error [nextflow.exception.ProcessFailedException]: Process `SYSTEM_SETUP (system_setup)` failed
+Apr-08 22:44:08.703 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'SYSTEM_SETUP (system_setup)'
+
+Caused by:
+  Essential container in task exited
+
+
+Command executed:
+
+  set -euo pipefail
+  
+      # 1. Clean receptor with pdb4amber (remove HETATM, fix residue names)
+      pdb4amber -i "bcrabl1_receptor.pdb" -o receptor_clean.pdb --no-conect         2>&1 | tee setup.log
+  
+      # 2. Determine leaprc water model
+      case "tip3p" in
+          tip3p)  WATER_LEAPRC="leaprc.water.tip3p"  ; WATER_BOX="TIP3PBOX"  ;;
+          tip4p)  WATER_LEAPRC="leaprc.water.tip4p"  ; WATER_BOX="TIP4PBOX"  ;;
+          spc)    WATER_LEAPRC="leaprc.water.spce"   ; WATER_BOX="SPCBOX"    ;;
+          *)      WATER_LEAPRC="leaprc.water.tip3p"  ; WATER_BOX="TIP3PBOX"  ;;
+      esac
+  
+      # 3. Build tleap input script
+      cat > tleap.in << TLEAP_EOF
+  source leaprc.protein.ff14SB
+  source $WATER_LEAPRC
+  source leaprc.gaff2
+  
+  LIG = loadmol2 ligand_gaff2.mol2
+  loadamberparams ligand.frcmod
+  check LIG
+  
+  PROT = loadpdb receptor_clean.pdb
+  COMPLEX = combine {PROT LIG}
+  charge COMPLEX
+  
+  solvateBox COMPLEX $WATER_BOX 12
+  addIons2 COMPLEX Na+ 0
+  addIons2 COMPLEX Cl- 0
+  addionsrand COMPLEX Na+ Cl- 0.15
+  
+  saveamberparm COMPLEX complex.prmtop complex.inpcrd
+  quit
+  TLEAP_EOF
+  
+      tleap -f tleap.in 2>&1 | tee -a setup.log
+  
+      # 4. Convert AMBER topology -> GROMACS format via ParmEd
+      python3 << 'PARMED_EOF'
+  import parmed
+  import sys
+  
+  print("Converting AMBER -> GROMACS topology via ParmEd...", flush=True)
+  amber = parmed.load_file('complex.prmtop', 'complex.inpcrd')
+  amber.save('complex.gro', overwrite=True)
+  amber.save('complex.top', overwrite=True)
+  print(f"System: {len(amber.atoms)} atoms, {len(amber.residues)} residues", flush=True)
+  PARMED_EOF
+  
+      # 5. Generate GROMACS position restraints for protein heavy atoms
+      # Extract protein atom indices (residue names != WAT, Na+, Cl-, LIG)
+      python3 << 'POSRES_EOF'
+  import parmed
+  
+  amber = parmed.load_file('complex.prmtop', 'complex.inpcrd')
+  protein_res = {'ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY','HIS','HID','HIE','HIP',
+                 'ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL',
+                 'HYP','ACE','NME','NHE'}
+  with open('posres.itp', 'w') as f:
+      f.write('[ position_restraints ]
+  ')
+      f.write(';  i funct       fcx        fcy        fcz
+  ')
+      for i, atom in enumerate(amber.atoms, 1):
+          res = atom.residue
+          if res.name in protein_res and atom.name in ('CA','C','N','O'):
+              f.write(f'{i:6d}    1     1000       1000       1000
+  ')
+  print('Position restraints written to posres.itp', flush=True)
+  POSRES_EOF
+  
+      echo "SYSTEM_SETUP complete" | tee -a setup.log
+
+Command exit status:
+  21
+
+Command output:
+  Placed Na+ in COMPLEX at (17.10, 23.84, 33.84).
+  Placed Na+ in COMPLEX at (7.10, -8.16, -18.16).
+  Placed Na+ in COMPLEX at (-17.90, -16.16, -14.16).
+  Placed Na+ in COMPLEX at (-5.90, 28.84, 23.84).
+  Placed Na+ in COMPLEX at (11.10, 6.84, -0.16).
+  Placed Na+ in COMPLEX at (2.10, -26.16, -38.16).
+  Placed Na+ in COMPLEX at (-16.90, 32.84, 19.84).
+  Placed Na+ in COMPLEX at (15.10, 1.84, -30.16).
+  Placed Na+ in COMPLEX at (-9.90, 1.84, 11.84).
+  Placed Na+ in COMPLEX at (-7.90, 5.84, -31.16).
+  Placed Na+ in COMPLEX at (24.10, 29.84, 27.84).
+  Placed Na+ in COMPLEX at (6.10, 11.84, 3.84).
+  
+  Done adding ions.
+   0.000002 0 1 0
+  0 Cl- ion required to neutralize.
+  Adding 0 counter ions to "COMPLEX" using 1A grid
+  
+  /opt/conda/bin/teLeap: Fatal Error!
+  addIonsRand: Argument #3 is of type Unit must be of type: [number]
+      Here are some suggestions for correcting this error:
+      Verify the type of an argument with the desc command.
+      Check for alternate argument names with the list command.
+  
+  
+      addIonsRand unit ion1 #ion1 [ion2 #ion2] [separation]
+  
+          UNIT      _unit_
+          UNIT      _ion1_
+          NUMBER    _#ion1_
+          UNIT      _ion2_
+          NUMBER    _#ion2_
+          NUMBER    _separation_
+  
+  Adds counterions in a shell around _unit_ by replacing random solvent
+  molecules. If _#ion1_ is 0, the _unit_ is neutralized (_ion1_ must be
+  opposite in charge to _unit_, and _ion2_ cannot be specified). Otherwise,
+  the specified numbers of _ion1_ [_ion2_] are added [in alternating order].
+  If _separation_ is specified, ions will be guaranteed to be more than that
+  distance apart in Angstroms.
+  
+  Ions must be monoatomic. This procedure is much faster than addIons, as
+  it does not calculate charges. Solvent must be present. It must be possible
+  to position the requested number of ions with the given separation in the
+  solvent.
+  
+  
+  
+  
+  Exiting LEaP: Errors = 1; Warnings = 4; Notes = 0.
+
+Command error:
+  (more omitted..)
+  Placed Na+ in COMPLEX at (-8.90, -3.16, -30.16).
+  Placed Na+ in COMPLEX at (-26.90, -7.16, -5.16).
+  Placed Na+ in COMPLEX at (-1.90, 11.84, -16.16).
+  Placed Na+ in COMPLEX at (3.10, 33.84, 3.84).
+  Placed Na+ in COMPLEX at (-8.90, 8.84, 2.84).
+  Placed Na+ in COMPLEX at (15.10, -18.16, -24.16).
+  Placed Na+ in COMPLEX at (-17.90, 41.84, 31.84).
+  Placed Na+ in COMPLEX at (-3.90, -10.16, 11.84).
+  Placed Na+ in COMPLEX at (27.10, 23.84, 20.84).
+  Placed Na+ in COMPLEX at (-10.90, 19.84, 8.84).
+  Placed Na+ in COMPLEX at (-18.90, 4.84, -22.16).
+  Placed Na+ in COMPLEX at (17.10, 23.84, 33.84).
+  Placed Na+ in COMPLEX at (7.10, -8.16, -18.16).
+  Placed Na+ in COMPLEX at (-17.90, -16.16, -14.16).
+  Placed Na+ in COMPLEX at (-5.90, 28.84, 23.84).
+  Placed Na+ in COMPLEX at (11.10, 6.84, -0.16).
+  Placed Na+ in COMPLEX at (2.10, -26.16, -38.16).
+  Placed Na+ in COMPLEX at (-16.90, 32.84, 19.84).
+  Placed Na+ in COMPLEX at (15.10, 1.84, -30.16).
+  Placed Na+ in COMPLEX at (-9.90, 1.84, 11.84).
+  Placed Na+ in COMPLEX at (-7.90, 5.84, -31.16).
+  Placed Na+ in COMPLEX at (24.10, 29.84, 27.84).
+  Placed Na+ in COMPLEX at (6.10, 11.84, 3.84).
+  Done adding ions.
+   0.000002 0 1 0
+  0 Cl- ion required to neutralize.
+  Adding 0 counter ions to "COMPLEX" using 1A grid
+  /opt/conda/bin/teLeap: Fatal Error!
+  addIonsRand: Argument #3 is of type Unit must be of type: [number]
+      Here are some suggestions for correcting this error:
+      Verify the type of an argument with the desc command.
+      Check for alternate argument names with the list command.
+      addIonsRand unit ion1 #ion1 [ion2 #ion2] [separation]
+          UNIT      _unit_
+          UNIT      _ion1_
+          NUMBER    _#ion1_
+          UNIT      _ion2_
+          NUMBER    _#ion2_
+          NUMBER    _separation_
+  Adds counterions in a shell around _unit_ by replacing random solvent
+  molecules. If _#ion1_ is 0, the _unit_ is neutralized (_ion1_ must be
+  opposite in charge to _unit_, and _ion2_ cannot be specified). Otherwise,
+  the specified numbers of _ion1_ [_ion2_] are added [in alternating order].
+  If _separation_ is specified, ions will be guaranteed to be more than that
+  distance apart in Angstroms.
+  Ions must be monoatomic. This procedure is much faster than addIons, as
+  it does not calculate charges. Solvent must be present. It must be possible
+  to position the requested number of ions with the given separation in the
+  solvent.
+  Exiting LEaP: Errors = 1; Warnings = 4; Notes = 0.
+
+Work dir:
+  s3://biomate-nextflow-work/gromacs-gpu-test/work/fc/8bffc485173e5f3b00f78292d3d10a
+
+Container:
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest
+
+Tip: when you have fixed the problem you can continue the execution adding the option `-resume` to the run command line
+Apr-08 22:44:08.717 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-08 22:44:08.783 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Apr-08 22:44:08.850 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-08 22:44:08.851 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-08 22:44:08.852 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-08 22:44:08.852 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Apr-08 22:44:08.857 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=1; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=1h 52m 4s; cachedDuration=12m 47s;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=16 GB; ]
+Apr-08 22:44:08.923 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-08 22:44:09.856 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-08 22:44:10.100 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-08 22:44:10.263 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-08 22:44:10.278 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-08 22:44:10.279 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-08 22:44:10.279 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-08 22:44:10.280 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

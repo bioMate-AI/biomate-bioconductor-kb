@@ -1,93 +1,92 @@
-Mar-25 04:27:38.176 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf -profile docker -w 's3://biomate-nextflow-work/nextflow/work' --smiles 'CC(=O)Oc1ccccc1C(=O)O' --mock_mode false --outdir 's3://biomate-nextflow-work/nextflow/outputs/0d2968f9' -with-trace /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/workflow-trace.txt -c /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/biomate_executor_override.config
-Mar-25 04:27:38.220 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
-Mar-25 04:27:38.259 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
-Mar-25 04:27:38.260 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/biomate_executor_override.config
-Mar-25 04:27:38.261 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
-Mar-25 04:27:38.262 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/biomate_executor_override.config
-Mar-25 04:27:38.281 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
-Mar-25 04:27:38.602 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
-Mar-25 04:27:38.626 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, conda, singularity, aws, docker]
-Mar-25 04:27:38.656 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
-Mar-25 04:27:38.661 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-25 04:27:38.662 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-25 04:27:38.667 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
-Mar-25 04:27:38.678 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
-Mar-25 04:27:38.748 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-25 04:27:38.749 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
-Mar-25 04:27:38.749 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
-Mar-25 04:27:39.276 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+Apr-07 19:04:50.209 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/49ef1cf9' -with-trace /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/workflow-trace.txt -c /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/biomate_executor_override.config
+Apr-07 19:04:50.341 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-07 19:04:50.372 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
+Apr-07 19:04:50.373 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/biomate_executor_override.config
+Apr-07 19:04:50.374 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/nextflow.config
+Apr-07 19:04:50.374 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/biomate_executor_override.config
+Apr-07 19:04:50.389 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 19:04:50.749 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-07 19:04:50.801 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-07 19:04:50.806 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-07 19:04:50.806 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-07 19:04:50.808 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-07 19:04:50.816 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-07 19:04:50.894 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-07 19:04:50.895 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-07 19:04:50.895 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-07 19:04:51.380 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
 - code: 200
 - body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
-Mar-25 04:27:39.297 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
-Mar-25 04:27:39.301 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
-Mar-25 04:27:41.431 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
-Mar-25 04:27:41.438 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
-Mar-25 04:27:41.438 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
-Mar-25 04:27:41.451 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
-Mar-25 04:27:41.459 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
-Mar-25 04:27:41.467 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/.nextflow/secrets/store.json
-Mar-25 04:27:41.469 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@62b57479] - activable => nextflow.secret.LocalSecretsProvider@62b57479
-Mar-25 04:27:41.470 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-25 04:27:41.478 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` [kickass_cray] DSL2 - revision: 26285d71a3
-Mar-25 04:27:41.504 [main] DEBUG nextflow.Session - Session UUID: a174ab8b-e191-4336-9709-d58e7c554af6
-Mar-25 04:27:41.505 [main] DEBUG nextflow.Session - Run name: kickass_cray
-Mar-25 04:27:41.505 [main] DEBUG nextflow.Session - Executor pool size: 20
-Mar-25 04:27:41.511 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
-Mar-25 04:27:41.519 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
-Mar-25 04:27:42.123 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-25 04:27:42.126 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:27:42.135 [main] DEBUG nextflow.cli.CmdRun - 
+Apr-07 19:04:51.401 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-07 19:04:51.404 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-07 19:04:53.420 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-07 19:04:53.428 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-07 19:04:53.428 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-07 19:04:53.438 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-07 19:04:53.447 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-07 19:04:53.461 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/.nextflow/secrets/store.json
+Apr-07 19:04:53.463 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@4fc165f6] - activable => nextflow.secret.LocalSecretsProvider@4fc165f6
+Apr-07 19:04:53.464 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-07 19:04:53.472 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf` [clever_gilbert] DSL2 - revision: 26285d71a3
+Apr-07 19:04:53.498 [main] DEBUG nextflow.Session - Session UUID: d0995692-b747-468a-ba9a-8a30d5eb4b1f
+Apr-07 19:04:53.498 [main] DEBUG nextflow.Session - Run name: clever_gilbert
+Apr-07 19:04:53.498 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-07 19:04:53.504 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/opt/aws-cli/bin/aws], client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-07 19:04:53.512 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-07 19:04:54.251 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-07 19:04:54.257 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:04:54.274 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 25.10.0 build 10289
   Created: 22-10-2025 16:26 UTC 
   System: Linux 6.11.0-1016-nvidia
   Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
   Encoding: UTF-8 (UTF-8)
-  Process: 1911390@spark-d816 [127.0.0.1]
-  CPUs: 20 - Mem: 119.7 GB (11.8 GB) - Swap: 16 GB (10.9 GB)
-Mar-25 04:27:42.364 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work
+  Process: 1580409@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (28.1 GB) - Swap: 16 GB (341.9 MB)
+Apr-07 19:04:54.540 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba
 
-Mar-25 04:27:42.365 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work [null]
-Mar-25 04:27:42.365 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/bin
-Mar-25 04:27:42.384 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
-Mar-25 04:27:42.393 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
-Mar-25 04:27:42.395 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
-Mar-25 04:27:42.443 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-25 04:27:42.451 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
-Mar-25 04:27:42.485 [main] DEBUG nextflow.Session - Session start
-Mar-25 04:27:42.651 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/ce0ed1b9-8ec3-42e7-a3a1-af32dde58b7f/workflow-trace.txt
-Mar-25 04:27:42.881 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-25 04:27:42.948 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name ADMET_PRED_WORKFLOW:ADMET_PRED
-Mar-25 04:27:42.957 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
-Mar-25 04:27:42.958 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
-Mar-25 04:27:42.962 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
-Mar-25 04:27:42.969 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
-Mar-25 04:27:42.973 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
-Mar-25 04:27:42.974 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
-Mar-25 04:27:42.977 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
-Mar-25 04:27:43.021 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:null, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
-Mar-25 04:27:43.032 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'ADMET_PRED_WORKFLOW:ADMET_PRED': maxForks=0; fair=false; array=0
-Mar-25 04:27:43.068 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: ADMET_PRED_WORKFLOW:ADMET_PRED, ADMET_PRED
-Mar-25 04:27:43.069 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
-Mar-25 04:27:43.069 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > ADMET_PRED_WORKFLOW:ADMET_PRED
-Mar-25 04:27:43.070 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Apr-07 19:04:54.541 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba [null]
+Apr-07 19:04:54.541 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/bin
+Apr-07 19:04:54.552 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-07 19:04:54.558 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-07 19:04:54.559 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-07 19:04:54.584 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-07 19:04:54.589 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-07 19:04:54.635 [main] DEBUG nextflow.Session - Session start
+Apr-07 19:04:54.804 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/24358751-5b24-42f2-a7e0-797dbab67cba/workflow-trace.txt
+Apr-07 19:04:55.032 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-07 19:04:55.115 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_medium` matches labels `process_medium` for process with name ADMET_PRED_WORKFLOW:ADMET_PRED
+Apr-07 19:04:55.126 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-07 19:04:55.126 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-07 19:04:55.133 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-07 19:04:55.140 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 19:04:55.143 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-07 19:04:55.144 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-07 19:04:55.147 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-07 19:04:55.190 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:/opt/aws-cli/bin/aws, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:/opt/aws-cli/bin/aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-07 19:04:55.199 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'ADMET_PRED_WORKFLOW:ADMET_PRED': maxForks=0; fair=false; array=0
+Apr-07 19:04:55.229 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: ADMET_PRED_WORKFLOW:ADMET_PRED, ADMET_PRED
+Apr-07 19:04:55.230 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Apr-07 19:04:55.231 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > ADMET_PRED_WORKFLOW:ADMET_PRED
+Apr-07 19:04:55.231 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
   Script_604b5d2b89c48df7: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ADMET_pred/main.nf
-Mar-25 04:27:43.070 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
-Mar-25 04:27:43.070 [main] DEBUG nextflow.Session - Session await
-Mar-25 04:27:43.978 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-biomate-biomni-tools-latest:1; container=biomate/biomni-tools:latest
-Mar-25 04:27:44.130 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` submitted > job=7d627366-72d5-4da4-a9cf-36799d809265; work-dir=s3://biomate-nextflow-work/nextflow/work/53/a486d6a855b12fa8468fa4bb8fd7eb
-Mar-25 04:27:44.131 [AWSBatch-executor-1] INFO  nextflow.Session - [53/a486d6] Submitted process > ADMET_PRED_WORKFLOW:ADMET_PRED (run)
-Mar-25 04:29:23.305 [Task monitor] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Cannot read exit status for task: `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` | /biomate-nextflow-work/nextflow/work/53/a486d6a855b12fa8468fa4bb8fd7eb/.exitcode
-Mar-25 04:29:23.747 [Task monitor] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Unable to find AWS Cloudwatch logs for Batch Job id=7d627366-72d5-4da4-a9cf-36799d809265 - The specified log stream does not exist. (Service: CloudWatchLogs, Status Code: 400, Request ID: d8bdbd29-cf6d-44c2-86c9-09173e0978f8) (SDK Attempt Count: 1)
-Mar-25 04:29:23.748 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: ADMET_PRED_WORKFLOW:ADMET_PRED (run); status: COMPLETED; exit: -; error: nextflow.exception.ProcessException: Task failed to start - CannotPullImageManifestError: Error response from daemon: errors:
+Apr-07 19:04:55.231 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-07 19:04:55.231 [main] DEBUG nextflow.Session - Session await
+Apr-07 19:04:56.169 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-biomate-biomni-tools-latest:2; container=biomate/biomni-tools:latest
+Apr-07 19:04:56.357 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` submitted > job=33dfbbd3-8506-4b50-80e2-44a2c90f4433; work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba/e7/461d4e5d3ccf22ff85304bffd7373c
+Apr-07 19:04:56.358 [AWSBatch-executor-1] INFO  nextflow.Session - [e7/461d4e] Submitted process > ADMET_PRED_WORKFLOW:ADMET_PRED (run)
+Apr-07 19:08:25.453 [Task monitor] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Cannot read exit status for task: `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` | /biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba/e7/461d4e5d3ccf22ff85304bffd7373c/.exitcode
+Apr-07 19:08:25.872 [Task monitor] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Unable to find AWS Cloudwatch logs for Batch Job id=33dfbbd3-8506-4b50-80e2-44a2c90f4433 - The specified log stream does not exist. (Service: CloudWatchLogs, Status Code: 400, Request ID: a6b54c8e-fe2a-444f-bc31-f53c4ce57c97) (SDK Attempt Count: 1)
+Apr-07 19:08:25.873 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: ADMET_PRED_WORKFLOW:ADMET_PRED (run); status: COMPLETED; exit: -; error: nextflow.exception.ProcessException: Task failed to start - CannotPullImageManifestError: Error response from daemon: errors:
 denied: requested access to the resource is denied
-unauthorized: authentication required; workDir: s3://biomate-nextflow-work/nextflow/work/53/a486d6a855b12fa8468fa4bb8fd7eb]
-Mar-25 04:29:23.749 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:29:23.802 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
-  task: name=ADMET_PRED_WORKFLOW:ADMET_PRED (run); work-dir=s3://biomate-nextflow-work/nextflow/work/53/a486d6a855b12fa8468fa4bb8fd7eb
+unauthorized: authentication required; workDir: s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba/e7/461d4e5d3ccf22ff85304bffd7373c]
+Apr-07 19:08:25.874 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:08:25.936 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=ADMET_PRED_WORKFLOW:ADMET_PRED (run); work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba/e7/461d4e5d3ccf22ff85304bffd7373c
   error [nextflow.exception.ProcessFailedException]: Process `ADMET_PRED_WORKFLOW:ADMET_PRED (run)` failed
-Mar-25 04:29:23.857 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-10627356528840480308/.command.out
-Mar-25 04:29:23.905 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-6390234591096641877/.command.err
-Mar-25 04:29:23.907 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)'
+Apr-07 19:08:26.001 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-8061070746895761/.command.out
+Apr-07 19:08:26.066 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-11325843357631375687/.command.err
+Apr-07 19:08:26.070 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)'
 
 Caused by:
   Task failed to start - CannotPullImageManifestError: Error response from daemon: errors:
@@ -98,7 +97,7 @@ Caused by:
 Command executed:
 
   # Export parameters as environment variables
-      export PARAM_SMILES='CC(=O)Oc1ccccc1C(=O)O'
+      export PARAM_SMILES='OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC'
   
       python3 << 'PYEOF'
   # ADMET safety screening using RDKit molecular descriptor heuristics.
@@ -433,31 +432,31 @@ Command output:
   (empty)
 
 Work dir:
-  s3://biomate-nextflow-work/nextflow/work/53/a486d6a855b12fa8468fa4bb8fd7eb
+  s3://biomate-nextflow-work/nextflow/work/unknown/24358751-5b24-42f2-a7e0-797dbab67cba/e7/461d4e5d3ccf22ff85304bffd7373c
 
 Container:
   biomate/biomni-tools:latest
 
-Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`
-Mar-25 04:29:23.912 [main] DEBUG nextflow.Session - Session await > all processes finished
-Mar-25 04:29:23.965 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
-Mar-25 04:29:24.065 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-14841757386229069643/.command.err
-Mar-25 04:29:24.114 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-2076465523654274499/.command.out
-Mar-25 04:29:24.116 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
-Mar-25 04:29:24.116 [main] DEBUG nextflow.Session - Session await > all barriers passed
-Mar-25 04:29:24.116 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
-Mar-25 04:29:24.164 [main] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-1009828589103022435/.command.err
-Mar-25 04:29:24.219 [main] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-14222455978409162409/.command.out
-Mar-25 04:29:24.223 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=2.5s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
-Mar-25 04:29:24.663 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-14312962177849100370.dot to=s3://biomate-nextflow-work/nextflow/outputs/0d2968f9/pipeline_info/dag.dot
-Mar-25 04:29:24.665 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-25 04:29:25.011 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
-Mar-25 04:29:25.011 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
-Mar-25 04:29:25.966 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
-Mar-25 04:29:26.287 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
-Mar-25 04:29:26.292 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
-Mar-25 04:29:26.297 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
-Mar-25 04:29:26.297 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
-Mar-25 04:29:26.298 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
-Mar-25 04:29:26.298 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)
-Mar-25 04:29:26.298 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
+Tip: you can try to figure out what's wrong by changing to the process work dir and showing the script file named `.command.sh`
+Apr-07 19:08:26.077 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-07 19:08:26.138 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Apr-07 19:08:26.244 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-6235341648986609298/.command.err
+Apr-07 19:08:26.291 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-5911513372409948068/.command.out
+Apr-07 19:08:26.292 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-07 19:08:26.292 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-07 19:08:26.293 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-07 19:08:26.348 [main] DEBUG nextflow.processor.TaskRun - Unable to dump error of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-615995049686896911/.command.err
+Apr-07 19:08:26.395 [main] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'ADMET_PRED_WORKFLOW:ADMET_PRED (run)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-4088060875620149728/.command.out
+Apr-07 19:08:26.399 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=2.4s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=4; peakMemory=8 GB; ]
+Apr-07 19:08:26.802 [main] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/tmp/nxf-7693429256872526407.dot to=s3://biomate-nextflow-work/nextflow/outputs/unknown/49ef1cf9/pipeline_info/dag.dot
+Apr-07 19:08:26.804 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-07 19:08:27.138 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Apr-07 19:08:27.138 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-07 19:08:28.088 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-07 19:08:28.381 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-07 19:08:28.386 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-07 19:08:28.396 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-07 19:08:28.397 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-07 19:08:28.397 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-07 19:08:28.397 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)
+Apr-07 19:08:28.397 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

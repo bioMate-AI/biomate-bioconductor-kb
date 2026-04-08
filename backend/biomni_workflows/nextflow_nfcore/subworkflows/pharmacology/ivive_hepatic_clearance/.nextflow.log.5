@@ -1,0 +1,90 @@
+Apr-08 14:56:51.467 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/unknown/b00623bc-a310-423f-9981-d57491d1f6c1' --outdir 's3://biomate-nextflow-work/nextflow/outputs/unknown/9faddf93' -with-trace /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/workflow-trace.txt -c /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/biomate_executor_override.config
+Apr-08 14:56:51.521 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-08 14:56:51.560 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/biomate_executor_override.config
+Apr-08 14:56:51.561 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/biomate_executor_override.config
+Apr-08 14:56:51.577 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-08 14:56:51.869 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-08 14:56:51.876 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-08 14:56:51.876 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-08 14:56:51.878 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-08 14:56:51.887 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-08 14:56:51.969 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-08 14:56:51.971 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-08 14:56:51.971 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-08 14:56:52.528 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-08 14:56:52.548 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-08 14:56:52.551 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-08 14:56:54.669 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-08 14:56:54.677 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-08 14:56:54.677 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-08 14:56:54.690 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-08 14:56:54.698 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-08 14:56:54.707 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/.nextflow/secrets/store.json
+Apr-08 14:56:54.709 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1934ad7c] - activable => nextflow.secret.LocalSecretsProvider@1934ad7c
+Apr-08 14:56:54.711 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-08 14:56:54.720 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf` [deadly_engelbart] DSL2 - revision: 539622086c
+Apr-08 14:56:54.751 [main] DEBUG nextflow.Session - Session UUID: e9913af5-dd9c-4afc-b759-2d734baca3ad
+Apr-08 14:56:54.751 [main] DEBUG nextflow.Session - Run name: deadly_engelbart
+Apr-08 14:56:54.751 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-08 14:56:54.759 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-08 14:56:54.769 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-08 14:56:55.410 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-08 14:56:55.413 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 14:56:55.421 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 2515984@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (1.4 GB) - Swap: 16 GB (402.9 MB)
+Apr-08 14:56:55.639 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/unknown/b00623bc-a310-423f-9981-d57491d1f6c1
+
+Apr-08 14:56:55.639 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/unknown/b00623bc-a310-423f-9981-d57491d1f6c1 [null]
+Apr-08 14:56:55.640 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/bin
+Apr-08 14:56:55.652 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-08 14:56:55.658 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-08 14:56:55.659 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-08 14:56:55.681 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-08 14:56:55.686 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-08 14:56:55.733 [main] DEBUG nextflow.Session - Session start
+Apr-08 14:56:55.739 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/b00623bc-a310-423f-9981-d57491d1f6c1/workflow-trace.txt
+Apr-08 14:56:55.994 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-08 14:56:56.085 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-08 14:56:56.086 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-08 14:56:56.090 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-08 14:56:56.099 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-08 14:56:56.102 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-08 14:56:56.103 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-08 14:56:56.107 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-08 14:56:56.155 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:null, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-08 14:56:56.169 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE': maxForks=0; fair=false; array=0
+Apr-08 14:56:56.207 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE, IVIVE_HEPATIC_CLEARANCE
+Apr-08 14:56:56.208 [main] DEBUG nextflow.Session - Igniting dataflow network (2)
+Apr-08 14:56:56.209 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE
+Apr-08 14:56:56.209 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_73b363f34e5bf547: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/ivive_hepatic_clearance/main.nf
+Apr-08 14:56:56.210 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-08 14:56:56.210 [main] DEBUG nextflow.Session - Session await
+Apr-08 14:56:57.547 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Created job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomate-biomni-tools-x86:1; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
+Apr-08 14:56:57.682 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)` submitted > job=6568f3df-4670-4342-9111-83e171dfdf0d; work-dir=s3://biomate-nextflow-work/nextflow/work/unknown/b00623bc-a310-423f-9981-d57491d1f6c1/12/94e721c45a610fd606ac4a0da7f09f
+Apr-08 14:56:57.683 [AWSBatch-executor-1] INFO  nextflow.Session - [12/94e721] Submitted process > IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run)
+Apr-08 15:00:16.464 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: IVIVE_HEPATIC_CLEARANCE_WORKFLOW:IVIVE_HEPATIC_CLEARANCE (run); status: COMPLETED; exit: 0; error: -; workDir: s3://biomate-nextflow-work/nextflow/work/unknown/b00623bc-a310-423f-9981-d57491d1f6c1/12/94e721c45a610fd606ac4a0da7f09f]
+Apr-08 15:00:16.464 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 15:00:16.786 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 15:00:16.792 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-08 15:00:16.909 [PublishDir-2] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 15:00:26.115 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-08 15:00:26.115 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-08 15:00:26.116 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-08 15:00:26.116 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Apr-08 15:00:26.120 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=109ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-08 15:00:26.283 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-08 15:00:26.287 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-08 15:00:26.293 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-08 15:00:26.293 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-08 15:00:26.293 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-08 15:00:26.293 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'S3TransferManager' shutdown completed (hard=false)
+Apr-08 15:00:26.294 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

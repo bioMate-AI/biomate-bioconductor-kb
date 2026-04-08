@@ -10,8 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Uses inline-generated mock PDB structure (created in script)
-params.pdb_path = 'mock_protein.pdb'
+params.pdb_path = null  // Required: path to PDB file of the protein receptor
 // Demo: Aspirin SMILES for docking
 params.smiles_string = 'CC(=O)OC1=CC=CC=C1C(=O)O'
 params.local_output_dir = './diffdock_results'
@@ -24,7 +23,7 @@ process RUN_DIFFDOCK_WITH_SMILES {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -43,29 +42,6 @@ process RUN_DIFFDOCK_WITH_SMILES {
     export PARAM_LOCAL_OUTPUT_DIR="${params.local_output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_GPU_DEVICE="${params.gpu_device?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_USE_GPU="${params.use_gpu?.toString()?.replace('"', '\\"') ?: 'null'}"
-
-    # Create mock PDB structure for testing
-    cat > mock_protein.pdb << 'PDBEOF'
-HEADER    HYDROLASE                               01-JAN-00   MOCK
-TITLE     MOCK PROTEIN STRUCTURE FOR DIFFDOCK TESTING
-ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
-ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
-ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
-ATOM      4  O   ALA A   1       1.246   2.400   0.000  1.00  0.00           O
-ATOM      5  CB  ALA A   1       1.986  -0.764  -1.216  1.00  0.00           C
-ATOM      6  N   GLY A   2       3.320   1.530   0.000  1.00  0.00           N
-ATOM      7  CA  GLY A   2       3.930   2.860   0.000  1.00  0.00           C
-ATOM      8  C   GLY A   2       5.440   2.780   0.000  1.00  0.00           C
-ATOM      9  O   GLY A   2       6.100   3.820   0.000  1.00  0.00           O
-ATOM     10  N   SER A   3       5.990   1.560   0.000  1.00  0.00           N
-ATOM     11  CA  SER A   3       7.440   1.390   0.000  1.00  0.00           C
-ATOM     12  C   SER A   3       8.020   0.000   0.000  1.00  0.00           C
-ATOM     13  O   SER A   3       7.290  -1.000   0.000  1.00  0.00           O
-ATOM     14  CB  SER A   3       7.950   2.130   1.244  1.00  0.00           C
-ATOM     15  OG  SER A   3       7.450   3.460   1.244  1.00  0.00           O
-END
-PDBEOF
-    echo "Created mock PDB structure for DiffDock testing"
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

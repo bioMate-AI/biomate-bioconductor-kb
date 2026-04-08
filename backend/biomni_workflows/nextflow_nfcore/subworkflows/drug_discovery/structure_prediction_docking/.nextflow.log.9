@@ -1,100 +1,399 @@
-Mar-04 21:09:10.945 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile test
-Mar-04 21:09:10.989 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
-Mar-04 21:09:11.020 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
-Mar-04 21:09:11.023 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
-Mar-04 21:09:11.052 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
-Mar-04 21:09:11.542 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [standard, slurm, test, singularity, aws, gpu, docker]
-Mar-04 21:09:11.595 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nxf_home_test/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
-Mar-04 21:09:11.605 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
-Mar-04 21:09:11.606 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
-Mar-04 21:09:11.608 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
-Mar-04 21:09:11.618 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
-Mar-04 21:09:11.717 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
-Mar-04 21:09:11.719 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
-Mar-04 21:09:11.720 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
-Mar-04 21:09:11.733 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nxf_home_test/secrets/store.json
-Mar-04 21:09:11.735 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@2ae62bb6] - activable => nextflow.secret.LocalSecretsProvider@2ae62bb6
-Mar-04 21:09:11.746 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
-Mar-04 21:09:11.760 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [tiny_thompson] DSL2 - revision: 063a12b676
-Mar-04 21:09:11.804 [main] DEBUG nextflow.Session - Session UUID: 364e306f-6c9e-4772-aaa9-313b017fcc66
-Mar-04 21:09:11.804 [main] DEBUG nextflow.Session - Run name: tiny_thompson
-Mar-04 21:09:11.805 [main] DEBUG nextflow.Session - Executor pool size: 20
-Mar-04 21:09:11.815 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
-Mar-04 21:09:11.820 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-04 21:09:11.839 [main] DEBUG nextflow.cli.CmdRun - 
+Mar-18 03:14:21.770 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf -with-docker biomate/biomni-tools -profile standard -w /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/work --outdir /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/output -with-trace /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/workflow-trace.txt
+Mar-18 03:14:21.843 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Mar-18 03:14:21.888 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
+Mar-18 03:14:21.890 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/nextflow.config
+Mar-18 03:14:21.907 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Mar-18 03:14:22.339 [main] DEBUG nextflow.config.ConfigBuilder - Enabling execution in Docker container as requested by command-line option `-with-docker biomate/biomni-tools`
+Mar-18 03:14:22.368 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Mar-18 03:14:22.380 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Mar-18 03:14:22.381 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Mar-18 03:14:22.384 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Mar-18 03:14:22.394 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Mar-18 03:14:22.479 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Mar-18 03:14:22.480 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Mar-18 03:14:22.480 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Mar-18 03:14:22.490 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/.nextflow/secrets/store.json
+Mar-18 03:14:22.492 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@697173d9] - activable => nextflow.secret.LocalSecretsProvider@697173d9
+Mar-18 03:14:22.494 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Mar-18 03:14:22.505 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf` [confident_koch] DSL2 - revision: 063a12b676
+Mar-18 03:14:22.542 [main] DEBUG nextflow.Session - Session UUID: 8b4cec11-6cfa-4bdf-82a5-d725a88848a5
+Mar-18 03:14:22.542 [main] DEBUG nextflow.Session - Run name: confident_koch
+Mar-18 03:14:22.542 [main] DEBUG nextflow.Session - Executor pool size: 20
+Mar-18 03:14:22.548 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Mar-18 03:14:22.553 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-18 03:14:22.568 [main] DEBUG nextflow.cli.CmdRun - 
   Version: 25.10.0 build 10289
   Created: 22-10-2025 16:26 UTC 
   System: Linux 6.11.0-1016-nvidia
   Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
   Encoding: UTF-8 (UTF-8)
-  Process: 3778732@spark-d816 [127.0.0.1]
-  CPUs: 20 - Mem: 119.7 GB (1.8 GB) - Swap: 16 GB (14.8 GB)
-Mar-04 21:09:11.868 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work [ext2/ext3]
-Mar-04 21:09:11.868 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/bin
-Mar-04 21:09:11.873 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
-Mar-04 21:09:11.880 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
-Mar-04 21:09:11.883 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
-Mar-04 21:09:11.925 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
-Mar-04 21:09:11.933 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
-Mar-04 21:09:11.976 [main] DEBUG nextflow.Session - Session start
-Mar-04 21:09:11.981 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: ./results/structure_prediction_docking/pipeline_info/trace.txt
-Mar-04 21:09:12.630 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
-Mar-04 21:09:12.736 [main] INFO  nextflow.Nextflow - 
+  Process: 3738897@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (2.6 GB) - Swap: 16 GB (12.6 GB)
+Mar-18 03:14:22.583 [main] DEBUG nextflow.Session - Work-dir: /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/work [ext2/ext3]
+Mar-18 03:14:22.583 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/bin
+Mar-18 03:14:22.599 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Mar-18 03:14:22.611 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Mar-18 03:14:22.620 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Mar-18 03:14:22.660 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Mar-18 03:14:22.669 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Mar-18 03:14:22.725 [main] DEBUG nextflow.Session - Session start
+Mar-18 03:14:22.731 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/workflow-trace.txt
+Mar-18 03:14:23.289 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Mar-18 03:14:23.375 [main] INFO  nextflow.Nextflow - 
 ====================================================================
 BioMate | Structure Prediction + Docking Pipeline
 ====================================================================
 Mode:               MOCK (synthetic data)
 AlphaFold3 mode:    mock
-DiffDock poses:     3
-Vina exhaustiveness: 4
-Output dir:         ./results/structure_prediction_docking
+DiffDock poses:     10
+Vina exhaustiveness: 32
+Output dir:         /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/output
 ====================================================================
 
-Mar-04 21:09:12.785 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:ALPHAFOLD3_STRUCTURE_PREDICTION` matches process STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION
-Mar-04 21:09:12.795 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-04 21:09:12.795 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-04 21:09:12.803 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
-Mar-04 21:09:12.807 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
-Mar-04 21:09:12.810 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
-Mar-04 21:09:12.823 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION': maxForks=0; fair=false; array=0
-Mar-04 21:09:12.872 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:DIFFDOCK_BLIND_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
-Mar-04 21:09:12.873 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-04 21:09:12.873 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-04 21:09:12.873 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING': maxForks=0; fair=false; array=0
-Mar-04 21:09:12.890 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:AUTODOCK_VINA_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
-Mar-04 21:09:12.892 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
-Mar-04 21:09:12.892 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
-Mar-04 21:09:12.893 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING': maxForks=0; fair=false; array=0
-Mar-04 21:09:12.908 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: DIFFDOCK_BLIND_DOCKING, AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION, STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING, ALPHAFOLD3_STRUCTURE_PREDICTION
-Mar-04 21:09:12.910 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
-Mar-04 21:09:12.911 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION
-Mar-04 21:09:12.911 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
-Mar-04 21:09:12.911 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
-Mar-04 21:09:12.912 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Mar-18 03:14:23.417 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:ALPHAFOLD3_STRUCTURE_PREDICTION` matches process STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION
+Mar-18 03:14:23.425 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-18 03:14:23.425 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-18 03:14:23.433 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Mar-18 03:14:23.436 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Mar-18 03:14:23.438 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Mar-18 03:14:23.457 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION': maxForks=0; fair=false; array=0
+Mar-18 03:14:23.493 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:DIFFDOCK_BLIND_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
+Mar-18 03:14:23.494 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-18 03:14:23.495 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-18 03:14:23.495 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING': maxForks=0; fair=false; array=0
+Mar-18 03:14:23.517 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:AUTODOCK_VINA_DOCKING` matches process STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
+Mar-18 03:14:23.519 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: local
+Mar-18 03:14:23.519 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Mar-18 03:14:23.520 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING': maxForks=0; fair=false; array=0
+Mar-18 03:14:23.544 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: DIFFDOCK_BLIND_DOCKING, AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION, STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING, STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING, ALPHAFOLD3_STRUCTURE_PREDICTION
+Mar-18 03:14:23.546 [main] DEBUG nextflow.Session - Igniting dataflow network (5)
+Mar-18 03:14:23.551 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION
+Mar-18 03:14:23.551 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING
+Mar-18 03:14:23.551 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING
+Mar-18 03:14:23.551 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
   Script_2624c246e7170e9d: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/main.nf
-Mar-04 21:09:12.912 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
-Mar-04 21:09:12.912 [main] DEBUG nextflow.Session - Session await
-Mar-04 21:09:13.089 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-04 21:09:13.092 [Task submitter] INFO  nextflow.Session - [05/394206] Submitted process > STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase)
-Mar-04 21:09:13.189 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/05/39420681349228de158f00cf69ba19]
-Mar-04 21:09:13.190 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-04 21:09:13.248 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
-Mar-04 21:09:13.269 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-04 21:09:13.270 [Task submitter] INFO  nextflow.Session - [78/4e922c] Submitted process > STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING (EGFR_kinase)
-Mar-04 21:09:13.289 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
-Mar-04 21:09:13.289 [Task submitter] INFO  nextflow.Session - [41/a40143] Submitted process > STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING (EGFR_kinase)
-Mar-04 21:09:13.365 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 3; name: STRUCTURE_PREDICTION_DOCKING:AUTODOCK_VINA_DOCKING (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/78/4e922cdcb5dfaafa5a382f769ddd04]
-Mar-04 21:09:13.388 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 2; name: STRUCTURE_PREDICTION_DOCKING:DIFFDOCK_BLIND_DOCKING (EGFR_kinase); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/structure_prediction_docking/work/41/a401431fce1ec4bef6051cdc9c740a]
-Mar-04 21:09:13.400 [main] DEBUG nextflow.Session - Session await > all processes finished
-Mar-04 21:09:13.489 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
-Mar-04 21:09:13.489 [main] DEBUG nextflow.Session - Session await > all barriers passed
-Mar-04 21:09:13.491 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
-Mar-04 21:09:13.492 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
-Mar-04 21:09:13.499 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=3; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=117ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=2; peakCpus=2; peakMemory=8 GB; ]
-Mar-04 21:09:13.511 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
-Mar-04 21:09:13.511 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
-Mar-04 21:09:13.954 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
-Mar-04 21:09:13.995 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
-Mar-04 21:09:13.999 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
-Mar-04 21:09:14.007 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
-Mar-04 21:09:14.007 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye
+Mar-18 03:14:23.551 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Mar-18 03:14:23.551 [main] DEBUG nextflow.Session - Session await
+Mar-18 03:14:23.792 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Mar-18 03:14:23.795 [Task submitter] INFO  nextflow.Session - [a6/b96a2a] Submitted process > STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase)
+Mar-18 03:14:24.401 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase); status: COMPLETED; exit: 125; error: -; workDir: /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/work/a6/b96a2ae25451e33ddcbb55eb538bae]
+Mar-18 03:14:24.402 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Mar-18 03:14:24.413 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase); work-dir=/tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/work/a6/b96a2ae25451e33ddcbb55eb538bae
+  error [nextflow.exception.ProcessFailedException]: Process `STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase)` terminated with an error exit status (125)
+Mar-18 03:14:24.435 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase)'
+
+Caused by:
+  Process `STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION (EGFR_kinase)` terminated with an error exit status (125)
+
+
+Command executed:
+
+  if [ "true" = "true" ] || [ "mock" = "mock" ]; then
+          python3 << 'EOF'
+  import json
+  import math
+  import random
+  from datetime import datetime
+  
+  random.seed(42)
+  
+  meta_id    = "EGFR_kinase"
+  target     = "EGFR kinase domain (mock)"
+  
+  # ---------------------------------------------------------------------------
+  # 1. Generate a synthetic 100-residue alpha-helix PDB (CA trace + full backbone)
+  # ---------------------------------------------------------------------------
+  aa_one  = list("ACDEFGHIKLMNPQRSTVWYACDEFGHIKLMNPQRSTVWY" * 3)[:100]
+  aa_three = {
+      'A':'ALA','C':'CYS','D':'ASP','E':'GLU','F':'PHE','G':'GLY','H':'HIS',
+      'I':'ILE','K':'LYS','L':'LEU','M':'MET','N':'ASN','P':'PRO','Q':'GLN',
+      'R':'ARG','S':'SER','T':'THR','V':'VAL','W':'TRP','Y':'TYR'
+  }
+  
+  lines = [
+      "REMARK  BioMate mock AlphaFold3 structure — synthetic alpha-helix",
+      f"REMARK  Target: {target}",
+      f"REMARK  Generated: {datetime.utcnow().isoformat()}Z",
+      "REMARK  pTM=0.85  ipTM=0.82  ranking_score=0.87",
+  ]
+  atom_idx = 1
+  for i, aa in enumerate(aa_one, 1):
+      # Ideal alpha-helix geometry: rise=1.5 A/residue, radius=2.3 A, twist=100 deg/residue
+      angle   = math.radians(i * 100.0)
+      x_ca    = 2.3 * math.cos(angle)
+      y_ca    = 2.3 * math.sin(angle)
+      z_ca    = i * 1.5
+      res3    = aa_three.get(aa, 'ALA')
+      bfac    = round(random.uniform(10.0, 30.0), 2)
+  
+      # N  (approx offset from CA)
+      x_n = x_ca - 0.50 * math.cos(angle + 0.5)
+      y_n = y_ca - 0.50 * math.sin(angle + 0.5)
+      z_n = z_ca - 0.85
+      lines.append(
+          f"ATOM  {atom_idx:5d}  N   {res3:3s} A{i:4d}    "
+          f"{x_n:8.3f}{y_n:8.3f}{z_n:8.3f}  1.00 {bfac:5.2f}           N"
+      )
+      atom_idx += 1
+  
+      # CA
+      lines.append(
+          f"ATOM  {atom_idx:5d}  CA  {res3:3s} A{i:4d}    "
+          f"{x_ca:8.3f}{y_ca:8.3f}{z_ca:8.3f}  1.00 {bfac:5.2f}           C"
+      )
+      atom_idx += 1
+  
+      # C
+      x_c = x_ca + 0.48 * math.cos(angle - 0.4)
+      y_c = y_ca + 0.48 * math.sin(angle - 0.4)
+      z_c = z_ca + 0.85
+      lines.append(
+          f"ATOM  {atom_idx:5d}  C   {res3:3s} A{i:4d}    "
+          f"{x_c:8.3f}{y_c:8.3f}{z_c:8.3f}  1.00 {bfac:5.2f}           C"
+      )
+      atom_idx += 1
+  
+      # O
+      x_o = x_c + 1.22 * math.cos(angle + math.pi / 3)
+      y_o = y_c + 1.22 * math.sin(angle + math.pi / 3)
+      z_o = z_c
+      lines.append(
+          f"ATOM  {atom_idx:5d}  O   {res3:3s} A{i:4d}    "
+          f"{x_o:8.3f}{y_o:8.3f}{z_o:8.3f}  1.00 {bfac:5.2f}           O"
+      )
+      atom_idx += 1
+  
+  lines.append("END")
+  
+  with open(f"{meta_id}_structure.pdb", "w") as f:
+      f.write("\n".join(lines) + "\n")
+  
+  # ---------------------------------------------------------------------------
+  # 2. Minimal mmCIF (PDBx format)
+  # ---------------------------------------------------------------------------
+  cif_lines = [
+      f"data_{meta_id}",
+      f"_entry.id {meta_id}",
+      "_struct.title 'BioMate mock AlphaFold3 structure'",
+      "# Coordinates omitted in mock mode — use PDB file for coordinates",
+      "_ma_qa_metric_global.metric_id   1",
+      "_ma_qa_metric_global.metric_value  0.85",
+      "_ma_qa_metric_global.type        pTM",
+      "# end",
+  ]
+  with open(f"{meta_id}_structure.cif", "w") as f:
+      f.write("\n".join(cif_lines) + "\n")
+  
+  # ---------------------------------------------------------------------------
+  # 3. PAE matrix (100x100): low near diagonal, high off-diagonal
+  #    Typical AF3 output: values in Angstroms, max ~31.75 A
+  # ---------------------------------------------------------------------------
+  N = 100
+  pae = []
+  for i in range(N):
+      row = []
+      for j in range(N):
+          dist    = abs(i - j)
+          base    = min(dist * 0.25 + random.uniform(0, 0.5), 15.0)
+          # add domain-like block structure (residues 0-49 / 50-99)
+          if (i < 50) == (j < 50):
+              base = max(base - 2.0, 0.1)
+          row.append(round(base, 3))
+      pae.append(row)
+  
+  with open(f"{meta_id}_pae.json", "w") as f:
+      json.dump({
+          "pae": pae,
+          "max_predicted_aligned_error": 31.75,
+          "residue_count": N,
+          "chain_breaks": []
+      }, f)
+  
+  # ---------------------------------------------------------------------------
+  # 4. Per-model confidence scores
+  # ---------------------------------------------------------------------------
+  scores = {
+      "ptm":                0.85,
+      "iptm":               0.82,
+      "ranking_score":      0.87,
+      "fraction_disordered":0.02,
+      "has_clash":          False,
+      "num_recycles":       10,
+      "model_id":           f"{meta_id}_model_1",
+      "mean_plddt":         84.7,
+      "min_plddt":          52.3,
+      "timestamp":          datetime.utcnow().isoformat() + "Z",
+      "mock_mode":          True
+  }
+  with open(f"{meta_id}_af3_scores.json", "w") as f:
+      json.dump(scores, f, indent=2)
+  
+  print(f"AlphaFold3 mock complete: {meta_id}_structure.pdb ({N} residues)")
+  print(f"  pTM={scores['ptm']}  ipTM={scores['iptm']}  ranking_score={scores['ranking_score']}")
+  EOF
+  
+      elif [ "mock" = "server" ]; then
+          # ---------------------------------------------------------------------------
+          # Live: AlphaFold3 server API
+          # Requires AF3_API_TOKEN environment variable
+          # ---------------------------------------------------------------------------
+          SEQUENCE=$(grep -v '>' mock_EGFR_kinase.fasta | tr -d '\n')
+          TOKEN=""
+          if [ -z "$TOKEN" ]; then
+              TOKEN="${AF3_API_TOKEN:-}"
+          fi
+          if [ -z "$TOKEN" ]; then
+              echo "ERROR: AF3_API_TOKEN not set and params.af3_api_token not provided" >&2
+              exit 1
+          fi
+  
+          # Submit prediction job
+          curl -sSf \
+               -H "Authorization: Bearer $TOKEN" \
+               -H "Content-Type: application/json" \
+               -d "{
+                     \"sequences\": [
+                       {\"proteinChain\": {\"sequence\": \"$SEQUENCE\", \"count\": 1}}
+                     ],
+                     \"modelSeeds\": [42],
+                     \"name\": \"EGFR_kinase\"
+                   }" \
+               https://alphafoldserver.com/api/prediction/create > af3_job.json
+  
+          JOB_NAME=$(python3 -c "import json,sys; print(json.load(open('af3_job.json'))['name'])")
+          echo "Submitted AF3 job: $JOB_NAME"
+  
+          # Poll until state=SUCCEEDED (max 60 attempts × 30 s = 30 min)
+          STATUS="PENDING"
+          for ATTEMPT in $(seq 1 60); do
+              sleep 30
+              curl -sSf "https://alphafoldserver.com/api/prediction/$JOB_NAME" > af3_status.json
+              STATUS=$(python3 -c "import json,sys; print(json.load(open('af3_status.json'))['state'])")
+              echo "  Attempt $ATTEMPT/60 — status: $STATUS"
+              if [ "$STATUS" = "SUCCEEDED" ]; then break; fi
+              if [ "$STATUS" = "FAILED"    ]; then
+                  echo "AF3 job failed" >&2
+                  exit 1
+              fi
+          done
+  
+          # Download result files
+          python3 << 'PYEOF'
+  import json, urllib.request, os
+  
+  data  = json.load(open('af3_status.json'))
+  files = data.get('resultFiles', [])
+  meta_id = "EGFR_kinase"
+  
+  for rf in files:
+      name = rf.get('name', '')
+      url  = rf.get('url', '')
+      if not url:
+          continue
+      if '.cif' in name:
+          urllib.request.urlretrieve(url, f'{meta_id}_structure.cif')
+      elif 'pae' in name and name.endswith('.json'):
+          urllib.request.urlretrieve(url, f'{meta_id}_pae.json')
+      elif 'summary_confidences' in name:
+          urllib.request.urlretrieve(url, f'{meta_id}_af3_scores.json')
+  
+  # Convert CIF to minimal PDB if not already present
+  if os.path.exists(f'{meta_id}_structure.cif') and not os.path.exists(f'{meta_id}_structure.pdb'):
+      # Minimal CIF→PDB stub; for production use gemmi or biopython
+      with open(f'{meta_id}_structure.pdb', 'w') as f:
+          f.write(f'REMARK converted from {meta_id}_structure.cif\n')
+          f.write('END\n')
+  
+  # Fallback: create empty JSON files if download failed
+  for fname in [f'{meta_id}_pae.json', f'{meta_id}_af3_scores.json']:
+      if not os.path.exists(fname):
+          with open(fname, 'w') as f:
+              json.dump({}, f)
+  
+  print('AF3 server results downloaded.')
+  PYEOF
+  
+      else
+          # ---------------------------------------------------------------------------
+          # Live: local AlphaFold3 model weights
+          # ---------------------------------------------------------------------------
+          python3 /opt/alphafold3/run_alphafold.py \
+              --json_path mock_EGFR_kinase.fasta \
+              --model_dir /opt/alphafold3/models \
+              --output_dir af3_out/ \
+              --num_recycles 10
+  
+          # Normalise output file names to BioMate convention
+          python3 << 'PYEOF'
+  import os, shutil, glob, json
+  
+  meta_id  = "EGFR_kinase"
+  af3_out  = "af3_out"
+  
+  # AF3 local produces: *_cif, *_summary_confidences.json, *_full_data.json
+  for f in glob.glob(f"{af3_out}/**/*.cif", recursive=True):
+      shutil.copy(f, f"{meta_id}_structure.cif")
+  
+  for f in glob.glob(f"{af3_out}/**/*summary_confidences*.json", recursive=True):
+      shutil.copy(f, f"{meta_id}_af3_scores.json")
+  
+  for f in glob.glob(f"{af3_out}/**/*full_data*.json", recursive=True):
+      # Extract PAE from full_data
+      try:
+          d = json.load(open(f))
+          pae_data = {"pae": d.get("pae", []), "max_predicted_aligned_error": 31.75}
+          with open(f"{meta_id}_pae.json", "w") as out:
+              json.dump(pae_data, out)
+      except Exception:
+          pass
+  
+  # Ensure PDB placeholder exists
+  if not os.path.exists(f"{meta_id}_structure.pdb"):
+      with open(f"{meta_id}_structure.pdb", "w") as out:
+          out.write(f"REMARK local AF3 — see {meta_id}_structure.cif for coordinates\nEND\n")
+  
+  print("AF3 local outputs normalised.")
+  PYEOF
+      fi
+  
+      cat <<-END_VERSIONS > versions.yml
+      "STRUCTURE_PREDICTION_DOCKING:ALPHAFOLD3_STRUCTURE_PREDICTION":
+          alphafold3: "3.0.0"
+          python: $(python3 --version 2>&1 | cut -d' ' -f2)
+          af3_mode: "mock"
+          mock_mode: "true"
+      END_VERSIONS
+
+Command exit status:
+  125
+
+Command output:
+  (empty)
+
+Command error:
+  Unable to find image 'catgumag/alphafold3:latest' locally
+  docker: Error response from daemon: pull access denied for catgumag/alphafold3, repository does not exist or may require 'docker login': denied: requested access to the resource is denied
+  
+  Run 'docker run --help' for more information
+
+Work dir:
+  /tmp/nextflow_runs/8aa8204d-b730-44e9-ab28-e4dbe79a1584/work/a6/b96a2ae25451e33ddcbb55eb538bae
+
+Container:
+  docker.io/catgumag/alphafold3:latest
+
+Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`
+Mar-18 03:14:24.447 [main] DEBUG nextflow.Session - Session await > all processes finished
+Mar-18 03:14:24.461 [TaskFinalizer-1] INFO  nextflow.Session - Execution cancelled -- Finishing pending tasks before exit
+Mar-18 03:14:24.468 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Mar-18 03:14:24.468 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Mar-18 03:14:24.470 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Mar-18 03:14:24.476 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=4.4s; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=8; peakMemory=64 GB; ]
+Mar-18 03:14:24.662 [main] WARN  nextflow.dag.GraphvizRenderer - Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.
+Mar-18 03:14:24.662 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Mar-18 03:14:25.051 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Mar-18 03:14:25.088 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Mar-18 03:14:25.092 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Mar-18 03:14:25.098 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Mar-18 03:14:25.098 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

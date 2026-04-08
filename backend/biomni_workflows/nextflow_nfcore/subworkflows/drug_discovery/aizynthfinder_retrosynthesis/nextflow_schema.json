@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/aizynthfinder_retrosynthesis_schema.json",
+  "title": "AiZynthFinder Retrosynthesis",
+  "description": "AI-driven retrosynthetic route planning using AiZynthFinder Monte Carlo tree search against a reaction template library.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [],
+      "properties": {
+        "smiles_file": {
+          "description": "SMILES file (one SMILES per line) OR inline SMILES string. Provide either this or seed_smiles.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "seed_smiles": {
+          "description": "Single target SMILES string. Used when smiles_file is not provided.",
+          "type": "string"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "max_routes": {
+          "description": "Maximum number of synthesis routes to return per compound. Top routes by score.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 5
+        },
+        "max_depth": {
+          "description": "Maximum depth of the retrosynthesis tree. Deeper = more steps = longer search.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 12,
+          "default": 6
+        },
+        "pass_max_steps": {
+          "description": "Routes with step count \u2264 this value PASS the synthesisability gate. \u22644 steps is commercially accessible.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 4
+        },
+        "pass_min_score": {
+          "description": "Routes with MCTS score \u2265 this value PASS. Score reflects template coverage and building block availability.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.6
+        },
+        "aizynthfinder_config": {
+          "description": "Path to AiZynthFinder YAML config specifying template library and stock DB.",
+          "type": "string",
+          "default": "/opt/aizynthfinder/config.yml"
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

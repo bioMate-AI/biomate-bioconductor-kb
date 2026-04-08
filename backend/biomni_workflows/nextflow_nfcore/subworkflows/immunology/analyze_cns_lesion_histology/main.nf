@@ -21,7 +21,7 @@ process ANALYZE_CNS_LESION_HISTOLOGY {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -40,42 +40,6 @@ process ANALYZE_CNS_LESION_HISTOLOGY {
     export PARAM_STAIN_TYPE="${params.stain_type?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Generate mock H&E histology image for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-import cv2
-
-# Create mock H&E stained histology image
-np.random.seed(42)
-# Pink background (H&E stain - eosin)
-img = np.zeros((512, 512, 3), dtype=np.uint8)
-img[:, :] = [200, 180, 220]  # Light pink (BGR)
-
-# Add texture
-noise = np.random.normal(0, 10, (512, 512)).astype(np.int16)
-for c in range(3):
-    img[:, :, c] = np.clip(img[:, :, c].astype(np.int16) + noise, 0, 255).astype(np.uint8)
-
-# Add nuclei (purple spots - hematoxylin)
-for _ in range(100):
-    x = np.random.randint(10, 502)
-    y = np.random.randint(10, 502)
-    radius = np.random.randint(3, 8)
-    color = (100 + np.random.randint(0, 30), 50 + np.random.randint(0, 30), 120 + np.random.randint(0, 30))  # Purple (BGR)
-    cv2.circle(img, (x, y), radius, color, -1)
-
-# Add lesion area (darker region with more nuclei)
-cv2.rectangle(img, (150, 150), (350, 350), (150, 130, 180), -1)
-for _ in range(80):
-    x = np.random.randint(160, 340)
-    y = np.random.randint(160, 340)
-    radius = np.random.randint(2, 6)
-    color = (80 + np.random.randint(0, 20), 30 + np.random.randint(0, 20), 100 + np.random.randint(0, 20))
-    cv2.circle(img, (x, y), radius, color, -1)
-
-img = cv2.GaussianBlur(img, (3, 3), 1)
-cv2.imwrite('mock_cns_histology.png', img)
-print("Mock CNS histology H&E image created")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

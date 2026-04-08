@@ -10,8 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Uses inline-generated mock Western blot image (created in script)
-params.blot_image_path = 'mock_western_blot.png'
+params.blot_image_path = null  // Required: path to Western blot image file (PNG/TIFF/JPEG)
 // Demo: p53 and EGFR bands with GAPDH loading control
 params.target_bands = '[{"name": "p53", "roi": [50, 30, 100, 40]}, {"name": "EGFR", "roi": [50, 90, 100, 40]}]'
 params.loading_control_band = '{"name": "GAPDH", "roi": [50, 150, 100, 40]}'
@@ -24,7 +23,7 @@ process ANALYZE_WESTERN_BLOT {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -43,22 +42,6 @@ process ANALYZE_WESTERN_BLOT {
     export PARAM_LOADING_CONTROL_BAND="${params.loading_control_band?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_ANTIBODY_INFO="${params.antibody_info?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_OUTPUT_DIR="${params.output_dir?.toString()?.replace('"', '\\"') ?: 'null'}"
-
-    # Create mock Western blot image for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-from skimage import io
-# Create mock Western blot (200x200 grayscale)
-img = np.ones((200, 200), dtype=np.uint8) * 240  # Light background
-# Add mock protein bands (darker horizontal stripes)
-# p53 band region (y=30-70)
-img[30:70, 50:150] = np.random.normal(80, 15, (40, 100)).astype(np.uint8)
-# EGFR band region (y=90-130)
-img[90:130, 50:150] = np.random.normal(100, 20, (40, 100)).astype(np.uint8)
-# GAPDH loading control (y=150-190)
-img[150:190, 50:150] = np.random.normal(60, 10, (40, 100)).astype(np.uint8)
-io.imsave('mock_western_blot.png', img)
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

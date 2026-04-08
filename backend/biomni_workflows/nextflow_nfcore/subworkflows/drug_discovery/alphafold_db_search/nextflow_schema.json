@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/alphafold_database_search_schema.json",
+  "title": "AlphaFold Database Search",
+  "description": "Structural similarity search against the AlphaFold Human Proteome using Foldseek (3D structure) and/or MMseqs2 (sequence) with S3-hosted database.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [],
+      "properties": {
+        "query_pdb": {
+          "description": "Query PDB structure file for Foldseek 3D search. Provide either this or query_fasta.",
+          "type": "string",
+          "format": "file-path",
+          "default": ""
+        },
+        "query_fasta": {
+          "description": "Query FASTA sequence file for MMseqs2 sequence search. Provide either this or query_pdb.",
+          "type": "string",
+          "format": "file-path",
+          "default": ""
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "search_mode": {
+          "description": "Search algorithm. 'both' runs structure + sequence search and merges results; 'foldseek' requires PDB input; 'mmseqs2' requires FASTA input.",
+          "type": "string",
+          "enum": [
+            "both",
+            "foldseek",
+            "mmseqs2"
+          ],
+          "default": "both"
+        },
+        "max_hits": {
+          "description": "Maximum number of hits to return from the database search.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 50
+        },
+        "evalue": {
+          "description": "E-value cutoff for MMseqs2 sequence search. Lower = more stringent.",
+          "type": "number",
+          "minimum": 1e-20,
+          "maximum": 10.0,
+          "default": 0.001
+        },
+        "min_seq_id": {
+          "description": "Minimum sequence identity for MMseqs2 hits. 0.0 = no filter (structure similarity may diverge at low identity).",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.0
+        },
+        "coverage": {
+          "description": "Minimum alignment coverage fraction required. 0.8 = 80% of query must be aligned.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.8
+        },
+        "s3_db_base": {
+          "description": "S3 base path for the AlphaFold database. Pre-built with all 48k human proteome structures.",
+          "type": "string",
+          "default": "s3://biomate-structure-db/alphafold/human"
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

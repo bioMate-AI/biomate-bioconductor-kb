@@ -10,8 +10,7 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Uses inline-generated mock clinical data (created in script)
-params.clinical_data_file = 'mock_clinical_data.csv'
+params.clinical_data_file = null  // Required: path to CSV with columns: subject_id, time_point, symptom, severity, measurement
 
 process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
     tag "$meta.id"
@@ -19,7 +18,7 @@ process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -34,28 +33,6 @@ process GRADE_ADVERSE_EVENTS_USING_VCOG_CTCAE {
     """
     # Export parameters as environment variables
     export PARAM_CLINICAL_DATA_FILE="${params.clinical_data_file?.toString()?.replace('"', '\\"') ?: 'null'}"
-
-    # Create mock clinical data for testing
-    python3 << 'MOCKEOF'
-import pandas as pd
-import numpy as np
-
-# Create mock VCOG-CTCAE adverse event data
-np.random.seed(42)
-n_samples = 50
-
-data = {
-    'subject_id': [f'DOG{i:03d}' for i in np.random.choice(range(1, 21), n_samples)],
-    'time_point': np.random.choice(['Day1', 'Day7', 'Day14', 'Day21', 'Day28'], n_samples),
-    'symptom': np.random.choice(['anemia', 'neutropenia', 'vomiting', 'diarrhea', 'fever', 'anorexia'], n_samples),
-    'severity': np.random.choice(['none', 'mild', 'moderate', 'severe'], n_samples, p=[0.3, 0.4, 0.2, 0.1]),
-    'measurement': np.round(np.random.uniform(0.5, 10, n_samples), 2)
-}
-
-df = pd.DataFrame(data)
-df.to_csv('mock_clinical_data.csv', index=False)
-print(f"Created mock clinical data with {len(df)} records")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

@@ -1,0 +1,27 @@
+BioMate P0-B mRNA Validation: MN908947.3 2P-stabilised (mRNA-1273)
+============================================================
+
+Step 1: Fetching MN908947.3 from NCBI Entrez...
+  Genome length: 29,903 nt
+  Spike ORF (raw): 3822 nt (21563-25384)
+Step 2: Translating and applying 2P prefusion stabilisation...
+  Protein length: 1274 aa (incl. stop if present)
+  2P stabilisation mutations applied: K986P, V987P
+  Back-translating with human codon optimisation...
+  Optimised ORF length: 3819 nt
+Step 3: Assembling full mRNA construct...
+  Full mRNA length: 4085 nt (5-UTR + ORF + 3-UTR + polyA)
+Step 4: Calculating Codon Adaptation Index (CAI)...
+  CAI = 1.0 (threshold: >= 0.9)
+Step 5: Running ViennaRNA RNAfold...
+  MFE = -1480.5 kcal/mol (threshold: <= -150.0)
+  Structure length: 4085 nt
+  Base pairs: 1206 (29.5% paired)
+Step 6: Checking for premature stop codons...
+  PASS: No premature stop codons in ORF
+Step 7: Overall validation...
+
+FINAL VERDICT: PASS
+  CAI=1.0 >=0.9 PASS
+  MFE=-1480.5 kcal/mol (stable)
+  Premature stops: none (PASS)

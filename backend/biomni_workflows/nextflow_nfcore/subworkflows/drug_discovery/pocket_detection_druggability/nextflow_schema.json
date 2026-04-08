@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/pocket_detection_and_druggability_assessment_schema.json",
+  "title": "Pocket Detection and Druggability Assessment",
+  "description": "Identify binding pockets in a protein structure and score their druggability using fpocket geometry and property descriptors.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "pdb_input"
+      ],
+      "properties": {
+        "pdb_input": {
+          "description": "PDB file or 4-letter PDB ID (e.g. '1IEP'). If a PDB ID is given, the structure is fetched from the RCSB.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "min_druggability": {
+          "description": "Minimum druggability score (0\u20131) for a pocket to PASS the gate. 0.5 is considered tractable.",
+          "help_text": "fpocket druggability score \u2265 0.5 correlates with experimentally druggable pockets (Schmidtke & Barril, 2010).",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.5
+        },
+        "warn_druggability": {
+          "description": "Pockets scoring between warn_druggability and min_druggability receive a WARN status.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.3
+        },
+        "min_volume": {
+          "description": "Minimum pocket volume (\u00c5\u00b3) to be considered a binding site. Most drug-binding pockets are 300\u20131500 \u00c5\u00b3.",
+          "type": "number",
+          "minimum": 50.0,
+          "default": 300.0
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

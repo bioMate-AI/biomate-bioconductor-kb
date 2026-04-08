@@ -200,7 +200,6 @@ charge COMPLEX
 solvateBox COMPLEX \$WATER_BOX ${pad}
 addIons2 COMPLEX Na+ 0
 addIons2 COMPLEX Cl- 0
-addionsrand COMPLEX Na+ Cl- ${conc}
 
 saveamberparm COMPLEX complex.prmtop complex.inpcrd
 quit

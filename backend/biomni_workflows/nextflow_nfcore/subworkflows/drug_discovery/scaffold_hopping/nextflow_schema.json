@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/scaffold_hopping_schema.json",
+  "title": "Scaffold Hopping",
+  "description": "Bioisosteric scaffold replacement to find novel chemotypes with similar pharmacophore profiles as the reference compound.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "input_smiles"
+      ],
+      "properties": {
+        "input_smiles": {
+          "description": "SMILES file with one 'SMILES compound_id' per line for the compound series to hop.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "reference_smiles": {
+          "description": "Reference compound SMILES (default: acetaminophen). Used as pharmacophore template.",
+          "type": "string",
+          "default": "CC(=O)Nc1ccc(O)cc1"
+        },
+        "max_candidates": {
+          "description": "Maximum number of scaffold candidates to report.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 200,
+          "default": 20
+        },
+        "lipinski_filter": {
+          "description": "Apply Lipinski rule-of-five filter. Removes compounds with MW>500, logP>5, HBD>5, HBA>10.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

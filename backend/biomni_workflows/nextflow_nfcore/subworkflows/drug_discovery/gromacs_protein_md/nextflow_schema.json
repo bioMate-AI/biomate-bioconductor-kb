@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/gromacs_protein_md_schema.json",
+  "title": "GROMACS Protein MD",
+  "description": "Protein-ligand molecular dynamics simulation with GROMACS, GAFF2 ligand parameterisation, and MM-PBSA/GBSA binding free energy.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "receptor",
+        "ligand"
+      ],
+      "properties": {
+        "receptor": {
+          "description": "Receptor PDB file (protein structure).",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        },
+        "ligand": {
+          "description": "Ligand SDF or MOL2 file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "force_field": {
+          "description": "Protein force field. amber99sb-ildn is the most validated for protein folding and MD.",
+          "help_text": "CHARMM36m (Best et al., 2012) is preferred for IDPs and membrane proteins.",
+          "type": "string",
+          "enum": [
+            "amber99sb-ildn",
+            "charmm36m",
+            "amber14sb",
+            "amber03",
+            "gromos54a7"
+          ],
+          "default": "amber99sb-ildn"
+        },
+        "water_model": {
+          "description": "Explicit water model. Must be compatible with the chosen force field.",
+          "type": "string",
+          "enum": [
+            "tip3p",
+            "tip4p",
+            "tip4p-ew",
+            "spc",
+            "spce"
+          ],
+          "default": "tip3p"
+        },
+        "gaff_version": {
+          "description": "GAFF ligand force field. gaff2 improves torsion parameters over gaff.",
+          "type": "string",
+          "enum": [
+            "gaff2",
+            "gaff"
+          ],
+          "default": "gaff2"
+        },
+        "box_padding": {
+          "description": "Minimum distance (\u00c5) from protein atoms to box edge.",
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 30,
+          "default": 12
+        },
+        "ion_concentration": {
+          "description": "NaCl concentration (mol/L) for system neutralisation. 0.15 M is physiological.",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.15
+        },
+        "temperature": {
+          "description": "Simulation temperature in Kelvin.",
+          "type": "integer",
+          "minimum": 250,
+          "maximum": 400,
+          "default": 300
+        },
+        "pressure": {
+          "description": "Pressure in bar for NPT ensemble.",
+          "type": "number",
+          "default": 1.0
+        },
+        "n_steps": {
+          "description": "Number of MD steps. 5,000,000 \u00d7 2 fs dt = 10 ns production run.",
+          "type": "integer",
+          "minimum": 100000,
+          "default": 5000000
+        },
+        "dt": {
+          "description": "Integration timestep in picoseconds.",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.004,
+          "default": 0.002
+        },
+        "nstxout_compressed": {
+          "description": "Write compressed trajectory frame every N steps (5000 \u00d7 2 fs = 10 ps interval).",
+          "type": "integer",
+          "minimum": 100,
+          "default": 5000
+        },
+        "mmgbsa_startframe": {
+          "description": "Skip first N frames for MM-GBSA (equilibration buffer).",
+          "type": "integer",
+          "minimum": 0,
+          "default": 500
+        },
+        "mmgbsa_endframe": {
+          "description": "Last frame for MM-GBSA analysis. -1 = use all frames.",
+          "type": "integer",
+          "default": -1
+        },
+        "mmgbsa_interval": {
+          "description": "Analyse every Nth frame for MM-GBSA.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "n_cpus": {
+          "description": "CPU cores to allocate.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 8
+        },
+        "gpu": {
+          "description": "Enable GPU-accelerated GROMACS kernels. Strongly recommended for production runs.",
+          "type": "boolean",
+          "default": true
+        },
+        "gpu_device": {
+          "description": "GPU device index to use (0-based).",
+          "type": "integer",
+          "default": 0
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

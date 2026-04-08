@@ -21,7 +21,7 @@ process SEGMENT_AND_ANALYZE_MICROBIAL_CELLS {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -40,41 +40,6 @@ process SEGMENT_AND_ANALYZE_MICROBIAL_CELLS {
     export PARAM_MIN_CELL_SIZE="${params.min_cell_size?.toString()?.replace('"', '\\"') ?: 'null'}"
 
     # Generate mock fluorescence microscopy image with microbial cells
-    python3 << 'MOCKEOF'
-import numpy as np
-import cv2
-
-# Create mock fluorescence microscopy image
-np.random.seed(42)
-# Dark background
-img = np.zeros((512, 512), dtype=np.uint8)
-img = img + np.random.normal(5, 2, (512, 512)).astype(np.uint8)
-
-# Add microbial cells as bright spots (rod-shaped bacteria)
-for _ in range(30):
-    x = np.random.randint(30, 482)
-    y = np.random.randint(30, 482)
-    # Rod-shaped cell
-    angle = np.random.uniform(0, 180)
-    length = np.random.randint(15, 35)
-    width = np.random.randint(6, 12)
-    brightness = 150 + np.random.randint(0, 100)
-
-    # Draw ellipse for rod-shaped bacteria
-    cv2.ellipse(img, (x, y), (length//2, width//2), angle, 0, 360, brightness, -1)
-
-# Add some smaller cocci (spherical bacteria)
-for _ in range(20):
-    x = np.random.randint(20, 492)
-    y = np.random.randint(20, 492)
-    radius = np.random.randint(5, 10)
-    brightness = 140 + np.random.randint(0, 115)
-    cv2.circle(img, (x, y), radius, brightness, -1)
-
-img = cv2.GaussianBlur(img, (3, 3), 0.5)
-cv2.imwrite('mock_microbial_cells.png', img)
-print("Mock microbial cell fluorescence image created")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/p0_mrna_design_validation_schema.json",
+  "title": "P0 mRNA Design Validation",
+  "description": "Validation benchmark: analyse a known mRNA sequence for CAI (codon optimisation) and MFE (secondary structure) quality metrics.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "genbank_id": {
+          "description": "GenBank accession ID of the reference sequence (default: SARS-CoV-2 Wuhan-Hu-1).",
+          "type": "string",
+          "default": "MN908947.3"
+        },
+        "orf_start": {
+          "description": "1-based inclusive start position of the ORF within the GenBank record.",
+          "type": "integer",
+          "default": 21563
+        },
+        "orf_end": {
+          "description": "1-based inclusive end position of the ORF.",
+          "type": "integer",
+          "default": 25384
+        },
+        "cai_threshold": {
+          "description": "Codon Adaptation Index threshold. CAI > 0.9 indicates highly optimised codon usage.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "default": 0.9
+        },
+        "mfe_threshold": {
+          "description": "Minimum free energy threshold (kcal/mol). MFE < \u2212150 indicates significant secondary structure.",
+          "type": "number",
+          "default": -150.0
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

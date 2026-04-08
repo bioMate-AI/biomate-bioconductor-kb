@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/schr\u00f6dinger_glide_docking_schema.json",
+  "title": "Schr\u00f6dinger Glide Docking",
+  "description": "High-throughput virtual screening using Schr\u00f6dinger Glide with LigPrep ligand preparation and GlideScore ranking.",
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/$defs/input_output_options"
+    },
+    {
+      "$ref": "#/$defs/analysis_parameters"
+    },
+    {
+      "$ref": "#/$defs/generic_options"
+    }
+  ],
+  "$defs": {
+    "input_output_options": {
+      "title": "Input/output options",
+      "type": "object",
+      "description": "Define where the pipeline should find input data and save output data.",
+      "required": [
+        "receptor",
+        "ligands"
+      ],
+      "properties": {
+        "receptor": {
+          "description": "Receptor PDB, MAE, or MAEGZ file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        },
+        "ligands": {
+          "description": "Ligand SDF, SMI, or MAEGZ file.",
+          "type": "string",
+          "format": "file-path",
+          "exists": true
+        }
+      }
+    },
+    "analysis_parameters": {
+      "title": "Analysis parameters",
+      "type": "object",
+      "description": "Parameters controlling the analysis workflow.",
+      "properties": {
+        "docking_precision": {
+          "description": "Glide docking precision. HTVS = ultra-fast screening (millions of compounds); SP = standard precision (thousands); XP = extra precision (hundreds, most accurate).",
+          "help_text": "Use HTVS for initial filtering, SP for lead finding, XP for lead optimisation.",
+          "type": "string",
+          "enum": [
+            "SP",
+            "HTVS",
+            "XP"
+          ],
+          "default": "SP"
+        },
+        "grid_center": {
+          "description": "Docking grid center as '[x,y,z]' string. Auto-detected from ref_ligand if not specified.",
+          "type": "string"
+        },
+        "ref_ligand": {
+          "description": "Reference ligand SDF/MAE for automatic grid box centering.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "grid_inner_box": {
+          "description": "Inner sampling box size in \u00c5. Should accommodate the binding site.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 30,
+          "default": 10
+        },
+        "grid_outer_box": {
+          "description": "Outer bounding box size in \u00c5.",
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 60,
+          "default": 30
+        },
+        "poses_per_ligand": {
+          "description": "Number of docked poses to retain per ligand.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5
+        },
+        "top_n": {
+          "description": "Number of top-ranked poses in the final SDF output.",
+          "type": "integer",
+          "minimum": 5,
+          "default": 20
+        },
+        "ligprep_ph": {
+          "description": "Target pH for LigPrep ionisation state generation. 7.4 = physiological.",
+          "type": "number",
+          "minimum": 4.0,
+          "maximum": 10.0,
+          "default": 7.4
+        },
+        "ligprep_ph_tolerance": {
+          "description": "pH tolerance (\u00b1) around target pH for ionisation states.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 4.0,
+          "default": 2.0
+        },
+        "max_stereoisomers": {
+          "description": "Maximum stereoisomers to generate per ligand.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 4
+        },
+        "use_epik": {
+          "description": "Apply Epik metal-binding state penalties during scoring.",
+          "type": "boolean",
+          "default": true
+        },
+        "use_samplering": {
+          "description": "Enable ring conformation sampling during docking.",
+          "type": "boolean",
+          "default": true
+        },
+        "n_cpus": {
+          "description": "CPU cores for parallel ligand preparation and docking.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128,
+          "default": 8
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Less common options for the pipeline.",
+      "properties": {
+        "outdir": {
+          "type": "string",
+          "format": "directory-path",
+          "description": "The output directory where results will be saved.",
+          "default": "./results"
+        },
+        "publish_dir_mode": {
+          "type": "string",
+          "default": "copy",
+          "hidden": true
+        }
+      },
+      "hidden": true
+    }
+  }
+}

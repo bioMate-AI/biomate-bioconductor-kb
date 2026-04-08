@@ -1,0 +1,20 @@
+{
+  "pdb_id": "7KI0",
+  "auc_threshold": 0.75,
+  "crystal_ligand_atoms": 26,
+  "crystal_ligand_centroid": [
+    99.78,
+    122.42,
+    162.36
+  ],
+  "auc_roc": 0.92,
+  "n_actives": 20,
+  "n_decoys": 20,
+  "validation": {
+    "auc_roc": 0.92,
+    "auc_pass": true,
+    "verdict": "PASS"
+  },
+  "success": true,
+  "log": "Dataset: 20 GLP-1R actives, 20 decoys\nStep 1: Downloading 7KI0 from RCSB...\n  Downloaded 818,748 bytes\nStep 2: Defining GLP-1R pharmacophore features from 7KI0 ligand...\n  Ligand atoms: 26, centroid: (99.8,122.4,162.4)\nStep 3: Scoring compounds against 5 pharmacophore features...\n  Scored 40 compounds\nStep 4: Computing AUC-ROC...\n  n_actives=20, n_decoys=20\n  AUC-ROC = 0.92 (threshold: >= 0.75)\n  Active scores: mean=6.60, max=8.00, min=4.50\n  Decoy scores:  mean=3.33, max=8.00, min=0.00\nStep 5: Evaluation...\n  AUC-ROC=0.92 >=0.75 PASS"
+}

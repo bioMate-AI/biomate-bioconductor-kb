@@ -1,0 +1,2 @@
+2026-04-08 20:17:01	-	pedantic_turing	-	f2a3c224f878e714245543cdfb642a58	28428f33-e411-4242-9016-f3694a5550a5	nextflow run main.nf -profile docker --outdir /tmp/p0_pharma_results -resume
+2026-04-08 20:46:03	5.6s	astonishing_panini	OK	bc3a9c2742f12da960e986c33ed9ca1f	28428f33-e411-4242-9016-f3694a5550a5	nextflow run main.nf -profile docker --outdir /tmp/p0_pharma_results -resume

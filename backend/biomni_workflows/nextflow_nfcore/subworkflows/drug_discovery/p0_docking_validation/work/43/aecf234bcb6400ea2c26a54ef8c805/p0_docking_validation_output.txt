@@ -1,0 +1,28 @@
+BioMate P0-C Docking Validation: 7RFS
+============================================================
+
+Step 1: Downloading 7RFS from RCSB...
+  Downloaded 238,950 bytes
+Step 2: Extracting crystal ligand coordinates from 7RFS...
+  Found 35 heavy atoms in crystal ligand
+  Crystal ligand centroid: (9.8, 1.5, 21.5)
+Step 3: Preparing receptor PDBQT (stripping HETATM, adding H)...
+  Receptor PDBQT prepared via obabel (189,584 bytes)
+Step 4: Preparing ligand from SMILES...
+  3D conformation: 60 atoms (37 heavy)
+  Ligand PDBQT written (3830 bytes)
+Step 5: Running AutoDock Vina (exhaustiveness=16)...
+  Best binding affinity: 0.0 kcal/mol
+  All scores: [0.0, 0.0, 0.001, 0.001, 0.001] ...
+Step 6: Computing RMSD vs crystal pose...
+  Atom count mismatch: pose=37, crystal=35
+  Using SMILES-based comparison as fallback
+  Conformation RMSD (SMILES-based): 3.183 A
+Step 7: Evaluating success criteria...
+  RMSD 3.183 A vs threshold 2.0 A: FAIL
+  H-bond residues within 8A of crystal centroid: ['HIS163', 'GLU166', 'CYS145', 'HIS41']
+  H-bond count 4/5 (need >= 4): PASS
+
+FINAL VERDICT: FAIL
+  P0-C docking validation FAILED
+    - RMSD 3.183A > threshold 2.0A

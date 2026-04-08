@@ -22,7 +22,7 @@ process SEGMENT_CELLS_WITH_DEEP_LEARNING {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -36,31 +36,6 @@ process SEGMENT_CELLS_WITH_DEEP_LEARNING {
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
     # Create mock fluorescence microscopy image for testing
-    python3 << 'MOCKEOF'
-import numpy as np
-from PIL import Image
-
-# Create synthetic fluorescence microscopy image with cells
-np.random.seed(42)
-img = np.zeros((512, 512), dtype=np.uint8)
-
-# Add 15-25 circular cells with varying intensities
-num_cells = np.random.randint(15, 26)
-for _ in range(num_cells):
-    cx, cy = np.random.randint(50, 462, 2)
-    radius = np.random.randint(12, 35)
-    intensity = np.random.randint(150, 255)
-    y, x = np.ogrid[:512, :512]
-    mask = (x - cx)**2 + (y - cy)**2 <= radius**2
-    img[mask] = np.clip(img[mask] + intensity, 0, 255)
-
-# Add some noise
-noise = np.random.normal(0, 15, img.shape).astype(np.int16)
-img = np.clip(img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
-
-Image.fromarray(img).save('mock_fluor_cells.png')
-print("Mock fluorescence cell image created")
-MOCKEOF
 
     # Set HOME for pip and other tools that need user dir
     export HOME=/tmp

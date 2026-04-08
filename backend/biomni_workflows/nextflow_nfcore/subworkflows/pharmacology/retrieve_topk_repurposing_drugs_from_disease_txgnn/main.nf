@@ -10,10 +10,8 @@ nextflow.enable.dsl = 2
 
 // Parameters
 params.outdir = './results'
-// Demo: Drug repurposing for diabetes using TxGNN model
-params.disease_name = 'diabetes mellitus'
-// Uses inline-generated mock TxGNN data (created in script)
-params.data_lake_path = './mock_txgnn_data'
+params.disease_name = null   // Required: name of the disease for drug repurposing prediction
+params.data_lake_path = null  // Required: path to data lake containing txgnn_name_mapping.pkl and txgnn_prediction.pkl
 params.k = '5'
 
 process RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN {
@@ -22,7 +20,7 @@ process RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN {
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
     // Use biomate/biotools for ARM64
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -39,64 +37,6 @@ process RETRIEVE_TOPK_REPURPOSING_DRUGS_FROM_DISEASE_TXGNN {
     export PARAM_DISEASE_NAME="${params.disease_name?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_DATA_LAKE_PATH="${params.data_lake_path?.toString()?.replace('"', '\\"') ?: 'null'}"
     export PARAM_K="${params.k?.toString()?.replace('"', '\\"') ?: 'null'}"
-
-    # Create mock TxGNN prediction data for testing
-    python3 << 'MOCKEOF'
-import pickle
-import os
-import numpy as np
-
-# Create mock TxGNN data directory
-os.makedirs('./mock_txgnn_data', exist_ok=True)
-
-# Create mock name mapping
-name_mapping = {
-    'id2name_drug': {
-        'DRUG001': 'Metformin',
-        'DRUG002': 'Sitagliptin',
-        'DRUG003': 'Empagliflozin',
-        'DRUG004': 'Liraglutide',
-        'DRUG005': 'Dapagliflozin',
-        'DRUG006': 'Pioglitazone',
-        'DRUG007': 'Canagliflozin',
-        'DRUG008': 'Semaglutide'
-    }
-}
-
-# Create mock prediction results for diseases
-np.random.seed(42)
-predictions = {
-    'diabetes mellitus': {
-        'DRUG001': 2.5,  # Metformin - high score
-        'DRUG002': 1.8,  # Sitagliptin
-        'DRUG003': 2.2,  # Empagliflozin
-        'DRUG004': 1.5,  # Liraglutide
-        'DRUG005': 1.9,  # Dapagliflozin
-        'DRUG006': 1.2,  # Pioglitazone
-        'DRUG007': 1.7,  # Canagliflozin
-        'DRUG008': 2.0   # Semaglutide
-    },
-    'hypertension': {
-        'DRUG001': 0.8,
-        'DRUG002': 0.5,
-        'DRUG003': 1.5,
-        'DRUG004': 0.3,
-        'DRUG005': 1.4,
-        'DRUG006': 0.6,
-        'DRUG007': 1.3,
-        'DRUG008': 0.7
-    }
-}
-
-# Save mock data
-with open('./mock_txgnn_data/txgnn_name_mapping.pkl', 'wb') as f:
-    pickle.dump(name_mapping, f)
-
-with open('./mock_txgnn_data/txgnn_prediction.pkl', 'wb') as f:
-    pickle.dump(predictions, f)
-
-print("Created mock TxGNN prediction data")
-MOCKEOF
 
     python3 << 'PYEOF'
 # Auto-generated from Galaxy wrapper - self-contained implementation
