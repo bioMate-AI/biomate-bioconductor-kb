@@ -779,6 +779,7 @@ test('S1: ADMET profiling — 15 BCR-ABL1 compounds (hERG, DILI, BBB)', async ({
 // ===========================================================================
 
 test('S2: IVIVE hepatic clearance — Dasatinib, Bosutinib, Imatinib, Nilotinib', async ({ page }) => {
+  test.setTimeout(900000); // 15 min — IVIVE workflow has 2 slow AI turns + MD polling
   const SESSION_ID = 'S2_IVIVE';
   const startTs = new Date().toISOString();
   const result: SessionResult = {

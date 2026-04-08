@@ -72,12 +72,15 @@ params.gpu_device           = 0
 // Containers
 // ============================================================================
 
+// On AWS Batch use single ECR image containing all tools (avoids Docker Hub auth issues)
+def _useAws = System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
 // AmberTools 23: antechamber, tleap, parmchk2, pdb4amber, ParmEd, acpype
-def AMBERTOOLS_CONTAINER = 'ambermd/ambertools:23'
+def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
 // GROMACS 2025: gmx grompp, gmx mdrun, gmx rms, gmx rmsf, gmx genrestr, gmx editconf, etc.
-def GROMACS_CONTAINER    = 'gromacs/gromacs:2025.1'
-// gmx_MMPBSA 1.6: gmx_MMPBSA Python API + AmberTools + GROMACS
-def MMPBSA_CONTAINER     = 'simonbray/gmx_mmpbsa:1.6.3'
+def GROMACS_CONTAINER    = _useAws ? _ECR : 'gromacs/gromacs:2025.1'
+// gmx_MMPBSA: gmx_MMPBSA Python API + AmberTools + GROMACS
+def MMPBSA_CONTAINER     = _useAws ? _ECR : 'simonbray/gmx_mmpbsa:1.6.3'
 
 // ============================================================================
 // Processes
@@ -806,7 +809,7 @@ dat_file = 'FINAL_RESULTS_MMPBSA.dat'
 if os.path.exists(dat_file):
     with open(dat_file) as f:
         for line in f:
-            m = re.search(r'DELTA TOTAL\s+([-\d.]+)\s+\+/-\s+([\d.]+)', line)
+            m = re.search(r'DELTA TOTAL\\s+([-\\d.]+)\\s+\\+/-\\s+([\\d.]+)', line)
             if m:
                 dg_bind = float(m.group(1))
                 dg_err  = float(m.group(2))

@@ -70,8 +70,11 @@ params.gpu                  = true
 // Containers
 // ============================================================================
 
-def AMBER_CONTAINER      = '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
-def AMBERTOOLS_CONTAINER = 'ambermd/ambertools:23'
+// On AWS Batch use the unified ECR image (AmberTools 23 + GROMACS 2024 via conda-forge)
+def _useAws = System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
+def AMBER_CONTAINER      = _useAws ? _ECR : '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
+def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
 
 // ============================================================================
 // Processes
