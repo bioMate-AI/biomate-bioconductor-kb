@@ -172,7 +172,7 @@ process SYSTEM_SETUP {
     set -euo pipefail
 
     # 1. Clean receptor with pdb4amber (remove HETATM, fix residue names)
-    pdb4amber -i "${receptor_pdb}" -o receptor_clean.pdb --no-conect --no-renum \
+    pdb4amber -i "${receptor_pdb}" -o receptor_clean.pdb --no-conect \
         2>&1 | tee setup.log
 
     # 2. Determine leaprc water model
