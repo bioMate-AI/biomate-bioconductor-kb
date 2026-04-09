@@ -76,6 +76,9 @@ deploy_frontend() {
     set -e
     rm -rf /opt/biomate/frontend_sync && mkdir -p /opt/biomate/frontend_sync
     tar -xzf /tmp/frontend_sync.tar.gz -C /opt/biomate/frontend_sync
+    # Prune dangling images + build cache to prevent disk-full build failures
+    docker image prune -f > /dev/null 2>&1 || true
+    docker builder prune -f > /dev/null 2>&1 || true
     echo "[frontend] Building image..."
     docker build -t biomate-dev-frontend:latest \
       -f /opt/biomate/frontend_sync/frontend/Dockerfile \
