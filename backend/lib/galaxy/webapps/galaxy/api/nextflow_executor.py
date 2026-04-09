@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -250,6 +250,7 @@ class NextflowExecuteRequest(BaseModel):
     qc_profile: Optional[str] = None
     workflow_domain: Optional[str] = None
     user_id: Optional[str] = None  # billing: propagated to Batch job env vars
+    is_pilot: Optional[bool] = None  # pilot study: bypass billing; tag in KPI logs
     resume_from_run_id: Optional[str] = None  # if set, passes -resume -w <prev_work_dir>
     credentials: Optional[Dict[str, Any]] = None  # {tool_id: {username, token} | {license_key}}
 
@@ -693,6 +694,15 @@ def _is_path_param(key: str, value: Any) -> bool:
         return False
     if val.startswith("s3://") or val.startswith("http"):
         return False
+    # Exclude chemistry/biology data strings that can't be filesystem paths.
+    # SMILES, InChI, FASTA sequences, and compound IDs contain characters
+    # that are illegal or highly unusual in file/directory names.
+    _NON_PATH_CHARS = frozenset("()=#+@[]\\|~`'\"")
+    if any(c in val for c in _NON_PATH_CHARS):
+        return False
+    # Long strings that don't look like paths (no slashes, no extension) are data.
+    if len(val) > 100 and "/" not in val and "." not in val:
+        return False
     # Key name suggests a path, or value looks like a filesystem path
     return any(kw in key_l for kw in path_keywords) or val.startswith("/")
 
@@ -945,7 +955,9 @@ def _generate_executor_config(
             f"        BIOMATE_USER_ID: '{user_id}',",
             f"        BIOMATE_RUN_ID: '{run_id}',",
         ]
-        before_script_parts = []
+        # beforeScript parts — only credential injection; no CLI symlink needed
+        # since AWS CLI is baked into all task containers via FROM biomate-nextflow-base.
+        before_script_parts: list[str] = []
 
         # Docker Hub auth (AlphaFold3 or any docker_auth tool)
         af3_cred = creds.get("alphafold3") or {}
@@ -988,10 +1000,12 @@ def _generate_executor_config(
             "        uploadChunkSize = 104857600",   # 100 MB chunks
             "    }",
             "    batch {",
-            # Tell Nextflow the path to the AWS CLI on the host AMI.
-            # The biomate-nextflow-cpu-v1 CE uses ami-051fc3d11efefcb16 (AL2 base),
-            # which installs AWS CLI v2 via User Data to /usr/local/bin/aws.
-            # Nextflow mounts the binary into each task container for S3 staging.
+            # cliPath: Nextflow bind-mounts the host's aws binary into every container.
+            # AMI ami-04ed7e19d6f94816d has AWS CLI v2.34.27 at /usr/local/bin/aws.
+            # BioMate containers (biomni-tools, etc.) already have aws baked in — the
+            # bind-mount redundantly overlays the same path but both are valid x86 binaries.
+            # Third-party public containers (gromacs, rocker, foldseek, etc.) have NO aws —
+            # the bind-mount provides it so S3 staging works in all containers.
             "        cliPath = '/usr/local/bin/aws'",
             "    }",
             "}",
@@ -1429,10 +1443,28 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         returncode = process.returncode
         final_status = "succeeded" if returncode == 0 else "failed"
         run_meta: Dict[str, Any] = {}
+        _completed_at_now = time.time()
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["status"] = final_status
                 _runs[run_id]["returncode"] = returncode
+                _runs[run_id]["completed_at"] = _completed_at_now
+
+        # Update timing.json on disk so other workers can read timing via disk fallback.
+        try:
+            import json as _json
+            _timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+            _existing = {}
+            if _timing_path.exists():
+                _existing = _json.loads(_timing_path.read_text())
+            _existing["completed_at"] = _completed_at_now
+            _existing["status"] = final_status
+            _timing_path.write_text(_json.dumps(_existing))
+        except Exception as _te:
+            log.debug("[timing] Could not update timing.json for %s: %s", run_id, _te)
+
+        with _runs_lock:
+            if run_id in _runs:
                 # On success, enumerate S3 output files so the frontend can list/download them.
                 if returncode == 0:
                     outdir = _runs[run_id].get("outdir", "")
@@ -2167,7 +2199,9 @@ def execute_nextflow(
 
     initial_status = "fetching_accessions" if accession_params else "running"
 
-    # Register run before starting any thread so status endpoint returns immediately
+    # Register run before starting any thread so status endpoint returns immediately.
+    # Capture started_at once so _runs and timing.json use the identical timestamp.
+    _started_at_now = time.time()
     with _runs_lock:
         _runs[run_id] = {
             "run_id": run_id,
@@ -2192,10 +2226,20 @@ def execute_nextflow(
             "image_arch": strategy.get("image_arch"),
             "is_batch": _is_batch,
             "user_id": request.user_id or "anonymous",
-            "started_at": time.time(),
+            "is_pilot": bool(request.is_pilot),
+            "started_at": _started_at_now,
             # Accession metadata (empty dict when not applicable)
             "accession_params": {k: v["label"] for k, v in accession_params.items()},
         }
+
+    # Persist timing to disk so other gunicorn workers can read it via the disk fallback.
+    try:
+        import json as _json
+        _timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+        _timing_path.parent.mkdir(parents=True, exist_ok=True)
+        _timing_path.write_text(_json.dumps({"started_at": _started_at_now}))
+    except Exception as _te:
+        log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
 
     if accession_params:
         # Accession path: run download pre-step then main workflow in one thread
@@ -2304,6 +2348,70 @@ def execute_nextflow(
     }
 
 
+class ResumeRunRequest(BaseModel):
+    # Optional nextflow_path sent by routes.ts when _runs may be empty
+    # (multi-worker: the original run was registered in a different gunicorn worker)
+    nextflow_path: Optional[str] = None
+
+
+@router.post("/api/nextflow/resume/{run_id}", summary="Resume a Nextflow run with -resume")
+def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()) -> Dict[str, Any]:
+    """
+    Re-launch a previous Nextflow run with ``-resume``, reusing its work
+    directory so all already-cached tasks are skipped.  Returns a new run_id.
+
+    Multi-worker safe: if the run is not in this worker's _runs dict (it was
+    registered in a different gunicorn worker), falls back to reconstructing
+    the work directory from disk at NEXTFLOW_WORK_DIR/<run_id>/work.
+
+    Called by the frontend "Run Step" / "Rerun Step" button in the per-step
+    execution panel of nextflow-workflow-viewer.tsx.
+    """
+    with _runs_lock:
+        prev = dict(_runs.get(run_id, {}))
+
+    if not prev:
+        # Multi-worker fallback: reconstruct from disk.
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        candidate_work_dir = work_base / run_id / "work"
+        nextflow_path = body.nextflow_path
+        if not nextflow_path or not candidate_work_dir.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Run {run_id!r} not found in this worker's run registry "
+                    f"and work directory {candidate_work_dir} does not exist on disk. "
+                    "The run may have been on a different host or the work directory was cleaned up."
+                ),
+            )
+        prev = {
+            "nextflow_path": nextflow_path,
+            "work_dir": str(candidate_work_dir),
+            "is_batch": False,
+            "profile": None,
+            "entry": None,
+            "workflow_domain": None,
+            "user_id": None,
+        }
+        log.info(
+            f"[resume/{run_id}] _runs miss — reconstructed from disk: "
+            f"work_dir={candidate_work_dir} nextflow_path={nextflow_path}"
+        )
+
+    resume_request = NextflowExecuteRequest(
+        nextflow_path=prev["nextflow_path"],
+        profile=prev.get("profile"),
+        entry=prev.get("entry"),
+        workflow_domain=prev.get("workflow_domain"),
+        user_id=prev.get("user_id"),
+        resume_from_run_id=run_id,
+        compute_config=(
+            {"executor": "awsbatch"} if prev.get("is_batch") else None
+        ),
+    )
+    return execute_nextflow(resume_request)
+
+
 @router.get("/api/nextflow/status/{run_id}", summary="Get Nextflow run status")
 def get_nextflow_status(
     run_id: str,
@@ -2321,6 +2429,21 @@ def get_nextflow_status(
         log_dir = work_base / run_id
         output_dir = log_dir / "output"
         log_path_fallback = log_dir / "nextflow.log"
+        # Read persisted timing (written by execute_nextflow on start/end).
+        _disk_timing: Dict[str, Any] = {}
+        _timing_path_fb = log_dir / "timing.json"
+        if _timing_path_fb.exists():
+            try:
+                import json as _json
+                _disk_timing = _json.loads(_timing_path_fb.read_text())
+            except Exception:
+                pass
+        _fb_started_at: float | None = _disk_timing.get("started_at")
+        _fb_completed_at: float | None = _disk_timing.get("completed_at")
+        _fb_duration_s: int | None = None
+        if _fb_started_at:
+            _end = _fb_completed_at if _fb_completed_at else time.time()
+            _fb_duration_s = int(_end - _fb_started_at)
         log_tail_fallback: list = []
         log_full_text = ""
         if log_path_fallback.exists():
@@ -2357,6 +2480,9 @@ def get_nextflow_status(
                     "totalSteps": 0,
                     "progressPercent": 50,
                     "processes": [],
+                    "started_at": _fb_started_at,
+                    "completed_at": None,
+                    "duration_s": _fb_duration_s,
                 }
 
             # Nextflow finished. Check whether result directories were produced.
@@ -2382,6 +2508,9 @@ def get_nextflow_status(
                 "totalSteps": 0,
                 "progressPercent": 100,
                 "processes": [],
+                "started_at": _fb_started_at,
+                "completed_at": _fb_completed_at,
+                "duration_s": _fb_duration_s,
             }
         elif log_dir.exists():
             # Log dir exists but no output yet → still running
@@ -2399,6 +2528,9 @@ def get_nextflow_status(
                 "totalSteps": 0,
                 "progressPercent": 50,
                 "processes": [],
+                "started_at": _fb_started_at,
+                "completed_at": None,
+                "duration_s": _fb_duration_s,
             }
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
@@ -2432,6 +2564,14 @@ def get_nextflow_status(
     outdir = info.get("outdir", "")
     work_dir = info.get("work_dir", "")
 
+    started_at: float | None = info.get("started_at")
+    completed_at: float | None = info.get("completed_at")
+    now = time.time()
+    duration_s: int | None = None
+    if started_at:
+        end = completed_at if completed_at else now
+        duration_s = int(end - started_at)
+
     return {
         "run_id": run_id,
         "invocation_id": info["invocation_id"],
@@ -2442,6 +2582,9 @@ def get_nextflow_status(
         "log_tail": log_tail,
         "is_batch": info.get("is_batch", False),
         "s3_output_files": s3_files,
+        "started_at": started_at,
+        "completed_at": completed_at,
+        "duration_s": duration_s,
         **progress,
     }
 
@@ -2518,9 +2661,9 @@ async def list_qc_profiles() -> Dict[str, Any]:
     ensuring it responds quickly even when worker threads are busy with AI calls.
     """
     try:
-        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler, DEFAULT_THRESHOLDS
+        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler, QC_RED_LINES
         profiles = NextflowQCGateHandler.list_profiles()
-        defaults = DEFAULT_THRESHOLDS
+        defaults = QC_RED_LINES
     except ImportError:
         profiles = []
         defaults = {}
@@ -2599,6 +2742,154 @@ def get_invocation_qc_events(
     except Exception as e:
         log.error(f"[QC Events] Failed to retrieve events for {invocation_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve QC events: {e}")
+
+
+@router.get("/api/invocations/{invocation_id}/qc-audit-download",
+            summary="Download QC audit log as JSONL")
+def download_invocation_qc_audit(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+):
+    """
+    Download the full QC event log for a workflow invocation as a JSONL file.
+    Each line is a JSON object representing one QC event.
+    """
+    import json as _json
+    try:
+        from galaxy.jobs.runners.nextflow_monitor import get_monitor_service
+        monitor_service = get_monitor_service(trans.app)
+
+        monitor = None
+        for key in (invocation_id, int(invocation_id) if invocation_id.isdigit() else None):
+            if key is None:
+                continue
+            monitor = monitor_service.monitors.get(key)
+            if monitor:
+                break
+
+        events: list = []
+        if monitor is not None and monitor.qc_handler is not None:
+            report = monitor.qc_handler.get_qc_report()
+            events = report.get("events", [])
+        else:
+            jobs_dir = getattr(getattr(trans.app, 'config', None), 'root', None)
+            if jobs_dir:
+                from pathlib import Path as _Path
+                audit_path = (_Path(jobs_dir) / 'database' / 'jobs_directory'
+                              / 'nextflow_workflows' / f"workflow_{invocation_id}"
+                              / "qc_overrides_audit.jsonl")
+                if audit_path.exists():
+                    for line in audit_path.read_text().splitlines():
+                        try:
+                            events.append(_json.loads(line))
+                        except Exception:
+                            pass
+
+        lines = "\n".join(_json.dumps(e) for e in events)
+        return Response(
+            content=lines,
+            media_type="application/x-ndjson",
+            headers={
+                "Content-Disposition": f'attachment; filename="qc_audit_{invocation_id}.jsonl"',
+            },
+        )
+
+    except Exception as e:
+        log.error(f"[QC Audit Download] Failed for {invocation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download QC audit: {e}")
+
+
+@router.get("/api/invocations/{invocation_id}/methods-report",
+            summary="Download methods report as plain text")
+def download_invocation_methods_report(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+):
+    """
+    Download a plain-text methods report for a workflow invocation.
+    Includes run ID, invocation ID, date, tool versions (if available),
+    and the QC methods_text paragraph.
+    """
+    import json as _json
+    from datetime import datetime as _datetime
+    try:
+        from galaxy.jobs.runners.nextflow_monitor import get_monitor_service
+        monitor_service = get_monitor_service(trans.app)
+
+        monitor = None
+        for key in (invocation_id, int(invocation_id) if invocation_id.isdigit() else None):
+            if key is None:
+                continue
+            monitor = monitor_service.monitors.get(key)
+            if monitor:
+                break
+
+        methods_text = "No QC events recorded for this invocation."
+        tool_versions: dict = {}
+        run_id = "n/a"
+
+        if monitor is not None and monitor.qc_handler is not None:
+            report = monitor.qc_handler.get_qc_report()
+            methods_text = report.get("methods_text", methods_text)
+            for event in report.get("events", []):
+                tv = event.get("tool_versions") or event.get("versions")
+                if tv and isinstance(tv, dict):
+                    tool_versions.update(tv)
+        else:
+            jobs_dir = getattr(getattr(trans.app, 'config', None), 'root', None)
+            if jobs_dir:
+                from pathlib import Path as _Path
+                audit_path = (_Path(jobs_dir) / 'database' / 'jobs_directory'
+                              / 'nextflow_workflows' / f"workflow_{invocation_id}"
+                              / "qc_overrides_audit.jsonl")
+                if audit_path.exists():
+                    methods_text = "QC governance applied (see audit log for details)."
+                    for line in audit_path.read_text().splitlines():
+                        try:
+                            event = _json.loads(line)
+                            tv = event.get("tool_versions") or event.get("versions")
+                            if tv and isinstance(tv, dict):
+                                tool_versions.update(tv)
+                            if event.get("run_id"):
+                                run_id = event["run_id"]
+                        except Exception:
+                            pass
+
+        # Look up run_id from in-process registry
+        if run_id == "n/a":
+            with _runs_lock:
+                for rid, info in _runs.items():
+                    if info.get("invocation_id") == invocation_id:
+                        run_id = rid
+                        break
+
+        lines = [
+            "BioMate AI — Methods Report",
+            "=" * 40,
+            f"Date:          {_datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+            f"Invocation ID: {invocation_id}",
+            f"Run ID:        {run_id}",
+        ]
+        if tool_versions:
+            lines.append("")
+            lines.append("Tool versions:")
+            for tool, version in sorted(tool_versions.items()):
+                lines.append(f"  {tool}: {version}")
+        lines.append("")
+        lines.append("Methods:")
+        lines.append(methods_text)
+
+        return Response(
+            content="\n".join(lines),
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": f'attachment; filename="methods_report_{invocation_id}.txt"',
+            },
+        )
+
+    except Exception as e:
+        log.error(f"[Methods Report] Failed for {invocation_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate methods report: {e}")
 
 
 # ---------------------------------------------------------------------------

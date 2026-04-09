@@ -26,6 +26,8 @@ import json
 import os
 import time
 import logging
+import uuid
+import urllib.request
 from datetime import datetime, timezone
 
 try:
@@ -95,13 +97,77 @@ def _parse_container(detail: dict) -> tuple[str, str, float, int, str]:
     tags = detail.get("tags", {})
     instance_type = tags.get("instance_type", "m5.large")
 
-    return user_id, run_id, vcpus, gpu_count, instance_type
+    # Memory in MiB (present in Batch EventBridge events as container.memory)
+    memory_mib = int(container.get("memory", 0) or 0)
+
+    return user_id, run_id, vcpus, gpu_count, instance_type, memory_mib
 
 
 def _estimate_cost_usd(instance_type: str, vcpus: float, duration_seconds: float) -> float:
     rate = _USD_PER_VCPU_HOUR.get(instance_type, _DEFAULT_USD_PER_VCPU_HOUR)
     billable_seconds = max(duration_seconds, 60.0)  # 1-min minimum
     return round(rate * vcpus * (billable_seconds / 3600.0), 6)
+
+
+# ---------------------------------------------------------------------------
+# Lago emission — uses same event codes as lago_client.py emit_batch_job()
+# ---------------------------------------------------------------------------
+
+_LAGO_URL = os.environ.get("LAGO_API_URL", "").rstrip("/")
+_LAGO_KEY = os.environ.get("LAGO_API_KEY", "")
+
+
+def _sub_id(user_id: str, plan_code: str = "base") -> str:
+    ext_id = f"bm_{user_id}" if not user_id.startswith("bm_") else user_id
+    return f"{ext_id}_{plan_code}"
+
+
+def _emit_to_lago(user_id: str, job_id: str, vcpus: float, gpu_count: int,
+                  memory_mib: float, duration_seconds: float) -> None:
+    """Emit batch compute events to Lago using the same event codes as lago_client.py."""
+    if not _LAGO_URL or not _LAGO_KEY:
+        log.info("Lago not configured (LAGO_API_URL/LAGO_API_KEY missing) — skipping emit for job %s", job_id)
+        return
+    ts = int(time.time())
+    sub = _sub_id(user_id)
+    memory_gb = memory_mib / 1024.0
+    events = [
+        {
+            "transaction_id": f"batch-vcpu-{job_id}",
+            "external_subscription_id": sub,
+            "code": "batch_vcpu_seconds",
+            "timestamp": ts,
+            "properties": {"seconds": round(vcpus * duration_seconds, 3)},
+        },
+        {
+            "transaction_id": f"batch-mem-{job_id}",
+            "external_subscription_id": sub,
+            "code": "batch_memory_gb_sec",
+            "timestamp": ts,
+            "properties": {"gb_seconds": round(memory_gb * duration_seconds, 3)},
+        },
+    ]
+    if gpu_count > 0:
+        events.append({
+            "transaction_id": f"batch-gpu-{job_id}",
+            "external_subscription_id": sub,
+            "code": "batch_gpu_seconds",
+            "timestamp": ts,
+            "properties": {"seconds": round(gpu_count * duration_seconds, 3)},
+        })
+    payload = json.dumps({"events": events}).encode("utf-8")
+    try:
+        req = urllib.request.Request(
+            f"{_LAGO_URL}/api/v1/events/batch",
+            data=payload,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {_LAGO_KEY}"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            log.info("Lago batch emit accepted for job=%s user=%s vcpus=%.1f duration=%.1fs",
+                     job_id, user_id, vcpus, duration_seconds)
+    except Exception as exc:
+        log.warning("Lago emit failed for job %s (non-fatal): %s", job_id, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +190,7 @@ def _record_started(r, job_id: str, user_id: str, run_id: str,
 
 def _record_completed(r, job_id: str, user_id: str, run_id: str,
                       vcpus: float, gpu_count: int, instance_type: str,
-                      duration_seconds: float, status: str) -> None:
+                      memory_mib: float, duration_seconds: float, status: str) -> None:
     cost_usd = _estimate_cost_usd(instance_type, vcpus, duration_seconds)
     month = datetime.now(timezone.utc).strftime("%Y-%m")
 
@@ -141,6 +207,8 @@ def _record_completed(r, job_id: str, user_id: str, run_id: str,
         r.expire(f"cost:{user_id}:month:{month}:total", 86400 * 90)
         r.incrbyfloat(f"billing:run:{run_id}:compute_usd", cost_usd)
         r.expire(f"billing:run:{run_id}:compute_usd", 86400 * 90)
+        # Emit to Lago using established billing event codes
+        _emit_to_lago(user_id, job_id, vcpus, gpu_count, memory_mib, duration_seconds)
 
     log.info("Recorded %s job=%s user=%s duration=%.1fs cost=$%.6f",
              status, job_id, user_id, duration_seconds, cost_usd)
@@ -165,7 +233,7 @@ def handler(event: dict, context) -> dict:
 
     log.info("Batch job %s → %s", job_id, status)
 
-    user_id, run_id, vcpus, gpu_count, instance_type = _parse_container(detail)
+    user_id, run_id, vcpus, gpu_count, instance_type, memory_mib = _parse_container(detail)
 
     try:
         r = _redis_client()
@@ -188,6 +256,6 @@ def handler(event: dict, context) -> dict:
 
         duration_seconds = (stopped_at_ms - int(started_at_ms)) / 1000.0
         _record_completed(r, job_id, user_id, run_id, vcpus, gpu_count,
-                          instance_type, duration_seconds, status)
+                          instance_type, memory_mib, duration_seconds, status)
 
     return {"statusCode": 200}

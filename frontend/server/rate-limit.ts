@@ -36,8 +36,8 @@ export const apiLimiter = rateLimit({
 // Strict rate limit for authentication endpoints - 5 attempts per 15 minutes
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
-  skipSuccessfulRequests: false, // Count all attempts
+  max: 10, // 10 attempts per window
+  skipSuccessfulRequests: true, // Only count failed attempts (prevents lockout on repeated legit logins)
   skip: isE2EBypass,
   message: 'Too many login attempts, please try again later.',
   standardHeaders: true,

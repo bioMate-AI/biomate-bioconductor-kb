@@ -93,7 +93,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.error === 'TRIAL_EXPIRED') {
         throw new Error('Your trial has expired. Please subscribe to continue.')
       }
-      throw new Error(data.error || 'Login failed')
+      if (data.error === 'TOO_MANY_ATTEMPTS') {
+        throw new Error('Too many login attempts. Please try again in 15 minutes.')
+      }
+      throw new Error(data.message || data.error || 'Login failed')
     }
 
     if (!data.success) {
@@ -160,7 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', error)
     } finally {
       setUser(null)
-      setLocation('/home')
+      setLocation('/login')
     }
   }
 
