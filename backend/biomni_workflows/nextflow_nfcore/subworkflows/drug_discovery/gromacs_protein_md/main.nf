@@ -303,10 +303,22 @@ vdwtype         = Cut-off
 define          = -DPOSRES
 MDP_EOF
 
-    # Include posres.itp inside the molecule type definition, before [ system ]
-    # (NOT in [ intermolecular_interactions ] — GROMACS rejects position restraints there)
+    # Include posres.itp before the [ system ] section (inside molecule type definition)
+    # Position restraints must not go in [ intermolecular_interactions ]
     if ! grep -q "posres.itp" ${top}; then
-        sed -i '/^\[ system \]/i #include "posres.itp"' ${top}
+        python3 - "${top}" << 'POSRES_INSERT'
+import sys
+top = sys.argv[1]
+lines = open(top).readlines()
+out = []
+inserted = False
+for line in lines:
+    if not inserted and line.strip() == '[ system ]':
+        out.append('#include "posres.itp"\n')
+        inserted = True
+    out.append(line)
+open(top, 'w').writelines(out)
+POSRES_INSERT
     fi
 
     gmx grompp -f em.mdp -c ${gro} -p ${top} -r ${gro} -o em.tpr -maxwarn 5 2>&1 | tee em_grompp.log
