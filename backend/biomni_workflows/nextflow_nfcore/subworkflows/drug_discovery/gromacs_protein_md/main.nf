@@ -303,8 +303,43 @@ vdwtype         = Cut-off
 define          = -DPOSRES
 MDP_EOF
 
-    # Include posres.itp before the [ system ] section (inside molecule type definition)
-    # Position restraints must not go in [ intermolecular_interactions ]
+    # Fix posres.itp: SYSTEM_SETUP writes global atom indices (all chains).
+    # GROMACS needs LOCAL indices within the first molecule type only.
+    # Count n_mol1 from topology's first [ atoms ] section, then filter posres.itp.
+    python3 - "${top}" "${posres}" << 'FIX_POSRES'
+import sys
+top_f = sys.argv[1]
+posres_f = sys.argv[2]
+# Count atoms in the first [ atoms ] section
+n_mol1 = 0
+in_first = False
+seen_atoms = 0
+for tline in open(top_f):
+    ts = tline.strip().replace(' ', '')
+    if ts == '[atoms]':
+        seen_atoms += 1
+        in_first = (seen_atoms == 1)
+    elif ts.startswith('[') and ts.endswith(']'):
+        if in_first:
+            in_first = False
+    elif in_first and tline.strip() and not tline.strip().startswith(';'):
+        n_mol1 += 1
+# Filter posres.itp to keep only indices <= n_mol1
+kept = []
+for line in open(posres_f):
+    s = line.strip()
+    if not s or s.startswith('[') or s.startswith(';'):
+        kept.append(line)
+    else:
+        try:
+            if int(s.split()[0]) <= n_mol1:
+                kept.append(line)
+        except Exception:
+            kept.append(line)
+open(posres_f, 'w').writelines(kept)
+FIX_POSRES
+
+    # Include posres.itp inside the first molecule type (before 2nd moleculetype section)
     if ! grep -q "posres.itp" ${top}; then
         python3 - "${top}" << 'POSRES_INSERT'
 import sys
@@ -314,24 +349,24 @@ out = []
 inserted = False
 mol_count = 0
 def is_section(line, name):
-    s = line.strip().lower().replace(' ', '').replace('\t', '')
+    s = line.strip().lower().replace(' ', '')
     return s == '[' + name + ']'
 for line in lines:
     if is_section(line, 'moleculetype'):
         mol_count += 1
         if mol_count == 2 and not inserted:
-            out.append('#ifdef POSRES\\n')
-            out.append('#include "posres.itp"\\n')
-            out.append('#endif\\n\\n')
+            out.append('#ifdef POSRES' + chr(10))
+            out.append('#include "posres.itp"' + chr(10))
+            out.append('#endif' + chr(10) + chr(10))
             inserted = True
     out.append(line)
 if not inserted:
     out2 = []
     for line in out:
         if not inserted and is_section(line, 'system'):
-            out2.append('#ifdef POSRES\\n')
-            out2.append('#include "posres.itp"\\n')
-            out2.append('#endif\\n\\n')
+            out2.append('#ifdef POSRES' + chr(10))
+            out2.append('#include "posres.itp"' + chr(10))
+            out2.append('#endif' + chr(10) + chr(10))
             inserted = True
         out2.append(line)
     out = out2
