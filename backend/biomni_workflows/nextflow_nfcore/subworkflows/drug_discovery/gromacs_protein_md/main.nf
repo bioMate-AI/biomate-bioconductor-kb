@@ -412,56 +412,83 @@ process NVT_EQUILIBRATION {
     """
     set -euo pipefail
 
-    cat > nvt.mdp << 'MDP_EOF'
-; NVT equilibration -- 100 ps
-integrator      = md
-dt              = 0.001
-nsteps          = 100000
-nstxout         = 1000
-nstvout         = 1000
-nstenergy       = 1000
-nstlog          = 1000
-
-; Neighbour list
-cutoff-scheme   = Verlet
-nstlist         = 10
-pbc             = xyz
-
-; Electrostatics
-coulombtype     = PME
-rcoulomb        = 1.0
-fourierspacing  = 0.16
-
-; Van der Waals
-rvdw            = 1.0
-DispCorr        = EnerPres
-
-; Temperature coupling (V-rescale)
-tcoupl          = V-rescale
-tc-grps         = Protein Non-Protein
-tau_t           = 0.1 0.1
-ref_t           = MDP_TEMP MDP_TEMP
-
-; No pressure coupling (NVT)
-pcoupl          = no
-
-; Position restraints
-define          = -DPOSRES
-
-; Bond constraints
-constraints     = h-bonds
+    # ── Stage 1: heat slowly from 100 K → target T over 10 ps (10 000 × 1 fs)
+    # Prevents cold-start LINCS/SETTLE blowup: EM leaves atoms with zero
+    # velocity; V-rescale would inject full target-T kinetic energy at step 1.
+    cat > nvt1.mdp << 'MDP_EOF'
+; NVT stage-1: slow heat 100 K → target T, 10 ps
+integrator           = md
+dt                   = 0.001
+nsteps               = 10000
+nstxout              = 1000
+nstvout              = 1000
+nstenergy            = 1000
+nstlog               = 1000
+cutoff-scheme        = Verlet
+nstlist              = 10
+pbc                  = xyz
+coulombtype          = PME
+rcoulomb             = 1.0
+fourierspacing       = 0.16
+rvdw                 = 1.0
+DispCorr             = EnerPres
+tcoupl               = V-rescale
+tc-grps              = Protein Non-Protein
+tau_t                = 0.1 0.1
+ref_t                = 100.0 100.0
+pcoupl               = no
+define               = -DPOSRES
+constraints          = h-bonds
 constraint-algorithm = LINCS
+lincs_iter           = 2
+lincs_order          = 6
+gen_vel              = yes
+gen_temp             = 100.0
+gen_seed             = 42
+MDP_EOF
+
+    gmx grompp -f nvt1.mdp -c ${gro} -r ${gro} -p ${top} -o nvt1.tpr -maxwarn 5 2>&1 | tee nvt1_grompp.log
+    gmx mdrun -v -deffnm nvt1 -ntmpi 1 -ntomp ${task.cpus} 2>&1 | tee nvt1_mdrun.log
+
+    # ── Stage 2: equilibrate at full target T for 90 ps
+    cat > nvt.mdp << 'MDP_EOF'
+; NVT stage-2: equilibrate at target T, 90 ps
+integrator           = md
+dt                   = 0.001
+nsteps               = 90000
+nstxout              = 1000
+nstvout              = 1000
+nstenergy            = 1000
+nstlog               = 1000
+cutoff-scheme        = Verlet
+nstlist              = 10
+pbc                  = xyz
+coulombtype          = PME
+rcoulomb             = 1.0
+fourierspacing       = 0.16
+rvdw                 = 1.0
+DispCorr             = EnerPres
+tcoupl               = V-rescale
+tc-grps              = Protein Non-Protein
+tau_t                = 0.1 0.1
+ref_t                = MDP_TEMP MDP_TEMP
+pcoupl               = no
+define               = -DPOSRES
+constraints          = h-bonds
+constraint-algorithm = LINCS
+lincs_iter           = 2
+lincs_order          = 6
 MDP_EOF
     sed -i "s/MDP_TEMP/${temp}/g" nvt.mdp
 
-    gmx grompp -f nvt.mdp -c ${gro} -r ${gro} -p ${top} -o nvt.tpr -maxwarn 5 2>&1 | tee nvt_grompp.log
+    gmx grompp -f nvt.mdp -c nvt1.gro -r ${gro} -p ${top} -o nvt.tpr -maxwarn 5 2>&1 | tee nvt_grompp.log
     gmx mdrun -v -deffnm nvt -ntmpi 1 -ntomp ${task.cpus} 2>&1 | tee nvt_mdrun.log
-    cat nvt_grompp.log nvt_mdrun.log > nvt.log
+    cat nvt1_grompp.log nvt1_mdrun.log nvt_grompp.log nvt_mdrun.log > nvt.log
 
     echo "Temperature\n0\n" | gmx energy -f nvt.edr -o nvt_temp.xvg 2>/dev/null || \
         echo "# temperature not available" > nvt_temp.xvg
 
-    echo "NVT_EQUILIBRATION complete" | tee -a nvt.log
+    echo "NVT_EQUILIBRATION complete (2-stage: 100K heat + ${temp}K equilibration)" | tee -a nvt.log
     """
 }
 
