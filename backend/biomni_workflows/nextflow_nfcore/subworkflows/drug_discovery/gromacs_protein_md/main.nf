@@ -303,11 +303,10 @@ vdwtype         = Cut-off
 define          = -DPOSRES
 MDP_EOF
 
-    # Include posres.itp in topology (append include directive if not present)
+    # Include posres.itp inside the molecule type definition, before [ system ]
+    # (NOT in [ intermolecular_interactions ] — GROMACS rejects position restraints there)
     if ! grep -q "posres.itp" ${top}; then
-        echo '' >> ${top}
-        echo '[ intermolecular_interactions ]' >> ${top}
-        echo '#include "posres.itp"' >> ${top}
+        sed -i '/^\[ system \]/i #include "posres.itp"' ${top}
     fi
 
     gmx grompp -f em.mdp -c ${gro} -p ${top} -r ${gro} -o em.tpr -maxwarn 5 2>&1 | tee em_grompp.log
