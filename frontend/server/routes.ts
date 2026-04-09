@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import express from "express";
+import { requestContextMiddleware } from "./request-context";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
@@ -921,6 +922,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // }
 
   // Apply audit middleware for API routes (excludes health and SSE)
+  // Per-request AsyncLocalStorage context — must precede all route handlers
+  // so that getRequestContext() works inside Galaxy API calls, LLM calls, and SSE handlers.
+  app.use(requestContextMiddleware);
+
   app.use('/api', auditMiddleware({
     excludePaths: ['/api/health', '/api/workflow/sse'],
     logBody: false, // Don't log request bodies by default (privacy)
@@ -3146,6 +3151,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
   // which must be forwarded to the Galaxy backend. No dedicated route existed before.
+  // Proxy for QC profiles list — GET /api/qc/profiles → Galaxy /api/qc/profiles
+  app.get("/api/qc/profiles", async (_req: any, res: any) => {
+    try {
+      const response = await galaxyAPIProxy.client.get("/api/qc/profiles");
+      return res.status(response.status).json(response.data);
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: 'QC profiles proxy error' });
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;
@@ -3251,8 +3267,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const enrichedContext = {
         ...(context || {}),
+        // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
+        // If both are present, prefer the explicit sessionId; fall back to memorySessionId.
+        sessionId: (context?.sessionId || context?.memorySessionId) || undefined,
         billingUserId: req.user ? String(req.user.id) : undefined,
         isPilotUser: isPilotUser || undefined,
+        // Inject integer userId so memory-integration can load user preferences/corrections
+        userId: req.user ? Number((req.user as any).id) : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
         sessionDatasets: req.session?.uploadedDatasets?.length
           ? req.session.uploadedDatasets.map((d: any) => ({
@@ -3263,12 +3284,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : undefined,
       };
 
-      const assistantResponse = await galaxyAssistant.processMessage(
-        String(message),
-        enrichedContext,
-        (chunk) => safeSend("delta", { text: chunk }),
-        (event) => safeSend("tool_event", event)
-      );
+      // Use memory-enhanced processing when available: loads user preferences + past corrections,
+      // injects prior experience hints, and records interactions for future learning.
+      const assistantResponse = memoryIntegration
+        ? await memoryIntegration.processWithMemory(
+            String(message),
+            enrichedContext as unknown as MemoryEnhancedContext,
+            (chunk) => safeSend("delta", { text: chunk }),
+            (event) => safeSend("tool_event", event)
+          )
+        : await galaxyAssistant.processMessage(
+            String(message),
+            enrichedContext,
+            (chunk) => safeSend("delta", { text: chunk }),
+            (event) => safeSend("tool_event", event)
+          );
 
       let prerequisitesValidation = null;
       if (assistantResponse.generatedWorkflow && prerequisitesValidator) {
@@ -6720,7 +6750,53 @@ Rules:
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
 
-      // Security: reject path traversal
+      // Infer Content-Type (shared for both S3 and local paths)
+      const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
+      const contentTypeMap: Record<string, string> = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+        svg: 'image/svg+xml', pdf: 'application/pdf',
+        csv: 'text/csv', tsv: 'text/tab-separated-values',
+        json: 'application/json', txt: 'text/plain', log: 'text/plain',
+        html: 'text/html', htm: 'text/html',
+        fasta: 'text/plain', fa: 'text/plain', fastq: 'text/plain',
+        vcf: 'text/plain', bed: 'text/plain', gff: 'text/plain', gtf: 'text/plain',
+        star: 'text/plain', tabular: 'text/plain',
+      };
+      const ct = contentTypeMap[ext] || 'application/octet-stream';
+
+      if (fileName) {
+        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      }
+      res.setHeader('Content-Type', ct);
+
+      // --- S3 path: proxy via AWS SDK ---
+      if (filePath.startsWith('s3://')) {
+        const s3Match = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (!s3Match) return res.status(400).json({ error: 'Invalid S3 path format' });
+        const [, bucket, key] = s3Match;
+
+        // Security: only allow our known buckets
+        const ALLOWED_BUCKETS = new Set([
+          process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work',
+          'biomate-nextflow-work',
+          'biomate-outputs',
+        ]);
+        if (!ALLOWED_BUCKETS.has(bucket)) {
+          return res.status(403).json({ error: 'S3 bucket not allowed' });
+        }
+
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
+
+        const { Readable } = await import('stream');
+        const nodeStream = Readable.fromWeb ? Readable.fromWeb(s3Obj.Body as any) : (s3Obj.Body as any);
+        nodeStream.pipe(res);
+        return;
+      }
+
+      // --- Local path: security checks then createReadStream ---
       const { resolve, normalize } = await import('path');
       const resolved = resolve(normalize(filePath));
       if (resolved.includes('..') || filePath.includes('..')) {
@@ -6739,25 +6815,6 @@ Rules:
       if (!isAllowed && !resolved.startsWith('/tmp/')) {
         return res.status(403).json({ error: 'File outside allowed directories' });
       }
-
-      // Infer Content-Type
-      const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
-      const contentTypeMap: Record<string, string> = {
-        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
-        svg: 'image/svg+xml', pdf: 'application/pdf',
-        csv: 'text/csv', tsv: 'text/tab-separated-values',
-        json: 'application/json', txt: 'text/plain', log: 'text/plain',
-        html: 'text/html', htm: 'text/html',
-        fasta: 'text/plain', fa: 'text/plain', fastq: 'text/plain',
-        vcf: 'text/plain', bed: 'text/plain', gff: 'text/plain', gtf: 'text/plain',
-        star: 'text/plain', tabular: 'text/plain',
-      };
-      const ct = contentTypeMap[ext] || 'application/octet-stream';
-
-      if (fileName) {
-        res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-      }
-      res.setHeader('Content-Type', ct);
 
       const { createReadStream, existsSync } = await import('fs');
       if (!existsSync(resolved)) return res.status(404).json({ error: 'File not found' });
