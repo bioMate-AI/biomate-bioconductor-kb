@@ -60,39 +60,92 @@ function formatDate(iso: string): string {
   }
 }
 
-// Tab: "This session" — shows sessionDatasets prop
+// Tab: "This session" — shows sessionDatasets prop + inline upload button
 function SessionTab({
   datasets,
   search,
   onSelect,
+  onUploaded,
 }: {
   datasets: SessionDataset[];
   search: string;
   onSelect: (value: string, name: string) => void;
+  onUploaded?: (ds: SessionDataset) => void;
 }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const fileRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name);
+      const res = await fetch('/api/datasets/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+      const data = await res.json();
+      const newDs: SessionDataset = {
+        id: data.dataset_id || data.id || file.name,
+        name: file.name,
+        fileType: file.name.split('.').pop() || '',
+        galaxyDatasetId: data.dataset_id,
+        path: data.file_path,
+      };
+      onUploaded?.(newDs);
+      // Auto-select the just-uploaded file
+      const value = newDs.galaxyDatasetId || newDs.path || newDs.id;
+      onSelect(value, file.name);
+    } catch (err: any) {
+      setUploadError(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
   const filtered = datasets.filter(ds => {
     const name = (ds.name || ds.label || '').toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
-  if (datasets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-        <Upload className="h-8 w-8 mb-3 opacity-40" />
-        <p className="text-sm font-medium">No datasets in this session</p>
-        <p className="text-xs mt-1">Upload a file or import from URL to get started</p>
-      </div>
-    );
-  }
-
-  if (filtered.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground text-center py-8">No datasets match &ldquo;{search}&rdquo;</p>
-    );
-  }
-
   return (
     <div className="space-y-1">
+      {/* Upload button — always visible at the top */}
+      <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1.5 w-full"
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+        >
+          {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+          {uploading ? 'Uploading...' : 'Upload file from computer'}
+        </Button>
+      </div>
+      {uploadError && <p className="text-xs text-destructive px-1">{uploadError}</p>}
+
+      {datasets.length === 0 && !uploading && (
+        <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+          <p className="text-sm font-medium">No datasets yet</p>
+          <p className="text-xs mt-1">Upload a file above or import from URL</p>
+        </div>
+      )}
+
+      {filtered.length === 0 && datasets.length > 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">No datasets match &ldquo;{search}&rdquo;</p>
+      )}
+
       {filtered.map(ds => {
         const name = ds.name || ds.label || ds.id;
         const value = ds.galaxyDatasetId || ds.galaxy_dataset_id || ds.path || ds.id;
@@ -366,14 +419,19 @@ export function GalaxyDatasetBrowser({
 }: GalaxyDatasetBrowserProps) {
   const [activeTab, setActiveTab] = useState<'session' | 'history' | 'url'>('session');
   const [search, setSearch] = useState('');
+  // Locally uploaded files in this dialog instance (appended to sessionDatasets)
+  const [localUploads, setLocalUploads] = useState<SessionDataset[]>([]);
+
+  const allSessionDatasets = [...sessionDatasets, ...localUploads];
 
   // Reset to session tab and clear search when dialog opens
   useEffect(() => {
     if (open) {
-      setActiveTab(sessionDatasets.length > 0 ? 'session' : 'history');
+      setActiveTab('session');
       setSearch('');
+      setLocalUploads([]);
     }
-  }, [open, sessionDatasets.length]);
+  }, [open]);
 
   const handleSelect = (value: string, name: string) => {
     onSelect(value, name);
@@ -381,7 +439,7 @@ export function GalaxyDatasetBrowser({
   };
 
   const tabs = [
-    { id: 'session' as const, label: `This session${sessionDatasets.length > 0 ? ` (${sessionDatasets.length})` : ''}` },
+    { id: 'session' as const, label: `This session${allSessionDatasets.length > 0 ? ` (${allSessionDatasets.length})` : ''}` },
     { id: 'history' as const, label: 'Galaxy history' },
     { id: 'url' as const, label: 'From URL', icon: <Link2 className="h-3 w-3 mr-1" /> },
   ];
@@ -431,7 +489,12 @@ export function GalaxyDatasetBrowser({
         {/* Tab content */}
         <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
           {activeTab === 'session' && (
-            <SessionTab datasets={sessionDatasets} search={search} onSelect={handleSelect} />
+            <SessionTab
+              datasets={allSessionDatasets}
+              search={search}
+              onSelect={handleSelect}
+              onUploaded={ds => setLocalUploads(prev => [...prev, ds])}
+            />
           )}
           {activeTab === 'history' && (
             <HistoryTab search={search} onSelect={handleSelect} />

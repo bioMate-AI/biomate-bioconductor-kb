@@ -715,6 +715,51 @@ const upload = multer({
   },
 });
 
+/**
+ * Auto-stage local file parameters to S3 before an AWS Batch Nextflow run.
+ * When NEXTFLOW_USE_AWS=true, Batch containers can't access the frontend
+ * server's local filesystem. Any param that is an absolute local path pointing
+ * to an existing file gets uploaded to s3://biomate-nextflow-work/inputs/<userId>/<filename>
+ * and the param value is replaced with the resulting s3:// URI.
+ *
+ * Returns a new params object (original is not mutated).
+ */
+async function stageLocalFilesForBatch(
+  params: Record<string, any>,
+  userId: string
+): Promise<Record<string, any>> {
+  const useAws = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 };
+  if (!useAws) return params;
+
+  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+  const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+  const region   = process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-west-2';
+  const s3 = new S3Client({ region });
+
+  const staged = { ...params };
+  for (const [key, val] of Object.entries(params)) {
+    if (typeof val !== 'string') continue;
+    if (!val.startsWith('/')) continue;        // skip non-absolute paths
+    if (val.startsWith('/proc') || val.startsWith('/sys') || val.startsWith('/dev')) continue;
+    let stat: any;
+    try { stat = await fs.stat(val); } catch { continue; }
+    if (!stat.isFile()) continue;
+
+    const filename   = path.basename(val);
+    const s3Key      = `inputs/${userId}/${uuidv4().slice(0, 8)}-${filename}`;
+    const fileBuffer = await fs.readFile(val);
+    await s3.send(new PutObjectCommand({
+      Bucket: s3Bucket,
+      Key:    s3Key,
+      Body:   fileBuffer,
+    }));
+    const s3Uri = `s3://${s3Bucket}/${s3Key}`;
+    console.log(`[S3Stage] Staged local file ${key}=${val} → ${s3Uri}`);
+    staged[key] = s3Uri;
+  }
+  return staged;
+}
+
 function buildQCReportHtml(run: any, invocationId: string): string {
   const now = new Date().toISOString();
   const status = run?.status ?? "unknown";
@@ -1381,6 +1426,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await authService.register(registerData);
 
+      // Send verification email (non-blocking — don't fail registration if email fails)
+      authService.sendVerificationEmail(result.user.id).catch((err) =>
+        console.error('[Auth] Failed to send verification email:', err)
+      );
+
       // Set HTTP-only cookie
       res.cookie('biomate_token', result.token, {
         httpOnly: true,
@@ -1556,6 +1606,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message || 'Email verification failed',
       });
     }
+  });
+
+  // Request password reset (alias for client compatibility)
+  app.post("/api/auth/forgot-password", passwordResetLimiter, async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, error: 'Email is required' });
+    try { await authService.requestPasswordReset(email); } catch (_) {}
+    res.json({ success: true, message: 'If the email exists, a password reset link has been sent' });
   });
 
   // Request password reset
@@ -2534,6 +2592,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resume a Nextflow run with -resume (used by step-level "Run Step" buttons).
+  // Creates a new Nextflow run that reuses cached work from the original run,
+  // so all already-completed steps are skipped and only failed/new steps execute.
+  //
+  // The frontend viewer passes its execution run UUID (frontend storage ID).
+  // The Python backend's _runs dict is keyed by the Nextflow-assigned run_id.
+  // We resolve the translation here before proxying to the Python backend.
+  app.post("/api/workflows/runs/:runId/rerun", optionalAuth, async (req, res) => {
+    try {
+      const { runId } = req.params;
+
+      // Resolve the Nextflow run_id from the frontend execution run record.
+      const execRun = await storage.getExecutionRun(runId).catch(() => null);
+      const nextflowRunId =
+        execRun?.execution?.nextflowRunId ||
+        execRun?.execution?.galaxyInvocationId ||
+        runId; // fallback: caller may already be passing the Nextflow run_id
+
+      console.log(
+        `[ResumeRun] frontend runId=${runId} → nextflowRunId=${nextflowRunId}`
+      );
+
+      // Pass nextflow_path in the body so the Python endpoint can reconstruct
+      // the work directory from disk when the run is not in the receiving
+      // worker's _runs dict (multi-worker gunicorn deployment).
+      const nextflowPath =
+        execRun?.workflowDefinition?.nextflow_path ||
+        execRun?.workflowDefinition?.nextflowPath ||
+        '';
+
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const response = await fetch(
+        `${galaxyUrl}/api/nextflow/resume/${encodeURIComponent(nextflowRunId)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': process.env.GALAXY_API_KEY || '',
+          },
+          body: JSON.stringify({ nextflow_path: nextflowPath }),
+        }
+      );
+      if (!response.ok) {
+        const err = await response.text().catch(() => response.statusText);
+        return res.status(response.status).json({ error: 'ResumeError', message: err });
+      }
+      const data = await response.json();
+      const newNextflowRunId = data.run_id;
+
+      // Update the existing execution run record with the new Nextflow run_id
+      // and reset status to running, so the status endpoint can poll the resumed run.
+      if (execRun && newNextflowRunId) {
+        await storage.updateExecutionRun(execRun.id, {
+          execution: {
+            ...execRun.execution,
+            nextflowRunId: newNextflowRunId,
+            galaxyInvocationId: newNextflowRunId,
+            status: 'running',
+            startedAt: new Date(),
+            completedAt: undefined,
+            errorMessage: undefined,
+            nextflowStatus: undefined,
+          },
+        }).catch((e: any) => console.warn('[ResumeRun] Failed to update run record:', e?.message));
+      }
+
+      // Return the frontend storage UUID (not the raw Nextflow UUID) so the
+      // status endpoint can look up the record and proxy to the new Nextflow run.
+      res.json({ ...data, run_id: execRun?.id || newNextflowRunId });
+    } catch (error: any) {
+      console.error('[ResumeRun] Error:', error);
+      res.status(500).json({ error: 'ResumeError', message: error.message || 'Resume failed' });
+    }
+  });
+
   app.get("/api/galaxy/datasets/category/:category", async (req, res) => {
     try {
       const datasets = await galaxyAPIProxy.getDatasetsByCategory(req.params.category);
@@ -3034,6 +3167,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy for QC audit log download — streams JSONL from Galaxy backend
+  app.get("/api/invocations/:invocationId/qc-audit-download", async (req: any, res: any) => {
+    try {
+      const { invocationId } = req.params;
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/invocations/${invocationId}/qc-audit-download`,
+        { responseType: 'arraybuffer', params: req.query }
+      );
+      const contentType = response.headers['content-type'] || 'application/x-ndjson';
+      const contentDisposition = response.headers['content-disposition'] || `attachment; filename="qc_audit_${invocationId}.jsonl"`;
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', contentDisposition);
+      return res.status(response.status).send(Buffer.from(response.data));
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: 'QC audit download proxy error' });
+    }
+  });
+
+  // Proxy for methods report download — streams plain text from Galaxy backend
+  app.get("/api/invocations/:invocationId/methods-report", async (req: any, res: any) => {
+    try {
+      const { invocationId } = req.params;
+      const response = await (galaxyAPIProxy.client as any).get(
+        `/api/invocations/${invocationId}/methods-report`,
+        { responseType: 'arraybuffer', params: req.query }
+      );
+      const contentType = response.headers['content-type'] || 'text/plain';
+      const contentDisposition = response.headers['content-disposition'] || `attachment; filename="methods_report_${invocationId}.txt"`;
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', contentDisposition);
+      return res.status(response.status).send(Buffer.from(response.data));
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      return res.status(status).json(err.response?.data || { error: 'Methods report proxy error' });
+    }
+  });
+
   // Streaming chat endpoint (SSE) for token-level response updates
   app.post("/api/chat/stream", optionalAuth, async (req, res) => {
     const abortController = new AbortController();
@@ -3073,9 +3244,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       safeSend("ready", { ok: true });
 
+      // Pilot account check — PILOT_ACCOUNT_EMAILS is a comma-separated list of emails
+      // that bypass billing during the pilot window.
+      const _pilotEmails = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+      const isPilotUser = req.user ? _pilotEmails.includes(String((req.user as any).email || '').toLowerCase()) : false;
+
       const enrichedContext = {
         ...(context || {}),
         billingUserId: req.user ? String(req.user.id) : undefined,
+        isPilotUser: isPilotUser || undefined,
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
         sessionDatasets: req.session?.uploadedDatasets?.length
           ? req.session.uploadedDatasets.map((d: any) => ({
@@ -3218,7 +3395,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Emit LLM cost to Galaxy billing backend → Lago (fire-and-forget)
-      if (req.user) {
+      // Pilot users (PILOT_ACCOUNT_EMAILS) skip billing during the pilot window.
+      if (req.user && !isPilotUser) {
         const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
         const billingKey = process.env.BILLING_INTERNAL_KEY;
         if (billingKey) {
@@ -5626,6 +5804,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hardwareRequirements
           );
 
+          // Stage any local file params to S3 before submitting to AWS Batch.
+          // Local paths (e.g. /frontend/data/uploads/...) are inaccessible from
+          // Batch containers — this uploads them and replaces params with s3:// URIs.
+          const stagedParams = await stageLocalFilesForBatch(
+            request.workflowDefinition.parameters || {},
+            req.user ? String(req.user.id) : 'anonymous'
+          );
+
           const nextflowResponse = await fetch(`${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/execute`, {
             method: 'POST',
             headers: {
@@ -5635,12 +5821,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             body: JSON.stringify({
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
-              parameters: request.workflowDefinition.parameters || {},
+              parameters: stagedParams,
               profile: request.executionConfig?.nextflow_profile || 'standard',
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
                   : undefined,
+              user_id: req.user ? String(req.user.id) : undefined,
+              is_pilot: (() => {
+                const _pe = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+                return req.user ? _pe.includes(String((req.user as any).email || '').toLowerCase()) : false;
+              })(),
             })
           });
 
@@ -6156,11 +6347,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Populate runtime metrics from Nextflow status so the viewer can display
+      // execution time without a separate request.
+      const runtimeMetrics: Record<string, any> = { ...(run.metrics?.runtime || {}) };
+      if (nextflowStatus?.duration_s != null) {
+        runtimeMetrics.totalSeconds = nextflowStatus.duration_s;
+      }
+      if (nextflowStatus?.started_at != null) {
+        runtimeMetrics.startedAt = new Date(nextflowStatus.started_at * 1000).toISOString();
+      }
+      if (nextflowStatus?.completed_at != null) {
+        runtimeMetrics.completedAt = new Date(nextflowStatus.completed_at * 1000).toISOString();
+      }
+      const mergedMetrics = {
+        ...(run.metrics || {}),
+        runtime: runtimeMetrics,
+      };
+
       res.json({
         runId: run.id,
         status: run.execution.status,
         progress: run.progress,
-        metrics: run.metrics,
+        metrics: mergedMetrics,
         steps: req.query.includeSteps === 'true' ? run.steps : undefined,
         errorMessage: run.execution.errorMessage,
         autofix,

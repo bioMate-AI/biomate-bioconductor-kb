@@ -171,8 +171,13 @@ process SYSTEM_SETUP {
     """
     set -euo pipefail
 
-    # 1. Clean receptor with pdb4amber (remove HETATM, fix residue names)
-    pdb4amber -i "${receptor_pdb}" -o receptor_clean.pdb --no-conect \
+    # 1. Clean receptor with pdb4amber (strip HETATM first, then fix residue names)
+    # Remove HETATM (ligands, waters, cofactors) before pdb4amber so tLeap only
+    # sees protein ATOM records — prevents "does not have a type" for heteroatoms
+    grep -E "^(ATOM|TER|END)" "${receptor_pdb}" > receptor_nohet.pdb || true
+    # Fallback: if grep found nothing, use original (already protein-only)
+    [ -s receptor_nohet.pdb ] || cp "${receptor_pdb}" receptor_nohet.pdb
+    pdb4amber -i receptor_nohet.pdb -o receptor_clean.pdb --no-conect \
         2>&1 | tee setup.log
 
     # 2. Determine leaprc water model
