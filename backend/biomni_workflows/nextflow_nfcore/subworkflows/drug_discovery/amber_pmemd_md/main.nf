@@ -66,12 +66,15 @@ params.mmgbsa_interval      = 5          // analyse every Nth frame
 params.n_cpus               = 8
 params.gpu                  = true
 
+// AWS Batch flag — set via profile (aws/gpu_batch) or --use_aws true
+params.use_aws              = false
+
 // ============================================================================
 // Containers
 // ============================================================================
 
 // On AWS Batch use the unified ECR image (AmberTools 23 + GROMACS 2024 via conda-forge)
-def _useAws = System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
 def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
 def AMBER_CONTAINER      = _useAws ? _ECR : '399683337364.dkr.ecr.us-west-2.amazonaws.com/amber24-cuda:latest'
 def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'
