@@ -314,7 +314,7 @@ out = []
 inserted = False
 for line in lines:
     if not inserted and line.strip() == '[ system ]':
-        out.append('#include "posres.itp"\n')
+        out.append('#include "posres.itp"\\n')
         inserted = True
     out.append(line)
 open(top, 'w').writelines(out)
