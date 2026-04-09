@@ -1056,3 +1056,15 @@ workflow HELICAL_SPA_PIPELINE {
     final_map = HELICAL_SHARPENING.out.sharpened_volume_cs
     summary   = HELICAL_PIPELINE_SUMMARY.out.summary
 }
+
+// ============================================================================
+// Entry point
+// ============================================================================
+
+workflow {
+    ch_movies = params.movies_path
+        ? Channel.fromPath(params.movies_path, checkIfExists: true)
+        : Channel.value('mock_movies')
+
+    HELICAL_SPA_PIPELINE(ch_movies)
+}
