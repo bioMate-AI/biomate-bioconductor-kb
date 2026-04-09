@@ -307,16 +307,33 @@ MDP_EOF
     # Position restraints must not go in [ intermolecular_interactions ]
     if ! grep -q "posres.itp" ${top}; then
         python3 - "${top}" << 'POSRES_INSERT'
-import sys
+import sys, re
 top = sys.argv[1]
 lines = open(top).readlines()
 out = []
 inserted = False
+mol_count = 0
 for line in lines:
-    if not inserted and line.strip() == '[ system ]':
-        out.append('#include "posres.itp"\\n')
-        inserted = True
+    # Count [ moleculetype ] headers; insert before the 2nd one (end of protein section)
+    if re.match(r'^\s*\[\s*moleculetype\s*\]', line):
+        mol_count += 1
+        if mol_count == 2 and not inserted:
+            out.append('#ifdef POSRES\\n')
+            out.append('#include "posres.itp"\\n')
+            out.append('#endif\\n\\n')
+            inserted = True
     out.append(line)
+# Fallback: insert before [ system ] if protein was the only molecule type
+if not inserted:
+    out2 = []
+    for line in out:
+        if not inserted and re.match(r'^\s*\[\s*system\s*\]', line):
+            out2.append('#ifdef POSRES\\n')
+            out2.append('#include "posres.itp"\\n')
+            out2.append('#endif\\n\\n')
+            inserted = True
+        out2.append(line)
+    out = out2
 open(top, 'w').writelines(out)
 POSRES_INSERT
     fi
