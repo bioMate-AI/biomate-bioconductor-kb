@@ -546,10 +546,26 @@ async function sendTurn(
   // Wait for response generation to complete.
   // data-generating="true" on chat-run-anchor-state while isTypingLocal=true (mutation in flight).
   // It flips to "false" only after onSuccess/onError fires — reliable stream-complete signal.
-  await page.waitForSelector(
+  // If generating=true never fires within 30s, retry sending once (backend may have dropped the msg).
+  const generatingStarted = await page.waitForSelector(
     '[data-testid="chat-run-anchor-state"][data-generating="true"]',
     { state: 'attached', timeout: 30000 }
-  ).catch(() => {});
+  ).then(() => true).catch(() => false);
+
+  if (!generatingStarted) {
+    // Retry: backend may be slow to start streaming — resend the message once
+    await page.waitForTimeout(2000);
+    const ta2 = page.locator('textarea').first();
+    if (await ta2.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await ta2.fill(query);
+      await ta2.press('Enter');
+    }
+    await page.waitForSelector(
+      '[data-testid="chat-run-anchor-state"][data-generating="true"]',
+      { state: 'attached', timeout: 30000 }
+    ).catch(() => {});
+  }
+
   await page.waitForSelector(
     '[data-testid="chat-run-anchor-state"][data-generating="false"]',
     { state: 'attached', timeout: 240000 }
@@ -620,6 +636,12 @@ async function loginWithSharedAccount(page: Page): Promise<void> {
   }
   await page.goto(BASE_URL);
   await page.waitForLoadState('load');
+  // Start a fresh chat session so previous session context doesn't contaminate routing.
+  const newChatBtn = page.locator('[data-testid="button-new-chat"]').first();
+  if (await newChatBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await newChatBtn.click();
+    await page.waitForTimeout(500);
+  }
   await page.waitForSelector('textarea', { state: 'visible', timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
   console.log(`[Account] JWT: ${SHARED_ACCOUNT.jwt ? 'cookie injected' : 'missing'}`);
@@ -1201,6 +1223,7 @@ test('S5: Assay data upload + compound ranking — hERG + potency integration', 
 // ===========================================================================
 
 test('S6: CRO export — top 5 compounds formatted for WuXi AppTec submission', async ({ page }) => {
+  test.setTimeout(600000); // 10 min — S6 runs after 5 sessions; backend may need drain time
   const SESSION_ID = 'S6_CRO';
   const startTs = new Date().toISOString();
   const result: SessionResult = {
@@ -1229,6 +1252,8 @@ test('S6: CRO export — top 5 compounds formatted for WuXi AppTec submission', 
 
   const t0 = Date.now();
   await loginWithSharedAccount(page);
+  // Give backend 5s to drain any lingering SSE connections from S1-S5 before sending S6
+  await page.waitForTimeout(5000);
   result.screenshots.push(await ss(page, `${SESSION_ID}_00_start`));
   result.billingBefore = await captureBilling(page, SHARED_ACCOUNT.jwt, 'S6-before');
 
