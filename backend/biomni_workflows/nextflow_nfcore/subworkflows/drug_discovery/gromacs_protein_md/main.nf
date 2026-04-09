@@ -239,12 +239,12 @@ protein_res = {'ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY','HIS','HID','HIE'
                'ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL',
                'HYP','ACE','NME','NHE'}
 with open('posres.itp', 'w') as f:
-    f.write('[ position_restraints ]\n')
-    f.write(';  i funct       fcx        fcy        fcz\n')
+    f.write('[ position_restraints ]\\n')
+    f.write(';  i funct       fcx        fcy        fcz\\n')
     for i, atom in enumerate(amber.atoms, 1):
         res = atom.residue
         if res.name in protein_res and atom.name in ('CA','C','N','O'):
-            f.write(f'{i:6d}    1     1000       1000       1000\n')
+            f.write(f'{i:6d}    1     1000       1000       1000\\n')
 print('Position restraints written to posres.itp', flush=True)
 POSRES_EOF
 

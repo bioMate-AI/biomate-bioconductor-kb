@@ -7,7 +7,7 @@ import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -48,6 +48,12 @@ interface NextflowWorkflowViewerProps {
   dataVerification?: any;
   onAdjustViaChat?: (message: string) => void;
   executionEngine?: string;
+  /** Execution metrics from status API (includes perStepLlmCost). */
+  executionMetrics?: {
+    runtime?: { totalSeconds?: number; perStepSeconds?: Record<string, number> };
+    perStepLlmCost?: Record<string, number | null>;
+    [key: string]: any;
+  };
 }
 
 type ViewerParameter = {
@@ -276,6 +282,7 @@ export function NextflowWorkflowViewer({
   nextflowStatus,
   executionEngine,
   onAdjustViaChat,
+  executionMetrics,
 }: NextflowWorkflowViewerProps) {
   const { toast } = useToast();
   const [params, setParams] = useState<Record<string, any>>(
@@ -466,25 +473,12 @@ export function NextflowWorkflowViewer({
   }, [clearStepPoller]);
 
   const handleRunStep = React.useCallback(async (phase: ViewerPhase) => {
-    if (!phase.toolId) {
-      setStepExecutionById((prev) => ({
-        ...prev,
-        [phase.id]: {
-          ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
-          phaseStatus: "failed",
-          isExecuting: false,
-          errorMessage: "Step is missing tool_id and cannot run individually.",
-          runCount: prev[phase.id]?.runCount ?? 0,
-        },
-      }));
-      return;
-    }
+    if (!activeRunId) return;
 
     const startedAt = new Date().toISOString();
     emitUxEvent("workflow.run_clicked", {
       workflowId,
       stepId: phase.id,
-      toolId: phase.toolId,
       invocationId,
     });
 
@@ -504,34 +498,29 @@ export function NextflowWorkflowViewer({
     }));
 
     try {
-      const response = await fetch("/api/workflow/step/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step_id: phase.id,
-          tool_id: phase.toolId,
-          parameters: phase.parameters || {},
-          inputs: phase.inputs || {},
-        }),
-      });
+      const response = await fetch(
+        `/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`,
+        { method: "POST", headers: { "Content-Type": "application/json" } }
+      );
       if (!response.ok) {
         const message = await readApiErrorMessage(response);
         throw new Error(message);
       }
-
       const payload = await response.json();
-      const backendState = normalizeBackendState(payload?.state || "queued");
+      const newRunId: string | undefined = payload?.run_id;
+      if (newRunId) {
+        setRerunRunId(newRunId);
+      }
       setStepExecutionById((prev) => ({
         ...prev,
         [phase.id]: {
           ...(prev[phase.id] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
-          backendState,
-          phaseStatus: mapBackendToPhaseStatus(backendState),
-          jobId: payload?.job_id || prev[phase.id]?.jobId,
-          isExecuting: !isTerminalBackendState(backendState),
+          backendState: "queued",
+          phaseStatus: "running",
+          jobId: newRunId,
+          isExecuting: true,
         },
       }));
-      beginStepStatusPolling(phase.id);
     } catch (error: any) {
       setStepExecutionById((prev) => ({
         ...prev,
@@ -540,12 +529,27 @@ export function NextflowWorkflowViewer({
           phaseStatus: "failed",
           backendState: "error",
           isExecuting: false,
-          errorMessage: error?.message || "Step execution failed.",
+          errorMessage: error?.message || "Resume failed.",
         },
       }));
-      clearStepPoller(phase.id);
     }
-  }, [beginStepStatusPolling, clearStepPoller, invocationId, workflowId]);
+  }, [activeRunId, invocationId, workflowId]);
+
+  // When the global Nextflow run reaches a terminal state, clear isExecuting
+  // on all steps so their Run Step buttons re-enable.
+  useEffect(() => {
+    const isTerminal = status === 'completed' || status === 'failed';
+    if (!isTerminal) return;
+    setStepExecutionById((prev) => {
+      const hasExecuting = Object.values(prev).some((e) => e.isExecuting);
+      if (!hasExecuting) return prev;
+      const next: Record<string, StepExecutionState> = {};
+      for (const [id, exec] of Object.entries(prev)) {
+        next[id] = exec.isExecuting ? { ...exec, isExecuting: false } : exec;
+      }
+      return next;
+    });
+  }, [status]);
 
   // Build a lookup of process data from nextflowStatus.processes keyed by process name / id
   const nfProcessByName = React.useMemo<Record<string, any>>(() => {
@@ -734,9 +738,12 @@ export function NextflowWorkflowViewer({
         .filter((p: any) => p.status === 'failed')
         .map((p: any) => ({ name: p.processName || p.name, work_dir: p.workDir }));
       setErrorExplaining(true);
+      const abortController = new AbortController();
+      const explainTimeout = setTimeout(() => abortController.abort(), 30000);
       fetch('/api/workflows/explain_error', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortController.signal,
         body: JSON.stringify({
           workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
           error_log: rawLog,
@@ -746,8 +753,17 @@ export function NextflowWorkflowViewer({
       })
         .then(r => r.json())
         .then(data => setErrorExplanation(data))
-        .catch(() => {})
-        .finally(() => setErrorExplaining(false));
+        .catch(() => {
+          // Show a minimal fallback so the user isn't left staring at "Analyzing…"
+          setErrorExplanation({
+            human_summary: 'Error analysis timed out. Check the log output above for details.',
+            suggested_fix: 'Review the error log and retry the workflow, or contact support if the issue persists.',
+            error_type: 'analysis_failed',
+            chat_prompt: '',
+            llm_used: false,
+          });
+        })
+        .finally(() => { clearTimeout(explainTimeout); setErrorExplaining(false); });
     }
   }, [status]);
 
@@ -758,25 +774,38 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     // Merge incoming defaults/initialParams WITHOUT overwriting keys the user has already edited.
     // This prevents streaming workflowDefinition updates from wiping out user-typed param values.
-    const computeIncoming = (): Record<string, any> => {
-      if (initialParams) return initialParams;
+    // Exception: autoFilled values (explicitly injected by the backend based on user intent)
+    // always win — they represent the latest user-specified value from the most recent query.
+    const computeIncoming = (): { defaults: Record<string, any>; autoFilledKeys: Set<string> } => {
+      if (initialParams) return { defaults: initialParams, autoFilledKeys: new Set() };
       const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
       const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
       if (reqList.length > 0 || optList.length > 0) {
         const defaults: Record<string, any> = {};
+        const autoFilledKeys = new Set<string>();
         for (const p of [...reqList, ...optList]) {
-          if (p?.name && p.default != null) defaults[p.name] = p.default;
+          if (!p?.name) continue;
+          // Prefer p.value (explicit user-specified override) over p.default (schema default)
+          const seed = p.value !== undefined && p.value !== null && p.value !== '' ? p.value : p.default;
+          if (seed != null) {
+            defaults[p.name] = seed;
+            // Track which keys were explicitly injected by the backend
+            if (p.autoFilled === true && p.value !== undefined && p.value !== null && p.value !== '') {
+              autoFilledKeys.add(p.name);
+            }
+          }
         }
-        return defaults;
+        return { defaults, autoFilledKeys };
       }
-      return workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {};
+      return { defaults: workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}, autoFilledKeys: new Set() };
     };
-    const incoming = computeIncoming();
+    const { defaults: incoming, autoFilledKeys } = computeIncoming();
     setParams(prev => {
-      // For each incoming key: only apply if the user hasn't edited it (value is still null/undefined/'')
       const merged: Record<string, any> = { ...prev };
       for (const [k, v] of Object.entries(incoming)) {
-        if (merged[k] === undefined || merged[k] === null || merged[k] === '') {
+        // Always apply autoFilled values (user explicitly stated them in the query).
+        // For other keys, only apply if the user hasn't already edited the field.
+        if (autoFilledKeys.has(k) || merged[k] === undefined || merged[k] === null || merged[k] === '') {
           merged[k] = v;
         }
       }
@@ -1438,6 +1467,16 @@ export function NextflowWorkflowViewer({
                         {item.actionHint && (
                           <p className="mt-1 text-xs">{item.actionHint}</p>
                         )}
+                        {item.chatPrompt && onAdjustViaChat && (
+                          <button
+                            type="button"
+                            data-testid={`prereq-chat-link-${item.id}`}
+                            className="mt-1.5 text-xs text-primary hover:underline"
+                            onClick={() => onAdjustViaChat(item.chatPrompt!)}
+                          >
+                            Continue in chat →
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1507,6 +1546,34 @@ export function NextflowWorkflowViewer({
                   <Download className="mr-2 h-4 w-4" />
                   Download All
                 </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-download-qc-audit"
+                  disabled={!invocationId}
+                  title={invocationId ? "Download QC audit log" : "Run workflow to enable"}
+                  onClick={() => {
+                    if (!invocationId) return;
+                    window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
+                  }}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Download QC Audit Log
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-download-methods-report"
+                  disabled={!invocationId}
+                  title={invocationId ? "Download methods report" : "Run workflow to enable"}
+                  onClick={() => {
+                    if (!invocationId) return;
+                    window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
+                  }}
+                >
+                  <FlaskConical className="mr-2 h-4 w-4" />
+                  Download Methods Report
+                </Button>
               </div>
             </div>
 
@@ -1544,6 +1611,54 @@ export function NextflowWorkflowViewer({
                 <div>Runtime status: {nextflowStatus?.status || status}</div>
                 {nextflowStatus?.run_id && <div>Nextflow run ID: {String(nextflowStatus.run_id)}</div>}
               </div>
+              {/* Run metrics strip — execution time and cost */}
+              {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
+                <div
+                  className="rounded-md border border-muted p-3 text-xs space-y-1"
+                  data-testid="run-metrics-strip"
+                >
+                  <div className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Run metrics</div>
+                  {nextflowStatus?.duration_s != null && (
+                    <div data-testid="run-metric-duration">
+                      <span className="text-muted-foreground">Wall time:</span>{" "}
+                      <span className="font-mono" data-testid="run-metric-duration-value">
+                        {nextflowStatus.duration_s < 60
+                          ? `${nextflowStatus.duration_s}s`
+                          : `${Math.floor(nextflowStatus.duration_s / 60)}m ${nextflowStatus.duration_s % 60}s`}
+                      </span>
+                    </div>
+                  )}
+                  {nextflowStatus?.started_at != null && (
+                    <div data-testid="run-metric-started-at">
+                      <span className="text-muted-foreground">Started:</span>{" "}
+                      <span className="font-mono">
+                        {new Date(nextflowStatus.started_at * 1000).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                  {nextflowStatus?.completed_at != null && (
+                    <div data-testid="run-metric-completed-at">
+                      <span className="text-muted-foreground">Ended:</span>{" "}
+                      <span className="font-mono">
+                        {new Date(nextflowStatus.completed_at * 1000).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
+                  {executionMetrics?.perStepLlmCost != null && (
+                    <div data-testid="run-metric-per-step-costs">
+                      <span className="text-muted-foreground">Step LLM costs:</span>{" "}
+                      <span className="font-mono">
+                        {Object.values(executionMetrics.perStepLlmCost).every(v => v === null)
+                          ? "none"
+                          : `$${Object.values(executionMetrics.perStepLlmCost)
+                              .filter((v): v is number => v !== null)
+                              .reduce((a, b) => a + b, 0)
+                              .toFixed(4)}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="rounded-md border border-muted p-3 text-xs space-y-2" data-testid="execution-triage-summary">
                 <div className="font-medium">Execution triage</div>
                 <div data-testid="execution-triage-status">
@@ -1559,6 +1674,46 @@ export function NextflowWorkflowViewer({
                   <span className="text-muted-foreground">Outputs:</span> {triageOutputsHint}
                 </div>
               </div>
+              {/* Live Nextflow process status — shown when trace data is available */}
+              {Array.isArray(nextflowStatus?.processes) && nextflowStatus.processes.length > 0 && (
+                <div className="mb-3 rounded-md border border-muted bg-muted/30 p-3" data-testid="nf-process-list">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Activity className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Pipeline steps
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {nextflowStatus.processes.filter((p: any) => p.status === 'COMPLETED').length}
+                      /{nextflowStatus.processes.length} completed
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {nextflowStatus.processes.map((proc: any, i: number) => {
+                      const procStatus = String(proc.status || '').toUpperCase();
+                      const label = String(proc.name || proc.process || proc.id || `Step ${i + 1}`)
+                        .replace(/.*:/, '').replace(/\s*\(.*\)/, '').replace(/_/g, ' ');
+                      return (
+                        <div key={proc.id || i} className="flex items-center gap-2 text-xs">
+                          {procStatus === 'COMPLETED' && <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />}
+                          {procStatus === 'RUNNING' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin shrink-0" />}
+                          {procStatus === 'FAILED' && <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
+                          {(procStatus === 'SUBMITTED' || procStatus === 'CACHED') && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
+                          {!['COMPLETED','RUNNING','FAILED','SUBMITTED','CACHED'].includes(procStatus) && (
+                            <div className="h-3 w-3 rounded-full border border-muted-foreground/40 shrink-0" />
+                          )}
+                          <span className={procStatus === 'RUNNING' ? 'text-foreground font-medium' : 'text-muted-foreground'}>
+                            {label}
+                          </span>
+                          {procStatus === 'CACHED' && (
+                            <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-1 rounded">cached</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground" data-testid="workflow-step-controls-hint">
                   Run single steps for targeted checks. Finished or errored steps can be rerun repeatedly.
@@ -1570,7 +1725,7 @@ export function NextflowWorkflowViewer({
                     onRun={() => handleRunStep(phase)}
                     runLabel={(phase.runCount ?? 0) > 0 ? "Rerun Step" : "Run Step"}
                     runDisabled={
-                      !phase.toolId ||
+                      !activeRunId ||
                       phase.isExecuting === true ||
                       !!executionBlockedReason ||
                       isPrereqBlocked ||
@@ -1612,8 +1767,12 @@ export function NextflowWorkflowViewer({
                   }}
                 />
               )}
-              <div className="mt-4 bg-muted p-4 rounded-md h-48 overflow-y-auto font-mono text-xs">
-                {logs.length === 0 ? <span className="text-muted-foreground">No logs available.</span> : logs.map((log, i) => (
+<div className="mt-4 bg-muted p-4 rounded-md h-48 overflow-y-auto font-mono text-xs">
+                {logs.length === 0 ? (
+                  status === 'running'
+                    ? <span className="text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />Waiting for logs...</span>
+                    : <span className="text-muted-foreground">No logs available.</span>
+                ) : logs.map((log, i) => (
                   <div key={i}>{log}</div>
                 ))}
               </div>
