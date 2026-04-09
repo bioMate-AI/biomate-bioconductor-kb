@@ -280,9 +280,9 @@ process ENERGY_MINIMIZATION {
     cat > em.mdp << 'MDP_EOF'
 ; Energy minimization
 integrator      = steep
-emtol           = 1000.0
+emtol           = 100.0
 emstep          = 0.01
-nsteps          = 50000
+nsteps          = 100000
 
 ; Neighbour list
 nstlist         = 1
@@ -415,12 +415,12 @@ process NVT_EQUILIBRATION {
     cat > nvt.mdp << 'MDP_EOF'
 ; NVT equilibration -- 100 ps
 integrator      = md
-dt              = 0.002
-nsteps          = 50000
-nstxout         = 500
-nstvout         = 500
-nstenergy       = 500
-nstlog          = 500
+dt              = 0.001
+nsteps          = 100000
+nstxout         = 1000
+nstvout         = 1000
+nstenergy       = 1000
+nstlog          = 1000
 
 ; Neighbour list
 cutoff-scheme   = Verlet

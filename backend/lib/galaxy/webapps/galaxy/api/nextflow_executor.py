@@ -694,6 +694,9 @@ def _is_path_param(key: str, value: Any) -> bool:
         return False
     if val.startswith("s3://") or val.startswith("http"):
         return False
+    # Inline data (CSV, TSV, multi-line text) always contains newlines — never a path.
+    if "\n" in val or "\r" in val:
+        return False
     # Exclude chemistry/biology data strings that can't be filesystem paths.
     # SMILES, InChI, FASTA sequences, and compound IDs contain characters
     # that are illegal or highly unusual in file/directory names.
@@ -1000,13 +1003,15 @@ def _generate_executor_config(
             "        uploadChunkSize = 104857600",   # 100 MB chunks
             "    }",
             "    batch {",
-            # cliPath: Nextflow bind-mounts the host's aws binary into every container.
-            # AMI ami-04ed7e19d6f94816d has AWS CLI v2.34.27 at /usr/local/bin/aws.
-            # BioMate containers (biomni-tools, etc.) already have aws baked in — the
-            # bind-mount redundantly overlays the same path but both are valid x86 binaries.
-            # Third-party public containers (gromacs, rocker, foldseek, etc.) have NO aws —
-            # the bind-mount provides it so S3 staging works in all containers.
-            "        cliPath = '/usr/local/bin/aws'",
+            # The launch template (nextflow-awscli-mime-20251127-223103) installs AWS CLI v2
+            # to /opt/aws-cli/bin/aws on every Batch instance at startup.
+            # cliPath tells Nextflow which path to use; Nextflow then mounts the GRANDPARENT
+            # of cliPath from the host into every container.
+            # /opt/aws-cli/bin/aws → grandparent = /opt/aws-cli → safe to mount.
+            # This does NOT shadow /usr/local/bin/, so python3 survives in all containers.
+            # Works for BOTH BioMate containers (already have aws) AND third-party containers
+            # (gromacs, rocker, etc.) that have no aws of their own.
+            "        cliPath = '/opt/aws-cli/bin/aws'",
             "    }",
             "}",
             "docker.enabled = true",
