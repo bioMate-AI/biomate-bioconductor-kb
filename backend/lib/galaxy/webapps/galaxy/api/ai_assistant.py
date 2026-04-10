@@ -528,7 +528,15 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
         # Strategy 1: numbered steps in comment block ("* 1. Import Movies")
-        comment_steps = re.findall(r'\*\s+(\d+)\.\s+(.+)', content)
+        # Only scan the header (lines before first process/workflow definition)
+        # to avoid picking up sub-step comments inside process script blocks.
+        header_lines = []
+        for line in content.splitlines():
+            if re.match(r'^\s*(process|workflow)\s*\b', line):
+                break
+            header_lines.append(line)
+        header = '\n'.join(header_lines)
+        comment_steps = re.findall(r'\*\s+(\d+)\.\s+(.+)', header)
         if comment_steps:
             for raw_num, raw_name in comment_steps:
                 idx = int(raw_num) - 1

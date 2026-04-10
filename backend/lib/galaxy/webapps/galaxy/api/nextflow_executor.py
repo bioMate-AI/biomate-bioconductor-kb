@@ -381,6 +381,27 @@ def _resolve_nextflow_path(raw_path: str) -> Path:
             if test_path.exists() and test_path.is_file() and test_path.suffix == ".nf":
                 return test_path
 
+    # Domain alias fallback: drug_discovery ↔ pharmacology subworkflows are
+    # often identical. If the primary search failed, retry with the sibling domain.
+    _DOMAIN_ALIASES: dict[str, str] = {
+        "drug_discovery": "pharmacology",
+        "pharmacology": "drug_discovery",
+    }
+    alias_candidates: list[Path] = []
+    for candidate in expanded_candidates:
+        parts = candidate.parts
+        for i, part in enumerate(parts):
+            if part in _DOMAIN_ALIASES:
+                aliased = Path(*parts[:i]) / _DOMAIN_ALIASES[part] / Path(*parts[i + 1:])
+                alias_candidates.append(aliased)
+                break
+
+    for root in _candidate_bases():
+        for candidate in alias_candidates:
+            test_path = (root / candidate).resolve()
+            if test_path.exists() and test_path.is_file() and test_path.suffix == ".nf":
+                return test_path
+
     raise FileNotFoundError(
         f"Could not resolve Nextflow script '{raw_path}'. "
         f"Set NEXTFLOW_SEARCH_ROOTS to include your workflow roots."
@@ -684,6 +705,7 @@ def _is_path_param(key: str, value: Any) -> bool:
     _NON_PATH_KEYS = frozenset({
         "publish_dir_mode", "save_merged_fastq", "publish_dir",
         "outdir_mode", "output_mode", "copy_mode", "dir_mode",
+        "sample_id", "sample_name", "genome_build", "genome_name",
     })
     key_l = key.lower()
     if key_l in _NON_PATH_KEYS:
@@ -706,8 +728,22 @@ def _is_path_param(key: str, value: Any) -> bool:
     # Long strings that don't look like paths (no slashes, no extension) are data.
     if len(val) > 100 and "/" not in val and "." not in val:
         return False
-    # Key name suggests a path, or value looks like a filesystem path
-    return any(kw in key_l for kw in path_keywords) or val.startswith("/")
+    # Short genome/reference identifiers (e.g. hg38, GRCh38, mm10, hg19) are NOT file paths.
+    # They map to iGenomes S3 references; real paths would contain '/' or a file extension.
+    _GENOME_ID_KEYS = frozenset({"genome", "reference_genome", "ref_genome", "genome_id", "assembly"})
+    if key_l in _GENOME_ID_KEYS and "/" not in val and "." not in val:
+        return False
+    # Value must either start with '/' (absolute path) or contain a '/' (relative path),
+    # OR have a recognized file extension — otherwise it's likely an identifier, not a path.
+    _PATH_EXTENSIONS = frozenset({
+        ".fasta", ".fa", ".fastq", ".fq", ".bam", ".sam", ".cram",
+        ".vcf", ".bcf", ".bed", ".gtf", ".gff", ".gff3", ".csv",
+        ".tsv", ".txt", ".mrc", ".tif", ".tiff", ".mdoc", ".json",
+        ".gz", ".tar", ".zip",
+    })
+    looks_like_path = val.startswith("/") or "/" in val or any(val.lower().endswith(ext) for ext in _PATH_EXTENSIONS)
+    # Key name must suggest a path AND value must look like a path
+    return (any(kw in key_l for kw in path_keywords) and looks_like_path) or val.startswith("/")
 
 
 def _local_path_size(p: Path) -> int:
@@ -1003,14 +1039,15 @@ def _generate_executor_config(
             "        uploadChunkSize = 104857600",   # 100 MB chunks
             "    }",
             "    batch {",
-            # The launch template (nextflow-awscli-mime-20251127-223103) installs AWS CLI v2
-            # to /opt/aws-cli/bin/aws on every Batch instance at startup.
-            # cliPath tells Nextflow which path to use; Nextflow then mounts the GRANDPARENT
-            # of cliPath from the host into every container.
-            # /opt/aws-cli/bin/aws → grandparent = /opt/aws-cli → safe to mount.
-            # This does NOT shadow /usr/local/bin/, so python3 survives in all containers.
-            # Works for BOTH BioMate containers (already have aws) AND third-party containers
-            # (gromacs, rocker, etc.) that have no aws of their own.
+            # AMI ami-08fe495be97a3dbf4 (biomate-nextflow-al2023-awscli-20260409):
+            #   Base: ami-0b495ea217b3a1543 (ECS-optimized AL2023, kernel 6.1, 2026-04-03)
+            #   Baked in: AWS CLI v2 at /usr/local/bin/aws + symlink /opt/aws-cli/bin/aws
+            # cliPath = /opt/aws-cli/bin/aws:
+            #   Nextflow mounts grandparent /opt/aws-cli (host→container) — safe, does NOT
+            #   shadow /usr/local or /usr/bin. Works for BOTH ECR (BioMate) containers AND
+            #   public third-party containers (gromacs, rocker, etc.) without aws of their own.
+            # DO NOT change to /usr/local/bin/aws — that shadows /usr/local/lib/python3
+            #   site-packages inside containers, causing exit 127 on all python tasks.
             "        cliPath = '/opt/aws-cli/bin/aws'",
             "    }",
             "}",
@@ -1626,9 +1663,10 @@ def _download_pdb_structure(accession: str, out_dir: Path) -> Optional[str]:
         url = f"https://ftp.ebi.ac.uk/pub/databases/emdb/structures/EMD-{emdb_id}/map/emd_{emdb_id}.map.gz"
         dest = out_dir / f"emd_{emdb_id}.map.gz"
     else:
-        # PDB mmCIF (more complete than legacy .pdb format)
-        url = f"https://files.rcsb.org/download/{acc_upper}.cif"
-        dest = out_dir / f"{acc_upper}.cif"
+        # Use legacy PDB format (.pdb) for compatibility with Bio.PDB.PDBParser.
+        # mmCIF format causes ValueError in PDBParser ("invalid literal for int").
+        url = f"https://files.rcsb.org/download/{acc_upper}.pdb"
+        dest = out_dir / f"{acc_upper}.pdb"
 
     if dest.exists():
         log.info(f"[accession] {acc_upper}: already downloaded at {dest}")
@@ -1897,13 +1935,18 @@ def _accession_chain_thread(
     _set_status("running", accession_status="launching main workflow")
     log.info(f"[accession chain run_id={run_id}] Launching main workflow: {' '.join(substituted_cmd)}")
 
+    # Use the writable work_dir as cwd so Nextflow can write temp files and
+    # bootstrap its .nextflow directory.  nf_path.parent is often read-only
+    # inside the Galaxy container.
+    chain_work_dir = work_base / run_id / "work"
+    chain_work_dir.mkdir(parents=True, exist_ok=True)
     try:
         process = subprocess.Popen(
             substituted_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=str(nf_path.parent),
+            cwd=str(chain_work_dir),
             env=env,
         )
         with _runs_lock:
@@ -2051,6 +2094,14 @@ def execute_nextflow(
         work_dir.mkdir(parents=True, exist_ok=True)
         outdir = str(outdir_path)
 
+    # Detect whether any param contains multi-line content (inline CSV/SMILES/FASTA).
+    # If so, write ALL params to a JSON file and use --params-file instead of individual
+    # --key value flags. This avoids shell/Nextflow arg-parsing issues with newlines
+    # embedded in command-line arguments.
+    _has_multiline = any(
+        isinstance(v, str) and "\n" in v for v in params.values()
+    )
+
     # Build nextflow command
     try:
         nf_bin = _get_nextflow_bin()
@@ -2116,19 +2167,36 @@ def execute_nextflow(
             cmd += ["-resume", "-w", str(prev_work)]
             log.info(f"[Nextflow run {run_id}] Resuming from {request.resume_from_run_id}, work_dir={prev_work}")
 
-    # Output dir: add --outdir once.
-    # If the user passed outdir in params we use theirs; otherwise the local default.
-    if "outdir" not in params:
-        cmd += ["--outdir", str(outdir)]
-
-    # Additional parameters — skip outdir since it was handled above.
-    for key, value in params.items():
-        if key == "outdir":
-            cmd += ["--outdir", str(value)]
-        elif isinstance(value, bool):
-            cmd += [f"--{key}", "true" if value else "false"]
-        else:
-            cmd += [f"--{key}", str(value)]
+    if _has_multiline:
+        # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
+        # Write all params to a JSON file and pass via --params-file so Nextflow
+        # receives the full multi-line strings without shell arg-parsing issues.
+        import json as _ml_json
+        _params_for_json = {}
+        for key, value in params.items():
+            if isinstance(value, bool):
+                _params_for_json[key] = value
+            elif isinstance(value, (int, float)):
+                _params_for_json[key] = value
+            else:
+                _params_for_json[key] = str(value)
+        if "outdir" not in _params_for_json:
+            _params_for_json["outdir"] = str(outdir)
+        _params_json_path = log_dir / "nf-params.json"
+        _params_json_path.write_text(_ml_json.dumps(_params_for_json, indent=2))
+        cmd += ["--params-file", str(_params_json_path)]
+        log.info(f"[Nextflow run {run_id}] --params-file: {list(_params_for_json.keys())}")
+    else:
+        # Standard path: pass params as individual --key value flags.
+        if "outdir" not in params:
+            cmd += ["--outdir", str(outdir)]
+        for key, value in params.items():
+            if key == "outdir":
+                cmd += ["--outdir", str(value)]
+            elif isinstance(value, bool):
+                cmd += [f"--{key}", "true" if value else "false"]
+            else:
+                cmd += [f"--{key}", str(value)]
 
     log.info(f"[Nextflow run {run_id}] cmd: {' '.join(cmd)}")
     log.info(f"[Nextflow run {run_id}] outdir: {outdir}")
@@ -2298,13 +2366,14 @@ def execute_nextflow(
         }
 
     # ── Normal path: no accessions — launch Nextflow directly ────────────────
+    # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
     try:
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=str(nf_path.parent),
+            cwd=str(work_dir),
             env=env,
         )
     except Exception as exc:
@@ -2648,6 +2717,67 @@ def download_s3_output(
         raise HTTPException(status_code=503, detail="boto3 not installed — S3 downloads unavailable.")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to generate presigned URL: {exc}")
+
+
+@router.get("/api/nextflow/runs/{run_id}/output_files", summary="List output files with presigned download URLs")
+def list_run_output_files(run_id: str) -> Any:
+    """
+    List all output files for a completed run, with presigned S3 download URLs.
+    Returns [{name, s3_uri, size, extension, download_url}].
+    """
+    with _runs_lock:
+        info = _runs.get(run_id)
+    if info is None:
+        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+        output_dir = work_base / run_id / "output"
+        if output_dir.exists():
+            # Local run — list files directly
+            files = []
+            for f in sorted(output_dir.rglob("*")):
+                if f.is_file():
+                    name = f.name
+                    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+                    files.append({
+                        "name": name,
+                        "s3_uri": None,
+                        "size": f.stat().st_size,
+                        "extension": ext,
+                        "download_url": f"/api/nextflow/outputs/download?s3_uri={str(f)}&run_id={run_id}",
+                    })
+            return {"run_id": run_id, "files": files}
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+    outdir = str(info.get("outdir", ""))
+    if not outdir.startswith("s3://"):
+        return {"run_id": run_id, "files": [], "note": "Local run — no S3 outputs"}
+
+    raw_files = _list_s3_output_files(outdir)
+    if not raw_files:
+        return {"run_id": run_id, "files": []}
+
+    # Generate presigned URLs for each file
+    try:
+        import boto3
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+    except ImportError:
+        return {"run_id": run_id, "files": raw_files, "note": "boto3 not available — no download URLs"}
+
+    enriched = []
+    for f in raw_files:
+        s3_uri = f["s3_uri"]
+        try:
+            parts = s3_uri[len("s3://"):].split("/", 1)
+            bucket, key = parts[0], parts[1]
+            url = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket, "Key": key},
+                ExpiresIn=3600,  # 1 hour
+            )
+        except Exception:
+            url = None
+        enriched.append({**f, "download_url": url})
+
+    return {"run_id": run_id, "files": enriched}
 
 
 @router.get("/api/qc/profiles", summary="List available named QC profiles")
