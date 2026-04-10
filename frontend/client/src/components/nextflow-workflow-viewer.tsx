@@ -283,7 +283,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DownloadCommandsPanel({ runId, invocationId }: { runId: string; invocationId?: string }) {
+function DownloadCommandsPanel({ runId }: { runId: string }) {
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
@@ -295,56 +295,36 @@ function DownloadCommandsPanel({ runId, invocationId }: { runId: string; invocat
 
   if (!data?.download_commands) return null;
 
-  const allOutputs: string = data.download_commands.all_outputs ?? '';
   const files: Array<{ name: string; size: number; extension: string; download_url: string | null }> =
     data.files ?? [];
   const downloadableFiles = files.filter(f => f.download_url && f.size > 0);
 
-  // Nothing to show — no files and no S3 path
-  if (downloadableFiles.length === 0 && !allOutputs && !invocationId) return null;
+  // Only show this panel when there are individual presigned file links.
+  // Bulk download is already covered by the "Download All" button above.
+  if (downloadableFiles.length === 0) return null;
 
   return (
     <div data-testid="download-commands-panel" className="rounded-md border border-muted p-4 space-y-3">
       <h4 className="text-sm font-semibold flex items-center gap-2">
         <Download className="h-4 w-4" />
-        Download Outputs
+        Output Files
       </h4>
-
-      {/* Individual file download links */}
-      {downloadableFiles.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Output files:</p>
-          <div className="space-y-1">
-            {downloadableFiles.map((f) => (
-              <a
-                key={f.name}
-                href={f.download_url!}
-                download={f.name}
-                className="flex items-center justify-between gap-2 text-xs bg-muted rounded px-2 py-1 hover:bg-muted/80 group"
-              >
-                <span className="font-mono truncate max-w-[260px]">{f.name}</span>
-                <span className="text-muted-foreground shrink-0 flex items-center gap-1">
-                  {formatFileSize(f.size)}
-                  <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Bulk download — show as a button (download-all endpoint) instead of CLI command */}
-      {downloadableFiles.length === 0 && invocationId && (
-        <a
-          href={`/api/invocations/${invocationId}/download-all`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
-        >
-          <Download className="h-3 w-3" />
-          Download all outputs as ZIP
-        </a>
-      )}
+      <div className="space-y-1">
+        {downloadableFiles.map((f) => (
+          <a
+            key={f.name}
+            href={f.download_url!}
+            download={f.name}
+            className="flex items-center justify-between gap-2 text-xs bg-muted rounded px-2 py-1 hover:bg-muted/80 group"
+          >
+            <span className="font-mono truncate max-w-[260px]">{f.name}</span>
+            <span className="text-muted-foreground shrink-0 flex items-center gap-1">
+              {formatFileSize(f.size)}
+              <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </span>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1868,7 +1848,7 @@ export function NextflowWorkflowViewer({
 
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
-              <DownloadCommandsPanel runId={runId} invocationId={invocationId} />
+              <DownloadCommandsPanel runId={runId} />
             </div>
           )}
 
