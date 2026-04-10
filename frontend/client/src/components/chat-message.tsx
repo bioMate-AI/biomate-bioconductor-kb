@@ -45,7 +45,7 @@ import { Card } from "@/components/ui/card"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight } from "lucide-react"
+import { Copy, RotateCcw, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
@@ -54,7 +54,6 @@ import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
 import { PipelineListView } from "./pipeline-list-view"
-import { WorkflowRationale } from "./workflow-rationale"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
@@ -87,6 +86,7 @@ interface ChatMessageProps {
   workflowProgress?: number
   currentExecutionRun?: ExecutionRun | null
   isLatestAssistantMessage?: boolean
+  isGeneratingWorkflow?: boolean
   isRunAnchorFocused?: boolean
   isRunAnchorHighlighted?: boolean
   isInPanel?: boolean
@@ -112,6 +112,7 @@ export function ChatMessage({
   workflowProgress = 0,
   currentExecutionRun,
   isLatestAssistantMessage = false,
+  isGeneratingWorkflow = false,
   isRunAnchorFocused = false,
   isRunAnchorHighlighted = false,
   isInPanel = false,
@@ -286,6 +287,18 @@ export function ChatMessage({
             />
           )}
 
+          {/* Workflow panel loading skeleton — shown while streaming is still ongoing */}
+          {isGeneratingWorkflow && !isWorkflowMessage && (
+            <div className="mt-3 rounded-lg border border-border bg-muted/30 p-4 flex items-center gap-3 animate-pulse">
+              <div className="h-5 w-5 rounded-full bg-primary/20 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-48 rounded bg-muted-foreground/20" />
+                <div className="h-2 w-32 rounded bg-muted-foreground/10" />
+              </div>
+              <span className="text-xs text-muted-foreground flex-shrink-0">Preparing workflow panel…</span>
+            </div>
+          )}
+
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
           {isWorkflowMessage && (
             (() => {
@@ -318,11 +331,16 @@ export function ChatMessage({
                   : workflowNeedsFeedback
                   ? workflowFeedbackPrompt || "Please review and confirm before execution."
                   : undefined;
+              const inlineParams = message.metadata?.workflow?.inline_parameters || {};
+              const hasInlineData = Object.values(inlineParams).some(
+                (v: any) => v != null && String(v).trim().length > 0
+              );
               const prereqChecklist = normalizePrereqChecklist(
                 message.metadata?.prerequisitesValidation,
                 {
                   executionBlockedReason,
                   allowLowConfidenceOverride: !!executionBlockedReason,
+                  hasInlineData,
                 }
               );
               const effectiveBlockedReason = executionBlockedReason;
@@ -487,6 +505,7 @@ export function ChatMessage({
                     sessionId={sessionId}
                     runId={currentExecutionRun?.id}
                     executionEngine={currentExecutionRun?.execution?.executionEngine}
+                    executionMetrics={currentExecutionRun?.metrics}
                   />
                 </div>
               );
@@ -531,11 +550,6 @@ export function ChatMessage({
               </div>
             );
           })}
-
-          {/* Scientific Rationale — collapsed by default, shown for generated workflows */}
-          {isWorkflowMessage && message.metadata?.rationale && (
-            <WorkflowRationale rationale={message.metadata.rationale} />
-          )}
 
           {/* Output Attachments - Show when workflow execution completes */}
           {!isUser && effectiveInvocationId && (isWorkflowMessage || isRunAnchorFocused) && (
@@ -616,16 +630,7 @@ export function ChatMessage({
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onCreateWorkflow}
-              data-testid="button-create-workflow-icon"
-              title="Create workflow"
-              aria-label="Create workflow"
-            >
-              <Workflow className="h-4 w-4" />
-            </Button>
+            {/* Copy workflow JSON — disabled for now
             {message.metadata?.workflow && (
               <Button
                 variant="ghost"
@@ -637,7 +642,7 @@ export function ChatMessage({
               >
                 <FileJson className="h-4 w-4" />
               </Button>
-            )}
+            )} */}
             <Button
               variant="ghost"
               size="icon"

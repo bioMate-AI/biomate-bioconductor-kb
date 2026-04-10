@@ -216,6 +216,15 @@ export interface ChatContext {
   turnIndex?: number;
   /** User's actual session-uploaded datasets, forwarded to generateWorkflow() */
   sessionDatasets?: Array<{ id: string; name: string; type: string }>;
+  /**
+   * Cross-session long-term memory block (built by MemoryIntegration from user prefs,
+   * corrections, project context, and past episodes). Injected into the system prompt
+   * wrapped in <long_term_memory> tags so the LLM treats it as supplemental context.
+   */
+  ltmContextBlock?: string;
+  /** Per-tool credential availability map built by routes.ts using the user's Galaxy API key.
+   *  Forwarded to generateWorkflow() so the AI backend can fall back to OSS alternatives. */
+  credentialMap?: Record<string, boolean>;
 }
 
 export interface ToolRecommendation {
@@ -308,6 +317,33 @@ export const CLARIFICATION_FALLBACKS: Record<string, string> = {
     "   - **DILI / hepatotoxicity** only (drug-induced liver injury)\n" +
     "   - **Ames mutagenicity** only\n" +
     "   - **Custom subset** — let me know which ones matter most.",
+};
+
+/**
+ * For each workflowAmbiguity type, a regex that matches message text that already
+ * resolves the ambiguity.  When this regex matches, _clarificationGate() suppresses
+ * the clarification question and proceeds directly to workflow generation.
+ *
+ * Rule: the pattern must be specific enough to avoid false positives, but general
+ * enough to cover all common phrasings that unambiguously answer the fork question.
+ * Add an entry for every new fork point added to CLARIFICATION_FALLBACKS.
+ */
+export const AMBIGUITY_RESOLVERS: Record<string, RegExp> = {
+  variant_type:     /\bgermline\b|\bsomatic\b|\bHaplotypeCaller\b|\bMutect2?\b/i,
+  assembly_type:    /\bde\s+novo\b|\breference[- ]guided\b|\breference[- ]based\b|\bSPAdes\b|\bFlye\b|\bHifiasm\b/i,
+  rnaseq_type:      /\bbulk\s+rna|\bsingle[- ]cell\b|\bscRNA\b|\bDESeq2\b|\bedgeR\b|\bSeurat\b|\bScanpy\b/i,
+  scrna_type:       /\bperturbation\b|\bCRISPR\s+screen\b|\bcell\s+atlas\b|\bclustering\b|\bmixscape\b/i,
+  peak_calling_type:/\bChIP[- ]seq\b|\bATAC[- ]seq\b|\btransposase\b/i,
+  chip_target:      /\btranscription\s+factor\b|\bhistone\b|\bH3K\w{1,6}\b|\bnarrow\s+peak|\bbroad\s+peak/i,
+  rnaseq_focus:     /\bmRNA\b|\bdifferential\s+expression\b|\bmiRNA\b|\bsmall\s+RNA\b|\bmiRDeep\b/i,
+  flow_cytometry_type: /\bimmunophenotyp|\bgating\b|\bcell\s+sort|\bflowSOM\b|\bunsupervised\s+cluster/i,
+  proteomics_type:  /\bDDA\b|\bDIA\b|\bMaxQuant\b|\bDIA-NN\b|\bSpectronaut\b|\bdata[- ]independent\b|\bdata[- ]dependent\b/i,
+  cryoem_type:      /\bSPA\b|\bsingle[- ]particle\b|\btomograph|\bcryo[- ]ET\b|\bin[- ]situ\b/i,
+  cryoem_sample:    /\bglobular\b|\bfilamentous\b|\bhelical\b/i,
+  somatic_paired:   /\bmatched\s+normal\b|\btumor[- ]normal\b|\btumor[- ]only\b|\bpanel\s+of\s+normals\b/i,
+  metagenomics_type:/\b16S\b|\bamplicon\b|\bQIIME\b|\bDADA2\b|\bshotgun\b|\bKraken\b|\bMetaPhlAn\b/i,
+  docking_type:     /\bblind\s+dock|\bsite[- ]directed\b|\bDiffDock\b|\bVina\b|\bknown\s+(binding\s+)?pocket\b/i,
+  admet_scope:      /\bSMILES\b|\.sdf\b|\bfull\s+ADMET\b|\bhERG\b|\bDILI\b|\bAmes\b/i,
 };
 
 // ============================================================================
@@ -404,6 +440,8 @@ export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
 - schrodinger_glide_docking: Glide HTVS/SP/XP — LigPrep → PrepWiz → GridGen → Glide → ranked SDF. License: FlexNet (user must provide).
 - moe_covalent_docking: MOE CovDock SVL — warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor, vinyl_sulfone, boronic_acid. License: MOE FlexNet (user must provide).
 - reinvent4_lead_design: REINVENT4 RL-based generative design — de_novo, scaffold_decoration, linker_design, scaffold_hopping. Input: SMILES seed or SMARTS scaffold.
+- openfe_rbfe: OpenFE RBFE alchemical free energy perturbation — DDG (kcal/mol) + SEM between two ligands, HREX across lambda windows, MBAR estimator. Input: receptor PDB + ligand_a SDF + ligand_b SDF. Free, open-source alternative to FEP+.
+- cyp_ddi_panel: CYP450 DDI panel + hepatic clearance — predicts IC50 for CYP1A2/2C9/2C19/2D6/3A4, IVIVE CLint→CLhep (well-stirred model), FDA 2020 DDI risk flags (R1, R1gut). Input: SMILES. Output: radar chart + clearance funnel + HTML report.
 - nca_pknca: Non-compartmental PK analysis (PKNCA) — AUC, Cmax, Tmax, t½, CL/F, Vz/F. Input: concentration-time CSV.
 - aizynthfinder_retrosynthesis: Retrosynthesis route planning (AiZynthFinder). Input: target SMILES. Outputs: synthesis routes + reaction scores.
 - pocket_detection_druggability: Binding site detection and druggability scoring (fpocket). Input: PDB. Outputs: pocket table + druggability scores.
@@ -739,6 +777,7 @@ class SessionMemoryUpdater {
   private claude: Anthropic;
   private memoryBySession: Map<string, { memory: SessionMemory; lastAccess: number }> = new Map();
   private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private onPersist?: (sessionId: string, memory: SessionMemory) => void;
   private static readonly DEBOUNCE_MS = 30_000;  // 30 s — same as DeerFlow
   private static readonly SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours idle eviction
 
@@ -790,6 +829,30 @@ Return ONLY valid JSON with these exact keys. No explanation, no markdown fences
     if (!entry) return null;
     entry.lastAccess = Date.now();
     return entry.memory;
+  }
+
+  /**
+   * Register a callback invoked after each successful Haiku update.
+   * Used by GalaxyAssistant to persist session memory into the conversationState column.
+   */
+  setPersistCallback(cb: (sessionId: string, memory: SessionMemory) => void): void {
+    this.onPersist = cb;
+  }
+
+  /**
+   * Seed in-memory map from a previously persisted snapshot (e.g. loaded from DB on session resume).
+   * No-op if memory is already present for this session.
+   */
+  restoreIfEmpty(sessionId: string, memory: Record<string, any> | null | undefined): void {
+    if (!memory || this.memoryBySession.has(sessionId)) return;
+    try {
+      const restored = memory as SessionMemory;
+      if (typeof restored !== 'object' || !restored.active_task) return;
+      this.memoryBySession.set(sessionId, { memory: restored, lastAccess: Date.now() });
+      console.log(`[SessionMemory] Restored from DB for session=${sessionId}, task="${restored.active_task}"`);
+    } catch {
+      // malformed persisted data — ignore
+    }
   }
 
   /** Evict sessions that have been idle longer than SESSION_TTL_MS. */
@@ -850,6 +913,8 @@ Return ONLY valid JSON with these exact keys. No explanation, no markdown fences
         .filter((q: any) => typeof q === 'object' && q !== null && typeof q.text === 'string') as SessionMemoryItem[];
       this.memoryBySession.set(sessionId, { memory: updated, lastAccess: Date.now() });
       console.log(`[SessionMemory] Updated for session=${sessionId}, task="${updated.active_task}"`);
+      // Persist to DB asynchronously (non-blocking, non-fatal)
+      this.onPersist?.(sessionId, updated);
     } catch {
       console.warn('[SessionMemory] JSON parse/validation failed, keeping existing memory');
     }
@@ -916,9 +981,10 @@ Rules:
     const resp = await claude.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
+      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
-    });
+    }, { signal: AbortSignal.timeout(15_000) }); // 15s hard cap — prevents SSE stream stall
     const raw = (resp.content as any[]).find((b: any) => b.type === 'text')?.text ?? '{}';
     const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
     const parsed = JSON.parse(cleaned);
@@ -978,6 +1044,12 @@ export class GalaxyAssistant {
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
+    // Wire persistence: after each Haiku update, write sessionMemory into conversationState JSONB
+    this.sessionMemory.setPersistCallback((sid, mem) => {
+      conversationStateManager.saveSessionMemory(sid, mem as any).catch(
+        (err) => console.warn('[GalaxyAssistant] SessionMemory DB persist failed (non-fatal):', err)
+      );
+    });
     console.log('[GalaxyAssistant] Initialized with model config:', this.modelConfig);
   }
 
@@ -1088,8 +1160,16 @@ export class GalaxyAssistant {
     recommendedTools: ToolRecommendation[],
     recommendedDatasets: DatasetRecommendation[]
   ): Promise<GalaxyAssistantResponse | null> {
-    const ambiguity = intent.workflowAmbiguity;
+    let ambiguity = intent.workflowAmbiguity;
     if (!ambiguity || !actions.needsWorkflowGeneration) return null;
+
+    // Suppress ambiguity when the user's message already resolves it.
+    // AMBIGUITY_RESOLVERS maps each fork type → regex that detects the disambiguating terms.
+    // This is generalizable: adding a new fork point only requires adding one resolver entry.
+    if (AMBIGUITY_RESOLVERS[ambiguity]?.test(message)) {
+      ambiguity = null;
+    }
+    if (!ambiguity) return null;
 
     const fallback = CLARIFICATION_FALLBACKS[ambiguity];
     const question = fallback
@@ -1183,6 +1263,7 @@ Ambiguity type → what to ask about:
       const resp = await this.claude.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 30,
+        temperature: 0,
         system: `Classify the bioinformatics domain of a query. Respond with ONLY one of these exact strings (no punctuation, no explanation):
 ${TECHNICAL_SUBDOMAINS.join(' | ')} | other | unknown
 
@@ -1327,6 +1408,45 @@ Rules:
     if (_hasSmilesPattern && _hasAdmetKeywords && !actions.needsWorkflowGeneration) {
       log('ADMET+SMILES fast path: forcing needsWorkflowGeneration=true');
       actions.needsWorkflowGeneration = true;
+    }
+
+    // Bioinformatics method-description override:
+    // The intent classifier may return research_question or general_question for queries that
+    // describe a computational method without action verbs (e.g. "Spectral counting from DDA mass
+    // spec", "Retention time alignment using iRT standards", "Clonal lineage reconstruction from
+    // BCR sequencing"). These ARE workflow generation requests — the user wants to execute the
+    // method, not read about it. Override when: (1) NOT already classified as workflow_generation,
+    // (2) message lacks clear research/conceptual markers, (3) message contains method/analysis terms.
+    if (!actions.needsWorkflowGeneration) {
+      const _isConceptualQuestion = /\b(what\s+is|what\s+are|how\s+does|how\s+do|why\s+is|why\s+do|explain|describe|tell\s+me\s+about|definition|concept|overview|introduction|paper|review|literature|published|citation|reference)\b/i.test(message);
+      const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing)\b/i.test(message)
+        && /\b(mass\s+spec|RNA.?seq|DNA.?seq|WGS|WES|ChIP|ATAC|BCR|TCR|VDJ|FASTQ|BAM|VCF|mzML|mzXML|proteomics|genomics|transcriptomics|metagenomics|epigenomics|immunomics|metabolomics|scaffold|SMILES|GPCR|kinase|inhibitor|DDA|DIA|iRT|ASV|OTU|amplicon|nanopore|Illumina|single.?cell|bulk.?RNA|paired.?end)\b/i.test(message);
+      if (!_isConceptualQuestion && _hasBioMethodTerms) {
+        log('Bioinformatics method-description override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // Multi-turn data-provision override:
+    // In multi-turn conversations the user may first state a research goal (classified as
+    // research_question) and then provide input data (SRR/GEO/EMBL accession, file path, SMILES)
+    // in a follow-up message.  If session memory records an active_task that implies workflow
+    // execution AND the current message provides a recognisable data identifier, override to
+    // workflow_generation so BioMate generates the workflow card without re-asking for intent.
+    if (!actions.needsWorkflowGeneration && context.sessionId) {
+      const _sessionMem = this.sessionMemory.get(context.sessionId);
+      const _activeTask = _sessionMem?.active_task || '';
+      const _hasActiveWorkflowTask = _activeTask.length > 0
+        && /\b(run|analyz|sequenc|express|align|call|detect|map|quantif|process|generat|predict|dock|simulat|cluster|classif|annotate|assembl)/i.test(_activeTask);
+      const _isDataProvision = /\b(SRR|ERR|DRR|GSE|GSM|PRJNA|PRJEB|EMBL|ENA|ENCSR|ENCS)\d{4,}/i.test(message)
+        || /\b[0-9]{1,3}\s+(?:samples?|patients?|controls?|replicates?|subjects?)\b/i.test(message)
+        || /(?:^|\s)(s3:\/\/|gs:\/\/|\/[\w\/]+\.(?:fastq|fq|bam|vcf|bed|gtf|gz|csv|tsv|txt|sdf|mol2|pdb|cif))/i.test(message);
+      if (_hasActiveWorkflowTask && _isDataProvision) {
+        log(`Multi-turn data-provision override: active_task="${_activeTask.slice(0,60)}" + data in message → needsWorkflowGeneration=true`);
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
     }
 
     // S1: ClarificationGate — returns early if ambiguity requires user clarification
@@ -1746,6 +1866,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
               step_count: chainPipelineSteps.length,
               source: 'biomate_curated_chain',
               chain_name: chain.name,
+              chain_steps: chainPipelineSteps.map((s: any) => s.workflow_name).filter(Boolean),
             },
             suggestions: ['Modify a step', 'Add a QC checkpoint', 'Run only the first step'],
             sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: true, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false },
@@ -2237,6 +2358,40 @@ Describe the user's information need with a descriptive label. You may use these
 
 You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
 
+## Critical Classification Rules for Bioinformatics Queries
+
+These patterns MUST be classified as **workflow_generation** even when they sound like research or data questions, because answering them computationally requires running a pipeline:
+
+**Omics analysis requests (always workflow_generation):**
+- "Identify genes [upregulated/downregulated/differentially expressed] in [condition/tissue/disease]" → the user wants to run RNA-seq + DE analysis
+- "Find [variants/mutations/SNPs/indels] in [my samples/cohort/patient]" → the user wants to run variant calling
+- "Identify [cell types/clusters/populations] in [my single-cell data/samples]" → the user wants to run scRNA-seq
+- "Detect [peaks/binding sites/open chromatin] in [my data/samples]" → the user wants to run ChIP-seq/ATAC-seq
+
+**Spatial/imaging data requests (always workflow_generation):**
+- "I need spatial gene expression data showing where genes are expressed in [tissue/tumor/section]" → run nf-core/spatialvi
+- "Map gene expression in my tissue section" → run spatial transcriptomics pipeline
+- "Show where [gene/marker] is expressed spatially" → spatial transcriptomics
+
+**QC and preprocessing requests (always workflow_generation):**
+- "Quality control of single-cell sequencing: filter empty droplets and doublets" → run scRNA-seq pipeline (includes QC steps)
+- "Filter/remove [empty droplets/doublets/low-quality cells] from [my scRNA-seq]" → run scRNA-seq pipeline
+
+**Method-description requests (always workflow_generation):**
+Queries that NAME a computational technique or pipeline without action verbs still require workflow execution.
+These EXACT QUERIES are workflow_generation, NOT research_question:
+- "Spectral counting and feature-based quantification from data-dependent acquisition mass spec" → nf-core/proteomicslfq (DDA proteomics quantification pipeline)
+- "Retention time alignment using iRT standards and PyProphet FDR estimation in DIA data" → nf-core/diaproteomics (DIA proteomics workflow)
+- "De novo design of GPCR-targeted lead compounds using REINVENT4 scaffold decoration" → REINVENT4 generative drug design workflow
+- "Scaffold hopping from my current kinase inhibitor scaffold to explore chemical diversity" → REINVENT4 scaffold hopping workflow
+- "Clonal lineage reconstruction of antibody evolution from longitudinal BCR sequencing" → nf-core/airrflow (immune repertoire pipeline)
+- "Alpha and beta diversity analysis with phylogenetic placement of my microbiome ASVs" → nf-core/ampliseq (amplicon diversity + phylogenetic placement pipeline)
+General pattern: "[computational method/analysis] [from/using/of] [data type or instrument]" = the user wants to EXECUTE that method on their data. Not a literature search. Not a conceptual question.
+
+**Key rule**: If the user's goal would be achieved by running a computational biology pipeline (even if phrased as "I need [data]" or "identify [biological entities]" or describes a technique/method without action verbs), classify as **workflow_generation**, not research_question or data_interpretation.
+
+Only use research_question when the user is explicitly asking about scientific literature, existing published findings, or conceptual explanations ("what is", "how does", "why do", "what papers").
+
 ## Action Categories
 
 For each intent, declare which system agents are needed (true/false):
@@ -2598,7 +2753,7 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       const completion = await this.claude.messages.create({
         model: this.modelConfig.intentModel,
         max_tokens: 2500,
-        temperature: 0.3,
+        temperature: 0,
         system: [
           {
             type: 'text',
@@ -2641,19 +2796,36 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       return this.parseIntentResult(result, message);
     } catch (error) {
       console.error('[GalaxyAssistant] Intent analysis failed:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const isBilling = /credit balance|billing|payment|quota|rate.?limit|too many requests/i.test(errMsg);
+      const isAuth = /unauthorized|invalid.?api.?key|authentication/i.test(errMsg);
+      if (isBilling || isAuth) {
+        // Re-throw so _generateResponse catch block can surface the correct error message
+        throw error;
+      }
+      // JSON parse failure: build a best-effort tool_search intent so the pipeline
+      // still attempts workflow search rather than silently skipping it.
+      // Extract keywords from the raw message via simple tokenisation.
+      const rawKeywords = message
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !['with','that','this','from','have','will','your','their','what','which','when','then','they','also','into','been','would','could'].includes(w))
+        .slice(0, 8);
       const fallback: DecomposedIntent = {
         id: 'intent_fallback',
-        type: 'general_question',
+        type: 'tool_search',
         subQuery: message,
-        keywords: [],
+        keywords: rawKeywords,
         inlineParameters: {},
-        needsToolSearch: false,
+        needsToolSearch: true,
         needsDatasets: false,
-        confidence: 0.5,
+        confidence: 0.4,
         facts: [],
         dependsOn: [],
-        actions: inferActionsFromType('general_question'),
+        actions: inferActionsFromType('tool_search'),
       };
+      console.warn('[GalaxyAssistant] Intent parse failed — using keyword fallback, needsToolSearch=true');
       return {
         intents: [fallback],
         isMultiIntent: false,
@@ -2909,7 +3081,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       const completion = await this.claude.messages.create({
         model: this.modelConfig.toolRankingModel,
         max_tokens: 2000, // Increased to handle ranking many tools
-        temperature: 0.3,
+        temperature: 0,
         system: [
           {
             type: 'text',
@@ -3136,6 +3308,7 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       penalized_domains: penalizedDomains?.length ? penalizedDomains : undefined,
       key_terms: keyTerms?.length ? keyTerms : undefined,
       session_datasets: sessionDatasets?.length ? sessionDatasets : undefined,
+      credential_map: context?.credentialMap ?? undefined,
     });
 
     if (response.success) {
@@ -3199,6 +3372,8 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // AND the new domain doesn't match the saved workflow's domain.
 
     const conversationState = await conversationStateManager.loadState(context.sessionId || 'anon');
+    // On session resume (e.g. server restart or new worker), restore Haiku-extracted memory from DB
+    this.sessionMemory.restoreIfEmpty(context.sessionId || 'anon', conversationState.sessionMemory);
     const hasActiveWorkflow = conversationState.phase !== 'gathering' && conversationState.workflowSteps.length > 0;
 
     // Determine if the current message is a tangent:
@@ -3269,9 +3444,13 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       ? await this._fetchCryoEmContext(message)
       : '';
 
+    const ltmBlock = context.ltmContextBlock
+      ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\nNote: long-term memory reflects patterns across past sessions — use it to personalise responses but let the current conversation take precedence.\n\n`
+      : '';
+
     const isResearchIntent = !!researchResponse;
     const systemPrompt = isResearchIntent
-      ? `${sessionMemoryBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
+      ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
 Your role:
 - Provide accurate, evidence-based answers to scientific questions
@@ -3279,7 +3458,7 @@ Your role:
 - Only cite papers from the provided list — never fabricate citations
 - Structure answers clearly with headings and bullet points
 - End with a ## References section listing only the papers you cited`
-      : `${sessionMemoryBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
+      : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 Your capabilities:
 - Access to 2,177 bioinformatics tools (real-time search)
@@ -3336,12 +3515,17 @@ ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-gr
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
 
 Workflow routing (use these specific workflows when the user's intent matches):
+- "ADMET", "ADMET profiling", "ADMET screening", "toxicity screening", "DILI", "hERG toxicity", "BBB penetration", "blood-brain barrier", "drug-like properties", "lipophilicity", "bioavailability prediction", "predict ADMET", or "toxicity panel": use the predict_admet_properties workflow (6 ADMET endpoints: hERG cardiac, DILI hepato, Caco-2 permeability, BBB penetration, solubility, Ames mutagenicity — all computed from SMILES. Input: smiles_input as a SMILES string or newline-separated list. Outputs: admet_results.csv + risk_summary.json). Use immediately when a user provides SMILES and asks for ADMET or safety screening — do NOT ask for a file upload.
+- "IVIVE", "in vitro to in vivo", "hepatic clearance", "intrinsic clearance", "microsomal clearance", "CLint", "CLh", "well-stirred model", "parallel tube model", or "in vitro clearance scaling": use the ivive_hepatic_clearance workflow (well-stirred + parallel-tube models, converts CLint_microsomal → predicted human CLh. Input: compound_data_csv with compound_id/CLint_uL_per_min_mg/molecular_weight columns. Outputs: ivive_results.csv + clearance_summary.json).
 - "MD simulation", "molecular dynamics", "AMBER", "pmemd", "protein stability in explicit solvent", or "post-docking MM-GBSA refinement": suggest the amber_pmemd_md workflow (AMBER pmemd.cuda GPU MD, 7-step pipeline: GAFF2 parametrization → tleap → EM → NVT/NPT equilibration → production MD → cpptraj RMSD/RMSF → MMPBSA.py ΔGbind. License: free academic since AMBER24.)
 - "GROMACS", "GROMACS MD", "GROMOS force field", or explicit mention of GROMACS: suggest the gromacs_protein_md workflow (GROMACS 2025 + gmx_MMPBSA, 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory)
 - "Glide docking", "Schrödinger docking", "Schrodinger docking", "XP docking", "HTVS", "extra precision docking", "virtual screening Glide", or "FEP+ preparation": suggest the schrodinger_glide_docking workflow (Schrödinger Glide HTVS/SP/XP, 5-step pipeline: LigPrep → PrepWiz → Grid → Glide → ranked SDF. License: FlexNet, user must provide.)
 - "covalent docking", "covalent inhibitor", "warhead", "acrylamide docking", "irreversible inhibitor design", "MOE docking", or "targeted covalent drug": suggest the moe_covalent_docking workflow (MOE CovDock SVL, 5-step: LigPrep → QuickPrep → CovDock → GBVI/WSA dG → SDF report. Warheads: acrylamide, chloroacetamide, epoxide, aldehyde, michael_acceptor. License: MOE FlexNet, user must provide.)
 - "generative drug design", "de novo design", "scaffold hopping", "lead generation", "molecule optimization", "REINVENT", or "fragment decoration": suggest the reinvent4_lead_design workflow (REINVENT4 AstraZeneca, RL-based SMILES generator, outputs ranked molecules + SDF + score trajectory)
+- "relative binding free energy", "RBFE", "FEP", "free energy perturbation", "alchemical FEP", "DDG", "delta delta G", "relative affinity", "compare two ligands binding", "which ligand binds better", "lead optimization FEP", or "OpenFE": suggest the openfe_rbfe workflow (OpenFE RBFE — alchemical SepTop protocol + OpenMM 8 GPU + Lomap2 atom mapping + MBAR estimator. Input: receptor PDB + ligand_a SDF (reference) + ligand_b SDF (query). Output: DDG ± SEM kcal/mol + overlap matrix + convergence plot + HTML. Free open-source alternative to Schrödinger FEP+.)
+- "CYP inhibition", "CYP450 panel", "drug-drug interaction", "DDI prediction", "DDI risk", "metabolic clearance", "microsomal clearance", "CLint", "CLhep", "IVIVE clearance", "hepatic extraction", "CYP1A2", "CYP2C9", "CYP2C19", "CYP2D6", "CYP3A4", "FDA DDI guidance", "R1 R1gut", "perpetrator DDI", "half-life prediction", or "metabolic liability": suggest the cyp_ddi_panel workflow (5-isoform CYP inhibition IC50 + IVIVE hepatic clearance + FDA 2020 DDI risk flags. Input: SMILES string. Outputs: cyp_panel_summary.json + DDI radar chart + clearance funnel + HTML report.)
 - "build pharmacophore model", "pharmacophore from actives", "pharmacophore filtering", "screen compound library against pharmacophore", or "pharmacophore + library screen" (in any combination): use the SINGLE pharmacophore_filtering workflow — it builds the model from reference SMILES AND screens the library in one run. NEVER decompose this into two sequential steps; pass reference_smiles (known actives) and library_smiles as parameters to the single workflow.
+- "pocket detection", "binding pocket", "druggability", "fpocket", "P2Rank", "binding site detection", "binding site characterization", "find pockets", "detect pockets", "druggability score", or any request to identify binding pockets on a protein structure: use the pocket_detection_druggability workflow (fpocket — 3-step: fetch/validate PDB → run fpocket → rank pockets by druggability score + volume. Input: pdb_input = PDB ID (e.g. "1IEP") or path to local .pdb file. Outputs: pocket_summary.csv + druggability_scores.json + ranked HTML report). A PDB 4-letter code like "1IEP", "7RFS", "6LU7" IS a valid pdb_input — do not ask for a file upload when the user provides a PDB ID.
 - "ingest assay data", "composite ranking", "safety-potency ranking", "hERG + IC50 ranking", "BCR-ABL1 campaign ranking", "multi-assay compound ranking", or "rank compounds by potency and safety": use the assay_ingestion_and_ranking workflow (3-step pipeline: parse CSV → composite score → ranked report. Inputs: assay_csv with compound_id/assay_type/value columns. Outputs: ranked_compounds.csv + HTML report + JSON summary).
 - "CRO submission", "WuXi AppTec export", "compound export for CRO", "format compounds for outsourcing", "CRO outsourcing package", or "submit compounds to CRO": use the cro_submission_export workflow (3-step pipeline: validate hERG safety → format WuXi columns + RDKit MW/LogP → export CSV. Inputs: compound_csv with SMILES + assay data. Outputs: wuxiapptec_submission.csv + metadata JSON).
 
@@ -3350,14 +3534,16 @@ ${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistB
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly
 - Do NOT include a "Next Steps After This Workflow" section — suggest follow-up steps only after the user confirms execution is complete
-${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases", "Decision gates", "Required inputs", and "Next step"` : ''}
+${isDrugDevelopmentQuery ? `- Use section labels when possible: "Workflow phases", "Required inputs", and "Next step"` : ''}
 
 Current context:
 ${tools.length > 0 ? `- Found ${tools.length} relevant tools` : ''}
 ${datasets.length > 0 ? `- Found ${datasets.length} relevant datasets` : ''}
 ${runnableWorkflow ? '- Runnable workflow generated successfully — use "Workflow generated" format' : ''}
 ${workflowGenerationFailed && hasInlineData ? '- Workflow generation failed (inline data was present) — use "Technical failure" format, do NOT ask for data the user already provided' : ''}
-${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}`;
+${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no inline data) — use "Clarification needed" format' : ''}
+${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(generatedWorkflow as any).license_notice} The response MUST explicitly tell the user that the originally requested tool is not available under their current license configuration and explain that the fallback alternative was automatically selected instead. Include the phrase "not available" or "requires a license" in the explanation.` : ''}`;
+
 
     // Build research/benchmark context sections
     const researchSection = researchResponse
@@ -3406,7 +3592,7 @@ ${runnableWorkflow
     : `FORMAT: Explain what is needed to help.`
 }
 ${isResearchIntent ? 'CONSTRAINT: Only cite papers from the provided list. Never fabricate citations.' : 'CONSTRAINT: Never compute results yourself. Always recommend BioMate tools.'}
-${isDrugDevelopmentQuery && runnableWorkflow ? 'ADDET: After the 3 standard bullets, add one "Decision gate:" line with the primary safety/efficacy criterion.' : ''}
+${isDrugDevelopmentQuery && runnableWorkflow ? '' : ''}
 ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-FAIL EXTRA: List 2 specific blockers (tool gap / input gap / license gap). Ask 2 targeted questions.' : ''}`;
 
     try {
@@ -3609,8 +3795,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     } catch (error) {
       console.error('[GalaxyAssistant] Response generation failed:', error);
+      // Surface billing / auth errors explicitly so users (and tests) see the real cause.
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const isBilling = /credit balance|billing|payment|quota|rate.?limit|too many requests/i.test(errMsg);
+      const isAuth = /unauthorized|invalid.?api.?key|authentication/i.test(errMsg);
+      if (isBilling) {
+        return { message: 'Service temporarily unavailable: API credit balance too low. Please contact support.' };
+      }
+      if (isAuth) {
+        return { message: 'Service configuration error: invalid API credentials. Please contact support.' };
+      }
       return {
-        message: 'I found some relevant tools and datasets for your analysis. How would you like to proceed?'
+        message: 'I encountered an error processing your request. Please try again.'
       };
     }
   }
@@ -3791,11 +3987,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         '### Workflow phases\n- Target/assay context and data intake\n- Core analysis phase (e.g., docking, ADMET, or PK/NCA)\n- QC/safety review and report handoff'
       );
     }
-    if (!hasDecisionGates) {
-      additions.push(
-        '### Decision gates\n- Define explicit cutoffs/thresholds for risk ranking (for example: toxicity risk flag, hERG gate, or PK acceptability criteria)\n- Use these gates as go/no-go checkpoints before advancing candidates'
-      );
-    }
+    // Decision gates section removed from user-facing responses
     if (!hasRequiredInputs) {
       additions.push(
         '### Required inputs\n- Input data files (e.g., structures/SMILES, assay data, or concentration-time table)\n- Basic study metadata (condition, units, and endpoint definitions)'

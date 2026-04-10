@@ -28,6 +28,7 @@ import { v4 as uuidv4 } from "uuid";
 import archiver from "archiver";
 import { createHash } from "crypto";
 import { authService } from "./auth-service";
+import { emailService } from "./email-service";
 import { authenticateToken, optionalAuth } from "./auth-middleware";
 import BetterSqlite3 from "better-sqlite3";
 import type { RegisterData, LoginData } from "./auth-service";
@@ -705,7 +706,9 @@ const upload = multer({
       '.fasta', '.fa', '.fna', '.fas',
       '.vcf', '.vcf.gz', '.bed', '.gff', '.gtf',
       '.h5ad', '.h5', '.hdf5', '.loom',
-      '.json', '.xml'
+      '.json', '.xml',
+      // Cryo-EM / electron microscopy formats
+      '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
@@ -3265,6 +3268,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const _pilotEmails = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
       const isPilotUser = req.user ? _pilotEmails.includes(String((req.user as any).email || '').toLowerCase()) : false;
 
+      // Build per-user credential availability map using the authenticated user's proxy,
+      // so credential-aware routing in the AI backend can fall back to OSS alternatives.
+      let credentialMap: Record<string, boolean> | undefined;
+      if (req.user) {
+        try {
+          const credProxy = userProxy(req);
+          const credResp = await credProxy.client.get('/api/users/credentials/map');
+          credentialMap = (credResp.data as any)?.credential_map;
+        } catch {
+          // Non-fatal — backend falls back to server-side vault lookup
+        }
+      }
+
       const enrichedContext = {
         ...(context || {}),
         // Normalise session identity: frontend sends memorySessionId; processMessage uses sessionId.
@@ -3275,13 +3291,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Inject integer userId so memory-integration can load user preferences/corrections
         userId: req.user ? Number((req.user as any).id) : (context?.userId),
         // Session-uploaded datasets: activates WorkflowDatasetSelector + domain-specialist format context
+        // file_path is included so AI can auto-populate file-type params (e.g. movies_path, reads, input)
         sessionDatasets: req.session?.uploadedDatasets?.length
           ? req.session.uploadedDatasets.map((d: any) => ({
               id: d.galaxy_dataset_id || d.dataset_id,
               name: d.name,
               type: d.file_type || 'unknown',
+              file_path: d.file_path || null,
             }))
           : undefined,
+        // Per-tool credential map built from user's vault — forwarded to AI backend for routing
+        credentialMap: credentialMap || undefined,
       };
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
@@ -3849,6 +3869,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'SkillsQueryError',
         message: error.message || 'Failed to get available skills',
       });
+    }
+  });
+
+  // ============================================================================
+  // User Credential Management (per-tool license / API keys)
+  // ============================================================================
+
+  app.get("/api/users/credentials/map", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/users/credentials/map');
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.get("/api/users/credentials", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/users/credentials', { params: req.query });
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.post("/api/users/credentials", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.post('/api/users/credentials', req.body);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.delete("/api/users/credentials/:toolId", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.delete(`/api/users/credentials/${req.params.toolId}`);
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
+  app.get("/api/workflows/license-requirements", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/workflows/license-requirements', { params: req.query });
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
     }
   });
 
@@ -5785,8 +5859,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const engineSuffix = executionEngine === 'nextflow' ? ' [Nextflow]' : '';
       const historyName = `${historyPrefix}${engineSuffix} ${executionRun.workflowName} - Run ${executionRun.runSequence}`;
 
-      // Create Galaxy history
-      galaxyHistoryId = await userProxy(req).createHistory(historyName);
+      // Create Galaxy history — skip for Nextflow (uses its own tracking; Galaxy history is metadata only)
+      if (executionEngine !== 'nextflow') {
+        galaxyHistoryId = await userProxy(req).createHistory(historyName);
+      } else {
+        // For Nextflow, generate a placeholder history ID so downstream code has something to log
+        galaxyHistoryId = `nf-${executionRun.id}`;
+      }
 
       // Apply data scope if specified
       let sampledInputs = inputs;
@@ -5937,20 +6016,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         } catch (error) {
           console.error('[Nextflow Direct] Execution error:', error);
+          const rawErrorMsg = error instanceof Error ? error.message : String(error);
 
           if (executionRun) {
             await storage.updateExecutionRun(executionRun.id, {
               execution: {
                 ...executionRun.execution,
                 status: 'failed',
-                error: error instanceof Error ? error.message : String(error)
+                error: rawErrorMsg
               }
             });
           }
 
+          // Email admin with full error details (fire-and-forget)
+          emailService.sendAdminAlert({
+            subject: 'Nextflow Execution Failed',
+            body: [
+              `Time: ${new Date().toISOString()}`,
+              `Run ID: ${executionRun?.id || 'n/a'}`,
+              `Workflow: ${executionRun?.workflowName || 'n/a'}`,
+              `User: ${(req.user as any)?.email || (req.user as any)?.id || 'anonymous'}`,
+              '',
+              'Error:',
+              rawErrorMsg,
+            ].join('\n'),
+          }).catch(() => {/* ignore email failures */});
+
           return res.status(500).json({
             error: 'nextflow_execution_failed',
-            message: error instanceof Error ? error.message : String(error),
+            message: 'Something went wrong while starting the workflow. Our team has been notified. Please try again or come back later.',
             runId: executionRun?.id
           });
         }
@@ -6037,16 +6131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("[ExecutionRun] Error creating execution run:", error);
+      const rawErrorMsg = error.detail?.err_msg || error.message || 'Unknown error';
 
       // If execution run was created, mark it as failed
       if (executionRun?.id) {
         try {
-          const errorMessage = error.detail?.err_msg || error.message || 'Unknown error';
           await storage.updateExecutionRun(executionRun.id, {
             execution: {
               ...executionRun.execution,
               status: 'failed',
-              errorMessage: errorMessage,
+              errorMessage: rawErrorMsg,
               galaxyHistoryId: galaxyHistoryId || undefined,
               galaxyWorkflowId: galaxyWorkflowId || undefined,
             }
@@ -6057,13 +6151,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Return detailed error
+      // Email admin with full error details (fire-and-forget)
+      emailService.sendAdminAlert({
+        subject: 'Workflow Execution Error',
+        body: [
+          `Time: ${new Date().toISOString()}`,
+          `Run ID: ${executionRun?.id || 'n/a'}`,
+          `Workflow: ${executionRun?.workflowName || 'n/a'}`,
+          `User: ${(req.user as any)?.email || (req.user as any)?.id || 'anonymous'}`,
+          '',
+          'Error:',
+          rawErrorMsg,
+          ...(error.detail ? ['\nDetail:', JSON.stringify(error.detail, null, 2)] : []),
+        ].join('\n'),
+      }).catch(() => {/* ignore email failures */});
+
+      // Return a friendly message to the user (don't expose internal details)
       const statusCode = error.status_code || 500;
       res.status(statusCode).json({
         error: error.error || 'ExecutionError',
-        message: error.detail?.err_msg || error.message || 'Failed to execute workflow',
+        message: 'Something went wrong while preparing your workflow. Our team has been notified. Please try again or come back later.',
         runId: executionRun?.id,
-        details: error.detail
       });
     }
   });

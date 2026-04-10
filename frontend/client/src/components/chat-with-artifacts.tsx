@@ -401,6 +401,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
     if (!workflow) {
       console.error('[ChatWithArtifacts] No workflow to run');
+      toast({ title: 'No workflow selected', description: 'Ask BioMate to recommend a workflow first, then click Run.', variant: 'destructive' });
       return;
     }
 
@@ -415,6 +416,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     if (!isNextflow && (!steps || steps.length === 0)) {
       console.error('[ChatWithArtifacts] No steps to run (Galaxy workflow requires steps)');
       setIsWorkflowRunning(false);
+      toast({ title: 'Workflow definition incomplete', description: 'No steps were generated. Try asking BioMate to regenerate the workflow.', variant: 'destructive' });
       return;
     }
 
@@ -429,7 +431,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
           workflow_type: 'nextflow',
           format: workflow.format || 'nextflow',
-          parameters: workflow.parameters || {},
+          // Merge: inline_parameters (user edits in the viewer) take priority over
+          // parameters (AI-suggested defaults set at generation time).
+          parameters: {
+            ...(workflow.parameters || {}),
+            ...(workflow.inline_parameters || {}),
+          },
         };
       } else if (workflow.a_galaxy_workflow) {
         console.log('[ChatWithArtifacts] Using AI-generated .ga workflow format');
@@ -584,6 +591,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       setCurrentWorkflowId(null);
     } catch (error: any) {
       console.error('[ChatWithArtifacts] Failed to stop workflow:', error);
+      toast({
+        title: 'Could not stop workflow',
+        description: error?.message || 'The cancellation request failed. The workflow may still be running — check the Run Manager.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -594,8 +606,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("[ChatWithArtifacts] Failed to pause workflow:", error)
+      toast({
+        title: 'Could not pause workflow',
+        description: error?.message || 'The pause request failed. The workflow is still running.',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -606,8 +623,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error("[ChatWithArtifacts] Failed to resume workflow:", error)
+      toast({
+        title: 'Could not resume workflow',
+        description: error?.message || 'The resume request failed. Try refreshing the page.',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -753,6 +775,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     const updatedAt = run.updatedAt ? new Date(run.updatedAt).getTime() : 0
     return Date.now() - updatedAt < 86400000
   }).length
+  // Badge count: running + queued + recent failures — all runs the user should be aware of
+  const runManagerBadgeCount = runningCount + queuedCount + failedCount
 
   // Format elapsed time for status bar (e.g. "4 min")
   const formatElapsed = (runId: string): string => {
@@ -822,12 +846,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             <MessageCircle className="w-5 h-5 text-primary" />
             <h2 className="font-semibold">bioMate</h2>
             {/* Connection status indicator */}
-            {isConnected && (
-              <div className="flex items-center gap-1 ml-2">
+            {isConnected ? (
+              <div className="flex items-center gap-1 ml-2" data-testid="connection-status-live">
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-xs text-muted-foreground">Live</span>
               </div>
-            )}
+            ) : isRunning ? (
+              <div className="flex items-center gap-1 ml-2" data-testid="connection-status-reconnecting">
+                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs text-amber-600 dark:text-amber-400">Reconnecting…</span>
+              </div>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -838,7 +867,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             >
               <Layers className="h-4 w-4 mr-1" />
               Run Manager
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{runningCount}</span>
+              {runManagerBadgeCount > 0 && (
+                <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{runManagerBadgeCount}</span>
+              )}
             </Button>
             <Button
               variant="ghost"

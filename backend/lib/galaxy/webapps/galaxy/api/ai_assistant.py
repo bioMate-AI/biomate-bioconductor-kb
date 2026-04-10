@@ -604,7 +604,18 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             FilePath(nf_filename) if FilePath(nf_filename).is_absolute() else backend_root / nf_filename,
             backend_root / "biomni_workflows" / nf_filename,
             backend_root / "biomni_workflows" / "nextflow_nfcore" / nf_filename,
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" / nf_filename,
         ]
+        # Also try domain aliases (pharmacology ↔ drug_discovery) for each candidate
+        _alias_map = {"drug_discovery": "pharmacology", "pharmacology": "drug_discovery"}
+        _alias_candidates = []
+        for _c in list(_candidates):
+            parts = _c.parts
+            for i, part in enumerate(parts):
+                if part in _alias_map:
+                    _alias_candidates.append(FilePath(*parts[:i]) / _alias_map[part] / FilePath(*parts[i + 1:]))
+                    break
+        _candidates.extend(_alias_candidates)
         abs_path = next((c for c in _candidates if c.exists()), None)
         if abs_path is None:
             return {"parameters": parameters, "parameter_metadata": parameter_metadata}
@@ -1004,6 +1015,7 @@ class AIRequestModel(BaseModel):
     preferred_domains: Optional[List[str]] = Field(None, description="LLM-inferred domain preferences for search ranking")
     penalized_domains: Optional[List[str]] = Field(None, description="LLM-inferred domains to penalize in search ranking")
     key_terms: Optional[List[str]] = Field(None, description="LLM-extracted technical terms to boost FTS recall")
+    credential_map: Optional[Dict[str, bool]] = Field(None, description="Per-tool credential availability (True=available, False=not). When provided, takes precedence over server-side vault lookup.")
 
 
 class AIResponseModel(BaseModel):
@@ -1554,6 +1566,25 @@ def generate_workflow_unified(
         # Route through LangGraph pipeline when BIOMATE_USE_LANGGRAPH=true.
         # The pipeline wraps generate_workflow_unified with tracing + checkpointing.
         # Falls back transparently to direct call on any failure.
+        # Build per-user credential availability map so the routing pipeline can
+        # fall back to open-source alternatives when a licensed tool is not configured.
+        # If the frontend already built the map (via user-scoped proxy), use it directly.
+        # Otherwise fall back to server-side vault lookup via trans.user.
+        if request.credential_map is not None:
+            credential_map: Dict[str, bool] = dict(request.credential_map)
+            log.debug("[generate_workflow] credential_map supplied by frontend: %s", credential_map)
+        else:
+            credential_map = {}
+            try:
+                from galaxy.webapps.galaxy.api.credentials_api import get_effective_credential
+                from galaxy.webapps.galaxy.api.license_registry import LICENSE_REGISTRY as _LR
+                for _tid in _LR:
+                    _, _src = get_effective_credential(trans, _tid)
+                    credential_map[_tid] = (_src != "none")
+                log.debug("[generate_workflow] credential_map from vault: %s", credential_map)
+            except Exception as _cred_err:
+                log.debug("[generate_workflow] credential_map build failed (non-fatal): %s", _cred_err)
+
         use_langgraph = _os.getenv("BIOMATE_USE_LANGGRAPH", "false").lower() in ("1", "true", "yes")
         if use_langgraph:
             result = ai_assistant.run_via_pipeline(
@@ -1571,6 +1602,7 @@ def generate_workflow_unified(
                 key_terms=request.key_terms or None,
                 preferred_domains=request.preferred_domains or None,
                 penalized_domains=request.penalized_domains or None,
+                credential_map=credential_map or None,
             )
 
         # Chain responses carry a different payload (no workflow_ga / citations).
@@ -1781,7 +1813,9 @@ def generate_workflow_unified(
                     'success': tool_installation.get('success', True),
                     'message': tool_installation.get('message', ''),
                     'failed_tools': failed_tools
-                }
+                },
+                # License-aware rerouting notice (present when routing fell back to OSS alternative)
+                **({'license_notice': result['license_notice']} if result.get('license_notice') else {}),
             }
         else:
             return {

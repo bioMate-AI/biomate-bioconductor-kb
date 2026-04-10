@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Lightbulb, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -141,7 +141,9 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
   const reqList: any[] = Array.isArray(workflowDefinition?.required_params) ? workflowDefinition.required_params : [];
   const optList: any[] = Array.isArray(workflowDefinition?.optional_params) ? workflowDefinition.optional_params : [];
   if (reqList.length > 0 || optList.length > 0) {
-    return [...reqList, ...optList]
+    // Build structured params from required/optional lists
+    const structuredNames = new Set([...reqList, ...optList].map((p: any) => p?.name).filter(Boolean));
+    const structured = [...reqList, ...optList]
       .filter((p: any) => p?.name && !String(p.name).startsWith("__"))
       .map((p: any) => {
         const userValue = currentParams[p.name];
@@ -163,6 +165,23 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
           rationale: p.rationale || undefined,
         };
       });
+    // Also include inline_parameters entries not already covered by structured params
+    const fromInline = workflowDefinition?.inline_parameters && typeof workflowDefinition.inline_parameters === "object"
+      ? workflowDefinition.inline_parameters
+      : {};
+    const extraInline = Object.entries(fromInline)
+      .filter(([key]) => !key.startsWith("__") && !structuredNames.has(key))
+      .map(([key, value]) => ({
+        id: key,
+        name: key,
+        type: inferParamType(value),
+        label: prettifyParamLabel(key),
+        value: currentParams[key] !== undefined ? currentParams[key] : value,
+        defaultValue: undefined,
+        required: false,
+        autoFilled: true,
+      }));
+    return [...structured, ...extraInline];
   }
 
   // Fallback: old flat-map from parameters / inline_parameters keys.
@@ -288,6 +307,10 @@ export function NextflowWorkflowViewer({
   const [params, setParams] = useState<Record<string, any>>(
     initialParams || workflowDefinition?.parameters || workflowDefinition?.inline_parameters || {}
   );
+  // Tracks param keys the user has explicitly overridden via EditableParamRow.
+  // Stored as a ref (not state) so the useEffect sees the live value without needing
+  // it in the dependency array, and without triggering extra re-renders.
+  const userOverriddenParams = useRef<Set<string>>(new Set());
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
@@ -377,12 +400,8 @@ export function NextflowWorkflowViewer({
         };
       });
     }
-    return [
-      { id: "setup", name: "Setup & Input", status: "completed" },
-      { id: "process", name: "Data Processing", status: "running" },
-      { id: "analysis", name: "Statistical Analysis", status: "pending" },
-      { id: "report", name: "Report Generation", status: "pending" },
-    ];
+    // No step data from backend — return empty so the viewer shows a clean idle state
+    return [];
   }, [workflowDefinition]);
 
   useEffect(() => {
@@ -612,6 +631,8 @@ export function NextflowWorkflowViewer({
 
   const handleParamChange = (id: string, value: any) => {
     setParams((prev: any) => ({ ...prev, [id]: value }));
+    // Mark as user-overridden so the workflowDefinition useEffect doesn't clobber it
+    userOverriddenParams.current.add(id);
     onParameterChange?.(id, value);
   };
 
@@ -805,7 +826,10 @@ export function NextflowWorkflowViewer({
       for (const [k, v] of Object.entries(incoming)) {
         // Always apply autoFilled values (user explicitly stated them in the query).
         // For other keys, only apply if the user hasn't already edited the field.
-        if (autoFilledKeys.has(k) || merged[k] === undefined || merged[k] === null || merged[k] === '') {
+        // AutoFilled values are applied unless the user has explicitly overridden this param.
+        // Non-autofilled values are applied only when the field is currently unset.
+        const userOverrode = userOverriddenParams.current.has(k);
+        if (!userOverrode && (autoFilledKeys.has(k) || merged[k] === undefined || merged[k] === null || merged[k] === '')) {
           merged[k] = v;
         }
       }
@@ -863,7 +887,7 @@ export function NextflowWorkflowViewer({
       return;
     }
     const statusLine = nextflowStatus?.status
-      ? `Nextflow status: ${String(nextflowStatus.status)}`
+      ? `Pipeline status: ${String(nextflowStatus.status)}`
       : null;
     if (statusLine) {
       setLogs([statusLine]);
@@ -1033,7 +1057,7 @@ export function NextflowWorkflowViewer({
                   </Badge>
                 )}
                 {effectiveProgress > 0 && <span className="text-sm text-muted-foreground">{effectiveProgress}%</span>}
-                <Badge variant={status === 'running' ? 'secondary' : 'outline'}>
+                <Badge variant={status === 'running' ? 'secondary' : 'outline'} data-testid="workflow-overall-status-badge" data-status={status}>
                 {status.toUpperCase()}
                 </Badge>
             </div>
@@ -1051,101 +1075,25 @@ export function NextflowWorkflowViewer({
             </div>
           )}
 
-          {/* Scientific Rationale Panel — shown when Bioconductor KB has data */}
-          {rationale && rationale.tools_used?.length > 0 && (
-            <div className="mb-5 space-y-3">
-              {/* When to use / Do not use */}
-              {(rationale.when_to_use?.length > 0 || rationale.do_not_use_when?.length > 0) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {rationale.when_to_use?.length > 0 && (
-                    <Alert className="border-green-500/40 bg-green-50/40 dark:bg-green-950/10 py-2">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600 mt-0.5" />
-                      <AlertDescription className="text-xs">
-                        <span className="font-semibold text-green-800 dark:text-green-300">When to use</span>
-                        <ul className="mt-1 space-y-0.5 text-green-700 dark:text-green-400">
-                          {rationale.when_to_use.map((uc: string, i: number) => (
-                            <li key={i} className="leading-snug">• {uc}</li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {rationale.do_not_use_when?.length > 0 && (
-                    <Alert className="border-red-400/40 bg-red-50/40 dark:bg-red-950/10 py-2">
-                      <XCircle className="h-3.5 w-3.5 text-red-500 mt-0.5" />
-                      <AlertDescription className="text-xs">
-                        <span className="font-semibold text-red-700 dark:text-red-300">Do NOT use when</span>
-                        <ul className="mt-1 space-y-0.5 text-red-600 dark:text-red-400">
-                          {rationale.do_not_use_when.map((lim: string, i: number) => (
-                            <li key={i} className="leading-snug">• {lim}</li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              )}
-
-              {/* Data requirements */}
-              {rationale.data_requirements && Object.keys(rationale.data_requirements).length > 0 && (
-                <Alert className="border-blue-400/40 bg-blue-50/40 dark:bg-blue-950/10 py-2">
-                  <FlaskConical className="h-3.5 w-3.5 text-blue-600 mt-0.5" />
-                  <AlertDescription className="text-xs">
-                    <span className="font-semibold text-blue-800 dark:text-blue-300">Data requirements</span>
-                    <ul className="mt-1 space-y-0.5 text-blue-700 dark:text-blue-400">
-                      {Object.entries(rationale.data_requirements).slice(0, 3).map(([k, v]: [string, any]) => (
-                        <li key={k} className="leading-snug">
-                          <span className="font-medium">{k.replace(/_/g, ' ')}:</span> {String(v)}
-                        </li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Common pitfalls */}
-              {rationale.common_pitfalls?.length > 0 && (
-                <Alert className="border-amber-400/40 bg-amber-50/40 dark:bg-amber-950/10 py-2">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5" />
-                  <AlertDescription className="text-xs">
-                    <span className="font-semibold text-amber-800 dark:text-amber-300">Common pitfalls</span>
-                    <ul className="mt-1 space-y-1 text-amber-700 dark:text-amber-400">
-                      {rationale.common_pitfalls.map((p: any, i: number) => (
-                        <li key={i} className="leading-snug">
-                          <span className="font-medium">{p.cause || p.error}</span>
-                          {p.fix && <span className="text-amber-600 dark:text-amber-500"> → {p.fix}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Parameter hints */}
-              {rationale.parameter_hints?.length > 0 && (
-                <Alert className="border-purple-400/40 bg-purple-50/40 dark:bg-purple-950/10 py-2">
-                  <Lightbulb className="h-3.5 w-3.5 text-purple-600 mt-0.5" />
-                  <AlertDescription className="text-xs">
-                    <span className="font-semibold text-purple-800 dark:text-purple-300">Recommended parameters</span>
-                    <ul className="mt-1 space-y-0.5 text-purple-700 dark:text-purple-400">
-                      {rationale.parameter_hints.slice(0, 5).map((h: any, i: number) => (
-                        <li key={i} className="leading-snug">
-                          <span className="font-medium">{h.param}</span>
-                          {' = '}
-                          <span className="font-mono text-purple-600 dark:text-purple-300">{h.recommended}</span>
-                          {h.rationale && <span className="text-muted-foreground"> — {h.rationale}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-4">
               <h3 className="text-lg font-semibold">Parameters</h3>
+              {/* Format mismatch warning — shown when uploaded file type doesn't match workflow input */}
+              {(() => {
+                const allParams: any[] = [
+                  ...(workflowDefinition?.required_params || []),
+                  ...(workflowDefinition?.optional_params || []),
+                ];
+                const mismatch = allParams.find((p: any) => p?.format_mismatch_warning);
+                if (!mismatch) return null;
+                return (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-2.5 text-xs text-amber-800 dark:text-amber-300" data-testid="format-mismatch-warning">
+                    <span className="mt-0.5">⚠️</span>
+                    <span>{mismatch.format_mismatch_warning}</span>
+                  </div>
+                );
+              })()}
               {renderedParameters.length === 0 ? (
                 <p className="text-xs text-muted-foreground px-1">No editable parameters detected for this workflow.</p>
               ) : (() => {
@@ -1192,6 +1140,50 @@ export function NextflowWorkflowViewer({
                   Fill in all required fields (*) before running.
                 </p>
               )}
+
+              {/* Uploaded dataset selection — shown when session has files */}
+              {sessionDatasets.length > 0 && (
+                <div className="rounded-md border border-border p-3 space-y-2" data-testid="session-dataset-panel">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Uploaded files</p>
+                  {sessionDatasets.map(ds => {
+                    // Find the first file-type param that has no value yet
+                    const fileParam = renderedParameters.find(p =>
+                      (p.type === 'file' || p.type === 'text') && (!p.value || p.value === '')
+                    );
+                    return (
+                      <div key={ds.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="truncate text-foreground/80" title={ds.name}>{ds.name}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 shrink-0"
+                          onClick={() => {
+                            const path = ds.file_path || ds.source_url || ds.id;
+                            if (fileParam) {
+                              handleParamChange(fileParam.id, path);
+                            } else if (renderedParameters.length > 0) {
+                              handleParamChange(renderedParameters[0].id, path);
+                            }
+                          }}
+                        >
+                          Use
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={() => {
+                      const fileParam = renderedParameters.find(p => p.type === 'file' || p.type === 'text');
+                      if (fileParam) setBrowsingForParam({ id: fileParam.id, label: fileParam.label });
+                    }}
+                  >
+                    Browse all datasets…
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-2" data-testid="workflow-run-controls">
                 {/* C3: Validate environment button — only show for Nextflow workflows */}
                 {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
@@ -1240,7 +1232,7 @@ export function NextflowWorkflowViewer({
                   onClick={handleExecute}
                   disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive}
                 >
-                  {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Run Workflow'}
+                  {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
                 </Button>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
@@ -1287,114 +1279,116 @@ export function NextflowWorkflowViewer({
                 </div>
               </div>
 
-              {/* QC Settings collapsible */}
-              <div className="rounded-md border border-border" data-testid="qc-settings-section">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between p-3 text-sm font-medium"
-                  onClick={() => setQcSettingsOpen(prev => !prev)}
-                  aria-expanded={qcSettingsOpen}
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    QC Settings
-                    {Object.keys(qcOverrides).length > 0 && (
-                      <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                        {Object.keys(qcOverrides).length}
-                      </Badge>
-                    )}
-                  </span>
-                  {qcSettingsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                </button>
-                {qcSettingsOpen && (
-                  <div className="border-t border-border p-3 space-y-4 text-sm">
-                    {/* Pause toggle */}
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="pause-qc-switch" className="text-xs">
-                        Pause at QC failures
-                      </Label>
-                      <Switch
-                        id="pause-qc-switch"
-                        checked={pauseAtQcFailures}
-                        onCheckedChange={setPauseAtQcFailures}
-                        aria-label="Pause at QC failures"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground -mt-2">
-                      {pauseAtQcFailures
-                        ? 'Workflow pauses when a gate fires'
-                        : 'Gates are logged but workflow continues'}
-                    </p>
-
-                    {/* QC Profile picker */}
-                    {availableQcProfiles.length > 0 && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Named QC Profile</Label>
-                        <Select value={qcProfile || 'none'} onValueChange={v => setQcProfile(v === 'none' ? '' : v)}>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue placeholder="Platform defaults" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none" className="text-xs">Platform defaults (no profile)</SelectItem>
-                            {availableQcProfiles.map(p => (
-                              <SelectItem key={p.id} value={p.id} className="text-xs">
-                                {p.id.replace(/_/g, '\u00A0')}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* Threshold overrides */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>
-                      <div className="flex gap-1">
-                        <Input
-                          className="h-7 text-xs flex-1"
-                          placeholder="metric_key"
-                          value={qcOverrideKey}
-                          onChange={e => setQcOverrideKey(e.target.value)}
+              {/* QC Settings — only shown when QC profiles are available or a QC gate event fired */}
+              {(availableQcProfiles.length > 0 || qcGateData !== null) && (
+                <div className="rounded-md border border-border" data-testid="qc-settings-section">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between p-3 text-sm font-medium"
+                    onClick={() => setQcSettingsOpen(prev => !prev)}
+                    aria-expanded={qcSettingsOpen}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      QC Settings
+                      {Object.keys(qcOverrides).length > 0 && (
+                        <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                          {Object.keys(qcOverrides).length}
+                        </Badge>
+                      )}
+                    </span>
+                    {qcSettingsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  </button>
+                  {qcSettingsOpen && (
+                    <div className="border-t border-border p-3 space-y-4 text-sm">
+                      {/* Pause toggle */}
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="pause-qc-switch" className="text-xs">
+                          Pause at QC failures
+                        </Label>
+                        <Switch
+                          id="pause-qc-switch"
+                          checked={pauseAtQcFailures}
+                          onCheckedChange={setPauseAtQcFailures}
+                          aria-label="Pause at QC failures"
                         />
-                        <Input
-                          className="h-7 text-xs w-20"
-                          placeholder="value"
-                          type="number"
-                          value={qcOverrideValue}
-                          onChange={e => setQcOverrideValue(e.target.value)}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs px-2"
-                          onClick={() => {
-                            const v = parseFloat(qcOverrideValue);
-                            if (qcOverrideKey && !isNaN(v)) {
-                              setQcOverrides(prev => ({ ...prev, [qcOverrideKey]: v }));
-                              setQcOverrideKey('');
-                              setQcOverrideValue('');
-                            }
-                          }}
-                        >
-                          Add
-                        </Button>
                       </div>
-                      {Object.entries(qcOverrides).map(([key, val]) => (
-                        <div key={key} className="flex items-center justify-between text-xs bg-muted/40 rounded px-2 py-1">
-                          <span>{key}: {val}</span>
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-destructive ml-2"
-                            onClick={() => setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; })}
-                          >
-                            ×
-                          </button>
+                      <p className="text-xs text-muted-foreground -mt-2">
+                        {pauseAtQcFailures
+                          ? 'Workflow pauses when a gate fires'
+                          : 'Gates are logged but workflow continues'}
+                      </p>
+
+                      {/* QC Profile picker */}
+                      {availableQcProfiles.length > 0 && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Named QC Profile</Label>
+                          <Select value={qcProfile || 'none'} onValueChange={v => setQcProfile(v === 'none' ? '' : v)}>
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue placeholder="Platform defaults" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none" className="text-xs">Platform defaults (no profile)</SelectItem>
+                              {availableQcProfiles.map(p => (
+                                <SelectItem key={p.id} value={p.id} className="text-xs">
+                                  {p.id.replace(/_/g, '\u00A0')}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                      ))}
+                      )}
+
+                      {/* Threshold overrides */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>
+                        <div className="flex gap-1">
+                          <Input
+                            className="h-7 text-xs flex-1"
+                            placeholder="metric_key"
+                            value={qcOverrideKey}
+                            onChange={e => setQcOverrideKey(e.target.value)}
+                          />
+                          <Input
+                            className="h-7 text-xs w-20"
+                            placeholder="value"
+                            type="number"
+                            value={qcOverrideValue}
+                            onChange={e => setQcOverrideValue(e.target.value)}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs px-2"
+                            onClick={() => {
+                              const v = parseFloat(qcOverrideValue);
+                              if (qcOverrideKey && !isNaN(v)) {
+                                setQcOverrides(prev => ({ ...prev, [qcOverrideKey]: v }));
+                                setQcOverrideKey('');
+                                setQcOverrideValue('');
+                              }
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        {Object.entries(qcOverrides).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between text-xs bg-muted/40 rounded px-2 py-1">
+                            <span>{key}: {val}</span>
+                            <button
+                              type="button"
+                              className="text-muted-foreground hover:text-destructive ml-2"
+                              onClick={() => setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; })}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               {autofix && (
                 <div
@@ -1546,20 +1540,23 @@ export function NextflowWorkflowViewer({
                   <Download className="mr-2 h-4 w-4" />
                   Download All
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-download-qc-audit"
-                  disabled={!invocationId}
-                  title={invocationId ? "Download QC audit log" : "Run workflow to enable"}
-                  onClick={() => {
-                    if (!invocationId) return;
-                    window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
-                  }}
-                >
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  Download QC Audit Log
-                </Button>
+                {/* Download QC Audit Log — only shown when QC profiles are available or a QC gate fired */}
+                {(availableQcProfiles.length > 0 || qcGateData !== null) && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-download-qc-audit"
+                    disabled={!invocationId}
+                    title={invocationId ? "Download QC audit log" : "Run workflow to enable"}
+                    onClick={() => {
+                      if (!invocationId) return;
+                      window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
+                    }}
+                  >
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    Download QC Audit Log
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="w-full"
@@ -1582,35 +1579,9 @@ export function NextflowWorkflowViewer({
               <p className="text-xs text-muted-foreground" data-testid="workflow-last-update">
                 Last update: {lastUpdateAt.toLocaleTimeString()}
               </p>
-              <div
-                className="rounded-md border border-muted bg-muted/30 p-3"
-                data-testid="run-context-chip"
-              >
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Run context
-                </div>
-                <div className="mt-2 grid grid-cols-1 gap-1 text-xs sm:grid-cols-3 sm:gap-2">
-                  <div>
-                    <span className="text-muted-foreground">Run ID:</span>{" "}
-                    <span className="font-mono">{formatContextValue(runId)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Invocation ID:</span>{" "}
-                    <span className="font-mono">{formatContextValue(invocationId)}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Nextflow run ID:</span>{" "}
-                    <span className="font-mono">{formatContextValue(nextflowRunId)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-md border border-muted p-3 text-xs space-y-1" data-testid="workflow-execution-evidence">
-                <div className="font-medium">Execution evidence</div>
-                <div>Run ID: {runId || "n/a"}</div>
-                <div>Invocation ID: {invocationId || "n/a"}</div>
-                <div>Runtime status: {nextflowStatus?.status || status}</div>
-                {nextflowStatus?.run_id && <div>Nextflow run ID: {String(nextflowStatus.run_id)}</div>}
-              </div>
+              {/* Run context and Execution evidence — internal debugging info, hidden from users */}
+              {/* <div className="rounded-md border border-muted bg-muted/30 p-3" data-testid="run-context-chip">...</div> */}
+              {/* <div className="rounded-md border border-muted p-3 text-xs space-y-1" data-testid="workflow-execution-evidence">...</div> */}
               {/* Run metrics strip — execution time and cost */}
               {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
                 <div
@@ -1659,21 +1630,8 @@ export function NextflowWorkflowViewer({
                   )}
                 </div>
               )}
-              <div className="rounded-md border border-muted p-3 text-xs space-y-2" data-testid="execution-triage-summary">
-                <div className="font-medium">Execution triage</div>
-                <div data-testid="execution-triage-status">
-                  <span className="text-muted-foreground">Status:</span> {triageStatus}
-                </div>
-                <div data-testid="execution-triage-next-action">
-                  <span className="text-muted-foreground">Next action:</span> {triageNextAction}
-                </div>
-                <div data-testid="execution-triage-logs">
-                  <span className="text-muted-foreground">Logs:</span> {triageLogsHint}
-                </div>
-                <div data-testid="execution-triage-outputs">
-                  <span className="text-muted-foreground">Outputs:</span> {triageOutputsHint}
-                </div>
-              </div>
+              {/* Execution triage — internal debugging panel, hidden from users */}
+              {/* <div className="rounded-md border border-muted p-3 text-xs space-y-2" data-testid="execution-triage-summary">...</div> */}
               {/* Live Nextflow process status — shown when trace data is available */}
               {Array.isArray(nextflowStatus?.processes) && nextflowStatus.processes.length > 0 && (
                 <div className="mb-3 rounded-md border border-muted bg-muted/30 p-3" data-testid="nf-process-list">

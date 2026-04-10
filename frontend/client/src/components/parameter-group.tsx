@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ function KnowledgeBadge({ param }: { param: Parameter }) {
         <TooltipTrigger asChild>
           <button
             type="button"
+            data-testid={`param-knowledge-badge-${param.id}`}
             className="inline-flex items-center text-blue-500 hover:text-blue-700 ml-1 align-middle"
             aria-label={`Why this value? ${param.rationale || ''}`}
           >
@@ -110,9 +112,14 @@ function KnowledgeBadge({ param }: { param: Parameter }) {
 function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (id: string, value: any) => void }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(String(param.value ?? ''));
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const commitEdit = () => {
-    onChange?.(param.id, editValue);
+    // Read from DOM ref as source of truth — handles cases where React state
+    // hasn't updated yet (e.g. programmatic value changes, fast typing + Enter).
+    const rawVal = inputRef.current?.value ?? editValue;
+    const committed = param.type === 'number' ? Number(rawVal) : rawVal;
+    onChange?.(param.id, committed);
     setIsEditing(false);
   };
 
@@ -129,17 +136,19 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
     return (
       <div className="flex items-center gap-1 mt-0.5">
         <Input
+          ref={inputRef}
+          data-testid={`param-inline-edit-${param.id}`}
           className="h-6 text-xs px-1.5 py-0"
-          value={editValue}
+          defaultValue={editValue}
           type={param.type === 'number' ? 'number' : 'text'}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit(); }}
           autoFocus
         />
-        <button type="button" onClick={commitEdit} className="text-green-600 hover:text-green-700">
+        <button type="button" data-testid={`param-confirm-btn-${param.id}`} onClick={commitEdit} className="text-green-600 hover:text-green-700">
           <Check className="h-3 w-3" />
         </button>
-        <button type="button" onClick={cancelEdit} className="text-red-500 hover:text-red-700">
+        <button type="button" data-testid={`param-cancel-btn-${param.id}`} onClick={cancelEdit} className="text-red-500 hover:text-red-700">
           <X className="h-3 w-3" />
         </button>
       </div>
@@ -149,6 +158,7 @@ function EditableParamRow({ param, onChange }: { param: Parameter; onChange?: (i
   return (
     <button
       type="button"
+      data-testid={`param-override-btn-${param.id}`}
       onClick={() => setIsEditing(true)}
       className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground ml-1 align-middle"
       title="Override AI-recommended value"
@@ -201,7 +211,24 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             </Select>
           </div>
         );
-      case 'file':
+      case 'file': {
+        const _ML_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
+        const isMultilineFile = _ML_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
+        if (isMultilineFile) {
+          return (
+            <div className="space-y-1">
+              <LabelWithKnowledge />
+              <Textarea
+                id={param.id}
+                value={param.value ?? ''}
+                rows={5}
+                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                placeholder="Paste inline content (CSV / SMILES / FASTA) or enter a file path…"
+                className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+              />
+            </div>
+          );
+        }
         return (
           <div className="space-y-1">
             <LabelWithKnowledge />
@@ -226,7 +253,28 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             </div>
           </div>
         );
-      default:
+      }
+      default: {
+        // Detect params that hold multi-line content (CSV, SMILES lists, FASTA, etc.)
+        const _MULTILINE_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
+        const isMultiline = _MULTILINE_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
+        if (isMultiline) {
+          return (
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 flex-wrap">
+                <LabelWithKnowledge />
+              </div>
+              <Textarea
+                id={param.id}
+                value={param.value ?? ''}
+                rows={5}
+                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                placeholder={param.defaultValue != null ? String(param.defaultValue) : 'Paste CSV / SMILES / FASTA content here…'}
+                className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+              />
+            </div>
+          );
+        }
         return (
           <div className="space-y-1">
             <div className="flex items-center gap-1 flex-wrap">
@@ -248,6 +296,7 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             )}
           </div>
         );
+      }
     }
   };
 
@@ -264,7 +313,8 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
           {parameters.map((param) => (
             <div key={param.id} className="grid w-full items-center gap-1.5">
               {renderParameterInput(param)}
-              {param.description && <p className="text-xs text-muted-foreground">{param.description}</p>}
+              {/* param description hidden — replace with type/range constraints when available */}
+              {/* {param.description && <p className="text-xs text-muted-foreground">{param.description}</p>} */}
             </div>
           ))}
         </AccordionContent>

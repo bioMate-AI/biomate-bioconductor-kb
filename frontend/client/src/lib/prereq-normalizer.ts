@@ -6,6 +6,8 @@ export interface PrereqItem {
   status: PrereqStatus;
   reason?: string;
   actionHint?: string;
+  /** Pre-fills the chat input when user clicks "Continue in chat →" */
+  chatPrompt?: string;
 }
 
 export interface PrereqChecklist {
@@ -17,6 +19,8 @@ export interface PrereqChecklist {
 interface NormalizeOptions {
   executionBlockedReason?: string;
   allowLowConfidenceOverride?: boolean;
+  /** Non-empty inline params (e.g. SMILES, sequences) that count as input data */
+  hasInlineData?: boolean;
 }
 
 export function normalizePrereqChecklist(
@@ -43,6 +47,7 @@ export function normalizePrereqChecklist(
       status: "warning",
       reason: `${missingInputs.length} required input(s) are missing.`,
       actionHint: "Upload or select your data files.",
+      chatPrompt: "I need to provide the input data for this workflow. Here is the file I want to use: ",
     });
   } else if (inputMappings.length > 0) {
     items.push({
@@ -51,6 +56,13 @@ export function normalizePrereqChecklist(
       status: "ok",
       reason: `${inputMappings.length} dataset mapping(s) detected.`,
     });
+  } else if (options.hasInlineData) {
+    items.push({
+      id: "input_data",
+      label: "Input data",
+      status: "ok",
+      reason: "Inline data provided (e.g. SMILES, sequence).",
+    });
   } else if (hasValidatorPayload) {
     items.push({
       id: "input_data",
@@ -58,6 +70,7 @@ export function normalizePrereqChecklist(
       status: "warning",
       reason: "No input data detected yet.",
       actionHint: "Upload or select your data files.",
+      chatPrompt: "I need to provide the input data for this workflow. Here is the file I want to use: ",
     });
   }
 

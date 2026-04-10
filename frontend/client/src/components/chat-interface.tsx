@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
@@ -94,6 +95,7 @@ export function ChatInterface({
   focusedRunId = null,
   runAnchorRequestId = 0,
 }: ChatInterfaceProps) {
+  const { toast } = useToast()
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Soft query queue: messages submitted while AI is responding are held here
   // and auto-submitted one-at-a-time once each response completes.
@@ -107,6 +109,18 @@ export function ChatInterface({
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
+  // Surface workflowError prop as a toast — executionError covers the hook path, but
+  // early-return failures or prop-only errors would be invisible without this.
+  useEffect(() => {
+    if (workflowError) {
+      toast({
+        title: 'Workflow could not start',
+        description: workflowError,
+        variant: 'destructive',
+      })
+    }
+  }, [workflowError])
+
   // Stop dialog state
   const [showStopDialog, setShowStopDialog] = useState(false)
   // Snapshot of queue length at the moment stop was clicked (avoids stale reactive read)
@@ -116,6 +130,9 @@ export function ChatInterface({
   const [langgraphTasks, setLanggraphTasks] = useState<TaskItem[]>([])
   const langgraphTasksRef = useRef<TaskItem[]>([])
   langgraphTasksRef.current = langgraphTasks
+
+  // Chat draft pre-fill (from "Continue in chat" prereq button or error CTA)
+  const [chatDraft, setChatDraft] = useState<string | undefined>(undefined)
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -402,6 +419,18 @@ export function ChatInterface({
       if (data.workflow && !workflowSuccess) {
         console.warn('[ChatInterface] Workflow generation returned but failed:', data.workflow.error || data.workflow.message);
         workflowData = null;
+      }
+
+      // Merge inline parameters (e.g. SMILES, sequences extracted from user message) into workflowData
+      // so that buildViewerParameters can show them even when structured required/optional params are empty.
+      if (workflowData && data.metadata?.inlineParameters && Object.keys(data.metadata.inlineParameters).length > 0) {
+        workflowData = {
+          ...workflowData,
+          inline_parameters: {
+            ...(workflowData.inline_parameters || {}),
+            ...data.metadata.inlineParameters,
+          },
+        };
       }
 
       // Use the natural language response from /api/chat
@@ -1021,6 +1050,20 @@ export function ChatInterface({
           : ''
       const failedContext = failedUploads.length > 0 ? failedUploads.join(', ') : ''
 
+      if (failedUploads.length > 0) {
+        // Try to give a useful hint based on the rejected extensions
+        const rejectedExts = failedUploads.map(name => {
+          const ext = name.split('.').pop()?.toLowerCase() ?? '';
+          return ext ? `.${ext}` : name;
+        });
+        const supported = 'FASTQ, BAM, SAM, CSV, TSV, FASTA, VCF, BED, GFF, H5AD, MRC, TIFF, EER';
+        toast({
+          title: `${failedUploads.length} file${failedUploads.length > 1 ? 's' : ''} could not be uploaded`,
+          description: `Unsupported format: ${rejectedExts.join(', ')}. Supported types: ${supported}.`,
+          variant: 'destructive',
+        });
+      }
+
       content =
         content +
         (content ? '\n\n' : '') +
@@ -1225,9 +1268,18 @@ export function ChatInterface({
       setShowCompressionDialog(false)
       setCompressionDismissed(false) // Allow showing again if needed
 
+      toast({
+        title: 'Conversation compressed',
+        description: `${result.messagesBeforeCount} → ${result.messagesAfterCount} messages (${(result.compressionRatio * 100).toFixed(0)}% reduction). Context window freed.`,
+      })
+
     } catch (error) {
       console.error('[ChatInterface] Compression failed:', error)
-      alert('Compression failed. Please try again.')
+      toast({
+        title: 'Compression failed',
+        description: 'Could not compress the conversation. Your session is unchanged — please try again.',
+        variant: 'destructive',
+      })
     } finally {
       setIsCompressing(false)
     }
@@ -1333,10 +1385,12 @@ export function ChatInterface({
               onResumeWorkflow={onResumeWorkflow}
               onParameterChange={onParameterChange}
               onSuggestionClick={handleSuggestionClick}
+              onAdjustViaChat={(msg) => msg && setChatDraft(msg)}
               isWorkflowRunning={isWorkflowRunning}
               workflowProgress={workflowProgress}
               currentExecutionRun={currentExecutionRun}
               isLatestAssistantMessage={message.id === latestAssistantMessageId}
+              isGeneratingWorkflow={streamingHasContent && message.id === latestAssistantMessageId}
               isRunAnchorFocused={focusedAnchorMessageId === message.id}
               isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
             />
@@ -1476,10 +1530,11 @@ export function ChatInterface({
         </div>
       )}
       <ChatInput
-        onSend={handleSendOrQueue}
+        onSend={(msg, files) => { setChatDraft(undefined); handleSendOrQueue(msg, files); }}
         pendingCount={pendingMessages.length}
         isStreaming={displayTyping}
         onStop={stopStreaming}
+        externalDraft={chatDraft}
       />
       {displayTyping && (
         <div
