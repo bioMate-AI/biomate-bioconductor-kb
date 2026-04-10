@@ -268,6 +268,9 @@ restart_galaxy() {
       echo "[galaxy] Nextflow OK: $(docker exec biomate-galaxy-dev nextflow -version 2>/dev/null | grep version)"
     fi
 
+    # Remove stale conda lock that blocks gunicorn worker startup after restart
+    docker exec -u root biomate-galaxy-dev rm -f /app/database/dependencies/conda.lock 2>/dev/null || true
+
     # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
     docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
