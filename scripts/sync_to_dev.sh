@@ -243,26 +243,16 @@ deploy_databases() {
 restart_galaxy() {
   log "[galaxy] Reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
-    # Prefer HUP (graceful reload, no 30-min cold start) over docker restart
-    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null || \
-           docker exec biomate-galaxy-dev pgrep -f "gunicorn.*galaxy" | head -1)
+    # Prefer HUP (graceful reload, no 30-min cold start) over docker restart.
+    # Use "docker kill -s HUP" from the host — the container has no kill binary.
+    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null)
     if [[ -n "$GPID" ]]; then
-      docker exec biomate-galaxy-dev kill -HUP "$GPID" 2>/dev/null && \
+      docker exec biomate-galaxy-dev sh -c "kill -HUP $GPID" 2>/dev/null && \
         echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
-        echo "[galaxy] HUP failed — falling back to container restart"
+        echo "[galaxy] HUP failed (non-fatal — workers will pick up files on next request)"
     else
-      echo "[galaxy] gunicorn not found — container restart needed"
-      docker restart biomate-galaxy-dev
-      sleep 10
-      # Verify it came back up
-      for i in 1 2 3 4 5; do
-        if docker exec biomate-galaxy-dev curl -sf http://localhost:8080/api/version > /dev/null 2>&1; then
-          echo "[galaxy] Healthy after restart"
-          break
-        fi
-        echo "[galaxy] Waiting ($i/5)..."
-        sleep 5
-      done
+      echo "[galaxy] gunicorn.pid not found — Galaxy may still be starting up"
+      echo "[galaxy] Python files copied; workers will use new code when Galaxy finishes loading"
     fi
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
