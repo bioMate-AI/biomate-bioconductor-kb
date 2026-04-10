@@ -4840,6 +4840,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Nextflow status for a workflow invocation
+  // Proxy: fetch workflow phase steps from backend (for lazy-loading in viewer)
+  app.get("/api/nextflow/steps", optionalAuth, async (req, res) => {
+    try {
+      const nfPath = String(req.query.nextflow_path || '');
+      if (!nfPath) return res.status(400).json({ error: "nextflow_path required" });
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const r = await fetch(`${galaxyUrl}/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`, {
+        headers: { 'x-api-key': process.env.GALAXY_API_KEY || '' },
+      });
+      const data = await r.json();
+      res.status(r.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/invocations/:id/nextflow/status", async (req, res) => {
     try {
       const invocation = await storage.getInvocation(req.params.id);

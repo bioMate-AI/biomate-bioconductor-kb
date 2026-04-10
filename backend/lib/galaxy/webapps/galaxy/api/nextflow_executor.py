@@ -2428,6 +2428,20 @@ class ResumeRunRequest(BaseModel):
     nextflow_path: Optional[str] = None
 
 
+@router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
+def get_nextflow_steps(nextflow_path: str = "") -> Dict[str, Any]:
+    """
+    Return the phase steps for a Nextflow workflow file.
+    Used by the viewer to lazy-load steps when the stored workflowDefinition
+    was created before steps were available (e.g. older sessions).
+    """
+    from galaxy.webapps.galaxy.api.ai_assistant import _parse_nextflow_steps
+    if not nextflow_path:
+        raise HTTPException(status_code=400, detail="nextflow_path is required")
+    steps = _parse_nextflow_steps(nextflow_path)
+    return {"steps": steps, "count": len(steps)}
+
+
 @router.post("/api/nextflow/resume/{run_id}", summary="Resume a Nextflow run with -resume")
 def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()) -> Dict[str, Any]:
     """

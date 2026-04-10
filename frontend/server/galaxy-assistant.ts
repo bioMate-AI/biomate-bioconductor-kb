@@ -3990,24 +3990,26 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const lower = text.toLowerCase();
     const additions: string[] = [];
 
-    const hasWorkflowPhases = /(workflow phases|phase|target prep|docking|admet|herg|pk\/nca|nca)/i.test(lower);
-    const hasDecisionGates = /(decision gate|gating|cutoff|threshold|risk flag|go\/no-go|go-no-go)/i.test(lower);
-    const hasRequiredInputs = /(required inputs|input files|you provide|input data)/i.test(lower);
-    const hasNextStep = /(next step|next steps|confirm or edit|please confirm|follow-up)/i.test(lower);
+    // When a runnable workflow was generated, the panel shows the actual steps —
+    // never append generic boilerplate phases/inputs/next-step sections.
+    if (!runnableWorkflow) {
+      const hasWorkflowPhases = /(workflow phases|phase|target prep|docking|admet|herg|pk\/nca|nca)/i.test(lower);
+      const hasRequiredInputs = /(required inputs|input files|you provide|input data)/i.test(lower);
+      const hasNextStep = /(next step|next steps|confirm or edit|please confirm|follow-up)/i.test(lower);
 
-    if (!hasWorkflowPhases) {
-      additions.push(
-        '### Workflow phases\n- Target/assay context and data intake\n- Core analysis phase (e.g., docking, ADMET, or PK/NCA)\n- QC/safety review and report handoff'
-      );
-    }
-    // Decision gates section removed from user-facing responses
-    if (!hasRequiredInputs) {
-      additions.push(
-        '### Required inputs\n- Input data files (e.g., structures/SMILES, assay data, or concentration-time table)\n- Basic study metadata (condition, units, and endpoint definitions)'
-      );
-    }
-    if (!hasNextStep) {
-      additions.push('### Next step\n- Confirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.');
+      if (!hasWorkflowPhases) {
+        additions.push(
+          '### Workflow phases\n- Target/assay context and data intake\n- Core analysis phase (e.g., docking, ADMET, or PK/NCA)\n- QC/safety review and report handoff'
+        );
+      }
+      if (!hasRequiredInputs) {
+        additions.push(
+          '### Required inputs\n- Input data files (e.g., structures/SMILES, assay data, or concentration-time table)\n- Basic study metadata (condition, units, and endpoint definitions)'
+        );
+      }
+      if (!hasNextStep) {
+        additions.push('### Next step\n- Confirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.');
+      }
     }
 
     if (workflowGenerationFailed) {

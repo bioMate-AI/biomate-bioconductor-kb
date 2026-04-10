@@ -405,6 +405,21 @@ export function NextflowWorkflowViewer({
   const [browsingForParam, setBrowsingForParam] = useState<{ id: string; label: string } | null>(null);
   const [sessionDatasets, setSessionDatasets] = useState<Array<{ id: string; name: string; file_type?: string; file_path?: string | null; source_url?: string | null; galaxy_dataset_id?: string }>>([]);
 
+  // Lazy-load workflow phase steps when workflowDefinition has a nextflow_path
+  // but steps is empty (e.g. sessions created before steps parsing was deployed).
+  const [lazySteps, setLazySteps] = useState<Record<string, any> | null>(null);
+  useEffect(() => {
+    const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath;
+    const existingSteps = workflowDefinition?.steps;
+    const hasSteps = existingSteps && typeof existingSteps === 'object' && Object.keys(existingSteps).length > 0;
+    if (!hasSteps && nfPath) {
+      fetch(`/api/nextflow/steps?nextflow_path=${encodeURIComponent(nfPath)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.steps && Object.keys(data.steps).length > 0) setLazySteps(data.steps); })
+        .catch(() => {});
+    }
+  }, [workflowDefinition]);
+
   // Fetch session-uploaded datasets so the param browser can return real file paths to Nextflow
   useEffect(() => {
     fetch('/api/datasets/session')
@@ -455,8 +470,14 @@ export function NextflowWorkflowViewer({
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   const phases = React.useMemo<ViewerPhase[]>(() => {
-    if (workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0) {
-      return Object.entries(workflowDefinition.steps).map(([stepKey, rawStep], index) => {
+    // Prefer stored steps; fall back to lazily-fetched steps for old sessions
+    const stepsSource = (
+      workflowDefinition?.steps && typeof workflowDefinition.steps === "object" && Object.keys(workflowDefinition.steps).length > 0
+        ? workflowDefinition.steps
+        : lazySteps ?? {}
+    );
+    if (Object.keys(stepsSource).length > 0) {
+      return Object.entries(stepsSource).map(([stepKey, rawStep], index) => {
         const step = (rawStep || {}) as Record<string, unknown>;
         return {
           id: String(step.id || stepKey || `step-${index}`),
@@ -471,7 +492,7 @@ export function NextflowWorkflowViewer({
     }
     // No step data from backend — return empty so the viewer shows a clean idle state
     return [];
-  }, [workflowDefinition]);
+  }, [workflowDefinition, lazySteps]);
 
   useEffect(() => {
     setStepExecutionById((prev) => {
