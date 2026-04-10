@@ -241,19 +241,29 @@ deploy_databases() {
 # ---------------------------------------------------------------------------
 
 restart_galaxy() {
-  log "[galaxy] Restarting Galaxy container..."
+  log "[galaxy] Reloading Galaxy gunicorn workers (HUP)..."
   ec2_ssh '
-    docker restart biomate-galaxy-dev
-    sleep 10
-    # Verify it came back up
-    for i in 1 2 3 4 5; do
-      if docker exec biomate-galaxy-dev curl -sf http://localhost:8080/api/version > /dev/null 2>&1; then
-        echo "[galaxy] Healthy after restart"
-        break
-      fi
-      echo "[galaxy] Waiting ($i/5)..."
-      sleep 5
-    done
+    # Prefer HUP (graceful reload, no 30-min cold start) over docker restart
+    GPID=$(docker exec biomate-galaxy-dev cat /app/database/gravity/gunicorn.pid 2>/dev/null || \
+           docker exec biomate-galaxy-dev pgrep -f "gunicorn.*galaxy" | head -1)
+    if [[ -n "$GPID" ]]; then
+      docker exec biomate-galaxy-dev kill -HUP "$GPID" 2>/dev/null && \
+        echo "[galaxy] gunicorn HUP sent to PID $GPID" || \
+        echo "[galaxy] HUP failed — falling back to container restart"
+    else
+      echo "[galaxy] gunicorn not found — container restart needed"
+      docker restart biomate-galaxy-dev
+      sleep 10
+      # Verify it came back up
+      for i in 1 2 3 4 5; do
+        if docker exec biomate-galaxy-dev curl -sf http://localhost:8080/api/version > /dev/null 2>&1; then
+          echo "[galaxy] Healthy after restart"
+          break
+        fi
+        echo "[galaxy] Waiting ($i/5)..."
+        sleep 5
+      done
+    fi
 
     # Ensure Nextflow is installed (lost if container was recreated from image)
     if ! docker exec biomate-galaxy-dev which nextflow > /dev/null 2>&1; then
@@ -311,7 +321,8 @@ do_sync() {
 
   $do_backend   && deploy_backend_python
   $do_workflows && deploy_workflows
-  ($do_backend || $do_workflows) && restart_galaxy
+  # Only restart Galaxy when backend Python changes — .nf files don't require Galaxy restart
+  $do_backend && restart_galaxy
   $do_db        && deploy_databases
   $do_frontend  && deploy_frontend
 

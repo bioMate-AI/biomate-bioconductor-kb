@@ -55,7 +55,7 @@ export class GalaxyAPIProxy {
 
     this.client = axios.create({
       baseURL: this.galaxyUrl,
-      timeout: 60000, // 60 seconds (increased from 30 for workflow generation)
+      timeout: 120000, // 120 seconds — LLM param inference can take 60-90s on cold start
       headers: {
         'Content-Type': 'application/json',
         ...(this.apiKey && { 'X-API-Key': this.apiKey }),
@@ -740,6 +740,7 @@ export class GalaxyAPIProxy {
         ...(request.penalized_domains?.length ? { penalized_domains: request.penalized_domains } : {}),
         ...(request.key_terms?.length ? { key_terms: request.key_terms } : {}),
         ...(request.session_datasets?.length ? { session_datasets: request.session_datasets } : {}),
+        ...(request.credential_map ? { credential_map: request.credential_map } : {}),
       };
 
       console.log('[GalaxyAPIProxy] Calling generate_workflow — intent:', request.user_intent);
