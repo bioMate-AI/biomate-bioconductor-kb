@@ -271,6 +271,9 @@ restart_galaxy() {
     # Remove stale conda lock that blocks gunicorn worker startup after restart
     docker exec -u root biomate-galaxy-dev rm -f /app/database/dependencies/conda.lock 2>/dev/null || true
 
+    # Ensure Galaxy is on the shared Docker network (lost if container was recreated)
+    docker network connect biomate-dev-net biomate-galaxy-dev 2>/dev/null || true
+
     # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
     docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
       /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
