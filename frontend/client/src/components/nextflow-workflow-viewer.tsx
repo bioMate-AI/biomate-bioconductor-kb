@@ -283,7 +283,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function DownloadCommandsPanel({ runId }: { runId: string }) {
+function DownloadCommandsPanel({ runId, invocationId }: { runId: string; invocationId?: string }) {
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
@@ -296,11 +296,12 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
   if (!data?.download_commands) return null;
 
   const allOutputs: string = data.download_commands.all_outputs ?? '';
-  if (!allOutputs) return null;
-
   const files: Array<{ name: string; size: number; extension: string; download_url: string | null }> =
     data.files ?? [];
-  const downloadableFiles = files.filter(f => f.download_url);
+  const downloadableFiles = files.filter(f => f.download_url && f.size > 0);
+
+  // Nothing to show — no files and no S3 path
+  if (downloadableFiles.length === 0 && !allOutputs && !invocationId) return null;
 
   return (
     <div data-testid="download-commands-panel" className="rounded-md border border-muted p-4 space-y-3">
@@ -310,7 +311,7 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
       </h4>
 
       {/* Individual file download links */}
-      {downloadableFiles.length > 0 ? (
+      {downloadableFiles.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">Output files:</p>
           <div className="space-y-1">
@@ -330,21 +331,19 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
             ))}
           </div>
         </div>
-      ) : (
-        <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">Bulk download (requires AWS CLI):</p>
-          <code className="block text-xs font-mono bg-muted p-2 rounded break-all">{allOutputs}</code>
-        </div>
       )}
 
-      {/* Always show bulk download option as secondary */}
-      {downloadableFiles.length > 0 && (
-        <details className="text-xs">
-          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            Bulk download (AWS CLI)
-          </summary>
-          <code className="block font-mono bg-muted p-2 rounded break-all mt-1">{allOutputs}</code>
-        </details>
+      {/* Bulk download — show as a button (download-all endpoint) instead of CLI command */}
+      {downloadableFiles.length === 0 && invocationId && (
+        <a
+          href={`/api/invocations/${invocationId}/download-all`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+        >
+          <Download className="h-3 w-3" />
+          Download all outputs as ZIP
+        </a>
       )}
     </div>
   );
@@ -1869,7 +1868,7 @@ export function NextflowWorkflowViewer({
 
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
-              <DownloadCommandsPanel runId={runId} />
+              <DownloadCommandsPanel runId={runId} invocationId={invocationId} />
             </div>
           )}
 

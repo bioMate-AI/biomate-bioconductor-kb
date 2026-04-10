@@ -3190,8 +3190,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invocations/:invocationId/qc-audit-download", async (req: any, res: any) => {
     try {
       const { invocationId } = req.params;
+      // Resolve frontend UUID → backend run_id (nextflow UUID or Galaxy integer ID)
+      const inv = await storage.getInvocation(invocationId).catch(() => null);
+      const backendId = inv?.galaxyInvocationId || invocationId;
       const response = await (galaxyAPIProxy.client as any).get(
-        `/api/invocations/${invocationId}/qc-audit-download`,
+        `/api/invocations/${backendId}/qc-audit-download`,
         { responseType: 'arraybuffer', params: req.query }
       );
       const contentType = response.headers['content-type'] || 'application/x-ndjson';
@@ -3209,8 +3212,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/invocations/:invocationId/methods-report", async (req: any, res: any) => {
     try {
       const { invocationId } = req.params;
+      const inv = await storage.getInvocation(invocationId).catch(() => null);
+      const backendId = inv?.galaxyInvocationId || invocationId;
       const response = await (galaxyAPIProxy.client as any).get(
-        `/api/invocations/${invocationId}/methods-report`,
+        `/api/invocations/${backendId}/methods-report`,
         { responseType: 'arraybuffer', params: req.query }
       );
       const contentType = response.headers['content-type'] || 'text/plain';

@@ -559,16 +559,8 @@ export function ChatMessage({
             );
           })}
 
-          {/* Output Attachments - Show when workflow execution completes */}
-          {!isUser && effectiveInvocationId && (isWorkflowMessage || isRunAnchorFocused) && (
-            <ChatOutputAttachments
-              invocationId={effectiveInvocationId}
-              sessionId={sessionId}
-              runId={currentExecutionRun?.id}
-              executionStatus={currentExecutionRun?.execution?.status}
-              errorMessage={currentExecutionRun?.execution?.errorMessage}
-            />
-          )}
+          {/* Output Attachments are shown inside NextflowWorkflowViewer (View Results button).
+              Rendering them here too caused a duplicate panel — removed. */}
         </div>
 
         {!isUser && (

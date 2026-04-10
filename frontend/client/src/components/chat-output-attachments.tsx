@@ -101,7 +101,19 @@ export function ChatOutputAttachments({
     )
   }
 
-  if (outputs.length === 0) {
+  // Filter out Nextflow internal files: 0-byte files, 8-char hex hash names,
+  // and known internal filenames (dag.dot, versions.yml, etc.)
+  const NF_INTERNAL_RE = /^[0-9a-f]{8}$/i;
+  const NF_INTERNAL_NAMES = new Set(['dag.dot', 'versions.yml', 'nextflow_run_summary.txt', 'trace.txt', 'timeline.html', 'report.html']);
+  const visibleOutputs = outputs.filter(o => {
+    if ((o as any).size === 0) return false;
+    const base = (o.name || '').split('/').pop() || o.name;
+    if (NF_INTERNAL_RE.test(base)) return false;
+    if (NF_INTERNAL_NAMES.has(base)) return false;
+    return true;
+  });
+
+  if (visibleOutputs.length === 0) {
     return (
       <Card className={className}>
         <CardContent className="pt-6">
@@ -114,18 +126,18 @@ export function ChatOutputAttachments({
   }
 
   // Group outputs by type for better organization
-  const visualizations = outputs.filter(o => o.fileType === 'image' || o.fileType === 'interactive')
-  const tables = outputs.filter(o => o.fileType === 'table')
-  const sequences = outputs.filter(o => o.fileType === 'sequence')
-  const variants = outputs.filter(o => o.fileType === 'variants')
-  const annotations = outputs.filter(o => o.fileType === 'annotation')
-  const singleCell = outputs.filter(o => o.fileType === 'singlecell')
-  const otherFiles = outputs.filter(o =>
+  const visualizations = visibleOutputs.filter(o => o.fileType === 'image' || o.fileType === 'interactive')
+  const tables = visibleOutputs.filter(o => o.fileType === 'table')
+  const sequences = visibleOutputs.filter(o => o.fileType === 'sequence')
+  const variants = visibleOutputs.filter(o => o.fileType === 'variants')
+  const annotations = visibleOutputs.filter(o => o.fileType === 'annotation')
+  const singleCell = visibleOutputs.filter(o => o.fileType === 'singlecell')
+  const otherFiles = visibleOutputs.filter(o =>
     !['image', 'interactive', 'table', 'sequence', 'variants', 'annotation', 'singlecell'].includes(o.fileType)
   )
 
   const isTerminalStatus = executionStatus === 'completed' || executionStatus === 'failed' || executionStatus === 'cancelled'
-  const hasOutputs = outputs.length > 0
+  const hasOutputs = visibleOutputs.length > 0
   const isPartial = executionStatus === 'failed' || executionStatus === 'cancelled' || (executionStatus === 'running' && hasOutputs)
   const outputState = isPartial
     ? { label: 'Partial outputs', status: 'warning' as const }
@@ -190,7 +202,7 @@ export function ChatOutputAttachments({
         />
       </div>
       {/* Interactive Tool Launcher */}
-      <InteractiveToolLauncher outputs={outputs} />
+      <InteractiveToolLauncher outputs={visibleOutputs} />
 
       {/* Visualizations Section */}
       {visualizations.length > 0 && (
