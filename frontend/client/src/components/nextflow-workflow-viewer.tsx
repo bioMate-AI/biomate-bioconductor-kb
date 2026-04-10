@@ -195,6 +195,8 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
     const fromInline = workflowDefinition?.inline_parameters && typeof workflowDefinition.inline_parameters === "object"
       ? workflowDefinition.inline_parameters
       : {};
+    // Use the dominant group from schema params so inline extras don't create a second group
+    const dominantGroup = structured.find(p => p.group)?.group;
     const extraInline = Object.entries(fromInline)
       .filter(([key]) => !key.startsWith("__") && !structuredNames.has(key))
       .map(([key, value]) => ({
@@ -206,6 +208,7 @@ function buildViewerParameters(workflowDefinition: any, currentParams: Record<st
         defaultValue: undefined,
         required: false,
         autoFilled: true,
+        group: dominantGroup,
       }));
     return [...structured, ...extraInline];
   }
@@ -1223,7 +1226,7 @@ export function NextflowWorkflowViewer({
                 // Group params by their schema group label; fall back to a single group.
                 const groups = new Map<string, typeof renderedParameters>();
                 for (const p of renderedParameters) {
-                  const g = p.group || 'Workflow Parameters';
+                  const g = p.group || 'Parameters';
                   if (!groups.has(g)) groups.set(g, []);
                   groups.get(g)!.push(p);
                 }
@@ -1605,8 +1608,8 @@ export function NextflowWorkflowViewer({
                   variant="outline"
                   className="w-full"
                   onClick={() => setShowResults((prev) => !prev)}
-                  disabled={!invocationId}
-                  title={invocationId ? "View output results" : "Run workflow to view results"}
+                  disabled={!invocationId || status === 'failed'}
+                  title={!invocationId ? "Run workflow to view results" : status === 'failed' ? "No results — workflow failed" : "View output results"}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   {showResults ? 'Hide Results' : 'View Results'}
@@ -1615,10 +1618,10 @@ export function NextflowWorkflowViewer({
                   variant="outline"
                   className="w-full"
                   data-testid="button-download-all-workflow-panel"
-                  disabled={!invocationId}
-                  title={invocationId ? "Download all outputs" : "Run workflow to enable download"}
+                  disabled={!invocationId || status === 'failed'}
+                  title={!invocationId ? "Run workflow to enable download" : status === 'failed' ? "No outputs — workflow failed" : "Download all outputs"}
                   onClick={() => {
-                    if (!invocationId) return;
+                    if (!invocationId || status === 'failed') return;
                     emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
                     window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
                     setDownloadAllPromptOpen(true);
@@ -1633,10 +1636,10 @@ export function NextflowWorkflowViewer({
                     variant="outline"
                     className="w-full"
                     data-testid="button-download-qc-audit"
-                    disabled={!invocationId}
-                    title={invocationId ? "Download QC audit log" : "Run workflow to enable"}
+                    disabled={!invocationId || status === 'failed'}
+                    title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No QC data — workflow failed" : "Download QC audit log"}
                     onClick={() => {
-                      if (!invocationId) return;
+                      if (!invocationId || status === 'failed') return;
                       window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
                     }}
                   >
@@ -1648,10 +1651,10 @@ export function NextflowWorkflowViewer({
                   variant="outline"
                   className="w-full"
                   data-testid="button-download-methods-report"
-                  disabled={!invocationId}
-                  title={invocationId ? "Download methods report" : "Run workflow to enable"}
+                  disabled={!invocationId || status === 'failed'}
+                  title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No report — workflow failed" : "Download methods report"}
                   onClick={() => {
-                    if (!invocationId) return;
+                    if (!invocationId || status === 'failed') return;
                     window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
                   }}
                 >

@@ -2169,11 +2169,29 @@ def execute_nextflow(
 
     if _has_multiline:
         # One or more params contain embedded newlines (inline CSV/SMILES/FASTA).
-        # Write all params to a JSON file and pass via --params-file so Nextflow
-        # receives the full multi-line strings without shell arg-parsing issues.
+        # Nextflow 25.x --params-file silently drops multi-line string values
+        # (they arrive as null in params). Workaround: write multi-line values
+        # into a Nextflow config file using triple-quoted Groovy strings, which
+        # Nextflow reads correctly. Single-line params are passed as normal flags.
+        _inline_cfg_lines = ["params {"]
+        _scalar_params: dict = {}
+        for key, value in params.items():
+            if isinstance(value, str) and "\n" in value:
+                # Escape any triple-quote sequences inside the content
+                _safe_val = value.replace('"""', '\\"\\"\\"')
+                _inline_cfg_lines.append(f'    {key} = """{_safe_val}"""')
+                log.info(f"[Nextflow run {run_id}] inline multi-line param '{key}' → config block ({len(value)} chars)")
+            else:
+                _scalar_params[key] = value
+        _inline_cfg_lines.append("}")
+        _inline_cfg_path = log_dir / "biomate_inline_params.config"
+        _inline_cfg_path.write_text("\n".join(_inline_cfg_lines) + "\n")
+        cmd += ["-c", str(_inline_cfg_path)]
+        log.info(f"[Nextflow run {run_id}] inline params config: {_inline_cfg_path}")
+        # Also emit a params-file for audit purposes (scalar params only)
         import json as _ml_json
         _params_for_json = {}
-        for key, value in params.items():
+        for key, value in _scalar_params.items():
             if isinstance(value, bool):
                 _params_for_json[key] = value
             elif isinstance(value, (int, float)):
@@ -2185,7 +2203,7 @@ def execute_nextflow(
         _params_json_path = log_dir / "nf-params.json"
         _params_json_path.write_text(_ml_json.dumps(_params_for_json, indent=2))
         cmd += ["--params-file", str(_params_json_path)]
-        log.info(f"[Nextflow run {run_id}] --params-file: {list(_params_for_json.keys())}")
+        log.info(f"[Nextflow run {run_id}] --params-file (scalar only): {list(_params_for_json.keys())}")
     else:
         # Standard path: pass params as individual --key value flags.
         if "outdir" not in params:
@@ -2212,6 +2230,10 @@ def execute_nextflow(
     env["NXF_HOME"] = str(log_dir / ".nextflow")
     if strategy["mode"] == "docker" and strategy["docker_opts"]:
         env["NXF_DOCKER_OPTS"] = strategy["docker_opts"]
+    # All workflows use System.getenv('NEXTFLOW_USE_AWS') to select ECR vs local containers.
+    # Set it whenever we're running on AWS Batch so every .nf file picks the correct ECR image.
+    if compute.get("executor") == "awsbatch":
+        env["NEXTFLOW_USE_AWS"] = "true"
 
     # Compute config overrides: generate a real nextflow.config for non-local executors.
     # NXF_EXECUTOR is not a valid Nextflow env var — executor must be set in a config file.

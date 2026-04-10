@@ -1104,27 +1104,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         </div>
       )}
 
-      {isWorkflowRunning && (
-        <div className="border-b bg-blue-50 dark:bg-blue-950/20 px-4 py-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-blue-700 dark:text-blue-300">
-                Executing workflow... {workflowProgress}%
-              </span>
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Live execution updates enabled
-            </span>
-          </div>
-          <div className="mt-2 h-1 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${workflowProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
       {/* Execution error and parallel-action panels removed — error details are shown
           inside the workflow viewer's "Workflow Failed" card instead. */}
 
