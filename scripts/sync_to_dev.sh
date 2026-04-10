@@ -84,15 +84,12 @@ deploy_frontend() {
       -f /opt/biomate/frontend_sync/frontend/Dockerfile \
       /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -3
     echo "[frontend] Restarting container..."
-    docker stop biomate-dev-frontend 2>/dev/null || true
-    docker rm   biomate-dev-frontend 2>/dev/null || true
+    docker rm -f biomate-dev-frontend 2>/dev/null || true
+    sleep 1
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
       -e NODE_ENV=production -e PORT=3000 -e FORCE_HTTPS=0 \
       --restart unless-stopped \
-      --health-cmd="node -e \"require('http').get('http://localhost:3000/api/health',(r)=>{process.exit(r.statusCode===200?0:1)})\"" \
-      --health-interval=30s --health-timeout=10s \
-      --health-start-period=30s --health-retries=3 \
       biomate-dev-frontend:latest
     sleep 5
     # Restore logo (not baked into image — uploaded separately)
@@ -209,6 +206,7 @@ deploy_databases() {
         /tmp/galaxy_ai_tools_sync.db --no-progress
       docker cp /tmp/galaxy_ai_tools_sync.db \
         biomate-galaxy-dev:/app/database/galaxy_ai_tools.db
+      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/galaxy_ai_tools.db
       docker start biomate-galaxy-dev
       sleep 5
       echo "[db] galaxy_ai_tools.db replaced"
@@ -228,6 +226,7 @@ deploy_databases() {
       aws s3 cp s3://biomate-nextflow-work/dev-sync/universe.sqlite \
         /tmp/universe_sync.sqlite --no-progress
       docker cp /tmp/universe_sync.sqlite biomate-galaxy-dev:/app/database/universe.sqlite
+      docker exec -u root biomate-galaxy-dev chown galaxy:galaxy /app/database/universe.sqlite
       docker start biomate-galaxy-dev
       sleep 5
       echo "[db] universe.sqlite replaced"
@@ -255,6 +254,23 @@ restart_galaxy() {
       echo "[galaxy] Waiting ($i/5)..."
       sleep 5
     done
+
+    # Ensure Nextflow is installed (lost if container was recreated from image)
+    if ! docker exec biomate-galaxy-dev which nextflow > /dev/null 2>&1; then
+      echo "[galaxy] Nextflow missing — installing Java + Nextflow..."
+      docker exec -u root biomate-galaxy-dev bash -c "
+        apt-get update -q && apt-get install -y -q default-jre-headless 2>/dev/null
+        curl -fsSL https://get.nextflow.io | bash
+        mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow
+      " 2>&1 | tail -5
+      echo "[galaxy] Nextflow installed: $(docker exec biomate-galaxy-dev nextflow -version 2>/dev/null | grep version)"
+    else
+      echo "[galaxy] Nextflow OK: $(docker exec biomate-galaxy-dev nextflow -version 2>/dev/null | grep version)"
+    fi
+
+    # Ensure Galaxy database files are owned by galaxy user (docker cp sets host uid)
+    docker exec -u root biomate-galaxy-dev chown galaxy:galaxy \
+      /app/database/universe.sqlite /app/database/galaxy_ai_tools.db 2>/dev/null || true
   '
 }
 
@@ -332,15 +348,35 @@ while true; do
       log "Changes since last deploy: $(echo "$CHANGED" | wc -l) files"
     fi
 
-    do_sync "$CURRENT_COMMIT" "$CHANGED" \
-      && LAST_DEPLOYED_COMMIT="$CURRENT_COMMIT" \
-      || log "Sync failed — will retry next cycle"
+    if do_sync "$CURRENT_COMMIT" "$CHANGED"; then
+      LAST_DEPLOYED_COMMIT="$CURRENT_COMMIT"
+      log "Running post-sync E2E tests..."
+      bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "$CURRENT_COMMIT" \
+        >> /tmp/biomate_sync.log 2>&1 &
+    else
+      log "Sync failed — will retry next cycle"
+    fi
   else
     # Check if DB changed even without a new commit
     local_db_mtime=$(stat -c %Y "$REPO_ROOT/backend/database/galaxy_ai_tools.db" 2>/dev/null || echo 0)
     if [[ "$local_db_mtime" -gt "${LAST_DB_SYNC:-0}" ]]; then
       log "DB changed outside git — syncing..."
       deploy_databases
+      LAST_DB_SYNC="$local_db_mtime"
+    fi
+
+    # Also sync uncommitted edits (dirty working tree) so live testing sees latest code
+    DIRTY=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -E "^(frontend/|backend/lib/|backend/biomni_workflows/)" || true)
+    if [[ -n "$DIRTY" ]]; then
+      dirty_count=$(echo "$DIRTY" | wc -l)
+      log "Dirty working tree: ${dirty_count} file(s) — syncing uncommitted edits..."
+      if do_sync "$CURRENT_COMMIT-dirty" "$DIRTY"; then
+        log "Running post-sync E2E tests (dirty)..."
+        bash "$REPO_ROOT/scripts/run_postsync_tests.sh" "${CURRENT_COMMIT}-dirty" \
+          >> /tmp/biomate_sync.log 2>&1 &
+      else
+        log "Dirty sync failed — will retry next cycle"
+      fi
     else
       log "No changes (${CURRENT_COMMIT:0:8}) — sleeping ${CHECK_INTERVAL}s"
     fi

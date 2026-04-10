@@ -87,11 +87,31 @@ class ChatHistoryService {
       lastActivity: new Date()
     };
 
-    // Update title if it's still "New Chat" and we have messages
+    // Update title if it's still "New Chat" and we have a user+assistant message pair
     if (sessions[sessionIndex].title === "New Chat" && sessions[sessionIndex].messages.length > 1) {
       const firstUserMessage = sessions[sessionIndex].messages.find(m => m.role === "user");
       if (firstUserMessage) {
+        // Set a temporary word-based title immediately so the sidebar isn't blank
         sessions[sessionIndex].title = this.generateTitleFromMessage(firstUserMessage.content);
+        // Kick off async LLM title generation — updates when ready
+        const sid = sessionId;
+        const query = firstUserMessage.content;
+        fetch('/api/sessions/generate-title', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: query }),
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (data?.title) {
+              const current = this.getSession(sid);
+              // Only update if title is still the word-based fallback (not user-renamed)
+              if (current && (current.title === this.generateTitleFromMessage(query) || current.title === 'New Chat')) {
+                this.updateSession(sid, { title: data.title });
+              }
+            }
+          })
+          .catch(() => {});
       }
     }
 
@@ -178,8 +198,8 @@ class ChatHistoryService {
   }
   
   private generateTitleFromMessage(content: string): string {
-    // Extract a meaningful title from the first user message
-    const words = content.trim().split(' ');
+    // Fallback title from first 6 words (used until LLM title arrives)
+    const words = content.trim().split(/\s+/);
     const title = words.slice(0, 6).join(' ');
     return title.length > 50 ? title.substring(0, 47) + '...' : title;
   }

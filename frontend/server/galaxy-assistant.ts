@@ -403,7 +403,9 @@ export const DOMAIN_CATALOGS: Partial<Record<string, string>> = {
 - drug_difference_map: Subtract apo density from drug-bound map → ±3σ thresholded difference map. Required for multi-drug pharmacology studies (CaV1.2, GPCR multi-ligand). Input: apo.mrc + drug.mrc. Outputs: difference.mrc + occupancy report.
 - saposin_nanodisc_spa: CryoSPARC SPA for membrane proteins < 60 kDa in saposin A nanodisc. Defaults: 0.649 Å/pix, 60 e⁻/Å², 256 px box. Includes saposin reconstitution QC (NS-EM nanodisc size, SEC single peak) + TOPAZ training pass. Use when: MFSD2B/VMAT2-like transporters, small membrane proteins, saposin reconstitution.
 - gpcr_complex_spa: CryoSPARC SPA for GPCR-G protein complexes in MSP1D1ΔH5 nanodisc. Defaults: 0.83 Å/pix, 256 px box. Includes complex assembly QC (scFv16 confirmation, apyrase nucleotide-free check, SEC stoichiometry). Dual local refinement: TM bundle + G protein masks. Use when: μOR/D1R/β2AR-Gi/s/q, GPCR-arrestin, biased agonism studies.
-- multi_drug_atlas: Multi-drug SPA + difference map pipeline. Processes apo + N drug datasets (must be identical collection params), generates drug-minus-apo difference maps at ±3σ, validates occupancy. Use when: ion channel multi-drug pharmacology (CaV1.2), GPCR multi-PAM cooperativity, drug atlas studies.`,
+- multi_drug_atlas: Multi-drug SPA + difference map pipeline. Processes apo + N drug datasets (must be identical collection params), generates drug-minus-apo difference maps at ±3σ, validates occupancy. Use ONLY when: user explicitly has MULTIPLE drug datasets AND wants drug-minus-apo difference maps (ion channel pharmacology CaV1.2, GPCR multi-PAM, drug atlas). Do NOT use for standard single-protein SPA.
+
+ROUTING RULE: For ANY standard single-particle analysis request (reconstruct 3D map, determine structure, SPA of one protein/complex) → always use cryosparc_standard_spa. Only route to multi_drug_atlas when user explicitly provides multiple drug datasets and asks for pharmacological comparison.`,
 
   systems_biology: `Available BioMate systems biology workflows:
 - perform_flux_balance_analysis: Genome-scale metabolic flux balance analysis (COBRApy). Input: SBML metabolic model (.xml) + optional flux constraints. Outputs: optimal flux distribution CSV.
@@ -2391,6 +2393,17 @@ General pattern: "[computational method/analysis] [from/using/of] [data type or 
 **Key rule**: If the user's goal would be achieved by running a computational biology pipeline (even if phrased as "I need [data]" or "identify [biological entities]" or describes a technique/method without action verbs), classify as **workflow_generation**, not research_question or data_interpretation.
 
 Only use research_question when the user is explicitly asking about scientific literature, existing published findings, or conceptual explanations ("what is", "how does", "why do", "what papers").
+
+## Requests that are NEVER workflow_generation
+
+These must NOT trigger workflow generation, regardless of file names or scientific context:
+- "Generate a sample [file/data/dataset] for me" → cannot be fulfilled by a pipeline; respond with a polite refusal and suggest public data sources
+- "Create a synthetic/fake/mock [file]" → same
+- "Simulate [raw data / reads / images] with a given filename" → same
+- "Can you make a [.mrc / .fastq / .bam] file for me?" → same
+- Any request whose primary intent is *data fabrication* rather than *analysis of provided data*
+
+For these, set type to "research_question" (or "general_help") with needsWorkflowGeneration=false.
 
 ## Action Categories
 

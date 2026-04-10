@@ -115,6 +115,32 @@ type QCGateData = {
   }>;
 };
 
+// Human-readable labels for QC threshold metric keys
+const QC_THRESHOLD_LABELS: Record<string, { label: string; unit?: string }> = {
+  reads_surviving_pct: { label: 'Reads Surviving Trim', unit: '%' },
+  alignment_rate: { label: 'Alignment Rate', unit: '%' },
+  mito_fraction_pct: { label: 'Mitochondrial Reads', unit: '%' },
+  fit_quality: { label: 'CTF Fit Quality', unit: '' },
+  mapped_pct: { label: 'Mapped Reads', unit: '%' },
+  duplicate_rate: { label: 'Duplicate Rate', unit: '%' },
+  assigned_reads_pct: { label: 'Assigned Reads', unit: '%' },
+  median_cv_coverage: { label: 'Median CV Coverage', unit: '' },
+  tss_enrichment: { label: 'TSS Enrichment Score', unit: '' },
+  frip_score: { label: 'FRiP Score', unit: '' },
+  nrf_score: { label: 'Non-Redundant Fraction', unit: '' },
+  median_fragment_length: { label: 'Median Fragment Length', unit: 'bp' },
+  min_particles: { label: 'Minimum Particle Count', unit: '' },
+  min_resolution: { label: 'Minimum Resolution', unit: 'Å' },
+  resolution_angstrom: { label: 'Resolution', unit: 'Å' },
+  ctf_fit_quality: { label: 'CTF Fit Quality', unit: '' },
+  snr_db: { label: 'Signal-to-Noise Ratio', unit: 'dB' },
+  peptides_identified: { label: 'Peptides Identified', unit: '' },
+  protein_fdr: { label: 'Protein FDR', unit: '' },
+  sequence_depth: { label: 'Sequencing Depth', unit: '' },
+  good_barcodes_pct: { label: 'Valid Barcodes', unit: '%' },
+  median_genes_per_cell: { label: 'Median Genes / Cell', unit: '' },
+};
+
 function inferParamType(value: any, backendType?: string): ViewerParameter['type'] {
   // Backend now emits explicit type — trust it when present.
   if (backendType === 'file') return 'file';
@@ -251,6 +277,12 @@ async function readApiErrorMessage(response: Response): Promise<string> {
   return `Request failed (${response.status})`;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function DownloadCommandsPanel({ runId }: { runId: string }) {
   const [data, setData] = useState<any>(null);
 
@@ -266,16 +298,54 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
   const allOutputs: string = data.download_commands.all_outputs ?? '';
   if (!allOutputs) return null;
 
+  const files: Array<{ name: string; size: number; extension: string; download_url: string | null }> =
+    data.files ?? [];
+  const downloadableFiles = files.filter(f => f.download_url);
+
   return (
     <div data-testid="download-commands-panel" className="rounded-md border border-muted p-4 space-y-3">
       <h4 className="text-sm font-semibold flex items-center gap-2">
         <Download className="h-4 w-4" />
         Download Outputs
       </h4>
-      <div className="space-y-1">
-        <p className="text-xs text-muted-foreground">All outputs:</p>
-        <code className="block text-xs font-mono bg-muted p-2 rounded break-all">{allOutputs}</code>
-      </div>
+
+      {/* Individual file download links */}
+      {downloadableFiles.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Output files:</p>
+          <div className="space-y-1">
+            {downloadableFiles.map((f) => (
+              <a
+                key={f.name}
+                href={f.download_url!}
+                download={f.name}
+                className="flex items-center justify-between gap-2 text-xs bg-muted rounded px-2 py-1 hover:bg-muted/80 group"
+              >
+                <span className="font-mono truncate max-w-[260px]">{f.name}</span>
+                <span className="text-muted-foreground shrink-0 flex items-center gap-1">
+                  {formatFileSize(f.size)}
+                  <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Bulk download (requires AWS CLI):</p>
+          <code className="block text-xs font-mono bg-muted p-2 rounded break-all">{allOutputs}</code>
+        </div>
+      )}
+
+      {/* Always show bulk download option as secondary */}
+      {downloadableFiles.length > 0 && (
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+            Bulk download (AWS CLI)
+          </summary>
+          <code className="block font-mono bg-muted p-2 rounded break-all mt-1">{allOutputs}</code>
+        </details>
+      )}
     </div>
   );
 }
@@ -323,10 +393,9 @@ export function NextflowWorkflowViewer({
   const [qcSettingsOpen, setQcSettingsOpen] = useState(false);
   const [pauseAtQcFailures, setPauseAtQcFailures] = useState(true);
   const [qcProfile, setQcProfile] = useState('');
-  const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string }>>([]);
+  const [availableQcProfiles, setAvailableQcProfiles] = useState<Array<{ id: string; description: string; domain_hint: string; overrides: Record<string, number> }>>([]);
+  const [qcDefaults, setQcDefaults] = useState<Record<string, { bound: number; direction: string; rationale?: string }>>({});
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
-  const [qcOverrideKey, setQcOverrideKey] = useState('');
-  const [qcOverrideValue, setQcOverrideValue] = useState('');
 
   // C3: validate environment state
   const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
@@ -629,6 +698,32 @@ export function NextflowWorkflowViewer({
     };
   });
 
+  // QC: derive display thresholds from defaults + auto-detected profile + user edits
+  const activeQcProfile = React.useMemo(
+    () => availableQcProfiles.find(p => p.id === qcProfile) ?? null,
+    [availableQcProfiles, qcProfile]
+  );
+  const displayedQcThresholds = React.useMemo(() => {
+    const merged: Record<string, { bound: number; direction: string; rationale?: string; source: 'default' | 'profile' | 'user' }> = {};
+    Object.entries(qcDefaults).forEach(([k, meta]) => {
+      merged[k] = { bound: meta.bound, direction: meta.direction, rationale: meta.rationale, source: 'default' };
+    });
+    if (activeQcProfile) {
+      Object.entries(activeQcProfile.overrides).forEach(([k, v]) => {
+        merged[k] = { ...(merged[k] || { direction: 'min' }), bound: v as number, source: 'profile' };
+      });
+    }
+    return Object.entries(merged).map(([key, meta]) => ({
+      key,
+      label: QC_THRESHOLD_LABELS[key]?.label ?? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      unit: QC_THRESHOLD_LABELS[key]?.unit ?? '',
+      direction: meta.direction,
+      rationale: meta.rationale,
+      value: qcOverrides[key] !== undefined ? qcOverrides[key] : meta.bound,
+      modified: qcOverrides[key] !== undefined,
+    }));
+  }, [qcDefaults, activeQcProfile, qcOverrides]);
+
   const handleParamChange = (id: string, value: any) => {
     setParams((prev: any) => ({ ...prev, [id]: value }));
     // Mark as user-overridden so the workflowDefinition useEffect doesn't clobber it
@@ -840,9 +935,37 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     fetch('/api/qc/profiles')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.profiles) setAvailableQcProfiles(data.profiles); })
+      .then(data => {
+        if (data?.profiles) setAvailableQcProfiles(data.profiles);
+        if (data?.defaults) setQcDefaults(data.defaults);
+      })
       .catch(() => {});
   }, []);
+
+  // Auto-detect QC profile from workflow domain/name
+  useEffect(() => {
+    if (!availableQcProfiles.length || !workflowDefinition) return;
+    if (qcProfile) return; // user already selected one
+    const name = (workflowDefinition.name || workflowDefinition.workflow_name || '').toLowerCase();
+    const domainMap: Record<string, string[]> = {
+      cryo_em: ['cryo', 'cryosparc', 'spa', 'tomography', 'helical', 'subtomogram'],
+      rnaseq: ['rnaseq', 'rna-seq', 'transcriptom', 'rna_seq'],
+      wgs: ['wgs', 'germline', 'gatk', 'variant_calling', 'sarek'],
+      wes: ['wes', 'exome'],
+      scrna_seq: ['scrna', 'single_cell', 'scrnaseq', 'cellranger', '10x'],
+      metagenomics: ['metagenom', 'amplicon', 'microbiome'],
+      drug_discovery: ['admet', 'docking', 'pocket', 'md simulation', 'molecular dynamics', 'fpocket', 'drug'],
+      proteomics: ['proteom', 'mass_spec', 'dia', 'dda'],
+      epigenomics: ['chipseq', 'atac', 'chip-seq', 'atacseq', 'methylseq', 'bisulfite'],
+      spatial: ['spatial', 'visium', 'xenium'],
+    };
+    for (const [domain, keywords] of Object.entries(domainMap)) {
+      if (keywords.some(k => name.includes(k))) {
+        const match = availableQcProfiles.find(p => p.domain_hint === domain);
+        if (match) { setQcProfile(match.id); break; }
+      }
+    }
+  }, [availableQcProfiles, workflowDefinition]);
 
   // SSE listener for QC gate events — mirrors workflow-artifact.tsx logic
   useEffect(() => {
@@ -1293,7 +1416,7 @@ export function NextflowWorkflowViewer({
                       QC Settings
                       {Object.keys(qcOverrides).length > 0 && (
                         <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
-                          {Object.keys(qcOverrides).length}
+                          {Object.keys(qcOverrides).length} edited
                         </Badge>
                       )}
                     </span>
@@ -1304,7 +1427,7 @@ export function NextflowWorkflowViewer({
                       {/* Pause toggle */}
                       <div className="flex items-center justify-between">
                         <Label htmlFor="pause-qc-switch" className="text-xs">
-                          Pause at QC failures
+                          Pause workflow when a QC gate fails
                         </Label>
                         <Switch
                           id="pause-qc-switch"
@@ -1313,78 +1436,69 @@ export function NextflowWorkflowViewer({
                           aria-label="Pause at QC failures"
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground -mt-2">
-                        {pauseAtQcFailures
-                          ? 'Workflow pauses when a gate fires'
-                          : 'Gates are logged but workflow continues'}
-                      </p>
 
-                      {/* QC Profile picker */}
-                      {availableQcProfiles.length > 0 && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Named QC Profile</Label>
-                          <Select value={qcProfile || 'none'} onValueChange={v => setQcProfile(v === 'none' ? '' : v)}>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Platform defaults" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none" className="text-xs">Platform defaults (no profile)</SelectItem>
-                              {availableQcProfiles.map(p => (
-                                <SelectItem key={p.id} value={p.id} className="text-xs">
-                                  {p.id.replace(/_/g, '\u00A0')}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      {/* Threshold parameters — labeled, editable */}
+                      {displayedQcThresholds.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs text-muted-foreground">
+                              Quality thresholds
+                              {activeQcProfile && (
+                                <span className="ml-1.5 text-[10px] bg-muted px-1.5 py-0.5 rounded font-normal">
+                                  {activeQcProfile.id.replace(/_/g, ' ')}
+                                </span>
+                              )}
+                            </Label>
+                            {Object.keys(qcOverrides).length > 0 && (
+                              <button
+                                type="button"
+                                className="text-[10px] text-muted-foreground hover:text-foreground"
+                                onClick={() => setQcOverrides({})}
+                              >
+                                Reset all
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-1.5">
+                            {displayedQcThresholds.map(t => (
+                              <div key={t.key} className="flex items-center gap-2">
+                                <span className="flex-1 text-xs truncate" title={t.rationale}>
+                                  {t.label}
+                                  <span className="ml-1 text-[10px] text-muted-foreground">
+                                    ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
+                                  </span>
+                                </span>
+                                <Input
+                                  type="number"
+                                  className={`h-6 w-20 text-xs px-1.5 py-0 text-right ${t.modified ? 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+                                  value={t.value}
+                                  step="any"
+                                  onChange={e => {
+                                    const v = parseFloat(e.target.value);
+                                    if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v }));
+                                  }}
+                                  onBlur={e => {
+                                    const v = parseFloat(e.target.value);
+                                    if (isNaN(v)) {
+                                      setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; });
+                                    }
+                                  }}
+                                />
+                                {t.modified && (
+                                  <button
+                                    type="button"
+                                    className="text-[10px] text-muted-foreground hover:text-destructive shrink-0"
+                                    title="Reset to default"
+                                    onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
-
-                      {/* Threshold overrides */}
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Threshold Overrides</Label>
-                        <div className="flex gap-1">
-                          <Input
-                            className="h-7 text-xs flex-1"
-                            placeholder="metric_key"
-                            value={qcOverrideKey}
-                            onChange={e => setQcOverrideKey(e.target.value)}
-                          />
-                          <Input
-                            className="h-7 text-xs w-20"
-                            placeholder="value"
-                            type="number"
-                            value={qcOverrideValue}
-                            onChange={e => setQcOverrideValue(e.target.value)}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs px-2"
-                            onClick={() => {
-                              const v = parseFloat(qcOverrideValue);
-                              if (qcOverrideKey && !isNaN(v)) {
-                                setQcOverrides(prev => ({ ...prev, [qcOverrideKey]: v }));
-                                setQcOverrideKey('');
-                                setQcOverrideValue('');
-                              }
-                            }}
-                          >
-                            Add
-                          </Button>
-                        </div>
-                        {Object.entries(qcOverrides).map(([key, val]) => (
-                          <div key={key} className="flex items-center justify-between text-xs bg-muted/40 rounded px-2 py-1">
-                            <span>{key}: {val}</span>
-                            <button
-                              type="button"
-                              className="text-muted-foreground hover:text-destructive ml-2"
-                              onClick={() => setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; })}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>
@@ -1416,51 +1530,24 @@ export function NextflowWorkflowViewer({
                   </AlertDescription>
                 </Alert>
               )}
-              {prereqChecklist && prereqChecklist.items.length > 0 && (
+              {/* Execution checklist — only shown when hard blockers exist (e.g. domain guard, license gate) */}
+              {prereqChecklist && !prereqChecklist.canRun && prereqChecklist.items.some(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters') && (
                 <div
-                  className="space-y-2 rounded-md border border-muted bg-muted/30 p-3"
+                  className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3"
                   data-testid="workflow-prereq-checklist"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Execution checklist
-                    </p>
-                    <Badge variant={
-                      !prereqChecklist.canRun ? "destructive"
-                      : prereqChecklist.items.some(i => i.status === 'warning') ? "secondary"
-                      : "outline"
-                    }>
-                      {!prereqChecklist.canRun ? "Action required"
-                       : prereqChecklist.items.some(i => i.status === 'warning') ? "Warnings"
-                       : "Ready"}
-                    </Badge>
-                  </div>
+                  <p className="text-xs font-semibold text-destructive">
+                    Cannot run — missing prerequisites:
+                  </p>
                   <div className="space-y-1.5">
-                    {prereqChecklist.items.map((item) => (
+                    {prereqChecklist.items.filter(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters').map((item) => (
                       <div
                         key={item.id}
                         className="rounded border border-border/70 bg-background/70 px-2 py-1.5"
                         data-testid={`workflow-prereq-item-${item.id}`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium">{item.label}</span>
-                          <Badge
-                            variant={
-                              item.status === "ok"
-                                ? "outline"
-                                : item.status === "warning"
-                                ? "secondary"
-                                : "destructive"
-                            }
-                            className="text-[10px] uppercase"
-                          >
-                            {item.status}
-                          </Badge>
-                        </div>
+                        <span className="text-xs font-medium">{item.label}</span>
                         {item.reason && <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>}
-                        {item.actionHint && (
-                          <p className="mt-1 text-xs">{item.actionHint}</p>
-                        )}
                         {item.chatPrompt && onAdjustViaChat && (
                           <button
                             type="button"

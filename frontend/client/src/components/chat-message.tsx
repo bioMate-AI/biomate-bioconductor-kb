@@ -332,9 +332,17 @@ export function ChatMessage({
                   ? workflowFeedbackPrompt || "Please review and confirm before execution."
                   : undefined;
               const inlineParams = message.metadata?.workflow?.inline_parameters || {};
-              const hasInlineData = Object.values(inlineParams).some(
-                (v: any) => v != null && String(v).trim().length > 0
-              );
+              // hasInlineData: true only for actual biological content (SMILES, FASTA, multi-line data),
+              // NOT for simple file paths like "beta_gal.mrc" which must be uploaded separately.
+              const FILE_PATH_RE = /^[\w./~\-]+\.(mrc|pdb|cif|tif|tiff|eer|fastq|fq|bam|sam|vcf|gz|zip|tar|hdf5|h5|ccp4|map|spi|xmf|star|mrcs|xtc|gro|top|itp|mol2|sdf|sd)$/i;
+              const hasInlineData = Object.values(inlineParams).some((v: any) => {
+                if (v == null) return false;
+                const s = String(v).trim();
+                if (!s || s.length < 3) return false;
+                // Reject bare file paths — these need to be uploaded, not pasted as inline data
+                if (FILE_PATH_RE.test(s)) return false;
+                return true;
+              });
               const prereqChecklist = normalizePrereqChecklist(
                 message.metadata?.prerequisitesValidation,
                 {

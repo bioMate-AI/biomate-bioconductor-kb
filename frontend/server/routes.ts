@@ -6739,6 +6739,37 @@ Rules:
     }
   });
 
+  // ── Session title generation via LLM ─────────────────────────────────────
+  app.post("/api/sessions/generate-title", optionalAuth, express.json(), async (req, res) => {
+    const text: string = String(req.body?.text || '').slice(0, 600);
+    if (!text) return res.json({ title: 'New Chat' });
+
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      // Fallback: take first 6 words
+      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
+      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+    }
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey });
+      const completion = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 30,
+        temperature: 0.3,
+        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+        messages: [{ role: 'user', content: `Query: ${text}` }],
+      });
+      const title = completion.content[0].type === 'text'
+        ? completion.content[0].text.trim().replace(/^["']|["']$/g, '').slice(0, 60)
+        : text.split(/\s+/).slice(0, 6).join(' ');
+      return res.json({ title });
+    } catch {
+      const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
+      return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
+    }
+  });
+
   // ── Sequential workflow chain proxy (B3) ─────────────────────────────────
   // Backend: backend/lib/galaxy/webapps/galaxy/api/workflow_chain.py
   // ChainSubmitRequest expects: { steps: [{nextflow_path, params}], chain_run_id? }
@@ -6944,10 +6975,22 @@ Rules:
       const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
       const outdir = `s3://${s3Bucket}/nextflow/outputs/${runId}`;
       const workDir = `s3://${s3Bucket}/nextflow/work/${runId}`;
+
+      // Attempt to list individual files with presigned download URLs from the Python backend
+      let outputFiles: any[] = [];
+      try {
+        const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+        const fileResp = await fetch(`${galaxyUrl}/api/nextflow/runs/${runId}/output_files`, { signal: AbortSignal.timeout(10000) });
+        if (fileResp.ok) {
+          const fileData = await fileResp.json() as any;
+          outputFiles = fileData.files || [];
+        }
+      } catch (_) { /* non-fatal — fall back to S3 sync command */ }
+
       res.json({
         workflow_id: runId,
         output_dir: outdir,
-        files: {},
+        files: outputFiles,
         download_commands: {
           all_outputs: `aws s3 sync ${outdir}/ ./outputs/`,
           json_only: `aws s3 sync ${outdir}/ ./outputs/ --include '*.json' --exclude '*'`,

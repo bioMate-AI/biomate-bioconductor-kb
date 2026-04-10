@@ -212,8 +212,9 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
           </div>
         );
       case 'file': {
+        const idLower = param.id.toLowerCase();
         const _ML_SUFFIXES = ['_csv', '_tsv', '_fasta', '_fa', '_sequences', '_actives', '_library', '_smiles'];
-        const isMultilineFile = _ML_SUFFIXES.some(s => param.id.toLowerCase().endsWith(s));
+        const isMultilineFile = _ML_SUFFIXES.some(s => idLower.endsWith(s));
         if (isMultilineFile) {
           return (
             <div className="space-y-1">
@@ -229,27 +230,32 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
             </div>
           );
         }
+        // Only show Browse button for actual file-path params (ends with _path, _dir, _file, _input, _output, _paths)
+        const _PATH_SUFFIXES = ['_path', '_paths', '_dir', '_directory', '_input', '_output', '_file', '_files'];
+        const isActualPath = _PATH_SUFFIXES.some(s => idLower.endsWith(s));
         return (
           <div className="space-y-1">
             <LabelWithKnowledge />
-            <div className="flex gap-2">
+            <div className={isActualPath ? "flex gap-2" : undefined}>
               <Input
                 id={param.id}
                 type="text"
                 value={param.value || ''}
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
-                placeholder="Dataset path or ID"
+                placeholder={isActualPath ? "Dataset path or ID" : ""}
                 className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="flex-shrink-0"
-                onClick={() => onBrowseDataset?.(param.id, param.label)}
-              >
-                Browse
-              </Button>
+              {isActualPath && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-shrink-0"
+                  onClick={() => onBrowseDataset?.(param.id, param.label)}
+                >
+                  Browse
+                </Button>
+              )}
             </div>
           </div>
         );
@@ -271,6 +277,27 @@ export function ParameterGroup({ id, title, description, parameters, onChange, o
                 onChange={(e) => onChange && onChange(param.id, e.target.value)}
                 placeholder={param.defaultValue != null ? String(param.defaultValue) : 'Paste CSV / SMILES / FASTA content here…'}
                 className={`font-mono text-xs resize-y ${param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+              />
+            </div>
+          );
+        }
+        // Detect secret/credential params — render as password field
+        const _idLower = param.id.toLowerCase();
+        const isSecret = ['license', 'password', 'secret', 'token', 'api_key', 'apikey', 'credential', 'passphrase', 'passwd'].some(
+          kw => _idLower.includes(kw)
+        );
+        if (isSecret) {
+          return (
+            <div className="space-y-1">
+              <LabelWithKnowledge />
+              <Input
+                id={param.id}
+                type="password"
+                autoComplete="off"
+                value={param.value ?? ''}
+                onChange={(e) => onChange && onChange(param.id, e.target.value)}
+                placeholder="Enter securely — value is masked"
+                className={param.autoFilled ? 'border-blue-300/60 bg-blue-50/30 dark:bg-blue-950/10' : ''}
               />
             </div>
           );

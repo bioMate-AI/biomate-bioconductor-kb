@@ -106,6 +106,7 @@ export function ChatInterface({
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const prevMessageCountRef = useRef(0)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
 
@@ -157,9 +158,14 @@ export function ChatInterface({
     console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
   }, [displayMessages])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom only when a new message is added — NOT when existing message
+  // metadata updates (e.g. parameter edits), which would cause unwanted scroll jumps.
   useEffect(() => {
-    if (messagesEndRef.current) {
+    const currentCount = displayMessages.length;
+    const prevCount = prevMessageCountRef.current;
+    prevMessageCountRef.current = currentCount;
+    // Only scroll on genuine message additions or when typing indicator changes
+    if ((currentCount > prevCount || displayTyping) && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
