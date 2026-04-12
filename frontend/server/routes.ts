@@ -615,10 +615,11 @@ const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   modelConfig: modelConfigOverrides,
 }) : null;
 
-// ── Open Claude tool definitions (Track 4B-i) ─────────────────────────────────
-// These are the Anthropic tool_use schemas exposed in "power-user mode".
+// ── Open Claw tool definitions (Track 4B-i) ───────────────────────────────────
+// "Open Claw" = power-user mode where BioMate tools are visible as function calls.
+// Named after the OpenClaw conversation-state pattern (see conversation-state.ts:8).
 // Tool calls are executed server-side and results streamed back as SSE events.
-const OPEN_CLAUDE_TOOLS = [
+const OPEN_CLAW_TOOLS = [
   {
     name: "search_workflow",
     description: "Search the BioMate scientific workflow catalog. Returns ranked workflow cards with required parameters.",
@@ -681,7 +682,7 @@ const OPEN_CLAUDE_TOOLS = [
 ];
 
 /**
- * Execute a tool call from the Open Claude agentic loop.
+ * Execute a tool call from the Open Claw agentic loop.
  * Routes to the same BioMate API endpoints used by the MCP server.
  * All calls go through auth middleware — userId is forwarded for billing.
  */
@@ -8537,8 +8538,9 @@ Rules:
   });
 
   // ============================================================================
-  // Track 4B-i: "Open Claude" — Power-user mode with BioMate tools visible
+  // Track 4B-i: "Open Claw" — Power-user mode with BioMate tools visible
   //
+  // Named after the OpenClaw conversation-state pattern (conversation-state.ts:8).
   // Users interact with Claude directly (raw Claude API, not BioMate's AI layer)
   // but with BioMate tools available as function calls. Tool invocations are
   // streamed as SSE events so the UI can render <tool_use> blocks visibly.
@@ -8546,18 +8548,18 @@ Rules:
   // Security: all tool calls go through BioMate's auth layer; rate limiting applies.
   // ============================================================================
 
-  // GET /api/open-claude/tools — list the BioMate tools as Anthropic tool schemas
-  app.get("/api/open-claude/tools", optionalAuth, async (req, res) => {
+  // GET /api/open-claw/tools — list the BioMate tools as Anthropic tool schemas
+  app.get("/api/open-claw/tools", optionalAuth, async (req, res) => {
     res.json({
-      tools: OPEN_CLAUDE_TOOLS,
+      tools: OPEN_CLAW_TOOLS,
       model: "claude-sonnet-4-6",
-      note: "Power-user mode: Claude has direct access to BioMate tools. Tool calls are shown in full.",
+      note: "Open Claw mode: Claude has direct access to BioMate tools. Tool calls are shown in full.",
     });
   });
 
-  // POST /api/open-claude/stream — SSE: Claude API with BioMate tools, agentic loop
+  // POST /api/open-claw/stream — SSE: Claude API with BioMate tools, agentic loop
   // Body: { messages: Message[], system?: string }
-  app.post("/api/open-claude/stream", optionalAuth, async (req, res) => {
+  app.post("/api/open-claw/stream", optionalAuth, async (req, res) => {
     if (!process.env.ANTHROPIC_API_KEY) {
       return res.status(503).json({ error: "ANTHROPIC_API_KEY not configured" });
     }
@@ -8604,7 +8606,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
           model: "claude-sonnet-4-6",
           max_tokens: 4096,
           system: systemPrompt,
-          tools: OPEN_CLAUDE_TOOLS as any,
+          tools: OPEN_CLAW_TOOLS as any,
           messages: currentMessages,
         });
 
@@ -8727,6 +8729,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         const msg = await client.messages.create({
           model: "claude-haiku-4-5",
           max_tokens: 10,
+          temperature: 0.0,  // binary yes/no classification must be deterministic
           messages: [{ role: "user", content: prompt }],
         });
         const raw = (msg.content[0] as any)?.text?.trim().toLowerCase() ?? "";

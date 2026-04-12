@@ -320,6 +320,11 @@ def create_flask_app():
     @app.route("/integrations/wechat/message", methods=["GET"])
     def wechat_verify():
         """WeChat URL ownership verification (one-time setup)."""
+        # SECURITY: Token is mandatory — refuse all requests if not configured
+        if not WECHAT_TOKEN:
+            log.error("WECHAT_TOKEN not set — refusing WeChat verification request")
+            return make_response("WeChat integration not configured", 503)
+
         msg_signature = request.args.get("msg_signature", "")
         timestamp = request.args.get("timestamp", "")
         nonce = request.args.get("nonce", "")
@@ -327,19 +332,33 @@ def create_flask_app():
 
         if verify_url_signature(WECHAT_TOKEN, timestamp, nonce, msg_signature):
             return echostr  # Echo back to confirm ownership
+        log.warning(f"WeChat URL verification failed: sig={msg_signature}, ts={timestamp}")
         return make_response("Signature verification failed", 403)
 
     @app.route("/integrations/wechat/message", methods=["POST"])
     def wechat_message():
         """Handle incoming WeChat Work messages."""
+        # SECURITY: Token is mandatory — all POST messages must be verified
+        if not WECHAT_TOKEN:
+            log.error("WECHAT_TOKEN not set — refusing WeChat message")
+            return make_response("WeChat integration not configured", 503)
+
         timestamp = request.args.get("timestamp", "")
         nonce = request.args.get("nonce", "")
         msg_signature = request.args.get("msg_signature", "")
 
-        xml_body = request.get_data(as_text=True)
+        # Validate required security parameters
+        if not timestamp or not nonce or not msg_signature:
+            log.warning("WeChat message missing required security params")
+            return make_response("Missing security parameters", 400)
 
-        # Verify signature
-        if WECHAT_TOKEN and not verify_url_signature(WECHAT_TOKEN, timestamp, nonce, msg_signature):
+        xml_body = request.get_data(as_text=True)
+        if not xml_body:
+            return make_response("Empty body", 400)
+
+        # Verify HMAC-SHA1 signature — mandatory, no bypass
+        if not verify_url_signature(WECHAT_TOKEN, timestamp, nonce, msg_signature):
+            log.warning(f"WeChat signature verification failed from {request.remote_addr}")
             return make_response("Signature error", 403)
 
         reply_xml = handle_wechat_message(xml_body, WECHAT_CORP_ID)
