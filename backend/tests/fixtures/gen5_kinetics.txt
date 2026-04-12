@@ -1,0 +1,13 @@
+##BLOCKS= 1
+Plate:	BioTek Synergy H1	Test1:IC50_erlotinib_MTT
+Gen5 2.09.1
+Reader Serial Number:	123456
+Wavelength: 490 nm
+
+Results
+Well	Conc (uM)	OD490
+A1	0	1.02
+A2	0.1	0.95
+A3	1	0.72
+A4	10	0.38
+A5	100	0.11

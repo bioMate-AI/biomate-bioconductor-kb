@@ -1,0 +1,10 @@
+MARS data reader - Export
+BMG LABTECH - CLARIOstar
+Test: Trypsin_kinetics_37C
+Measurement mode: Kinetic
+Wavelength: 405 nm
+
+Time,A1,A2,A3,B1,B2,B3
+0,0.050,0.048,0.051,0.200,0.195,0.198
+30,0.150,0.148,0.152,0.350,0.345,0.355
+60,0.250,0.248,0.253,0.480,0.475,0.488

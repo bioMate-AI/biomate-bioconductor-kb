@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<EpuSession>
+  <NominalMagnification>130000</NominalMagnification>
+  <AccelerationVoltage>300000</AccelerationVoltage>
+  <PixelSize>0.000000108</PixelSize>
+  <SuperResolution>true</SuperResolution>
+</EpuSession>
