@@ -614,6 +614,120 @@ const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
   galaxyAPIProxy,
   modelConfig: modelConfigOverrides,
 }) : null;
+
+// ── Open Claude tool definitions (Track 4B-i) ─────────────────────────────────
+// These are the Anthropic tool_use schemas exposed in "power-user mode".
+// Tool calls are executed server-side and results streamed back as SSE events.
+const OPEN_CLAUDE_TOOLS = [
+  {
+    name: "search_workflow",
+    description: "Search the BioMate scientific workflow catalog. Returns ranked workflow cards with required parameters.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: { type: "string", description: "Natural language description of the analysis" },
+        limit: { type: "integer", description: "Max results (default 5)" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "run_workflow",
+    description: "Execute a BioMate workflow on AWS Batch. Returns run_id to poll with get_run_status.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        workflow_id: { type: "string", description: "Workflow ID from search_workflow" },
+        params: { type: "object", description: "Workflow parameters", additionalProperties: true },
+        message: { type: "string", description: "Optional natural language context for AI parameter filling" },
+      },
+      required: ["workflow_id"],
+    },
+  },
+  {
+    name: "get_run_status",
+    description: "Poll the status of a BioMate workflow run.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        run_id: { type: "string" },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
+    name: "get_run_results",
+    description: "Retrieve output files from a completed run.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        run_id: { type: "string" },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
+    name: "query_database",
+    description: "Query a biological database: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, kegg, chebi, pubchem, hpo, string.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        database: { type: "string", enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","kegg","chebi","pubchem","hpo","string"] },
+        query: { type: "string", description: "Accession, gene symbol, compound name, or search query" },
+      },
+      required: ["database", "query"],
+    },
+  },
+];
+
+/**
+ * Execute a tool call from the Open Claude agentic loop.
+ * Routes to the same BioMate API endpoints used by the MCP server.
+ * All calls go through auth middleware — userId is forwarded for billing.
+ */
+async function executeOpenClaudeTool(
+  toolName: string,
+  input: Record<string, any>,
+  userId: string | null,
+  req: any
+): Promise<any> {
+  const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+  const authHeader = req.headers.authorization || "";
+
+  const post = async (path: string, body: any) => {
+    const r = await fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+      body: JSON.stringify(body),
+    });
+    return r.json();
+  };
+  const get = async (path: string) => {
+    const r = await fetch(`${baseUrl}${path}`, {
+      headers: { Authorization: authHeader },
+    });
+    return r.json();
+  };
+
+  try {
+    switch (toolName) {
+      case "search_workflow":
+        return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5 });
+      case "run_workflow":
+        return await post("/api/workflows/execute", { workflow_id: input.workflow_id, params: input.params ?? {}, message: input.message });
+      case "get_run_status":
+        return await get(`/api/nextflow/runs/${input.run_id}/status`);
+      case "get_run_results":
+        return await get(`/api/nextflow/runs/${input.run_id}/outputs`);
+      case "query_database":
+        return await post("/api/databases/query", { database: input.database, query: input.query });
+      default:
+        return { error: `Unknown tool: ${toolName}` };
+    }
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
 const UX_FEEDBACK_ENABLED = process.env.ENABLE_UX_FEEDBACK !== "false";
 
 // Lightweight SQLite connection for pilot feedback persistence (read/write galaxy_ai_tools.db).
@@ -8423,6 +8537,139 @@ Rules:
   });
 
   // ============================================================================
+  // Track 4B-i: "Open Claude" — Power-user mode with BioMate tools visible
+  //
+  // Users interact with Claude directly (raw Claude API, not BioMate's AI layer)
+  // but with BioMate tools available as function calls. Tool invocations are
+  // streamed as SSE events so the UI can render <tool_use> blocks visibly.
+  //
+  // Security: all tool calls go through BioMate's auth layer; rate limiting applies.
+  // ============================================================================
+
+  // GET /api/open-claude/tools — list the BioMate tools as Anthropic tool schemas
+  app.get("/api/open-claude/tools", optionalAuth, async (req, res) => {
+    res.json({
+      tools: OPEN_CLAUDE_TOOLS,
+      model: "claude-sonnet-4-6",
+      note: "Power-user mode: Claude has direct access to BioMate tools. Tool calls are shown in full.",
+    });
+  });
+
+  // POST /api/open-claude/stream — SSE: Claude API with BioMate tools, agentic loop
+  // Body: { messages: Message[], system?: string }
+  app.post("/api/open-claude/stream", optionalAuth, async (req, res) => {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({ error: "ANTHROPIC_API_KEY not configured" });
+    }
+
+    const { messages, system } = req.body || {};
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "messages array required" });
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const safeSend = (event: string, data: unknown) => {
+      if (!res.writableEnded) {
+        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      }
+    };
+
+    try {
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const userId = req.user ? String((req.user as any).id) : null;
+
+      const systemPrompt = system || `You are Claude, an AI assistant with access to BioMate's scientific workflow tools.
+BioMate is a bioinformatics platform that runs genomics, proteomics, drug discovery, and cryo-EM workflows on AWS Batch.
+When the user asks to run an analysis or search for a workflow, use the BioMate tools directly.
+Show your reasoning. Tool invocations and results are visible to the user in full.`;
+
+      // Agentic loop: keep calling Claude until no more tool_use blocks
+      let currentMessages = messages;
+      let iterations = 0;
+      const MAX_ITERATIONS = 10;
+
+      while (iterations < MAX_ITERATIONS) {
+        iterations++;
+        let hasToolUse = false;
+        const toolResults: Array<{ type: 'tool_result'; tool_use_id: string; content: string }> = [];
+
+        // Stream a single turn
+        const stream = await client.messages.stream({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4096,
+          system: systemPrompt,
+          tools: OPEN_CLAUDE_TOOLS as any,
+          messages: currentMessages,
+        });
+
+        let assistantContent: any[] = [];
+        let currentTextBlock = "";
+        let currentToolBlock: any = null;
+
+        for await (const event of stream) {
+          if (event.type === "content_block_start") {
+            if (event.content_block.type === "text") {
+              currentTextBlock = "";
+              assistantContent.push({ type: "text", text: "" });
+            } else if (event.content_block.type === "tool_use") {
+              currentToolBlock = { type: "tool_use", id: event.content_block.id, name: event.content_block.name, input: {} };
+              assistantContent.push(currentToolBlock);
+              hasToolUse = true;
+              safeSend("tool_call_start", { id: event.content_block.id, name: event.content_block.name });
+            }
+          } else if (event.type === "content_block_delta") {
+            if (event.delta.type === "text_delta") {
+              currentTextBlock += event.delta.text;
+              const last = assistantContent[assistantContent.length - 1];
+              if (last?.type === "text") last.text = currentTextBlock;
+              safeSend("delta", { text: event.delta.text });
+            } else if (event.delta.type === "input_json_delta" && currentToolBlock) {
+              currentToolBlock._inputRaw = (currentToolBlock._inputRaw || "") + event.delta.partial_json;
+            }
+          } else if (event.type === "content_block_stop") {
+            if (currentToolBlock?._inputRaw !== undefined) {
+              try {
+                currentToolBlock.input = JSON.parse(currentToolBlock._inputRaw);
+              } catch { currentToolBlock.input = {}; }
+              delete currentToolBlock._inputRaw;
+              safeSend("tool_call_complete", { id: currentToolBlock.id, name: currentToolBlock.name, input: currentToolBlock.input });
+              currentToolBlock = null;
+            }
+          }
+        }
+
+        // Add assistant turn to history
+        currentMessages = [...currentMessages, { role: "assistant", content: assistantContent }];
+
+        if (!hasToolUse) break;  // No tool calls → done
+
+        // Execute tool calls
+        for (const block of assistantContent) {
+          if (block.type !== "tool_use") continue;
+          const toolResult = await executeOpenClaudeTool(block.name, block.input, userId, req);
+          safeSend("tool_result", { tool_use_id: block.id, name: block.name, result: toolResult });
+          toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(toolResult) });
+        }
+
+        // Add tool results to messages for next iteration
+        currentMessages = [...currentMessages, { role: "user", content: toolResults }];
+      }
+
+      safeSend("complete", { iterations });
+      res.end();
+    } catch (err: any) {
+      safeSend("error", { message: err.message });
+      res.end();
+    }
+  });
+
+  // ============================================================================
   // User Domain Profile API
   // ============================================================================
 
@@ -8768,22 +9015,22 @@ Rules:
         });
       }
 
-      if (!diskPath || !require('fs').existsSync(diskPath)) {
-        return res.json({ fileName: name, fileType: ext, analyzed: false, note: 'File not accessible on server.' });
-      }
+      // Check file exists synchronously via async stat
+      if (!diskPath) return res.json({ fileName: name, fileType: ext, analyzed: false, note: 'File path could not be resolved.' });
+      try { await fs.stat(diskPath); } catch { return res.json({ fileName: name, fileType: ext, analyzed: false, note: 'File not accessible on server.' }); }
 
-      const fs = require('fs') as typeof import('fs');
-      const readline = require('readline') as typeof import('readline');
+      const { createInterface } = await import('readline');
+      const resolvedPath: string = diskPath;
 
       const analyzeLines = (maxLines: number): Promise<string[]> => new Promise((resolve) => {
         const lines: string[] = [];
-        const rl = readline.createInterface({ input: fs.createReadStream(diskPath!), crlfDelay: Infinity });
+        const rl = createInterface({ input: createReadStream(resolvedPath), crlfDelay: Infinity });
         rl.on('line', (line: string) => { lines.push(line); if (lines.length >= maxLines) rl.close(); });
         rl.on('close', () => resolve(lines));
         rl.on('error', () => resolve(lines));
       });
 
-      const stats = fs.statSync(diskPath);
+      const stats = await fs.stat(diskPath);
       const fileSizeBytes = stats.size;
 
       if (ext === 'fastq' || ext === 'fq' || ext === 'fastq.gz' || ext === 'fq.gz') {

@@ -139,12 +139,12 @@ RUN pip install --no-cache-dir biopython matplotlib seaborn
 
 Workflows: `predict_rna_secondary_structure`, `rna_folding_mfe`, `codon_optimization`, `synthetic_biology_part_design`
 
-#### 3. `biomni-pharmacology` (~3.5 GB, 73% of original)
+#### 3. `biomni-docking` (~3.5 GB, 73% of original)
 ```dockerfile
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
 RUN pip install --no-cache-dir statsmodels scikit-image seaborn plotly
 RUN pip install --no-cache-dir DeepPurpose || echo "DeepPurpose fallback"
-# Pharmacology-specific: xenograft, western blot, MWAS, ADMET deep models
+# Docking / pharmacology deep models: xenograft, western blot, MWAS, ADMET CNNs
 ```
 
 Workflows: `grade_adverse_events`, `analyze_xenograft`, `analyze_western_blot`, `perform_mwas_cyp2c19`, `predict_admet_properties` (when DeepPurpose models needed)

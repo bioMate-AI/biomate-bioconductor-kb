@@ -1,0 +1,65 @@
+{
+  "name": "biomate",
+  "version": "1.0.0",
+  "description": "BioMate scientific workflow platform — search, run, and monitor bioinformatics workflows via MCP",
+  "protocol_version": "2024-11-05",
+  "transport": ["stdio", "sse"],
+  "tools": [
+    {
+      "name": "search_workflow",
+      "description": "Search BioMate workflow catalog by natural language query",
+      "category": "discovery"
+    },
+    {
+      "name": "run_workflow",
+      "description": "Execute a workflow on AWS Batch and return a run_id",
+      "category": "execution"
+    },
+    {
+      "name": "get_run_status",
+      "description": "Poll status of a running workflow execution",
+      "category": "execution"
+    },
+    {
+      "name": "get_run_results",
+      "description": "Retrieve output files from a completed run",
+      "category": "execution"
+    },
+    {
+      "name": "query_database",
+      "description": "Query biological databases: UniProt, PDB, NCBI Gene, dbSNP, KEGG, ChEBI, HPO, STRING",
+      "category": "database"
+    },
+    {
+      "name": "analyze_file",
+      "description": "Run lightweight QC analysis on FASTQ, CSV, VCF, FASTA, BAM files",
+      "category": "analysis"
+    }
+  ],
+  "auth": {
+    "type": "api_key",
+    "env_var": "BIOMATE_API_KEY",
+    "header": "Authorization",
+    "scheme": "Bearer"
+  },
+  "environment": {
+    "BIOMATE_API_URL": {
+      "description": "BioMate server URL",
+      "default": "http://localhost:5000",
+      "example": "https://app.biomate.ai"
+    },
+    "BIOMATE_API_KEY": {
+      "description": "User API key (Settings → API Keys)",
+      "required": true
+    },
+    "MCP_DEBUG": {
+      "description": "Set to 1 for verbose stderr logging",
+      "default": "0"
+    }
+  },
+  "claude_desktop_config": {
+    "command": "python",
+    "args": ["-m", "biomate_mcp_server"],
+    "note": "Run from biomate/backend/lib directory, or set PYTHONPATH to include it"
+  }
+}
