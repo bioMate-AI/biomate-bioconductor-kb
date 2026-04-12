@@ -222,6 +222,7 @@ def _open_claw_query(
     query: str,
     api_key: Optional[str] = None,
     timeout: int = 55,
+    _base_url_override: Optional[str] = None,
 ) -> Tuple[str, Optional[str]]:
     """
     Send a query through the BioMate Open Claw engine (/api/open-claw/stream).
@@ -248,9 +249,10 @@ def _open_claw_query(
     text_parts: List[str] = []
     workflow_id: Optional[str] = None
 
+    base_url = _base_url_override or BIOMATE_API_URL
     try:
         with requests.post(
-            f"{BIOMATE_API_URL}/api/open-claw/stream",
+            f"{base_url}/api/open-claw/stream",
             json={"messages": messages},
             headers=headers,
             stream=True,

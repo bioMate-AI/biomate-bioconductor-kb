@@ -102,6 +102,41 @@ export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
 export type InsertInviteCode = z.infer<typeof insertInviteCodeSchema>;
 
 // ============================================================================
+// Pilot Experiments Table — Track 2C: Experiment Test Harness
+// ============================================================================
+
+export const experiments = pgTable("experiments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+
+  // Experiment definition
+  hypothesis: text("hypothesis").notNull(),
+  workflowId: text("workflow_id").notNull(),
+  workflowName: text("workflow_name"),
+  controlLabel: text("control_label").default("Control"),
+  experimentalLabel: text("experimental_label").default("Experimental"),
+  controlParams: text("control_params").notNull(),      // JSON object
+  experimentalParams: text("experimental_params").notNull(), // JSON object
+  metrics: text("metrics").notNull(),                   // JSON string[]
+
+  // Execution state
+  status: text("status").notNull().default("pending"),  // pending/running/completed/failed
+  controlRunId: text("control_run_id"),
+  experimentalRunId: text("experimental_run_id"),
+
+  // Results
+  comparisonResult: text("comparison_result"),  // JSON RunComparisonResponse
+  narrative: text("narrative"),
+  errorMessage: text("error_message"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Experiment = typeof experiments.$inferSelect;
+export type InsertExperiment = typeof experiments.$inferInsert;
+
+// ============================================================================
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -736,6 +771,8 @@ export const executionConfigSchema = z.object({
   qcOverrides: z.record(z.string(), z.number()).optional(),
   // US-4.2 — auto-apply toggle: false = always pause at QC failures (default); true = auto-apply high-confidence suggestions and continue
   pauseAtQcFailures: z.boolean().optional(),
+  // Low-level compute override: executor, memory, GPU. Passed through to buildNextflowComputeConfig.
+  computeConfig: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ExecutionConfig = z.infer<typeof executionConfigSchema>;
@@ -900,12 +937,21 @@ export const outputMetricsSchema = z.object({
 
 export type OutputMetrics = z.infer<typeof outputMetricsSchema>;
 
+// Per-step LLM cost breakdown.
+// Each entry maps stepId -> cost in USD.  Null means the step did not trigger an LLM call.
+// Currently null for all steps (no per-step LLM calls in the pipeline); placeholder for
+// future step-level analysis features.
+export const perStepLlmCostSchema = z.record(z.number().nullable()).default({});
+
+export type PerStepLlmCost = z.infer<typeof perStepLlmCostSchema>;
+
 // Execution metrics - comprehensive metrics collection
 export const executionMetricsSchema = z.object({
   runtime: runtimeMetricsSchema.optional(),
   resources: resourceMetricsSchema.optional(),
   quality: z.record(z.number()).default({}), // Domain-specific quality metrics
   outputs: outputMetricsSchema.optional(),
+  perStepLlmCost: perStepLlmCostSchema.optional(), // stepId -> USD cost (null = no LLM call for that step)
 });
 
 export type ExecutionMetrics = z.infer<typeof executionMetricsSchema>;
@@ -1091,6 +1137,11 @@ export const runComparisonResponseSchema = z.object({
     runtimeDelta: z.number().optional(),
     memoryDelta: z.number().optional(),
     qualityDelta: z.record(z.number()).default({}),
+    parameterDifferences: z.array(z.object({
+      param: z.string(),
+      run1Value: z.any(),
+      run2Value: z.any(),
+    })).optional(),
   }),
   recommendation: z.object({
     preferredRun: z.string(),
@@ -1274,3 +1325,95 @@ export const telemetryEventEnvelopeSchema = z.object({
   timestamp: z.string().min(1),
   payload: z.record(z.unknown()).optional(),
 });
+
+// ============================================================================
+// Feature Flags — runtime-togglable feature gates (replaces scattered env vars)
+// ============================================================================
+
+export const featureFlags = pgTable("feature_flags", {
+  flagName: varchar("flag_name", { length: 128 }).primaryKey(),
+  enabled: boolean("enabled").notNull().default(false),
+  /** 0–100: percentage of users this flag is active for (100 = everyone) */
+  rolloutPct: integer("rollout_pct").notNull().default(100),
+  /**
+   * Per-user overrides: JSON object {"<userId>": true|false}.
+   * Takes precedence over rolloutPct when the userId key is present.
+   */
+  userOverrides: text("user_overrides").default("{}"),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type FeatureFlag = typeof featureFlags.$inferSelect;
+export type InsertFeatureFlag = typeof featureFlags.$inferInsert;
+
+// ────────────────────────────────────────────────────────────────────────────
+// Instrument Events
+// Records new-data notifications from physical instrument connectors
+// (flow cytometer, plate reader, qPCR, LC-MS, cryo-EM, etc.)
+// ────────────────────────────────────────────────────────────────────────────
+
+export const instrumentEvents = pgTable("instrument_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+
+  // Source connector
+  source: text("source").notNull(),       // e.g. "flow_cytometer_watcher"
+  vendor: text("vendor"),                 // e.g. "biorad_cfx", "bmg"
+  directory: text("directory"),           // watched directory path
+
+  // Experiment classification
+  experimentType: text("experiment_type").notNull(),  // e.g. "rt_qpcr_expression"
+  assayType: text("assay_type"),                       // plate reader only
+  workflowId: text("workflow_id").notNull(),            // BioMate workflow to launch
+
+  // Data location
+  filePath: text("file_path"),            // single file path (qPCR, plate reader)
+  fcsDir: text("fcs_dir"),               // flow cytometry directory
+  fileCount: integer("file_count"),       // flow cytometry file count
+  paramKey: text("param_key"),           // e.g. "qpcr_data_file", "fcs_dir"
+
+  // Run metadata
+  runName: text("run_name"),
+  targets: text("targets"),              // JSON array of target/gene names
+  sampleCount: integer("sample_count"),
+  channels: text("channels"),            // JSON array of FCS channels
+
+  // Analysis
+  analysisFunction: text("analysis_function"),
+
+  // Human-readable
+  description: text("description").notNull(),
+  message: text("message").notNull(),
+
+  // Lifecycle
+  status: text("status").notNull().default("pending"),
+  // "pending"   = received, not yet acted on
+  // "launched"  = BioMate workflow execution started
+  // "dismissed" = user dismissed without launching
+
+  userId: text("user_id"),               // set when user acts on the notification
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const insertInstrumentEventSchema = createInsertSchema(instrumentEvents).pick({
+  source: true,
+  vendor: true,
+  directory: true,
+  experimentType: true,
+  assayType: true,
+  workflowId: true,
+  filePath: true,
+  fcsDir: true,
+  fileCount: true,
+  paramKey: true,
+  runName: true,
+  targets: true,
+  sampleCount: true,
+  channels: true,
+  analysisFunction: true,
+  description: true,
+  message: true,
+});
+
+export type InstrumentEvent = typeof instrumentEvents.$inferSelect;
+export type InsertInstrumentEvent = typeof instrumentEvents.$inferInsert;

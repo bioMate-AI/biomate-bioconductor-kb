@@ -4,7 +4,7 @@ import { requestContextMiddleware } from "./request-context";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents } from "../shared/schema";
 import type { InsertInviteCode, ExecutionRunStatus } from "../shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -2369,6 +2369,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Server Path Registration — register a pre-existing filesystem/NFS path as a dataset reference.
+  // Used for instrument-connector paths (cryo-EM movies_path, mass-spec mzml_dir, etc.) that already
+  // exist on a shared mount accessible to the Batch workers. No file transfer occurs.
+  app.post("/api/datasets/register-path", optionalAuth, express.json(), async (req, res) => {
+    try {
+      const { path: serverPath, paramName, name } = req.body;
+      if (!serverPath || typeof serverPath !== 'string') {
+        return res.status(400).json({ error: "path is required" });
+      }
+      // Sanity-check: only accept absolute paths or recognised network schemes
+      const isAbsolute = serverPath.startsWith('/');
+      const isNetwork = /^(s3a?|nfs|smb|cifs):\/\//i.test(serverPath);
+      if (!isAbsolute && !isNetwork) {
+        return res.status(400).json({ error: "path must be absolute or a network URI (s3://, nfs://, etc.)" });
+      }
+
+      const displayName = name || serverPath.split('/').filter(Boolean).pop() || serverPath;
+      const datasetId = `path-${Date.now()}`;
+
+      if (req.session) {
+        if (!req.session.uploadedDatasets) req.session.uploadedDatasets = [];
+        (req.session.uploadedDatasets as any[]).push({
+          dataset_id: datasetId,
+          galaxy_dataset_id: null,
+          name: displayName,
+          description: paramName ? `Instrument path for param: ${paramName}` : 'Server-side path reference',
+          file_type: 'path',
+          file_size: 0,
+          file_path: serverPath,    // the real path passed to workflow params
+          param_name: paramName || null,  // optional explicit param mapping
+        });
+      }
+
+      return res.json({
+        dataset_id: datasetId,
+        name: displayName,
+        file_path: serverPath,
+        param_name: paramName || null,
+        registered_at: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      console.error("[RegisterPath] Error:", error);
+      return res.status(500).json({ error: error.message || "Failed to register path" });
+    }
+  });
+
   // URL Import API - Galaxy fetches file from URL (no size limit, faster for large files)
   // Leverages Galaxy's built-in URL fetching capabilities (HTTP, FTP, S3)
   app.post("/api/datasets/import-url", authenticateToken, checkBillingQuota('URL import'), async (req, res) => {
@@ -3459,6 +3505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: d.name,
               type: d.file_type || 'unknown',
               file_path: d.file_path || null,
+              param_name: d.param_name || null,  // explicit param mapping from register-path
             }))
           : undefined,
         // Per-tool credential map built from user's vault — forwarded to AI backend for routing
@@ -8668,6 +8715,105 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     } catch (err: any) {
       safeSend("error", { message: err.message });
       res.end();
+    }
+  });
+
+  // ============================================================================
+  // Instrument Events API
+  // Physical instrument connectors (flow cytometer, plate reader, qPCR, LC-MS,
+  // cryo-EM) POST here when they detect new data. Events are persisted and
+  // surfaced to the user as workflow-launch suggestions.
+  // ============================================================================
+
+  // POST /api/instruments/new-data — receive a new instrument data event
+  // Body: InstrumentEvent payload from a Python connector watcher
+  // Auth: BIOMATE_API_KEY Bearer token (service-to-service) or user JWT
+  app.post("/api/instruments/new-data", optionalAuth, async (req, res) => {
+    const body = req.body || {};
+
+    // Minimal validation
+    const { source, experimentType, workflowId, description, message } = body;
+    if (!source || !workflowId || !description || !message) {
+      return res.status(400).json({
+        error: "Required fields: source, workflowId, description, message",
+      });
+    }
+    const expType = experimentType || body.assay_type || "unknown";
+
+    try {
+      const [event] = await db
+        .insert(instrumentEvents)
+        .values({
+          source: String(source),
+          vendor: body.vendor ? String(body.vendor) : null,
+          directory: body.directory ? String(body.directory) : null,
+          experimentType: String(expType),
+          assayType: body.assay_type ? String(body.assay_type) : null,
+          workflowId: String(workflowId),
+          filePath: body.file_path ? String(body.file_path) : null,
+          fcsDir: body.fcs_dir ? String(body.fcs_dir) : null,
+          fileCount: body.file_count != null ? Number(body.file_count) : null,
+          paramKey: body.param_key ? String(body.param_key) : null,
+          runName: body.run_name ? String(body.run_name) : null,
+          targets: Array.isArray(body.targets) ? JSON.stringify(body.targets) : null,
+          sampleCount: body.sample_count != null ? Number(body.sample_count) : null,
+          channels: Array.isArray(body.channels) ? JSON.stringify(body.channels) : null,
+          analysisFunction: body.analysis_function ? String(body.analysis_function) : null,
+          description: String(description),
+          message: String(message),
+          status: "pending",
+          userId: req.user ? String((req.user as any).id) : null,
+        })
+        .returning({ id: instrumentEvents.id });
+
+      log("Instrument event received", { id: event?.id, source, workflowId });
+      return res.status(201).json({ event_id: event?.id, status: "pending" });
+    } catch (err: any) {
+      log("Error storing instrument event:", err.message);
+      return res.status(500).json({ error: "Failed to store instrument event" });
+    }
+  });
+
+  // GET /api/instruments/events — list pending instrument events for the current user
+  // Returns events that haven't been launched or dismissed yet.
+  app.get("/api/instruments/events", requireAuth, async (req, res) => {
+    try {
+      const { eq, desc } = await import("drizzle-orm");
+      const events = await db
+        .select()
+        .from(instrumentEvents)
+        .where(eq(instrumentEvents.status, "pending"))
+        .orderBy(desc(instrumentEvents.timestamp))
+        .limit(50);
+
+      return res.json({
+        events: events.map((e) => ({
+          ...e,
+          targets: e.targets ? JSON.parse(e.targets) : [],
+          channels: e.channels ? JSON.parse(e.channels) : [],
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to fetch instrument events" });
+    }
+  });
+
+  // PATCH /api/instruments/events/:id — update status (launched | dismissed)
+  app.patch("/api/instruments/events/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    if (!["launched", "dismissed"].includes(status)) {
+      return res.status(400).json({ error: "status must be 'launched' or 'dismissed'" });
+    }
+    try {
+      const { eq } = await import("drizzle-orm");
+      await db
+        .update(instrumentEvents)
+        .set({ status, userId: String((req.user as any).id) })
+        .where(eq(instrumentEvents.id, id));
+      return res.json({ ok: true });
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to update instrument event" });
     }
   });
 
