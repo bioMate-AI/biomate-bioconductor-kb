@@ -59,9 +59,15 @@ process PARSE_ASSAY_DATA {
     def safety  = params.safety_assay
     """
 python3 - <<'PYEOF'
-import csv, io, json, sys
+import csv, io, json, os, sys
 
 raw = '''${assay_csv_content}'''
+
+# If the value looks like a file path (no newlines, path exists), read it
+raw = raw.strip()
+if raw and '\\n' not in raw and os.path.exists(raw):
+    with open(raw) as _f:
+        raw = _f.read()
 
 # Strip any leading/trailing whitespace lines
 lines = [l for l in raw.strip().splitlines() if l.strip()]
@@ -301,7 +307,7 @@ td:nth-child(2){{text-align:left}}</style></head>
 <th>Potency Score</th><th>Safety Score</th><th>Composite Score</th><th>Flag</th></tr>
 {html_rows}
 </table>
-<p><small>Scoring: composite = {float("${params.potency_weight}")*100:.0f}% potency + {float("${params.safety_weight}")*100:.0f}% safety | hERG threshold: {params.herg_safe_threshold} uM</small></p>
+<p><small>Scoring: composite = {float("${params.potency_weight}")*100:.0f}% potency + {float("${params.safety_weight}")*100:.0f}% safety | hERG threshold: ${params.herg_safe_threshold} uM</small></p>
 </body></html>'''
 
 with open('ranking_report.html', 'w') as f:

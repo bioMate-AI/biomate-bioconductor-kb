@@ -1093,6 +1093,7 @@ test('S4: Pharmacophore filtering — ABL1 inhibitor selectivity screen', async 
 // ===========================================================================
 
 test('S5: Assay data upload + compound ranking — hERG + potency integration', async ({ page }) => {
+  test.setTimeout(900000); // 15 min — assay ranking has 3 Batch steps; RANK_AND_REPORT can take 8-10 min
   const SESSION_ID = 'S5_RANKING';
   const startTs = new Date().toISOString();
   const result: SessionResult = {

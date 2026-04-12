@@ -57,9 +57,15 @@ process VALIDATE_COMPOUNDS {
     def top_n     = params.top_n
     """
 python3 - <<'PYEOF'
-import csv, io, sys
+import csv, io, os, sys
 
 raw = '''${compound_csv_content}'''
+
+# If the value looks like a file path (no newlines, path exists), read it
+raw = raw.strip()
+if raw and '\\n' not in raw and os.path.exists(raw):
+    with open(raw) as _f:
+        raw = _f.read()
 
 lines = [l for l in raw.strip().splitlines() if l.strip()]
 if not lines:
@@ -154,6 +160,7 @@ process FORMAT_CRO_SUBMISSION {
     """
 python3 - <<'PYEOF'
 import csv, json, math
+cro = '${cro}'
 
 # Try RDKit for MW/LogP; fall back to formula-based estimate if not available
 try:
