@@ -4,10 +4,10 @@ import { requestContextMiddleware } from "./request-context";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
-import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema } from "../shared/schema";
+import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs } from "../shared/schema";
 import type { InsertInviteCode, ExecutionRunStatus } from "../shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
 import { createPoller } from "./galaxy-state-poller";
@@ -46,6 +46,7 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
+import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
   getExecutionRunsOverview,
@@ -3247,6 +3248,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ error: "Message is required" });
         return;
       }
+
+      // ── Safety guardrails (PHI strip + content blocklist + scope filter) ──
+      const safetyResult = checkSafety(String(message));
+      if (!safetyResult.safe) {
+        // Log the block event (hash only — GDPR compliant)
+        const msgHash = await hashMessage(String(message)).catch(() => 'hash-error');
+        auditService.log({
+          userId: req.user ? String((req.user as any).id) : null,
+          action: 'safety.block',
+          resourceType: 'chat_message',
+          details: { category: safetyResult.category, reason: safetyResult.reason, messageHash: msgHash },
+          ipAddress: req.ip || req.socket?.remoteAddress,
+          status: 'failure',
+          errorMessage: safetyResult.reason,
+        }).catch(() => {/* non-fatal */});
+
+        // Return the refusal as an SSE event so the frontend renders it in-chat
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache, no-transform");
+        res.setHeader("Connection", "keep-alive");
+        res.flushHeaders?.();
+        res.write(`event: delta\ndata: ${JSON.stringify({ text: safetyResult.userMessage })}\n\n`);
+        res.write(`event: complete\ndata: ${JSON.stringify({ blocked: true, category: safetyResult.category })}\n\n`);
+        res.end();
+        return;
+      }
+
+      // Use sanitized message (PHI stripped) for all downstream processing
+      const safeMessage = safetyResult.sanitizedMessage ?? String(message);
+      if (safetyResult.phiDetected) {
+        auditService.log({
+          userId: req.user ? String((req.user as any).id) : null,
+          action: 'safety.phi_strip',
+          resourceType: 'chat_message',
+          details: { messageHash: await hashMessage(String(message)).catch(() => 'hash-error') },
+          ipAddress: req.ip || req.socket?.remoteAddress,
+          status: 'success',
+        }).catch(() => {/* non-fatal */});
+      }
+
       if (!galaxyAssistant) {
         res.status(503).json({
           error: "Galaxy Assistant not available. ANTHROPIC_API_KEY is not configured."
@@ -3313,13 +3354,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // injects prior experience hints, and records interactions for future learning.
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
-            String(message),
+            safeMessage,
             enrichedContext as unknown as MemoryEnhancedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
           )
         : await galaxyAssistant.processMessage(
-            String(message),
+            safeMessage,
             enrichedContext,
             (chunk) => safeSend("delta", { text: chunk }),
             (event) => safeSend("tool_event", event)
@@ -8308,6 +8349,80 @@ Rules:
   });
 
   // ============================================================================
+  // Admin: Audit Log Viewer (SOC2 / HIPAA compliance)
+  // ============================================================================
+
+  // GET /api/admin/audit-log?limit=100&offset=0&action=safety.block&userId=<id>
+  app.get("/api/admin/audit-log", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(String(req.query.limit ?? 100)), 1000);
+      const offset = parseInt(String(req.query.offset ?? 0));
+      const filterAction = req.query.action ? String(req.query.action) : null;
+      const filterUserId = req.query.userId ? String(req.query.userId) : null;
+      const filterStatus = req.query.status ? String(req.query.status) : null;
+      const since = req.query.since ? new Date(String(req.query.since)) : null;
+
+      let query = db.select().from(auditLogs).$dynamic();
+
+      if (filterAction) {
+        query = query.where(eq(auditLogs.action, filterAction)) as typeof query;
+      }
+      if (filterUserId) {
+        query = query.where(eq(auditLogs.userId, filterUserId)) as typeof query;
+      }
+      if (filterStatus) {
+        query = query.where(eq(auditLogs.status, filterStatus)) as typeof query;
+      }
+      if (since) {
+        query = query.where(sql`${auditLogs.timestamp} >= ${since}`) as typeof query;
+      }
+
+      const rows = await query
+        .orderBy(desc(auditLogs.timestamp))
+        .limit(limit)
+        .offset(offset);
+
+      // Summary stats for the current filter
+      const safetyBlocks = rows.filter(r => r.action?.startsWith('safety.')).length;
+      const phiEvents = rows.filter(r => r.action === 'safety.phi_strip').length;
+
+      res.json({
+        entries: rows,
+        count: rows.length,
+        limit,
+        offset,
+        summary: { safetyBlocks, phiEvents },
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET /api/admin/audit-log/summary — aggregate counts by action type
+  app.get("/api/admin/audit-log/summary", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const since = req.query.since
+        ? new Date(String(req.query.since))
+        : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // default: last 7 days
+
+      const rows = await db
+        .select({
+          action: auditLogs.action,
+          status: auditLogs.status,
+          count: sql<number>`cast(count(*) as int)`,
+        })
+        .from(auditLogs)
+        .where(sql`${auditLogs.timestamp} >= ${since}`)
+        .groupBy(auditLogs.action, auditLogs.status)
+        .orderBy(desc(sql`count(*)`));
+
+      res.json({ since: since.toISOString(), rows });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
   // User Domain Profile API
   // ============================================================================
 
@@ -8405,6 +8520,366 @@ Rules:
   });
 
   // ============================================================================
+
+  // ============================================================================
+  // Pilot Experiment API — Track 2C: Test Harness UX
+  // Experiments = two workflow runs (control vs experimental) + comparison report
+  // ============================================================================
+
+  /** Create a new experiment record (execution is triggered separately by the frontend). */
+  app.post("/api/experiments", optionalAuth, express.json(), async (req, res) => {
+    const userId: string | undefined = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const {
+      hypothesis,
+      workflowId,
+      workflowName,
+      controlLabel = "Control",
+      experimentalLabel = "Experimental",
+      controlParams,
+      experimentalParams,
+      metrics = [],
+    } = req.body ?? {};
+
+    if (!hypothesis || !workflowId || !controlParams || !experimentalParams) {
+      return res.status(400).json({ error: "hypothesis, workflowId, controlParams, experimentalParams are required" });
+    }
+
+    try {
+      const { experiments } = await import("../shared/schema");
+      const { db } = await import("./db");
+      const [row] = await db
+        .insert(experiments)
+        .values({
+          userId,
+          hypothesis,
+          workflowId,
+          workflowName: workflowName || workflowId,
+          controlLabel,
+          experimentalLabel,
+          controlParams: typeof controlParams === "string" ? controlParams : JSON.stringify(controlParams),
+          experimentalParams: typeof experimentalParams === "string" ? experimentalParams : JSON.stringify(experimentalParams),
+          metrics: JSON.stringify(Array.isArray(metrics) ? metrics : []),
+          status: "pending",
+        })
+        .returning();
+
+      return res.json({ id: row.id, status: "pending", createdAt: row.createdAt });
+    } catch (err: any) {
+      console.error("[Experiments] create error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** Link run IDs to an experiment and transition it to running state. */
+  app.patch("/api/experiments/:id", optionalAuth, express.json(), async (req, res) => {
+    const userId: string | undefined = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    const { controlRunId, experimentalRunId } = req.body ?? {};
+    try {
+      const { experiments } = await import("../shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+
+      const [row] = await db
+        .update(experiments)
+        .set({
+          controlRunId: controlRunId || undefined,
+          experimentalRunId: experimentalRunId || undefined,
+          status: controlRunId && experimentalRunId ? "running" : "pending",
+          updatedAt: new Date(),
+        })
+        .where(eq(experiments.id, req.params.id))
+        .returning();
+
+      if (!row) return res.status(404).json({ error: "Experiment not found" });
+      return res.json({ id: row.id, status: row.status });
+    } catch (err: any) {
+      console.error("[Experiments] patch error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** List all experiments for the authenticated user. */
+  app.get("/api/experiments", optionalAuth, async (req, res) => {
+    const userId: string | undefined = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    try {
+      const { experiments } = await import("../shared/schema");
+      const { db } = await import("./db");
+      const { eq, desc } = await import("drizzle-orm");
+
+      const rows = await db
+        .select()
+        .from(experiments)
+        .where(eq(experiments.userId, userId))
+        .orderBy(desc(experiments.createdAt))
+        .limit(50);
+
+      return res.json({ experiments: rows.map(r => ({
+        id: r.id,
+        hypothesis: r.hypothesis,
+        workflowId: r.workflowId,
+        workflowName: r.workflowName,
+        controlLabel: r.controlLabel,
+        experimentalLabel: r.experimentalLabel,
+        status: r.status,
+        controlRunId: r.controlRunId,
+        experimentalRunId: r.experimentalRunId,
+        hasResults: !!r.comparisonResult,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })) });
+    } catch (err: any) {
+      console.error("[Experiments] list error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  /** Poll experiment results — computes comparison when both runs reach terminal state. */
+  app.get("/api/experiments/:id/results", optionalAuth, async (req, res) => {
+    const userId: string | undefined = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+    try {
+      const { experiments } = await import("../shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+
+      const [exp] = await db
+        .select()
+        .from(experiments)
+        .where(eq(experiments.id, req.params.id));
+
+      if (!exp) return res.status(404).json({ error: "Experiment not found" });
+      if (exp.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+
+      // If already computed, return cached result
+      if (exp.comparisonResult) {
+        return res.json({
+          id: exp.id,
+          status: exp.status,
+          hypothesis: exp.hypothesis,
+          controlLabel: exp.controlLabel,
+          experimentalLabel: exp.experimentalLabel,
+          comparison: JSON.parse(exp.comparisonResult),
+          narrative: exp.narrative,
+        });
+      }
+
+      // If no run IDs yet, experiment hasn't started
+      if (!exp.controlRunId || !exp.experimentalRunId) {
+        return res.json({ id: exp.id, status: exp.status });
+      }
+
+      // Fetch both runs
+      const controlRun = await storage.getExecutionRun(exp.controlRunId);
+      const experimentalRun = await storage.getExecutionRun(exp.experimentalRunId);
+
+      const terminalStatuses = new Set(["completed", "failed", "error", "cancelled"]);
+      // ExecutionRun has status nested at execution.status
+      const controlStatus = ((controlRun as any)?.execution?.status || (controlRun as any)?.status || "unknown").toLowerCase();
+      const experimentalStatus = ((experimentalRun as any)?.execution?.status || (experimentalRun as any)?.status || "unknown").toLowerCase();
+      const bothDone = terminalStatuses.has(controlStatus) && terminalStatuses.has(experimentalStatus);
+
+      if (!bothDone) {
+        return res.json({
+          id: exp.id,
+          status: "running",
+          controlRun: { runId: exp.controlRunId, status: controlStatus },
+          experimentalRun: { runId: exp.experimentalRunId, status: experimentalStatus },
+        });
+      }
+
+      // Both runs are done — compute comparison
+      const comparison = await storage.compareExecutionRuns(exp.controlRunId, exp.experimentalRunId);
+
+      // Generate automated narrative
+      const narrative = _buildExperimentNarrative(
+        exp.hypothesis,
+        exp.controlLabel || "Control",
+        exp.experimentalLabel || "Experimental",
+        controlStatus,
+        experimentalStatus,
+        comparison
+      );
+
+      // Cache result
+      const finalStatus = controlStatus === "completed" && experimentalStatus === "completed"
+        ? "completed"
+        : "failed";
+
+      await db
+        .update(experiments)
+        .set({
+          status: finalStatus,
+          comparisonResult: comparison ? JSON.stringify(comparison) : null,
+          narrative,
+          updatedAt: new Date(),
+        })
+        .where(eq(experiments.id, req.params.id));
+
+      return res.json({
+        id: exp.id,
+        status: finalStatus,
+        hypothesis: exp.hypothesis,
+        controlLabel: exp.controlLabel,
+        experimentalLabel: exp.experimentalLabel,
+        controlRun: { runId: exp.controlRunId, status: controlStatus },
+        experimentalRun: { runId: exp.experimentalRunId, status: experimentalStatus },
+        comparison,
+        narrative,
+      });
+    } catch (err: any) {
+      console.error("[Experiments] results error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ============================================================================
+  // Data Analysis API — Track 2D: Input Data Analysis UX
+  // Lightweight file stats: FASTQ read count, CSV shape, FASTA sequence count, VCF variants
+  // ============================================================================
+
+  app.post("/api/data/analyze", optionalAuth, express.json(), async (req, res) => {
+    const { filePath, fileName, fileType } = req.body ?? {};
+    if (!filePath && !fileName) {
+      return res.status(400).json({ error: "filePath or fileName is required" });
+    }
+
+    const name: string = fileName || filePath.split('/').pop() || '';
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+
+    try {
+      // Resolve actual disk path
+      let diskPath: string | null = null;
+      if (filePath && filePath.startsWith('/')) {
+        diskPath = filePath;
+      } else if (filePath && filePath.startsWith('s3://')) {
+        // S3 path — can't analyze server-side without downloading; return stub
+        return res.json({
+          fileName: name,
+          fileType: ext,
+          analyzed: false,
+          note: 'S3 file analysis not yet supported server-side. Download to local path first.',
+        });
+      }
+
+      if (!diskPath || !require('fs').existsSync(diskPath)) {
+        return res.json({ fileName: name, fileType: ext, analyzed: false, note: 'File not accessible on server.' });
+      }
+
+      const fs = require('fs') as typeof import('fs');
+      const readline = require('readline') as typeof import('readline');
+
+      const analyzeLines = (maxLines: number): Promise<string[]> => new Promise((resolve) => {
+        const lines: string[] = [];
+        const rl = readline.createInterface({ input: fs.createReadStream(diskPath!), crlfDelay: Infinity });
+        rl.on('line', (line: string) => { lines.push(line); if (lines.length >= maxLines) rl.close(); });
+        rl.on('close', () => resolve(lines));
+        rl.on('error', () => resolve(lines));
+      });
+
+      const stats = fs.statSync(diskPath);
+      const fileSizeBytes = stats.size;
+
+      if (ext === 'fastq' || ext === 'fq' || ext === 'fastq.gz' || ext === 'fq.gz') {
+        // FASTQ: every 4 lines = 1 read
+        const lines = await analyzeLines(40000);
+        const readCount = Math.floor(lines.length / 4);
+        const totalLineCount = lines.length;
+        // Avg quality from @-record quality lines (lines 3 of each record)
+        let totalQuality = 0;
+        let qualCount = 0;
+        for (let i = 3; i < lines.length; i += 4) {
+          for (const ch of lines[i]) {
+            totalQuality += ch.charCodeAt(0) - 33; // Phred+33
+            qualCount++;
+          }
+        }
+        const avgQuality = qualCount > 0 ? (totalQuality / qualCount).toFixed(1) : null;
+        const seqLengths = lines.filter((_, i) => i % 4 === 1).map(l => l.length);
+        const avgSeqLen = seqLengths.length > 0 ? Math.round(seqLengths.reduce((a, b) => a + b, 0) / seqLengths.length) : null;
+        return res.json({
+          fileName: name, fileType: 'fastq', analyzed: true, fileSizeMb: (fileSizeBytes / 1e6).toFixed(2),
+          readCount: totalLineCount < 40000 ? readCount : `≥${readCount} (truncated sample)`,
+          avgQuality, avgSeqLen,
+          passesQualityGate: avgQuality !== null && parseFloat(avgQuality) >= 20,
+          qualityGateThreshold: { minAvgQ: 20, minReads: 10000 },
+        });
+      }
+
+      if (ext === 'fasta' || ext === 'fa' || ext === 'fna' || ext === 'ffn' || ext === 'faa') {
+        const lines = await analyzeLines(50000);
+        const seqHeaders = lines.filter(l => l.startsWith('>'));
+        const seqCount = seqHeaders.length;
+        const seqLengths: number[] = [];
+        let currentLen = 0;
+        for (const line of lines) {
+          if (line.startsWith('>')) { if (currentLen > 0) seqLengths.push(currentLen); currentLen = 0; }
+          else { currentLen += line.trim().length; }
+        }
+        if (currentLen > 0) seqLengths.push(currentLen);
+        const avgLen = seqLengths.length > 0 ? Math.round(seqLengths.reduce((a, b) => a + b, 0) / seqLengths.length) : null;
+        return res.json({
+          fileName: name, fileType: 'fasta', analyzed: true, fileSizeMb: (fileSizeBytes / 1e6).toFixed(2),
+          sequenceCount: lines.length < 50000 ? seqCount : `≥${seqCount} (truncated)`,
+          avgLength: avgLen,
+        });
+      }
+
+      if (ext === 'csv' || ext === 'tsv') {
+        const lines = await analyzeLines(1005);
+        const sep = ext === 'tsv' ? '\t' : ',';
+        const headers = lines[0]?.split(sep) ?? [];
+        const dataRows = lines.slice(1, 1001);
+        // Missing values per column
+        const missing: Record<string, number> = {};
+        for (const col of headers) missing[col] = 0;
+        for (const row of dataRows) {
+          const cells = row.split(sep);
+          headers.forEach((col, i) => { if (!cells[i] || cells[i].trim() === '' || cells[i] === 'NA' || cells[i] === 'null') missing[col]++; });
+        }
+        const maxMissingPct = Math.max(...Object.values(missing).map(v => v / Math.max(dataRows.length, 1) * 100));
+        return res.json({
+          fileName: name, fileType: ext, analyzed: true, fileSizeMb: (fileSizeBytes / 1e6).toFixed(2),
+          rowCount: lines.length < 1005 ? dataRows.length : `≥${dataRows.length} (truncated)`,
+          columnCount: headers.length,
+          columns: headers.slice(0, 20),
+          missingValuesByColumn: missing,
+          passesQualityGate: maxMissingPct <= 20,
+          qualityGateThreshold: { maxMissingPct: 20 },
+        });
+      }
+
+      if (ext === 'vcf') {
+        const lines = await analyzeLines(20000);
+        const dataLines = lines.filter(l => !l.startsWith('#'));
+        const chrDist: Record<string, number> = {};
+        let filterPass = 0;
+        for (const line of dataLines) {
+          const cols = line.split('\t');
+          if (cols[0]) chrDist[cols[0]] = (chrDist[cols[0]] ?? 0) + 1;
+          if (cols[6] === 'PASS') filterPass++;
+        }
+        return res.json({
+          fileName: name, fileType: 'vcf', analyzed: true, fileSizeMb: (fileSizeBytes / 1e6).toFixed(2),
+          variantCount: lines.length < 20000 ? dataLines.length : `≥${dataLines.length} (truncated)`,
+          filterPassCount: filterPass,
+          chromosomeDistribution: chrDist,
+        });
+      }
+
+      // Generic: just file size
+      return res.json({ fileName: name, fileType: ext, analyzed: false, fileSizeMb: (fileSizeBytes / 1e6).toFixed(2), note: 'File type not supported for analysis.' });
+    } catch (err: any) {
+      console.error("[DataAnalyze] error:", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+  });
 
   // ── Agent code execution endpoint ────────────────────────────────────────────
   // POST /api/code/run — used by the `run_code` agent tool.
@@ -8783,5 +9258,96 @@ function isVisualizable(extension: string): boolean {
     'pdb', 'cif', 'mmcif', 'ent', 'mrc', 'map', 'rec',
   ];
   return visualizableExts.includes(extension.toLowerCase());
+}
+
+// ============================================================================
+// Experiment narrative generator — Track 2C
+// ============================================================================
+
+function _buildExperimentNarrative(
+  hypothesis: string,
+  controlLabel: string,
+  experimentalLabel: string,
+  controlStatus: string,
+  experimentalStatus: string,
+  comparison: any
+): string {
+  const lines: string[] = [];
+
+  lines.push(`**Hypothesis:** ${hypothesis}`);
+  lines.push('');
+
+  // Execution summary
+  const controlOk = controlStatus === 'completed';
+  const experimentalOk = experimentalStatus === 'completed';
+
+  if (!controlOk && !experimentalOk) {
+    lines.push(`Both the ${controlLabel} and ${experimentalLabel} runs failed — no comparison is possible. Check execution logs for error details.`);
+    return lines.join('\n');
+  }
+  if (!controlOk) {
+    lines.push(`The ${controlLabel} run failed (status: ${controlStatus}). Comparison is based on the ${experimentalLabel} run only.`);
+    return lines.join('\n');
+  }
+  if (!experimentalOk) {
+    lines.push(`The ${experimentalLabel} run failed (status: ${experimentalStatus}). Comparison is based on the ${controlLabel} run only.`);
+    return lines.join('\n');
+  }
+
+  if (!comparison) {
+    lines.push('Both runs completed successfully. Comparison data is not yet available.');
+    return lines.join('\n');
+  }
+
+  // RunComparisonResponse shape: { runs[], comparison: { runtimeDelta, memoryDelta, qualityDelta, parameterDifferences }, recommendation?: { preferredRun, reason } }
+  const cmp = comparison?.comparison ?? comparison ?? {};
+  const rec = comparison?.recommendation;
+
+  // Runtime comparison
+  const rtDelta: number = cmp.runtimeDelta ?? 0;
+  if (Math.abs(rtDelta) > 1) {
+    const rtDir = rtDelta > 0 ? `${Math.abs(rtDelta).toFixed(1)}% slower` : `${Math.abs(rtDelta).toFixed(1)}% faster`;
+    lines.push(`**Runtime:** ${experimentalLabel} was ${rtDir} than ${controlLabel}.`);
+  }
+
+  // Memory comparison
+  const memDelta: number = cmp.memoryDelta ?? 0;
+  if (Math.abs(memDelta) > 1) {
+    const memDir = memDelta > 0 ? `used ${Math.abs(memDelta).toFixed(1)}% more memory` : `used ${Math.abs(memDelta).toFixed(1)}% less memory`;
+    lines.push(`**Memory:** ${experimentalLabel} ${memDir}.`);
+  }
+
+  // Quality metrics
+  const qualityDelta: Record<string, number> = cmp.qualityDelta ?? {};
+  const qualityKeys = Object.keys(qualityDelta);
+  if (qualityKeys.length > 0) {
+    lines.push('');
+    lines.push('**Quality metrics:**');
+    for (const key of qualityKeys) {
+      const delta = qualityDelta[key];
+      if (Math.abs(delta) < 0.001) continue;
+      const dir = delta > 0 ? `improved by ${delta.toFixed(3)}` : `decreased by ${Math.abs(delta).toFixed(3)}`;
+      lines.push(`- ${key}: ${dir}`);
+    }
+  }
+
+  // Parameter differences
+  const paramDiffs: any[] = cmp.parameterDifferences ?? [];
+  if (paramDiffs.length > 0) {
+    lines.push('');
+    lines.push(`**Parameter changes (${paramDiffs.length}):**`);
+    for (const diff of paramDiffs.slice(0, 5)) {
+      lines.push(`- \`${diff.param}\`: ${JSON.stringify(diff.run1Value)} → ${JSON.stringify(diff.run2Value)}`);
+    }
+    if (paramDiffs.length > 5) lines.push(`- … and ${paramDiffs.length - 5} more`);
+  }
+
+  // Overall recommendation
+  lines.push('');
+  if (rec?.preferredRun) {
+    lines.push(`**Recommendation:** ${rec.reason ?? 'based on quality and resource metrics'}.`);
+  }
+
+  return lines.join('\n');
 }
 
