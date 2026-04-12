@@ -24,12 +24,14 @@ API reference:
 """
 
 import hashlib
+import json
 import logging
 import os
 import threading
 import time
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, Optional
+from collections import deque
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 import requests
 
@@ -191,22 +193,128 @@ def send_workflow_card(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# BioMate API helpers
+# Open Claw engine — routes WeChat queries through /api/open-claw/stream
+# This gives WeChat users the full agentic Claude+BioMate experience instead
+# of the old simple keyword search.
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _biomate_search(query: str, limit: int = 3) -> Dict[str, Any]:
-    headers = {"Authorization": f"Bearer {BIOMATE_API_KEY}"} if BIOMATE_API_KEY else {}
+# Per-user conversation history: {wechat_user_id: deque of {role, content} dicts}
+# Keeps last 10 turns so follow-up questions work naturally.
+_MAX_HISTORY = 10
+_conversation_history: Dict[str, Deque[Dict[str, str]]] = {}
+_history_lock = threading.Lock()
+
+
+def _get_history(user_id: str) -> List[Dict[str, str]]:
+    with _history_lock:
+        return list(_conversation_history.get(user_id, deque()))
+
+
+def _push_history(user_id: str, role: str, content: str) -> None:
+    with _history_lock:
+        if user_id not in _conversation_history:
+            _conversation_history[user_id] = deque(maxlen=_MAX_HISTORY)
+        _conversation_history[user_id].append({"role": role, "content": content})
+
+
+def _open_claw_query(
+    user_id: str,
+    query: str,
+    api_key: Optional[str] = None,
+    timeout: int = 55,
+) -> Tuple[str, Optional[str]]:
+    """
+    Send a query through the BioMate Open Claw engine (/api/open-claw/stream).
+    Returns (reply_text, workflow_id_or_None).
+
+    The Open Claw SSE stream emits newline-delimited events:
+        event: text_delta  / data: {"text": "..."}
+        event: tool_call_start / data: {"id": ..., "name": ...}
+        event: tool_result / data: {"tool_call_id": ..., "content": ...}
+        event: done        / data: {}
+
+    We accumulate text_delta events and the first workflow_id surfaced in a
+    tool_result for the "search_workflows" tool.
+    """
+    # Build message list: history + new user turn
+    history = _get_history(user_id)
+    messages = history + [{"role": "user", "content": query}]
+
+    headers: Dict[str, str] = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+    effective_key = api_key or BIOMATE_API_KEY
+    if effective_key:
+        headers["Authorization"] = f"Bearer {effective_key}"
+
+    text_parts: List[str] = []
+    workflow_id: Optional[str] = None
+
     try:
-        r = requests.post(
-            f"{BIOMATE_API_URL}/api/workflows/search",
-            json={"query": query, "limit": limit},
+        with requests.post(
+            f"{BIOMATE_API_URL}/api/open-claw/stream",
+            json={"messages": messages},
             headers=headers,
-            timeout=15,
-        )
-        r.raise_for_status()
-        return r.json()
+            stream=True,
+            timeout=timeout,
+        ) as resp:
+            if resp.status_code == 503:
+                return "❌ BioMate Open Claw engine不可用（API密钥未配置）。请联系管理员。", None
+            if resp.status_code == 400:
+                return "❌ 请求格式错误，请重试。", None
+            if resp.status_code != 200:
+                return f"❌ BioMate返回错误 {resp.status_code}，请稍后重试。", None
+
+            current_event = "message"
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                if raw_line.startswith("event:"):
+                    current_event = raw_line[6:].strip()
+                elif raw_line.startswith("data:"):
+                    data_str = raw_line[5:].strip()
+                    try:
+                        data = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+
+                    evt = current_event or (data.get("type") if isinstance(data, dict) else "")
+
+                    # Accumulate text
+                    if evt in ("text_delta", "delta") or (isinstance(data, dict) and data.get("type") in ("text_delta", "delta")):
+                        text_parts.append(data.get("text", ""))
+
+                    # Capture first workflow_id from search_workflows tool result
+                    if evt == "tool_result" and isinstance(data, dict):
+                        result_content = data.get("content", "")
+                        if isinstance(result_content, str):
+                            try:
+                                parsed = json.loads(result_content)
+                                results = parsed.get("results", parsed.get("workflows", []))
+                                if results and not workflow_id:
+                                    workflow_id = results[0].get("workflow_id", results[0].get("id"))
+                            except (json.JSONDecodeError, AttributeError):
+                                pass
+
+                    # Stop after done
+                    if evt == "done" or (isinstance(data, dict) and data.get("type") == "done"):
+                        break
+
+                    current_event = "message"  # reset after data line
+
+    except requests.exceptions.Timeout:
+        return "⏱ BioMate响应超时，请稍后重试。", None
     except Exception as exc:
-        return {"results": [], "error": str(exc)}
+        log.exception(f"Open Claw query failed for user {user_id}: {exc}")
+        return f"❌ BioMate查询失败：{exc}", None
+
+    reply_text = "".join(text_parts).strip()
+    if not reply_text:
+        reply_text = "BioMate正在处理您的请求，请稍后在应用中查看结果。"
+
+    # Persist turn into history
+    _push_history(user_id, "user", query)
+    _push_history(user_id, "assistant", reply_text)
+
+    return reply_text, workflow_id
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -226,7 +334,8 @@ def handle_wechat_message(xml_body: str, corp_app_id: str) -> str:
     Handles:
       - "bind <api_key>"   → bind WeChat user to BioMate account
       - "unbind"           → remove binding
-      - Any other text     → search BioMate and reply async with workflow card(s)
+      - "clear" / "清除"   → clear conversation history
+      - Any other text     → routed through Open Claw engine (full agentic loop)
     """
     msg = parse_message_xml(xml_body)
     if not msg:
@@ -259,46 +368,57 @@ def handle_wechat_message(xml_body: str, corp_app_id: str) -> str:
         _user_bindings.pop(from_user, None)
         return build_text_reply(from_user, to_user, "✅ 已解除BioMate账号绑定。")
 
+    # Clear conversation history
+    if content.lower() in ("clear", "清除", "新对话", "reset"):
+        with _history_lock:
+            _conversation_history.pop(from_user, None)
+        return build_text_reply(from_user, to_user, "✅ 对话历史已清除，开始新对话。")
+
     # Help command
     if content.lower() in ("help", "帮助", "?", "？"):
         return build_text_reply(from_user, to_user,
-            "BioMate 生命科学AI助手\n\n"
+            "BioMate 生命科学AI助手 (Open Claw引擎)\n\n"
             "发送分析请求，例如：\n"
             "• 对化合物列表进行ADMET筛选\n"
             "• RNA-seq差异表达分析\n"
             "• 蛋白质结构预测\n\n"
-            "账号绑定：bind <your-api-key>\n"
+            "支持多轮对话——可直接追问上下文。\n\n"
+            "命令：\n"
+            "• bind <api-key>  绑定BioMate账号\n"
+            "• unbind          解除绑定\n"
+            "• clear           清除对话历史\n\n"
             f"打开应用：{BIOMATE_DEEP_LINK_BASE}"
         )
 
-    # Scientific query: search async and reply with workflow cards
+    # Scientific query → Open Claw engine (async, WeChat requires 5s response)
+    user_api_key = _user_bindings.get(from_user)
+
     def _respond_async():
         try:
-            result = _biomate_search(content)
-            workflows = result.get("results", result.get("workflows", []))
+            reply_text, workflow_id = _open_claw_query(from_user, content, api_key=user_api_key)
 
-            if not workflows:
-                send_text_message(from_user,
-                    f"未找到匹配的工作流程：{content}\n\n"
-                    f"请访问 {BIOMATE_DEEP_LINK_BASE} 查看所有可用工作流。",
+            # Truncate for WeChat message length limit (2048 chars)
+            if len(reply_text) > 1800:
+                reply_text = reply_text[:1800] + f"\n\n[查看完整结果请访问 {BIOMATE_DEEP_LINK_BASE}]"
+
+            send_text_message(from_user, reply_text)
+
+            # If a specific workflow was identified, send a workflow card as well
+            if workflow_id:
+                send_workflow_card(
+                    from_user,
+                    workflow_name=workflow_id.replace("_", " ").title(),
+                    description=reply_text[:200],
+                    workflow_id=workflow_id,
                 )
-                return
-
-            # Send top-3 workflow cards
-            for wf in workflows[:3]:
-                name = wf.get("name", wf.get("workflow_id", "工作流"))
-                desc = wf.get("description", "")
-                wf_id = wf.get("workflow_id", wf.get("id", ""))
-                send_workflow_card(from_user, name, desc, wf_id)
-
         except Exception as exc:
-            log.exception("WeChat async response failed")
+            log.exception("WeChat Open Claw async response failed")
             send_text_message(from_user, f"❌ BioMate查询失败：{exc}")
 
     threading.Thread(target=_respond_async, daemon=True).start()
 
     # Immediate reply (WeChat requires response within 5s)
-    return build_text_reply(from_user, to_user, f"🔍 正在搜索：{content[:60]}…")
+    return build_text_reply(from_user, to_user, f"🤖 BioMate正在分析：{content[:60]}…")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
