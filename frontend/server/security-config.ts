@@ -31,7 +31,7 @@ export function getSecurityConfig(): SecurityConfig {
 
   const defaultOrigins = isProd
     ? ['https://biomate.ai']
-    : ['http://localhost:5173', 'http://localhost:5000'];
+    : ['http://localhost:5173', 'http://localhost:5000', 'http://localhost:3000', 'http://localhost:3001'];
 
   // Allow env vars to override prod defaults (for HTTP-terminated dev/staging servers)
   const forceHTTPS = process.env.FORCE_HTTPS === '0' ? false : isProd;

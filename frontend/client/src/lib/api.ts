@@ -82,6 +82,13 @@ class ApiClient {
     })
   }
 
+  async verifyEmail(token: string) {
+    return this.request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    })
+  }
+
   // Contact form
   async submitContactForm(data: {
     name: string

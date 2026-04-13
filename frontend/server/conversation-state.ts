@@ -272,6 +272,9 @@ export interface ConversationState {
   // Context stack for handling tangent sub-dialogues within an ongoing workflow session
   contextStack: ContextFrame[];
 
+  // Session memory snapshot (from SessionMemoryUpdater — persisted per-turn)
+  sessionMemory?: Record<string, any>;
+
   // Timestamp
   updatedAt: string;
 }
@@ -348,6 +351,20 @@ export class ConversationStateManager {
         .where(eq(ltmSchema.sessions.id, state.sessionId));
     } catch (error) {
       console.warn('[ConversationState] Failed to save state:', error);
+    }
+  }
+
+  /**
+   * Persist a session memory snapshot produced by SessionMemoryUpdater.
+   * Loads the current state, merges the memory block, then saves.
+   */
+  async saveSessionMemory(sessionId: string, memory: Record<string, any>): Promise<void> {
+    try {
+      const state = await this.loadState(sessionId);
+      state.sessionMemory = memory;
+      await this.saveState(state);
+    } catch (error) {
+      console.warn('[ConversationState] Failed to save session memory:', error);
     }
   }
 

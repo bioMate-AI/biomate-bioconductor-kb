@@ -413,6 +413,8 @@ export interface WorkflowGenerationRequest {
   key_terms?: string[];
   /** User's actual session-uploaded datasets — wires WorkflowDatasetSelector + domain-specialist format context */
   session_datasets?: Array<{ id: string; name: string; type: string }>;
+  /** Licensed tool credential map: {tool_id: true/false} presence flags for premium integrations */
+  credential_map?: Record<string, boolean>;
 }
 
 export interface WorkflowGenerationResponse {

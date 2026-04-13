@@ -619,62 +619,160 @@ const galaxyAssistant = process.env.ANTHROPIC_API_KEY ? new GalaxyAssistant({
 // "Open Claw" = power-user mode where BioMate tools are visible as function calls.
 // Named after the OpenClaw conversation-state pattern (see conversation-state.ts:8).
 // Tool calls are executed server-side and results streamed back as SSE events.
+// Open Claw tool definitions — keep in sync with:
+//   backend/lib/mcp/biomate_mcp_server.py  (TOOLS list)
+//   backend/lib/integrations/slack_bot.py  (_open_claw_query)
+//   backend/lib/integrations/wechat_bot.py (_open_claw_query)
+// Doc: docs/20260412_BIOMATE_TOOLS_CAPABILITY_MAP.md
 const OPEN_CLAW_TOOLS = [
+  // ── Discovery ──────────────────────────────────────────────────────────────
   {
     name: "search_workflow",
-    description: "Search the BioMate scientific workflow catalog. Returns ranked workflow cards with required parameters.",
+    description:
+      "Search the BioMate scientific workflow catalog by natural language. " +
+      "Returns ranked workflow cards with descriptions, required parameters, " +
+      "and estimated AWS Batch compute time. Always call this first to find the workflow_id.",
     input_schema: {
       type: "object" as const,
       properties: {
-        query: { type: "string", description: "Natural language description of the analysis" },
-        limit: { type: "integer", description: "Max results (default 5)" },
+        query: { type: "string", description: "Natural language description of the analysis, e.g. 'ADMET screening for small molecules', 'RNA-seq differential expression'" },
+        limit: { type: "integer", description: "Max results (default 5, max 20)" },
       },
       required: ["query"],
     },
   },
+  // ── Execution ──────────────────────────────────────────────────────────────
   {
     name: "run_workflow",
-    description: "Execute a BioMate workflow on AWS Batch. Returns run_id to poll with get_run_status.",
+    description:
+      "Execute a BioMate scientific workflow on AWS Batch. " +
+      "Returns a run_id to monitor with get_run_status. " +
+      "Use search_workflow first to find the workflow_id and required parameters.",
     input_schema: {
       type: "object" as const,
       properties: {
-        workflow_id: { type: "string", description: "Workflow ID from search_workflow" },
-        params: { type: "object", description: "Workflow parameters", additionalProperties: true },
-        message: { type: "string", description: "Optional natural language context for AI parameter filling" },
+        workflow_id: { type: "string", description: "Workflow ID from search_workflow (e.g. 'assay_ingestion_and_ranking')" },
+        params: { type: "object", description: "Workflow parameters as key-value pairs. Required params vary by workflow.", additionalProperties: true },
+        message: { type: "string", description: "Optional natural language context — BioMate AI auto-fills missing params from this" },
       },
       required: ["workflow_id"],
     },
   },
   {
     name: "get_run_status",
-    description: "Poll the status of a BioMate workflow run.",
+    description:
+      "Poll the status of a BioMate workflow run. " +
+      "Returns status (pending|running|completed|failed), step progress, elapsed time, and error message if any.",
     input_schema: {
       type: "object" as const,
       properties: {
-        run_id: { type: "string" },
+        run_id: { type: "string", description: "Run ID returned by run_workflow" },
       },
       required: ["run_id"],
     },
   },
   {
     name: "get_run_results",
-    description: "Retrieve output files from a completed run.",
+    description:
+      "Retrieve output files and summary data from a completed run. " +
+      "Returns a list of output files with download URLs, file types, and sizes. " +
+      "Only call after get_run_status returns status='completed'.",
     input_schema: {
       type: "object" as const,
       properties: {
-        run_id: { type: "string" },
+        run_id: { type: "string", description: "Run ID of a completed run" },
       },
       required: ["run_id"],
     },
   },
   {
-    name: "query_database",
-    description: "Query a biological database: uniprot, pdb, alphafold, ncbi_gene, dbsnp, clinvar, kegg, chebi, pubchem, hpo, string.",
+    name: "cancel_run",
+    description:
+      "Cancel a running or queued BioMate workflow job on AWS Batch. " +
+      "Use when the user wants to stop a run, or before launching a corrected replacement run.",
     input_schema: {
       type: "object" as const,
       properties: {
-        database: { type: "string", enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","kegg","chebi","pubchem","hpo","string"] },
-        query: { type: "string", description: "Accession, gene symbol, compound name, or search query" },
+        run_id: { type: "string", description: "Run ID to cancel" },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
+    name: "list_runs",
+    description:
+      "List the user's recent BioMate workflow runs with status and timestamps. " +
+      "Useful for checking what jobs are currently running or recently completed.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        limit: { type: "integer", description: "Max runs to return (default 10)" },
+        status: { type: "string", enum: ["all", "running", "completed", "failed", "pending"], description: "Filter by status (default: all)" },
+      },
+    },
+  },
+  // ── Analysis & Diagnosis ──────────────────────────────────────────────────
+  {
+    name: "analyze_results",
+    description:
+      "Ask BioMate's AI to interpret and summarize the outputs from a completed run. " +
+      "Returns a natural language analysis: key findings, quality metrics, scientific interpretation, and recommended next steps.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        run_id: { type: "string", description: "Run ID of a completed run to analyze" },
+        question: { type: "string", description: "Optional specific question about the results, e.g. 'which compounds passed ADMET filters?'" },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
+    name: "explain_error",
+    description:
+      "Ask BioMate's AI to diagnose why a failed workflow run failed. " +
+      "Returns the likely root cause (genome mismatch, missing input, resource OOM, etc.) and the specific fix to apply.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        run_id: { type: "string", description: "Run ID of a failed run to diagnose" },
+        error_log: { type: "string", description: "Optional: paste the error log directly if run_id lookup is unavailable" },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
+    name: "analyze_file",
+    description:
+      "Run lightweight QC analysis on a data file. " +
+      "Returns format-specific metrics: FASTQ (read count, quality, adapters), " +
+      "VCF (variant count, FILTER pass rate), CSV/TSV (rows, columns, missing values), " +
+      "FASTA (sequence count, length distribution, GC content).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        s3_key: { type: "string", description: "S3 path to the file (s3://bucket/path/file)" },
+        inline_data: { type: "string", description: "Small file content pasted inline (max 50 KB). Use s3_key for larger files." },
+        file_type: { type: "string", enum: ["fastq", "csv", "tsv", "vcf", "fasta", "bam", "auto"], description: "File type hint (default: auto-detect)" },
+      },
+    },
+  },
+  // ── Databases ─────────────────────────────────────────────────────────────
+  {
+    name: "query_database",
+    description:
+      "Query a biological or chemical database by accession, gene symbol, compound name, or search query. " +
+      "Databases: uniprot (protein), pdb/alphafold (structure), ncbi_gene (gene), " +
+      "dbsnp/clinvar/gnomad (variants), kegg/reactome (pathways), " +
+      "chebi/pubchem (compounds), hpo/omim (phenotypes/disease), string (interactions).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        database: {
+          type: "string",
+          enum: ["uniprot","pdb","alphafold","ncbi_gene","dbsnp","clinvar","gnomad","kegg","reactome","chebi","pubchem","hpo","omim","string"],
+          description: "Target database",
+        },
+        query: { type: "string", description: "Accession (P04637, 1TUP), gene symbol (BRCA1), compound name (ibuprofen), or rsID (rs7412)" },
       },
       required: ["database", "query"],
     },
@@ -712,16 +810,51 @@ async function executeOpenClaudeTool(
 
   try {
     switch (toolName) {
+      // ── Discovery ────────────────────────────────────────────────────────
       case "search_workflow":
         return await post("/api/workflows/search", { query: input.query, limit: input.limit ?? 5 });
+
+      // ── Execution ────────────────────────────────────────────────────────
       case "run_workflow":
-        return await post("/api/workflows/execute", { workflow_id: input.workflow_id, params: input.params ?? {}, message: input.message });
+        return await post("/api/workflows/execute", {
+          workflow_id: input.workflow_id,
+          params: input.params ?? {},
+          message: input.message,
+        });
       case "get_run_status":
-        return await get(`/api/nextflow/runs/${input.run_id}/status`);
+        return await get(`/api/workflows/runs/${input.run_id}/status`);
       case "get_run_results":
-        return await get(`/api/nextflow/runs/${input.run_id}/outputs`);
+        return await get(`/api/workflows/runs/${input.run_id}/outputs`);
+      case "cancel_run":
+        return await post(`/api/workflows/runs/${input.run_id}/cancel`, {});
+      case "list_runs": {
+        const qs = new URLSearchParams();
+        if (input.limit) qs.set("limit", String(input.limit));
+        if (input.status && input.status !== "all") qs.set("status", input.status);
+        return await get(`/api/workflows/runs?${qs}`);
+      }
+
+      // ── Analysis & Diagnosis ─────────────────────────────────────────────
+      case "analyze_results":
+        return await post(`/api/workflows/runs/${input.run_id}/ai/analyze`, {
+          question: input.question ?? "Summarize the key findings and scientific interpretation.",
+        });
+      case "explain_error":
+        return await post("/api/workflows/explain_error", {
+          run_id: input.run_id,
+          error_log: input.error_log ?? "",
+        });
+      case "analyze_file":
+        return await post("/api/data/analyze", {
+          s3_key: input.s3_key,
+          inline_data: input.inline_data,
+          file_type: input.file_type ?? "auto",
+        });
+
+      // ── Databases ────────────────────────────────────────────────────────
       case "query_database":
         return await post("/api/databases/query", { database: input.database, query: input.query });
+
       default:
         return { error: `Unknown tool: ${toolName}` };
     }
@@ -3517,9 +3650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
             safeMessage,
-            enrichedContext as unknown as MemoryEnhancedContext,
-            (chunk) => safeSend("delta", { text: chunk }),
-            (event) => safeSend("tool_event", event)
+            enrichedContext as unknown as MemoryEnhancedContext
           )
         : await galaxyAssistant.processMessage(
             safeMessage,
@@ -4881,6 +5012,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================================================
   // Workflow Management API
   // ============================================================================
+
+  // POST /api/workflows/search — natural language workflow search (used by Open Claw tools)
+  // Proxies to Python backend /api/ai_assistant/search_nextflow_workflow
+  app.post("/api/workflows/search", optionalAuth, async (req, res) => {
+    try {
+      const { query, limit } = req.body || {};
+      if (!query) return res.status(400).json({ error: "query is required" });
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_nextflow_workflow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_intent: query, limit: limit ?? 5 }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // List all workflows (for compatibility with E2E tests)
   app.get("/api/workflows", optionalAuth, async (req, res) => {
@@ -6852,6 +7002,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Track 3D: GET /api/workflows/estimate_cost — query-param variant used by CostEstimateBadge
+  app.get('/api/workflows/estimate_cost', optionalAuth, async (req, res) => {
+    const { nextflow_path, sample_count } = req.query;
+    try {
+      const params = new URLSearchParams();
+      if (nextflow_path) params.set('nextflow_path', String(nextflow_path));
+      if (sample_count) params.set('sample_count', String(sample_count));
+      const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyBase}/api/nextflow/estimate_cost?${params}`, {
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!resp.ok) return res.status(resp.status).json({ error: 'estimate failed' });
+      res.json(await resp.json());
+    } catch (err: any) {
+      res.status(503).json({
+        cost_min_usd: 0.5,
+        cost_max_usd: 5.0,
+        estimated_runtime_hours: 1.0,
+        assumptions: ['Could not reach backend — using default estimate'],
+        error: String(err?.message ?? err),
+      });
+    }
+  });
+
+  // Track 3D: POST /api/workflows/parse_error — LLM-powered error parser
+  app.post('/api/workflows/parse_error', optionalAuth, express.json(), async (req, res) => {
+    try {
+      const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyBase}/api/nextflow/parse_error`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!resp.ok) return res.status(resp.status).json({ error: 'parse failed' });
+      res.json(await resp.json());
+    } catch (err: any) {
+      res.status(503).json({
+        error_type: 'unknown',
+        failed_process: null,
+        human_summary: 'Workflow failed. Check logs for details.',
+        suggested_fix: 'Review the error log and check parameter values.',
+        can_resume: true,
+        error: String(err?.message ?? err),
+      });
+    }
+  });
+
   // ── D4: Workflow error explanation — Node.js LLM layer ───────────────────
   // ANTHROPIC_API_KEY is guaranteed present here (same process as all other Anthropic calls).
   // The Galaxy backend's explain_error endpoint is NOT called; LLM call happens here.
@@ -7304,6 +7502,23 @@ Rules:
     }
   });
 
+  // Track 3C: GET /api/workflows/runs/:id/reproducibility
+  // Proxies to the Galaxy/Nextflow backend to generate a reproducibility export bundle.
+  app.get("/api/workflows/runs/:id/reproducibility", optionalAuth, async (req, res) => {
+    try {
+      const galaxyBase = process.env.GALAXY_URL || 'http://localhost:8081';
+      const resp = await fetch(`${galaxyBase}/api/nextflow/runs/${req.params.id}/reproducibility`);
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => resp.statusText);
+        return res.status(resp.status).json({ error: `export failed: ${body}` });
+      }
+      res.json(await resp.json());
+    } catch (err) {
+      console.error('[Reproducibility] proxy error:', err);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // Update execution run (for parameter changes, etc.)
   app.patch("/api/workflows/runs/:id", async (req, res) => {
     try {
@@ -7500,36 +7715,272 @@ Rules:
    * Analyze workflow execution with AI
    * Proxies to Galaxy backend's workflow_ai_ops endpoint
    */
+  // ── AI Results Analysis — Nextflow-native (replaces Galaxy proxy) ─────────
+  // Reads output files from completed Nextflow runs, calls Claude to generate
+  // a structured findings report with scientific interpretation and citations.
   app.post("/api/workflows/runs/:id/ai/analyze", authenticateToken, async (req, res) => {
+    const { question } = req.body as { question?: string };
+
     try {
       const run = await storage.getExecutionRun(req.params.id);
       if (!run) {
         return res.status(404).json({ error: "Execution run not found" });
       }
 
-      const galaxyInvocationId = run.execution.galaxyInvocationId;
-      if (!galaxyInvocationId) {
-        return res.status(400).json({ error: "No Galaxy invocation associated with this run" });
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ error: "AI analysis unavailable — ANTHROPIC_API_KEY not set" });
       }
 
-      // Proxy to Galaxy backend AI analysis endpoint
-      const response = await fetch(
-        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/workflows/${run.execution.galaxyWorkflowId}/invocations/${galaxyInvocationId}/ai/analyze`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.GALAXY_API_KEY || '',
-          },
-          body: JSON.stringify(req.body),
-        }
-      );
+      // ── Gather output file content ────────────────────────────────────────
+      // Use the local invocations outputs endpoint (same data the UI uses).
+      const runIdForOutputs = req.params.id;
+      const workflowName: string = (run as any).workflowName || (run as any).name || "Workflow";
 
-      const data = await response.json();
-      res.status(response.status).json(data);
+      let outputSamples: Array<{ name: string; content: string; type: string }> = [];
+      try {
+        const localUrl = `http://localhost:${process.env.PORT || 5000}`;
+        const outRes = await fetch(`${localUrl}/api/invocations/${runIdForOutputs}/outputs`, {
+          headers: { Authorization: req.headers.authorization || '' },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (outRes.ok) {
+          const outData = await outRes.json() as any;
+          const outputs: any[] = Array.isArray(outData) ? outData : (Array.isArray(outData?.outputs) ? outData.outputs : []);
+          // Sample up to 6 text-format outputs (skip binaries, images)
+          const TEXT_EXTS = /\.(txt|log|csv|tsv|json|vcf|fasta|fa|fastq|fq|md|bed|gff|gtf)$/i;
+          const fsImport = await import('fs/promises');
+          for (const out of outputs.slice(0, 30)) {
+            const filePath: string = out.file_path || out.path || '';
+            const fileName: string = out.name || out.file_name || filePath.split('/').pop() || 'output';
+            if (!fileName || !TEXT_EXTS.test(fileName)) continue;
+            try {
+              let content = '';
+              if (filePath.startsWith('s3://')) {
+                const { execFile } = await import('child_process');
+                const { promisify } = await import('util');
+                const execFileP = promisify(execFile);
+                const { stdout } = await execFileP('/opt/aws-cli/dist/aws', ['s3', 'cp', filePath, '-'], {
+                  timeout: 8000, maxBuffer: 64 * 1024,
+                }).catch(() => execFileP('aws', ['s3', 'cp', filePath, '-'], {
+                  timeout: 8000, maxBuffer: 64 * 1024,
+                }));
+                content = stdout.slice(0, 8000);
+              } else if (filePath) {
+                const raw = await fsImport.readFile(filePath, 'utf8');
+                content = raw.slice(0, 8000);
+              }
+              if (content.trim()) {
+                outputSamples.push({ name: fileName, content, type: out.file_type || 'text' });
+              }
+            } catch { /* skip unreadable files */ }
+            if (outputSamples.length >= 6) break;
+          }
+        }
+      } catch { /* outputs fetch failed — proceed without file content */ }
+
+      // ── Build analysis prompt ─────────────────────────────────────────────
+      const fileContext = outputSamples.length > 0
+        ? outputSamples.map(f =>
+            `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``
+          ).join('\n\n')
+        : '(No output files could be read — provide general guidance based on workflow type.)';
+
+      const ANALYSIS_SYSTEM_PROMPT = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
+
+Analyze the output files provided and respond ONLY with valid JSON matching this schema:
+{
+  "summary": "<2-3 sentence executive summary of what was accomplished and the most important result>",
+  "key_findings": [
+    {"finding": "<specific, quantitative result>", "significance": "<what this means scientifically>"}
+  ],
+  "quality_assessment": "<1-2 sentences: data quality, coverage, confidence level>",
+  "next_steps": ["<concrete recommended action 1>", "<concrete recommended action 2>", "<concrete recommended action 3>"],
+  "citations": [
+    {"tool_or_resource": "<tool or database name>", "reference": "<Author et al. Year, Journal — or PMID/DOI if known>", "relevance": "<why this citation supports the finding>"}
+  ],
+  "limitations": "<1-2 sentences: caveats or limitations of these results>"
+}
+
+Rules:
+- key_findings must be specific and quantitative (e.g. "127 variants identified, 8 classified as high-impact by CADD score >20" not "variants were found")
+- citations must be real, verifiable references to tools/databases used in the workflow (GATK, BWA, STAR, DESeq2, AutoDock, etc.)
+- next_steps must be concrete and actionable for a bench scientist
+- quality_assessment must mention data completeness, QC pass/fail rates, or coverage metrics if visible
+- Respond with ONLY the JSON object, no markdown wrapper`;
+
+      const userPrompt = question
+        ? `Workflow: ${workflowName}\n\nSpecific question: ${question}\n\nOutput files:\n${fileContext}`
+        : `Workflow: ${workflowName}\n\nSummarize the key findings and scientific interpretation of these outputs:\n${fileContext}`;
+
+      // ── Call Claude ───────────────────────────────────────────────────────
+      const Anthropic = (await import('@anthropic-ai/sdk')).default;
+      const client = new Anthropic({ apiKey });
+      const completion = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        system: ANALYSIS_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userPrompt }],
+      });
+
+      const rawText = (completion.content[0] as any)?.text || '';
+      // Strip markdown fences if present
+      const jsonStr = rawText.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim();
+
+      let analysis: Record<string, unknown>;
+      try {
+        analysis = JSON.parse(jsonStr);
+      } catch {
+        // Return raw text as summary if JSON parse fails
+        analysis = {
+          summary: rawText.slice(0, 500),
+          key_findings: [],
+          quality_assessment: '',
+          next_steps: [],
+          citations: [],
+          limitations: '',
+        };
+      }
+
+      res.json({
+        success: true,
+        analysis,
+        output_files_sampled: outputSamples.map(f => f.name),
+        llm_model: 'claude-sonnet-4-6',
+        workflow_name: workflowName,
+      });
     } catch (error: any) {
-      console.error("[Nextflow AI] Error analyzing workflow:", error);
+      console.error("[Nextflow AI Analyze] Error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ── Output Intelligence — Findings endpoint ────────────────────────────────
+  //
+  // GET  /api/workflows/runs/:id/findings
+  //   Returns structured findings (summary, keyResults, citations, caveats, nextSteps).
+  //   If findings_report.md already exists on disk it is parsed and returned directly
+  //   (status: 'ready').  Otherwise the request is forwarded to the Python backend
+  //   to trigger OutputAnalyzer + FindingReporter, and status 'pending' is returned
+  //   so the caller can poll.
+  //
+  // POST /api/internal/analyze-outputs
+  //   Thin proxy to Galaxy backend /api/nextflow/analyze-outputs.
+  // ──────────────────────────────────────────────────────────────────────────────
+
+  app.get("/api/workflows/runs/:id/findings", optionalAuth, async (req, res) => {
+    const runId = req.params.id;
+    try {
+      // 1. Look up the run to get output dir
+      const run = await storage.getExecutionRun(runId);
+      if (!run) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      // Determine local output dir (local runs only; S3 runs not supported for disk check)
+      const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
+      const localOutputDir = `/tmp/nextflow_runs/${nextflowRunId}/output`;
+      const reportPath = `${localOutputDir}/findings_report.md`;
+
+      // 2. Check if report already exists on disk
+      let reportExists = false;
+      try {
+        const { stat } = await import('fs/promises');
+        await stat(reportPath);
+        reportExists = true;
+      } catch { /* file not found — will trigger analysis */ }
+
+      if (reportExists) {
+        // Parse findings_report.md and return structured JSON
+        try {
+          const { readFile } = await import('fs/promises');
+          const md = await readFile(reportPath, 'utf8');
+          const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+          return res.json({
+            status: 'ready',
+            runId,
+            reportMd: md,
+            reportUrl,
+          });
+        } catch (readErr) {
+          console.warn("[Findings] Could not read existing report:", readErr);
+        }
+      }
+
+      // 3. Trigger async analysis via Python backend (fire-and-forget)
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const workflowId: string = (run as any).workflowId || (run as any).execution?.workflowId || '';
+
+      // Collect output files from local dir if it exists
+      let outputFiles: Array<{ name: string; path: string; type: string }> = [];
+      try {
+        const { readdir, stat: statFile } = await import('fs/promises');
+        const entries = await readdir(localOutputDir);
+        for (const fname of entries) {
+          const fpath = `${localOutputDir}/${fname}`;
+          try {
+            const fstat = await statFile(fpath);
+            if (fstat.isFile()) {
+              outputFiles.push({ name: fname, path: fpath, type: '' });
+            }
+          } catch { /* skip */ }
+        }
+      } catch { /* dir not found — backend will try its own discovery */ }
+
+      // Fire-and-forget — don't await so the caller gets 'pending' immediately
+      fetch(`${galaxyUrl}/api/nextflow/analyze-outputs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          run_id: runId,
+          workflow_id: workflowId,
+          output_dir: localOutputDir,
+          output_files: outputFiles.length > 0 ? outputFiles : undefined,
+        }),
+        signal: AbortSignal.timeout(120_000),
+      }).catch((err) => {
+        console.warn("[Findings] Background analysis request failed:", err.message);
+      });
+
+      return res.json({ status: 'pending', message: 'Analysis triggered — check back in a few seconds.' });
+    } catch (error: any) {
+      console.error("[Findings] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Serve the raw findings_report.md for download
+  app.get("/api/workflows/runs/:id/findings/report", optionalAuth, async (req, res) => {
+    const runId = req.params.id;
+    try {
+      const run = await storage.getExecutionRun(runId);
+      if (!run) return res.status(404).json({ error: "Run not found" });
+      const nextflowRunId: string = (run as any).execution?.nextflowRunId || runId;
+      const reportPath = `/tmp/nextflow_runs/${nextflowRunId}/output/findings_report.md`;
+      const { readFile } = await import('fs/promises');
+      const md = await readFile(reportPath, 'utf8');
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="findings_report_${runId}.md"`);
+      res.send(md);
+    } catch {
+      res.status(404).json({ error: "Findings report not yet available" });
+    }
+  });
+
+  // Proxy for internal analysis trigger (used by FindingsCard polling)
+  app.post("/api/internal/analyze-outputs", optionalAuth, express.json(), async (req, res) => {
+    const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+    try {
+      const resp = await fetch(`${galaxyUrl}/api/nextflow/analyze-outputs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body),
+        signal: AbortSignal.timeout(120_000),
+      });
+      const data = await resp.json();
+      res.status(resp.status).json(data);
+    } catch (err: any) {
+      res.status(502).json({ error: err.message });
     }
   });
 
@@ -8766,17 +9217,17 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
         })
         .returning({ id: instrumentEvents.id });
 
-      log("Instrument event received", { id: event?.id, source, workflowId });
+      console.log("[instruments] event received", { id: event?.id, source, workflowId });
       return res.status(201).json({ event_id: event?.id, status: "pending" });
     } catch (err: any) {
-      log("Error storing instrument event:", err.message);
+      console.error("[instruments] error storing event:", (err as any).message);
       return res.status(500).json({ error: "Failed to store instrument event" });
     }
   });
 
   // GET /api/instruments/events — list pending instrument events for the current user
   // Returns events that haven't been launched or dismissed yet.
-  app.get("/api/instruments/events", requireAuth, async (req, res) => {
+  app.get("/api/instruments/events", authenticateToken, async (req, res) => {
     try {
       const { eq, desc } = await import("drizzle-orm");
       const events = await db
@@ -8799,7 +9250,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
   });
 
   // PATCH /api/instruments/events/:id — update status (launched | dismissed)
-  app.patch("/api/instruments/events/:id", requireAuth, async (req, res) => {
+  app.patch("/api/instruments/events/:id", authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body || {};
     if (!["launched", "dismissed"].includes(status)) {
@@ -8823,7 +9274,8 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
   app.post("/api/user/domain-profile", optionalAuth, express.json(), async (req, res) => {
     try {
-      const response = await galaxyAPIProxy.client.post("/api/user/domain-profile", req.body);
+      const proxy = userProxy(req);
+      const response = await proxy.client.post("/api/user/domain-profile", req.body);
       res.json(response.data);
     } catch (error: any) {
       const status = error?.response?.status ?? 500;
@@ -8836,7 +9288,8 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
 
   app.get("/api/user/domain-profile", optionalAuth, async (req, res) => {
     try {
-      const response = await galaxyAPIProxy.client.get("/api/user/domain-profile");
+      const proxy = userProxy(req);
+      const response = await proxy.client.get("/api/user/domain-profile");
       res.json(response.data);
     } catch (error: any) {
       // Return empty profile gracefully — non-fatal for unauthenticated users
@@ -9319,6 +9772,73 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     // Default error response
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ── Accession ID resolver ────────────────────────────────────────────────────
+  // POST /api/accession/resolve — resolves SRR*, PDB*, EMDB-* IDs to URLs/metadata
+  app.post("/api/accession/resolve", optionalAuth, express.json(), async (req, res) => {
+    const { accession } = req.body ?? {};
+    if (!accession || typeof accession !== 'string') {
+      return res.status(400).json({ error: 'accession is required' });
+    }
+    const id = accession.trim().toUpperCase();
+    try {
+      if (/^(SRR|ERR|DRR)\d+$/i.test(id)) {
+        // SRA run accession
+        return res.json({
+          accession: id,
+          type: 'sra_run',
+          url: `https://trace.ncbi.nlm.nih.gov/Traces/sra/?run=${id}`,
+          ftp_url: `ftp://ftp.sra.ebi.ac.uk/vol1/fastq/${id.substring(0, 6)}/${id.length > 9 ? `00${id.slice(-1)}/` : ''}${id}/`,
+          description: `NCBI SRA run ${id}`,
+          param_hint: 'input',
+        });
+      }
+      if (/^(SRP|ERP|DRP)\d+$/i.test(id)) {
+        return res.json({
+          accession: id,
+          type: 'sra_study',
+          url: `https://www.ncbi.nlm.nih.gov/sra?term=${id}`,
+          description: `SRA study ${id}`,
+        });
+      }
+      if (/^[A-Z0-9]{4}$/i.test(id) || /^PDB:\S+$/i.test(id)) {
+        const pdbId = id.replace(/^PDB:/i, '').toLowerCase();
+        return res.json({
+          accession: pdbId.toUpperCase(),
+          type: 'pdb',
+          url: `https://www.rcsb.org/structure/${pdbId.toUpperCase()}`,
+          download_url: `https://files.rcsb.org/download/${pdbId.toUpperCase()}.pdb`,
+          mmcif_url: `https://files.rcsb.org/download/${pdbId.toUpperCase()}.cif`,
+          description: `PDB structure ${pdbId.toUpperCase()}`,
+          param_hint: 'receptor',
+        });
+      }
+      if (/^EMDB-?\d+$/i.test(id) || /^EMD-\d+$/i.test(id)) {
+        const emdId = id.replace(/^EMDB-?/i, 'EMD-').replace(/^EMD-?(\d)/i, 'EMD-$1');
+        const num = emdId.replace(/\D/g, '');
+        return res.json({
+          accession: emdId.toUpperCase(),
+          type: 'emdb',
+          url: `https://www.ebi.ac.uk/emdb/${emdId.toUpperCase()}`,
+          download_url: `https://ftp.ebi.ac.uk/pub/databases/emdb/structures/${emdId.toUpperCase()}/map/emd_${num}.map.gz`,
+          description: `EMDB entry ${emdId.toUpperCase()}`,
+          param_hint: 'input_map',
+        });
+      }
+      if (/^GSE?\d+$/i.test(id)) {
+        return res.json({
+          accession: id,
+          type: 'geo',
+          url: `https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${id}`,
+          description: `GEO series ${id}`,
+          param_hint: 'input',
+        });
+      }
+      return res.status(422).json({ error: `Unrecognized accession format: ${id}` });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || 'Resolve failed' });
     }
   });
 

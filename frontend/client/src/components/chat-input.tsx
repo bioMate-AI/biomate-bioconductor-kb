@@ -1,11 +1,22 @@
-import { useState, useRef, KeyboardEvent } from "react"
+import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Upload, Eye, Clock, Square } from "lucide-react"
+import { Send, Plus, X, FileText, Upload, Eye, Clock, Square, Database, Loader2, HelpCircle } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+// Accession ID patterns — conservative to avoid false positives
+const ACCESSION_RE = /\b((?:SRR|ERR|DRR|SRP|ERP|DRP)\d{6,9}|EMDB-?\d+|EMD-\d+|GSE?\d+)\b|\bPDB[:\s]([A-Z0-9]{4})\b/gi
+
+interface AccessionHint {
+  raw: string        // matched text
+  resolved?: any     // API result
+  loading: boolean
+  error?: boolean
+}
 
 interface AttachedFile {
   id: string
@@ -23,6 +34,8 @@ interface ChatInputProps {
   onFilesSelected?: (files: File[]) => void
   isStreaming?: boolean
   onStop?: () => void
+  /** Pre-fill the input with this text (e.g. from "Adjust via chat" buttons) */
+  externalDraft?: string
 }
 
 export function ChatInput({
@@ -33,19 +46,79 @@ export function ChatInput({
   onFilesSelected,
   isStreaming = false,
   onStop,
+  externalDraft,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [accessionHints, setAccessionHints] = useState<AccessionHint[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const accessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Pre-fill from external source (e.g. "Adjust via chat" button in workflow viewer)
+  useEffect(() => {
+    if (externalDraft) {
+      setMessage(externalDraft)
+      textareaRef.current?.focus()
+    }
+  }, [externalDraft])
+
+  // Accession ID detection — debounced, resolves SRR/PDB/EMDB/GEO IDs
+  useEffect(() => {
+    if (accessionTimerRef.current) clearTimeout(accessionTimerRef.current)
+    accessionTimerRef.current = setTimeout(() => {
+      ACCESSION_RE.lastIndex = 0
+      const matches: string[] = []
+      let m: RegExpExecArray | null
+      while ((m = ACCESSION_RE.exec(message)) !== null) {
+        const id = (m[1] || m[2]).trim()
+        if (!matches.includes(id)) matches.push(id)
+      }
+      if (matches.length === 0) { setAccessionHints([]); return }
+
+      // Keep existing resolved data, mark new ones as loading
+      setAccessionHints(prev => {
+        const existing = new Map(prev.map(h => [h.raw, h]))
+        return matches.map(id => existing.get(id) ?? { raw: id, loading: true })
+      })
+
+      // Resolve ones that aren't already resolved
+      matches.forEach(id => {
+        setAccessionHints(prev => {
+          const existing = prev.find(h => h.raw === id)
+          if (existing?.resolved || (existing && !existing.loading)) return prev
+          return prev
+        })
+        fetch('/api/accession/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accession: id }),
+          credentials: 'include',
+        })
+          .then(r => r.ok ? r.json() : Promise.reject())
+          .then(data => setAccessionHints(prev => prev.map(h => h.raw === id ? { ...h, resolved: data, loading: false } : h)))
+          .catch(() => setAccessionHints(prev => prev.map(h => h.raw === id ? { ...h, loading: false, error: true } : h)))
+      })
+    }, 600)
+  }, [message])
 
   const handleSend = () => {
     if (message.trim() || attachedFiles.length > 0) {
       const files = attachedFiles.map(f => f.file)
-      onSend(message.trim(), files.length > 0 ? files : undefined)
+      // Append resolved accession context so the AI gets the actual URLs
+      let finalMessage = message.trim()
+      const resolved = accessionHints.filter(h => h.resolved)
+      if (resolved.length > 0) {
+        const accCtx = resolved.map(h =>
+          `${h.raw}: ${h.resolved.description} — ${h.resolved.download_url || h.resolved.ftp_url || h.resolved.url}`
+        ).join('; ')
+        finalMessage += `\n\n[Resolved accessions: ${accCtx}]`
+      }
+      onSend(finalMessage, files.length > 0 ? files : undefined)
       setMessage("")
       setAttachedFiles([])
+      setAccessionHints([])
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto"
       }
@@ -204,6 +277,46 @@ export function ChatInput({
         </div>
       )}
 
+      {/* Accession ID chips */}
+      {accessionHints.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {accessionHints.map(hint => (
+            <div
+              key={hint.raw}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs border ${
+                hint.error ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300' :
+                hint.resolved ? 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
+                'bg-muted border-muted-foreground/20 text-muted-foreground'
+              }`}
+              title={hint.resolved
+                ? `${hint.resolved.description} — ${hint.resolved.download_url || hint.resolved.ftp_url || hint.resolved.url}`
+                : hint.error
+                ? 'Not recognised. Supported: SRR/ERR/DRR, GSE/GSM, PDB:XXXX, EMD-XXXX'
+                : 'Resolving…'}
+            >
+              {hint.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
+              <span className="font-mono">{hint.raw}</span>
+              {hint.resolved && <span className="text-[10px] opacity-70">{hint.resolved.type}</span>}
+              {hint.error && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-[10px] underline decoration-dotted cursor-help">not recognised</span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[220px] text-xs">
+                      Supported databases: SRA (SRR/ERR/DRR), GEO (GSE/GSM), Protein Data Bank (PDB:XXXX), EMDB (EMD-XXXX). Check the accession format or paste the direct download URL instead.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <button onClick={() => setAccessionHints(prev => prev.filter(h => h.raw !== hint.raw))}>
+                <X className="w-3 h-3 opacity-50 hover:opacity-100" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* File Preview Dialog */}
       {previewFile && (
         <Dialog open={!!previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null) }}>
@@ -298,6 +411,9 @@ export function ChatInput({
               <p className="text-xs text-muted-foreground">
                 Max 500MB per file. Files are uploaded to Galaxy for analysis.
               </p>
+              <p className="text-xs text-muted-foreground mt-2 border-t pt-2">
+                <strong>No file to upload?</strong> Type a public accession ID directly in the message instead. BioMate will look up the download URL automatically. Supported: <span className="font-mono">SRR/ERR/DRR</span> (SRA runs), <span className="font-mono">GSE/GSM</span> (GEO), <span className="font-mono">PDB:XXXX</span> (protein structures), <span className="font-mono">EMD-XXXX</span> (cryo-EM maps). For other databases, paste the direct download URL.
+              </p>
             </div>
           </PopoverContent>
         </Popover>
@@ -351,6 +467,30 @@ export function ChatInput({
           </Button>
         )}
       </div>
+      {/* Persistent discovery hint */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p className="mt-1.5 text-[11px] text-muted-foreground/60 flex items-center gap-1 cursor-default w-fit">
+              <HelpCircle className="w-3 h-3 flex-shrink-0" />
+              Include a public database ID and BioMate will look up its download URL for you:&nbsp;
+              <span className="font-mono">SRR123456</span>&nbsp;·&nbsp;
+              <span className="font-mono">PDB:1ABC</span>&nbsp;·&nbsp;
+              <span className="font-mono">EMD-1234</span>&nbsp;·&nbsp;
+              <span className="font-mono">GSE12345</span>
+            </p>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-[300px] text-xs space-y-1">
+            <p className="font-medium">Supported public databases</p>
+            <p><span className="font-mono">SRR/ERR/DRR</span> — NCBI SRA sequencing runs</p>
+            <p><span className="font-mono">SRP/ERP/DRP</span> — SRA studies</p>
+            <p><span className="font-mono">GSE/GSM</span> — NCBI GEO expression datasets</p>
+            <p><span className="font-mono">PDB:XXXX</span> — Protein Data Bank structures</p>
+            <p><span className="font-mono">EMD-XXXX</span> — EMDB cryo-EM density maps</p>
+            <p className="text-muted-foreground/80 pt-1 border-t">BioMate resolves the ID to a download URL and passes it to the AI. The workflow executor fetches the data at run time. For databases not listed here, paste the direct download URL in your message instead.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   )
 }
