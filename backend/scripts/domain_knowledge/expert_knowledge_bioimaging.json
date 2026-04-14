@@ -1241,5 +1241,67 @@
       "https://computing.llnl.gov/projects/sundials/cvode"
     ],
     "best_practice_notes": "Always start with RK45; if it fails or is very slow, switch to BDF or LSODA. Use adaptive time stepping with tolerances rtol=1e-6, atol=1e-9 as a starting point. Provide analytical Jacobian for large stiff systems. Check structural identifiability before parameter estimation. Verify mass conservation after every integration. Use LSODA or CVODE for whole-cell models where stiffness character may change during simulation. Reduce system dimensionality using conservation laws when possible."
+  },
+  "cryo_em_single_particle_analysis": {
+    "description": "Single particle analysis (SPA) by cryo-EM to determine 3D structures of macromolecular complexes, using software like cryoSPARC and RELION. Resolution is assessed by FSC 0.143 criterion.",
+    "key_parameters": {
+      "ctf_defocus_range": {
+        "description": "Defocus range for CTF (Contrast Transfer Function) estimation",
+        "situations": {
+          "standard_proteins": {
+            "value_or_range": "0.5-4.0 \u00b5m",
+            "when": "Standard protein complexes imaged at 300kV on a direct detector",
+            "why": "This defocus range provides sufficient contrast for particle picking while maintaining information at frequencies needed for high-resolution reconstruction. Very low defocus (<0.5\u00b5m) loses low-frequency contrast; very high defocus (>4\u00b5m) compromises high-frequency signal.",
+            "source": "https://doi.org/10.1038/nmeth.4169"
+          },
+          "small_particles": {
+            "value_or_range": "0.5-2.5 \u00b5m",
+            "when": "Particles <100 kDa or high-symmetry complexes",
+            "why": "Smaller particles require better CTF correction. Lower defocus (better focus) preserves high-resolution signal critical for these challenging targets.",
+            "source": "https://doi.org/10.7554/eLife.63601"
+          }
+        },
+        "common_mistakes": [
+          "Using defocus >4\u00b5m which severely limits resolution potential",
+          "Not validating CTF fit quality before proceeding to particle picking"
+        ]
+      },
+      "fsc_resolution": {
+        "description": "Fourier Shell Correlation (FSC) 0.143 criterion for resolution estimation",
+        "situations": {
+          "gold_standard_fsc": {
+            "value_or_range": "FSC=0.143 between two half-maps",
+            "when": "Reporting final map resolution from any single-particle reconstruction",
+            "why": "The FSC=0.143 criterion (gold-standard) is the community-accepted standard for reporting cryo-EM map resolution. It corresponds to the point where map correlation between independent half-datasets drops below 0.143.",
+            "source": "https://doi.org/10.1016/j.jsb.2012.09.006"
+          }
+        },
+        "common_mistakes": [
+          "Using FSC=0.5 criterion (overestimates resolution)",
+          "Reporting FSC without gold-standard half-map protocol"
+        ]
+      },
+      "particle_picking_threshold": {
+        "description": "Picking threshold or predicted confidence for automated particle picking",
+        "situations": {
+          "cryosparc_blob_picking": {
+            "value_or_range": "NCC score >0.3, power >50",
+            "when": "Initial blob-based picking without reference",
+            "why": "NCC (normalized cross-correlation) >0.3 and power >50 typically correspond to genuine particles. More stringent thresholds may miss edge cases.",
+            "source": "https://doi.org/10.1038/nmeth.4169"
+          }
+        },
+        "common_mistakes": [
+          "Picking too few particles in 2D classification",
+          "Not validating 2D class averages before 3D reconstruction"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/nmeth.4169",
+      "https://doi.org/10.1016/j.jsb.2012.09.006",
+      "https://doi.org/10.7554/eLife.63601"
+    ],
+    "best_practice_notes": "Always perform motion correction before CTF estimation. Use gold-standard FSC refinement throughout. Validate 2D classes before 3D reconstruction \u2014 discard junk classes aggressively. Local resolution filtering (LocRes in RELION) often improves map interpretability more than global B-factor sharpening. For heterogeneous samples, use 3D classification with multiple classes (4-8) before high-resolution refinement."
   }
 }

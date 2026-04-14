@@ -1273,5 +1273,72 @@
       "https://www.frontiersin.org/journals/bioengineering-and-biotechnology/articles/10.3389/fbioe.2024.1371596/full"
     ],
     "best_practice_notes": "Calculate CAI using highly expressed genes as the reference set. Target CAI of 0.7-0.85 rather than maximum 1.0 to preserve co-translational folding signals. Eliminate clusters of consecutive rare codons (especially AGG/AGA tandem in E. coli). Avoid strong mRNA secondary structure in the first 50 codons. For multi-domain proteins, consider retaining strategic rare codons at domain boundaries. Always verify the optimized sequence for unwanted features (restriction sites, splice sites, repetitive sequences). Use GenScript Rare Codon Analysis Tool to evaluate before and after optimization."
+  },
+  "lc_ms_proteomics_data_analysis": {
+    "description": "Analysis of LC-MS/MS proteomics data including peptide identification, quantification, and differential abundance analysis using tools such as DIA-NN, MaxQuant, and DESeq2.",
+    "key_parameters": {
+      "fdr_threshold": {
+        "description": "False discovery rate threshold for peptide and protein identification",
+        "situations": {
+          "peptide_level_standard": {
+            "value_or_range": "1%",
+            "when": "Standard LC-MS/MS peptide identification in discovery proteomics",
+            "why": "1% FDR is the community standard for proteomics (HUPO guidelines). Higher stringency may be needed for biomarker studies.",
+            "source": "https://doi.org/10.1016/j.jprot.2017.02.005"
+          },
+          "protein_level": {
+            "value_or_range": "1% (protein-level FDR)",
+            "when": "Protein group-level reporting",
+            "why": "Protein-level FDR should be controlled separately from peptide-level FDR. Even with 1% peptide FDR, protein-level FDR can be higher for low-evidence proteins.",
+            "source": "https://doi.org/10.1038/nmeth.3959"
+          }
+        },
+        "common_mistakes": [
+          "Using peptide FDR as protein FDR",
+          "Not filtering for minimum peptide count per protein (recommend \u22652 peptides)"
+        ]
+      },
+      "lfq_min_ratio_count": {
+        "description": "Minimum number of peptide ratios required for LFQ normalization (MaxQuant)",
+        "situations": {
+          "standard_lfq": {
+            "value_or_range": "\u22652",
+            "when": "Label-free quantification using MaxQuant LFQ algorithm",
+            "why": "At least 2 ratio measurements are required for robust LFQ intensity estimation. Using 1 makes the estimate unreliable.",
+            "source": "https://doi.org/10.1038/nbt.3393"
+          }
+        },
+        "common_mistakes": [
+          "Setting min ratio count to 1 (default in some versions)",
+          "Not matching LFQ between experiments with different peptide sets"
+        ]
+      },
+      "coefficient_of_variation": {
+        "description": "Coefficient of variation (CV) for technical and biological replicates",
+        "situations": {
+          "technical_replicates": {
+            "value_or_range": "\u226420%",
+            "when": "Technical replicate assessment for LC-MS/MS quantification",
+            "why": "CV \u226420% indicates acceptable technical variation. Higher CVs suggest instrument problems or sample preparation issues.",
+            "source": "https://doi.org/10.1016/j.jprot.2017.02.005"
+          },
+          "biological_replicates": {
+            "value_or_range": "\u226430%",
+            "when": "Biological replicate variation in quantitative proteomics",
+            "why": "Biological variation is inherently higher than technical variation. 30% CV is commonly acceptable in discovery proteomics.",
+            "source": "https://doi.org/10.1038/nmeth.3959"
+          }
+        },
+        "common_mistakes": [
+          "Treating high-CV proteins as significant hits without validation"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/nmeth.3959",
+      "https://doi.org/10.1038/nbt.3393",
+      "https://doi.org/10.1016/j.jprot.2017.02.005"
+    ],
+    "best_practice_notes": "Always apply protein-level FDR correction separately from peptide-level FDR. Use at least 2 unique peptides per protein for quantification. For DIA proteomics, ensure spectral library coverage matches your sample type. Apply missing value imputation carefully \u2014 only impute below LOD values, not random missing values. Report normalized intensities alongside raw values."
   }
 }

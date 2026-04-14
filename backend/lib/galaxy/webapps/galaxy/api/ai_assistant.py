@@ -1146,6 +1146,36 @@ class WorkflowGenerationResponse(BaseModel):
 _pilot_runs: Dict[str, Dict[str, Any]] = {}
 
 
+class DatabaseQueryRequest(BaseModel):
+    database: str = Field(default="auto", description="Target database name or 'auto' to detect from query")
+    query: str = Field(..., description="Search term or entity identifier")
+
+
+@router.post(
+    "/api/databases/query",
+    summary="Query a biological database (UniProt, NCBI Gene, KEGG, PDB, etc.)"
+)
+def query_biological_database(
+    request: DatabaseQueryRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """
+    Route a biological entity query to the appropriate public REST API.
+    Supports: auto (detect from query), ncbi_gene, uniprot, pdb, alphafold,
+              kegg, reactome, go, hpo, chebi, chembl, interpro, string,
+              ensembl, gnomad, dbsnp, clinvar, pubmed.
+    """
+    ai = get_ai_assistant(trans)
+    if not ai:
+        return {"success": False, "error": "AI assistant not available"}
+    try:
+        return ai.query_database(request.database, request.query)
+    except Exception as e:
+        import traceback
+        log.warning(f"[databases/query] {request.database}({request.query}): {e}")
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
 @router.get(
     "/api/ai_assistant/test_init",
     summary="Test AI Assistant initialization only"
@@ -1616,7 +1646,7 @@ def generate_workflow_unified(
         # Chain responses carry a different payload (no workflow_ga / citations).
         # Return them directly so the frontend WorkflowChainPlan component can render.
         if result.get('workflow_type') == 'chain':
-            return {
+            chain_resp: Dict[str, Any] = {
                 'success': True,
                 'workflow_type': 'chain',
                 'chain_name': result.get('chain_name'),
@@ -1638,20 +1668,29 @@ def generate_workflow_unified(
                 'parameter_recommendations': {},
                 'pilot_run_suggested': False,
             }
+            if result.get('knowledge_highlights'):
+                chain_resp['knowledge_highlights'] = result['knowledge_highlights']
+            return chain_resp
 
         if result['success']:
             # Process citations from the result
             citations = []
             raw_citations = result.get('citations', [])
             for cit_data in raw_citations:
-                citation_info = cit_data.get('citation', {})
+                # _build_workflow_citations returns flat dicts (doi, title, etc. at top level)
+                # Legacy path may have nested {'citation': {...}} — support both
+                citation_info = cit_data.get('citation', cit_data)
+                # Normalize authors to list (ToolKnowledgeProvider may return string)
+                raw_authors = citation_info.get('authors', [])
+                if isinstance(raw_authors, str):
+                    raw_authors = [a.strip() for a in raw_authors.split(',') if a.strip()]
                 citations.append(CitationModel(
                     tool_id=cit_data.get('tool_id', ''),
                     tool_name=cit_data.get('tool_name', ''),
                     doi=citation_info.get('doi'),
                     pmid=citation_info.get('pmid'),
                     title=citation_info.get('title', ''),
-                    authors=citation_info.get('authors', []),
+                    authors=raw_authors,
                     year=citation_info.get('year'),
                     journal=citation_info.get('journal'),
                     formatted_apa=citation_info.get('formatted_apa', ''),
@@ -1824,6 +1863,8 @@ def generate_workflow_unified(
                 },
                 # License-aware rerouting notice (present when routing fell back to OSS alternative)
                 **({'license_notice': result['license_notice']} if result.get('license_notice') else {}),
+                # Domain knowledge highlights (best_practices, qc_thresholds, literature_guidance)
+                **({'knowledge_highlights': result['knowledge_highlights']} if result.get('knowledge_highlights') else {}),
             }
         else:
             return {
@@ -3157,28 +3198,35 @@ def _ensure_profile_table() -> None:
     with sqlite3.connect(_PROFILE_DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_domain_profiles (
-                user_email TEXT PRIMARY KEY,
-                domains    TEXT NOT NULL DEFAULT '[]',
-                topics     TEXT NOT NULL DEFAULT '[]',
-                updated_at TEXT
+                user_email       TEXT PRIMARY KEY,
+                domains          TEXT NOT NULL DEFAULT '[]',
+                topics           TEXT NOT NULL DEFAULT '[]',
+                institution_type TEXT,
+                updated_at       TEXT
             )
         """)
+        # Safe migration: add institution_type column if it doesn't exist yet
+        try:
+            conn.execute("ALTER TABLE user_domain_profiles ADD COLUMN institution_type TEXT")
+        except Exception:
+            pass  # column already exists
         conn.commit()
 
 
-def _sqlite_save_profile(email: str, domains: list, topics: list) -> None:
+def _sqlite_save_profile(email: str, domains: list, topics: list, institution_type: Optional[str] = None) -> None:
     _ensure_profile_table()
     import datetime as _dt
     now = _dt.datetime.utcnow().isoformat()
     with sqlite3.connect(_PROFILE_DB_PATH) as conn:
         conn.execute("""
-            INSERT INTO user_domain_profiles (user_email, domains, topics, updated_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO user_domain_profiles (user_email, domains, topics, institution_type, updated_at)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(user_email) DO UPDATE SET
-                domains    = excluded.domains,
-                topics     = excluded.topics,
-                updated_at = excluded.updated_at
-        """, (email, _json_dp.dumps(domains), _json_dp.dumps(topics), now))
+                domains          = excluded.domains,
+                topics           = excluded.topics,
+                institution_type = excluded.institution_type,
+                updated_at       = excluded.updated_at
+        """, (email, _json_dp.dumps(domains), _json_dp.dumps(topics), institution_type, now))
         conn.commit()
 
 
@@ -3187,19 +3235,24 @@ def _sqlite_load_profile(email: str) -> dict:
         _ensure_profile_table()
         with sqlite3.connect(_PROFILE_DB_PATH) as conn:
             row = conn.execute(
-                "SELECT domains, topics FROM user_domain_profiles WHERE user_email = ?",
+                "SELECT domains, topics, institution_type FROM user_domain_profiles WHERE user_email = ?",
                 (email,)
             ).fetchone()
         if row:
-            return {"domains": _json_dp.loads(row[0]), "topics": _json_dp.loads(row[1])}
+            return {
+                "domains": _json_dp.loads(row[0]),
+                "topics": _json_dp.loads(row[1]),
+                "institution_type": row[2],
+            }
     except Exception as _load_err:
         logging.warning(f"SQLite profile load error: {_load_err}")
-    return {"domains": [], "topics": []}
+    return {"domains": [], "topics": [], "institution_type": None}
 
 
 class DomainProfileRequest(BaseModel):
     domains: List[str] = Field(default_factory=list, description="Selected research domain keys")
     topics: List[str] = Field(default_factory=list, description="Selected topic strings")
+    institution_type: Optional[str] = Field(default=None, description="Institution type")
 
 
 @router.post(
@@ -3233,14 +3286,18 @@ def set_domain_profile(
                 domains=request.domains,
                 topics=request.topics,
             )
-            return {"success": True, "domains": request.domains, "topics": request.topics, "storage": "postgres"}
+            # Always persist institution_type to SQLite even when Postgres handles domains
+            _sqlite_save_profile(user_email, request.domains, request.topics, request.institution_type)
+            return {"success": True, "domains": request.domains, "topics": request.topics,
+                    "institution_type": request.institution_type, "storage": "postgres"}
         except Exception as exc:
             logging.warning(f"Postgres domain profile save failed, falling back to SQLite: {exc}")
 
     # Fallback: SQLite (always available, no extra dependencies)
     try:
-        _sqlite_save_profile(user_email, request.domains, request.topics)
-        return {"success": True, "domains": request.domains, "topics": request.topics, "storage": "sqlite"}
+        _sqlite_save_profile(user_email, request.domains, request.topics, request.institution_type)
+        return {"success": True, "domains": request.domains, "topics": request.topics,
+                "institution_type": request.institution_type, "storage": "sqlite"}
     except Exception as exc:
         log.error(f"Failed to save domain profile (SQLite fallback): {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
@@ -3265,12 +3322,16 @@ def get_domain_profile(
     if not user_email:
         return {"domains": [], "topics": []}
 
-    # Primary: PostgreSQL agentic_memory
+    # Primary: PostgreSQL agentic_memory (domains/topics only); institution_type always from SQLite
     if _DOMAIN_PROFILE_AVAILABLE:
         try:
             memory = _get_memory_service()
             ltm_user = memory.users.get_or_create_user(email=user_email)
-            return memory.get_domain_profile(user_id=ltm_user["id"])
+            pg_profile = memory.get_domain_profile(user_id=ltm_user["id"])
+            sqlite_profile = _sqlite_load_profile(user_email)
+            # Merge: use Postgres for domains/topics, SQLite for institution_type
+            pg_profile["institution_type"] = sqlite_profile.get("institution_type")
+            return pg_profile
         except Exception as exc:
             logging.warning(f"Postgres domain profile read failed, falling back to SQLite: {exc}")
 

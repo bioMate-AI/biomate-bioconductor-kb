@@ -6,7 +6,17 @@
  * are correctly extracted from both single-intent and multi-intent LLM responses.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock database and stateful modules that require environment variables
+vi.mock('./db', () => ({ db: {}, pool: {} }));
+vi.mock('./conversation-state', () => ({
+  conversationStateManager: { getState: vi.fn(), setState: vi.fn(), clear: vi.fn() },
+}));
+vi.mock('./user-patterns-service', () => ({
+  userPatternsService: { getUserContext: vi.fn().mockResolvedValue({}) },
+}));
+
 import {
   inferActionsFromType,
   CLARIFICATION_FALLBACKS,

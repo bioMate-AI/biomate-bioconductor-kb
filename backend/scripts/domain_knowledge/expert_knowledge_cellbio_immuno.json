@@ -1447,5 +1447,72 @@
       "https://pmc.ncbi.nlm.nih.gov/articles/PMC3047074/"
     ],
     "best_practice_notes": "N-glyc: scan N-X-S/T; use NetNGlyc or structure tools; validate MS. O-glyc: ~70% accuracy; ISOGlyP for isoform-specific. Always validate experimentally. Account for expression system."
+  },
+  "scrna_seq_clustering_leiden_seurat": {
+    "description": "Single-cell RNA-seq clustering using Leiden algorithm (Scanpy/Seurat) for cell type discovery, with parameter selection guidance for resolution, neighbors, and highly variable genes.",
+    "key_parameters": {
+      "leiden_resolution": {
+        "description": "Resolution parameter controlling granularity of Leiden clustering",
+        "situations": {
+          "starting_point": {
+            "value_or_range": "0.5",
+            "when": "Initial exploration without prior knowledge of expected cluster count",
+            "why": "Resolution 0.5 typically produces 10-20 clusters for most single-cell datasets, providing a good starting point for biological interpretation.",
+            "source": "https://doi.org/10.1038/s41592-019-0530-7"
+          },
+          "fine_grained": {
+            "value_or_range": "1.0-2.0",
+            "when": "Investigating rare cell populations or highly heterogeneous tissues",
+            "why": "Higher resolution generates more clusters. Use when biological knowledge suggests many subtypes, or to separate closely related populations.",
+            "source": "https://doi.org/10.1038/s41592-019-0530-7"
+          },
+          "coarse_grained": {
+            "value_or_range": "0.1-0.3",
+            "when": "Broad cell type classification in well-characterized tissues",
+            "why": "Low resolution merges similar clusters, useful for identifying major lineages (e.g., T cells, B cells, NK cells) without subtype granularity.",
+            "source": "https://doi.org/10.1038/s41592-019-0530-7"
+          }
+        },
+        "common_mistakes": [
+          "Using a single resolution without testing multiple values",
+          "Not using stability metrics (e.g., silhouette score or cluster tree) to guide resolution selection"
+        ]
+      },
+      "n_neighbors": {
+        "description": "Number of neighbors in kNN graph construction for UMAP and Leiden clustering",
+        "situations": {
+          "standard": {
+            "value_or_range": "15-30",
+            "when": "Standard single-cell datasets with 1,000-50,000 cells",
+            "why": "k=15 balances local vs global structure. Higher k (30) is preferred for datasets with more cells, capturing broader neighborhood relationships.",
+            "source": "https://doi.org/10.1038/s41587-023-01767-y"
+          }
+        },
+        "common_mistakes": [
+          "Using very low k (<10) which creates fragmented, noisy clusters"
+        ]
+      },
+      "n_highly_variable_genes": {
+        "description": "Number of highly variable genes (HVGs) selected for dimensionality reduction",
+        "situations": {
+          "standard": {
+            "value_or_range": "2000-5000",
+            "when": "Standard scRNA-seq datasets",
+            "why": "2000-5000 HVGs capture most cell-type distinguishing variation while filtering noise. More HVGs (up to 5000) may be needed for complex tissues with many cell types.",
+            "source": "https://doi.org/10.1038/s41587-023-01767-y"
+          }
+        },
+        "common_mistakes": [
+          "Using too few HVGs (<1000) missing rare cell type markers",
+          "Using all genes which adds noise and slows computation"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1038/s41592-019-0530-7",
+      "https://doi.org/10.1038/s41587-023-01767-y",
+      "https://doi.org/10.1038/s41587-019-0071-9"
+    ],
+    "best_practice_notes": "Always test multiple resolutions (0.2, 0.5, 1.0, 2.0) and use cluster stability to select the best. Use at least 15-30 PCs for kNN graph construction. Apply doublet detection (Scrublet or DoubletFinder) before clustering. Batch correction (Harmony, scVI) is essential for multi-sample datasets. Validate cluster assignments with known marker genes before annotating cell types."
   }
 }

@@ -25,8 +25,10 @@ import hmac
 import json
 import logging
 import os
+import threading
 import time
-from typing import Any, Dict, Optional
+from collections import deque
+from typing import Any, Deque, Dict, List, Optional, Tuple
 
 import requests
 
@@ -75,43 +77,119 @@ def verify_slack_signature(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# BioMate API client
+# Open Claw engine — routes Slack queries through /api/open-claw/stream
+# Upgraded to full agentic loop (same pattern as WeChat bot).
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _biomate_search(query: str, limit: int = 3) -> Dict[str, Any]:
-    headers = {"Authorization": f"Bearer {BIOMATE_API_KEY}"} if BIOMATE_API_KEY else {}
-    try:
-        r = requests.post(
-            f"{BIOMATE_API_URL}/api/workflows/search",
-            json={"query": query, "limit": limit},
-            headers=headers,
-            timeout=15,
-        )
-        r.raise_for_status()
-        return r.json()
-    except Exception as exc:
-        log.error(f"BioMate search failed: {exc}")
-        return {"results": [], "error": str(exc)}
+_MAX_HISTORY = 10
+_conversation_history: Dict[str, Deque[Dict[str, str]]] = {}
+_history_lock = threading.Lock()
 
 
-def _biomate_send_message(message: str, user_email: Optional[str] = None) -> Dict[str, Any]:
-    """Send a message to the BioMate AI assistant and return the structured response."""
-    headers = {"Authorization": f"Bearer {BIOMATE_API_KEY}"} if BIOMATE_API_KEY else {}
-    context: Dict[str, Any] = {}
-    if user_email:
-        context["userEmail"] = user_email
+def _get_history(user_id: str) -> List[Dict[str, str]]:
+    with _history_lock:
+        return list(_conversation_history.get(user_id, deque()))
+
+
+def _push_history(user_id: str, role: str, content: str) -> None:
+    with _history_lock:
+        if user_id not in _conversation_history:
+            _conversation_history[user_id] = deque(maxlen=_MAX_HISTORY)
+        _conversation_history[user_id].append({"role": role, "content": content})
+
+
+def _open_claw_query(
+    user_id: str,
+    query: str,
+    api_key: Optional[str] = None,
+    timeout: int = 55,
+    _base_url_override: Optional[str] = None,
+) -> Tuple[str, Optional[str]]:
+    """
+    Send a query through the BioMate Open Claw engine (/api/open-claw/stream).
+    Returns (reply_text, workflow_id_or_None).
+    Accumulates text_delta events; captures first workflow_id from tool_result.
+    """
+    history = _get_history(user_id)
+    messages = history + [{"role": "user", "content": query}]
+
+    headers: Dict[str, str] = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+    effective_key = api_key or BIOMATE_API_KEY
+    if effective_key:
+        headers["Authorization"] = f"Bearer {effective_key}"
+
+    text_parts: List[str] = []
+    workflow_id: Optional[str] = None
+
+    base_url = _base_url_override or BIOMATE_API_URL
     try:
-        r = requests.post(
-            f"{BIOMATE_API_URL}/api/workflows/suggest",
-            json={"message": message, "context": context},
+        with requests.post(
+            f"{base_url}/api/open-claw/stream",
+            json={"messages": messages},
             headers=headers,
-            timeout=20,
-        )
-        r.raise_for_status()
-        return r.json()
+            stream=True,
+            timeout=timeout,
+        ) as resp:
+            if resp.status_code == 503:
+                return ":x: BioMate Open Claw engine unavailable (API key not configured).", None
+            if resp.status_code == 400:
+                return ":x: Bad request format — please try again.", None
+            if resp.status_code != 200:
+                return f":x: BioMate returned error {resp.status_code}.", None
+
+            current_event = "message"
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                if raw_line.startswith("event:"):
+                    current_event = raw_line[6:].strip()
+                elif raw_line.startswith("data:"):
+                    data_str = raw_line[5:].strip()
+                    try:
+                        data = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+
+                    evt = current_event or (data.get("type") if isinstance(data, dict) else "")
+
+                    if evt in ("text_delta", "delta") or (
+                        isinstance(data, dict) and data.get("type") in ("text_delta", "delta")
+                    ):
+                        text_parts.append(data.get("text", ""))
+
+                    if evt == "tool_result" and isinstance(data, dict):
+                        result_content = data.get("result", data.get("content", ""))
+                        if isinstance(result_content, (dict, list)):
+                            result_content = json.dumps(result_content)
+                        try:
+                            parsed = json.loads(result_content) if isinstance(result_content, str) else result_content
+                            results = parsed.get("results", parsed.get("workflows", []))
+                            if results and not workflow_id:
+                                workflow_id = results[0].get("workflow_id", results[0].get("id"))
+                        except (json.JSONDecodeError, AttributeError):
+                            pass
+
+                    if evt in ("done", "complete") or (
+                        isinstance(data, dict) and data.get("type") in ("done", "complete")
+                    ):
+                        break
+
+                    current_event = "message"
+
+    except requests.exceptions.Timeout:
+        return ":hourglass: BioMate response timed out. Please try again.", None
     except Exception as exc:
-        log.error(f"BioMate suggest failed: {exc}")
-        return {"error": str(exc)}
+        log.exception(f"Open Claw query failed for Slack user {user_id}: {exc}")
+        return f":x: BioMate query failed: {exc}", None
+
+    reply_text = "".join(text_parts).strip()
+    if not reply_text:
+        reply_text = "BioMate is processing your request. Check the app for full results."
+
+    _push_history(user_id, "user", query)
+    _push_history(user_id, "assistant", reply_text)
+
+    return reply_text, workflow_id
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -281,55 +359,82 @@ def handle_slash_command(form_data: Dict[str, str]) -> Dict[str, Any]:
     """
     Process a /biomate slash command payload (URL-decoded form fields).
 
-    Immediately returns a 200 response with a loading message, then posts
-    the real response asynchronously via response_url.
+    Routes through the full Open Claw agentic loop — Claude with BioMate tools —
+    giving the same multi-step search+execute capability as the web UI and WeChat.
 
-    Returns the immediate HTTP response body (JSON).
+    Immediately returns a 200 acknowledgement (Slack requires response within 3s),
+    then posts the real Open Claw response asynchronously via response_url.
     """
     query = form_data.get("text", "").strip()
+    user_id = form_data.get("user_id", form_data.get("user_name", "unknown"))
     user_name = form_data.get("user_name")
     response_url = form_data.get("response_url")
 
-    if not query:
+    if not query or query in ("help", "--help"):
         return {
             "response_type": "ephemeral",
             "text": (
-                "Usage: `/biomate <your scientific analysis request>`\n"
-                "Examples:\n"
+                "*BioMate Scientific AI* — powered by Open Claw (Claude + BioMate tools)\n\n"
+                "Usage: `/biomate <your scientific analysis request>`\n\n"
+                "*Examples:*\n"
                 "• `/biomate run ADMET screening on aspirin, ibuprofen, naproxen`\n"
-                "• `/biomate analyze my FASTQ files for WGS variant calling`\n"
-                "• `/biomate predict BCR-ABL1 inhibitor binding affinity`"
+                "• `/biomate RNA-seq differential expression on my tumor vs normal samples`\n"
+                "• `/biomate predict protein structure from this sequence: MSEQNN...`\n"
+                "• `/biomate check status of run abc-123`\n"
+                "• `/biomate what GWAS variants are associated with type 2 diabetes?`\n\n"
+                "Supports multi-turn conversation — follow-up questions remember context.\n"
+                f"<{BIOMATE_DEEP_LINK_BASE}|Open BioMate> for the full web UI."
             ),
         }
 
+    if query.lower() in ("clear", "reset", "new session"):
+        with _history_lock:
+            _conversation_history.pop(user_id, None)
+        return {"response_type": "ephemeral", "text": ":white_check_mark: Conversation history cleared."}
+
     # Immediate acknowledgement (Slack requires response within 3s)
-    # The real search runs async and posts via response_url
+    # Real Open Claw response sent async via response_url
     if response_url:
-        import threading
         def _async_respond():
             try:
-                search_result = _biomate_search(query)
-                workflows = search_result.get("results", search_result.get("workflows", []))
-                blocks = build_response_blocks(query, workflows, user_name)
-                post_to_slack(
-                    channel="",
-                    text=f"BioMate results for: {query}",
-                    blocks=blocks,
-                    response_url=response_url,
-                )
+                reply_text, workflow_id = _open_claw_query(user_id, query)
+
+                # Slack message limit: 3000 chars per block
+                if len(reply_text) > 2800:
+                    reply_text = reply_text[:2800] + f"\n\n<{BIOMATE_DEEP_LINK_BASE}|View full results in BioMate>"
+
+                blocks: list = [
+                    {"type": "section", "text": {"type": "mrkdwn", "text": f"<@{user_name}> {reply_text}" if user_name else reply_text}},
+                ]
+
+                if workflow_id:
+                    blocks.append({"type": "divider"})
+                    blocks.append({
+                        "type": "actions",
+                        "elements": [{
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Run in BioMate", "emoji": False},
+                            "url": f"{BIOMATE_DEEP_LINK_BASE}?workflow={workflow_id}",
+                            "style": "primary",
+                        }],
+                    })
+
+                blocks.append({
+                    "type": "context",
+                    "elements": [{"type": "mrkdwn", "text": f"<{BIOMATE_DEEP_LINK_BASE}|Open BioMate> · Reply with follow-up questions"}],
+                })
+
+                post_to_slack(channel="", text=reply_text[:200], blocks=blocks, response_url=response_url)
+
             except Exception as exc:
-                log.exception("Async Slack response failed")
-                post_to_slack(
-                    channel="",
-                    text="",
-                    blocks=build_error_block(str(exc)),
-                    response_url=response_url,
-                )
+                log.exception("Async Slack Open Claw response failed")
+                post_to_slack(channel="", text="", blocks=build_error_block(str(exc)), response_url=response_url)
+
         threading.Thread(target=_async_respond, daemon=True).start()
 
     return {
         "response_type": "in_channel",
-        "text": f"Searching BioMate for: _{query}_ …",
+        "text": f":brain: BioMate is analyzing: _{query}_ …",
     }
 
 

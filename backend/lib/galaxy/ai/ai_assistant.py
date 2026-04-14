@@ -2608,6 +2608,9 @@ Examples of good inference:
         # Layer 2: apply LLM intent-inferred suggestions (non-blocking)
         llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
         req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
+        # Build knowledge highlights and citations
+        knowledge_highlights = self._build_knowledge_highlights(match.domain, match.name, match.tools)
+        citations = self._build_workflow_citations(match.tools, match.domain, match.tags)
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
         ]
@@ -2658,6 +2661,9 @@ Examples of good inference:
                 {'name': m.name, 'domain': m.domain, 'source': m.source, 'score': m.score, 'format': m.format}
                 for m in (search_results or [])[:3]
             ],
+            **({'knowledge_highlights': knowledge_highlights}
+               if any(knowledge_highlights.values()) else {}),
+            **({'citations': citations} if citations else {}),
         }
 
     def generate_workflow_unified(
@@ -2668,6 +2674,7 @@ Examples of good inference:
         key_terms: Optional[List[str]] = None,
         preferred_domains: Optional[List[str]] = None,
         penalized_domains: Optional[List[str]] = None,
+        credential_map: Optional[Dict[str, bool]] = None,
     ) -> Dict[str, Any]:
         """
         Unified workflow generation with search-first approach.
@@ -2743,7 +2750,14 @@ Examples of good inference:
                             'candidate_chain': top_chain.name,
                         }
                     log.info("[UnifiedWorkflowGeneration] Chain match: %s (%d steps)", top_chain.name, len(top_chain.steps))
-                    return {
+                    # Build knowledge highlights for the chain's domain so frontend receives
+                    # parameter guidance even on chain_lookup paths.
+                    chain_kh = self._build_knowledge_highlights(
+                        top_chain.domain or '',
+                        top_chain.display_name or top_chain.name,
+                        [],
+                    )
+                    chain_result: Dict[str, Any] = {
                         'success': True,
                         'workflow_type': 'chain',
                         'chain_name': top_chain.name,
@@ -2762,6 +2776,9 @@ Examples of good inference:
                         'format': 'chain',
                         'all_chains': [c.to_dict() for c in chain_results],
                     }
+                    if any(chain_kh.values()):
+                        chain_result['knowledge_highlights'] = chain_kh
+                    return chain_result
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
 
@@ -3657,7 +3674,7 @@ Examples of good inference:
     
     def get_status(self) -> Dict[str, Any]:
         """Get AI assistant status and statistics."""
-        
+
         return {
             'config': self.config.to_dict(),
             'components': {
@@ -3674,3 +3691,667 @@ Examples of good inference:
             },
             'ready': True
         }
+
+    # =========================================================================
+    # Track 3A — Comprehensive Biological Database Query
+    # =========================================================================
+
+    def _http_get_json(self, url: str, headers: Optional[Dict] = None) -> Optional[Dict]:
+        """Shared HTTP GET helper that returns parsed JSON or None on error."""
+        import urllib.request
+        import urllib.error
+        import json as _json
+        default_headers = {'User-Agent': 'BioMate/1.0 (biomate.ai; ai-assistant)'}
+        if headers:
+            default_headers.update(headers)
+        req = urllib.request.Request(url, headers=default_headers)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return _json.loads(resp.read().decode())
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).debug(f"[DB query] HTTP GET failed for {url}: {e}")
+            return None
+
+    def _query_uniprot(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = (f"https://rest.uniprot.org/uniprotkb/search"
+               f"?query={q}+AND+reviewed:true&format=json&size=5")
+        data = self._http_get_json(url)
+        if not data:
+            return {"source": "uniprot", "results": [], "error": "no_response"}
+        results = []
+        for entry in data.get('results', [])[:5]:
+            results.append({
+                "accession": entry.get('primaryAccession'),
+                "name": entry.get('uniProtkbId'),
+                "organism": (entry.get('organism') or {}).get('scientificName'),
+                "function": next(
+                    (c.get('texts', [{}])[0].get('value') for c in entry.get('comments', [])
+                     if c.get('commentType') == 'FUNCTION'), None
+                ),
+            })
+        return {"source": "uniprot", "query": query, "results": results,
+                "total": data.get('totalResults', len(results))}
+
+    def _query_ncbi_gene(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        search_url = (f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+                      f"?db=gene&term={q}&retmode=json&retmax=5")
+        search = self._http_get_json(search_url)
+        if not search:
+            return {"source": "ncbi_gene", "results": [], "error": "no_response"}
+        ids = search.get('esearchresult', {}).get('idlist', [])[:5]
+        if not ids:
+            return {"source": "ncbi_gene", "query": query, "results": [],
+                    "total": int(search.get('esearchresult', {}).get('count', 0))}
+        id_str = ','.join(ids)
+        summary_url = (f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+                       f"?db=gene&id={id_str}&retmode=json")
+        summary = self._http_get_json(summary_url)
+        results = []
+        if summary:
+            for gid in ids:
+                g = summary.get('result', {}).get(gid, {})
+                if g:
+                    results.append({
+                        "gene_id": gid,
+                        "symbol": g.get('name'),
+                        "description": g.get('description'),
+                        "organism": g.get('organism', {}).get('scientificname'),
+                        "chromosome": g.get('chromosome'),
+                    })
+        return {"source": "ncbi_gene", "query": query, "results": results,
+                "total": int(search.get('esearchresult', {}).get('count', 0))}
+
+    def _query_ncbi_entrez(self, query: str, db: str = 'pubmed') -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = (f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+               f"?db={db}&term={q}&retmode=json&retmax=5")
+        data = self._http_get_json(url)
+        if not data:
+            return {"source": db, "results": [], "error": "no_response"}
+        sr = data.get('esearchresult', {})
+        return {"source": db, "query": query,
+                "ids": sr.get('idlist', []), "total": int(sr.get('count', 0))}
+
+    def _query_pdb(self, query: str) -> Dict:
+        import urllib.parse, re
+        # Direct entry lookup for 4-char PDB IDs
+        if re.match(r'^[A-Za-z0-9]{4}$', query.strip()):
+            pdb_id = query.strip().upper()
+            data = self._http_get_json(f"https://data.rcsb.org/rest/v1/core/entry/{pdb_id}")
+            if data:
+                struct = data.get('struct', {})
+                return {"source": "pdb", "pdb_id": pdb_id,
+                        "title": struct.get('title'),
+                        "resolution": data.get('refine', [{}])[0].get('ls_d_res_high'),
+                        "method": data.get('exptl', [{}])[0].get('method')}
+        # Text search
+        q = urllib.parse.quote(query)
+        url = (f"https://search.rcsb.org/rcsbsearch/v2/query?json="
+               f'{{"query":{{"type":"terminal","service":"full_text","parameters":{{"value":"{query}"}}}},"return_type":"entry","request_options":{{"paginate":{{"start":0,"rows":5}}}}}}')
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for entry in data.get('result_set', [])[:5]:
+                results.append({"pdb_id": entry.get('identifier'), "score": entry.get('score')})
+        return {"source": "pdb", "query": query, "results": results}
+
+    def _query_alphafold(self, query: str) -> Dict:
+        import re
+        # UniProt accession pattern
+        if re.match(r'^[A-Z][0-9][A-Z0-9]{3}[0-9]$', query.strip().upper()):
+            acc = query.strip().upper()
+            data = self._http_get_json(f"https://alphafold.ebi.ac.uk/api/prediction/{acc}")
+            if data and isinstance(data, list) and data:
+                d = data[0]
+                return {"source": "alphafold", "uniprot_accession": acc,
+                        "model_url": d.get('pdbUrl'),
+                        "pae_image_url": d.get('paeImageUrl'),
+                        "confidence_metric": "pLDDT"}
+        return {"source": "alphafold", "query": query, "note": "Provide UniProt accession for direct lookup"}
+
+    def _query_kegg(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        # Try pathway search first
+        data = self._http_get_json(f"https://rest.kegg.jp/find/pathway/{q}")
+        results = []
+        if data is None:
+            # KEGG returns plain text, not JSON — use raw fetch
+            import urllib.request
+            try:
+                with urllib.request.urlopen(
+                    f"https://rest.kegg.jp/find/pathway/{q}", timeout=10
+                ) as resp:
+                    text = resp.read().decode()
+                    for line in text.strip().split('\n')[:5]:
+                        if '\t' in line:
+                            pid, name = line.split('\t', 1)
+                            results.append({"pathway_id": pid, "name": name})
+            except Exception:
+                pass
+        return {"source": "kegg", "query": query, "results": results}
+
+    def _query_ensembl(self, query: str) -> Dict:
+        import urllib.parse, re
+        headers = {"Content-Type": "application/json"}
+        # Try gene symbol lookup
+        if re.match(r'^[A-Z][A-Z0-9]+$', query.strip()):
+            url = (f"https://rest.ensembl.org/xrefs/symbol/homo_sapiens/{urllib.parse.quote(query)}"
+                   f"?content-type=application/json")
+            data = self._http_get_json(url)
+            if data:
+                return {"source": "ensembl", "query": query,
+                        "results": [{"id": e.get("id"), "type": e.get("type")} for e in data[:5]]}
+        return {"source": "ensembl", "query": query, "results": []}
+
+    def _query_reactome(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = f"https://reactome.org/ContentService/search/query?query={q}&types=Pathway&pageSize=5&page=1"
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for r in data.get('results', [])[:5]:
+                for entry in r.get('entries', [])[:3]:
+                    results.append({
+                        "id": entry.get("stId"),
+                        "name": entry.get("name"),
+                        "species": entry.get("species", ["Homo sapiens"])[0] if entry.get("species") else None,
+                    })
+        return {"source": "reactome", "query": query, "results": results}
+
+    def _query_string(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = (f"https://string-db.org/api/json/get_string_ids"
+               f"?identifiers={q}&species=9606&limit=5&caller_identity=biomate")
+        data = self._http_get_json(url)
+        if not data:
+            return {"source": "string", "results": [], "error": "no_response"}
+        results = [{"protein_id": p.get("stringId"), "gene": p.get("preferredName"),
+                    "score": p.get("score")} for p in data[:5]]
+        return {"source": "string", "query": query, "results": results}
+
+    def _query_gnomad(self, query: str) -> Dict:
+        import json as _json, urllib.request, urllib.error
+        gql = """
+        query ($term: String!) {
+          search(query: $term) {
+            ... on GeneSearchResult { gene { gene_id gene_name } }
+            ... on VariantSearchResult { variant { variant_id } }
+          }
+        }
+        """
+        payload = _json.dumps({"query": gql, "variables": {"term": query}}).encode()
+        req = urllib.request.Request(
+            "https://gnomad.broadinstitute.org/api",
+            data=payload,
+            headers={"Content-Type": "application/json",
+                     "User-Agent": "BioMate/1.0"}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = _json.loads(resp.read().decode())
+                results = data.get('data', {}).get('search', [])
+                return {"source": "gnomad", "query": query, "results": results[:5]}
+        except Exception as e:
+            return {"source": "gnomad", "query": query, "error": str(e)}
+
+    def _query_go(self, query: str) -> Dict:
+        import urllib.parse, re
+        # GO term direct lookup
+        if re.match(r'^GO:\d+$', query.strip(), re.IGNORECASE):
+            goid = query.strip().upper()
+            data = self._http_get_json(f"https://api.geneontology.org/api/ontology/term/{goid}")
+            if data:
+                return {"source": "go", "go_id": goid,
+                        "name": data.get("label"),
+                        "definition": (data.get("definition") or {}).get("val")}
+        # Text search
+        q = urllib.parse.quote(query)
+        url = f"https://api.geneontology.org/api/search/entity/autocomplete/{q}?rows=5&ontology=go"
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for d in data.get('docs', [])[:5]:
+                results.append({"go_id": d.get("id"), "name": d.get("label")})
+        return {"source": "go", "query": query, "results": results}
+
+    def _query_hpo(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = f"https://hpo.jax.org/api/hpo/search?q={q}&max=5&offset=0&category=terms"
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for t in data.get('terms', [])[:5]:
+                results.append({"hpo_id": t.get("id"), "name": t.get("name"),
+                                 "definition": t.get("definition")})
+        return {"source": "hpo", "query": query, "results": results}
+
+    def _query_chebi(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = f"https://www.ebi.ac.uk/chebi/searchId.do?chebiId={q}&format=json"
+        data = self._http_get_json(url)
+        if not data:
+            # Text search fallback
+            url2 = f"https://www.ebi.ac.uk/webservices/chebi/2.0/lite?search={q}&max_results=5"
+            data = self._http_get_json(url2)
+        return {"source": "chebi", "query": query, "results": data or []}
+
+    def _query_chembl(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = (f"https://www.ebi.ac.uk/chembl/api/data/molecule/search"
+               f"?q={q}&format=json&limit=5")
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for m in data.get('molecules', [])[:5]:
+                props = m.get('molecule_properties') or {}
+                results.append({
+                    "chembl_id": m.get('molecule_chembl_id'),
+                    "name": m.get('pref_name'),
+                    "formula": props.get('full_molformula'),
+                    "mw": props.get('full_mwt'),
+                })
+        return {"source": "chembl", "query": query, "results": results}
+
+    def _query_interpro(self, query: str) -> Dict:
+        import urllib.parse
+        q = urllib.parse.quote(query)
+        url = f"https://www.ebi.ac.uk/interpro/api/entry/?search={q}&format=json&page_size=5"
+        data = self._http_get_json(url)
+        results = []
+        if data:
+            for e in data.get('results', [])[:5]:
+                meta = e.get('metadata', {})
+                results.append({"accession": meta.get('accession'),
+                                 "name": meta.get('name'),
+                                 "type": meta.get('type')})
+        return {"source": "interpro", "query": query, "results": results}
+
+    def _detect_database_from_query(self, query: str) -> str:
+        import re
+        q_lower = query.lower()
+        q_stripped = query.strip()
+        if re.match(r'^rs\d+$', q_stripped, re.IGNORECASE) or 'variant' in q_lower:
+            return 'dbsnp'
+        if re.match(r'^[A-Z][0-9][A-Z0-9]{3}[0-9]$', q_stripped.upper()):
+            return 'uniprot'
+        if re.match(r'^[A-Za-z0-9]{4}$', q_stripped) and not q_stripped.isalpha():
+            return 'pdb'
+        if re.match(r'^GO:\d+$', q_stripped, re.IGNORECASE):
+            return 'go'
+        if q_lower.startswith('hp:') or 'disease' in q_lower or 'phenotype' in q_lower:
+            return 'hpo'
+        if 'compound' in q_lower or 'smiles' in q_lower or 'drug' in q_lower:
+            return 'chembl'
+        if 'pathway' in q_lower or 'kegg' in q_lower:
+            return 'kegg'
+        if 'domain' in q_lower or 'pfam' in q_lower or 'interpro' in q_lower:
+            return 'interpro'
+        if 'protein' in q_lower or 'enzyme' in q_lower or 'uniprot' in q_lower:
+            return 'uniprot'
+        if 'interaction' in q_lower or 'ppi' in q_lower:
+            return 'string'
+        return 'ncbi_gene'
+
+    def query_database(self, database: str, query: str) -> Dict:
+        """
+        Route a biological database query to the appropriate public REST API.
+        Supports: auto, ncbi_gene, uniprot, pdb, alphafold, kegg, reactome, go,
+                  hpo, chebi, chembl, interpro, string, ensembl, gnomad,
+                  dbsnp, clinvar, pubmed.
+        """
+        db = database.lower().strip()
+        if db == 'auto':
+            db = self._detect_database_from_query(query)
+
+        handlers = {
+            'ncbi_gene': self._query_ncbi_gene,
+            'uniprot': self._query_uniprot,
+            'pdb': self._query_pdb,
+            'alphafold': self._query_alphafold,
+            'kegg': self._query_kegg,
+            'reactome': self._query_reactome,
+            'go': self._query_go,
+            'hpo': self._query_hpo,
+            'chebi': self._query_chebi,
+            'chembl': self._query_chembl,
+            'interpro': self._query_interpro,
+            'string': self._query_string,
+            'ensembl': self._query_ensembl,
+            'gnomad': self._query_gnomad,
+            'dbsnp': lambda q: self._query_ncbi_entrez(q, 'snp'),
+            'clinvar': lambda q: self._query_ncbi_entrez(q, 'clinvar'),
+            'pubmed': lambda q: self._query_ncbi_entrez(q, 'pubmed'),
+        }
+        handler = handlers.get(db)
+        if not handler:
+            return {"success": False, "error": f"Unknown database: {db}",
+                    "supported": list(handlers.keys())}
+        try:
+            result = handler(query)
+            result['success'] = True
+            return result
+        except Exception as e:
+            import logging as _log
+            _log.getLogger(__name__).warning(f"[query_database] {db}({query}) failed: {e}")
+            return {"success": False, "source": db, "error": str(e)}
+
+    # =========================================================================
+    # Track 3B — Domain Knowledge Highlights
+    # =========================================================================
+
+    _DOMAIN_KNOWLEDGE_FILES: Dict[str, str] = {
+        # Genomics / variant calling / epigenomics
+        'genomics': 'expert_knowledge_genomics.json',
+        'variant_calling': 'expert_knowledge_genomics.json',
+        'epigenomics': 'expert_knowledge_genomics.json',
+        'genetics': 'expert_knowledge_genomics.json',
+        'transcriptomics': 'expert_knowledge_cellbio_immuno.json',  # scRNA topics here
+        'metagenomics': 'expert_knowledge_microbio_sysbio.json',
+        # Drug discovery / pharmacology / structural biology
+        'drug_discovery': 'expert_knowledge_pharmacology.json',
+        'pharmacology': 'expert_knowledge_pharmacology.json',
+        'structural_biology': 'expert_knowledge_pharmacology.json',
+        'biochemistry': 'expert_knowledge_pharmacology.json',
+        'biophysics': 'expert_knowledge_pharmacology.json',
+        # Bioimaging
+        'bioimaging': 'expert_knowledge_bioimaging.json',
+        'imaging': 'expert_knowledge_bioimaging.json',
+        'cryo_em': 'expert_knowledge_bioimaging.json',
+        'cryo_et': 'expert_knowledge_bioimaging.json',
+        'pathology': 'expert_knowledge_bioimaging.json',
+        # Proteomics / molecular biology / multi-omics
+        'proteomics': 'expert_knowledge_molecular_biology.json',
+        'molecular_biology': 'expert_knowledge_molecular_biology.json',
+        'multi_omics': 'expert_knowledge_molecular_biology.json',
+        'metabolomics': 'expert_knowledge_molecular_biology.json',
+        # Single cell / cell biology / immunology
+        'single_cell': 'expert_knowledge_cellbio_immuno.json',
+        'cell_biology': 'expert_knowledge_cellbio_immuno.json',
+        'immunology': 'expert_knowledge_cellbio_immuno.json',
+        'cancer_biology': 'expert_knowledge_cellbio_immuno.json',
+        # Microbiology / systems biology / synthetic biology
+        'microbiology': 'expert_knowledge_microbio_sysbio.json',
+        'systems_biology': 'expert_knowledge_microbio_sysbio.json',
+        'synthetic_biology': 'expert_knowledge_microbio_sysbio.json',
+        'bioengineering': 'expert_knowledge_microbio_sysbio.json',
+    }
+
+    def _build_knowledge_highlights(
+        self,
+        domain: str,
+        workflow_name: str,
+        workflow_tools: List[str],
+    ) -> Dict[str, Any]:
+        """
+        Load domain expert knowledge and return best_practices, qc_thresholds,
+        and literature_guidance relevant to this workflow.
+        """
+        import json as _json
+        import logging as _log
+        log = _log.getLogger(__name__)
+
+        fname = self._DOMAIN_KNOWLEDGE_FILES.get(domain, '')
+        if not fname:
+            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
+
+        # ai_assistant.py lives at backend/lib/galaxy/ai/ — 4 parents up = backend/
+        knowledge_dir = Path(__file__).parent.parent.parent.parent / 'scripts' / 'domain_knowledge'
+        knowledge_path = knowledge_dir / fname
+        if not knowledge_path.exists():
+            log.debug(f"[KnowledgeHighlights] File not found: {knowledge_path}")
+            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
+
+        try:
+            with open(knowledge_path) as f:
+                all_topics = _json.load(f)
+        except Exception as e:
+            log.warning(f"[KnowledgeHighlights] Failed to load {fname}: {e}")
+            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
+
+        # Build keyword set from workflow name and tools
+        # Replace all common separators (dash, underscore, slash) before splitting
+        _normalize = lambda s: s.lower().replace('-', ' ').replace('_', ' ').replace('/', ' ')
+        name_words = set(_normalize(workflow_name).split())
+        tool_words = set()
+        for t in (workflow_tools or []):
+            tool_words.update(_normalize(t).split())
+        all_keywords = name_words | tool_words
+        # Expand keywords with common bioinformatics abbreviation mappings
+        _kw_expansions = {
+            'scrnaseq': {'scrna', 'rna', 'seq', 'single', 'cell'},
+            'scrna': {'rna', 'seq', 'single', 'cell'},
+            'wgs': {'whole', 'genome', 'sequencing', 'genomics', 'variant', 'calling'},
+            'gatk': {'variant', 'calling', 'germline', 'genotyping'},
+            'diaproteomics': {'dia', 'proteomics', 'ms', 'lc'},
+            'proteomicslfq': {'proteomics', 'lfq', 'lc', 'ms', 'label', 'free', 'quantification'},
+            'rnaseq': {'rna', 'seq', 'transcriptomics', 'expression'},
+            'atacseq': {'atac', 'seq', 'chromatin', 'epigenomics'},
+            'chipseq': {'chip', 'seq', 'histone', 'epigenomics'},
+            'methylseq': {'methylation', 'bisulfite', 'epigenomics'},
+            'sarek': {'somatic', 'variant', 'calling', 'cancer'},
+            'nfcore': set(),  # strip nf-core prefix — no signal
+        }
+        for kw in list(all_keywords):
+            if kw in _kw_expansions:
+                all_keywords.update(_kw_expansions[kw])
+
+        # Score topics by keyword overlap
+        scored = []
+        for topic_key, topic_data in all_topics.items():
+            topic_words = set(topic_key.lower().replace('_', ' ').split())
+            overlap = len(topic_words & all_keywords)
+            # Also check topic description
+            desc_words = set((topic_data.get('description', '') or '').lower().split())
+            desc_overlap = len(desc_words & all_keywords)
+            score = overlap * 3 + desc_overlap
+            if score > 0:
+                scored.append((score, topic_key, topic_data))
+
+        # Sort by relevance; take top 3 topics
+        scored.sort(key=lambda x: -x[0])
+        top_topics = scored[:3]
+
+        best_practices: List[str] = []
+        qc_thresholds: List[Dict] = []
+        literature_guidance: List[Dict] = []
+
+        for _score, _topic_key, topic_data in top_topics:
+            # Best practices
+            bpn = topic_data.get('best_practice_notes', '')
+            if isinstance(bpn, str) and bpn.strip():
+                # Split on numbered items or line breaks
+                import re as _re
+                items = _re.split(r'\n\s*\d+\.\s*|\.\s+(?=[A-Z])', bpn.strip())
+                for item in items[:3]:
+                    item = item.strip()
+                    if len(item) > 20 and item not in best_practices:
+                        best_practices.append(item)
+            elif isinstance(bpn, list):
+                for item in bpn[:3]:
+                    if isinstance(item, str) and item.strip() and item not in best_practices:
+                        best_practices.append(item.strip())
+
+            # QC thresholds from key_parameters → situations
+            kp = topic_data.get('key_parameters', {})
+            if isinstance(kp, dict):
+                for param_name, param_data in list(kp.items())[:5]:
+                    situations = param_data.get('situations', {})
+                    if isinstance(situations, dict):
+                        for sit_name, sit_data in list(situations.items())[:3]:
+                            val = sit_data.get('value_or_range', '')
+                            if val and len(qc_thresholds) < 5:
+                                qc_thresholds.append({
+                                    'metric': param_name,
+                                    'threshold': str(val),
+                                    'context': sit_data.get('when', ''),
+                                    'source': sit_data.get('source', ''),
+                                })
+
+            # Literature guidance from key_references
+            refs = topic_data.get('key_references', [])
+            if isinstance(refs, list):
+                for ref in refs[:3]:
+                    if isinstance(ref, str) and ref.startswith('http'):
+                        if len(literature_guidance) < 3:
+                            literature_guidance.append({'url': ref, 'context': _topic_key})
+                    elif isinstance(ref, dict):
+                        if len(literature_guidance) < 3:
+                            literature_guidance.append({
+                                'url': ref.get('url', ref.get('doi', '')),
+                                'context': ref.get('title', _topic_key),
+                            })
+
+        log.info(f"[KnowledgeHighlights] domain={domain} workflow={workflow_name}: "
+                 f"bp={len(best_practices)}, qc={len(qc_thresholds)}, lit={len(literature_guidance)}")
+        return {
+            'best_practices': best_practices[:3],
+            'qc_thresholds': qc_thresholds[:5],
+            'literature_guidance': literature_guidance[:3],
+        }
+
+    # =========================================================================
+    # Track 3D-i — Consistent APA Citations
+    # =========================================================================
+
+    def _build_workflow_citations(
+        self,
+        workflow_tools: List[str],
+        domain: str,
+        tags: List[str],
+    ) -> List[Dict[str, Any]]:
+        """
+        Build a list of APA-formatted citations for a workflow.
+        Sources: (1) tool_knowledge DB, (2) domain landmark papers.
+        """
+        _DOMAIN_LANDMARK = {
+            'genomics': {
+                'index': 1, 'authors': ['Ewels PA', 'Peltzer A', 'Fillinger S', 'et al.'],
+                'year': 2020, 'title': 'The nf-core framework for community-curated bioinformatics pipelines',
+                'journal': 'Nature Biotechnology', 'doi': '10.1038/s41587-020-0439-x', 'pmid': '32055031',
+            },
+            'transcriptomics': {
+                'index': 1, 'authors': ['Love MI', 'Huber W', 'Anders S'],
+                'year': 2014, 'title': 'Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2',
+                'journal': 'Genome Biology', 'doi': '10.1186/s13059-014-0550-8', 'pmid': '25516281',
+            },
+            'variant_calling': {
+                'index': 1, 'authors': ['McKenna A', 'Hanna M', 'Banks E', 'et al.'],
+                'year': 2010, 'title': 'The Genome Analysis Toolkit: A MapReduce framework for analyzing next-generation DNA sequencing data',
+                'journal': 'Genome Research', 'doi': '10.1101/gr.107524.110', 'pmid': '20644199',
+            },
+            'cryo_em': {
+                'index': 1, 'authors': ['Punjani A', 'Rubinstein JL', 'Fleet DJ', 'Brubaker MA'],
+                'year': 2017, 'title': 'cryoSPARC: algorithms for rapid unsupervised cryo-EM structure determination',
+                'journal': 'Nature Methods', 'doi': '10.1038/nmeth.4169', 'pmid': '28165473',
+            },
+            'drug_discovery': {
+                'index': 1, 'authors': ['Jumper J', 'Evans R', 'Pritzel A', 'et al.'],
+                'year': 2021, 'title': 'Highly accurate protein structure prediction with AlphaFold',
+                'journal': 'Nature', 'doi': '10.1038/s41586-021-03819-2', 'pmid': '34265844',
+            },
+            'pharmacology': {
+                'index': 1, 'authors': ['Jumper J', 'Evans R', 'Pritzel A', 'et al.'],
+                'year': 2021, 'title': 'Highly accurate protein structure prediction with AlphaFold',
+                'journal': 'Nature', 'doi': '10.1038/s41586-021-03819-2', 'pmid': '34265844',
+            },
+            'proteomics': {
+                'index': 1, 'authors': ['Röst HL', 'Sachsenberg T', 'Aiche S', 'et al.'],
+                'year': 2016, 'title': 'OpenMS: a flexible open-source software platform for mass spectrometry data analysis',
+                'journal': 'Nature Methods', 'doi': '10.1038/nmeth.3959', 'pmid': '27575611',
+            },
+            'multi_omics': {
+                'index': 1, 'authors': ['Röst HL', 'Sachsenberg T', 'Aiche S', 'et al.'],
+                'year': 2016, 'title': 'OpenMS: a flexible open-source software platform for mass spectrometry data analysis',
+                'journal': 'Nature Methods', 'doi': '10.1038/nmeth.3959', 'pmid': '27575611',
+            },
+            'single_cell': {
+                'index': 1, 'authors': ['Hao Y', 'Stuart T', 'Kowalski MH', 'et al.'],
+                'year': 2024, 'title': 'Dictionary learning for integrative, multimodal and scalable single-cell analysis',
+                'journal': 'Nature Biotechnology', 'doi': '10.1038/s41587-023-01767-y', 'pmid': '37316556',
+            },
+            'structural_biology': {
+                'index': 1, 'authors': ['Berman HM', 'Westbrook J', 'Feng Z', 'et al.'],
+                'year': 2000, 'title': 'The Protein Data Bank',
+                'journal': 'Nucleic Acids Research', 'doi': '10.1093/nar/28.1.235', 'pmid': '10592235',
+            },
+            'bioimaging': {
+                'index': 1, 'authors': ['Punjani A', 'Rubinstein JL', 'Fleet DJ', 'Brubaker MA'],
+                'year': 2017, 'title': 'cryoSPARC: algorithms for rapid unsupervised cryo-EM structure determination',
+                'journal': 'Nature Methods', 'doi': '10.1038/nmeth.4169', 'pmid': '28165473',
+            },
+        }
+
+        citations = []
+        seen_dois: set = set()
+
+        # Source 1: tool_knowledge DB citations via ToolKnowledgeProvider
+        try:
+            from galaxy.ai.tool_knowledge_provider import ToolKnowledgeProvider
+            provider = ToolKnowledgeProvider()
+            for tool_name in (workflow_tools or [])[:10]:
+                try:
+                    cit = provider.get_citation(tool_name)
+                    if cit and hasattr(cit, 'format_apa'):
+                        apa = cit.format_apa()
+                        doi = getattr(cit, 'doi', None) or ''
+                        if doi in seen_dois:
+                            continue
+                        if doi:
+                            seen_dois.add(doi)
+                        raw_authors = getattr(cit, 'authors', [])
+                        if isinstance(raw_authors, str):
+                            raw_authors = [a.strip() for a in raw_authors.split(',') if a.strip()]
+                        citations.append({
+                            'index': len(citations) + 1,
+                            'tool_name': tool_name,
+                            'tool_id': tool_name,
+                            'authors': raw_authors,
+                            'year': getattr(cit, 'year', None),
+                            'title': getattr(cit, 'title', ''),
+                            'journal': getattr(cit, 'journal', ''),
+                            'doi': doi,
+                            'pmid': getattr(cit, 'pmid', None),
+                            'formatted_apa': apa,
+                        })
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # Source 2: domain landmark paper
+        landmark = _DOMAIN_LANDMARK.get(domain or '')
+        if landmark:
+            doi = landmark.get('doi', '')
+            if doi not in seen_dois:
+                seen_dois.add(doi)
+                authors_list = landmark['authors']
+                last_a = authors_list[0].split()[0] if authors_list else 'Unknown'
+                apa = (f"{', '.join(authors_list)} ({landmark['year']}). "
+                       f"{landmark['title']}. {landmark['journal']}. "
+                       f"DOI: {doi}")
+                citations.append({
+                    'index': len(citations) + 1,
+                    'tool_name': 'domain_landmark',
+                    'tool_id': f"landmark_{domain}",
+                    'authors': authors_list,
+                    'year': landmark['year'],
+                    'title': landmark['title'],
+                    'journal': landmark['journal'],
+                    'doi': doi,
+                    'pmid': landmark.get('pmid'),
+                    'formatted_apa': apa,
+                })
+
+        return citations

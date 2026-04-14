@@ -110,6 +110,8 @@ export class WorkflowNotificationService {
       console.log(`[WorkflowNotification] No metadata found for invocation ${invocationId}`);
       return;
     }
+    // Unregister immediately to deduplicate concurrent events
+    this.unregisterInvocation(invocationId);
 
     try {
       // Get user preferences
@@ -154,9 +156,6 @@ export class WorkflowNotificationService {
           console.log(`[WorkflowNotification] Sent completion email to ${metadata.userEmail}`);
         }
       }
-
-      // Clean up
-      this.unregisterInvocation(invocationId);
     } catch (error) {
       console.error(`[WorkflowNotification] Failed to send notification for ${invocationId}:`, error);
     }
@@ -171,6 +170,8 @@ export class WorkflowNotificationService {
       console.log(`[WorkflowNotification] No metadata found for invocation ${invocationId}`);
       return;
     }
+    // Unregister immediately to deduplicate concurrent events
+    this.unregisterInvocation(invocationId);
 
     try {
       const prefs = await this.getUserPreferences(metadata.userId);
@@ -186,9 +187,6 @@ export class WorkflowNotificationService {
         );
         console.log(`[WorkflowNotification] Sent error email to ${metadata.userEmail}`);
       }
-
-      // Clean up
-      this.unregisterInvocation(invocationId);
     } catch (err) {
       console.error(`[WorkflowNotification] Failed to send error notification for ${invocationId}:`, err);
     }

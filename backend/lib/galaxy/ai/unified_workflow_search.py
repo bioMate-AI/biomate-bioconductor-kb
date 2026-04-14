@@ -1324,6 +1324,45 @@ class UnifiedWorkflowSearch:
                 return False
         return True
 
+    # ── Per-chain required-context registry ──────────────────────────────────
+    # Maps chain name → list of term-groups.  A chain is rejected if the user
+    # query does not contain at least one term from EVERY listed group.
+    # This prevents single-step "GATK germline calling" queries from triggering
+    # multi-modal pipelines that also need RNA-seq, etc.
+    _CHAIN_REQUIRED_CONTEXT: Dict[str, List[frozenset]] = {
+        'rare_disease_multimodal_workup': [
+            # User must signal the rare disease or multi-modal intent …
+            frozenset({'rare disease', 'rare_disease', 'rare-disease',
+                       'outrider', 'fraser', 'aberrant expression', 'splicing outlier',
+                       'multimodal', 'multi-modal', 'multi modal',
+                       # OR explicit RNA-seq companion
+                       'rna-seq', 'rnaseq', 'rna seq', 'transcriptomic',
+                       'drop', 'outrider', 'fraser'}),
+        ],
+    }
+
+    @classmethod
+    def _chain_multimodal_context_compatible(cls, chain: "WorkflowChain", query: str) -> bool:
+        """Return False if the query lacks required context terms for a multi-modal chain.
+
+        Prevents a query like "GATK germline variant calling" from matching a chain
+        that requires BOTH WGS and RNA-seq context.  Returns True for chains that have
+        no context requirements defined (conservative: only filter chains we've explicitly
+        annotated).
+        """
+        required_groups = cls._CHAIN_REQUIRED_CONTEXT.get(chain.name)
+        if not required_groups:
+            return True  # no constraint for this chain — pass through
+        q_lower = query.lower()
+        for term_group in required_groups:
+            if not any(term in q_lower for term in term_group):
+                log.info(
+                    "[ChainIndex] Multi-modality filter: %r lacks required context for %s "
+                    "(need one of: %s)", query[:60], chain.name, sorted(term_group)[:5],
+                )
+                return False
+        return True
+
     # Chain search — embedding similarity + LLM reranking
     # ------------------------------------------------------------------
 
@@ -1385,6 +1424,21 @@ class UnifiedWorkflowSearch:
                     top_candidates = compatible
                 if not top_candidates:
                     return []  # all candidates filtered out — fall through to workflow search
+                # ── Multi-modality context pre-filter ─────────────────────────
+                # Some chains require multiple distinct data modalities (e.g. WGS + RNA-seq).
+                # If the user query doesn't signal at least one term from each modality group,
+                # the chain is a false positive and should be rejected in code — not left to
+                # a potentially overconfident LLM decision.
+                top_candidates = [
+                    c for c in top_candidates
+                    if self._chain_multimodal_context_compatible(c, query)
+                ]
+                if not top_candidates:
+                    log.info(
+                        "[ChainIndex] Multi-modality pre-filter removed all candidates for %r",
+                        query[:60],
+                    )
+                    return []
                 # LLM reranking from short candidate list
                 # Returns [chain] (match), [] (explicit no-match), or None (unavailable)
                 llm_result = self._llm_select_chain(query, top_candidates)
@@ -1426,7 +1480,11 @@ class UnifiedWorkflowSearch:
             scored.append((min(score + domain_bonus, 1.0), chain))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        return [c for s, c in scored[:limit] if s >= min_score]
+        # Apply multimodal context filter to Tier-2 results as well
+        return [
+            c for s, c in scored[:limit]
+            if s >= min_score and self._chain_multimodal_context_compatible(c, query)
+        ]
 
     def get_chain(self, name: str) -> Optional["WorkflowChain"]:
         """Fetch a chain by its unique name."""

@@ -190,8 +190,12 @@ const CONTENT_SAFETY_RULES: SafetyRule[] = [
 
 const OUT_OF_SCOPE_PATTERNS: RegExp[] = [
   /\b(write me a (poem|song|story|essay|novel|screenplay))\b/i,
-  /\b(crypto(currency)? (price|invest|trade|pump|moon))\b/i,
+  /\b(crypto(currency)?|bitcoin|ethereum|btc|eth) (price|invest|trade|pump|moon|buy|sell)\b/i,
+  /\b(bitcoin|ethereum|btc|eth) price\b/i,
+  /\bshould I invest\b/i,
   /\b(stock (price|tip|invest|buy|sell))\b/i,
+  /\bwhat stock(s)? (should|to) (I )?(buy|sell|invest)\b/i,
+  /\b(give me |share )?(investment tip|stock tip)\b/i,
   /\b(weather (forecast|today|tomorrow))\b/i,
   /\bhow to (hack|crack password|bypass security|phish)\b/i,
   /\b(recipe for|how to cook|bake|restaurant recommend)\b/i,

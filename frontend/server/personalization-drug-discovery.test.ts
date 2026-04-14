@@ -22,7 +22,17 @@
  *   UC-D8  MD simulation after failed docking: memory prevents re-running completed steps
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock database and stateful modules that require environment variables
+vi.mock('./db', () => ({ db: {}, pool: {} }));
+vi.mock('./conversation-state', () => ({
+  conversationStateManager: { getState: vi.fn(), setState: vi.fn(), clear: vi.fn() },
+}));
+vi.mock('./user-patterns-service', () => ({
+  userPatternsService: { getUserContext: vi.fn().mockResolvedValue({}) },
+}));
+
 import {
   inferActionsFromType,
   type IntentDecomposition,

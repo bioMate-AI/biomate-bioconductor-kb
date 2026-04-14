@@ -1420,5 +1420,57 @@
       "https://genome.ucsc.edu/goldenPath/help/liftOver.html"
     ],
     "best_practice_notes": "Always check the unmapped output file and report the conversion success rate. Pre-exclude regions overlapping centromeres, telomeres, assembly gaps, and segmental duplications for cleaner conversions. For variant data (VCF), use BCFtools/liftover instead of UCSC liftOver. The minMatch parameter controls coverage (how much of the region maps), not sequence identity. Use the correct direction chain file. For clinical/diagnostic applications, manually review all conversions and use stringent minMatch (0.95+). LiftOver is designed for same-species assembly conversion only."
+  },
+  "gatk_variant_calling": {
+    "description": "Germline and somatic variant calling using GATK HaplotypeCaller/Mutect2 with VQSR and BQSR quality control.",
+    "key_parameters": {
+      "vqsr_tranche": {
+        "description": "VQSR sensitivity tranche threshold for variant filtering",
+        "situations": {
+          "snp_standard": {
+            "value_or_range": "99.5%",
+            "when": "SNP filtering in standard WGS germline variant calling",
+            "why": "VQSR at 99.5% tranche captures most true SNPs while removing the majority of false positives. GATK best practices recommends this for WGS with sufficient training data.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360035531112"
+          },
+          "indel_standard": {
+            "value_or_range": "99.0%",
+            "when": "Indel filtering in WGS germline variant calling",
+            "why": "Indels have inherently higher error rates than SNPs. A more conservative tranche (99.0%) reduces false indel calls.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360035531112"
+          },
+          "hard_filter_fallback": {
+            "value_or_range": "QD<2.0, FS>60.0, MQ<40.0, ReadPosRankSum<-20",
+            "when": "VQSR cannot be applied (<30 exome samples or <1 WGS sample)",
+            "why": "VQSR requires sufficient training data. Hard filters are applied when sample count is insufficient for VQSR model training.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360035890471"
+          }
+        },
+        "common_mistakes": [
+          "Using the same tranche for SNPs and indels",
+          "Applying VQSR to too few samples (need \u226530 exomes or \u22651 WGS)"
+        ]
+      },
+      "bqsr_known_sites": {
+        "description": "Known variant sites used as training data for BQSR (Base Quality Score Recalibration)",
+        "situations": {
+          "human_hg38": {
+            "value_or_range": "dbSNP 146 + Mills_and_1000G_gold_standard.indels.hg38",
+            "when": "BQSR for human WGS/WES aligned to GRCh38",
+            "why": "These are the GATK recommended known sites for human hg38. dbSNP provides SNPs; Mills provides high-quality indels for recalibration.",
+            "source": "https://gatk.broadinstitute.org/hc/en-us/articles/360035890411"
+          }
+        },
+        "common_mistakes": [
+          "Using genome-build-mismatched known sites (e.g., hg19 sites with hg38 alignment)"
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1101/gr.107524.110",
+      "https://doi.org/10.1038/ng.806",
+      "https://gatk.broadinstitute.org/hc/en-us/articles/360035535912"
+    ],
+    "best_practice_notes": "Always apply BQSR before HaplotypeCaller variant calling. Use GVCF mode for joint genotyping across multiple samples. Apply VQSR when you have sufficient samples; use hard filters for small cohorts. Mark duplicates before BQSR. For somatic calling with Mutect2, use a panel of normals (PoN) and matched normal when available."
   }
 }

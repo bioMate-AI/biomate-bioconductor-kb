@@ -58,6 +58,11 @@ log = logging.getLogger(__name__)
 # Tool definitions (MCP schema)
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Keep in sync with:
+#   frontend/server/routes.ts  OPEN_CLAW_TOOLS
+#   backend/lib/integrations/slack_bot.py
+#   backend/lib/integrations/wechat_bot.py
+# Doc: docs/20260412_BIOMATE_TOOLS_CAPABILITY_MAP.md
 TOOLS: List[Dict[str, Any]] = [
     {
         "name": "search_workflow",
@@ -212,6 +217,77 @@ TOOLS: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "cancel_run",
+        "description": (
+            "Cancel a running or queued BioMate workflow job on AWS Batch. "
+            "Use when the user wants to stop a run, or before launching a corrected replacement."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "description": "Run ID to cancel"},
+            },
+            "required": ["run_id"],
+        },
+    },
+    {
+        "name": "list_runs",
+        "description": (
+            "List the user's recent BioMate workflow runs with status and timestamps. "
+            "Useful for checking what jobs are currently running or recently completed."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "description": "Max runs to return (default 10)", "default": 10},
+                "status": {
+                    "type": "string",
+                    "enum": ["all", "running", "completed", "failed", "pending"],
+                    "description": "Filter by status (default: all)",
+                    "default": "all",
+                },
+            },
+        },
+    },
+    {
+        "name": "analyze_results",
+        "description": (
+            "Ask BioMate's AI to interpret and summarize outputs from a completed run. "
+            "Returns a natural language analysis: key findings, quality metrics, "
+            "scientific interpretation, and recommended next steps."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "description": "Run ID of a completed run"},
+                "question": {
+                    "type": "string",
+                    "description": "Optional specific question, e.g. 'which compounds passed ADMET filters?'",
+                },
+            },
+            "required": ["run_id"],
+        },
+    },
+    {
+        "name": "explain_error",
+        "description": (
+            "Ask BioMate's AI to diagnose why a failed workflow run failed. "
+            "Returns the likely root cause (genome mismatch, missing input, resource OOM, etc.) "
+            "and the specific fix to apply."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "run_id": {"type": "string", "description": "Run ID of a failed run to diagnose"},
+                "error_log": {
+                    "type": "string",
+                    "description": "Optional: paste the error log directly if run_id lookup is unavailable",
+                },
+            },
+            "required": ["run_id"],
+        },
+    },
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -298,15 +374,54 @@ class BioMateClient:
         if inline_data:
             payload["inline_data"] = inline_data
         try:
+            r = self.session.post(self._url("/api/data/analyze"), json=payload, timeout=60)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    def cancel_run(self, run_id: str) -> Dict[str, Any]:
+        try:
+            r = self.session.post(self._url(f"/api/workflows/runs/{run_id}/cancel"), json={}, timeout=15)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "run_id": run_id}
+
+    def list_runs(self, limit: int = 10, status: str = "all") -> Dict[str, Any]:
+        params: Dict[str, str] = {"limit": str(limit)}
+        if status != "all":
+            params["status"] = status
+        try:
+            r = self.session.get(self._url("/api/workflows/runs"), params=params, timeout=15)
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    def analyze_results(self, run_id: str, question: str) -> Dict[str, Any]:
+        try:
             r = self.session.post(
-                self._url("/api/data/analyze"),
-                json=payload,
+                self._url(f"/api/workflows/runs/{run_id}/ai/analyze"),
+                json={"question": question},
                 timeout=60,
             )
             r.raise_for_status()
             return r.json()
         except Exception as exc:
-            return {"error": str(exc)}
+            return {"error": str(exc), "run_id": run_id}
+
+    def explain_error(self, run_id: str, error_log: str = "") -> Dict[str, Any]:
+        try:
+            r = self.session.post(
+                self._url("/api/workflows/explain_error"),
+                json={"run_id": run_id, "error_log": error_log},
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as exc:
+            return {"error": str(exc), "run_id": run_id}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -345,6 +460,27 @@ def dispatch_tool(client: BioMateClient, tool_name: str, args: Dict[str, Any]) -
             s3_key=args.get("s3_key"),
             inline_data=args.get("inline_data"),
             file_type=args.get("file_type", "auto"),
+        )
+
+    elif tool_name == "cancel_run":
+        return client.cancel_run(run_id=args["run_id"])
+
+    elif tool_name == "list_runs":
+        return client.list_runs(
+            limit=int(args.get("limit", 10)),
+            status=args.get("status", "all"),
+        )
+
+    elif tool_name == "analyze_results":
+        return client.analyze_results(
+            run_id=args["run_id"],
+            question=args.get("question", "Summarize the key findings and scientific interpretation."),
+        )
+
+    elif tool_name == "explain_error":
+        return client.explain_error(
+            run_id=args["run_id"],
+            error_log=args.get("error_log", ""),
         )
 
     else:
