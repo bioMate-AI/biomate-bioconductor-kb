@@ -1,0 +1,1 @@
+2026-03-05 22:38:02	2.3s	adoring_roentgen	OK	a9ab28f199bb31d37f862c1329a2e58a	74c202bf-9bee-496b-a3ac-ffd4a5c67fd4	nextflow run main.nf --mock_mode true

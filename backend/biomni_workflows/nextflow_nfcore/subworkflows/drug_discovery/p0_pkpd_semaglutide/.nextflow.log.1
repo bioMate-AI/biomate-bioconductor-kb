@@ -1,0 +1,76 @@
+Apr-08 20:58:40.451 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -profile docker --outdir /tmp/p0_pkpd_results3 --cmax_ref_nm 30.0
+Apr-08 20:58:40.492 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-08 20:58:40.519 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/nextflow.config
+Apr-08 20:58:40.521 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/nextflow.config
+Apr-08 20:58:40.552 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `docker`
+Apr-08 20:58:40.853 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [aws, docker]
+Apr-08 20:58:40.909 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-08 20:58:40.919 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-08 20:58:40.920 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-08 20:58:40.922 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-08 20:58:40.932 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-08 20:58:41.017 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-08 20:58:41.018 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Apr-08 20:58:41.018 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Apr-08 20:58:41.027 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Apr-08 20:58:41.029 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@2121d1f9] - activable => nextflow.secret.LocalSecretsProvider@2121d1f9
+Apr-08 20:58:41.031 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-08 20:58:41.042 [main] DEBUG nextflow.cli.CmdRun - Launching `main.nf` [confident_shockley] DSL2 - revision: 0db65b8fb7
+Apr-08 20:58:41.071 [main] DEBUG nextflow.Session - Session UUID: 1125a5e1-0e61-470e-b60d-f08a9ddd8120
+Apr-08 20:58:41.071 [main] DEBUG nextflow.Session - Run name: confident_shockley
+Apr-08 20:58:41.071 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-08 20:58:41.076 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-08 20:58:41.079 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 20:58:41.091 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3087359@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (3.9 GB) - Swap: 16 GB (2.7 GB)
+Apr-08 20:58:41.105 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/work [ext2/ext3]
+Apr-08 20:58:41.105 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/bin
+Apr-08 20:58:41.110 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Apr-08 20:58:41.115 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-08 20:58:41.116 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-08 20:58:41.138 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-08 20:58:41.142 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-08 20:58:41.190 [main] DEBUG nextflow.Session - Session start
+Apr-08 20:58:41.378 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-08 20:58:41.430 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:P0_PKPD_SEMAGLUTIDE` matches process P0_PKPD_SEMAGLUTIDE
+Apr-08 20:58:41.439 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Apr-08 20:58:41.440 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Apr-08 20:58:41.446 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Apr-08 20:58:41.450 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=20; memory=119.7 GB; capacity=20; pollInterval=100ms; dumpInterval=5m
+Apr-08 20:58:41.452 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: local)
+Apr-08 20:58:41.466 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'P0_PKPD_SEMAGLUTIDE': maxForks=0; fair=false; array=0
+Apr-08 20:58:41.512 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: P0_PKPD_SEMAGLUTIDE
+Apr-08 20:58:41.514 [main] DEBUG nextflow.Session - Igniting dataflow network (1)
+Apr-08 20:58:41.514 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > P0_PKPD_SEMAGLUTIDE
+Apr-08 20:58:41.514 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_fc03416c4fa45c8a: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/main.nf
+Apr-08 20:58:41.514 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-08 20:58:41.514 [main] DEBUG nextflow.Session - Session await
+Apr-08 20:58:41.748 [Task submitter] DEBUG n.executor.local.LocalTaskHandler - Launch cmd line: /bin/bash -ue .command.run
+Apr-08 20:58:41.750 [Task submitter] INFO  nextflow.Session - [1e/d9b264] Submitted process > P0_PKPD_SEMAGLUTIDE (p0_pkpd_semaglutide)
+Apr-08 20:58:42.608 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: P0_PKPD_SEMAGLUTIDE (p0_pkpd_semaglutide); status: COMPLETED; exit: 0; error: -; workDir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/p0_pkpd_semaglutide/work/1e/d9b2642a3f0e3e3e57cb11a6ec7bd2]
+Apr-08 20:58:42.609 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 20:58:42.624 [TaskFinalizer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'PublishDir' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-08 20:58:42.629 [Actor Thread 7] INFO  nextflow.Nextflow - 
+Apr-08 20:58:42.630 [Actor Thread 7] INFO  nextflow.Nextflow - ==================================================
+Apr-08 20:58:42.630 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-08 20:58:42.631 [Actor Thread 7] INFO  nextflow.Nextflow -   P0-E: Semaglutide PKPD Validation
+Apr-08 20:58:42.632 [Actor Thread 7] INFO  nextflow.Nextflow - ==================================================
+Apr-08 20:58:42.634 [Actor Thread 7] INFO  nextflow.Nextflow -   PK  Cmax,ss:   33.27 nM  (ref ~30 nM)  PASS
+Apr-08 20:58:42.635 [Actor Thread 7] INFO  nextflow.Nextflow -   PD  Wt 30 wk:  -5.66 kg  (SUSTAIN-1: -4.53 kg)  PASS
+Apr-08 20:58:42.635 [Actor Thread 7] INFO  nextflow.Nextflow -   OVERALL: PASS
+Apr-08 20:58:42.635 [Actor Thread 7] INFO  nextflow.Nextflow - ==================================================
+Apr-08 20:58:42.707 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: local) - terminating tasks monitor poll loop
+Apr-08 20:58:42.707 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-08 20:58:42.709 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'TaskFinalizer' shutdown completed (hard=false)
+Apr-08 20:58:42.710 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'PublishDir' shutdown completed (hard=false)
+Apr-08 20:58:42.715 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=1; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=1.7s; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=2; peakMemory=4 GB; ]
+Apr-08 20:58:42.817 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-08 20:58:42.823 [main] DEBUG nextflow.util.ThreadPoolManager - Thread pool 'FileTransfer' shutdown completed (hard=false)
+Apr-08 20:58:42.823 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

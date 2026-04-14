@@ -1,0 +1,2 @@
+2026-03-05 22:37:38	1.7s	silly_fourier	OK	9551cde4d3ccc47c50a3da3f48309a65	dffc19fe-e7d1-49a2-a4f5-3c34fac28808	nextflow run main.nf -profile test
+2026-03-05 22:38:03	1.6s	hopeful_yonath	OK	9551cde4d3ccc47c50a3da3f48309a65	f00e555e-a770-47be-b666-880de54a61ce	nextflow run main.nf -profile stub

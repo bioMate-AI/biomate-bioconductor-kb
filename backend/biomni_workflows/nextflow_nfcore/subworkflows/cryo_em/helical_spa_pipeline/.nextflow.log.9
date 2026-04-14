@@ -1,0 +1,239 @@
+Apr-09 21:33:06.338 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/main.nf -profile standard -w 's3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7' --movies_path /home/yzhang/biomate/frontend/data/uploads/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc --pixel_size 1.05 --voltage 300 --cs 2.7 --total_dose 50.0 --filament_diameter_angstroms 80 --helical_rise_angstroms 4.75 --helical_twist_deg -166.15 --overlap_fraction 0.9 --min_filament_length_angstroms 500 --symmetry C1 --initial_lowpass 12.0 --refine_helical_params true --use_cryosparc true --outdir 's3://biomate-nextflow-work/nextflow/outputs/e157a65f-a750-41a4-a219-60a42645d8e8/d9f8d31c' -with-trace /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/workflow-trace.txt -c /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/biomate_executor_override.config
+Apr-09 21:33:06.393 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-09 21:33:06.445 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/nextflow.config
+Apr-09 21:33:06.447 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/biomate_executor_override.config
+Apr-09 21:33:06.449 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/nextflow.config
+Apr-09 21:33:06.449 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/biomate_executor_override.config
+Apr-09 21:33:06.469 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-09 21:33:06.835 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-09 21:33:06.899 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-09 21:33:06.907 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-09 21:33:06.908 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-09 21:33:06.910 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-09 21:33:06.919 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-09 21:33:06.993 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-09 21:33:06.994 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-09 21:33:06.994 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-09 21:33:07.563 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-09 21:33:07.613 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-09 21:33:07.622 [main] INFO  nextflow.plugin.PluginUpdater - Downloading plugin nf-amazon@3.4.1
+Apr-09 21:33:09.696 [main] INFO  org.pf4j.util.FileUtils - Expanded plugin zip 'nf-amazon-3.4.1.zip' in 'nf-amazon-3.4.1'
+Apr-09 21:33:09.704 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-09 21:33:09.704 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-09 21:33:09.715 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-09 21:33:09.725 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-09 21:33:09.734 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/.nextflow/secrets/store.json
+Apr-09 21:33:09.737 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@773014d3] - activable => nextflow.secret.LocalSecretsProvider@773014d3
+Apr-09 21:33:09.738 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-09 21:33:09.754 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/main.nf` [drunk_angela] DSL2 - revision: 2ef73e7ed3
+Apr-09 21:33:09.783 [main] DEBUG nextflow.Session - Session UUID: 9258081c-7a34-4fea-b55c-e6cc25dabb1b
+Apr-09 21:33:09.783 [main] DEBUG nextflow.Session - Run name: drunk_angela
+Apr-09 21:33:09.784 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-09 21:33:09.791 [main] DEBUG nextflow.file.FileHelper - Creating a file system instance for provider: S3FileSystemProvider; config=[region:us-west-2, batch:[cliPath:/opt/aws-cli/bin/aws], client:[uploadChunkSize:104857600, maxConnections:20]]
+Apr-09 21:33:09.806 [main] DEBUG nextflow.cloud.aws.config.AwsConfig - AWS S3 config properties: {upload_chunk_size=104857600, max_connections=20, max_error_retry=5}
+Apr-09 21:33:10.479 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-09 21:33:10.486 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-09 21:33:10.504 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 889060@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (31.4 GB) - Swap: 16 GB (2.8 GB)
+Apr-09 21:33:10.732 [main] DEBUG nextflow.file.FileHelper - Unable to determine FS type (1): s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7
+
+Apr-09 21:33:10.732 [main] DEBUG nextflow.Session - Work-dir: s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7 [null]
+Apr-09 21:33:10.732 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/bin
+Apr-09 21:33:10.745 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-09 21:33:10.751 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-09 21:33:10.754 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-09 21:33:10.793 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-09 21:33:10.799 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-09 21:33:10.845 [main] DEBUG nextflow.Session - Session start
+Apr-09 21:33:10.851 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/nextflow_runs/0d59625f-a04a-4007-a818-362ac323a2e7/workflow-trace.txt
+Apr-09 21:33:11.306 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-09 21:33:11.441 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.441 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.446 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-09 21:33:11.455 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-09 21:33:11.460 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=50.0qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-09 21:33:11.462 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=10s; dumpInterval=5m
+Apr-09 21:33:11.465 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-09 21:33:11.515 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - [AWS BATCH] Executor options=AwsOptions(remoteBinDir:null, fetchInstanceType:false, region:us-west-2, jobRole:null, logsGroup:null, retryMode:standard, shareIdentifier:null, schedulingPriority:0, cliPath:/opt/aws-cli/bin/aws, volumes:[], maxParallelTransfers:4, maxTransferAttempts:5, maxSpotAttempts:null, delayBetweenAttempts:10s, storageClass:null, storageEncryption:null, storageKmsKeyId:null, s3Acl:null, debug:null, requesterPays:null, awsCli:/opt/aws-cli/bin/aws --region us-west-2, fargateMode:false, s5cmdPath:null, executionRole:null)
+Apr-09 21:33:11.532 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:IMPORT_MOVIES': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.560 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.560 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.561 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:PATCH_MOTION_CORRECTION': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.563 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.564 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.565 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:PATCH_CTF_ESTIMATION': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.568 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.568 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.569 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:FILAMENT_TRACER': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.579 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.579 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.579 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:EXTRACT_HELICAL_PARTICLES': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.583 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_gpu` matches labels `process_gpu` for process with name HELICAL_SPA_PIPELINE:CLASSIFY_2D_HELICAL
+Apr-09 21:33:11.584 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.584 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.584 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:CLASSIFY_2D_HELICAL': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.586 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.586 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.587 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:SELECT_2D_HELICAL': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.589 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_gpu` matches labels `process_gpu` for process with name HELICAL_SPA_PIPELINE:AB_INITIO_HELICAL
+Apr-09 21:33:11.592 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.592 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.593 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:AB_INITIO_HELICAL': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.595 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withLabel:process_gpu` matches labels `process_gpu` for process with name HELICAL_SPA_PIPELINE:HELICAL_REFINEMENT
+Apr-09 21:33:11.596 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.596 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.596 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:HELICAL_REFINEMENT': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.599 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.599 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.600 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:HELICAL_SHARPENING': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.607 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-09 21:33:11.607 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-09 21:33:11.608 [main] DEBUG nextflow.processor.TaskProcessor - Creating process 'HELICAL_SPA_PIPELINE:HELICAL_PIPELINE_SUMMARY': maxForks=0; fair=false; array=0
+Apr-09 21:33:11.614 [main] DEBUG nextflow.Session - Workflow process names [dsl2]: HELICAL_REFINEMENT, HELICAL_SPA_PIPELINE:IMPORT_MOVIES, HELICAL_SPA_PIPELINE:EXTRACT_HELICAL_PARTICLES, HELICAL_SPA_PIPELINE:SELECT_2D_HELICAL, HELICAL_SPA_PIPELINE:PATCH_CTF_ESTIMATION, HELICAL_SPA_PIPELINE:HELICAL_REFINEMENT, HELICAL_SPA_PIPELINE:FILAMENT_TRACER, CLASSIFY_2D_HELICAL, SELECT_2D_HELICAL, IMPORT_MOVIES, FILAMENT_TRACER, PATCH_MOTION_CORRECTION, PATCH_CTF_ESTIMATION, EXTRACT_HELICAL_PARTICLES, HELICAL_SHARPENING, HELICAL_PIPELINE_SUMMARY, HELICAL_SPA_PIPELINE:PATCH_MOTION_CORRECTION, HELICAL_SPA_PIPELINE:HELICAL_PIPELINE_SUMMARY, HELICAL_SPA_PIPELINE:AB_INITIO_HELICAL, HELICAL_SPA_PIPELINE:HELICAL_SHARPENING, AB_INITIO_HELICAL, HELICAL_SPA_PIPELINE:CLASSIFY_2D_HELICAL
+Apr-09 21:33:11.616 [main] DEBUG nextflow.Session - Igniting dataflow network (12)
+Apr-09 21:33:11.619 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:IMPORT_MOVIES
+Apr-09 21:33:11.620 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:PATCH_MOTION_CORRECTION
+Apr-09 21:33:11.620 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:PATCH_CTF_ESTIMATION
+Apr-09 21:33:11.620 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:FILAMENT_TRACER
+Apr-09 21:33:11.620 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:EXTRACT_HELICAL_PARTICLES
+Apr-09 21:33:11.620 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:CLASSIFY_2D_HELICAL
+Apr-09 21:33:11.621 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:SELECT_2D_HELICAL
+Apr-09 21:33:11.621 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:AB_INITIO_HELICAL
+Apr-09 21:33:11.621 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:HELICAL_REFINEMENT
+Apr-09 21:33:11.621 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:HELICAL_SHARPENING
+Apr-09 21:33:11.622 [main] DEBUG nextflow.processor.TaskProcessor - Starting process > HELICAL_SPA_PIPELINE:HELICAL_PIPELINE_SUMMARY
+Apr-09 21:33:11.622 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_1ba7aa29a49874dc: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/helical_spa_pipeline/main.nf
+Apr-09 21:33:11.622 [main] DEBUG nextflow.script.ScriptRunner - > Awaiting termination 
+Apr-09 21:33:11.622 [main] DEBUG nextflow.Session - Session await
+Apr-09 21:33:11.870 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_host` -- Initialise it to a default value eg. `params.cryosparc_host = some_value`
+Apr-09 21:33:11.872 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_port` -- Initialise it to a default value eg. `params.cryosparc_port = some_value`
+Apr-09 21:33:11.873 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_email` -- Initialise it to a default value eg. `params.cryosparc_email = some_value`
+Apr-09 21:33:11.873 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_password` -- Initialise it to a default value eg. `params.cryosparc_password = some_value`
+Apr-09 21:33:11.874 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_project_uid` -- Initialise it to a default value eg. `params.cryosparc_project_uid = some_value`
+Apr-09 21:33:11.874 [Actor Thread 14] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `cryosparc_workspace_uid` -- Initialise it to a default value eg. `params.cryosparc_workspace_uid = some_value`
+Apr-09 21:33:11.930 [FileTransfer-1] DEBUG nextflow.file.FilePorter - Copying foreign file /home/yzhang/biomate/frontend/data/uploads/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc to work dir: s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/stage-9258081c-7a34-4fea-b55c-e6cc25dabb1b/0f/303730b514b1e80f458ec368d57ae8/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc
+Apr-09 21:33:11.981 [FileTransfer-1] DEBUG n.cloud.aws.nio.S3FileSystemProvider - S3 upload file from=/home/yzhang/biomate/frontend/data/uploads/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc to=s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/stage-9258081c-7a34-4fea-b55c-e6cc25dabb1b/0f/303730b514b1e80f458ec368d57ae8/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc
+Apr-09 21:33:11.982 [FileTransfer-1] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'S3TransferManager' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-09 21:33:13.151 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] [AWS BATCH] Found job definition name=nf-399683337364-dkr-ecr-us-west-2-amazonaws-com-biomate-nextflow-base-latest:2; container=399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+Apr-09 21:33:13.295 [AWSBatch-executor-1] DEBUG n.c.aws.batch.AwsBatchTaskHandler - [AWS BATCH] Process `HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)` submitted > job=dff4d04b-70c1-47be-b9c2-64f546b7f8a5; work-dir=s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/ba/bb69b184c410b6d269924c50e104f8
+Apr-09 21:33:13.295 [AWSBatch-executor-1] INFO  nextflow.Session - [ba/bb69b1] Submitted process > HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)
+Apr-09 21:33:52.103 [Task monitor] DEBUG n.processor.TaskPollingMonitor - Task completed > TaskHandler[id: 1; name: HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies); status: COMPLETED; exit: 127; error: nextflow.exception.ProcessException: Essential container in task exited; workDir: s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/ba/bb69b184c410b6d269924c50e104f8]
+Apr-09 21:33:52.103 [Task monitor] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'TaskFinalizer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-09 21:33:52.317 [TaskFinalizer-1] DEBUG nextflow.processor.TaskProcessor - Handling unexpected condition for
+  task: name=HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies); work-dir=s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/ba/bb69b184c410b6d269924c50e104f8
+  error [nextflow.exception.ProcessFailedException]: Process `HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)` failed
+Apr-09 21:33:52.378 [TaskFinalizer-1] DEBUG nextflow.processor.TaskRun - Unable to dump output of process 'HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)' -- Cause: java.nio.file.NoSuchFileException: /tmp/temp-s3-6170085656381466951/.command.out
+Apr-09 21:33:52.381 [TaskFinalizer-1] ERROR nextflow.processor.TaskProcessor - Error executing process > 'HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)'
+
+Caused by:
+  Essential container in task exited
+
+
+Command executed:
+
+  #!/usr/bin/env python3
+  import json
+  import os
+  from pathlib import Path
+  from datetime import datetime
+  
+  use_cryosparc = True
+  
+  if use_cryosparc:
+      from cryosparc.tools import CryoSPARC
+      cs_conn = CryoSPARC(
+          host='localhost',
+          port=39000,
+          email='',
+          password=''
+      )
+      project   = cs_conn.find_project('')
+      workspace = project.find_workspace('')
+  
+      job = workspace.create_job('import_movies', params={
+          'movie_path':     '/home/yzhang/biomate/frontend/data/uploads/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc',
+          'pixel_size_A':   1.05,
+          'kv':             300,
+          'cs_mm':          2.7,
+          'total_dose_eA2': 50.0
+      })
+      job.queue()
+      job.wait_for_done()
+  
+      movies_out = list(job.load_output('movies'))
+      num_movies = len(movies_out)
+      cs_data = {'movies': movies_out}
+  else:
+      # Scan the movies directory for movie files
+      p = Path('/home/yzhang/biomate/frontend/data/uploads/fb4a2f88-49b3-4232-af7d-f4f40901beaf.mrc')
+      files = (sorted(p.glob('*.tif')) + sorted(p.glob('*.mrc')) +
+               sorted(p.glob('*.eer')) + sorted(p.glob('*.tiff')))
+      num_movies = len(files)
+      if num_movies == 0:
+          raise RuntimeError(
+              f"No movie files (*.tif/*.mrc/*.eer) found in '{p}'. "
+              "Provide --movies_path pointing to your movie directory."
+          )
+      cs_data = {
+          'movies': [
+              {'movie_path': str(m), 'movie_idx': i,
+               'num_frames': 40, 'total_dose': 50.0}
+              for i, m in enumerate(files)
+          ]
+      }
+  
+  report = {
+      'step':                    '01_import_movies',
+      'timestamp':               datetime.now().isoformat(),
+      'num_movies':              num_movies,
+      'pixel_size_angstroms':    1.05,
+      'voltage_kv':              300,
+      'spherical_aberration_mm': 2.7,
+      'total_dose':              50.0
+  }
+  
+  with open('movies.cs', 'w') as f:
+      json.dump(cs_data, f, indent=2)
+  with open('import_report.json', 'w') as f:
+      json.dump(report, f, indent=2)
+  
+  print(f"Imported {num_movies} movies")
+
+Command exit status:
+  127
+
+Command output:
+  (empty)
+
+Command error:
+  bash: line 1: /opt/aws-cli/bin/aws: No such file or directory
+  bash: line 1: /opt/aws-cli/bin/aws: No such file or directory
+
+Work dir:
+  s3://biomate-nextflow-work/nextflow/work/e157a65f-a750-41a4-a219-60a42645d8e8/0d59625f-a04a-4007-a818-362ac323a2e7/ba/bb69b184c410b6d269924c50e104f8
+
+Container:
+  399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest
+
+Tip: you can replicate the issue by changing to the process work dir and entering the command `bash .command.run`
+Apr-09 21:33:52.388 [main] DEBUG nextflow.Session - Session await > all processes finished
+Apr-09 21:33:52.450 [TaskFinalizer-1] DEBUG nextflow.Session - Session aborted -- Cause: Process `HELICAL_SPA_PIPELINE:IMPORT_MOVIES ([helical_spa] 01_import_movies)` failed
+Apr-09 21:33:52.477 [TaskFinalizer-1] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=512ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-09 21:33:52.587 [TaskFinalizer-1] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-09 21:33:52.591 [main] DEBUG nextflow.Session - Session await > all barriers passed
+Apr-09 21:33:52.592 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=1; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=512ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=1; peakCpus=1; peakMemory=0; ]
+Apr-09 21:33:52.592 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-09 21:33:52.592 [Task monitor] DEBUG n.processor.TaskPollingMonitor - <<< barrier arrives (monitor: awsbatch) - terminating tasks monitor poll loop
+Apr-09 21:33:52.596 [main] DEBUG nextflow.cache.CacheDB - Closing CacheDB done
+Apr-09 21:33:52.600 [main] INFO  org.pf4j.AbstractPluginManager - Stop plugin 'nf-amazon@3.4.1'
+Apr-09 21:33:52.600 [main] DEBUG nextflow.plugin.BasePlugin - Plugin stopped nf-amazon
+Apr-09 21:33:52.601 [main] DEBUG nextflow.script.ScriptRunner - > Execution complete -- Goodbye

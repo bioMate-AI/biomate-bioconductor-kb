@@ -1,0 +1,37 @@
+{
+  "p0_check": "P0-E: Semaglutide PKPD Validation",
+  "references": [
+    "Overgaard RV et al. Diabetes Therapy 10:649-662, 2019. doi:10.1007/s13300-019-0581-y",
+    "Sorli C et al. (SUSTAIN-1) Lancet Diabetes Endocrinol 5:251-260, 2017. doi:10.1016/S2213-8587(17)30013-X"
+  ],
+  "pk_model": {
+    "type": "2-compartment SC",
+    "CL_ml_h": 41.0,
+    "V1_L": 8.18,
+    "Q_ml_h": 89.5,
+    "V2_L": 4.5,
+    "ka_h": 0.0116,
+    "F": 0.89,
+    "dose_mg": 1.0,
+    "tau_h": 168.0
+  },
+  "pk_results": {
+    "Cmax_ss_nM": 33.27,
+    "Cmin_ss_nM": 28.1,
+    "AUCtau_nM_h": 5291.1,
+    "Cmax_reference_nM": 30.0,
+    "Cmax_deviation_pct": 10.9,
+    "pass_cmax": true
+  },
+  "pd_results": {
+    "weight_loss_30w_kg": -5.66,
+    "sustain1_observed_kg": -4.53,
+    "sustain1_ci_95": "-5.34 to -3.72 kg",
+    "pass_criterion_range_kg": "-6.0 to -3.0",
+    "pass_weight_loss": true,
+    "emax_kg_wk": -0.22,
+    "ec50_nM": 5.0
+  },
+  "overall": "PASS",
+  "timestamp": "2026-04-08T20:58:42.420460Z"
+}

@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://biomate.ai/schemas/wgs_germline_gatk_schema.json",
+  "title": "WGS Germline Variant Calling — GATK4",
+  "description": "Whole-genome germline variant calling following GATK4 Best Practices. Supports FASTQ input or direct SRA accession download. Steps: FastQC → fastp trimming → BWA-MEM2 alignment → MarkDuplicates → BQSR → HaplotypeCaller (gVCF) → GenotypeGVCFs → VariantFiltration → SnpEff annotation → MultiQC.",
+  "type": "object",
+  "allOf": [
+    { "$ref": "#/$defs/input_options" },
+    { "$ref": "#/$defs/reference_options" },
+    { "$ref": "#/$defs/caller_options" },
+    { "$ref": "#/$defs/sample_options" },
+    { "$ref": "#/$defs/qc_thresholds" },
+    { "$ref": "#/$defs/generic_options" }
+  ],
+  "$defs": {
+    "input_options": {
+      "title": "Input options",
+      "type": "object",
+      "description": "Define input reads. Provide either a FASTQ glob pattern (e.g. 's3://bucket/sample_R{1,2}.fastq.gz') or an SRA accession (SRR/ERR/DRR prefix).",
+      "required": ["reads"],
+      "properties": {
+        "reads": {
+          "description": "Paired FASTQ glob pattern (e.g. 'sample_R{1,2}.fastq.gz') OR SRA accession (e.g. SRR1518169). For SRA input, set max_spots to limit download size during testing.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "max_spots": {
+          "description": "Limit number of SRA spots downloaded (0 = unlimited). Set to e.g. 100000 for quick test runs; leave 0 for full production analysis.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "reference_options": {
+      "title": "Reference genome",
+      "type": "object",
+      "description": "Reference FASTA and known-variant sites for BQSR. Either supply explicit file paths or use the 'genome' shorthand to auto-resolve BioMate's iGenomes S3 paths.",
+      "properties": {
+        "genome": {
+          "description": "Genome shorthand. BioMate resolves this to the matching reference FASTA + known-sites VCF from iGenomes S3. Use explicit 'reference' + 'known_sites' paths to override.",
+          "type": "string",
+          "enum": ["hg38", "hg19", "mm10"],
+          "default": "hg38"
+        },
+        "reference": {
+          "description": "Path to reference FASTA file (must be pre-indexed with BWA-MEM2 and samtools faidx). Overrides the 'genome' shorthand when provided.",
+          "type": "string",
+          "format": "file-path"
+        },
+        "known_sites": {
+          "description": "VCF of known germline variants for Base Quality Score Recalibration (BQSR). Typically dbSNP + Mills indels (e.g. s3://ngi-igenomes/igenomes/Homo_sapiens/GATK/GRCh38/dbsnp_146.hg38.vcf.gz).",
+          "type": "string",
+          "format": "file-path"
+        },
+        "dbsnp_vcf": {
+          "description": "Optional separate dbSNP VCF for variant annotation. If omitted, known_sites is reused for annotation.",
+          "type": "string",
+          "format": "file-path"
+        }
+      }
+    },
+    "caller_options": {
+      "title": "Variant caller",
+      "type": "object",
+      "description": "Select and configure the germline variant caller.",
+      "properties": {
+        "caller": {
+          "description": "Variant caller to use. 'gatk' (GATK4 HaplotypeCaller, recommended) gives the best sensitivity/specificity for WGS. 'deepvariant' (Google) is a deep-learning caller with slightly higher SNP precision. 'freebayes' is a fast open-source Bayesian caller.",
+          "type": "string",
+          "enum": ["gatk", "deepvariant", "freebayes"],
+          "default": "gatk"
+        },
+        "scatter_count": {
+          "description": "Number of genome intervals to scatter HaplotypeCaller across in parallel. Higher values speed up calling on multi-core instances (recommended: 8–32).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 8
+        },
+        "ploidy": {
+          "description": "Sample ploidy. 2 for diploid human/mouse. Use 1 for haploid organisms or sex chromosomes if running separately.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 2
+        },
+        "min_base_quality_score": {
+          "description": "Minimum base quality score for a base to be included in variant calling. GATK default is 10; 20 is recommended for stricter calls.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40,
+          "default": 20
+        },
+        "vqsr_mode": {
+          "description": "Use VQSR (Variant Quality Score Recalibration) instead of hard filters. Requires a large callset (≥30 samples or deep WGS). For single-sample or low-coverage data, leave false (hard-filter mode).",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "sample_options": {
+      "title": "Sample metadata",
+      "type": "object",
+      "description": "Sample identity information written into the read group (@RG) header of the output BAM.",
+      "properties": {
+        "sample_id": {
+          "description": "Sample identifier written into BAM read group (SM tag) and used as prefix for output files.",
+          "type": "string",
+          "default": "SAMPLE"
+        },
+        "platform": {
+          "description": "Sequencing platform written into BAM read group (PL tag). Used by GATK for platform-specific recalibration models.",
+          "type": "string",
+          "enum": ["ILLUMINA", "PACBIO", "ONT", "BGISEQ", "CAPILLARY"],
+          "default": "ILLUMINA"
+        },
+        "library": {
+          "description": "Library name written into BAM read group (LB tag). Used to identify PCR duplicates across libraries for the same sample.",
+          "type": "string",
+          "default": "WGS"
+        }
+      }
+    },
+    "qc_thresholds": {
+      "title": "QC thresholds",
+      "type": "object",
+      "description": "Coverage and alignment QC gates. BioMate flags runs that fall below these thresholds in the triage panel.",
+      "properties": {
+        "min_mean_coverage": {
+          "description": "Minimum acceptable mean genome coverage (×). Runs below this are flagged as AMBER. GATK Best Practices recommend ≥30× for WGS; 20× is the minimum for reliable variant calling.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        },
+        "min_alignment_rate": {
+          "description": "Minimum acceptable alignment rate (%). Runs below this are flagged as AMBER. Values below 70% suggest contamination, wrong reference, or severe adapter issues.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 70.0
+        }
+      }
+    },
+    "generic_options": {
+      "title": "Generic options",
+      "type": "object",
+      "description": "Standard pipeline output options.",
+      "hidden": true,
+      "properties": {
+        "outdir": {
+          "description": "Directory where pipeline results will be saved.",
+          "type": "string",
+          "format": "directory-path",
+          "default": "./results/wgs_germline"
+        },
+        "max_cpus": {
+          "type": "integer",
+          "default": 16,
+          "hidden": true
+        },
+        "max_memory": {
+          "type": "string",
+          "default": "64.GB",
+          "hidden": true
+        },
+        "max_time": {
+          "type": "string",
+          "default": "72.h",
+          "hidden": true
+        }
+      }
+    }
+  }
+}

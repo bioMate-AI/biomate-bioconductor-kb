@@ -22,7 +22,7 @@ process PERFORM_MWAS_CYP2C19_METABOLIZER_STATUS {
     label 'process_medium'
     publishDir "${params.outdir}", mode: 'copy'
 
-    container 'biomate/biomni-tools:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
 
     input:
     // No file inputs
