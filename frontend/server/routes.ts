@@ -4215,6 +4215,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Credential Management (per-tool license / API keys)
   // ============================================================================
 
+  app.get("/api/users/me/usage", authenticateToken, async (req, res) => {
+    try {
+      const userId = String((req as any).user?.id || '');
+      const lagoUrl = process.env.LAGO_URL || 'http://35.86.137.71:3000';
+      const lagoKey = process.env.LAGO_API_KEY;
+      const limit = parseFloat(process.env.VCPU_HOUR_QUOTA || '100');
+      if (!lagoKey) {
+        return res.json({ used: 0, limit, currency: 'vCPU-hrs' });
+      }
+      const usageRes = await fetch(
+        `${lagoUrl}/api/v1/customers/${userId}/current_usage?external_subscription_id=${userId}`,
+        { headers: { 'Authorization': `Bearer ${lagoKey}` }, signal: AbortSignal.timeout(3000) }
+      );
+      if (!usageRes.ok) throw new Error(`Lago ${usageRes.status}`);
+      const usage = await usageRes.json() as any;
+      const vcpuUsed = parseFloat(
+        usage?.customer_usage?.charges_usage?.find((c: any) => c.billable_metric?.code === 'vcpu_hours')?.units || '0'
+      );
+      res.json({ used: vcpuUsed, limit, currency: 'vCPU-hrs' });
+    } catch {
+      const limit = parseFloat(process.env.VCPU_HOUR_QUOTA || '100');
+      res.json({ used: 0, limit, currency: 'vCPU-hrs' });
+    }
+  });
+
   app.get("/api/users/credentials/map", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
@@ -4680,6 +4705,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('[API] Get recent sessions failed:', error);
       res.status(500).json({ error: 'Failed to get sessions', message: error.message });
+    }
+  });
+
+  // 6B — Cross-session memory injection: return the most relevant past sessions for a query
+  app.get("/api/memory/relevant", authenticateToken, async (req, res) => {
+    try {
+      const query = String(req.query.query || '').toLowerCase();
+      const limit = Math.min(parseInt(String(req.query.limit || '5')), 20);
+      const userId = req.user!.id;
+
+      // Fetch recent session memories for this user (up to 20)
+      const allSessions = await memoryService.sessions.getRecentSessions(userId, 20)
+        .catch(() => []);
+      if (!allSessions.length) return res.json({ memories: [] });
+
+      // Score by keyword overlap with query
+      const queryTokens = new Set(
+        query.split(/\W+/).filter((t: string) => t.length > 2)
+      );
+      const scored = allSessions.map((s: any) => {
+        const text = [
+          s.summary || '',
+          s.title || '',
+          (s.toolsDiscussed || []).join(' '),
+        ].join(' ').toLowerCase();
+        const tokens = text.split(/\W+/).filter((t: string) => t.length > 2);
+        const overlap = tokens.filter((t: string) => queryTokens.has(t)).length;
+        return { memory: s, score: overlap };
+      });
+      // Sort by score descending, then by recency (startedAt) descending as tie-break
+      scored.sort((a: any, b: any) =>
+        b.score - a.score ||
+        (b.memory.startedAt > a.memory.startedAt ? 1 : -1)
+      );
+
+      res.json({ memories: scored.slice(0, limit).map((s: any) => s.memory) });
+    } catch (err: any) {
+      console.error('[API] Memory relevant failed:', err.message);
+      res.status(500).json({ error: err.message });
     }
   });
 
@@ -5479,6 +5543,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 outputs = [];
               }
+              // For S3 runs: expand S3 directory URIs into individual file URIs
+              const hasS3Artifacts = artifacts.some(a => a.startsWith('s3://'));
+              if (hasS3Artifacts && nfRunId) {
+                try {
+                  const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+                  const filesResp = await fetch(`${galaxyUrl}/api/nextflow/runs/${nfRunId}/output_files`, {
+                    signal: AbortSignal.timeout(10_000),
+                  });
+                  if (filesResp.ok) {
+                    const filesData = await filesResp.json() as any;
+                    const s3Files: string[] = (filesData.files || [])
+                      .map((f: any) => f.s3_uri)
+                      .filter((uri: any) => typeof uri === 'string' && uri.startsWith('s3://'));
+                    if (s3Files.length > 0) {
+                      // Replace S3 directory URIs with actual file URIs
+                      const nonS3 = artifacts.filter(a => !a.startsWith('s3://'));
+                      artifacts.length = 0;
+                      artifacts.push(...nonS3, ...s3Files);
+                      console.log(`[Outputs] S3 expansion: ${s3Files.length} files from ${nfRunId}`);
+                    }
+                  }
+                } catch (s3Err) {
+                  console.warn('[Outputs] S3 file listing failed (non-fatal):', s3Err);
+                }
+              }
               await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
               outputs = await storage.getInvocationOutputs(invocation.id);
               console.log(`[Outputs] After scan: ${outputs.length} outputs registered (terminal=${isTerminal})`);
@@ -6195,6 +6284,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hardwareReady,
           inferredExecutor,
         });
+      }
+
+      // Quota guard — skip for pilot accounts and when Lago is not configured
+      {
+        const userEmail = String((req as any).user?.email || '').toLowerCase();
+        const pilotEmails = (process.env.PILOT_ACCOUNT_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+        const isPilotUser = pilotEmails.includes(userEmail);
+        if (!isPilotUser && process.env.LAGO_API_KEY) {
+          try {
+            const userId = String((req as any).user?.id || '');
+            const lagoUrl = process.env.LAGO_URL || 'http://35.86.137.71:3000';
+            const usageRes = await fetch(
+              `${lagoUrl}/api/v1/customers/${userId}/current_usage?external_subscription_id=${userId}`,
+              {
+                headers: { 'Authorization': `Bearer ${process.env.LAGO_API_KEY}`, 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(3000),
+              }
+            );
+            if (usageRes.ok) {
+              const usage = await usageRes.json() as any;
+              const vcpuUsed = usage?.customer_usage?.charges_usage
+                ?.find((c: any) => c.billable_metric?.code === 'vcpu_hours')
+                ?.units || 0;
+              const vcpuLimit = parseFloat(process.env.VCPU_HOUR_QUOTA || '100');
+              if (parseFloat(vcpuUsed) >= vcpuLimit) {
+                return res.status(402).json({
+                  error: 'quota_exceeded',
+                  message: `You have used ${vcpuUsed} of ${vcpuLimit} vCPU-hours this billing period.`,
+                  used: parseFloat(vcpuUsed),
+                  limit: vcpuLimit,
+                });
+              }
+            }
+          } catch { /* non-fatal — don't block launch if Lago is unreachable */ }
+        }
       }
 
       // Determine execution engine using standardized helper
@@ -7916,6 +8040,29 @@ Rules:
         } catch (readErr) {
           console.warn("[Findings] Could not read existing report:", readErr);
         }
+      }
+
+      // 2b. For AWS Batch runs: check S3 for findings_data.json sidecar
+      if (!reportExists) {
+        try {
+          const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
+          const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
+          const s3Uri = `s3://${s3Bucket}/nextflow/outputs/${nfRunId}/output/findings_data.json`;
+          const galaxyUrl2 = process.env.GALAXY_URL || 'http://localhost:8081';
+          const presignResp = await fetch(
+            `${galaxyUrl2}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${nfRunId}&presigned_only=1`,
+            { signal: AbortSignal.timeout(5_000) }
+          );
+          if (presignResp.ok) {
+            const { url } = await presignResp.json() as { url: string };
+            const dataResp = await fetch(url, { signal: AbortSignal.timeout(5_000) });
+            if (dataResp.ok) {
+              const structured = await dataResp.json();
+              const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
+              return res.json({ ...structured, runId, reportUrl });
+            }
+          }
+        } catch { /* S3 not available — fall through to trigger analysis */ }
       }
 
       // 3. Trigger async analysis via Python backend (fire-and-forget)

@@ -16,6 +16,7 @@ import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { conversationStateManager } from './conversation-state';
 import { userPatternsService, type UserContext } from './user-patterns-service';
 import { thinkingDetector, type ThinkingDetectionResult } from './thinking-detector';
+import { memoryService } from './memory-repository';
 import {
   CANONICAL_DOMAINS,
   TECHNICAL_SUBDOMAINS,
@@ -1149,6 +1150,53 @@ export class GalaxyAssistant {
   }
 
   /**
+   * 6B — Fetch and build a cross-session context block from the user's past sessions.
+   * Uses recency + keyword overlap scoring (no pgvector needed).
+   * Returns empty string on any failure — this is always non-fatal enrichment.
+   */
+  private async _buildCrossSessionContextBlock(message: string, userId: string): Promise<string> {
+    try {
+      const allSessions = await memoryService.sessions.getRecentSessions(userId, 20)
+        .catch(() => []);
+      if (!allSessions.length) return '';
+
+      const query = message.toLowerCase();
+      const queryTokens = new Set(
+        query.split(/\W+/).filter((t: string) => t.length > 2)
+      );
+
+      const scored = allSessions.map((s: any) => {
+        const text = [
+          s.summary || '',
+          s.title || '',
+          (s.toolsDiscussed || []).join(' '),
+        ].join(' ').toLowerCase();
+        const tokens = text.split(/\W+/).filter((t: string) => t.length > 2);
+        const overlap = tokens.filter((t: string) => queryTokens.has(t)).length;
+        return { s, score: overlap };
+      });
+      scored.sort((a: any, b: any) =>
+        b.score - a.score ||
+        (b.s.startedAt > a.s.startedAt ? 1 : -1)
+      );
+
+      const top = scored.slice(0, 5).map((item: any) => {
+        const s = item.s;
+        const date = s.startedAt
+          ? new Date(s.startedAt).toISOString().slice(0, 10)
+          : 'recent';
+        const summary = (s.summary || s.title || '').slice(0, 150);
+        return summary ? `- ${date}: ${summary}` : null;
+      }).filter(Boolean);
+
+      if (!top.length) return '';
+      return `[Past session context — use to inform your response but don't mention unless relevant]\n${top.join('\n')}\n\n`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
    * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
    * question response before workflow generation proceeds.
    *
@@ -1336,6 +1384,28 @@ Rules:
     const sessionMemoryBlock = this._buildSessionMemoryBlock(context.sessionId);
     if (sessionMemoryBlock) {
       log('Session memory loaded for session ' + context.sessionId);
+    }
+
+    // 6B — Cross-session memory injection: on the first message of a session, fetch
+    // relevant memories from the user's past sessions and prepend them to ltmContextBlock.
+    // This is non-fatal — failures are silently ignored.
+    const isFirstMessage = !context.previousMessages || context.previousMessages.length === 0;
+    if (isFirstMessage && context.userId) {
+      try {
+        const crossSessionBlock = await this._buildCrossSessionContextBlock(
+          message,
+          String(context.userId)
+        );
+        if (crossSessionBlock) {
+          log('Cross-session context injected for user ' + context.userId);
+          context = {
+            ...context,
+            ltmContextBlock: crossSessionBlock + (context.ltmContextBlock || ''),
+          };
+        }
+      } catch {
+        // non-fatal: skip injection on error
+      }
     }
 
     // Step 1: Analyze user intent with NLU (supports all formats: single, multi, sequential)

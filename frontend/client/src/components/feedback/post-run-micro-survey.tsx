@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +66,8 @@ const PRICING_OPTIONS = [
   "No",
 ] as const;
 
+const SURVEY_SUPPRESSED_KEY = "biomate_survey_suppressed_until";
+
 export function PostRunMicroSurvey({
   open,
   onOpenChange,
@@ -76,6 +78,31 @@ export function PostRunMicroSurvey({
   workflowName,
 }: PostRunMicroSurveyProps) {
   if (!UX_FEEDBACK_ENABLED) return null;
+
+  // Check localStorage suppression on mount — if suppressed, close immediately
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const suppressedUntil = localStorage.getItem(SURVEY_SUPPRESSED_KEY);
+      if (suppressedUntil && Date.now() < Number(suppressedUntil)) {
+        onOpenChange(false);
+      }
+    } catch {
+      // localStorage unavailable — proceed normally
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleNotNow = () => {
+    try {
+      localStorage.setItem(
+        SURVEY_SUPPRESSED_KEY,
+        String(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      );
+    } catch {
+      // localStorage unavailable — ignore
+    }
+    onOpenChange(false);
+  };
 
   // ── Pilot evaluation KPIs (evaluation model H1–H3) ────────────────────────
   // H3: QC defensibility — rating 1–5, target ≥4 (publication-ready)
@@ -125,7 +152,7 @@ export function PostRunMicroSurvey({
 
   if (submitted) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
         <DialogContent
           showOverlay={false}
           className="sm:max-w-md w-[calc(100vw-2rem)] left-auto right-4 top-auto bottom-4 translate-x-0 translate-y-0"
@@ -139,7 +166,7 @@ export function PostRunMicroSurvey({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent
         showOverlay={false}
         className="sm:max-w-md w-[calc(100vw-2rem)] left-auto right-4 top-auto bottom-4 translate-x-0 translate-y-0 max-h-[90vh] overflow-y-auto"
@@ -268,6 +295,14 @@ export function PostRunMicroSurvey({
         </div>
 
         <DialogFooter>
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="survey-not-now"
+            onClick={handleNotNow}
+          >
+            Not now
+          </Button>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Skip
           </Button>

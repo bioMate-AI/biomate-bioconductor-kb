@@ -542,6 +542,15 @@ export function NextflowWorkflowViewer({
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
+  // Billing usage meter
+  const [usageMeter, setUsageMeter] = useState<{ used: number; limit: number } | null>(null);
+  useEffect(() => {
+    fetch('/api/users/me/usage', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: any) => d && setUsageMeter(d))
+      .catch(() => {});
+  }, []);
+
   const phases = React.useMemo<ViewerPhase[]>(() => {
     // Prefer stored steps; fall back to lazily-fetched steps for old sessions
     const stepsSource = (
@@ -1519,6 +1528,11 @@ export function NextflowWorkflowViewer({
                   <CostEstimateBadge
                     nextflowPath={workflowDefinition.nextflow_path}
                   />
+                )}
+                {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
+                  <span data-testid="usage-meter" className="text-xs text-muted-foreground">
+                    {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
+                  </span>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <Button

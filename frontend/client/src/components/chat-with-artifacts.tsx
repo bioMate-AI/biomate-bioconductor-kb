@@ -298,18 +298,22 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   }, [runList]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Post-run micro-survey: trigger once per run when status is completed/failed/cancelled
+  // A 3-second delay is applied after the terminal state is detected before showing the survey.
   useEffect(() => {
     const status = normalizeSurveyStatus(currentRun?.execution?.status)
     const runId = currentRun?.id
     if (!runId || !status) return
     if (!surveyedRunIds.current.has(runId)) {
       surveyedRunIds.current.add(runId)
-      setPostRunSurveyContext({
-        runId,
-        runStatus: status,
-        invocationId: currentRun?.execution?.galaxyInvocationId,
-      })
-      setShowPostRunSurvey(true)
+      const timer = setTimeout(() => {
+        setPostRunSurveyContext({
+          runId,
+          runStatus: status,
+          invocationId: currentRun?.execution?.galaxyInvocationId,
+        })
+        setShowPostRunSurvey(true)
+      }, 3000)
+      return () => clearTimeout(timer)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
 

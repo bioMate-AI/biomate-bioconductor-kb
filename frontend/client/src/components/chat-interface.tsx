@@ -33,6 +33,104 @@ import { cn } from "@/lib/utils"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
 import { FindingsCard } from "./findings-card"
 
+// ── Onboarding welcome (shown when chat has no messages yet) ──────────────────
+
+type OnboardingDomain = 'genomics' | 'drug_discovery' | 'cryo_em' | 'proteomics' | 'single_cell'
+
+const ONBOARDING_DOMAINS: { key: OnboardingDomain; label: string }[] = [
+  { key: 'genomics',       label: 'Genomics' },
+  { key: 'drug_discovery', label: 'Drug Discovery' },
+  { key: 'cryo_em',        label: 'Cryo-EM' },
+  { key: 'proteomics',     label: 'Proteomics' },
+  { key: 'single_cell',    label: 'Single Cell' },
+]
+
+const ONBOARDING_PROMPTS: Record<OnboardingDomain, string[]> = {
+  genomics: [
+    'Run whole genome sequencing analysis on SRR1518169',
+    'Call germline variants with GATK HaplotypeCaller on my WGS data',
+    'Perform RNA-seq differential expression analysis',
+  ],
+  drug_discovery: [
+    'Run ADMET property prediction for aspirin (CC(=O)Oc1ccccc1C(=O)O)',
+    'Predict binding affinity between imatinib and BCR-ABL kinase',
+    'Screen my compound library for drug-likeness',
+  ],
+  cryo_em: [
+    'Process my cryo-EM micrographs with standard SPA pipeline',
+    'Run helical reconstruction for my filament data',
+    'Perform focused classification on my ribosome dataset',
+  ],
+  proteomics: [
+    'Run label-free quantification proteomics analysis',
+    'Identify post-translational modifications in my MS data',
+    'Perform protein-protein interaction network analysis',
+  ],
+  single_cell: [
+    'Run single-cell RNA-seq clustering analysis',
+    'Perform trajectory analysis on my scRNA-seq data',
+    'Integrate multi-modal single-cell data',
+  ],
+}
+
+function OnboardingWelcome({ onSend }: { onSend: (msg: string) => void }) {
+  const [selectedDomain, setSelectedDomain] = useState<OnboardingDomain | null>(null)
+
+  const handlePromptClick = (prompt: string) => {
+    onSend(prompt)
+  }
+
+  return (
+    <div
+      data-testid="onboarding-welcome"
+      className="flex flex-col items-center gap-6 py-8 px-2"
+    >
+      <div className="text-center space-y-1">
+        <h2 className="text-xl font-semibold">Welcome to BioMate</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose a domain to get started, or type your own question below.
+        </p>
+      </div>
+
+      {/* Domain picker */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {ONBOARDING_DOMAINS.map(({ key, label }) => (
+          <button
+            key={key}
+            data-testid={`onboarding-domain-btn-${key}`}
+            onClick={() => setSelectedDomain(key === selectedDomain ? null : key)}
+            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+              selectedDomain === key
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border hover:bg-muted'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Starter prompts */}
+      {selectedDomain && (
+        <div className="w-full max-w-lg space-y-2">
+          {ONBOARDING_PROMPTS[selectedDomain].map((prompt) => (
+            <button
+              key={prompt}
+              data-testid="onboarding-starter-prompt"
+              onClick={() => handlePromptClick(prompt)}
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface WorkflowProgress {
   id: string
   title: string
@@ -1419,6 +1517,7 @@ export function ChatInterface({
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
         <div className="space-y-4">
+          {displayMessages.length === 0 && <OnboardingWelcome onSend={handleSendOrQueue} />}
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
             .map((message) => (
