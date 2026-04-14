@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -2623,20 +2623,101 @@ def get_nextflow_status(
                 "duration_s": _fb_duration_s,
             }
         elif log_dir.exists():
-            # Log dir exists but no output yet → still running
+            # Log dir exists but no local output dir.
+            # For AWS Batch runs, outdir is S3 — check workflow-trace.txt + timing.json
+            # to determine if the Nextflow process actually finished.
+            trace_path_fb = log_dir / "workflow-trace.txt"
+            trace_done = False
+            trace_failed = False
+            completed_steps_fb = 0
+            total_steps_fb = 0
+            if trace_path_fb.exists():
+                try:
+                    trace_text = trace_path_fb.read_text()
+                    trace_lines = [l for l in trace_text.splitlines() if l.strip() and not l.startswith("task_id")]
+                    total_steps_fb = len(trace_lines)
+                    completed_fb = sum(1 for l in trace_lines if "\tCOMPLETED\t" in l)
+                    failed_fb = sum(1 for l in trace_lines if "\tFAILED\t" in l)
+                    # All tasks done (completed + failed = total) → workflow finished
+                    if total_steps_fb > 0 and (completed_fb + failed_fb) >= total_steps_fb:
+                        trace_done = True
+                        trace_failed = failed_fb > 0
+                        completed_steps_fb = completed_fb
+                except Exception:
+                    pass
+
+            # Also treat timing.json with completed_at as a done signal
+            if not trace_done and _fb_completed_at:
+                trace_done = True
+
+            # Read S3 outdir from config if available
+            _s3_outdir: str | None = None
+            _config_path = log_dir / "biomate_executor_override.config"
+            if _config_path.exists():
+                try:
+                    _cfg = _config_path.read_text()
+                    import re as _re
+                    m = _re.search(r"outdir\s*=\s*['\"]?(s3://[^\s'\"]+)", _cfg)
+                    if m:
+                        _s3_outdir = m.group(1)
+                except Exception:
+                    pass
+
+            if trace_done:
+                # List S3 output files for completed AWS Batch runs
+                _s3_files_fb: list = []
+                if _s3_outdir:
+                    try:
+                        import subprocess as _sp
+                        _ls = _sp.run(
+                            ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
+                            capture_output=True, text=True, timeout=10,
+                        )
+                        for _line in _ls.stdout.splitlines():
+                            parts = _line.split()
+                            if len(parts) >= 4:
+                                _key = parts[3]
+                                _s3_files_fb.append({
+                                    "s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_key}",
+                                    "filename": _key.split("/")[-1],
+                                    "size": int(parts[2]) if parts[2].isdigit() else 0,
+                                })
+                    except Exception:
+                        pass
+                _fb_final_status = "failed" if trace_failed else "succeeded"
+                return {
+                    "run_id": run_id,
+                    "invocation_id": run_id,
+                    "status": _fb_final_status,
+                    "returncode": 1 if trace_failed else 0,
+                    "outdir": _s3_outdir or str(output_dir),
+                    "work_dir": str(log_dir / "work"),
+                    "log_tail": log_tail_fallback,
+                    "is_batch": bool(_s3_outdir),
+                    "s3_output_files": _s3_files_fb,
+                    "completedSteps": completed_steps_fb,
+                    "totalSteps": total_steps_fb,
+                    "progressPercent": 100,
+                    "processes": [],
+                    "started_at": _fb_started_at,
+                    "completed_at": _fb_completed_at or time.time(),
+                    "duration_s": _fb_duration_s,
+                }
+
+            # Still running
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
                 "status": "running",
                 "returncode": None,
-                "outdir": str(output_dir),
+                "outdir": _s3_outdir or str(output_dir),
                 "work_dir": str(log_dir / "work"),
                 "log_tail": log_tail_fallback,
-                "is_batch": False,
+                "is_batch": bool(_s3_outdir),
                 "s3_output_files": [],
-                "completedSteps": 0,
-                "totalSteps": 0,
-                "progressPercent": 50,
+                "completedSteps": completed_steps_fb,
+                "totalSteps": total_steps_fb,
+                "progressPercent": 50 if total_steps_fb == 0 else int(100 * completed_steps_fb / total_steps_fb),
                 "processes": [],
                 "started_at": _fb_started_at,
                 "completed_at": None,
@@ -4220,3 +4301,279 @@ def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]
         "profile_used": profile,
         "nextflow_path": nf_path,
     }
+
+
+# ── Output Intelligence ──────────────────────────────────────────────────────────
+
+@router.post("/api/nextflow/analyze-outputs", summary="Analyze Nextflow run outputs and generate findings report")
+async def analyze_outputs(request: Request) -> Dict[str, Any]:
+    """
+    Analyze output files from a completed Nextflow run.
+
+    Runs OutputAnalyzer to classify and parse output files, optionally
+    searches PubMed for supporting citations, then writes findings_report.md
+    to the output directory.
+
+    Request body:
+        run_id: UUID of the execution run
+        workflow_id: Workflow identifier (optional)
+        output_dir: Local path to the run output directory
+        output_files: list of {"name": str, "path": str, "type": str} (optional override)
+
+    Returns:
+        Structured findings JSON + path to findings_report.md
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    run_id = body.get("run_id", "")
+    workflow_id = body.get("workflow_id", "")
+    output_dir = body.get("output_dir", "")
+    provided_files = body.get("output_files")  # optional override
+
+    if not run_id:
+        raise HTTPException(status_code=400, detail="run_id is required")
+
+    # ── Discover output files if not provided ────────────────────────────────────
+    output_files: List[Dict] = []
+    if provided_files:
+        output_files = provided_files
+    elif output_dir and os.path.isdir(output_dir):
+        for fname in os.listdir(output_dir):
+            fpath = os.path.join(output_dir, fname)
+            if os.path.isfile(fpath) and not fname.startswith("."):
+                output_files.append({"name": fname, "path": fpath, "type": ""})
+    else:
+        # Try standard local run directory
+        candidate = f"/tmp/nextflow_runs/{run_id}/output"
+        if os.path.isdir(candidate):
+            output_dir = candidate
+            for fname in os.listdir(candidate):
+                fpath = os.path.join(candidate, fname)
+                if os.path.isfile(fpath) and not fname.startswith("."):
+                    output_files.append({"name": fname, "path": fpath, "type": ""})
+
+    if not output_dir:
+        output_dir = f"/tmp/nextflow_runs/{run_id}/output"
+
+    # ── Run OutputAnalyzer ───────────────────────────────────────────────────────
+    try:
+        from galaxy.ai.output_analyzer import OutputAnalyzer
+        analyzer = OutputAnalyzer()
+        analysis = analyzer.analyze(run_id, workflow_id, output_files)
+    except Exception as exc:
+        logger.error("[analyze-outputs] OutputAnalyzer failed for run %s: %s", run_id, exc)
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
+
+    # ── Citation Search (best-effort) ────────────────────────────────────────────
+    citations_serialized: List[Dict] = []
+    try:
+        from galaxy.ai.finding_reporter import FindingReporter, Citation
+        reporter = FindingReporter()
+        raw_citations = reporter.search_citations(analysis.search_queries, max_per_query=3)
+        citations_serialized = [
+            {"pmid": c.pmid, "title": c.title, "year": c.year, "relevance": c.relevance}
+            for c in raw_citations
+        ]
+        report = reporter.generate(analysis, raw_citations)
+    except Exception as exc:
+        logger.warning("[analyze-outputs] Citation/report generation failed: %s", exc)
+        # Build report without citations
+        from galaxy.ai.finding_reporter import FindingReporter
+        reporter = FindingReporter()
+        report = reporter.generate(analysis, [])
+
+    # ── Save findings_report.md ──────────────────────────────────────────────────
+    report_path: Optional[str] = None
+    try:
+        report_path = reporter.save_report(report, output_dir)
+    except Exception as exc:
+        logger.warning("[analyze-outputs] Could not save findings_report.md: %s", exc)
+
+    # ── Save findings_data.json sidecar (structured data for frontend) ───────────
+    structured_payload = {
+        "run_id": run_id,
+        "status": "ready",
+        "output_type": analysis.output_type,
+        "summary": analysis.summary,
+        "key_results": analysis.key_results,
+        "citations": citations_serialized,
+        "caveats": analysis.caveats,
+        "next_steps": analysis.next_steps,
+    }
+    try:
+        import json as _json
+        os.makedirs(output_dir, exist_ok=True)
+        json_path = os.path.join(output_dir, "findings_data.json")
+        with open(json_path, "w", encoding="utf-8") as fh:
+            _json.dump(structured_payload, fh, ensure_ascii=False)
+    except Exception as exc:
+        logger.warning("[analyze-outputs] Could not save findings_data.json: %s", exc)
+
+    return {**structured_payload, "report_path": report_path}
+
+
+# ---------------------------------------------------------------------------
+# Track 3D: LLM-powered workflow error parser
+# ---------------------------------------------------------------------------
+
+@router.post("/api/nextflow/parse_error")
+async def parse_workflow_error(request: Request):
+    """
+    Parse Nextflow error logs into a human-friendly summary with suggested fix.
+    Uses Claude Haiku.
+    """
+    import os as _os
+    import anthropic as _anthropic
+
+    body = await request.json()
+    log_tail = body.get("log_tail", "")
+    workflow_path = body.get("workflow_path", "")
+
+    if not log_tail:
+        return {"error_type": "unknown", "summary": "No log provided", "can_resume": False}
+
+    PARSE_SYSTEM = """\
+You are a bioinformatics workflow error analyst. Given the last lines of a Nextflow workflow log,
+output JSON with:
+{
+  "error_type": "missing_file" | "oom" | "container_pull" | "aws_permission" | "process_failed" | "config_error" | "unknown",
+  "failed_process": "PROCESS_NAME or null",
+  "human_summary": "1-2 sentence plain English description of what went wrong",
+  "suggested_fix": "1-2 sentences on how to fix it",
+  "can_resume": true/false
+}
+"""
+    try:
+        client = _anthropic.Anthropic(api_key=_os.environ.get("ANTHROPIC_API_KEY", ""))
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            system=PARSE_SYSTEM,
+            messages=[{"role": "user", "content": f"Workflow: {workflow_path}\n\nLog tail:\n{log_tail[-3000:]}"}],
+        )
+        import re as _re, json as _json
+        text = resp.content[0].text
+        m = _re.search(r'\{.*\}', text, _re.DOTALL)
+        if m:
+            return _json.loads(m.group())
+    except Exception as e:
+        log.warning("[parse_error] LLM parse failed: %s", e)
+
+    return {
+        "error_type": "unknown",
+        "failed_process": None,
+        "human_summary": "Workflow failed. Check logs for details.",
+        "suggested_fix": "Review the error log and check parameter values.",
+        "can_resume": True,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Track 3D: Pre-run cost estimation (GET variant for CostEstimateBadge)
+# ---------------------------------------------------------------------------
+
+@router.get("/api/nextflow/estimate_cost")
+async def estimate_workflow_cost_get(nextflow_path: str = "", sample_count: int = 10):
+    """
+    Static cost estimate for a Nextflow workflow before running (GET variant).
+    Used by the CostEstimateBadge component.
+    """
+    import os as _os
+
+    INSTANCE_COSTS = {
+        "optimal":        0.10,
+        "c5.xlarge":      0.17,
+        "c5.2xlarge":     0.34,
+        "r5.xlarge":      0.252,
+        "m5.xlarge":      0.192,
+        "g4dn.xlarge":    0.526,
+    }
+    RUNTIME_PER_SAMPLE = {
+        "rnaseq":             0.25,
+        "sarek":              1.5,
+        "chipseq":            0.33,
+        "methylseq":          0.5,
+        "admet":              0.03,
+        "cryosparc":          4.0,
+        "gromacs":            2.0,
+        "default":            0.3,
+    }
+
+    instance_type = "optimal"
+    cost_per_hour = INSTANCE_COSTS.get(instance_type, 0.10)
+
+    path_lower = (nextflow_path or "").lower()
+    runtime_hrs = RUNTIME_PER_SAMPLE["default"]
+    matched_wf = "default"
+    for wf_key, hrs in RUNTIME_PER_SAMPLE.items():
+        if wf_key in path_lower:
+            runtime_hrs = hrs
+            matched_wf = wf_key
+            break
+
+    total_runtime_hrs = runtime_hrs * max(1, sample_count) * 1.2
+
+    return {
+        "nextflow_path": nextflow_path,
+        "sample_count": sample_count,
+        "instance_type": instance_type,
+        "matched_workflow": matched_wf,
+        "estimated_runtime_hours": round(total_runtime_hrs, 2),
+        "cost_min_usd": round(total_runtime_hrs * cost_per_hour * 0.7, 2),
+        "cost_max_usd": round(total_runtime_hrs * cost_per_hour * 1.5, 2),
+        "assumptions": [
+            f"Instance type: {instance_type} (${cost_per_hour}/hr)",
+            f"Runtime model: {runtime_hrs}h/sample x {sample_count} samples x 1.2 overhead",
+            "Min = spot pricing (70%); Max = on-demand (150%)",
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Track 3C: Reproducibility export bundle
+# ---------------------------------------------------------------------------
+
+@router.get("/api/nextflow/runs/{run_id}/reproducibility")
+async def get_reproducibility_bundle(run_id: str):
+    """
+    Generate a reproducibility export bundle for a completed Nextflow run.
+    Returns a dict of filename -> content for all key run artifacts.
+    """
+    import os as _os, json as _json, glob as _glob
+
+    output_dir = _os.path.join("/tmp/nextflow_runs", run_id)
+    files: dict = {}
+
+    # Collect key reproducibility files
+    patterns = [
+        "nextflow.config",
+        "*.command.sh",
+        "*.command.run",
+        "*.log",
+        "*/versions.yml",
+        "pipeline_info/*.html",
+        "pipeline_info/*.json",
+    ]
+    for pattern in patterns:
+        for path in _glob.glob(_os.path.join(output_dir, "**", pattern), recursive=True):
+            try:
+                rel = _os.path.relpath(path, output_dir)
+                with open(path) as fh:
+                    files[rel] = fh.read()
+            except Exception:
+                pass
+
+    # Add parameter summary if run is in memory
+    run = _runs.get(run_id)
+    if run:
+        files["run_params.json"] = _json.dumps({
+            "run_id": run_id,
+            "workflow_path": getattr(run, "nextflow_path", ""),
+            "params": getattr(run, "params", {}),
+            "started_at": str(getattr(run, "started_at", "")),
+        }, indent=2)
+
+    return {"run_id": run_id, "files": files}
