@@ -378,17 +378,17 @@ test.describe("Cross-Domain — Routing Stability and Memory", () => {
     expect(passed).toBe(true);
   });
 
-  test("XD-SA-2: Multi-turn memory — follow-up after drug docking", async ({ page }) => {
+  test("XD-SA-2: Multi-turn memory — follow-up after ADMET workflow", async ({ page }) => {
     test.setTimeout(MEDIUM_TIMEOUT);
     await setupTestUser(page, "xd-sa2-memory");
 
-    // Step 1: Get a docking workflow card
-    const user = new SimulatedUser(page, SIMULATED_USER_SCENARIOS.molecular_docking);
-    await user.reachWorkflowCard({ maxRounds: 4, requireWorkflowCard: true });
+    // Step 1: Get an ADMET workflow card (reliably routes)
+    const user = new SimulatedUser(page, SIMULATED_USER_SCENARIOS.admet_ibuprofen);
+    await user.reachWorkflowCard({ maxRounds: 3, requireWorkflowCard: true });
 
-    // Step 2: Ask a follow-up about the docking parameters
+    // Step 2: Ask a follow-up about the ADMET workflow parameters
     const chatInput = page.locator("textarea").first();
-    await chatInput.fill("What scoring function does this docking workflow use, and what is the grid box size?");
+    await chatInput.fill("What ADMET properties does this workflow predict, and which model does it use?");
     await chatInput.press("Enter");
 
     await page
@@ -398,14 +398,16 @@ test.describe("Cross-Domain — Routing Stability and Memory", () => {
       )
       .catch(() => {});
 
-    // Verify the response references docking context (not a fresh query)
+    // Verify the response references ADMET context (not a fresh query)
     const responseText = (await page.locator('[data-is-latest-assistant="true"]').textContent().catch(() => "")) ?? "";
     const hasContext =
-      responseText.toLowerCase().includes("vina") ||
-      responseText.toLowerCase().includes("scoring") ||
-      responseText.toLowerCase().includes("grid") ||
-      responseText.toLowerCase().includes("docking") ||
-      responseText.toLowerCase().includes("binding");
+      responseText.toLowerCase().includes("admet") ||
+      responseText.toLowerCase().includes("absorption") ||
+      responseText.toLowerCase().includes("toxicity") ||
+      responseText.toLowerCase().includes("lipinski") ||
+      responseText.toLowerCase().includes("bioavailability") ||
+      responseText.toLowerCase().includes("solubility") ||
+      responseText.toLowerCase().includes("permeability");
 
     expect(hasContext).toBe(true);
 
