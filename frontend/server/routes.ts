@@ -7891,17 +7891,28 @@ Rules:
       } catch { /* file not found — will trigger analysis */ }
 
       if (reportExists) {
-        // Parse findings_report.md and return structured JSON
+        // Load structured sidecar (findings_data.json) if available, fall back to raw markdown
         try {
           const { readFile } = await import('fs/promises');
-          const md = await readFile(reportPath, 'utf8');
           const reportUrl = `/api/workflows/runs/${runId}/findings/report`;
-          return res.json({
-            status: 'ready',
-            runId,
-            reportMd: md,
-            reportUrl,
-          });
+          const jsonPath = `${localOutputDir}/findings_data.json`;
+          let structured: Record<string, any> | null = null;
+          try {
+            const raw = await readFile(jsonPath, 'utf8');
+            structured = JSON.parse(raw);
+          } catch { /* sidecar not yet written — use markdown fallback */ }
+
+          if (structured) {
+            return res.json({
+              ...structured,
+              runId,
+              reportUrl,
+            });
+          }
+
+          // No sidecar — return raw markdown so FindingsCard can parse what it can
+          const md = await readFile(reportPath, 'utf8');
+          return res.json({ status: 'ready', runId, reportMd: md, reportUrl });
         } catch (readErr) {
           console.warn("[Findings] Could not read existing report:", readErr);
         }

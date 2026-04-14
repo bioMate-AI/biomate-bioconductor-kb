@@ -465,6 +465,19 @@ export function ChatMessage({
                     isRunAnchorHighlighted && "ring-2 ring-primary/60 bg-primary/5"
                   )}
                 >
+                  {onOpenInPanel && (
+                    <div className="flex justify-end mb-1 px-1">
+                      <button
+                        data-testid="button-open-workflow-in-panel"
+                        onClick={onOpenInPanel}
+                        className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors"
+                        title="View in side panel"
+                      >
+                        <PanelRight className="h-3 w-3" />
+                        Open in panel →
+                      </button>
+                    </div>
+                  )}
                   <NextflowWorkflowViewer
                     workflowDefinition={message.metadata?.workflow}
                     invocationId={invocationId}

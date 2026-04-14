@@ -30,6 +30,8 @@ import {
   Settings
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
+import { FindingsCard } from "./findings-card"
 
 interface WorkflowProgress {
   id: string
@@ -69,6 +71,14 @@ interface ChatInterfaceProps {
   onExternalPromptConsumed?: (id: number) => void
   focusedRunId?: string | null
   runAnchorRequestId?: number
+  /** Called when the user clicks "View in panel" on a workflow pill */
+  onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
+  /** The message ID whose workflow is currently shown in the right panel */
+  panelWorkflowMessageId?: string | null
+  /** Called when the AI response contains a multi-step chain_steps array */
+  onChainSteps?: (steps: any[]) => void
+  /** Callback to register the setChatDraft function so parent can pre-fill the input without sending */
+  onRegisterSetDraft?: (setter: (draft: string) => void) => void
 }
 
 export function ChatInterface({
@@ -94,6 +104,10 @@ export function ChatInterface({
   onExternalPromptConsumed,
   focusedRunId = null,
   runAnchorRequestId = 0,
+  onOpenWorkflowInPanel,
+  panelWorkflowMessageId = null,
+  onChainSteps,
+  onRegisterSetDraft,
 }: ChatInterfaceProps) {
   const { toast } = useToast()
   const [isTypingLocal, setIsTypingLocal] = useState(false)
@@ -134,6 +148,11 @@ export function ChatInterface({
 
   // Chat draft pre-fill (from "Continue in chat" prereq button or error CTA)
   const [chatDraft, setChatDraft] = useState<string | undefined>(undefined)
+  // Register setChatDraft with parent so the right-panel viewer can pre-fill input
+  useEffect(() => { onRegisterSetDraft?.(setChatDraft) }, [onRegisterSetDraft])
+
+  // File analysis results per message (Track 2D)
+  const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, any[]>>({})
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -614,6 +633,11 @@ export function ChatInterface({
         })
         onWorkflowGenerated(workflowData)
       }
+
+      // Detect multi-step pipeline (chain_steps) from AI response
+      if (data.chain_steps && Array.isArray(data.chain_steps) && data.chain_steps.length > 0) {
+        onChainSteps?.(data.chain_steps)
+      }
     },
     onError: (error, variables) => {
       console.error('[ChatInterface] API Error:', error)
@@ -1009,9 +1033,10 @@ export function ChatInterface({
 
   const handleSendMessage = async (content: string, files?: File[]) => {
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
+    let uploadedForAnalysis: Array<{ name: string; filePath?: string }> = []
     if (files && files.length > 0) {
       console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
-      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string }> = []
+      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string; filePath?: string }> = []
       const failedUploads: string[] = []
 
       for (const file of files) {
@@ -1036,11 +1061,13 @@ export function ChatInterface({
             name: file.name,
             datasetId: result.dataset_id,
             galaxyDatasetId: result.galaxy_dataset_id,
+            filePath: result.file_path,
           })
         } catch {
           failedUploads.push(file.name)
         }
       }
+      uploadedForAnalysis = uploaded.filter(u => !!u.filePath)
 
       const fileNames = files.map((f) => f.name).join(', ')
       const uploadedContext =
@@ -1113,6 +1140,28 @@ export function ChatInterface({
     setIsTypingLocal(true)
 
     analytics.track('query_sent', { query_length: content.length })
+
+    // Fire background file analysis (non-blocking, Track 2D)
+    if (uploadedForAnalysis.length > 0) {
+      const msgId = userMessage.id
+      Promise.all(
+        uploadedForAnalysis.map(({ name, filePath }) =>
+          fetch('/api/data/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ filePath, fileType: name.split('.').pop()?.toLowerCase() }),
+          })
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        )
+      ).then(results => {
+        const valid = results.filter((r): r is FileAnalysisResult => !!r?.analyzed)
+        if (valid.length > 0) {
+          setFileAnalysisMap(prev => ({ ...prev, [msgId]: valid }))
+        }
+      })
+    }
 
     // Call Galaxy API (always, regardless of session)
     chatMutation.mutate({ content, sessionId, placeholderId })
@@ -1373,33 +1422,61 @@ export function ChatInterface({
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
             .map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              sessionId={chatSession?.id}
-              onToolClick={handleToolClick}
-              onDatasetClick={handleDatasetClick}
-              onCreateWorkflow={() => {
-                if (message.metadata?.workflow) {
-                  onWorkflowGenerated(message.metadata.workflow);
+            <div key={message.id}>
+              <ChatMessage
+                message={message}
+                sessionId={chatSession?.id}
+                onToolClick={handleToolClick}
+                onDatasetClick={handleDatasetClick}
+                onCreateWorkflow={() => {
+                  if (message.metadata?.workflow) {
+                    onWorkflowGenerated(message.metadata.workflow);
+                  }
+                }}
+                // Workflow execution props for inline artifacts
+                onRunWorkflow={onRunWorkflow}
+                onStopWorkflow={onStopWorkflow}
+                onPauseWorkflow={onPauseWorkflow}
+                onResumeWorkflow={onResumeWorkflow}
+                onParameterChange={onParameterChange}
+                onSuggestionClick={handleSuggestionClick}
+                onAdjustViaChat={(msg) => msg && setChatDraft(msg)}
+                isWorkflowRunning={isWorkflowRunning}
+                workflowProgress={workflowProgress}
+                currentExecutionRun={currentExecutionRun}
+                isLatestAssistantMessage={message.id === latestAssistantMessageId}
+                isGeneratingWorkflow={streamingHasContent && message.id === latestAssistantMessageId}
+                isRunAnchorFocused={focusedAnchorMessageId === message.id}
+                isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+                isInPanel={panelWorkflowMessageId === message.id}
+                onOpenInPanel={
+                  message.metadata?.type === 'workflow' && message.metadata?.workflow
+                    ? () => onOpenWorkflowInPanel?.(message.id, message.metadata?.workflow)
+                    : undefined
                 }
-              }}
-              // Workflow execution props for inline artifacts
-              onRunWorkflow={onRunWorkflow}
-              onStopWorkflow={onStopWorkflow}
-              onPauseWorkflow={onPauseWorkflow}
-              onResumeWorkflow={onResumeWorkflow}
-              onParameterChange={onParameterChange}
-              onSuggestionClick={handleSuggestionClick}
-              onAdjustViaChat={(msg) => msg && setChatDraft(msg)}
-              isWorkflowRunning={isWorkflowRunning}
-              workflowProgress={workflowProgress}
-              currentExecutionRun={currentExecutionRun}
-              isLatestAssistantMessage={message.id === latestAssistantMessageId}
-              isGeneratingWorkflow={streamingHasContent && message.id === latestAssistantMessageId}
-              isRunAnchorFocused={focusedAnchorMessageId === message.id}
-              isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-            />
+              />
+              {message.role === 'user' && fileAnalysisMap[message.id] && (
+                <div className="ml-10 mt-1 space-y-1">
+                  {(fileAnalysisMap[message.id] as FileAnalysisResult[]).map((result, i) => (
+                    <DataAnalysisCard key={i} result={result} />
+                  ))}
+                </div>
+              )}
+              {/* FindingsCard — shown below a completed workflow message */}
+              {message.role === 'assistant' &&
+                message.metadata?.type === 'workflow' &&
+                currentExecutionRun?.id &&
+                (currentExecutionRun?.execution?.status === 'completed' ||
+                  (currentExecutionRun?.execution?.status as string) === 'ok') &&
+                message.id === latestAssistantMessageId && (
+                <div className="ml-10 mt-1">
+                  <FindingsCard
+                    runId={currentExecutionRun.id}
+                    onContinueAnalysis={(suggestion) => setChatDraft(suggestion)}
+                  />
+                </div>
+              )}
+            </div>
           ))}
           {displayTyping && <TypingIndicator />}
           {/* Auto-scroll anchor */}

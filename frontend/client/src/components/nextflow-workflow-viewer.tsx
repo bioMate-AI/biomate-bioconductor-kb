@@ -12,6 +12,7 @@ import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChatOutputAttachments } from "./chat-output-attachments";
+import { FindingsCard } from "./findings-card";
 import type { PrereqChecklist } from "@/lib/prereq-normalizer";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -332,8 +333,97 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Track 3C: Reproducibility export button
+// ---------------------------------------------------------------------------
+function ReproducibilityExportButton({ runId }: { runId: string }) {
+  const [loading, setLoading] = React.useState(false);
+  const [exported, setExported] = React.useState(false);
+
+  const handleExport = async () => {
+    setLoading(true);
+    try {
+      const resp = await fetch(`/api/workflows/runs/${runId}/reproducibility`);
+      if (!resp.ok) {
+        console.error('[Reproducibility] fetch failed:', resp.status);
+        return;
+      }
+      const data = await resp.json();
+
+      // Concatenate all files into a single downloadable text bundle
+      const bundle = Object.entries(data.files as Record<string, string>)
+        .map(([name, content]) => `${'='.repeat(60)}\n${name}\n${'='.repeat(60)}\n${content}\n`)
+        .join('\n');
+
+      const blob = new Blob([bundle], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `biomate_reproducibility_${runId.slice(-8)}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExported(true);
+    } catch (err) {
+      console.error('[Reproducibility]', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={loading}
+      data-testid="reproducibility-export-button"
+      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-2 underline-offset-2 hover:underline"
+    >
+      {loading ? (
+        <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent inline-block" />
+      ) : exported ? (
+        <span>&#10003;</span>
+      ) : (
+        <span>&#8595;</span>
+      )}
+      {exported ? 'Downloaded' : 'Export for reproducibility'}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Track 3D: Pre-run cost estimate badge
+// ---------------------------------------------------------------------------
+function CostEstimateBadge({ nextflowPath, sampleCount }: { nextflowPath: string; sampleCount?: number }) {
+  const [estimate, setEstimate] = React.useState<{
+    cost_min_usd: number;
+    cost_max_usd: number;
+    estimated_runtime_hours: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!nextflowPath) return;
+    const params = new URLSearchParams({ nextflow_path: nextflowPath });
+    if (sampleCount) params.set('sample_count', String(sampleCount));
+    fetch(`/api/workflows/estimate_cost?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data && setEstimate(data))
+      .catch(() => {});
+  }, [nextflowPath, sampleCount]);
+
+  if (!estimate) return null;
+  return (
+    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1" data-testid="cost-estimate-badge">
+      <span>Est. cost:</span>
+      <span className="font-medium text-foreground">
+        ${estimate.cost_min_usd}–${estimate.cost_max_usd}
+      </span>
+      <span>·</span>
+      <span>{estimate.estimated_runtime_hours}h runtime</span>
+    </div>
+  );
+}
+
 export function NextflowWorkflowViewer({
-  workflowId, 
+  workflowId,
   invocationId,
   executionBlockedReason,
   prereqChecklist,
@@ -444,6 +534,7 @@ export function NextflowWorkflowViewer({
   };
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
+  const [skippedPhaseIds, setSkippedPhaseIds] = useState<Set<string>>(new Set());
   const stepPollersRef = React.useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   // QC gate inline panel state (SSE-triggered)
@@ -626,6 +717,14 @@ export function NextflowWorkflowViewer({
     }
   }, [activeRunId, invocationId, workflowId]);
 
+  const handleSkipPhase = React.useCallback((phaseId: string) => {
+    setSkippedPhaseIds((prev) => {
+      const next = new Set(prev);
+      next.add(phaseId);
+      return next;
+    });
+  }, []);
+
   // When the global Nextflow run reaches a terminal state, clear isExecuting
   // on all steps so their Run Step buttons re-enable.
   useEffect(() => {
@@ -655,6 +754,24 @@ export function NextflowWorkflowViewer({
   }, [nextflowStatus?.processes]);
 
   const updatedPhases = phases.map((phase, index) => {
+    // If the user has manually skipped this phase, mark it as completed so it renders as done
+    if (skippedPhaseIds.has(phase.id)) {
+      const nfProcSkipped =
+        nfProcessByName[phase.id.toLowerCase()] ||
+        nfProcessByName[phase.name.toLowerCase()] ||
+        null;
+      const skippedOutputFiles: Array<{ name: string; path: string; extension: string }> = (
+        nfProcSkipped
+          ? (nfProcSkipped.task_files || nfProcSkipped.taskFiles || []).map((f: string) => ({
+              name: f.split('/').pop() || f,
+              path: f,
+              extension: (f.split('.').pop() || '').toLowerCase(),
+            }))
+          : (phase.outputFiles || [])
+      );
+      return { ...phase, status: 'completed' as ViewerPhaseStatus, outputFiles: skippedOutputFiles };
+    }
+
     let derivedStatus: ViewerPhaseStatus = phase.status;
     if (status === "completed") {
       derivedStatus = "completed";
@@ -829,6 +946,44 @@ export function NextflowWorkflowViewer({
 
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
+
+  // ── AI Result Analysis state ───────────────────────────────────────────────
+  const [analysisState, setAnalysisState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [analysisResult, setAnalysisResult] = useState<{
+    summary: string;
+    key_findings: Array<{ finding: string; significance: string }>;
+    quality_assessment: string;
+    next_steps: string[];
+    citations: Array<{ tool_or_resource: string; reference: string; relevance: string }>;
+    limitations: string;
+  } | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+
+  async function handleAnalyzeResults() {
+    if (!runId || analysisState === 'loading') return;
+    setAnalysisState('loading');
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    try {
+      const token = localStorage.getItem('auth_token') ||
+        (() => { for (let i = 0; i < localStorage.length; i++) { const v = localStorage.getItem(localStorage.key(i) ?? '') ?? ''; if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(v)) return v; } return null; })();
+      const r = await fetch(`/api/workflows/runs/${runId}/ai/analyze`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ question: '' }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.success) throw new Error(data.error || 'Analysis failed');
+      setAnalysisResult(data.analysis);
+      setAnalysisState('done');
+    } catch (e: any) {
+      setAnalysisError(e.message || 'Unknown error');
+      setAnalysisState('error');
+    }
+  }
   // Block Run if any required param is still empty (no value provided, no default).
   // Skip this check when prereq recovery mode is active (overrideAllowed=true) — user approved demo path.
   const hasUnfilledRequired = prereqChecklist?.overrideAllowed
@@ -1360,6 +1515,11 @@ export function NextflowWorkflowViewer({
                 >
                   {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
                 </Button>
+                {workflowDefinition?.nextflow_path && (status === 'idle' || status === 'failed') && (
+                  <CostEstimateBadge
+                    nextflowPath={workflowDefinition.nextflow_path}
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
@@ -1614,6 +1774,22 @@ export function NextflowWorkflowViewer({
                   <Eye className="mr-2 h-4 w-4" />
                   {showResults ? 'Hide Results' : 'View Results'}
                 </Button>
+                {/* AI Analysis button — enabled only on completed runs with a runId */}
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-analyze-results"
+                  disabled={status !== 'completed' || !runId || analysisState === 'loading'}
+                  title={status !== 'completed' ? "Available after workflow completes" : "AI analysis of findings with citations"}
+                  onClick={handleAnalyzeResults}
+                >
+                  {analysisState === 'loading' ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Activity className="mr-2 h-4 w-4" />
+                  )}
+                  {analysisState === 'loading' ? 'Analyzing…' : analysisState === 'done' ? 'Re-analyze Results' : 'Analyze Results'}
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full"
@@ -1762,6 +1938,19 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
 
+              <p className="text-xs text-muted-foreground mb-3 px-1" data-testid="workflow-capability-hint">
+                You can{" "}
+                <button className="underline hover:text-foreground" onClick={() => {}}>edit parameters</button>
+                {" · "}
+                <button className="underline hover:text-foreground" onClick={() => {}}>adjust QC thresholds</button>
+                {" · "}
+                <span>skip steps</span>
+                {" · "}
+                <span>preview outputs</span>
+                {" · "}
+                <span>continue in chat →</span>
+              </p>
+
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground" data-testid="workflow-step-controls-hint">
                   Run single steps for targeted checks. Finished or errored steps can be rerun repeatedly.
@@ -1790,8 +1979,20 @@ export function NextflowWorkflowViewer({
                       processName: phase.processName,
                       parameters: phase.parameters as Record<string, any> | undefined,
                     })}
+                    onSkip={() => handleSkipPhase(phase.id)}
+                    runId={activeRunId || undefined}
                   />
                 ))}
+                <button
+                  className="mt-3 w-full text-sm text-muted-foreground border border-dashed rounded-md py-2 hover:text-foreground hover:border-foreground transition-colors"
+                  data-testid="button-suggest-step"
+                  onClick={() => {
+                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
+                    onAdjustViaChat?.(`Add a step after "${lastStep}" that `);
+                  }}
+                >
+                  + Suggest step
+                </button>
               </div>
               
               {previewFile && activeRunId && (
@@ -1852,6 +2053,7 @@ export function NextflowWorkflowViewer({
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
               <DownloadCommandsPanel runId={runId} />
+              <ReproducibilityExportButton runId={runId} />
             </div>
           )}
 
@@ -1927,6 +2129,113 @@ export function NextflowWorkflowViewer({
                 executionStatus={status}
                 errorMessage={errorMessage}
               />
+              {activeRunId && (
+                <FindingsCard
+                  runId={activeRunId}
+                  onContinueAnalysis={onAdjustViaChat}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ── AI Analysis Panel ───────────────────────────────────────── */}
+          {(analysisState === 'loading' || analysisState === 'done' || analysisState === 'error') && (
+            <div className="mt-6" data-testid="ai-analysis-panel">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-blue-600" />
+                AI Findings Analysis
+                {analysisState === 'done' && (
+                  <span className="text-xs font-normal text-muted-foreground ml-1">· claude-sonnet-4-6</span>
+                )}
+              </h3>
+
+              {analysisState === 'loading' && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing output files…
+                </div>
+              )}
+
+              {analysisState === 'error' && (
+                <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 p-3 text-sm text-red-800 dark:text-red-300">
+                  {analysisError || 'Analysis failed. Try again.'}
+                </div>
+              )}
+
+              {analysisState === 'done' && analysisResult && (
+                <div className="space-y-4 text-sm">
+                  {/* Summary */}
+                  {analysisResult.summary && (
+                    <div className="rounded-md border border-border bg-muted/30 p-3">
+                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Summary</p>
+                      <p>{analysisResult.summary}</p>
+                    </div>
+                  )}
+
+                  {/* Key Findings */}
+                  {analysisResult.key_findings?.length > 0 && (
+                    <div>
+                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Key Findings</p>
+                      <div className="space-y-2">
+                        {analysisResult.key_findings.map((f, i) => (
+                          <div key={i} className="rounded-md border border-blue-200/60 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10 p-2.5">
+                            <p className="font-medium text-blue-900 dark:text-blue-200">{f.finding}</p>
+                            {f.significance && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{f.significance}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quality */}
+                  {analysisResult.quality_assessment && (
+                    <div>
+                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Quality Assessment</p>
+                      <p className="text-muted-foreground">{analysisResult.quality_assessment}</p>
+                    </div>
+                  )}
+
+                  {/* Next Steps */}
+                  {analysisResult.next_steps?.length > 0 && (
+                    <div>
+                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Recommended Next Steps</p>
+                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                        {analysisResult.next_steps.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+
+                  {/* Citations */}
+                  {analysisResult.citations?.length > 0 && (
+                    <div>
+                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Supporting References</p>
+                      <div className="space-y-1.5">
+                        {analysisResult.citations.map((c, i) => (
+                          <div key={i} className="flex gap-2 text-xs">
+                            <span className="shrink-0 font-medium text-foreground">{c.tool_or_resource}:</span>
+                            <span className="text-muted-foreground">
+                              {c.reference}
+                              {c.relevance && <span className="ml-1 italic">— {c.relevance}</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Limitations */}
+                  {analysisResult.limitations && (
+                    <div className="rounded-md border border-amber-200/60 bg-amber-50/30 dark:border-amber-900/40 dark:bg-amber-950/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
+                      <span className="font-medium">Limitations: </span>
+                      {analysisResult.limitations}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

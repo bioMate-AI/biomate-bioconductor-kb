@@ -1569,8 +1569,21 @@ Rules:
       supersedes: f.supersedes,
     }));
 
+    // 3A-1: Prepend structured pre-execution summary when a workflow was generated
+    let finalMessage = response.message;
+    if (workflowGenerated && generatedWorkflow) {
+      const summary = this._buildPreExecutionSummary(
+        generatedWorkflow,
+        message,
+        context.sessionDatasets
+      );
+      if (summary) {
+        finalMessage = `${summary}\n\n${response.message}`;
+      }
+    }
+
     const finalResult: GalaxyAssistantResponse = {
-      message: response.message,
+      message: finalMessage,
       intentType: intent.type,
       intentConfidence: intent.confidence,
       inlineParameters: Object.keys(intent.inlineParameters).length > 0 ? intent.inlineParameters : undefined,
@@ -1618,6 +1631,131 @@ Rules:
    * Returns a response with `workflow_type: 'pipeline'` and `pipeline_steps: [...]`
    * so that the frontend `chat-message.tsx` renders `PipelineListView`.
    */
+  /**
+   * Build a structured pre-execution summary block describing what the AI understood
+   * from the user's message before running the workflow.
+   *
+   * Format:
+   *   **Understood from your message**
+   *   • Input: <inputs>
+   *   • <param>: <value> (<source>)
+   *   ...
+   *   **Running:** <workflow name>
+   *   **N run(s)** · <exec target>
+   *   [⚠️ Required: <param> if unfilled required params exist]
+   */
+  private _buildPreExecutionSummary(
+    wf: any,
+    originalMessage: string,
+    sessionDatasets?: Array<{ id: string; name: string; type: string }>
+  ): string {
+    if (!wf?.success) return '';
+
+    const lines: string[] = [];
+
+    // ── Collect inputs ───────────────────────────────────────────────────────
+    const inputLines: string[] = [];
+
+    // Uploaded files from session
+    if (sessionDatasets && sessionDatasets.length > 0) {
+      for (const ds of sessionDatasets) {
+        inputLines.push(`${ds.name} (${ds.type || 'file'})`);
+      }
+    }
+
+    // Accession IDs extracted from the message
+    const SRA_RE = /\b([SED]RR\d{6,9})\b/gi;
+    const GEO_RE = /\b(GSE\d{4,9}|GSM\d{4,9})\b/gi;
+    const ENA_RE = /\b(E-MTAB-\d{4,9}|PRJNA\d{5,9}|PRJEB\d{5,9})\b/gi;
+    const accessions: string[] = [
+      ...Array.from(originalMessage.matchAll(SRA_RE), m => `${m[1]} (SRA run accession)`),
+      ...Array.from(originalMessage.matchAll(GEO_RE), m => `${m[1]} (GEO accession)`),
+      ...Array.from(originalMessage.matchAll(ENA_RE), m => `${m[1]} (ENA accession)`),
+    ];
+    for (const acc of accessions) {
+      if (!inputLines.some(l => l.startsWith(acc.split(' ')[0]))) {
+        inputLines.push(acc);
+      }
+    }
+
+    // Server paths / S3 URIs from the message
+    const pathMatches = originalMessage.match(/(?:s3:\/\/|gs:\/\/|\/[\w\-./]+\.(?:fastq|fq|bam|vcf|cram|mrc|tif|eer|csv|tsv|txt|gz|pdb|sdf|mol2|cif)(?:\.gz)?)\b/gi) || [];
+    for (const p of pathMatches) {
+      if (!inputLines.some(l => l.includes(p))) {
+        inputLines.push(p);
+      }
+    }
+
+    // ── Build "Understood from your message" section ─────────────────────────
+    lines.push('**Understood from your message**');
+    if (inputLines.length > 0) {
+      lines.push(`• Input: ${inputLines.join(', ')}`);
+    } else {
+      lines.push('• Input: (no specific inputs detected — you may need to provide input files or accessions)');
+    }
+
+    // ── Key parameters ────────────────────────────────────────────────────────
+    // Combine required_params + optional_params; only show those with a value set
+    const allParams: Array<{ name: string; value?: any; default?: any; autoFilled?: boolean; rationale?: string; required?: boolean }> = [
+      ...(wf.required_params || []),
+      ...(wf.optional_params || []),
+    ];
+    const NON_TRIVIAL_SKIP = new Set(['outdir', 'email', 'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs', 'hook_url', 'multiqc_title', 'multiqc_methods_description']);
+    for (const p of allParams) {
+      if (NON_TRIVIAL_SKIP.has(p.name)) continue;
+      const effectiveValue = p.value ?? p.default;
+      if (effectiveValue === null || effectiveValue === undefined || effectiveValue === '') continue;
+      const source = p.autoFilled ? 'auto-filled' : (p.value !== undefined && p.value !== null ? 'user-specified' : 'default');
+      const rationaleNote = p.rationale ? ` — ${p.rationale}` : '';
+      lines.push(`• ${p.name}: ${String(effectiveValue)} (${source}${rationaleNote})`);
+    }
+
+    lines.push('');
+
+    // ── Multi-run detection ────────────────────────────────────────────────────
+    const sraAccessions = Array.from(originalMessage.matchAll(SRA_RE), m => m[1]);
+    const geoAccessions = Array.from(originalMessage.matchAll(GEO_RE), m => m[1]);
+    const inputCount = sraAccessions.length + geoAccessions.length + (sessionDatasets?.length || 0);
+
+    const workflowName = wf.workflow_name || wf.name || 'workflow';
+    const execTarget = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 } ? 'AWS Batch' : 'local';
+
+    // Check if workflow supports samplesheet (CSV input) — look at required/optional params
+    const supportsSamplesheet = allParams.some(p =>
+      (p.name === 'input' || p.name === 'samplesheet') &&
+      (String(p.value || p.default || '').toLowerCase().endsWith('.csv') ||
+       (p as any).description?.toLowerCase().includes('samplesheet') ||
+       (p as any).type === 'string')
+    );
+
+    // ── Running header ────────────────────────────────────────────────────────
+    lines.push(`**Running:** ${workflowName}`);
+
+    if (inputCount > 1) {
+      if (supportsSamplesheet) {
+        lines.push(`**${inputCount} run(s)** · ${execTarget} · ${inputCount} inputs detected → will generate a samplesheet and run once (nf-core batch mode)`);
+      } else {
+        lines.push(`**${inputCount} run(s)** · ${execTarget} · ${inputCount} inputs detected → will run the workflow ${inputCount} times in parallel`);
+      }
+    } else {
+      lines.push(`**1 run** · ${execTarget}`);
+    }
+
+    // ── Unfilled required params warning ─────────────────────────────────────
+    const unfilledRequired = (wf.required_params || []).filter(
+      (p: any) => (p.value === null || p.value === undefined || p.value === '') &&
+                  (p.default === null || p.default === undefined || p.default === '') &&
+                  !p.autoFilled
+    );
+    if (unfilledRequired.length > 0) {
+      const names = unfilledRequired.map((p: any) => `\`${p.name}\``).join(', ');
+      lines.push('');
+      lines.push(`⚠️ Required before running: ${names}`);
+    }
+
+    return lines.join('\n');
+  }
+
   /**
    * Coverage check: Ask Haiku whether a given workflow covers N of the user's
    * remaining biological steps (starting from index 0).
@@ -1733,8 +1871,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           log(`Tier 1 MATCH: returning single workflow card`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
+          const t1Summary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
+          const t1BaseMsg = `I'll run the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow — it handles all your steps in one integrated pipeline.`;
           return {
-            message: `I'll run the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow — it handles all your steps in one integrated pipeline.`,
+            message: t1Summary ? `${t1Summary}\n\n${t1BaseMsg}` : t1BaseMsg,
             intentType: 'workflow_generation',
             intentConfidence: coverage.confidence,
             generatedWorkflow: tier1Workflow,
@@ -1758,8 +1898,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           const mergedParams = Object.assign({}, ...decomposition.intents.map(i => i.inlineParameters || {}));
           tier1Workflow.parameters = { ...tier1Workflow.parameters, ...mergedParams };
           const allFacts = decomposition.intents.flatMap(i => i.facts);
+          const t1mSummary = this._buildPreExecutionSummary(tier1Workflow, message, context.sessionDatasets);
+          const t1mBaseMsg = `I believe the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`;
           return {
-            message: `I believe the **${tier1Workflow.workflow_name || tier1Workflow.name}** workflow covers your full request — it handles all the described steps in one integrated run. Please review and confirm this meets your needs before running.`,
+            message: t1mSummary ? `${t1mSummary}\n\n${t1mBaseMsg}` : t1mBaseMsg,
             intentType: 'workflow_generation',
             intentConfidence: coverage.confidence,
             generatedWorkflow: tier1Workflow,
@@ -1840,8 +1982,18 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           log(`Tier 2 chain built: ${chainPipelineSteps.length} steps, ${resolvedCount} resolved`);
           const allFacts = decomposition.intents.flatMap(i => i.facts);
           const turnIndex = context.turnIndex ?? 0;
+          // 3A-1: Build pipeline "Understood from your message" summary
+          const t2InputLines: string[] = [];
+          if (context.sessionDatasets?.length) context.sessionDatasets.forEach(d => t2InputLines.push(`${d.name} (${d.type || 'file'})`));
+          const t2SrrMatches = Array.from(message.matchAll(/\b([SED]RR\d{6,9})\b/gi), m => m[1]);
+          const t2GeoMatches = Array.from(message.matchAll(/\b(GSE\d{4,9}|GSM\d{4,9})\b/gi), m => m[1]);
+          t2SrrMatches.forEach(a => t2InputLines.push(`${a} (SRA run accession)`));
+          t2GeoMatches.forEach(a => t2InputLines.push(`${a} (GEO accession)`));
+          const t2InputNote = t2InputLines.length > 0 ? `• Input: ${t2InputLines.join(', ')}\n` : '';
+          const execTarget = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 } ? 'AWS Batch' : 'local';
+          const t2PreSummary = `**Understood from your message**\n${t2InputNote}• This is a **${chainPipelineSteps.length}-step multi-step pipeline** (${chain.display_name}).\n\n**Running:** ${chain.display_name} · **${chainPipelineSteps.length} steps** · ${execTarget}\n\n`;
           return {
-            message: [
+            message: t2PreSummary + [
               `I've mapped your request to the **${chain.display_name}** pipeline (${chainPipelineSteps.length} steps):`,
               '',
               chainPipelineSteps.map((s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (path TBD)'}`)
@@ -1977,8 +2129,10 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
           ...mergedParams,
         };
         log(`Single-workflow collapse: all ${pipelineSteps.length} steps resolved to same path ${[...uniquePaths][0]} — returning single workflow card`);
+        const collapseSummary = this._buildPreExecutionSummary(canonicalResult.generatedWorkflow, message, context.sessionDatasets);
         return {
           ...canonicalResult,
+          message: collapseSummary ? `${collapseSummary}\n\n${canonicalResult.message || ''}` : (canonicalResult.message || ''),
           isMultiIntent: false,
           extractedFacts: decomposition.intents.flatMap(i => i.facts).map((f, idx) => ({
             id: `fact-seq-${Date.now()}-${idx}`,
@@ -1997,7 +2151,17 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       (s, i) => `  ${i + 1}. **${s.workflow_name}**${s.nextflow_path ? ` (\`${s.nextflow_path}\`)` : ' (workflow path TBD)'}` +
         (s.uses_description ? `\n     → Input: ${s.uses_description}` : '')
     );
-    const summaryMessage = [
+    // 3A-1: Build "Understood from your message" pre-summary for pipelines
+    const t3InputLines: string[] = [];
+    if (context.sessionDatasets?.length) context.sessionDatasets.forEach(d => t3InputLines.push(`${d.name} (${d.type || 'file'})`));
+    const t3SrrMatches = Array.from(message.matchAll(/\b([SED]RR\d{6,9})\b/gi), m => m[1]);
+    const t3GeoMatches = Array.from(message.matchAll(/\b(GSE\d{4,9}|GSM\d{4,9})\b/gi), m => m[1]);
+    t3SrrMatches.forEach(a => t3InputLines.push(`${a} (SRA run accession)`));
+    t3GeoMatches.forEach(a => t3InputLines.push(`${a} (GEO accession)`));
+    const t3InputNote = t3InputLines.length > 0 ? `• Input: ${t3InputLines.join(', ')}\n` : '';
+    const t3ExecTarget = (process.env.NEXTFLOW_USE_AWS || '').toLowerCase() in { true: 1, '1': 1, yes: 1 } ? 'AWS Batch' : 'local';
+    const t3PreSummary = `**Understood from your message**\n${t3InputNote}• This is a **${pipelineSteps.length}-step sequential pipeline**.\n\n**Running:** Sequential Pipeline · **${pipelineSteps.length} steps** · ${t3ExecTarget}\n\n`;
+    const summaryMessage = (t3PreSummary + [
       `I've planned a **${pipelineSteps.length}-step sequential pipeline** for you:`,
       '',
       ...stepSummaryLines,
@@ -2006,7 +2170,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       resolvedCount < pipelineSteps.length
         ? `\n⚠️ ${pipelineSteps.length - resolvedCount} step(s) could not be resolved to specific workflow paths — you may need to confirm them before running.`
         : '',
-    ].join('\n').trim();
+    ].join('\n')).trim();
 
     const allFacts = decomposition.intents.flatMap(i => i.facts);
     const turnIndex = context.turnIndex ?? 0;
