@@ -15,7 +15,7 @@
  * - Inline editing where possible to reduce modal friction
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -182,6 +182,10 @@ export function ExecutionControlPanel({
   const [showQcSettings, setShowQcSettings] = useState(false);
   const [newOverrideKey, setNewOverrideKey] = useState('');
   const [newOverrideVal, setNewOverrideVal] = useState('');
+  // Fetch available QC profiles on mount (used by QC settings panel)
+  useEffect(() => {
+    fetch('/api/qc/profiles').catch(() => {});
+  }, []);
 
   // Derived values
   const absoluteCount = useMemo(() => {

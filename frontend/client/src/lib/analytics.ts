@@ -37,7 +37,8 @@ export type AnalyticsEvent =
   | 'tool_searched'
   | 'dataset_uploaded'
   | 'settings_opened'
-  | 'api_key_configured';
+  | 'api_key_configured'
+  | 'pipeline_started';
 
 export interface AnalyticsProperties {
   userId?: string;

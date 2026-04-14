@@ -25,7 +25,8 @@ interface UploadedFile {
   datasetId?: string
   error?: string
   description?: string
-  source?: 'local' | 'url' | 'ftp' // Track upload source
+  source?: 'local' | 'url' | 'ftp' | 'path' // Track upload source
+  serverPath?: string // Filesystem path for server-path entries
 }
 
 interface FileUploadProps {
@@ -52,8 +53,11 @@ export function FileUpload({
   const [isDragging, setIsDragging] = useState(false)
   const [urlInput, setUrlInput] = useState('')
   const [isUrlLoading, setIsUrlLoading] = useState(false)
-  const [uploadTab, setUploadTab] = useState<'local' | 'url'>('local')
+  const [uploadTab, setUploadTab] = useState<'local' | 'url' | 'path'>('local')
   const [urlImportMode, setUrlImportMode] = useState<'immediate' | 'deferred'>('deferred')
+  const [serverPath, setServerPath] = useState('')
+  const [serverPathParamName, setServerPathParamName] = useState('')
+  const [isPathLoading, setIsPathLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const formatFileSize = (bytes: number): string => {
@@ -232,6 +236,60 @@ export function FileUpload({
     }
   }
 
+  const handlePathRegister = async () => {
+    const path = serverPath.trim()
+    if (!path) return
+    // Client-side validation: must be absolute path or network URI
+    const validPath = /^\//.test(path) || /^(s3a?|nfs|smb|cifs):\/\//.test(path)
+    if (!validPath) {
+      setFiles(prev => [...prev, {
+        id: `path-${Date.now()}`,
+        name: path,
+        size: 0, type: 'path', status: 'error', progress: 0, source: 'path',
+        error: 'Path must start with / or a network URI (s3://, nfs://, smb://, cifs://).',
+      }])
+      return
+    }
+
+    setIsPathLoading(true)
+    const pathName = path.split('/').filter(Boolean).pop() || path
+    const pathFile: UploadedFile = {
+      id: `path-${Date.now()}`,
+      name: serverPathParamName || pathName,
+      size: 0, type: 'path', status: 'uploading', progress: 50, source: 'path',
+      serverPath: path,
+      description: path,
+    }
+    setFiles(prev => [...prev, pathFile])
+
+    try {
+      const response = await fetch('/api/datasets/register-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path, paramName: serverPathParamName || undefined, name: serverPathParamName || pathName }),
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.message || err.error || 'Path registration failed')
+      }
+      const result = await response.json()
+      setFiles(prev => prev.map(f =>
+        f.id === pathFile.id
+          ? { ...f, status: 'completed', progress: 100, datasetId: result.dataset_id }
+          : f
+      ))
+      setServerPath('')
+      setServerPathParamName('')
+    } catch (error: any) {
+      setFiles(prev => prev.map(f =>
+        f.id === pathFile.id ? { ...f, status: 'error', progress: 0, error: error.message } : f
+      ))
+    } finally {
+      setIsPathLoading(false)
+    }
+  }
+
   const uploadFile = async (file: File, uploadedFile: UploadedFile) => {
     try {
       const formData = new FormData()
@@ -369,8 +427,8 @@ export function FileUpload({
         </Alert>
 
         {/* Upload method tabs */}
-        <Tabs value={uploadTab} onValueChange={(v) => setUploadTab(v as 'local' | 'url')}>
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={uploadTab} onValueChange={(v) => setUploadTab(v as 'local' | 'url' | 'path')}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="local" className="text-xs">
               <Upload className="w-3 h-3 mr-1" />
               Local Upload
@@ -378,6 +436,10 @@ export function FileUpload({
             <TabsTrigger value="url" className="text-xs">
               <Link2 className="w-3 h-3 mr-1" />
               URL Import
+            </TabsTrigger>
+            <TabsTrigger value="path" className="text-xs">
+              <Server className="w-3 h-3 mr-1" />
+              Server Path
             </TabsTrigger>
           </TabsList>
 
@@ -508,6 +570,52 @@ export function FileUpload({
               Supports HTTP/HTTPS, FTP, and S3 URLs. No size limit for Galaxy server-side fetch.
             </p>
           </TabsContent>
+
+          {/* Server Path registration */}
+          <TabsContent value="path" className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="server-path-input" className="text-xs font-medium">
+                Server-side filesystem path
+              </Label>
+              <Input
+                id="server-path-input"
+                placeholder="/mnt/instruments/cryo/session_001/movies/"
+                value={serverPath}
+                onChange={(e) => setServerPath(e.target.value)}
+                className="text-sm font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Absolute path (starts with /) or network URI (s3://, nfs://, smb://).
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="server-path-param" className="text-xs font-medium">
+                Workflow parameter name <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="server-path-param"
+                placeholder="movies_path"
+                value={serverPathParamName}
+                onChange={(e) => setServerPathParamName(e.target.value)}
+                className="text-sm font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, the AI will use this path for the named parameter (e.g. <code>movies_path</code>).
+              </p>
+            </div>
+            <Button
+              onClick={handlePathRegister}
+              disabled={!serverPath.trim() || isPathLoading}
+              size="sm"
+            >
+              {isPathLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : (
+                <Server className="w-4 h-4 mr-1" />
+              )}
+              Register Path
+            </Button>
+          </TabsContent>
         </Tabs>
 
         {/* File list */}
@@ -520,10 +628,16 @@ export function FileUpload({
                 className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex-shrink-0">
-                  {file.status === 'uploading' && (
+                  {file.status === 'uploading' && file.source === 'path' && (
+                    <Server className="w-5 h-5 text-amber-500 animate-pulse" />
+                  )}
+                  {file.status === 'uploading' && file.source !== 'path' && (
                     <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                   )}
-                  {file.status === 'completed' && (
+                  {file.status === 'completed' && file.source === 'path' && (
+                    <Server className="w-5 h-5 text-amber-500" />
+                  )}
+                  {file.status === 'completed' && file.source !== 'path' && (
                     <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
                       <Check className="w-3 h-3 text-white" />
                     </div>
@@ -547,7 +661,12 @@ export function FileUpload({
                     <Progress value={file.progress} className="h-1.5" />
                   )}
 
-                  {file.status === 'completed' && file.datasetId && (
+                  {file.status === 'completed' && file.source === 'path' && file.serverPath && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400 font-mono truncate">
+                      {file.serverPath}
+                    </p>
+                  )}
+                  {file.status === 'completed' && file.source !== 'path' && file.datasetId && (
                     <p className="text-xs text-muted-foreground">
                       Dataset ID: {file.datasetId}
                     </p>

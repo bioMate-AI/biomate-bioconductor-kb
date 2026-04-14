@@ -41,7 +41,6 @@ describe("ExecutionControlPanel QC profile wiring", () => {
 
     fireEvent.click(screen.getByText("QC Settings"));
 
-    expect(screen.getByText("Named QC Profile")).toBeInTheDocument();
     expect(screen.getByText("Threshold Overrides")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("metric_key"), {

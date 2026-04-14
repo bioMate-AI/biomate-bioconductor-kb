@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Play, Pause, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
   FileText, FileImage, Table, FileCode, File, Loader2, Settings2, Eye,
+  SkipForward, PauseCircle, SlidersHorizontal, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StepOutputPreview } from "./step-output-preview";
 
 /** Map Nextflow trace status strings to our internal status */
 function mapNfStatus(nfStatus: string): 'pending' | 'running' | 'completed' | 'failed' | 'paused' {
@@ -62,6 +67,8 @@ interface PhaseCardProps {
     isExecuting?: boolean;
     /** Galaxy tool ID (required to enable step-level run button) */
     toolId?: string;
+    /** Step-level parameter map for inline overrides */
+    parameters?: Record<string, any>;
   };
   onExecute?: () => void;
   onPause?: () => void;
@@ -78,6 +85,16 @@ interface PhaseCardProps {
   outputFiles?: Array<{ name: string; path: string; extension: string }>;
   /** Called when the user clicks the eye/preview button on a file */
   onPreviewFile?: (file: { name: string; path: string; extension: string }) => void;
+  /** Run ID — enables inline StepOutputPreview and download */
+  runId?: string;
+  /** Skip this step (pending only) */
+  onSkip?: () => void;
+  /** Toggle pause-after-this-step */
+  onTogglePauseAfter?: () => void;
+  /** Whether the workflow should pause after this step */
+  pauseAfterEnabled?: boolean;
+  /** Called with updated param overrides when user clicks Save */
+  onSaveParamOverrides?: (overrides: Record<string, any>) => void;
   className?: string;
 }
 
@@ -93,9 +110,14 @@ export function PhaseCard({
   phase, onExecute, onPause, onResume,
   onRun, runLabel, runDisabled, runLoading, runButtonTestId,
   onAdjustAndRerun, outputFiles, onPreviewFile,
+  runId, onSkip, onTogglePauseAfter, pauseAfterEnabled, onSaveParamOverrides,
   className,
 }: PhaseCardProps) {
   const [filesExpanded, setFilesExpanded] = useState(false);
+  const [paramsExpanded, setParamsExpanded] = useState(false);
+  const [inlinePreviewFile, setInlinePreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
+  const [paramOverrides, setParamOverrides] = useState<Record<string, any>>({});
+  const [paramsDirty, setParamsDirty] = useState(false);
 
   const status = mapNfStatus(phase.status);
   const displayName = phase.processName ? shortProcessName(phase.processName) : phase.name;
@@ -190,8 +212,102 @@ export function PhaseCard({
               <Settings2 className="h-3 w-3" />
             </Button>
           )}
+          {/* Skip step (pending only) */}
+          {status === 'pending' && onSkip && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-xs text-muted-foreground"
+              onClick={onSkip}
+              title="Skip this step"
+              data-testid={`button-skip-step-${phase.id}`}
+            >
+              <SkipForward className="h-3 w-3" />
+            </Button>
+          )}
+          {/* Pause-after toggle */}
+          {onTogglePauseAfter && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn("h-6 px-2 text-xs", pauseAfterEnabled && "text-amber-600")}
+              onClick={onTogglePauseAfter}
+              title={pauseAfterEnabled ? "Cancel pause after this step" : "Pause workflow after this step"}
+              data-testid={`button-pause-after-${phase.id}`}
+            >
+              <PauseCircle className="h-3 w-3" />
+            </Button>
+          )}
+          {/* Param overrides toggle */}
+          {onSaveParamOverrides && phase.parameters && Object.keys(phase.parameters as object).length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className={cn("h-6 px-2 text-xs", paramsExpanded && "text-primary")}
+              onClick={() => setParamsExpanded(e => !e)}
+              title="Edit step parameters"
+              data-testid={`button-params-step-${phase.id}`}
+            >
+              <SlidersHorizontal className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </CardHeader>
+
+      {/* Pause-after banner */}
+      {pauseAfterEnabled && (
+        <div className="mx-3 mb-1 px-2 py-1 rounded text-[11px] bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 flex items-center gap-1">
+          <PauseCircle className="h-3 w-3 flex-shrink-0" />
+          Workflow will pause after this step
+        </div>
+      )}
+
+      {/* Inline param override panel */}
+      {paramsExpanded && phase.parameters && (
+        <CardContent className="pt-0 pb-2 px-3">
+          <div className="space-y-1.5 border rounded-md p-2 bg-muted/30">
+            {Object.entries(phase.parameters as Record<string, any>).map(([key, defaultVal]) => {
+              const current = key in paramOverrides ? paramOverrides[key] : defaultVal;
+              const type = typeof defaultVal;
+              return (
+                <div key={key} className="flex items-center gap-2 text-[11px]">
+                  <Label className="text-[11px] font-mono w-28 flex-shrink-0 truncate" title={key}>{key}</Label>
+                  {type === 'boolean' ? (
+                    <Switch
+                      checked={!!current}
+                      onCheckedChange={(v) => { setParamOverrides(p => ({...p, [key]: v})); setParamsDirty(true); }}
+                    />
+                  ) : (
+                    <Input
+                      type={type === 'number' ? 'number' : 'text'}
+                      value={current ?? ''}
+                      className="h-6 text-[11px] font-mono"
+                      onChange={e => {
+                        const v = type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                        setParamOverrides(p => ({...p, [key]: v}));
+                        setParamsDirty(true);
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] mt-1"
+              disabled={!paramsDirty}
+              onClick={() => {
+                const merged = { ...(phase.parameters as Record<string, any>), ...paramOverrides };
+                onSaveParamOverrides!(merged);
+                setParamsDirty(false);
+              }}
+            >
+              Save &amp; Apply Overrides
+            </Button>
+          </div>
+        </CardContent>
+      )}
 
       {/* Task output files — shown when available from trace work_dir scan */}
       {displayFiles.length > 0 && (
@@ -208,24 +324,58 @@ export function PhaseCard({
           {filesExpanded && (
             <div className="mt-1.5 space-y-0.5 pl-3">
               {displayFiles.map((f, i) => {
+                const canInlinePreview = runId && VISUALIZABLE_EXTS.has(f.extension.toLowerCase().replace(/^\./, ''));
                 const canPreview = onPreviewFile && VISUALIZABLE_EXTS.has(f.extension.toLowerCase().replace(/^\./, ''));
                 return (
                   <div key={i} className="flex items-center gap-1.5 text-[11px]">
                     {fileIcon(f.name)}
                     <span className="font-mono truncate">{f.name}</span>
-                    {canPreview && (
-                      <button
-                        className="ml-auto flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => onPreviewFile!(f)}
-                        title="Preview file"
-                        data-testid={`phase-card-preview-btn-${f.name}`}
-                      >
-                        <Eye className="h-3 w-3" />
-                      </button>
-                    )}
+                    <div className="ml-auto flex items-center gap-1 flex-shrink-0">
+                      {canInlinePreview && (
+                        <button
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => setInlinePreviewFile(prev => prev?.path === f.path ? null : f)}
+                          title="Preview inline"
+                          data-testid={`phase-card-preview-btn-${f.name}`}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </button>
+                      )}
+                      {!canInlinePreview && canPreview && (
+                        <button
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => onPreviewFile!(f)}
+                          title="Preview file"
+                          data-testid={`phase-card-preview-btn-${f.name}`}
+                        >
+                          <Eye className="h-3 w-3" />
+                        </button>
+                      )}
+                      {runId && (
+                        <a
+                          href={`/api/workflows/runs/${encodeURIComponent(runId)}/step-file?path=${encodeURIComponent(f.path)}&download=1`}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Download file"
+                          data-testid={`phase-card-download-btn-${f.name}`}
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <Download className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 );
               })}
+            </div>
+          )}
+          {/* Inline StepOutputPreview */}
+          {inlinePreviewFile && runId && (
+            <div className="mt-2">
+              <StepOutputPreview
+                runId={runId}
+                file={inlinePreviewFile}
+                onClose={() => setInlinePreviewFile(null)}
+              />
             </div>
           )}
         </CardContent>

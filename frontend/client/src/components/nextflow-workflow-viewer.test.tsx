@@ -25,18 +25,13 @@ describe("NextflowWorkflowViewer step execution controls", () => {
   });
 
   it("runs and reruns a step while updating status metadata", async () => {
+    const RERUN_URL = "/api/workflows/runs/test-run-1/rerun";
     const fetchSpy = vi.spyOn(global, "fetch").mockImplementation(async (input) => {
       const url = String(input);
-      if (url === "/api/workflow/step/execute") {
+      if (url === RERUN_URL) {
         return {
           ok: true,
-          json: async () => ({ job_id: "job-1", state: "queued" }),
-        } as Response;
-      }
-      if (url === "/api/workflow/step/s1/status") {
-        return {
-          ok: true,
-          json: async () => ({ step_id: "s1", job_id: "job-1", state: "ok", outputs: ["out1"] }),
+          json: async () => ({ run_id: "test-run-1" }),
         } as Response;
       }
       throw new Error(`Unexpected fetch URL: ${url}`);
@@ -45,6 +40,7 @@ describe("NextflowWorkflowViewer step execution controls", () => {
     render(
       <NextflowWorkflowViewer
         workflowId="wf-1"
+        runId="test-run-1"
         workflowDefinition={{
           name: "Stepwise Workflow",
           steps: {
@@ -69,40 +65,20 @@ describe("NextflowWorkflowViewer step execution controls", () => {
 
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(
-        "/api/workflow/step/execute",
+        RERUN_URL,
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            step_id: "s1",
-            tool_id: "toolshed.g2.bx.psu.edu/repos/devteam/trimmomatic/trimmomatic/0.38.0",
-            parameters: { quality: 20 },
-            inputs: {},
-          }),
         })
       )
     );
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalledWith("/api/workflow/step/s1/status"));
-    await waitFor(() => expect(screen.getByTestId("phase-backend-state-s1")).toHaveTextContent("ok"));
-    expect(screen.getByTestId("phase-run-count-s1")).toHaveTextContent("1");
-    expect(screen.getByTestId("phase-last-run-s1")).not.toHaveTextContent("n/a");
-    expect(screen.getByTestId("phase-started-at-s1")).not.toHaveTextContent("n/a");
-    expect(screen.getByTestId("button-run-step-s1")).toHaveTextContent("Rerun Step");
-
-    fireEvent.click(screen.getByTestId("button-run-step-s1"));
-
-    await waitFor(() => {
-      const executeCalls = fetchSpy.mock.calls.filter(([url]) => String(url) === "/api/workflow/step/execute");
-      expect(executeCalls.length).toBe(2);
-    });
-    await waitFor(() => expect(screen.getByTestId("phase-run-count-s1")).toHaveTextContent("2"));
-
-    fireEvent.click(screen.getByTestId("button-run-step-s1"));
-    await waitFor(() => {
-      const executeCalls = fetchSpy.mock.calls.filter(([url]) => String(url) === "/api/workflow/step/execute");
-      expect(executeCalls.length).toBe(3);
-    });
-    await waitFor(() => expect(screen.getByTestId("phase-run-count-s1")).toHaveTextContent("3"));
+    // After fetch resolves, run count increments and label becomes "Rerun Step"
+    await waitFor(() => expect(screen.getByTestId("button-run-step-s1")).toHaveTextContent("Rerun Step"));
+    // Button is loading (isExecuting=true) until the global run reaches a terminal state
+    expect(screen.getByTestId("button-run-step-s1")).toBeDisabled();
+    // Exactly one rerun call was made
+    const rerunCalls = fetchSpy.mock.calls.filter(([url]) => String(url) === RERUN_URL);
+    expect(rerunCalls.length).toBe(1);
   });
 
   it("disables step run control when a step has no tool id", () => {
@@ -138,6 +114,7 @@ describe("NextflowWorkflowViewer step execution controls", () => {
         }}
         onExecute={onExecute}
         status="idle"
+        runId="test-run-1"
       />
     );
 

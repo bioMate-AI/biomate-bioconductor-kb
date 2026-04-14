@@ -146,9 +146,9 @@ export function PostRunMicroSurvey({
         data-testid="post-run-survey-dialog"
       >
         <DialogHeader>
-          <DialogTitle>Run feedback {workflowName ? `— ${workflowName}` : ""}</DialogTitle>
+          <DialogTitle>Quick feedback {workflowName ? `— ${workflowName}` : ""}</DialogTitle>
           <DialogDescription>
-            2 required questions · takes ~60 seconds
+            Share quick feedback on run clarity, outputs, and usability.
           </DialogDescription>
         </DialogHeader>
 
@@ -277,7 +277,7 @@ export function PostRunMicroSurvey({
             disabled={!canSubmit || isSubmitting}
             onClick={handleSubmit}
           >
-            {isSubmitting ? "Submitting…" : "Submit feedback"}
+            {isSubmitting ? "Submitting…" : "Submit"}
           </Button>
         </DialogFooter>
       </DialogContent>
