@@ -304,7 +304,7 @@ Return ONLY valid JSON (no markdown):
             response_dict = self.llm_client.call(
                 messages=[{"role": "user", "content": search_prompt}],
                 max_tokens=1500,
-                temperature=0.3  # 降低温度以获得更精确的结果
+                temperature=0.0  # 降低温度以获得更精确的结果
             )
 
             # 提取内容
@@ -374,7 +374,7 @@ Return ONLY valid JSON (no markdown):
                 {"role": "user", "content": prompt}
             ],
             max_tokens=2000,
-            temperature=0.2  # 低温度确保精确性
+            temperature=0.0  # 低温度确保精确性
         )
 
         # 解析 LLM 响应

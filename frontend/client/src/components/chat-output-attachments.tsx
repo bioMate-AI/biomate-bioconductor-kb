@@ -340,7 +340,7 @@ function OutputRenderer({ output, invocationId, onDownload }: OutputRendererProp
       return <StructureViewer output={output} />
     case 'density_map':
       // MRC / MAP — orthogonal 2D slice viewer with contrast control
-      return <DensityMapViewer output={output} />
+      return <DensityMapViewer src={`/api/outputs/${output.id}/download`} name={output.name} size={output.size ?? undefined} />
     case 'singlecell':
       return <FileOutput output={output} invocationId={invocationId} onDownload={onDownload} />
     default:

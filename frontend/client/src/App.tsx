@@ -140,7 +140,7 @@ function PlatformLayout({
     }
   }, [isAuthenticated, isLoading, navigate])
 
-  if (!isAuthenticated) return null
+  if (!isLoading && !isAuthenticated) return null
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)

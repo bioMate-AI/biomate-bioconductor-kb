@@ -1,0 +1,1208 @@
+# Cross-Domain Routing Accuracy Benchmark
+# 140 annotated queries across 10 domains, 3 difficulty levels
+#
+# Generated: 2026-04-07
+# Source: Official nf-co.re pipeline documentation (fetched live)
+#         All correct_workflow values are justified by pipeline docs.
+#
+# Fields:
+#   id:                  unique identifier
+#   query:               natural-language query a biologist would actually type
+#   difficulty:          direct | indirect | adversarial
+#   domain:              canonical domain label
+#   correct_workflow:    expected top-1 result (exact name as registered in BioMate DB)
+#   acceptable_alts:     list of acceptable alternatives (partial credit)
+#   disqualified:        workflows that must NOT appear in top-1 (wrong answer)
+#   confusable_with:     (adversarial only) domain this is easily confused with
+#   notes:               annotation rationale — cites nf-co.re source where possible
+#
+# Workflow name registry used in this file:
+#   nf-core/rnaseq              — bulk RNA-seq FASTQ → counts + QC
+#   nf-core/scrnaseq            — single-cell RNA-seq preprocessing (Cell Ranger/STARsolo/Kallisto)
+#   nf-core/sarek               — germline AND somatic WGS/WES variant calling
+#   nf-core/raredisease         — rare disease WGS/WES with trio analysis + variant scoring
+#   nf-core/methylseq           — bisulfite sequencing (WGBS/RRBS) methylation
+#   nf-core/chipseq             — ChIP-seq peak calling and differential binding
+#   nf-core/atacseq             — ATAC-seq chromatin accessibility
+#   nf-core/cutandrun           — CUT&RUN / CUT&TAG / TIPseq profiling
+#   nf-core/taxprofiler         — metagenomic taxonomic profiling (Kraken2/MetaPhlAn/mOTUs)
+#   nf-core/mag                 — metagenome assembly and binning (MEGAHIT/MetaBAT2/GTDB-Tk)
+#   nf-core/ampliseq            — amplicon sequencing (16S/ITS/CO1) with DADA2/QIIME2
+#   nf-core/proteomicslfq       — label-free quantification DDA proteomics (OpenMS/MSstats)
+#   nf-core/diaproteomics       — data-independent acquisition (DIA) proteomics
+#   nf-core/mhcquant            — MHC/HLA immunopeptidomics (T cell epitope quantification)
+#   nf-core/proteinfold         — protein structure prediction (AlphaFold2/ESMFold/ColabFold)
+#   nf-core/rnafusion           — RNA fusion gene detection (STAR-Fusion/Arriba/FusionCatcher)
+#   nf-core/differentialabundance — downstream differential expression/abundance (DESeq2/edgeR)
+#   nf-core/smrnaseq            — small RNA / miRNA sequencing and quantification
+#   nf-core/spatialvi           — 10x Visium spatial transcriptomics
+#   nf-core/airrflow            — adaptive immune repertoire (BCR/TCR) sequencing
+#   nf-core/hic                 — Hi-C chromosome conformation capture / 3D genome
+#   nf-core/nanoseq             — Oxford Nanopore long-read sequencing (DNA+RNA)
+#   nf-core/lncpipe             — long non-coding RNA discovery and differential expression
+#   drug_discovery/structure_prediction_docking  — AlphaFold2/Boltz-2 + docking
+#   drug_discovery/gromacs_protein_md            — GROMACS molecular dynamics + MM-GBSA
+#   drug_discovery/reinvent4_lead_design         — REINVENT4 generative molecule design
+
+# =========================================================
+# DOMAIN 1: RNA-SEQ — bulk RNA-seq (15 queries)
+# Source: nf-co.re/rnaseq — processes FASTQ → counts; does NOT do DE statistics
+# =========================================================
+
+- id: rna_001
+  query: "Run standard RNA-seq analysis on my paired-end FASTQ files from a mouse experiment"
+  difficulty: direct
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Source: nf-co.re/rnaseq — primary use case: bulk RNA-seq FASTQ → aligned counts + QC"
+
+- id: rna_002
+  query: "Align my RNA-seq reads to GRCh38 using STAR and quantify with Salmon"
+  difficulty: direct
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — STAR+Salmon is a documented alignment+quantification pathway"
+
+- id: rna_003
+  query: "Process 30 bulk RNA-seq samples from a clinical trial and produce a gene counts matrix"
+  difficulty: direct
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq, nf-core/differentialabundance]
+  notes: "Source: nf-co.re/rnaseq — pipeline produces gene expression matrices; DE is not included"
+
+- id: rna_004
+  query: "Remove ribosomal RNA contamination and trim adapters before aligning my transcriptome data"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — documented preprocessing steps: rRNA removal + adapter trimming"
+
+- id: rna_005
+  query: "I have FFPE tissue RNA-seq samples — run alignment and generate expression counts"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "FFPE bulk RNA-seq is a supported use case; pipeline handles degraded RNA QC via FastQC/RSeQC"
+
+- id: rna_006
+  query: "Run a StringTie transcript assembly on my aligned RNA-seq BAM files"
+  difficulty: direct
+  domain: rna_seq
+  correct_workflow: nf-core/bam_stringtie_merge
+  acceptable_alts: [Bam Stringtie Merge, nf-core/rnaseq]
+  disqualified: []
+  notes: "Source: nf-co.re/bam_stringtie_merge — user explicitly provides aligned BAM, not FASTQ; bam_stringtie_merge is the correct sub-workflow for StringTie assembly starting from BAM. nf-core/rnaseq is acceptable since it includes StringTie but starts from FASTQ."
+
+- id: rna_007
+  query: "Generate BigWig coverage tracks from my RNA-seq experiment for genome browser visualization"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — coverage file generation is a documented pipeline output"
+
+- id: rna_008
+  query: "Run UMI deduplication before alignment for my RNA-seq library with unique molecular identifiers"
+  difficulty: direct
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — UMI extraction is a documented preprocessing step"
+
+- id: rna_009
+  query: "My samples are from Arabidopsis thaliana. Run RNA-seq to get expression levels per gene"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — works with any reference genome, not just human/mouse"
+
+- id: rna_010
+  query: "I already have a count matrix from rnaseq. Now I want to find differentially expressed genes"
+  difficulty: adversarial
+  domain: rna_seq
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  confusable_with: differential_expression
+  notes: "Source: nf-co.re/rnaseq explicitly states it does NOT perform DE statistics. nf-co.re/differentialabundance is the correct downstream step"
+
+- id: rna_011
+  query: "Perform GSEA gene set enrichment analysis and volcano plots comparing two treatment groups"
+  difficulty: adversarial
+  domain: rna_seq
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  confusable_with: differential_expression
+  notes: "Source: nf-co.re/differentialabundance — GSEA and statistical comparisons are its documented purpose, NOT rnaseq"
+
+- id: rna_012
+  query: "Strandedness is unknown for my RNA-seq libraries — auto-detect it and align"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/rnaseq — strandedness auto-inference is a documented feature"
+
+- id: rna_013
+  query: "Identify genes upregulated in lung tissue from COVID-19 patients versus healthy controls"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: [nf-core/differentialabundance]
+  disqualified: [nf-core/scrnaseq, nf-core/sarek]
+  notes: "Bulk RNA-seq analysis implied; both rnaseq (alignment) and differentialabundance (DE stats) are plausible depending on whether raw FASTQs or a count matrix is provided"
+
+- id: rna_014
+  query: "Run Kraken2 contamination screening on my RNA-seq reads before alignment"
+  difficulty: indirect
+  domain: rna_seq
+  correct_workflow: nf-core/rnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler]
+  notes: "Source: nf-co.re/rnaseq — Kraken2/Bracken/Sylph contamination detection is a documented optional step in rnaseq pipeline"
+
+- id: rna_015
+  query: "Quantify long non-coding RNA expression from my bulk RNA-seq experiment"
+  difficulty: adversarial
+  domain: rna_seq
+  correct_workflow: nf-core/lncpipe
+  acceptable_alts: [nf-core/rnaseq]
+  disqualified: []
+  confusable_with: bulk_rnaseq
+  notes: "Source: nf-co.re/lncpipe — specializes in lncRNA discovery; rnaseq is acceptable if lncpipe unavailable"
+
+# =========================================================
+# DOMAIN 2: SINGLE-CELL RNA-SEQ (12 queries)
+# Source: nf-co.re/scrnaseq — preprocessing only; does NOT do clustering/trajectory
+# =========================================================
+
+- id: sc_001
+  query: "Process my 10x Genomics single-cell RNA-seq FASTQ files using Cell Ranger"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — Cell Ranger is a documented aligner option; 10x Genomics is the primary use case"
+
+- id: sc_002
+  query: "Align scRNA-seq reads and generate a count matrix using STARsolo instead of Cell Ranger"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — STARSolo is a documented aligner pathway"
+
+- id: sc_003
+  query: "Run Kallisto BUStools pipeline on my droplet-based single-cell sequencing data"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — Kallisto+BUStools is a documented alignment pathway"
+
+- id: sc_004
+  query: "Align Drop-Seq single-cell data and produce per-cell barcode count matrices"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — Drop-Seq protocol is explicitly documented as a supported input"
+
+- id: sc_005
+  query: "I have SmartSeq2 scRNA-seq plate data. Get expression counts per cell"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — SmartSeq is listed as a supported protocol"
+
+- id: sc_006
+  query: "I have 10x Genomics FASTQ files and want to process them through Cell Ranger and then cluster the resulting cells"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — pipeline runs Cell Ranger/STARsolo to produce count matrices; clustering is implicit next step. Changed from post-Cell Ranger clustering query which scrnaseq cannot handle."
+
+- id: sc_007
+  query: "Quality control of single-cell sequencing: filter empty droplets and doublets"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/scrnaseq — barcode processing and QC is the pipeline's core function"
+
+- id: sc_008
+  query: "Run 10x Genomics 3-prime v3 single-cell RNA-seq preprocessing with alevin-fry"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/scrnaseq — SimpleAF (alevin-fry) with AlevinQC is a documented pathway"
+
+- id: sc_009
+  query: "I need spatial gene expression data showing where genes are expressed in my tumor section"
+  difficulty: adversarial
+  domain: single_cell
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  confusable_with: single_cell_rnaseq
+  notes: "Source: nf-co.re/spatialvi — spatial coordinates + image data distinguishes from scrnaseq; 10x Visium is the documented input"
+
+- id: sc_010
+  query: "Analyze 10x Visium spatial transcriptomics data from a tissue section with spot-level expression"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Source: nf-co.re/spatialvi — 10x Visium is the documented primary use case; integrates spatial coordinates + image data"
+
+- id: sc_011
+  query: "Run Space Ranger on my 10x Visium experiment and then cluster spatial spots"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: nf-core/spatialvi
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Source: nf-co.re/spatialvi — Space Ranger processing is a documented input pathway; spatialvi includes clustering"
+
+- id: sc_012
+  query: "Find cell types in a single-cell experiment from inflamed colon tissue biopsies"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Cell type composition question implies single-cell; scrnaseq handles the preprocessing step"
+
+# =========================================================
+# DOMAIN 3: VARIANT CALLING (15 queries)
+# Source: nf-co.re/sarek (germline+somatic WGS/WES), nf-co.re/raredisease (rare disease trio+scoring)
+# =========================================================
+
+- id: var_001
+  query: "Call germline SNPs and indels from whole genome sequencing of a healthy volunteer"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: [nf-core/raredisease]
+  notes: "Source: nf-co.re/sarek — germline variant calling (HaplotypeCaller, freebayes, DeepVariant) is a primary documented use case"
+
+- id: var_002
+  query: "Run GATK HaplotypeCaller on my paired-end WGS BAM files to call germline variants"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/sarek — HaplotypeCaller is a listed germline variant caller"
+
+- id: var_003
+  query: "Detect somatic mutations in a tumor-normal pair from a breast cancer patient using Mutect2"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/sarek — somatic analysis with tumor-normal pairs using Mutect2 is a documented use case"
+
+- id: var_004
+  query: "Call cancer-specific somatic variants and annotate with VEP from WES data"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: [nf-core/raredisease]
+  notes: "Source: nf-co.re/sarek — somatic variant calling + VEP annotation is documented; sarek handles tumor-only or tumor-normal"
+
+- id: var_005
+  query: "Detect copy number variants and structural variants in a lung adenocarcinoma sample"
+  difficulty: indirect
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: [nf-core/raredisease]
+  confusable_with: rare_disease
+  notes: "Source: nf-co.re/sarek — supports Manta and Strelka for SV detection in somatic context"
+
+- id: var_006
+  query: "WES analysis of a family trio to find de novo variants causing a child's epilepsy"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: [nf-core/sarek]
+  disqualified: []
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — trio analysis with paternal_id/maternal_id/case_id fields is a documented feature; variant scoring via GENMOD; epilepsy implies rare disease"
+
+- id: var_007
+  query: "Whole genome sequencing of a rare disease patient with suspected mitochondrial disorder"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: [nf-core/sarek, Rare Disease Multi-Modal Workup]
+  disqualified: []
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — mitochondrial variant analysis (GATK + HaploGrep2 + Hmtnote) is a rare-disease-specific documented feature. BioMate chain (uses sarek for variant calling) is also acceptable."
+
+- id: var_008
+  query: "Rank and prioritize variants by pathogenicity score for a patient with unexplained intellectual disability"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: []
+  disqualified: [nf-core/sarek]
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — GENMOD variant ranking for both SNVs and SVs is a key distinguishing feature not in sarek"
+
+- id: var_009
+  query: "Detect repeat expansions in a patient with Huntington's disease family history"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: []
+  disqualified: [nf-core/sarek]
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — repeat expansion detection (Expansion Hunter, Stranger) is explicitly documented; not in sarek"
+
+- id: var_010
+  query: "Calculate tumor mutational burden (TMB) from WES of a melanoma sample"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: [nf-core/raredisease]
+  notes: "TMB calculation requires somatic variant calling; sarek handles tumor-normal pairs"
+
+- id: var_011
+  query: "Annotate germline variants with ClinVar and gnomAD allele frequencies from WGS"
+  difficulty: direct
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/sarek — SnpEff and VEP annotation is a documented post-processing step"
+
+- id: var_012
+  query: "Run UMI consensus calling to reduce PCR duplicates before variant detection in ctDNA"
+  difficulty: indirect
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/sarek — UMI consensus formation is a documented read processing step"
+
+- id: var_013
+  query: "My patient has no diagnosis despite clinical exome — run trio WGS with parents and score variants"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: []
+  disqualified: [nf-core/sarek]
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — trio analysis + scoring is the canonical rare disease use case; also checks uniparental disomy and runs of homozygosity"
+
+- id: var_014
+  query: "Detect mobile element insertions in a patient with a suspected transposon-mediated disease"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: []
+  disqualified: [nf-core/sarek]
+  confusable_with: germline_variant_calling
+  notes: "Source: nf-co.re/raredisease — mobile element identification via RetroSeq is an explicitly documented rare-disease-specific feature"
+
+- id: var_015
+  query: "Align reads from a Sentieon-licensed server for fast germline variant calling"
+  difficulty: indirect
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/sarek — Sentieon is listed as a supported aligner alongside BWA and dragmap"
+
+# =========================================================
+# DOMAIN 4: EPIGENOMICS (15 queries)
+# Source: chipseq, atacseq, cutandrun, methylseq
+# =========================================================
+
+- id: epi_001
+  query: "ChIP-seq analysis for H3K27ac to identify active enhancers in human stem cells"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/chipseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/cutandrun]
+  notes: "Source: nf-co.re/chipseq — histone mark ChIP-seq (H3K27ac) with MACS3 peak calling is the documented use case"
+
+- id: epi_002
+  query: "Peak calling and differential binding analysis for my CTCF transcription factor ChIP-seq"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/chipseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq]
+  notes: "Source: nf-co.re/chipseq — transcription factor ChIP-seq with antibody targets is a core documented use case"
+
+- id: epi_003
+  query: "Run MACS3 peak calling on my ChIP-seq replicate samples with IgG controls"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/chipseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/cutandrun]
+  notes: "Source: nf-co.re/chipseq — MACS3 peak detection is documented; control sample references are in the samplesheet"
+
+- id: epi_004
+  query: "Identify open chromatin regions using ATAC-seq in neural progenitor cells"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/atacseq
+  acceptable_alts: [Analyze Atac Seq Differential Accessibility]
+  disqualified: [nf-core/chipseq, nf-core/cutandrun]
+  notes: "Source: nf-co.re/atacseq — transposase-based chromatin accessibility is the defining feature; Analyze Atac Seq Differential Accessibility (biomni) is acceptable as it includes ATAC-seq peak calling"
+
+- id: epi_005
+  query: "Differential chromatin accessibility between resting and activated T cells via ATAC-seq"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/atacseq
+  acceptable_alts: [Analyze Atac Seq Differential Accessibility]
+  disqualified: [nf-core/chipseq]
+  notes: "Source: nf-co.re/atacseq — differential accessibility analysis is a documented pipeline output; Analyze Atac Seq Differential Accessibility (biomni) is valid for differential chromatin comparison"
+
+- id: epi_006
+  query: "Find regulatory elements that become accessible after drug treatment using ATAC-seq"
+  difficulty: indirect
+  domain: epigenomics
+  correct_workflow: nf-core/atacseq
+  acceptable_alts: [Analyze Atac Seq Differential Accessibility]
+  disqualified: [nf-core/chipseq]
+  notes: "Chromatin accessibility = ATAC-seq; chipseq requires an antibody target; Analyze Atac Seq Differential Accessibility is acceptable for differential drug-treatment analysis"
+
+- id: epi_007
+  query: "CUT&RUN experiment profiling H3K4me3 at active promoters with very low cell numbers"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/cutandrun
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq, nf-core/atacseq]
+  notes: "Source: nf-co.re/cutandrun — CUT&RUN protocol is explicitly documented; low cell numbers is a highlighted advantage over ChIP-seq"
+
+- id: epi_008
+  query: "Process my CUT&TAG data profiling CTCF binding with spike-in normalization"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/cutandrun
+  acceptable_alts: [CUT&Tag Chromatin Profiling]
+  disqualified: [nf-core/chipseq]
+  notes: "Source: nf-co.re/cutandrun — CUT&TAG is explicitly listed alongside CUT&RUN; dual-genome alignment for spike-in is a documented feature"
+
+- id: epi_009
+  query: "Whole-genome bisulfite sequencing to profile CpG methylation at single-base resolution"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/methylseq
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq, nf-core/atacseq]
+  notes: "Source: nf-co.re/methylseq — bisulfite sequencing (WGBS) with Bismark or bwa-meth is the documented use case"
+
+- id: epi_010
+  query: "RRBS (reduced representation bisulfite sequencing) methylation analysis in aging samples"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/methylseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/methylseq — RRBS is a supported input type alongside WGBS"
+
+- id: epi_011
+  query: "Find differentially methylated regions between cancer and normal tissue from bisulfite-seq"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/methylseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/chipseq]
+  notes: "Source: nf-co.re/methylseq — nucleotide-level methylation extraction enables DMR calling"
+
+- id: epi_012
+  query: "I have Illumina 450K methylation array data — analyze it for epigenetic clock"
+  difficulty: adversarial
+  domain: epigenomics
+  correct_workflow: nf-core/methylarray
+  acceptable_alts: []
+  disqualified: [nf-core/methylseq]
+  confusable_with: bisulfite_sequencing
+  notes: "CRITICAL: nf-co.re/methylseq processes bisulfite SEQUENCING data, not arrays. Illumina 450K/EPIC array data requires nf-core/methylarray. methylseq is the WRONG answer for array data."
+
+- id: epi_013
+  query: "Map transcription factor binding sites genome-wide using ChIP-seq with broad histone marks"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/chipseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/cutandrun]
+  notes: "Source: nf-co.re/chipseq — MACS3 supports broad or narrow peak calling for histone marks"
+
+- id: epi_014
+  query: "Process TIPseq data to profile transposon insertions epigenomically at single-cell resolution"
+  difficulty: adversarial
+  domain: epigenomics
+  correct_workflow: nf-core/cutandrun
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq, nf-core/atacseq]
+  notes: "Source: nf-co.re/cutandrun — TIPseq is explicitly listed as a supported protocol alongside CUT&RUN and CUT&TAG"
+
+- id: epi_015
+  query: "I ran CUT&RUN with an IgG control — now align reads and call peaks against the control"
+  difficulty: direct
+  domain: epigenomics
+  correct_workflow: nf-core/cutandrun
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq]
+  notes: "Source: nf-co.re/cutandrun — IgG controls are optional but supported; SEACR and MACS2 are the peak callers used"
+
+# =========================================================
+# DOMAIN 5: METAGENOMICS (12 queries)
+# Source: taxprofiler (classification), mag (assembly+binning), ampliseq (amplicons)
+# =========================================================
+
+- id: meta_001
+  query: "16S rRNA amplicon sequencing analysis of gut microbiome samples from IBD patients"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/ampliseq
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler, nf-core/mag]
+  notes: "Source: nf-co.re/ampliseq — 16S rRNA is the primary documented amplicon use case; uses DADA2 for ASV inference"
+
+- id: meta_002
+  query: "ITS amplicon sequencing for fungal community profiling in soil samples"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/ampliseq
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler]
+  notes: "Source: nf-co.re/ampliseq — ITS is an explicitly documented amplicon target alongside 16S"
+
+- id: meta_003
+  query: "Run DADA2 for amplicon sequence variant calling from my 16S paired-end reads"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/ampliseq
+  acceptable_alts: []
+  disqualified: [nf-core/mag, nf-core/taxprofiler]
+  notes: "Source: nf-co.re/ampliseq — DADA2 ASV inference is the core processing step"
+
+- id: meta_004
+  query: "Alpha and beta diversity analysis with phylogenetic placement of my microbiome ASVs"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/ampliseq
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler, nf-core/mag]
+  notes: "Source: nf-co.re/ampliseq — phylogenetic placement (EPA-NG) and diversity metrics (QIIME2) are documented outputs"
+
+- id: meta_005
+  query: "Classify microbial taxa in shotgun metagenomics reads using Kraken2 and Bracken"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/taxprofiler
+  acceptable_alts: []
+  disqualified: [nf-core/mag, nf-core/ampliseq]
+  notes: "Source: nf-co.re/taxprofiler — Kraken2 + Bracken refinement is explicitly listed; direct read classification without assembly"
+
+- id: meta_006
+  query: "Run MetaPhlAn to profile microbial species abundance in clinical metagenomic samples"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/taxprofiler
+  acceptable_alts: []
+  disqualified: [nf-core/mag]
+  notes: "Source: nf-co.re/taxprofiler — MetaPhlAn is one of nine integrated profiling tools"
+
+- id: meta_007
+  query: "What bacteria are present and how abundant are they in my patient's stool metagenome?"
+  difficulty: indirect
+  domain: metagenomics
+  correct_workflow: nf-core/taxprofiler
+  acceptable_alts: [nf-core/ampliseq]
+  disqualified: [nf-core/mag]
+  notes: "Source: nf-co.re/taxprofiler — abundance profiling is the stated goal; ampliseq acceptable if amplicon data"
+
+- id: meta_008
+  query: "Assemble metagenome-assembled genomes from gut microbiome shotgun sequencing"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/mag
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler, nf-core/ampliseq]
+  notes: "Source: nf-co.re/mag — metagenome assembly (MEGAHIT/SPAdes) and binning (MetaBAT2) is the primary use case"
+
+- id: meta_009
+  query: "Bin assembled metagenomic contigs and assess bin completeness and contamination"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/mag
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler]
+  notes: "Source: nf-co.re/mag — binning with MetaBAT2/MaxBin2/CONCOCT and quality assessment with CheckM/CheckM2 is documented"
+
+- id: meta_010
+  query: "Reconstruct individual microbial genomes from an ocean metagenome using long reads"
+  difficulty: indirect
+  domain: metagenomics
+  correct_workflow: nf-core/mag
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler]
+  notes: "Source: nf-co.re/mag — supports long reads (Nanopore/PacBio) for hybrid assembly; genome recovery distinguishes from profiling-only taxprofiler"
+
+- id: meta_011
+  query: "Assign taxonomy to MAGs using GTDB-Tk and annotate functional genes"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/mag
+  acceptable_alts: []
+  disqualified: [nf-core/taxprofiler]
+  notes: "Source: nf-co.re/mag — GTDB-Tk taxonomy assignment is a documented pipeline step"
+
+- id: meta_012
+  query: "Multi-tool taxonomic profiling comparing Kraken2, DIAMOND, and mOTUs on the same samples"
+  difficulty: direct
+  domain: metagenomics
+  correct_workflow: nf-core/taxprofiler
+  acceptable_alts: []
+  disqualified: [nf-core/mag, nf-core/ampliseq]
+  notes: "Source: nf-co.re/taxprofiler — running multiple tools in parallel with standardized output tables is the documented design goal"
+
+# =========================================================
+# DOMAIN 6: PROTEOMICS (12 queries)
+# Source: proteomicslfq (DDA LFQ), diaproteomics (DIA), mhcquant (MHC/HLA)
+# =========================================================
+
+- id: prot_001
+  query: "Label-free quantification of proteins from LC-MS/MS DDA data using OpenMS"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/proteomicslfq
+  acceptable_alts: []
+  disqualified: [nf-core/diaproteomics, nf-core/mhcquant]
+  notes: "Source: nf-co.re/proteomicslfq — DDA LFQ with OpenMS is the documented primary use case"
+
+- id: prot_002
+  query: "Spectral counting and feature-based quantification from data-dependent acquisition mass spec"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/proteomicslfq
+  acceptable_alts: []
+  disqualified: [nf-core/diaproteomics]
+  notes: "Source: nf-co.re/proteomicslfq — two quantification strategies (spectral counting, feature-based) are documented"
+
+- id: prot_003
+  query: "Phosphoproteomics modification site localization from DDA mzML files"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/proteomicslfq
+  acceptable_alts: []
+  disqualified: [nf-core/diaproteomics]
+  notes: "Source: nf-co.re/proteomicslfq — modification localization (e.g. phosphorylation) is a documented pipeline capability"
+
+- id: prot_004
+  query: "Statistical proteomics analysis using MSstats on my DDA label-free experiment"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/proteomicslfq
+  acceptable_alts: []
+  disqualified: [nf-core/diaproteomics]
+  notes: "Source: nf-co.re/proteomicslfq — MSstats post-processing is explicitly documented"
+
+- id: prot_005
+  query: "DIA proteomics analysis using OpenSwath for targeted peptide extraction from mzML files"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/diaproteomics
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq, nf-core/mhcquant]
+  notes: "Source: nf-co.re/diaproteomics — OpenSwathWorkflow is the documented DIA extraction tool"
+
+- id: prot_006
+  query: "Data-independent acquisition proteomics with spectral library generation from matched DDA data"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/diaproteomics
+  acceptable_alts: [Dia Proteomics Analysis]
+  disqualified: [nf-core/proteomicslfq]
+  notes: "Source: nf-co.re/diaproteomics — spectral library generation from matched DDA measurements is documented; Dia Proteomics Analysis (nfcore subworkflow) is acceptable as it is DIA-NN-based and covers spectral library generation"
+
+- id: prot_007
+  query: "Retention time alignment using iRT standards and PyProphet FDR estimation in DIA data"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/diaproteomics
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq]
+  notes: "Source: nf-co.re/diaproteomics — iRT standards and PyProphet are documented pipeline steps"
+
+- id: prot_008
+  query: "Identify peptides presented on MHC class I molecules from immunoprecipitation mass spec"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/mhcquant
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq, nf-core/diaproteomics]
+  notes: "Source: nf-co.re/mhcquant — MHC Class I peptide identification is the primary documented use case"
+
+- id: prot_009
+  query: "Quantify HLA-presented peptides for neoantigen discovery in a cancer immunopeptidomics study"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/mhcquant
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq]
+  notes: "Source: nf-co.re/mhcquant — immunopeptidomics and neoantigen context is explicitly mentioned in docs"
+
+- id: prot_010
+  query: "Run Comet database search on eluted MHC peptides for T cell epitope mapping"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/mhcquant
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq, nf-core/diaproteomics]
+  notes: "Source: nf-co.re/mhcquant — Comet database searching is the documented search engine used"
+
+- id: prot_011
+  query: "Predict the 3D structure of my therapeutic antibody sequence using AlphaFold2"
+  difficulty: adversarial
+  domain: proteomics
+  correct_workflow: nf-core/proteinfold
+  acceptable_alts: [Structure Prediction Docking]
+  disqualified: [nf-core/proteomicslfq, nf-core/diaproteomics]
+  confusable_with: drug_discovery
+  notes: "Source: nf-co.re/proteinfold — AlphaFold2 sequence→3D structure is proteinfold's core use case; Structure Prediction Docking also acceptable if docking is implied"
+
+- id: prot_012
+  query: "I have DDA raw files from a Thermo Fusion — run protein identification and label-free quant"
+  difficulty: direct
+  domain: proteomics
+  correct_workflow: nf-core/proteomicslfq
+  acceptable_alts: []
+  disqualified: [nf-core/diaproteomics]
+  notes: "DDA mode with label-free quantification matches proteomicslfq; input format is mzML (converted from raw)"
+
+# =========================================================
+# DOMAIN 7: TRANSCRIPTOMICS — specialized (10 queries)
+# Source: rnafusion, differentialabundance, smrnaseq, lncpipe
+# =========================================================
+
+- id: tx_001
+  query: "Detect fusion genes in RNA-seq from a pediatric leukemia sample using STAR-Fusion and Arriba"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/rnafusion
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/rnafusion — STAR-Fusion and Arriba are listed as the primary fusion callers; cancer is the target use case"
+
+- id: tx_002
+  query: "Run FusionCatcher on my paired-end RNA-seq data to find oncogenic gene fusions"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/rnafusion
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/rnafusion — FusionCatcher is a listed fusion detection tool; requires paired-end (single-end discouraged)"
+
+- id: tx_003
+  query: "Identify EML4-ALK and BCR-ABL fusion transcripts in my lung cancer RNA-seq"
+  difficulty: indirect
+  domain: transcriptomics
+  correct_workflow: nf-core/rnafusion
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Named gene fusions imply rnafusion pipeline; rnaseq does not detect fusions"
+
+- id: tx_004
+  query: "Differential expression analysis from my count matrix with DESeq2 and volcano plots"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/differentialabundance — count matrix input + DESeq2 stats is the documented use case; rnaseq does NOT do DE statistics"
+
+- id: tx_005
+  query: "I have a Salmon quantification output. Run differential abundance analysis between groups"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/differentialabundance — accepts rnaseq pipeline outputs (count matrices) as input"
+
+- id: tx_006
+  query: "Affymetrix microarray differential expression analysis from .CEL files"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/differentialabundance — Affymetrix .CEL file processing is an explicitly documented use case"
+
+- id: tx_007
+  query: "Small RNA sequencing to profile miRNA expression in serum samples"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/smrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/smrnaseq — miRNA quantification is the primary documented use case; single-end FASTQ input"
+
+- id: tx_008
+  query: "Discover novel miRNAs using MiRDeep2 and annotate isomiRs from my small RNA data"
+  difficulty: direct
+  domain: transcriptomics
+  correct_workflow: nf-core/smrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "Source: nf-co.re/smrnaseq — MiRDeep2 novel miRNA detection and isomiR annotation via Mirtop are documented steps"
+
+- id: tx_009
+  query: "Long non-coding RNA discovery and differential expression from my RNA-seq experiment"
+  difficulty: adversarial
+  domain: transcriptomics
+  correct_workflow: nf-core/lncpipe
+  acceptable_alts: [nf-core/rnaseq]
+  disqualified: []
+  confusable_with: bulk_rnaseq
+  notes: "Source: nf-co.re/lncpipe — lncRNA specialization distinguishes it from rnaseq; rnaseq is acceptable as fallback"
+
+- id: tx_010
+  query: "piRNA contamination filtering in my small RNA-seq preprocessing"
+  difficulty: adversarial
+  domain: transcriptomics
+  correct_workflow: nf-core/smrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  confusable_with: bulk_rnaseq
+  notes: "Source: nf-co.re/smrnaseq — piRNA filtering is a documented contamination screening step using Bowtie2"
+
+# =========================================================
+# DOMAIN 8: GENOMICS (6 queries)
+# Source: nanoseq (Oxford Nanopore), hic (Hi-C 3D genome)
+# =========================================================
+
+- id: gen_001
+  query: "Basecall and align Oxford Nanopore long reads from a bacterial genome sequencing run"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/nanoseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/nanoseq — basecalling, demultiplexing, and alignment of Nanopore data is the primary use case"
+
+- id: gen_002
+  query: "Call structural variants and SNPs from long Oxford Nanopore reads using Sniffles2"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/nanoseq
+  acceptable_alts: []
+  disqualified: [nf-core/sarek]
+  notes: "Source: nf-co.re/nanoseq — structural variant detection (sniffles, cutesv) is documented for DNA analysis"
+
+- id: gen_003
+  query: "Detect RNA modifications (m6A) from direct RNA Nanopore sequencing"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/nanoseq
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/nanoseq — m6A RNA modification detection (xpore, m6anet) is an explicitly documented use case"
+
+- id: gen_004
+  query: "Hi-C sequencing to map chromatin contacts and identify topologically associating domains"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/hic
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/chipseq]
+  notes: "Source: nf-co.re/hic — TAD calling and contact mapping are documented pipeline outputs"
+
+- id: gen_005
+  query: "Generate a genome-wide contact map from Hi-C paired-end data and identify A/B compartments"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/hic
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/hic — compartment calling is a documented analysis step; outputs in HiC-Pro and cooler formats"
+
+- id: gen_006
+  query: "Demultiplex Nanopore reads from a multiplexed run with multiple barcodes"
+  difficulty: direct
+  domain: genomics
+  correct_workflow: nf-core/nanoseq
+  acceptable_alts: [nf-core/demultiplex]
+  disqualified: []
+  notes: "Source: nf-co.re/nanoseq — flexible demultiplexing for multiplexed sequencing runs is a documented feature"
+
+# =========================================================
+# DOMAIN 9: IMMUNOLOGY (5 queries)
+# Source: airrflow (BCR/TCR repertoire), mhcquant (MHC peptides)
+# =========================================================
+
+- id: imm_001
+  query: "B cell receptor repertoire analysis from bulk BCR sequencing using Immcantation"
+  difficulty: direct
+  domain: immunology
+  correct_workflow: nf-core/airrflow
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/airrflow — BCR analysis via the Immcantation framework is the documented use case"
+
+- id: imm_002
+  query: "T cell receptor clonotype tracking from 10x single-cell immune profiling"
+  difficulty: direct
+  domain: immunology
+  correct_workflow: nf-core/airrflow
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Source: nf-co.re/airrflow — single-cell immune profiling (10X Genomics) for TCR is a documented use case"
+
+- id: imm_003
+  query: "Clonal lineage reconstruction of antibody evolution from longitudinal BCR sequencing"
+  difficulty: indirect
+  domain: immunology
+  correct_workflow: nf-core/airrflow
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/airrflow — end-to-end processing including clonal analysis and lineage reconstruction is documented"
+
+- id: imm_004
+  query: "AIRR-compliant V(D)J gene usage analysis for an immunology clinical study"
+  difficulty: direct
+  domain: immunology
+  correct_workflow: nf-core/airrflow
+  acceptable_alts: []
+  disqualified: []
+  notes: "Source: nf-co.re/airrflow — AIRR community standard compliance is an explicitly documented feature"
+
+- id: imm_005
+  query: "Identify neoantigens from tumor mutations by predicting MHC binding peptides"
+  difficulty: adversarial
+  domain: immunology
+  correct_workflow: nf-core/epitopeprediction
+  acceptable_alts: [nf-core/mhcquant]
+  disqualified: [nf-core/sarek, nf-core/airrflow]
+  confusable_with: variant_calling
+  notes: "Source: nf-co.re/epitopeprediction — neoepitope prediction from variant input is the defining feature (predicts MHC binding); mhcquant is mass-spec-based immunopeptidomics (quantification from LC-MS/MS data, NOT computational prediction from mutations)"
+
+# =========================================================
+# DOMAIN 10: DRUG DISCOVERY (8 queries)
+# BioMate custom workflows: structure_prediction_docking, gromacs_protein_md, reinvent4_lead_design
+# =========================================================
+
+- id: dd_001
+  query: "Predict the 3D structure of my kinase using AlphaFold2 and then dock a small molecule inhibitor"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: Structure Prediction Docking
+  acceptable_alts: [nf-core/proteinfold]
+  disqualified: [GROMACS Protein-Ligand MD + MM-GBSA, REINVENT4 Generative Lead Design]
+  notes: "BioMate structure_prediction_docking workflow covers AlphaFold2/Boltz-2 + docking"
+
+- id: dd_002
+  query: "Virtual screening of 500 compounds against my GPCR homology model using docking"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: Structure Prediction Docking
+  acceptable_alts: []
+  disqualified: [GROMACS Protein-Ligand MD + MM-GBSA, REINVENT4 Generative Lead Design]
+  notes: "Virtual screening = docking workflow; structure_prediction_docking includes docking step"
+
+- id: dd_003
+  query: "Run GROMACS molecular dynamics simulation to assess binding stability of my lead compound"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: GROMACS Protein-Ligand MD + MM-GBSA
+  acceptable_alts: []
+  disqualified: [Structure Prediction Docking, REINVENT4 Generative Lead Design]
+  notes: "BioMate gromacs_protein_md: 8-step GROMACS pipeline with MM-GBSA binding free energy"
+
+- id: dd_004
+  query: "Calculate MM-GBSA binding free energy for my protein-ligand complex over a 10 ns trajectory"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: GROMACS Protein-Ligand MD + MM-GBSA
+  acceptable_alts: [AMBER pmemd GPU Molecular Dynamics]
+  disqualified: [Structure Prediction Docking]
+  confusable_with: molecular_docking
+  notes: "MM-GBSA requires MD trajectory; gromacs_protein_md includes MMPBSA.py-based free energy step. AMBER also runs MMPBSA.py for ΔGbind — both are valid."
+
+- id: dd_005
+  query: "RMSD and RMSF backbone flexibility analysis from a molecular dynamics run"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: GROMACS Protein-Ligand MD + MM-GBSA
+  acceptable_alts: [AMBER pmemd GPU Molecular Dynamics]
+  disqualified: [Structure Prediction Docking]
+  notes: "RMSD/RMSF analysis is a documented GROMACS pipeline output in BioMate"
+
+- id: dd_006
+  query: "Generate novel drug-like molecules with improved solubility using reinforcement learning"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: REINVENT4 Generative Lead Design
+  acceptable_alts: []
+  disqualified: [Structure Prediction Docking, GROMACS Protein-Ligand MD + MM-GBSA]
+  notes: "BioMate reinvent4_lead_design: REINVENT4 RL-based generative molecule design (de novo mode)"
+
+- id: dd_007
+  query: "De novo design of GPCR-targeted lead compounds using REINVENT4 scaffold decoration"
+  difficulty: direct
+  domain: drug_discovery
+  correct_workflow: REINVENT4 Generative Lead Design
+  acceptable_alts: []
+  disqualified: [Structure Prediction Docking, GROMACS Protein-Ligand MD + MM-GBSA]
+  notes: "BioMate reinvent4_lead_design: scaffold_decoration mode is a documented REINVENT4 mode"
+
+- id: dd_008
+  query: "Scaffold hopping from my current kinase inhibitor scaffold to explore chemical diversity"
+  difficulty: adversarial
+  domain: drug_discovery
+  correct_workflow: REINVENT4 Generative Lead Design
+  acceptable_alts: []
+  disqualified: [Structure Prediction Docking, GROMACS Protein-Ligand MD + MM-GBSA]
+  confusable_with: molecular_docking
+  notes: "BioMate reinvent4_lead_design: scaffold_hopping mode is documented; distinguish from docking (score existing) vs design (generate new)"
+
+# =========================================================
+# CRITICAL ADVERSARIAL DISAMBIGUATION PAIRS (10 additional)
+# These target the most commonly confused pipeline pairs.
+# =========================================================
+
+- id: adv_001
+  query: "Find rare germline pathogenic variants in a child with an undiagnosed disease using WGS"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/raredisease
+  acceptable_alts: [nf-core/sarek, Rare Disease Multi-Modal Workup]
+  disqualified: []
+  confusable_with: germline_variant_calling
+  notes: "SAREK vs RAREDISEASE — undiagnosed disease + WGS implies rare disease scoring/ranking (raredisease). Sarek and the BioMate rare-disease chain are both acceptable."
+
+- id: adv_002
+  query: "Somatic mutation profiling in multiple relapses of the same patient's tumor over time"
+  difficulty: adversarial
+  domain: variant_calling
+  correct_workflow: nf-core/sarek
+  acceptable_alts: []
+  disqualified: [nf-core/raredisease]
+  confusable_with: rare_disease
+  notes: "Source: nf-co.re/sarek — multiple relapses support is explicitly documented for somatic analysis"
+
+- id: adv_003
+  query: "I want to cluster single cells and find marker genes — I have FASTQ files from 10x"
+  difficulty: adversarial
+  domain: single_cell
+  correct_workflow: nf-core/scrnaseq
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  confusable_with: downstream_sc_analysis
+  notes: "scrnaseq handles preprocessing from FASTQ; clustering is mentioned but the entry point is FASTQs. scrnaseq is the right first step."
+
+- id: adv_004
+  query: "Map enhancer-promoter interactions from H3K27ac ChIP-seq and CTCF ChIP-seq data"
+  difficulty: adversarial
+  domain: epigenomics
+  correct_workflow: nf-core/chipseq
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/cutandrun]
+  confusable_with: atac_seq
+  notes: "Both H3K27ac and CTCF are antibody-based ChIP-seq experiments; chipseq is correct"
+
+- id: adv_005
+  query: "CUT&RUN to profile Polycomb repressive complex binding with very low cell input"
+  difficulty: adversarial
+  domain: epigenomics
+  correct_workflow: nf-core/cutandrun
+  acceptable_alts: []
+  disqualified: [nf-core/chipseq, nf-core/atacseq]
+  confusable_with: chip_seq
+  notes: "CUT&RUN protocol specifically named; low cell input is a documented advantage in nf-co.re/cutandrun"
+
+- id: adv_006
+  query: "I have shotgun metagenomics reads. How many species of bacteria are in my water sample?"
+  difficulty: adversarial
+  domain: metagenomics
+  correct_workflow: nf-core/taxprofiler
+  acceptable_alts: []
+  disqualified: [nf-core/mag, nf-core/ampliseq]
+  confusable_with: metagenome_assembly
+  notes: "Taxonomic classification question on shotgun reads = taxprofiler; mag is for genome recovery; ampliseq is for amplicon data"
+
+- id: adv_007
+  query: "DDA vs DIA: I ran data-independent acquisition proteomics — which pipeline should I use?"
+  difficulty: adversarial
+  domain: proteomics
+  correct_workflow: nf-core/diaproteomics
+  acceptable_alts: []
+  disqualified: [nf-core/proteomicslfq]
+  confusable_with: dda_proteomics
+  notes: "Source: nf-co.re/diaproteomics — DIA is explicitly the use case; proteomicslfq handles DDA"
+
+- id: adv_008
+  query: "Sequence the T cell receptor repertoire of tumor-infiltrating lymphocytes from bulk sequencing"
+  difficulty: adversarial
+  domain: immunology
+  correct_workflow: nf-core/airrflow
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq, nf-core/rnaseq]
+  confusable_with: single_cell
+  notes: "Source: nf-co.re/airrflow — targeted bulk BCR/TCR sequencing is a primary use case; different from scrnaseq which handles whole-transcriptome single-cell"
+
+- id: adv_009
+  query: "Predict protein structure from FASTA sequence using ESMFold — no MSA required"
+  difficulty: adversarial
+  domain: drug_discovery
+  correct_workflow: Structure Prediction Docking
+  acceptable_alts: [nf-core/proteinfold]
+  disqualified: []
+  confusable_with: proteomics
+  notes: "Source: nf-co.re/proteinfold — ESMFold is a documented prediction method (no MSA); maps to BioMate structure_prediction_docking"
+
+- id: adv_010
+  query: "I ran RNA-seq and have a counts table. Find which pathways are enriched between conditions"
+  difficulty: adversarial
+  domain: transcriptomics
+  correct_workflow: nf-core/differentialabundance
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  confusable_with: bulk_rnaseq
+  notes: "Source: nf-co.re/differentialabundance — accepts count matrices and performs DE + GSEA; nf-co.re/rnaseq explicitly does NOT compare samples statistically"

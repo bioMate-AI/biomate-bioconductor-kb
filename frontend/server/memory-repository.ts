@@ -27,6 +27,22 @@ import type {
 
 export class UserMemoryRepository {
   /**
+   * Ensure an ltm_users row exists for the given auth user ID.
+   * Creates a new row with the specified ID (not a random UUID) if none exists.
+   * This is required before inserting into any table that has a FK to ltm_users.id.
+   */
+  async ensureLtmUser(userId: string, email?: string, name?: string): Promise<void> {
+    const existing = await db.query.ltmUsers.findFirst({
+      where: eq(ltmSchema.ltmUsers.id, userId),
+    });
+    if (!existing) {
+      await db.insert(ltmSchema.ltmUsers)
+        .values({ id: userId, email: email || `${userId}@auto.biomate.internal`, name: name || undefined })
+        .onConflictDoNothing();
+    }
+  }
+
+  /**
    * Get or create user profile
    */
   async getOrCreateUser(email: string, data?: Partial<InsertLtmUser>): Promise<LtmUser> {
@@ -561,6 +577,27 @@ export class EpisodicMemoryRepository {
         eq(ltmSchema.projectEpisodes.outcomeSuccess, true)
       ))
       .orderBy(desc(ltmSchema.projectEpisodes.importanceScore))
+      .limit(limit);
+  }
+
+  /**
+   * Get recent episodes across all of a user's projects (user-scoped retrieval for memory injection).
+   * Joins through projects table to find episodes belonging to the user.
+   */
+  async getRecentUserEpisodes(userId: string, limit: number = 10): Promise<ProjectEpisode[]> {
+    const userProjects = await db.select({ id: ltmSchema.projects.id })
+      .from(ltmSchema.projects)
+      .where(eq(ltmSchema.projects.userId, userId));
+    if (!userProjects.length) return [];
+    const projectIds = userProjects.map(p => p.id).filter(Boolean) as string[];
+    if (!projectIds.length) return [];
+    return db.select()
+      .from(ltmSchema.projectEpisodes)
+      .where(inArray(ltmSchema.projectEpisodes.projectId, projectIds))
+      .orderBy(
+        desc(ltmSchema.projectEpisodes.importanceScore),
+        desc(ltmSchema.projectEpisodes.createdAt)
+      )
       .limit(limit);
   }
 

@@ -1,0 +1,83 @@
+{
+  "routing_stability": {
+    "n_queries": 6,
+    "runs_per_query": 3,
+    "n_consistent": 6,
+    "consistency_rate": 1.0,
+    "n_wrong_workflow_consistent": 0,
+    "details": {
+      "q00": {
+        "query": "Run RNA-seq differential expression analysis on human tumor vs normal samples",
+        "expected": "rnaseq",
+        "results": [
+          "rnaseq",
+          "rnaseq",
+          "rnaseq"
+        ],
+        "consistent": true,
+        "dominant": "rnaseq",
+        "correct_workflow": true
+      },
+      "q01": {
+        "query": "RNA-seq with STAR aligner and DESeq2 for cancer transcriptomics",
+        "expected": "rnaseq",
+        "results": [
+          "rnaseq",
+          "rnaseq",
+          "rnaseq"
+        ],
+        "consistent": true,
+        "dominant": "rnaseq",
+        "correct_workflow": true
+      },
+      "q02": {
+        "query": "Perform GATK germline variant calling on WGS data from patient with Lynch syndrome",
+        "expected": "variant_calling",
+        "results": [
+          "variant_calling",
+          "variant_calling",
+          "variant_calling"
+        ],
+        "consistent": true,
+        "dominant": "variant_calling",
+        "correct_workflow": true
+      },
+      "q03": {
+        "query": "Variant calling with GATK HaplotypeCaller on whole genome sequencing data",
+        "expected": "variant_calling",
+        "results": [
+          "variant_calling",
+          "variant_calling",
+          "variant_calling"
+        ],
+        "consistent": true,
+        "dominant": "variant_calling",
+        "correct_workflow": true
+      },
+      "q04": {
+        "query": "Run ATAC-seq analysis to identify open chromatin regions in mouse T cells",
+        "expected": "atac_seq",
+        "results": [
+          "atac_seq",
+          "atac_seq",
+          "atac_seq"
+        ],
+        "consistent": true,
+        "dominant": "atac_seq",
+        "correct_workflow": true
+      },
+      "q05": {
+        "query": "ChIP-seq peak calling for H3K27ac histone mark in mouse embryonic stem cells",
+        "expected": "chip_seq",
+        "results": [
+          "chip_seq",
+          "chip_seq",
+          "chip_seq"
+        ],
+        "consistent": true,
+        "dominant": "chip_seq",
+        "correct_workflow": true
+      }
+    }
+  }
+}

@@ -317,8 +317,8 @@ class LLMClient:
         }
 
         # Add temperature if provided
-        temperature = kwargs.get('temperature', 0.3)
-        if temperature:
+        temperature = kwargs.get('temperature', 0.0)
+        if temperature is not None:
             data["temperature"] = temperature
 
         t0 = time.monotonic()
@@ -358,7 +358,7 @@ class LLMClient:
                 }
             ],
             "generationConfig": {
-                "temperature": kwargs.get('temperature', 0.3),
+                "temperature": kwargs.get('temperature', 0.0),
                 "maxOutputTokens": kwargs.get('max_tokens', 1000),
             }
         }
@@ -403,9 +403,9 @@ class LLMClient:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.3)
+            "temperature": kwargs.get('temperature', 0.0)
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{self.api_base}/chat/completions",
@@ -413,7 +413,7 @@ class LLMClient:
                 json=data,
                 timeout=120.0
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 usage = result.get("usage", {})
@@ -446,7 +446,7 @@ class LLMClient:
             ],
             "options": {
                 "num_predict": kwargs.get('max_tokens', 1000),
-                "temperature": kwargs.get('temperature', 0.3)
+                "temperature": kwargs.get('temperature', 0.0)
             }
         }
 
@@ -482,7 +482,7 @@ class LLMClient:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.3)
+            "temperature": kwargs.get('temperature', 0.0)
         }
 
         # GLM-4.7 supports tool calling - add if provided
@@ -521,7 +521,7 @@ class LLMClient:
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": kwargs.get('max_tokens', 1000),
-            "temperature": kwargs.get('temperature', 0.3)
+            "temperature": kwargs.get('temperature', 0.0)
         }
 
         async with httpx.AsyncClient() as client:

@@ -4290,6 +4290,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Track 7B — DB-sourced domain catalog
+  // Returns top workflows grouped by domain, sourced live from the Galaxy backend search index.
+  // Falls back to empty arrays on error — callers should use the hardcoded catalog as fallback.
+  app.get("/api/workflows/by-domain", optionalAuth, async (req, res) => {
+    try {
+      const domainsParam = (req.query.domains as string) || '';
+      const domains = domainsParam.split(',').map(d => d.trim()).filter(Boolean);
+      if (domains.length === 0) return res.json({ catalog: {} });
+
+      const proxy = galaxyAPIProxy; // unauthenticated proxy — catalog is not user-specific
+      const catalog: Record<string, Array<{ name: string; description: string; domain: string }>> = {};
+
+      await Promise.all(domains.map(async (domain) => {
+        try {
+          const resp = await proxy.client.post('/api/ai_assistant/search_nextflow_workflow', {
+            user_intent: domain,
+            preferred_domains: [domain],
+            limit: 8,
+          });
+          const candidates: any[] = resp.data?.candidate_workflows ?? [];
+          catalog[domain] = candidates.map((c: any) => ({
+            name: c.name,
+            description: c.description || c.domain || domain,
+            domain: c.domain || domain,
+          }));
+        } catch {
+          catalog[domain] = [];
+        }
+      }));
+
+      res.json({ catalog });
+    } catch (error: any) {
+      console.error('[by-domain] error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============================================================================
   // Parameter Template Repository API
   // ============================================================================
@@ -4523,6 +4560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Record a correction
   app.post("/api/memory/user/corrections", authenticateToken, async (req, res) => {
     try {
+      await memoryService.users.ensureLtmUser(req.user!.id, (req.user as any).email).catch(() => {});
       const { sessionId, projectId, suggestedApproach, correctedApproach, workflowContext, userExplanation } = req.body;
       const correction = await memoryService.users.recordCorrection({
         userId: req.user!.id,
@@ -4537,6 +4575,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('[API] Record correction failed:', error);
       res.status(500).json({ error: 'Failed to record correction', message: error.message });
+    }
+  });
+
+  // Get user's correction history (for P2 routing injection)
+  app.get("/api/memory/user/corrections", authenticateToken, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const corrections = await memoryService.users.getUserCorrections(
+        req.user!.id,
+        Math.min(limit, 50)
+      );
+      res.json(corrections);
+    } catch (error: any) {
+      console.error('[API] Get corrections failed:', error);
+      res.status(500).json({ error: 'Failed to get corrections', message: error.message });
     }
   });
 
@@ -4562,6 +4615,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new project
   app.post("/api/memory/projects", authenticateToken, async (req, res) => {
     try {
+      // Auto-provision the LTM user record if it doesn't exist yet.
+      // Required when the auth user has never interacted with the memory system
+      // (e.g. eval accounts that were created directly in the auth DB).
+      await memoryService.users.ensureLtmUser(req.user!.id, (req.user as any).email).catch(() => {});
       const { name, description, researchGoal, instructions, primaryDomain, organisms, tissueTypes, conditions, dataModalities, category, tags } = req.body;
       const project = await memoryService.projects.createProject({
         userId: req.user!.id,
@@ -4948,6 +5005,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Episodic Memory API
   // ============================================================================
 
+  // Get user's recent episodes across all projects (for P1 memory injection)
+  app.get("/api/memory/user/episodes", authenticateToken, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const episodes = await memoryService.episodes.getRecentUserEpisodes(
+        req.user!.id,
+        Math.min(limit, 50)
+      );
+      res.json(episodes);
+    } catch (error: any) {
+      console.error('[API] Get user episodes failed:', error);
+      res.status(500).json({ error: 'Failed to get user episodes', message: error.message });
+    }
+  });
+
   // Get similar episodes for a project
   app.get("/api/memory/projects/:projectId/episodes", authenticateToken, async (req, res) => {
     try {
@@ -5088,6 +5160,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_intent: query, limit: limit ?? 5 }),
+      });
+      const data = await upstream.json();
+      res.status(upstream.status).json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // IR evaluation: ranked workflow list for MRR/P@K/NDCG computation
+  // Proxies to Python backend /api/ai_assistant/search_ranked
+  app.post("/api/ai_assistant/search_ranked", optionalAuth, async (req, res) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+      const upstream = await fetch(`${galaxyUrl}/api/ai_assistant/search_ranked`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body || {}),
       });
       const data = await upstream.json();
       res.status(upstream.status).json(data);
@@ -6778,7 +6867,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Promote Nextflow terminal state into execution run state.
           const nfState = String(nextflowStatus?.status || '').toLowerCase();
-          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && run.execution.status === 'running') {
+          const isAlreadyTerminal = ['completed', 'failed', 'cancelled'].includes(run.execution.status);
+          if ((nfState === 'succeeded' || nfState === 'failed' || nfState === 'error') && !isAlreadyTerminal) {
             const mappedStatus: ExecutionRunStatus = toValidRunStatus(nfState);
             const terminalMessage = nfState === 'failed'
               ? (nextflowStatus?.log_tail?.slice?.(-1)?.[0] || run.execution.errorMessage || 'Nextflow run failed')

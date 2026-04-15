@@ -1,0 +1,570 @@
+# Protocol-to-Workflow Benchmark
+# Tests BioMate's ability to translate protocol text into executable workflows
+# source_type: published_methods | lab_sop | ambiguous
+---
+cases:
+
+  # =========================================================================
+  # Source A: Published methods (20 cases)
+  # =========================================================================
+
+  - id: proto_001
+    source_type: published_methods
+    domain: genomics
+    protocol_text: >
+      Total RNA was isolated from 30 mg of frozen breast tumor tissue using the RNeasy Mini Kit
+      (Qiagen). RNA integrity (RIN ≥ 7.0) was confirmed by Bioanalyzer. Strand-specific cDNA
+      libraries were prepared using the TruSeq Stranded mRNA Library Prep Kit (Illumina).
+      Paired-end 150 bp sequencing was performed on a NovaSeq 6000 platform targeting 50 million
+      reads per sample. Raw reads were quality-controlled with FastQC v0.11.9 and trimmed with
+      Trim Galore v0.6.7. Trimmed reads were aligned to the human reference genome GRCh38 using
+      STAR v2.7.10a with default parameters. Gene-level counts were quantified using featureCounts
+      from the Subread package v2.0.3 with GENCODE v44 annotation. Differential expression
+      analysis was performed using DESeq2 v1.38.3, with tumor stage and batch included as
+      covariates.
+    expected_workflow: rnaseq
+    expected_params:
+      genome: GRCh38
+      strandedness: reverse
+      aligner: star
+    expected_clarifications: []
+
+  - id: proto_002
+    source_type: published_methods
+    domain: genomics
+    protocol_text: >
+      Genomic DNA was extracted from peripheral blood leukocytes. Libraries were prepared using
+      the Illumina TruSeq DNA PCR-Free Library Prep Kit and sequenced to 30× mean coverage on a
+      NovaSeq X Plus (paired-end 150 bp). FASTQ files were processed according to GATK best
+      practices. Reads were aligned to GRCh38 with BWA-MEM2 v2.2.1, sorted and marked for PCR
+      duplicates with GATK MarkDuplicates v4.4.0, and base quality score recalibrated (BQSR)
+      using dbSNP build 138. Germline variant calling was performed with GATK HaplotypeCaller
+      v4.4.0 in GVCF mode. Cohort-level joint genotyping was performed with GenotypeGVCFs, and
+      variants were filtered using VQSR with the recommended tranches.
+    expected_workflow: variant_calling
+    expected_params:
+      genome: GRCh38
+      tools: haplotypecaller
+    expected_clarifications: []
+
+  - id: proto_003
+    source_type: published_methods
+    domain: single_cell
+    protocol_text: >
+      Single-cell suspensions were prepared from dissociated tumor tissue by enzymatic digestion
+      with collagenase IV and DNase I. Cell viability was confirmed by trypan blue exclusion
+      (≥90%). Single-cell RNA-seq libraries were prepared using the 10x Chromium Single Cell 3'
+      v3.1 Kit targeting 5,000 cells per sample. Sequencing was performed on a NovaSeq 6000 to
+      a depth of 25,000 reads per cell. Raw sequencing data were processed with Cell Ranger
+      v7.1.0 using the GRCh38 2020-A reference. The resulting filtered feature-barcode matrices
+      were analyzed in R using Seurat v4.3.0. Ambient RNA was removed with SoupX and doublets
+      were identified and removed with DoubletFinder. Cells with >20% mitochondrial reads were
+      excluded.
+    expected_workflow: scrna_seq
+    expected_params:
+      genome: GRCh38
+      aligner: cellranger
+      expected_cells: 5000
+    expected_clarifications: []
+
+  - id: proto_004
+    source_type: published_methods
+    domain: epigenomics
+    protocol_text: >
+      ATAC-seq was performed on 50,000 freshly isolated CD4+ T cells following the Omni-ATAC
+      protocol. Nuclei were lysed in cold lysis buffer and transposed with the Tn5 transposase
+      at 37°C for 30 min. Libraries were amplified for 10–12 PCR cycles and size-selected
+      (150–800 bp) on an E-Gel EX agarose gel. Paired-end 50 bp sequencing was performed on a
+      NextSeq 550 targeting 50 million reads. Reads were trimmed with Trim Galore and aligned
+      to the human reference genome (GRCh38) using Bowtie2 v2.4.4 with the parameters
+      '--very-sensitive -X 2000'. Peaks were called with MACS2 v2.2.7.1 using '--format BAMPE
+      --nomodel --shift -100 --extsize 200' and filtered against ENCODE blacklist regions.
+    expected_workflow: atac_seq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_005
+    source_type: published_methods
+    domain: epigenomics
+    protocol_text: >
+      ChIP was performed on 1×10^7 MCF-7 cells fixed with 1% formaldehyde for 10 min. Chromatin
+      was sheared by sonication to 200–500 bp fragments. Immunoprecipitation was performed with
+      anti-H3K27me3 antibody (Cell Signaling #9733) at 4°C overnight. Libraries were prepared
+      using the NEBNext Ultra II DNA Library Prep Kit and sequenced on a NextSeq 2000 (paired-end
+      50 bp, 30M reads per sample). Reads were aligned to GRCh38 with Bowtie2. Peaks were called
+      with MACS2 using broad peak calling mode (--broad --broad-cutoff 0.1) appropriate for the
+      repressive histone mark H3K27me3.
+    expected_workflow: chip_seq
+    expected_params:
+      genome: GRCh38
+      macs2_broad: true
+    expected_clarifications: []
+
+  - id: proto_006
+    source_type: published_methods
+    domain: epigenomics
+    protocol_text: >
+      Genomic DNA was bisulfite-converted using the EZ DNA Methylation-Lightning Kit (Zymo
+      Research). WGBS libraries were prepared with the Accel-NGS Methyl-Seq DNA Library Kit.
+      Paired-end 150 bp sequencing was performed to 15× genome coverage per sample. Bisulfite-
+      converted reads were aligned to the mouse reference genome GRCm39 using Bismark v0.23.0
+      with default parameters. Methylation calls were extracted with bismark_methylation_extractor
+      for CpG, CHG, and CHH contexts. Differentially methylated regions (DMRs) between treatment
+      and control were identified using DSS v2.46.0 with a minimum CpG coverage of 5×.
+    expected_workflow: bisulfite_seq
+    expected_params:
+      genome: GRCm39
+      aligner: bismark
+    expected_clarifications: []
+
+  - id: proto_007
+    source_type: published_methods
+    domain: proteomics
+    protocol_text: >
+      Protein lysates were digested with trypsin using the iST kit (PreOmics). Peptides were
+      desalted and fractionated into 8 fractions using HpRP-HPLC for spectral library generation.
+      DIA data acquisition was performed on an Orbitrap Exploris 480 mass spectrometer (Thermo
+      Fisher) coupled to an UltiMate 3000 RSLCnano system. The MS1 scan range was 350–1650 m/z
+      (resolution 60,000) with a normalized AGC target of 300%. DIA windows of 25 m/z were
+      acquired with a cycle time of 3 s. Raw files were analyzed with DIA-NN v1.8.1 using a
+      project-specific spectral library generated by Spectronaut v17 from the fractionated
+      samples. Protein quantification used MaxLFQ-based normalization.
+    expected_workflow: proteomics_dia
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_008
+    source_type: published_methods
+    domain: metagenomics
+    protocol_text: >
+      Fecal samples were collected in OMNIgene GUT tubes and DNA was extracted using the QIAamp
+      PowerFecal Pro DNA Kit. The V3-V4 hypervariable region of the 16S rRNA gene was amplified
+      using primers 341F (5'-CCTACGGGNGGCWGCAG-3') and 806R (5'-GACTACNVGGGTWTCTAATCC-3').
+      Amplicon libraries were prepared with dual-indexed Nextera adapters and sequenced on a
+      MiSeq (2×300 bp paired-end, 50,000 reads per sample). DADA2 v1.26 was used for amplicon
+      sequence variant (ASV) calling with standard quality filtering. Taxonomic assignment was
+      performed against the SILVA v138 database. Alpha diversity (Shannon, Simpson) and beta
+      diversity (Bray-Curtis) were computed in QIIME2 v2023.2.
+    expected_workflow: metagenomics
+    expected_params:
+      FW_primer: CCTACGGGNGGCWGCAG
+      RV_primer: GACTACNVGGGTWTCTAATCC
+    expected_clarifications: []
+
+  - id: proto_009
+    source_type: published_methods
+    domain: genetics
+    protocol_text: >
+      Genome-wide genotyping was performed using the Illumina Global Screening Array v3.0
+      (730,059 markers). Quality control excluded individuals with call rate <98%, genotype call
+      rate <95%, excess heterozygosity (|F| > 0.2), or sex discordance. SNPs with MAF <1%,
+      HWE p<1×10^-6, or high missingness were removed. Imputation was performed on the TOPMed
+      Imputation Server using the TOPMed r2 reference panel. Association analysis was performed
+      using REGENIE v3.2.1 with logistic regression for the binary primary outcome (Type 2
+      Diabetes diagnosis), adjusting for age, sex, BMI, and the first 10 genomic PCs. Significance
+      threshold was set at p<5×10^-8.
+    expected_workflow: gwas
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_010
+    source_type: published_methods
+    domain: structural_biology
+    protocol_text: >
+      Purified complex (0.4 mg/ml) was applied to glow-discharged Quantifoil R1.2/1.3 300-mesh
+      copper grids and vitrified in liquid ethane using a Vitrobot Mark IV (Thermo Fisher).
+      CryoEM data were collected on a Titan Krios G4 electron microscope at 300 kV equipped with
+      a Falcon 4 direct electron detector and Selectris energy filter. Movies were collected in
+      EER format at 105,000× magnification (pixel size 0.828 Å). Motion correction was performed
+      with MotionCor2 and CTF estimation with CTFFIND4. Particle picking used TOPAZ neural network
+      picker. 2D and 3D classifications were performed in RELION 4.0, followed by CTF refinement
+      and Bayesian polishing. Final 3D refinement and postprocessing yielded maps at 2.8 Å
+      resolution.
+    expected_workflow: cryo_em
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_011
+    source_type: published_methods
+    domain: drug_discovery
+    protocol_text: >
+      The crystal structure of CDK2 in complex with inhibitor (PDB: 1AQ1) was prepared using
+      Maestro Protein Preparation Wizard. Missing loops were modeled with Prime. The protein was
+      parameterized using the AMBER ff14SB force field and the ligand with GAFF2. The system was
+      solvated in a TIP3P water box with a 12 Å buffer and neutralized with Na+/Cl- ions to
+      0.15 M concentration. Energy minimization (5,000 steps steepest descent) was followed by
+      NVT equilibration at 300 K (100 ps) and NPT equilibration at 1 atm (500 ps). Production
+      MD was run for 200 ns with a 2 fs timestep using PMEMD CUDA on an NVIDIA A100 GPU. RMSD,
+      RMSF, and binding free energy (MM-GBSA) were calculated over the last 100 ns.
+    expected_workflow: molecular_dynamics
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_012
+    source_type: published_methods
+    domain: structural_biology
+    protocol_text: >
+      The amino acid sequence of the novel RNA-binding protein (UniProt Q9Y2X9, isoform 2) was
+      retrieved and submitted to structure prediction using AlphaFold2 (v2.3.1). A full genetic
+      database search was performed against UniRef90 (2022-05 release), MGnify v2022_05, and BFD
+      using HHblits and JackHMMER. MSA depth exceeded 2,000 sequences, providing high-confidence
+      predictions. Five model replicas were generated using the default 'full_dbs' preset. Model
+      quality was assessed by pLDDT scores and PAE plots. The highest-confidence model (pLDDT
+      89.4) was used for downstream docking analysis. Protein visualization and structural
+      analysis were performed in PyMOL v2.5 and ChimeraX.
+    expected_workflow: alphafold
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_013
+    source_type: published_methods
+    domain: proteomics
+    protocol_text: >
+      Protein pellets from cell lysates were resuspended in 8M urea lysis buffer, reduced with
+      DTT (10 mM, 30 min, 56°C), alkylated with iodoacetamide (25 mM, 30 min, RT), and digested
+      overnight with trypsin (1:50) at 37°C. Peptides were desalted on C18 StageTips. LC-MS/MS
+      was performed on an Orbitrap Fusion Lumos with a 2h gradient. MS1 (R=120,000) was acquired
+      in the Orbitrap, with HCD fragmentation at 30% NCE and MS2 (R=15,000) in the Orbitrap.
+      Raw files were analyzed with MaxQuant v2.1.4 with the iBAQ and LFQ intensity options
+      enabled against the UniProt human proteome (UP000005640). Statistical analysis of LFQ
+      intensities was performed in Perseus v1.6.15.
+    expected_workflow: proteomics_lfq
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_014
+    source_type: published_methods
+    domain: functional_genomics
+    protocol_text: >
+      Genome-wide CRISPR knockout screens were performed using the Brunello library (77,441
+      sgRNAs targeting 19,114 genes, 4 sgRNAs/gene) lentivirally transduced at MOI ~0.3 into
+      A375 melanoma cells with a representation of ≥500× coverage. Following puromycin selection,
+      cells were split into drug-treated (vemurafenib 1 μM) and DMSO control arms. After 21 days,
+      genomic DNA was extracted and sgRNA sequences amplified with barcoded primers. Libraries
+      were sequenced on a NextSeq 2000 (single-end 75 bp). Raw read counts per sgRNA were
+      quantified using the count module of MAGeCK v0.5.9.5. Gene-level enrichment and depletion
+      was computed with MAGeCK MLE with day0 as reference condition.
+    expected_workflow: crispr_screen
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_015
+    source_type: published_methods
+    domain: drug_discovery
+    protocol_text: >
+      A focused library of 847 kinase inhibitor analogs (SMILES strings) was assessed for ADMET
+      properties using SwissADME and pkCSM. Key parameters evaluated included: oral bioavailability
+      (F > 30%), plasma protein binding (PPB < 90%), aqueous solubility (logS > -4), metabolic
+      stability (T1/2 liver microsome > 30 min), hERG cardiac ion channel inhibition (pIC50 < 6),
+      Ames mutagenicity (predicted negative), and DILI risk (low). Compounds failing more than
+      two criteria were excluded. The remaining 312 compounds were prioritized by Lipinski's Rule
+      of Five compliance and synthetic accessibility score (SA < 4) for experimental ADMET
+      profiling.
+    expected_workflow: admet
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_016
+    source_type: published_methods
+    domain: spatial_transcriptomics
+    protocol_text: >
+      Fresh frozen OCT-embedded colorectal cancer tissue sections (10 μm) were processed using
+      the 10x Genomics Visium Spatial Gene Expression protocol. H&E staining was performed on
+      an adjacent section for histological annotation. Tissue permeabilization was optimized using
+      the Visium Tissue Optimization Kit (permeabilization time: 18 min). cDNA libraries were
+      sequenced on a NovaSeq 6000 (paired-end 28×90 bp) targeting 50,000 reads per spot. Raw
+      FASTQ files were processed with Space Ranger v2.0.1 using the GRCh38-2020-A reference.
+      Downstream analysis including spatially variable gene detection and tissue domain
+      deconvolution was performed in Seurat v4.3.0 with the SpatialDE algorithm.
+    expected_workflow: spatial_transcriptomics
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_017
+    source_type: published_methods
+    domain: genomics
+    protocol_text: >
+      High-molecular-weight genomic DNA was extracted from fresh frozen tissue using the
+      Circulomics Nanobind CBB Big DNA Kit. DNA was sheared to 50 kb using a Megaruptor 3 and
+      sequenced on a PromethION flow cell (R10.4.1) using Kit 14 ligation sequencing. Base
+      calling was performed in real time with Dorado v0.3.4 using the high-accuracy SUP model.
+      Reads with mean Q-score < 10 were discarded. The resulting reads (N50 = 28.7 kb) were
+      aligned to GRCh38 using minimap2 v2.26 with the '-ax map-ont' preset. Structural variants
+      were called with Sniffles2 v2.2 and validated with SURVIVOR v1.0.7. Long-read phasing was
+      performed with WhatsHap v1.7.
+    expected_workflow: long_read_seq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_018
+    source_type: published_methods
+    domain: epigenomics
+    protocol_text: >
+      In-situ Hi-C was performed on 5×10^6 GM12878 cells following the Lieberman-Aiden protocol.
+      Cells were cross-linked with 1% formaldehyde for 10 min, lysed, and chromatin was digested
+      with MboI restriction enzyme. Biotinylated nucleotides were incorporated at DNA ends, ligated
+      in dilute conditions, and purified by streptavidin pull-down. Libraries were size-selected
+      (300-700 bp) and sequenced on a NovaSeq 6000 (paired-end 150 bp) to a depth of 800 million
+      read pairs. Raw data were processed with HiC-Pro v3.1.0 using the GRCh38 reference. TAD
+      boundaries were called with TopDom and chromatin loops were identified with HICCUPS (Juicer
+      v1.22). A/B compartments were determined by eigenvector decomposition at 100 kb resolution.
+    expected_workflow: hic
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_019
+    source_type: published_methods
+    domain: metabolomics
+    protocol_text: >
+      Plasma metabolomics was performed using an HILIC-MS/MS method. Plasma samples (50 μL) were
+      deproteinized with methanol (1:4 v/v), vortexed, and centrifuged at 15,000g for 10 min at
+      4°C. The supernatant was analyzed on a Waters Acquity UPLC system coupled to a Xevo TQ-XS
+      triple-quadrupole mass spectrometer in positive ion mode. A targeted panel of 217 metabolites
+      (amino acids, acylcarnitines, biogenic amines) was quantified using isotopically labeled
+      internal standards and a 7-point calibration curve. Data were processed with MassLynx v4.2
+      and TargetLynx XS. Metabolite concentrations were normalized to the total protein content
+      of each sample.
+    expected_workflow: metabolomics
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_020
+    source_type: published_methods
+    domain: drug_discovery
+    protocol_text: >
+      Lead compound 7c (MW 412.5, logP 3.2) was docked into the ATP-binding site of EGFR kinase
+      (PDB: 1IEP) using AutoDock Vina v1.2.3. The protein structure was prepared by removing
+      co-crystallized ligand, adding hydrogen atoms with UCSF Chimera, and assigning Gasteiger
+      charges. The docking grid was centered on the known inhibitor binding site (coordinates:
+      x=22.7, y=3.5, z=25.1) with dimensions 25×25×25 Å. Exhaustiveness was set to 16 and 9
+      binding poses were generated. The top-ranked pose (docking score -10.3 kcal/mol) was
+      analyzed for key interactions with Lys745 and Thr854. Molecular dynamics was performed for
+      50 ns to assess pose stability.
+    expected_workflow: molecular_docking
+    expected_params: {}
+    expected_clarifications: []
+
+  # =========================================================================
+  # Source B: Lab SOP descriptions (10 cases)
+  # =========================================================================
+
+  - id: proto_021
+    source_type: lab_sop
+    domain: single_cell
+    protocol_text: >
+      Our standard single-cell protocol: dissociate tissue per the tissue-specific SOP, check
+      viability >85%, target 10,000 cells per sample, run on 10x Chromium v3.1. Process with
+      Cell Ranger against the human reference. Filter cells: nFeature_RNA 200-6000, percent.mt
+      < 20%, nCount_RNA > 500. Seurat workflow with SCTransform normalization, RunPCA, RunUMAP,
+      FindNeighbors, FindClusters at resolution 0.3-0.8 depending on sample complexity. Cell
+      type annotation using SingleR with the HumanPrimaryCellAtlas reference.
+    expected_workflow: scrna_seq
+    expected_params:
+      genome: GRCh38
+      expected_cells: 10000
+    expected_clarifications: []
+
+  - id: proto_022
+    source_type: lab_sop
+    domain: genomics
+    protocol_text: >
+      Standard bulk RNA-seq pipeline: extract RNA (RIN > 7), build TruSeq Stranded mRNA libraries,
+      sequence 20M PE150 reads on NovaSeq. Align with STAR to GRCm39. Count with HTSeq-count in
+      union mode. Run DESeq2 with batch correction for sequencing date if samples span multiple
+      runs. Always include sex as a covariate for mouse samples.
+    expected_workflow: rnaseq
+    expected_params:
+      genome: GRCm39
+      strandedness: reverse
+    expected_clarifications: []
+
+  - id: proto_023
+    source_type: lab_sop
+    domain: genomics
+    protocol_text: >
+      Whole exome sequencing pipeline: extract DNA from FFPE sections (QC with Qubit and
+      Bioanalyzer), capture with Agilent SureSelect Human All Exon v7, sequence PE150 on
+      NextSeq 550 at 100x mean target coverage. Process FASTQ with nf-core/sarek v3.3 with
+      GATK4 best practices. Mark duplicates, BQSR, call variants with HaplotypeCaller in GVCF
+      mode. Filter with VQSR for SNPs and hard filtering for indels.
+    expected_workflow: variant_calling
+    expected_params:
+      genome: GRCh38
+      wes: true
+      tools: haplotypecaller
+    expected_clarifications: []
+
+  - id: proto_024
+    source_type: lab_sop
+    domain: epigenomics
+    protocol_text: >
+      ChIP-seq protocol for transcription factors: Fix 10M cells, sonicate to 200-500bp, IP with
+      2-5ug antibody (protein A/G beads), library prep with NEBNext Ultra II. Sequence SE50 on
+      NextSeq. Align with Bowtie2 to hg38. Call narrow peaks with MACS2. Always include input
+      control.
+    expected_workflow: chip_seq
+    expected_params:
+      genome: GRCh38
+      macs2_broad: false
+    expected_clarifications: []
+
+  - id: proto_025
+    source_type: lab_sop
+    domain: metagenomics
+    protocol_text: >
+      Gut microbiome 16S pipeline: DNA from stool using Qiagen PowerFecal. PCR amplify V4 with
+      515F/806R primers. Pair-end 2×250bp on MiSeq. Process in QIIME2: trim adapters, denoise
+      with DADA2, classify with SILVA 138.1 classifier. Calculate diversity metrics. Minimum
+      10,000 reads per sample after QC.
+    expected_workflow: metagenomics
+    expected_params:
+      FW_primer: GTGYCAGCMGCCGCGGTAA
+      RV_primer: GGACTACNVGGGTWTCTAAT
+    expected_clarifications: []
+
+  - id: proto_026
+    source_type: lab_sop
+    domain: epigenomics
+    protocol_text: >
+      ATAC-seq on sorted cells: sort 50,000 cells, lyse nuclei 10 min on ice, Tn5 tagmentation
+      37°C 30min, library amplification 8-12 cycles, size select 150-1000bp. Paired-end sequencing
+      50bp on NextSeq. nf-core/atacseq pipeline with hg38 reference. Remove mitochondrial reads.
+      FRiP >10% expected.
+    expected_workflow: atac_seq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_027
+    source_type: lab_sop
+    domain: proteomics
+    protocol_text: >
+      Label-free proteomics protocol: lyse in RIPA, normalize to 50ug protein, trypsin digest
+      overnight, C18 cleanup, analyze on timsTOF Pro with PASEF acquisition (DDA mode). 2 hour
+      gradient. Search with MaxQuant LFQ against human reviewed UniProt. At least 2 unique
+      peptides per protein. CV < 20% between technical replicates.
+    expected_workflow: proteomics_lfq
+    expected_params: {}
+    expected_clarifications: []
+
+  - id: proto_028
+    source_type: lab_sop
+    domain: epigenomics
+    protocol_text: >
+      RRBS protocol: digest with MspI, fill ends, ligate adapters, bisulfite convert, PCR amplify
+      8-12 cycles. Sequence SE75 on HiSeq. Run nf-core/methylseq with Bismark, GRCh38. Minimum
+      10x coverage for methylation calls. DMR analysis between tumor and adjacent normal.
+    expected_workflow: bisulfite_seq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_029
+    source_type: lab_sop
+    domain: genomics
+    protocol_text: >
+      Nanopore sequencing: extract HMW DNA per tissue DNA kit protocol. Library prep with Ligation
+      Sequencing Kit SQK-LSK114. Run on R10.4.1 MinION flow cell, 72h run. Basecall with Guppy
+      HAC model (Q≥10). Align to GRCh38 with minimap2 (-ax map-ont). Depth >20x for SV calling
+      with Sniffles2.
+    expected_workflow: long_read_seq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications: []
+
+  - id: proto_030
+    source_type: lab_sop
+    domain: spatial_transcriptomics
+    protocol_text: >
+      Visium protocol for OCT sections: prepare 10um sections, perform H&E, then follow 10x
+      Visium spatial gene expression protocol. Capture area: 6.5x6.5mm, 3000-5000 spots.
+      Sequencing: 50k reads/spot PE28x90 on NovaSeq. Space Ranger against GRCm39 mouse reference.
+      Seurat spatially variable gene analysis.
+    expected_workflow: spatial_transcriptomics
+    expected_params:
+      genome: GRCm39
+    expected_clarifications: []
+
+  # =========================================================================
+  # Source C: Ambiguous / incomplete protocols (5 cases)
+  # =========================================================================
+
+  - id: proto_031
+    source_type: ambiguous
+    domain: genomics
+    protocol_text: >
+      RNA extraction from sorted immune cells was performed using the RNeasy Micro Kit. RNA-seq
+      libraries were prepared and sequenced to 20 million reads per sample on an Illumina platform.
+      Alignment was performed to the human reference genome using standard parameters. Differential
+      expression analysis identified 847 significantly altered transcripts between activated and
+      resting cells.
+    expected_workflow: rnaseq
+    expected_params:
+      genome: GRCh38
+    expected_clarifications:
+      - strandedness
+    notes: "Library prep method not stated — strandedness unknown. Must ask."
+
+  - id: proto_032
+    source_type: ambiguous
+    domain: proteomics
+    protocol_text: >
+      Protein samples from 12 patient-derived xenografts were processed for mass spectrometry
+      analysis. Tryptic peptides were analyzed on an Orbitrap Eclipse instrument (Thermo Fisher)
+      coupled to an Easy-nLC 1200 system. Data were searched against the human proteome database
+      and protein quantification was performed for comparative analysis between responders and
+      non-responders.
+    expected_workflow: proteomics_lfq
+    expected_params: {}
+    expected_clarifications:
+      - acquisition_mode
+    notes: "DDA vs DIA not specified. MaxQuant vs DIA-NN ambiguous. Must ask."
+
+  - id: proto_033
+    source_type: ambiguous
+    domain: genomics
+    protocol_text: >
+      Patient-derived organoids (PDOs) established from colorectal cancer biopsies were subjected
+      to genomic analysis. Libraries were prepared from extracted nucleic acids and sequenced to
+      high depth on a NextSeq platform. The resulting data were aligned to the human reference
+      genome and analyzed to characterize genomic alterations relevant to treatment selection.
+    expected_workflow: null
+    expected_params: {}
+    expected_clarifications:
+      - data_type
+      - analysis_type
+    notes: "DNA or RNA? Somatic variant calling or gene expression? Must ask."
+
+  - id: proto_034
+    source_type: ambiguous
+    domain: metagenomics
+    protocol_text: >
+      Microbial community composition was assessed from environmental soil samples collected from
+      three field sites. DNA was extracted and libraries were prepared for sequencing. Sequencing
+      was performed on a NextSeq 500 platform with 150 bp reads. Taxonomic profiling was performed
+      against reference databases to characterize community diversity.
+    expected_workflow: metagenomics
+    expected_params: {}
+    expected_clarifications:
+      - sequencing_strategy
+    notes: "16S amplicon vs shotgun metagenomics not stated. Must ask."
+
+  - id: proto_035
+    source_type: ambiguous
+    domain: epigenomics
+    protocol_text: >
+      Chromatin immunoprecipitation was performed on 5×10^6 cells using standard ChIP-seq
+      protocols. The chromatin was fragmented by sonication to approximately 200-500 bp fragments.
+      Following immunoprecipitation and library preparation, samples were sequenced on an Illumina
+      platform. Peak calling was performed to identify enriched regions across the genome.
+    expected_workflow: chip_seq
+    expected_params:
+      genome: null
+    expected_clarifications:
+      - organism
+      - antibody_target
+    notes: "No organism stated — cannot set genome. No antibody target — broad or narrow peaks unknown."

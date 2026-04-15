@@ -64,7 +64,7 @@ export function SessionEndPulse({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} modal={false}>
       <DialogContent
         showOverlay={false}
         className="sm:max-w-md w-[calc(100vw-2rem)] left-auto right-4 top-auto bottom-4 translate-x-0 translate-y-0"

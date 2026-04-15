@@ -463,6 +463,7 @@ Please analyze which datasets can satisfy which inputs, identify any missing req
         {
           model: 'claude-sonnet-4-5',
           max_tokens: 4096,
+          temperature: 0,
           messages: [
             { role: 'user', content: userPrompt },
           ],
@@ -640,6 +641,7 @@ ${fulfilled ? 'Let them know everything looks ready.' : 'Ask them for the missin
       const response = await this.claude.messages.create({
         model: 'claude-sonnet-4-5',
         max_tokens: 1024,
+        temperature: 0,
         messages: [
           { role: 'user', content: userPrompt },
         ],

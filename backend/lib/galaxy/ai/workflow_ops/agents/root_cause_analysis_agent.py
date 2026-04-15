@@ -111,7 +111,7 @@ class RootCauseAnalysisAgent(BaseAgent):
             response = self.llm_client.call(
                 messages=messages,
                 model="claude-3-5-haiku-20241022",  # 使用 Anthropic 的经济模型
-                temperature=0.3,
+                temperature=0.0,
                 max_tokens=1000
             )
 

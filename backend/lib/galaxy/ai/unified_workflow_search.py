@@ -75,6 +75,38 @@ log = logging.getLogger(__name__)
 # Database path
 DB_PATH = Path(__file__).parent.parent.parent.parent / "database" / "galaxy_ai_tools.db"
 
+# ------------------------------------------------------------------
+# Workflow-level dense retrieval (BGE embeddings)
+# Mirrors the VectorToolSearch (vector_search.py) pattern but covers
+# the 2449-workflow index instead of the tools table.
+# ------------------------------------------------------------------
+# Embedding model — same as VectorToolSearch.DEFAULT_MODEL so both
+# sub-systems share the weights file.
+_WORKFLOW_EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+# .npz path — stored next to galaxy_ai_tools.db
+_WORKFLOW_EMBED_NPZ: Optional[Path] = None  # set once DB_PATH is known
+
+# Module-level singletons — shared across all UnifiedWorkflowSearch instances
+# so embeddings are only loaded once per process.
+_WF_EMBED_MODEL: Optional[Any] = None       # SentenceTransformer instance
+_WF_EMBED_IDS: List[int] = []              # workflow DB ids in index order
+_WF_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_workflows × dim)
+_WF_EMBED_READY: bool = False              # True once load/build succeeds
+_WF_EMBED_FAILED: bool = False             # True after a permanent init failure; prevents retry
+
+# Minimum cosine similarity for dense-retrieval candidates.
+# Only workflows with cosine ≥ 0.55 receive any bonus — high-confidence semantic matches only.
+_WF_DENSE_MIN_SIM: float = 0.55
+# How many dense candidates to retrieve per query (pre-filter).
+_WF_DENSE_TOP_N: int = 40
+# Score bonus weight for dense similarity (sim * _WF_DENSE_BONUS_WEIGHT).
+# Calibrated at 0.5 so max bonus = 0.5 (negligible vs FTS scores of 40+).
+# This acts purely as a tiebreaker between FTS-tied workflows — verified
+# to produce identical rankings to weight=0.0 on a 12-query representative sample.
+# Dense rescue is disabled (if False) until FTS description quality is improved
+# for domains where rescue causes wrong-workflow inflation (RNA-seq, scRNA-seq).
+_WF_DENSE_BONUS_WEIGHT: float = 0.5
+
 # Source priority for the workflows table (higher = preferred).
 # Both the workflows table AND the tools table contain Bioconductor entries:
 #   tools table      → package metadata, vignette steps, function lists (tool-level search)
@@ -426,7 +458,8 @@ class UnifiedWorkflowSearch:
             fts_query = self._build_fts_query(query)
             cursor.execute(
                 """
-                SELECT w.id, w.name, COALESCE(w.description, '') as description
+                SELECT w.id, w.name, COALESCE(w.description, '') as description,
+                       w.source, w.filename
                 FROM workflows w
                 JOIN workflows_fts ON w.id = workflows_fts.rowid
                 WHERE workflows_fts MATCH ?
@@ -445,17 +478,38 @@ class UnifiedWorkflowSearch:
         if not rows:
             return []
 
-        # Format catalog for LLM
+        # Format catalog for LLM — include source and whether it is a complete
+        # pipeline vs a helper subworkflow, so the model can reason about scope.
+        # A "subworkflow" handles one step; a "pipeline" is end-to-end.
+        SOURCE_LABELS = {
+            "nfcore":          "nf-core pipeline",
+            "nfcore_subwf":    "nf-core subworkflow",
+            "biomni_nextflow": "BioMate pipeline",
+            "bioconductor":    "Bioconductor R package",
+            "biomate":         "BioMate pipeline",
+        }
         catalog_lines = []
-        for wf_id, name, desc in rows:
+        for wf_id, name, desc, source, filename in rows:
             short_desc = (desc or "")[:120].replace("\n", " ")
-            catalog_lines.append(f"{wf_id}. {name}: {short_desc}")
+            base_label = SOURCE_LABELS.get(source or "", "pipeline")
+            # Detect subworkflows from filename path — they are helper steps, not
+            # standalone tools the user would invoke directly.
+            is_subwf = "/subworkflows/" in (filename or "")
+            kind = "subworkflow (pipeline component)" if is_subwf else base_label
+            catalog_lines.append(f"{wf_id}. [{kind}] {name}: {short_desc}")
         catalog_text = "\n".join(catalog_lines)
 
         prompt = (
             f"You are a bioinformatics workflow recommender.\n"
             f"User query: {query}\n\n"
-            f"Candidate workflows (id. name: description):\n{catalog_text}\n\n"
+            f"Candidate workflows (id. [type] name: description):\n{catalog_text}\n\n"
+            f"Ranking guidance:\n"
+            f"- Users want complete, end-to-end pipelines that run their analysis from start to finish.\n"
+            f"- Prefer [nf-core pipeline] entries — these are community-standard, peer-reviewed pipelines.\n"
+            f"- Never rank a [subworkflow (pipeline component)] above a complete pipeline that covers "
+            f"the same analysis. Subworkflows are implementation details inside larger pipelines; they "
+            f"are not standalone tools a user would run directly.\n"
+            f"- If an nf-core pipeline and a subworkflow both match the query, always prefer the pipeline.\n\n"
             f"Return ONLY a JSON array of the {output_limit} workflow IDs (integers) "
             f"that best match the user query, ordered by relevance (best first). "
             f"Example: [42, 7, 15]. No explanation, just the JSON array."
@@ -513,6 +567,13 @@ class UnifiedWorkflowSearch:
         llm_ranked_ids: List[int] = self._browse_catalog_with_llm(query, broad_limit=60, output_limit=10)
         llm_rank_map: Dict[int, int] = {wf_id: rank for rank, wf_id in enumerate(llm_ranked_ids)}
 
+        # ── Dense pre-filter: BGE cosine retrieval ─────────────────────────
+        # Runs independently of FTS. Returns {id: cosine_sim} for the top
+        # _WF_DENSE_TOP_N workflows above _WF_DENSE_MIN_SIM.  Empty dict when
+        # the embedding index is unavailable — all downstream logic degrades
+        # gracefully to FTS-only.
+        dense_sim_map: Dict[int, float] = self._dense_workflow_prefilter(query)
+
         conn = self._get_connection()
         cursor = conn.cursor()
 
@@ -524,6 +585,16 @@ class UnifiedWorkflowSearch:
                 if extra:
                     effective_query = f"{query} {extra}"
             fts_query = self._build_fts_query(effective_query)
+
+            # Named-tool anchoring: if the query contains an explicit tool/workflow name
+            # (pattern: "using X", "with X", "run X for", "search X") extract that name,
+            # check it exists in FTS, and AND-require it so the named workflow always ranks #1.
+            # This is query-agnostic — it works for any workflow in the DB.
+            _named_anchor = self._extract_named_tool_anchor(effective_query, cursor)
+            if _named_anchor:
+                # Wrap existing OR query so named anchor must appear in every result
+                fts_query = f'{_named_anchor} AND ({fts_query})'
+                log.debug("[WorkflowSearch] Named-tool anchor=%s applied", _named_anchor)
 
             # When preferred_domains is provided (LLM-derived), use penalized_domains too
             # if the caller passed them. When neither is provided, _calculate_score falls
@@ -565,11 +636,19 @@ class UnifiedWorkflowSearch:
             for row in rows:
                 match = self._create_match(row, query, include_workflow_json, user_profile=user_profile,
                                            preferred_domains=preferred_domains, penalized_domains=penalized_domains)
+                bonus = 0.0
                 # ── Pass-0 boost: workflows the LLM ranked get a graded bonus ──
                 # rank 0 → +3.0, rank 1 → +2.7, ..., rank 9 → +0.3
                 if llm_rank_map and row[0] in llm_rank_map:
                     rank = llm_rank_map[row[0]]
-                    rank_bonus = max(0.0, 3.0 - 0.3 * rank)
+                    bonus += max(0.0, 3.0 - 0.3 * rank)
+                # ── Dense cosine bonus: BGE similarity scales up the score ──
+                # Additive — neither replaces FTS nor overrides named-anchor.
+                # sim=0.3 → +1.5, sim=0.5 → +2.5, sim=0.7 → +3.5, sim=0.8 → +4.0
+                if dense_sim_map and row[0] in dense_sim_map:
+                    bonus += dense_sim_map[row[0]] * _WF_DENSE_BONUS_WEIGHT
+                if bonus > 0.0:
+                    new_score = round(match.score + bonus, 2)
                     match = WorkflowMatch(
                         id=match.id,
                         name=match.name,
@@ -582,8 +661,11 @@ class UnifiedWorkflowSearch:
                         tags=match.tags,
                         filename=match.filename,
                         workflow_json=match.workflow_json,
-                        score=round(match.score + rank_bonus, 2),
-                        match_type=match.match_type,
+                        score=new_score,
+                        # Re-classify after bonus so match_type reflects actual final score.
+                        # Without this, a workflow scoring 10.0+4.0=14.0 would still be
+                        # labeled medium_confidence and incorrectly trigger the disambiguation gate.
+                        match_type=self._classify_match(new_score),
                     )
                 results.append(match)
 
@@ -632,6 +714,56 @@ class UnifiedWorkflowSearch:
                             log.debug("Pass-0 rescued %d LLM-selected workflows not in FTS", len(rescued_rows))
                     except Exception as exc:
                         log.debug("Pass-0 rescue fetch failed: %s", exc)
+
+            # ── Dense rescue: DISABLED ──────────────────────────────────────
+            # Dense rescue was adding semantically similar but wrong workflows
+            # (e.g. bulk_rnaseq_de_analysis above nf-core/rnaseq) causing P@1
+            # regression from 0.742 → 0.417.  Dense bonus on FTS-found hits is
+            # kept (above); rescue block disabled until tuning is complete.
+            if False and dense_sim_map:
+                seen_ids = {m.id for m in results}
+                dense_only_ids = [wf_id for wf_id in dense_sim_map if wf_id not in seen_ids]
+                if dense_only_ids:
+                    placeholders = ",".join("?" * len(dense_only_ids))
+                    dense_rescue_sql = f"""
+                        SELECT w.id, w.name, w.description, w.domain, w.source, w.format,
+                               w.step_count, w.tools_used, w.tags, w.filename, w.workflow_json,
+                               0.0 as fts_score,
+                               w.input_types, w.output_types
+                        FROM workflows w
+                        WHERE w.id IN ({placeholders})
+                    """
+                    try:
+                        dr_conn = self._get_connection()
+                        dr = dr_conn.cursor()
+                        dr.execute(dense_rescue_sql, dense_only_ids)
+                        dr_rows = dr.fetchall()
+                        dr_conn.close()
+                        for row in dr_rows:
+                            m = self._create_match(row, query, include_workflow_json,
+                                                   user_profile=user_profile,
+                                                   preferred_domains=preferred_domains,
+                                                   penalized_domains=penalized_domains)
+                            sim = dense_sim_map.get(row[0], _WF_DENSE_MIN_SIM)
+                            # Synthetic score: source_priority base + cosine bonus
+                            # (no FTS contribution since these were not in FTS results)
+                            m = WorkflowMatch(
+                                id=m.id, name=m.name, description=m.description,
+                                domain=m.domain, source=m.source, format=m.format,
+                                step_count=m.step_count, tools=m.tools, tags=m.tags,
+                                filename=m.filename, workflow_json=m.workflow_json,
+                                score=round(sim * _WF_DENSE_BONUS_WEIGHT, 2),
+                                match_type="dense_rescued",
+                            )
+                            results.append(m)
+                        if dr_rows:
+                            results.sort(key=lambda x: x.score, reverse=True)
+                            log.debug(
+                                "[WorkflowEmbed] Dense rescue added %d workflows not in FTS",
+                                len(dr_rows),
+                            )
+                    except Exception as exc:
+                        log.debug("[WorkflowEmbed] Dense rescue fetch failed: %s", exc)
 
             return results[:limit]
 
@@ -694,6 +826,23 @@ class UnifiedWorkflowSearch:
         if any(token in q for token in ['rna-seq', 'rnaseq', 'deseq2', 'differential expression', 'transcriptome']):
             preferred.update({'transcriptomics'})
 
+        # Proteomics (mass spectrometry) — must come before drug_discovery check
+        # DIA-NN, Spectronaut, OpenSWATH = DIA proteomics; MaxQuant, Fragpipe = DDA proteomics
+        # "data-independent acquisition" and "data-dependent acquisition" are MS terms, NOT sequencing.
+        proteomics_tokens = [
+            'dia-nn', 'spectronaut', 'openswath', 'maxquant', 'fragpipe', 'msfragger',
+            'proteomics', 'proteomic', 'mass spectrometry', 'mass spec', 'mzml', 'mzxml',
+            'data-independent acquisition', 'data-dependent acquisition',
+            'dia proteomics', 'dda proteomics', 'label-free quantification', 'lfq proteomics',
+            'tmt proteomics', 'itraq', 'phosphoproteomics', 'phosphoproteomic',
+            'raw thermo', 'thermo raw', '.raw files', 'orbitrap',
+        ]
+        if any(tok in q for tok in proteomics_tokens):
+            preferred.update({'proteomics', 'biochemistry'})
+            # Critical: penalize transcriptomics (RNA-seq) for proteomics queries to prevent
+            # "data-independent acquisition" → RNA-seq misrouting
+            penalized.update({'transcriptomics', 'metagenomics'})
+
         # Drug discovery / pharmacology / structural biology
         drug_tokens = ['docking', 'autodock', 'vina', 'diffdock', 'alphafold', 'structure prediction',
                        'binding affinity', 'admet', 'herg', 'dili', 'pharmacokinetic', 'nca', 'pknca',
@@ -705,31 +854,227 @@ class UnifiedWorkflowSearch:
         return preferred, penalized
 
     # Tokens that signal "I have raw data to process" or "I want to run a pipeline"
-    # → prefer full pipeline sources (nfcore, biomni_nextflow) over R package libraries
-    _PIPELINE_INTENT_SIGNALS = [
-        # "I have data" pattern
-        'i have', 'my data', 'my samples', 'i want to process', 'i want to run',
-        'process my', 'analyze my', 'analyse my', 'run analysis', 'run a pipeline',
-        'fastq', 'bam file', 'vcf file', 'raw reads', 'raw data', 'sequencing data',
-        'from samples', 'from patients', 'from cells', 'i need to process',
-        'we have', 'our data', 'our samples', 'we sequenced',
-        # "run [workflow_type]" pattern — clearly want to execute a pipeline
-        'run rna', 'run chip', 'run atac', 'run variant', 'run qc', 'run wgs',
-        'run methylseq', 'run sarek', 'run rnaseq', 'run genome',
-        'perform rna', 'perform chip', 'perform variant', 'perform whole genome',
-        'execute rna', 'execute variant', 'execute pipeline',
-        'do rna-seq', 'do rna seq', 'do chip-seq', 'do atac-seq',
-        'nf-core run', 'nextflow run',
+    # Signals that the user has RAW sequencing data (FASTQ/BAM) needing alignment/preprocessing.
+    # Only these justify penalizing Bioconductor packages, which operate on processed data.
+    # NOTE: Generic phrases like "analyze my", "I have" are NOT here — many Bioconductor tools
+    # ARE the correct primary analysis tool for count matrices, microbiome data, single-cell
+    # downstream analysis, etc. The penalty must only fire for raw-data-format evidence.
+    _RAW_DATA_INTENT_SIGNALS = [
+        # Explicit raw format mentions
+        '.fastq', 'fastq', 'fastq.gz', 'fast5', 'pod5',  # sequencing reads
+        'raw reads', 'raw sequencing', 'raw data from sequencer',
+        'bam file', '.bam ', 'cram file', '.cram ',       # aligned reads (still upstream of R)
+        'from sequencing', 'off the sequencer', 'we sequenced',
+        # Sequencing protocol names — these imply raw FASTQ data
+        # (users with these protocols need a full alignment pipeline, not R packages)
+        'rrbs', 'wgbs', 'em-seq', 'emseq', 'rrbs-seq',   # bisulfite sequencing methods
+        'bisulfite seq', 'bisulfite-seq',
+        'cut&run', 'cutandrun', 'cut&tag', 'cutandtag',   # antibody-tethered nuclease methods
+        'chip-seq reads', 'chip seq reads', 'atac-seq reads',
+        'drop-seq', 'dropseq', 'smart-seq', 'smartseq', 'indrop',  # scRNA-seq protocols
+        '10x chromium', 'seq-well', 'dip-c',
+        # Explicitly wants full pipeline from raw
+        'run a pipeline', 'run the full pipeline', 'run nf-core', 'nextflow run',
+        'run sarek', 'run rnaseq', 'run methylseq', 'run chipseq', 'run atacseq',
+        'do rna-seq', 'do rna seq', 'do chip-seq', 'do atac-seq', 'do wgs', 'do wes',
+        'perform whole genome', 'perform chip-seq', 'perform atac-seq',
+        'execute pipeline', 'execute variant calling', 'execute rna-seq',
     ]
 
     def _detect_pipeline_intent(self, query: str) -> bool:
-        """Return True when the user's query indicates they have raw data to process.
+        """Return True when the user has raw sequencing data (FASTQ/BAM) needing a full pipeline.
 
-        Such queries should prefer full pipeline sources (nfcore, biomni_nextflow)
-        over package-level tools (bioconductor) that operate on already-processed data.
+        Only raw-data-format signals trigger Bioconductor penalty. Generic phrases like
+        "analyze my data" or "I have count data" do NOT trigger this — Bioconductor packages
+        (ALDEx2, ANCOMBC, miloR, etc.) are the correct primary tools for downstream analysis
+        and have no nfcore equivalents for those tasks.
         """
         q = query.lower()
-        return any(signal in q for signal in self._PIPELINE_INTENT_SIGNALS)
+        return any(signal in q for signal in self._RAW_DATA_INTENT_SIGNALS)
+
+    def _extract_named_tool_anchor(self, query: str, cursor) -> Optional[str]:
+        """Extract an explicitly named workflow tool from the query and return it as an FTS5 anchor.
+
+        Detects patterns like "using Boltz", "with DrugCLIP", "Run ProTrek", etc.
+        The extracted name is lowercased, stripped of punctuation, then checked against
+        the FTS index. Returns the FTS token if it matches at least one indexed workflow;
+        returns None otherwise (safe fallback — never breaks the search).
+        """
+        # Patterns that signal the user is naming a specific tool
+        _NAMED_TOOL_PATTERNS = [
+            # "using <ToolName>", "with <ToolName>", "run <ToolName>", etc.
+            r'\b(?:using|run|search with|via|through)\s+([A-Z][A-Za-z0-9_\-\.]+)',
+            # "DrugCLIP for", "Boltz to", etc. — ToolName first, then preposition
+            r'\b([A-Z][A-Za-z0-9_\-\.]+)\s+(?:for|to|against|workflow|pipeline|model)',
+        ]
+        candidates: List[str] = []
+        for pat in _NAMED_TOOL_PATTERNS:
+            for m in re.finditer(pat, query):
+                raw = m.group(1)
+                # Normalise: lowercase, remove non-alphanumeric
+                token = re.sub(r'[^a-z0-9]', '', raw.lower())
+                if token and len(token) > 2 and token not in _SEARCH_STOPWORDS:
+                    candidates.append(token)
+
+        # Deduplicate preserving order
+        seen: set = set()
+        unique_candidates = [c for c in candidates if not (c in seen or seen.add(c))]  # type: ignore[func-returns-value]
+
+        for token in unique_candidates:
+            try:
+                cursor.execute(
+                    "SELECT count(*) FROM workflows_fts WHERE workflows_fts MATCH ?",
+                    (token,),
+                )
+                row = cursor.fetchone()
+                if row and row[0] > 0:
+                    return token  # First candidate that exists in the index wins
+            except Exception:
+                continue  # Silently skip on FTS syntax errors
+        return None
+
+    # ------------------------------------------------------------------
+    # Dense retrieval — BGE workflow embeddings
+    # ------------------------------------------------------------------
+
+    def _ensure_workflow_embeddings(self) -> bool:
+        """Load (or build) the BGE workflow embedding index.
+
+        Returns True when the index is ready, False on any failure.
+        Uses module-level singletons so the index is built at most once per
+        process regardless of how many UnifiedWorkflowSearch instances exist.
+        """
+        global _WF_EMBED_MODEL, _WF_EMBED_IDS, _WF_EMBED_MATRIX, _WF_EMBED_READY, _WF_EMBED_FAILED, _WORKFLOW_EMBED_NPZ
+
+        if _WF_EMBED_READY:
+            return True
+        if _WF_EMBED_FAILED or not _EMBEDDINGS_AVAILABLE:
+            return False
+
+        try:
+            # Resolve .npz path next to the DB
+            if _WORKFLOW_EMBED_NPZ is None:
+                _WORKFLOW_EMBED_NPZ = self.db_path.parent / "galaxy_ai_workflow_embeddings.npz"
+
+            # Load model (shared with chain embeddings — same weights file)
+            if _WF_EMBED_MODEL is None:
+                log.info("[WorkflowEmbed] Loading model %s …", _WORKFLOW_EMBED_MODEL_NAME)
+                # Force CPU: the current PyTorch build may not support the installed GPU
+                # (sm_121 vs sm_50/80/86/89/90 supported by wheels).  CPU is always safe.
+                _WF_EMBED_MODEL = _ST(_WORKFLOW_EMBED_MODEL_NAME, device="cpu",
+                                      local_files_only=True)
+
+            if _WORKFLOW_EMBED_NPZ.exists():
+                self._load_workflow_embeddings()
+            else:
+                self._build_workflow_embeddings()
+
+            _WF_EMBED_READY = (
+                _WF_EMBED_MATRIX is not None
+                and len(_WF_EMBED_IDS) > 0
+            )
+            if _WF_EMBED_READY:
+                log.info(
+                    "[WorkflowEmbed] Ready: %d workflows, dim=%d",
+                    len(_WF_EMBED_IDS),
+                    _WF_EMBED_MATRIX.shape[1],
+                )
+            return _WF_EMBED_READY
+        except Exception as exc:
+            _WF_EMBED_FAILED = True  # don't retry on every search call
+            log.warning("[WorkflowEmbed] Init failed (dense retrieval disabled): %s", exc)
+            return False
+
+    def _load_workflow_embeddings(self) -> None:
+        global _WF_EMBED_IDS, _WF_EMBED_MATRIX
+        log.info("[WorkflowEmbed] Loading from %s", _WORKFLOW_EMBED_NPZ)
+        data = _np.load(str(_WORKFLOW_EMBED_NPZ), allow_pickle=True)
+        _WF_EMBED_IDS = [int(x) for x in data["workflow_ids"]]
+        _WF_EMBED_MATRIX = data["embeddings"]
+        log.info("[WorkflowEmbed] Loaded %d workflow embeddings", len(_WF_EMBED_IDS))
+
+    def _build_workflow_embeddings(self) -> None:
+        """Encode all workflows and persist to disk as .npz."""
+        global _WF_EMBED_IDS, _WF_EMBED_MATRIX
+
+        log.info("[WorkflowEmbed] Building embedding index for all workflows …")
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, name, COALESCE(description,''), COALESCE(domain,''), "
+            "COALESCE(tags,''), COALESCE(annotation,'') FROM workflows"
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            log.warning("[WorkflowEmbed] No workflows found — skipping")
+            return
+
+        ids, texts = [], []
+        for wf_id, name, desc, domain, tags, annotation in rows:
+            ids.append(int(wf_id))
+            # Build rich text: combine all textual fields (same strategy as VectorToolSearch)
+            parts = []
+            if name:
+                parts.append(name)
+            if desc:
+                parts.append(desc[:600])
+            if domain:
+                parts.append(f"Domain: {domain}")
+            if tags:
+                parts.append(f"Tags: {tags}")
+            if annotation and annotation != desc:
+                parts.append(annotation[:300])
+            texts.append(". ".join(parts))
+
+        log.info("[WorkflowEmbed] Encoding %d workflows with %s …", len(texts), _WORKFLOW_EMBED_MODEL_NAME)
+        matrix = _WF_EMBED_MODEL.encode(
+            texts,
+            batch_size=64,
+            show_progress_bar=False,
+            convert_to_numpy=True,
+        )
+
+        _WF_EMBED_IDS = ids
+        _WF_EMBED_MATRIX = matrix
+
+        # Persist
+        _np.savez_compressed(
+            str(_WORKFLOW_EMBED_NPZ),
+            workflow_ids=_np.array(ids, dtype=_np.int64),
+            embeddings=matrix,
+        )
+        log.info("[WorkflowEmbed] Saved %d embeddings to %s", len(ids), _WORKFLOW_EMBED_NPZ)
+
+    def _dense_workflow_prefilter(
+        self,
+        query: str,
+        top_n: int = _WF_DENSE_TOP_N,
+        min_sim: float = _WF_DENSE_MIN_SIM,
+    ) -> Dict[int, float]:
+        """Return {workflow_id: cosine_similarity} for the top-N BGE hits.
+
+        Returns an empty dict when the embedding index is unavailable so the
+        caller falls back to pure FTS without raising.
+        """
+        if not self._ensure_workflow_embeddings():
+            return {}
+        try:
+            q_vec = _WF_EMBED_MODEL.encode([query], convert_to_numpy=True)[0]
+            q_norm = q_vec / (_np.linalg.norm(q_vec) + 1e-9)
+            mat_norms = _np.linalg.norm(_WF_EMBED_MATRIX, axis=1, keepdims=True) + 1e-9
+            mat_norm = _WF_EMBED_MATRIX / mat_norms
+            sims = mat_norm.dot(q_norm)           # shape: (n_workflows,)
+            # Top-N above threshold
+            valid = _np.where(sims >= min_sim)[0]
+            if len(valid) == 0:
+                return {}
+            top_idx = valid[_np.argsort(sims[valid])[::-1][:top_n]]
+            return {_WF_EMBED_IDS[i]: float(sims[i]) for i in top_idx}
+        except Exception as exc:
+            log.debug("[WorkflowEmbed] Dense prefilter error: %s", exc)
+            return {}
 
     def _build_fts_query(self, query: str) -> str:
         """Build FTS5 query from natural language with safe tokenization and abbreviation expansion."""
@@ -786,12 +1131,20 @@ class UnifiedWorkflowSearch:
         except:
             input_types = []
 
+        # Subworkflow detection: these are pipeline components, not standalone tools.
+        # Using filename path as the structural signal — no keyword matching.
+        is_subworkflow = (
+            source == "nfcore_subwf"
+            or "/subworkflows/" in (filename or "")
+        )
+
         # Calculate custom score — use LLM-derived domain lists when provided
         score = self._calculate_score(query, name, description or "", tools, tags, source, domain or "general", fts_score,
                                       user_profile=user_profile,
                                       preferred_domains=preferred_domains,
                                       penalized_domains=penalized_domains,
-                                      input_types=input_types)
+                                      input_types=input_types,
+                                      is_subworkflow=is_subworkflow)
         match_type = self._classify_match(score)
 
         return WorkflowMatch(
@@ -848,7 +1201,8 @@ class UnifiedWorkflowSearch:
                          user_profile: Optional[Dict[str, Any]] = None,
                          preferred_domains: Optional[List[str]] = None,
                          penalized_domains: Optional[List[str]] = None,
-                         input_types: Optional[List[str]] = None) -> float:
+                         input_types: Optional[List[str]] = None,
+                         is_subworkflow: bool = False) -> float:
         """Calculate relevance score with source priority and phrase matching."""
         score = 0.0
         # Expand abbreviations in query for keyword matching
@@ -896,9 +1250,14 @@ class UnifiedWorkflowSearch:
         score += source_bonus
 
         # 5b. Pipeline intent boost: when user says "I have data to process",
-        # full pipeline sources get a large bonus over package-level Bioconductor tools
+        # full pipeline sources get a large bonus over package-level Bioconductor tools.
+        # Subworkflows (helper steps inside a larger pipeline) get NO boost — users
+        # want complete pipelines, not individual processing components.
+        # Subworkflow detection: filename path contains '/subworkflows/' (structural signal).
         if self._detect_pipeline_intent(query):
-            if source in ("nfcore", "nfcore_subwf", "biomni_nextflow"):
+            if is_subworkflow:
+                score -= 4.0  # Subworkflows compete unfairly with full pipelines; penalise
+            elif source in ("nfcore", "biomni_nextflow"):
                 score += 8.0
             elif source == "bioconductor":
                 score -= 5.0  # Bioconductor R packages are unlikely to be what they need
@@ -1110,7 +1469,8 @@ class UnifiedWorkflowSearch:
                     device = _detect_device_safe(timeout_seconds=5.0)
                 except Exception:
                     device = "cpu"
-                _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device)
+                _CHAIN_EMBED_MODEL = _ST(_CHAIN_EMBED_MODEL_NAME, device=device,
+                                        local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
             _CHAIN_EMBED_MATRIX = _CHAIN_EMBED_MODEL.encode(
@@ -1277,7 +1637,15 @@ class UnifiedWorkflowSearch:
         """
         q = query.lower()
         types: set = set()
-        if re.search(r'\bfastq\b|\.fastq|\.fq\b|raw reads?|sequencing reads?|paired.end reads?', q):
+        if re.search(
+            r'\bfastq\b|\.fastq|\.fq\b'           # explicit format
+            r'|raw reads?|sequencing reads?'         # "raw reads", "sequencing reads"
+            r'|paired.end reads?'                    # "paired-end reads"
+            r'|\balign\b.{0,40}\breads?\b'           # "align reads", "align the reads"
+            r'|\breads?\b.{0,20}\balign'             # "reads to align"
+            r'|\bseq(uencing)?\s+reads?\b',          # "seq reads", "sequencing reads"
+            q
+        ):
             types.add("fastq")
         if re.search(r'\b\.bam\b|bam files?|aligned reads?|sorted bam', q):
             types.add("bam")
@@ -1285,8 +1653,15 @@ class UnifiedWorkflowSearch:
             types.add("cram")
         if re.search(r'\bvcf\b|\.vcf|variant calls?', q):
             types.add("vcf")
-        if re.search(r'count.?matrix|counts.?matrix|gene.?count|feature.count|expression matrix', q):
-            types.add("counts_matrix")
+        # Only detect count_matrix when user is PROVIDING it as input (not generating it)
+        # Exclude: "generate/produce/create/output a count matrix" (they want to produce it)
+        count_m = re.search(r'count.?matri[cx]|counts.?matri[cx]|gene.?count|feature.count|expression matrix', q)
+        if count_m:
+            # Check if it's preceded by a generation verb → they're producing it, not providing it
+            leading_text = q[max(0, count_m.start() - 40):count_m.start()]
+            generation_verbs = ('generate', 'produce', 'creat', 'output', 'build', 'make', 'get')
+            if not any(v in leading_text for v in generation_verbs):
+                types.add("counts_matrix")
         if re.search(r'\.h5ad\b|h5ad|anndata|scanpy object', q):
             types.add("h5ad")
         if re.search(r'cell.?ranger output|cellranger output|10x output|\.h5 file|matrix\.mtx', q):
@@ -1331,13 +1706,18 @@ class UnifiedWorkflowSearch:
     # multi-modal pipelines that also need RNA-seq, etc.
     _CHAIN_REQUIRED_CONTEXT: Dict[str, List[frozenset]] = {
         'rare_disease_multimodal_workup': [
-            # User must signal the rare disease or multi-modal intent …
-            frozenset({'rare disease', 'rare_disease', 'rare-disease',
+            # Group 1: MUST signal rare disease, undiagnosed, or multi-modal intent.
+            # "rna-seq" alone is NOT enough — prevents scRNA-seq queries from matching
+            # (because "scrna-seq" contains "rna-seq" as substring).
+            frozenset({'rare disease', 'rare_disease', 'rare-disease', 'rare genetic',
+                       'undiagnosed', 'unexplained', 'unresolved diagnosis',
+                       'inherited disease', 'hereditary disease', 'mendelian',
                        'outrider', 'fraser', 'aberrant expression', 'splicing outlier',
                        'multimodal', 'multi-modal', 'multi modal',
-                       # OR explicit RNA-seq companion
-                       'rna-seq', 'rnaseq', 'rna seq', 'transcriptomic',
-                       'drop', 'outrider', 'fraser'}),
+                       'wgs and rna', 'wgs + rna', 'genome and transcriptome',
+                       'trio', 'proband',
+                       # OR: explicitly mentions both WGS AND RNA data types
+                       'drop', 'fraser'}),
         ],
     }
 
@@ -1367,7 +1747,7 @@ class UnifiedWorkflowSearch:
     # ------------------------------------------------------------------
 
     def search_chains(self, query: str, domain: Optional[str] = None,
-                      limit: int = 3, min_score: float = 0.15) -> List["WorkflowChain"]:
+                      limit: int = 3, min_score: float = 0.25) -> List["WorkflowChain"]:
         """Return workflow chains matching the query.
 
         Search pipeline (three tiers, each falling back to the next):
@@ -1480,10 +1860,14 @@ class UnifiedWorkflowSearch:
             scored.append((min(score + domain_bonus, 1.0), chain))
 
         scored.sort(key=lambda x: x[0], reverse=True)
-        # Apply multimodal context filter to Tier-2 results as well
+        # Apply input-type pre-filter and multimodal context filter to Tier-2 results as well
+        # (same filters as Tier-1 embedding path — important for CUDA-unavailable environments)
+        user_types = self._detect_query_data_types(query)
         return [
             c for s, c in scored[:limit]
-            if s >= min_score and self._chain_multimodal_context_compatible(c, query)
+            if s >= min_score
+            and self._chain_multimodal_context_compatible(c, query)
+            and self._chain_input_compatible(c, user_types)
         ]
 
     def get_chain(self, name: str) -> Optional["WorkflowChain"]:

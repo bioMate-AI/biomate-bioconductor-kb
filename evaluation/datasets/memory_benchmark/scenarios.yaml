@@ -1,0 +1,645 @@
+# Memory Benchmark — BioMate Episodic & Correction Memory
+#
+# Taxonomy aligned with published benchmarks:
+#
+#   LongMemEval (Wu et al., ICLR 2025 — arxiv:2410.10813)
+#     5 memory abilities: information extraction, multi-session reasoning,
+#     temporal reasoning, knowledge updates, abstention.
+#     GPT-4o baseline: 30–70% accuracy; BioMate target: ≥75% weighted.
+#
+#   LoCoMo (Maharana et al., ACL 2024 — arxiv:2402.17753)
+#     Reasoning types: single-hop, multi-hop, temporal, commonsense, adversarial.
+#     Key finding: LLMs substantially lag humans on long-range temporal/causal.
+#
+#   BABILong (Kuratov et al., 2024 — arxiv:2406.10149)
+#     20 reasoning tasks embedded in noise; adversarial contamination probes.
+#
+# BioMate-specific additions:
+#   - Domain-specific episode structure (workflow outcomes, whatWorked/Failed/Lessons)
+#   - Correction routing (P2) — direct analog of LongMemEval "knowledge update"
+#   - Cross-domain contamination test (no public benchmark covers domain isolation)
+#
+# Scenario types and LongMemEval mapping:
+#   recall     (MB-A) → LongMemEval: information extraction
+#   correction (MB-B) → LongMemEval: knowledge update
+#   baseline   (MB-C) → LongMemEval: abstention (no pollution from empty context)
+#   temporal   (MB-T) → LongMemEval: temporal reasoning
+#   synthesis  (MB-S) → LongMemEval: multi-session reasoning / LoCoMo multi-hop
+#   adversarial(MB-X) → BABILong adversarial + LongMemEval abstention
+#
+# Quality bar for correction scenarios (MB-B*):
+#   VALID:   correction has a clear scientific or infrastructure reason why one workflow
+#            is wrong for the given data type (e.g., DIA-NN can't handle TMT isobaric
+#            labeling; GATK has high FPR on PacBio long reads; RELION requires a license).
+#   INVALID: correction is a name preference between tools that are both correct choices
+#            for the query (e.g., "ADMET chain A" vs "ADMET chain B" when both do ADMET).
+#   Rule:    if you cannot write a one-sentence scientific explanation of WHY the
+#            disqualified tool is wrong for this specific data/context, the case is invalid.
+#
+# Scoring thresholds (derived from LongMemEval public results for GPT-4o as baseline):
+#   recall     ≥ 60%  (GPT-4o: ~55% on info extraction with RAG)
+#   correction ≥ 80%  (routing more deterministic than open recall)
+#   baseline   ≥ 95%  (regression: must not break existing routing)
+#   temporal   ≥ 55%  (GPT-4o: ~35% on temporal; we target higher with injection)
+#   synthesis  ≥ 50%  (hardest category; LoCoMo multi-hop human baseline ~70%)
+#   adversarial≥ 70%  (abstention + no contamination)
+#
+# Benchmark target: ≥75% overall (weighted 30% A, 25% B, 15% C, 10% T, 10% S, 10% X)
+#
+# Tests whether injected memory (P1 episodes, P2 corrections) actually shapes
+# LLM responses and routing decisions.
+#
+# Three scenario types:
+#   recall     — Seed an episode with specific lessons. Does the LLM surface them?
+#   correction — Seed a routing correction. Does the LLM pick the corrected workflow?
+#   baseline   — No seed. Does correct routing still work (regression)?
+#
+# Scoring thresholds:
+#   recall     ≥ 60%  (LLM may paraphrase; multiple recall_terms improve coverage)
+#   correction ≥ 80%  (routing is more deterministic than lesson surfacing)
+#   baseline   ≥ 95%  (should never regress)
+#
+# Benchmark target: ≥75% overall (weighted)
+
+# ===========================================================================
+# TYPE A — RECALL (P1 episode memory: does injected episode shape the response?)
+# ===========================================================================
+
+- id: MB-A1
+  type: recall
+  domain: structural_biology
+  difficulty: medium
+  description: "Seeded episode: CryoSPARC GPCR run — binning_factor=2 was the key success"
+  seed_episode:
+    userQuery: "CryoSPARC single particle analysis for my GPCR-Gs complex, Titan Krios 300kV"
+    assistantResponse: "Running CryoSPARC SPA with optimized GPCR parameters."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "binning_factor=2 in MotionCor2 reduced noise by 40% for this complex"
+      - "patch_size=800 was optimal for this detector"
+    whatFailed: []
+    lessonsLearned:
+      - "For 250 kDa GPCR complexes on Titan Krios, always set binning_factor=2 in MotionCor2"
+    importanceScore: 0.85
+  query: >
+    I need to run CryoSPARC single particle analysis again for a new GPCR-arrestin
+    complex dataset. Titan Krios, 300 kV. What are the recommended settings?
+  expected_recall:
+    - "binning"
+    - "binn"
+    - "motion correction"
+    - "patch"
+  disqualified: []
+  notes: "binning_factor=2 is not in Claude's pretraining at this specificity — must come from episode"
+
+- id: MB-A2
+  type: recall
+  domain: structural_biology
+  difficulty: medium
+  description: "Seeded episode: B-factor sharpening value from a past cryo-EM run"
+  seed_episode:
+    userQuery: "Post-processing and sharpening for my cryo-EM reconstruction"
+    assistantResponse: "Applying B-factor sharpening to the final map."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "B-factor of -180 gave the best resolved side chains for this membrane protein"
+    whatFailed:
+      - "Automated B-factor estimation over-sharpened the map at -240"
+    lessonsLearned:
+      - "For GPCRs in nanodiscs, manually set B-factor to -180 rather than using automated sharpening"
+    importanceScore: 0.75
+  query: >
+    What B-factor sharpening settings should I use for post-processing my GPCR
+    reconstruction? The complex is in a lipid nanodisc.
+  expected_recall:
+    - "-180"
+    - "180"
+    - "b-factor"
+    - "sharpening"
+    - "manual"
+    - "nanodisc"
+  disqualified: []
+  notes: "The specific value -180 is from the episode, not general LLM knowledge"
+
+- id: MB-A3
+  type: recall
+  domain: drug_discovery
+  difficulty: medium
+  description: "Seeded episode: ADMET run — logP filter eliminated all compounds"
+  seed_episode:
+    userQuery: "ADMET screening for my kinase inhibitor library"
+    assistantResponse: "Running ADMET property prediction and filtering."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatWorked: []
+    whatFailed:
+      - "Lipinski logP < 3 filter was too aggressive — eliminated 97% of compounds including actives"
+    lessonsLearned:
+      - "Use logP < 5 (not < 3) for kinase inhibitors — many valid inhibitors are lipophilic"
+      - "Disable hard logP cutoff; use soft scoring instead for this chemotype"
+    importanceScore: 0.9
+  query: >
+    I want to run ADMET screening on my kinase inhibitor library again. About 500
+    compounds. What should I watch out for?
+  expected_recall:
+    - "logp"
+    - "log p"
+    - "lipinski"
+    - "filter"
+    - "lipophilic"
+    - "kinase"
+  disqualified: []
+  notes: "logP threshold value from past failure — should trigger a proactive warning"
+
+- id: MB-A4
+  type: recall
+  domain: rna_seq
+  difficulty: medium
+  description: "Seeded episode: RNA-seq with --seqBias correction tip"
+  seed_episode:
+    userQuery: "Differential expression analysis for bulk RNA-seq from HepG2 cells"
+    assistantResponse: "Running Salmon quantification followed by DESeq2."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Salmon --seqBias flag improved quantification accuracy by ~15% for this cell line"
+      - "Using --validateMappings reduced spurious alignments significantly"
+    whatFailed: []
+    lessonsLearned:
+      - "Always enable --seqBias in Salmon for HepG2 RNA-seq — strong GC bias in this cell line"
+    importanceScore: 0.7
+  query: >
+    Running bulk RNA-seq differential expression for HepG2 liver cells again.
+    What quantification settings work best for this cell line?
+  expected_recall:
+    - "seqbias"
+    - "seq bias"
+    - "gc bias"
+    - "bias"
+    - "salmon"
+    - "hepg2"
+    - "validatemapping"
+  disqualified: []
+  notes: "seqBias flag specificity to HepG2 — must come from episode"
+
+- id: MB-A5
+  type: recall
+  domain: structural_biology
+  difficulty: hard
+  description: "Seeded episode: GROMACS equilibration length to resolve LINCS errors"
+  seed_episode:
+    userQuery: "GROMACS MD simulation for a membrane protein in POPC bilayer"
+    assistantResponse: "Setting up GROMACS MD with membrane force field."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Extended NVT equilibration to 200 ps resolved all LINCS constraint bond errors"
+      - "Using CHARMM36m force field gave stable membrane bilayer vs AMBER"
+    whatFailed:
+      - "Standard 100 ps equilibration caused LINCS errors for the POPC bilayer at this lipid/protein ratio"
+    lessonsLearned:
+      - "For membrane proteins in POPC: set NVT equilibration to at least 200 ps to avoid LINCS errors"
+    importanceScore: 0.85
+  query: >
+    I need to run GROMACS MD for another membrane protein embedded in a POPC bilayer.
+    Any tips for avoiding common simulation errors?
+  expected_recall:
+    - "lincs"
+    - "equilibrat"
+    - "200"
+    - "nvt"
+    - "membrane"
+    - "popc"
+  disqualified: []
+  notes: "200 ps + LINCS link is specific enough to require episode injection"
+
+- id: MB-A6
+  type: recall
+  domain: drug_discovery
+  difficulty: hard
+  description: "Seeded episode: REINVENT4 temperature setting for valid SMILES"
+  seed_episode:
+    userQuery: "Generate novel PD-1 inhibitor scaffolds with REINVENT4"
+    assistantResponse: "Running REINVENT4 de novo molecule generation."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "temperature=1.0 produced valid SMILES in >95% of generated molecules"
+      - "Beam width of 128 gave better scaffold diversity than default 64"
+    whatFailed:
+      - "temperature=1.5 generated >30% invalid SMILES strings — stay at 1.0"
+    lessonsLearned:
+      - "For REINVENT4 scaffold decoration: temperature=1.0 is optimal; higher values break SMILES validity"
+    importanceScore: 0.8
+  query: >
+    I'm running REINVENT4 again for de novo generation of PD-1 inhibitors.
+    What temperature and beam width settings should I use?
+  expected_recall:
+    - "temperature"
+    - "1.0"
+    - "beam"
+    - "smiles"
+    - "scaffold"
+  disqualified: []
+  notes: "temperature=1.0 specificity — requires episode, not general LLM knowledge"
+
+# ===========================================================================
+# TYPE B — CORRECTION ROUTING (P2: does seeded correction change workflow selection?)
+# ===========================================================================
+
+- id: MB-B1
+  type: correction
+  domain: rna_seq
+  difficulty: medium
+  description: "Seeded correction: rnaseq_salmon → rnaseq_star_rsem for splice variant accuracy"
+  seed_correction:
+    suggestedApproach:
+      workflow: rnaseq_salmon
+      description: "Salmon quasi-mapping for RNA-seq quantification"
+    correctedApproach:
+      workflow: rnaseq_star_rsem
+      description: "STAR alignment + RSEM quantification"
+    userExplanation: >
+      We always use STAR+RSEM for this project — Salmon has too many false positives
+      for splice variant detection in our cancer cell lines. Please default to STAR+RSEM.
+  query: "Differential expression analysis for my bulk RNA-seq samples from cancer cell lines"
+  expected_workflow:
+    - "star"
+    - "rsem"
+    - "star_rsem"
+    - "star+rsem"
+  disqualified_workflow: []
+  notes: "Routing should prefer STAR+RSEM over Salmon for this user"
+
+- id: MB-B2
+  type: correction
+  domain: proteomics
+  difficulty: medium
+  description: "Seeded correction: diann_proteomics → fragpipe for TMT-labeled data"
+  seed_correction:
+    suggestedApproach:
+      workflow: diann_proteomics
+      description: "DIA-NN for data-independent acquisition proteomics"
+    correctedApproach:
+      workflow: fragpipe_proteomics
+      description: "FragPipe for TMT-labeled quantitative proteomics"
+    userExplanation: >
+      FragPipe handles our TMT-labeled samples correctly. DIA-NN is designed for DIA
+      mode and doesn't support TMT isobaric labeling — stop suggesting it for my samples.
+  query: "Quantitative proteomics LC-MS/MS analysis with TMT labeling for my samples"
+  expected_workflow:
+    - "fragpipe"
+    - "frag pipe"
+    - "tmt"
+  disqualified_workflow:
+    - "diann"
+    - "dia-nn"
+    - "dia nn"
+  notes: "Critical: DIA-NN is scientifically wrong for TMT-DDA; correction must stick"
+
+- id: MB-B3
+  type: correction
+  domain: structural_biology
+  difficulty: medium
+  description: "Seeded correction: relion_spa → cryosparc_spa; user's cluster has no RELION license"
+  seed_correction:
+    suggestedApproach:
+      workflow: relion_spa
+      description: "RELION single particle analysis"
+    correctedApproach:
+      workflow: cryosparc_spa
+      description: "CryoSPARC single particle analysis"
+    userExplanation: >
+      Our HPC cluster does not have a RELION license — CryoSPARC only.
+      Also our GPU nodes are optimized for CryoSPARC's branch-and-bound algorithm.
+      Never suggest RELION for our datasets.
+  query: "Single particle analysis pipeline for my 200 kDa soluble complex, cryo-EM micrographs ready"
+  expected_workflow:
+    - "cryosparc"
+    - "cryo spark"
+  disqualified_workflow:
+    - "relion"
+  notes: >
+    Grounded in infrastructure: RELION requires a license the lab does not have.
+    This is not a preference — it is a hard constraint (RELION = unusable on their cluster).
+    Disqualified_workflow check is the important assertion here.
+
+- id: MB-B4
+  type: correction
+  domain: rna_seq
+  difficulty: medium
+  description: "Seeded correction: rnaseq_salmon → rnaseq_kallisto for single-cell pseudobulk (scientifically grounded)"
+  seed_correction:
+    suggestedApproach:
+      workflow: rnaseq_salmon
+      description: "Salmon quasi-mapping for bulk RNA-seq"
+    correctedApproach:
+      workflow: rnaseq_kallisto
+      description: "Kallisto + bustools for single-cell pseudobulk"
+    userExplanation: >
+      For single-cell pseudobulk analysis, use Kallisto+bustools — Salmon is designed
+      for bulk RNA-seq and does not handle cell barcodes or UMI deduplication.
+      I always work with single-cell data aggregated by cell type.
+  query: "Pseudobulk differential expression from my single-cell RNA-seq data, grouped by cell type"
+  expected_workflow:
+    - "kallisto"
+    - "pseudobulk"
+    - "single-cell"
+    - "cell type"
+    - "bustools"
+    - "umi"
+  disqualified_workflow:
+    - "salmon"
+  notes: >
+    Scientifically grounded: Salmon cannot process scRNA-seq barcodes/UMIs.
+    Kallisto+bustools is the correct tool for pseudobulk from single-cell data.
+    Salmon in response = correction failed (wrong tool for the data type).
+
+- id: MB-B5
+  type: correction
+  domain: genomics
+  difficulty: hard
+  description: "Seeded correction: explicit workflow preference note for HiFi data"
+  seed_correction:
+    suggestedApproach:
+      workflow: wgs_germline_gatk
+      description: "GATK HaplotypeCaller for germline variant calling"
+    correctedApproach:
+      workflow: deepvariant_germline
+      description: "DeepVariant for PacBio HiFi germline calling"
+    userExplanation: >
+      Our PacBio HiFi sequencing data is better handled by DeepVariant. GATK
+      HaplotypeCaller has high false positive rates on long reads for our samples.
+      Always suggest DeepVariant when I mention HiFi or PacBio data.
+  query: "Germline variant calling from PacBio HiFi WGS data, 30x coverage"
+  expected_workflow:
+    - "deepvariant"
+    - "deep variant"
+  disqualified_workflow:
+    - "gatk"
+    - "haplotypecaller"
+  notes: "HiFi + GATK is a known anti-pattern — correction should make this stick"
+
+# ===========================================================================
+# TYPE T — TEMPORAL REASONING (LongMemEval category 3 / LoCoMo temporal)
+# Can the system reason about when past episodes occurred and use recency?
+# ===========================================================================
+
+- id: MB-T1
+  type: temporal
+  domain: structural_biology
+  difficulty: hard
+  description: "Two episodes seeded: old run (low importance) vs recent run (high importance). Recent settings should dominate."
+  seed_episode:
+    # The FIRST episode — older, lower importanceScore
+    userQuery: "CryoSPARC SPA for beta-galactosidase test dataset, standard settings"
+    assistantResponse: "Running CryoSPARC with default motion correction settings."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Default settings worked fine for this highly stable homotetrameric complex"
+    lessonsLearned:
+      - "Default motion correction settings are sufficient for highly symmetric homo-tetramers"
+    importanceScore: 0.4
+  seed_episode_2:
+    # The SECOND episode — more recent, higher importanceScore
+    userQuery: "CryoSPARC SPA for GPCR-arrestin complex, asymmetric, preferred orientation problem"
+    assistantResponse: "Running CryoSPARC with tilted data collection settings."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "Tilted stage collection at +/-30 degrees resolved preferred orientation problem for this GPCR"
+    lessonsLearned:
+      - "Asymmetric complexes with preferred orientation require tilted data collection — standard flat approach fails"
+    importanceScore: 0.85
+  query: >
+    I am running CryoSPARC SPA for an asymmetric GPCR complex that has preferred
+    orientation issues. What data collection approach should I use?
+  expected_recall:
+    - "tilt"
+    - "preferred orientation"
+    - "asymmetric"
+    - "30"
+    - "degrees"
+  disqualified: []
+  notes: "LongMemEval temporal: most recent + most important episode should dominate. Tilt solution is specific."
+
+- id: MB-T2
+  type: temporal
+  domain: drug_discovery
+  difficulty: hard
+  description: "Knowledge update: user corrected logP threshold AFTER a failed episode. Correction should override episode lesson."
+  seed_episode:
+    userQuery: "ADMET screening with standard Lipinski filters for fragment library"
+    assistantResponse: "Running ADMET-AI with Lipinski Rule of Five filters."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatFailed:
+      - "logP < 5 still filtered too many fragment compounds — fragments by design have lower MW"
+    lessonsLearned:
+      - "For fragment libraries, relax logP to < 7 — fragments are intentionally small and lipophilic"
+    importanceScore: 0.7
+  seed_correction:
+    suggestedApproach:
+      workflow: admet_ai_screening
+      description: "ADMET-AI with Lipinski filters"
+    correctedApproach:
+      workflow: admet_ai_screening
+      description: "ADMET-AI with relaxed fragment-appropriate filters"
+    userExplanation: >
+      For fragment screening, disable hard Lipinski cutoffs entirely — fragments violate
+      Lipinski by design. Use only molecular weight < 300 Da as the filter.
+  query: "ADMET screening for a fragment-based drug discovery library, about 1000 fragments"
+  expected_recall:
+    - "fragment"
+    - "lipinski"
+    - "300"
+    - "molecular weight"
+    - "cutoff"
+    - "relax"
+  disqualified: []
+  notes: "LongMemEval knowledge update: correction should supersede episode lesson"
+
+# ===========================================================================
+# TYPE S — MULTI-SESSION SYNTHESIS (LongMemEval category 2 / LoCoMo multi-hop)
+# Can the system synthesize patterns across multiple episodes?
+# ===========================================================================
+
+- id: MB-S1
+  type: synthesis
+  domain: drug_discovery
+  difficulty: hard
+  description: "Two failed ADMET episodes seeded. User asks about the pattern — should synthesize across both."
+  seed_episode:
+    userQuery: "ADMET screening for my first series of JAK inhibitors"
+    assistantResponse: "Running ADMET screening."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatFailed:
+      - "High hERG binding predicted for all type-I JAK inhibitors — scaffold too planar"
+    lessonsLearned:
+      - "Type-I JAK inhibitor scaffolds systematically trigger hERG liability flags"
+    importanceScore: 0.8
+  seed_episode_2:
+    userQuery: "ADMET screening for my second series of JAK inhibitors with modified scaffold"
+    assistantResponse: "Running ADMET screening on modified series."
+    workflowGenerated: true
+    outcomeSuccess: false
+    whatFailed:
+      - "hERG issue persists even with scaffold modification — core ATP-binding pharmacophore retained"
+    lessonsLearned:
+      - "hERG liability in JAK inhibitors may be intrinsic to the ATP-site binding mode, not scaffold"
+    importanceScore: 0.85
+  query: >
+    I am planning a third series of JAK inhibitors. Given my previous ADMET runs,
+    what cardiac safety issues should I prioritize addressing before synthesis?
+  expected_recall:
+    - "herg"
+    - "cardiac"
+    - "jak"
+    - "scaffold"
+    - "atp"
+    - "liability"
+  disqualified: []
+  notes: "LoCoMo multi-hop: must synthesize across two episodes to identify the hERG pattern"
+
+# ===========================================================================
+# TYPE X — ADVERSARIAL / ANTI-HALLUCINATION (LoCoMo adversarial)
+# When no memory is seeded, the system must NOT hallucinate episodes.
+# When wrong-domain memory is seeded, it must NOT contaminate unrelated queries.
+# ===========================================================================
+
+- id: MB-X1
+  type: adversarial
+  domain: rna_seq
+  difficulty: hard
+  description: "Cryo-EM episode seeded. RNA-seq query asked. Cryo-EM lessons must NOT contaminate."
+  seed_episode:
+    userQuery: "CryoSPARC SPA for membrane protein, GPCR dataset"
+    assistantResponse: "Running CryoSPARC with optimal settings."
+    workflowGenerated: true
+    outcomeSuccess: true
+    whatWorked:
+      - "binning_factor=2 was critical for motion correction quality"
+    lessonsLearned:
+      - "Always use binning_factor=2 for GPCR datasets on Titan Krios"
+    importanceScore: 0.9
+  seed_correction: null
+  query: "Differential expression analysis for bulk RNA-seq, cancer samples, standard pipeline"
+  expected_workflow:
+    - "rnaseq"
+    - "rna-seq"
+    - "salmon"
+    - "star"
+    - "deseq"
+  contamination_forbidden:
+    - "binning_factor"
+    - "cryosparc"
+    - "motion correction"
+    - "gpcr"
+  notes: "BABILong adversarial: irrelevant cryo-EM memory must not bleed into RNA-seq response"
+
+- id: MB-X2
+  type: adversarial
+  domain: genomics
+  difficulty: hard
+  description: "No memory seeded. User asks about a protocol they've never run. No hallucination allowed."
+  seed_episode: null
+  seed_correction: null
+  query: >
+    Based on my previous long-read sequencing runs, what Oxford Nanopore basecalling
+    settings worked best for my samples?
+  expected_behavior: abstain
+  acceptable_responses:
+    - "haven't run"
+    - "no previous"
+    - "don't have"
+    - "no history"
+    - "first time"
+    - "no record"
+    - "not found"
+    - "no past"
+    - "no prior"
+  contamination_forbidden:
+    - "previously you used"
+    - "last time you ran"
+    - "your previous settings"
+    - "based on your history"
+  notes: "LongMemEval abstention: system must not fabricate past Nanopore sessions that don't exist"
+
+# ===========================================================================
+# TYPE C — BASELINE (no memory seeded; routing correctness regression test)
+# ===========================================================================
+
+- id: MB-C1
+  type: baseline
+  domain: structural_biology
+  difficulty: easy
+  description: "No memory. Basic cryo-EM SPA routing should still work."
+  seed_episode: null
+  seed_correction: null
+  query: >
+    I need to run single particle analysis on my cryo-EM micrographs. Soluble
+    protein complex, approximately 150 kDa, Titan Krios 300 kV.
+  expected_workflow:
+    - "cryosparc"
+    - "relion"
+    - "single particle"
+    - "spa"
+  disqualified_workflow: []
+  notes: "Baseline: memory injection must not break standard cryo-EM routing"
+
+- id: MB-C2
+  type: baseline
+  domain: rna_seq
+  difficulty: easy
+  description: "No memory. Standard RNA-seq DE routing should still work."
+  seed_episode: null
+  seed_correction: null
+  query: "Differential gene expression analysis for bulk RNA-seq, human samples, 3 conditions"
+  expected_workflow:
+    - "rnaseq"
+    - "rna-seq"
+    - "rna seq"
+    - "salmon"
+    - "star"
+    - "deseq"
+    - "edger"
+  disqualified_workflow: []
+  notes: "Baseline: routing should not be confused by empty memory blocks"
+
+- id: MB-C3
+  type: baseline
+  domain: drug_discovery
+  difficulty: easy
+  description: "No memory. ADMET screening should route correctly."
+  seed_episode: null
+  seed_correction: null
+  query: "ADMET property prediction for 200 small molecules before synthesis prioritization"
+  expected_workflow:
+    - "admet"
+    - "drug"
+    - "screening"
+    - "lipinski"
+    - "property"
+  disqualified_workflow: []
+  notes: "Baseline: standard ADMET routing unchanged"
+
+- id: MB-C4
+  type: baseline
+  domain: genomics
+  difficulty: easy
+  description: "No memory. WGS germline variant calling routing should still work."
+  seed_episode: null
+  seed_correction: null
+  query: "Germline variant calling from 30x whole genome sequencing, Illumina short reads"
+  expected_workflow:
+    - "gatk"
+    - "variant"
+    - "wgs"
+    - "germline"
+    - "haplotypecaller"
+  disqualified_workflow: []
+  notes: "Baseline: GATK germline routing unaffected by empty correction block"

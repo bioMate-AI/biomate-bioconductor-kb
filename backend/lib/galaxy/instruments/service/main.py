@@ -19,6 +19,12 @@ import httpx
 import boto3
 from bioblend.galaxy import GalaxyInstance
 
+from backend.lib.integrations.cryoem_instrument_connector import (
+    EPUAPIWatcher,
+    EPUConnector,
+    EPUSessionWatcher,
+)
+
 # Configure logging
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
@@ -152,6 +158,14 @@ class InstrumentOrchestrator:
             "PacBio": "direct",
             "PacBio_Sequel": "direct",
             "PacBio_Revio": "direct",
+
+            # Cryo-EM (direct — EPU session watcher or EPU REST API)
+            "EPU_CryoEM": "direct",
+            "Thermo_EPU": "direct",
+            "Thermo_Krios": "direct",
+            "Thermo_Talos": "direct",
+            "Thermo_Glacios": "direct",
+            "JEOL_CryoARM": "direct",
         }
 
     async def get_all_instruments(self) -> List[InstrumentInfo]:
@@ -385,6 +399,64 @@ orchestrator = InstrumentOrchestrator()
 
 
 # ============================================================================
+# EPU cryo-EM watcher startup
+# ============================================================================
+
+# Module-level state so the status endpoint can inspect it
+_epu_watcher: Optional[object] = None
+_epu_watcher_type: str = "none"
+_epu_watched_dirs: List[str] = []
+
+
+def _start_epu_watcher() -> None:
+    """
+    Start the EPU cryo-EM session watcher if EPU_OUTPUT_DIRS is configured.
+    Called once at application startup.
+    """
+    global _epu_watcher, _epu_watcher_type, _epu_watched_dirs
+
+    epu_output_dirs_raw = os.getenv("EPU_OUTPUT_DIRS", "")
+    epu_output_dirs = [d.strip() for d in epu_output_dirs_raw.split(",") if d.strip()]
+
+    if not epu_output_dirs:
+        logger.info("EPU_OUTPUT_DIRS not set — EPU cryo-EM watcher not started")
+        return
+
+    _epu_watched_dirs = epu_output_dirs
+
+    epu_host = os.getenv("EPU_HOST", "")
+    epu_port = int(os.getenv("EPU_PORT", "8080"))
+    poll_interval = int(os.getenv("CRYOEM_POLL_INTERVAL", "60"))
+
+    if epu_host:
+        # EPU REST API available (EPU 3.0+) — use API-based watcher
+        connector = EPUConnector(host=epu_host, port=epu_port)
+        watcher = EPUAPIWatcher(
+            connector=connector,
+            poll_interval=poll_interval,
+        )
+        _epu_watcher_type = "api"
+    else:
+        # No EPU API host — fall back to file-based directory watcher
+        watcher = EPUSessionWatcher(
+            directories=epu_output_dirs,
+            poll_interval=poll_interval,
+        )
+        _epu_watcher_type = "file"
+
+    watcher.start()
+    _epu_watcher = watcher
+    logger.info(
+        f"EPU cryo-EM watcher started (type={_epu_watcher_type}, "
+        f"dirs={epu_output_dirs}, poll={poll_interval}s)"
+    )
+
+
+# Start EPU watcher at import time (module-level, same pattern as orchestrator init)
+_start_epu_watcher()
+
+
+# ============================================================================
 # API Endpoints
 # ============================================================================
 
@@ -514,6 +586,26 @@ async def list_backends():
             "license": "MIT (proprietary)",
             "status": "planned"
         }
+    }
+
+
+@app.get("/api/instruments/cryo-em/status")
+async def cryo_em_status():
+    """
+    Return the current state of the EPU cryo-EM session watcher.
+
+    Response fields:
+      active        — True if a watcher thread is running
+      watcher_type  — "api" | "file" | "none"
+      watched_dirs  — list of directories being monitored (file-watcher only)
+      last_session  — placeholder; always null (session history not persisted here)
+    """
+    active = _epu_watcher is not None and getattr(_epu_watcher, "_running", False)
+    return {
+        "active": active,
+        "watcher_type": _epu_watcher_type,
+        "watched_dirs": _epu_watched_dirs,
+        "last_session": None,
     }
 
 

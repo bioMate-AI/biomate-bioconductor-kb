@@ -1,0 +1,72 @@
+biomate:
+  base_url: http://localhost:5000
+  eval_user_email: eval@biomate.test
+  eval_user_password: ''
+  host: http://localhost:5000
+  eval_user:
+    email: eval@biomate.test
+    password: EvalBenchmark2026!
+llm_judge:
+  model: claude-haiku-4-5-20251001
+  max_tokens: 50
+  temperature: 0.0
+  # Set ANTHROPIC_API_KEY env var, or put the key here:
+  # api_key: sk-ant-api03-...
+paths:
+  sgi_bench_datasets: /home/yzhang/biomate/research/benchmark_evaluation/sgi_bench_datasets
+  sgi_bench_adapter: /home/yzhang/biomate/backend/lib/galaxy/ai/test_harness
+  biomni_eval1_loader: /home/yzhang/biomate/Biomni
+  bixbench_repo: ''
+  bioagentbench_dir: ''
+  sciagentbench_repo: ''
+  pharmabench_repo: ''
+  results_db: results/eval_results.db
+timeouts:
+  chat_response_sec: 120
+  workflow_terminal_sec: 600
+  llm_judge_sec: 30
+concurrency:
+  max_parallel_tasks: 4
+suites:
+  p0:
+  - biomni_eval1
+  - sgi_bench
+  - cross_domain_routing
+  p1:
+  - biomni_eval1
+  - sgi_bench
+  - cross_domain_routing
+  - bixbench
+  - bioagentbench
+  - prereq_recovery
+  p2:
+  - biomni_eval1
+  - sgi_bench
+  - cross_domain_routing
+  - bixbench
+  - bioagentbench
+  - prereq_recovery
+  - sciagentbench
+  - pharmabench
+  - license_gating
+  all:
+  - biomni_eval1
+  - sgi_bench
+  - cross_domain_routing
+  - bixbench
+  - bioagentbench
+  - prereq_recovery
+  - sciagentbench
+  - pharmabench
+  - license_gating
+  - biomlbench
+  - memory_benchmark
+  memory:
+  - memory_benchmark
+  datasets_only:
+  - cross_domain_routing
+  - prereq_recovery
+  - license_gating
+  - protocol_thresholds
+  - autofix_benchmark
+  - memory_benchmark

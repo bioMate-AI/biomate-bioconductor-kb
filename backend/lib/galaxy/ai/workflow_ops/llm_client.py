@@ -48,7 +48,7 @@ class LLMProvider(ABC):
         self,
         messages: List[Dict[str, str]],
         model: str,
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
     ) -> Dict[str, Any]:
@@ -84,7 +84,7 @@ class AnthropicProvider(LLMProvider):
         self,
         messages: List[Dict[str, str]],
         model: str = 'claude-3-haiku-20240307',
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
     ) -> Dict[str, Any]:
@@ -173,7 +173,7 @@ class OpenAIProvider(LLMProvider):
         self,
         messages: List[Dict[str, str]],
         model: str = 'gpt-4o-mini',
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
     ) -> Dict[str, Any]:
@@ -214,7 +214,7 @@ class OllamaProvider(LLMProvider):
         self,
         messages: List[Dict[str, str]],
         model: str = 'llama3',
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
     ) -> Dict[str, Any]:
@@ -396,7 +396,7 @@ class UnifiedLLMClient:
         self,
         messages: List[Dict[str, str]],
         model: str = 'claude-3-haiku-20240307',
-        temperature: float = 0.7,
+        temperature: float = 0.0,
         max_tokens: int = 4000,
         provider: Optional[str] = None,
         retry: int = 3,

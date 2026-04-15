@@ -211,7 +211,7 @@ class DomainSpecialistPool:
                 response = self.llm_client.generate(
                     prompt=prompt,
                     max_tokens=1500,
-                    temperature=0.3
+                    temperature=0.0
                 )
                 response_text = response if isinstance(response, str) else response.get('text', '')
                 # Step 4: Parse response

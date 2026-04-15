@@ -28,13 +28,29 @@ export async function setupVite(app: Express, server: any) {
       },
       watch: {
         usePolling: true,
-        interval: 1000,
+        interval: 300000,
       },
     },
     appType: "custom",
   });
 
   app.use(viteDevServer.middlewares);
+
+  // Log HMR updates so we can detect spurious reloads during E2E tests
+  viteDevServer.ws.on('connection', (socket: any) => {
+    const origSend = socket.send?.bind(socket);
+    if (origSend) {
+      socket.send = (data: any, ...args: any[]) => {
+        try {
+          const msg = typeof data === 'string' ? JSON.parse(data) : data;
+          if (msg?.type === 'update' || msg?.type === 'full-reload') {
+            console.log(`[ViteHMR] ${msg.type} at ${new Date().toISOString()}: ${JSON.stringify(msg).slice(0, 200)}`);
+          }
+        } catch {}
+        return origSend(data, ...args);
+      };
+    }
+  });
 
   // Serve index.html for all non-API routes (SPA fallback)
   app.use("*", async (req, res, next) => {

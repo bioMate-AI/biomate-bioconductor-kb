@@ -447,7 +447,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
             response = self.llm_client.generate(
                 prompt,
                 max_tokens=300,
-                temperature=0.1  # Low temperature for deterministic routing
+                temperature=0.0  # Low temperature for deterministic routing
             )
 
             # Parse JSON response

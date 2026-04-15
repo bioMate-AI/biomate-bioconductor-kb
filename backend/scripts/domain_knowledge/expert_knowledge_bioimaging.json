@@ -1243,65 +1243,743 @@
     "best_practice_notes": "Always start with RK45; if it fails or is very slow, switch to BDF or LSODA. Use adaptive time stepping with tolerances rtol=1e-6, atol=1e-9 as a starting point. Provide analytical Jacobian for large stiff systems. Check structural identifiability before parameter estimation. Verify mass conservation after every integration. Use LSODA or CVODE for whole-cell models where stiffness character may change during simulation. Reduce system dimensionality using conservation laws when possible."
   },
   "cryo_em_single_particle_analysis": {
-    "description": "Single particle analysis (SPA) by cryo-EM to determine 3D structures of macromolecular complexes, using software like cryoSPARC and RELION. Resolution is assessed by FSC 0.143 criterion.",
+    "description": "Single-particle cryo-EM (SPA) determines near-atomic structures of isolated macromolecular complexes from averaged 2D projections. The pipeline follows a strict sequential gate structure: motion correction → CTF estimation → particle picking → 2D classification → 3D reconstruction → local refinement → map validation → atomic model fitting. Quality gates at each step are mandatory and non-negotiable.",
     "key_parameters": {
-      "ctf_defocus_range": {
-        "description": "Defocus range for CTF (Contrast Transfer Function) estimation",
+      "universal_qc_gates": {
+        "description": "14 hard QC gates from sample preparation through atomic model deposition. Each gate is a go/no-go decision; failure triggers the defined corrective action rather than proceeding.",
         "situations": {
-          "standard_proteins": {
-            "value_or_range": "0.5-4.0 \u00b5m",
-            "when": "Standard protein complexes imaged at 300kV on a direct detector",
-            "why": "This defocus range provides sufficient contrast for particle picking while maintaining information at frequencies needed for high-resolution reconstruction. Very low defocus (<0.5\u00b5m) loses low-frequency contrast; very high defocus (>4\u00b5m) compromises high-frequency signal.",
-            "source": "https://doi.org/10.1038/nmeth.4169"
+          "motion_gate_G6": {
+            "value_or_range": "<50 Å total drift per micrograph",
+            "when": "After MotionCor2 motion correction; inspect trajectory output.",
+            "why": "Motion >50 Å during exposure smears the projection image irreversibly. Micrographs with excessive drift contain no recoverable high-resolution information regardless of dose or defocus.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
           },
-          "small_particles": {
-            "value_or_range": "0.5-2.5 \u00b5m",
-            "when": "Particles <100 kDa or high-symmetry complexes",
-            "why": "Smaller particles require better CTF correction. Lower defocus (better focus) preserves high-resolution signal critical for these challenging targets.",
-            "source": "https://doi.org/10.7554/eLife.63601"
+          "ctf_gate_G7": {
+            "value_or_range": "CTF FOM >0.1 AND estimated resolution <4.5 Å",
+            "when": "After CTFFIND4/GCTF estimation; applied per-micrograph.",
+            "why": "FOM <0.1 indicates poor Thon ring visibility — the CTF parameters are unreliable. Resolution <4.5 Å confirms the micrograph carries high-frequency signal worth pursuing. Both must be satisfied simultaneously.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "2d_classification_gate_G8": {
+            "value_or_range": ">60% of picked particles retained after 2D classification",
+            "when": "After first 2D classification round; count particles in accepted classes vs total picked.",
+            "why": "Retention rate <60% indicates sample heterogeneity, preferred orientation, or poor picking. It is a signal to fix the sample or picking strategy before investing compute in 3D reconstruction.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "fsc_resolution_gate_G10": {
+            "value_or_range": "FSC 0.143 gold-standard between independently refined half-maps",
+            "when": "Final global and local refinement resolution reporting.",
+            "why": "FSC 0.143 is the EMDB-required standard. Report both global FSC and local (masked) FSC for each reported domain when using local refinement with separate masks.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "molprobity_gate_G13": {
+            "value_or_range": "MolProbity score <2.0; <1.5 is excellent; 0.86 = world-class",
+            "when": "After phenix.real_space_refine on the atomic model.",
+            "why": "MolProbity assesses stereochemical quality independent of the cryo-EM map. Scores >2.0 indicate model-building errors that real-space refinement alone cannot correct — requires manual Coot rebuilding.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "ramachandran_gate_G14": {
+            "value_or_range": ">97% residues in favored region; <1% outliers",
+            "when": "Ramachandran analysis after model refinement.",
+            "why": ">97% Ramachandran-favored is the publication standard. Outliers must be individually justified by unambiguous density; unexplained Ramachandran outliers indicate model errors at the site.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
           }
         },
         "common_mistakes": [
-          "Using defocus >4\u00b5m which severely limits resolution potential",
-          "Not validating CTF fit quality before proceeding to particle picking"
+          "Skipping QC gates because particles 'look okay' — each gate catches different failure modes; visual assessment alone misses CTF instability and model errors.",
+          "Using FSC 0.5 criterion instead of FSC 0.143 — overestimates resolution by 0.5–1.5 Å and is not accepted by EMDB.",
+          "Reporting only global FSC when local refinement was performed — masked local FSC for each domain must also be reported."
         ]
       },
-      "fsc_resolution": {
-        "description": "Fourier Shell Correlation (FSC) 0.143 criterion for resolution estimation",
+      "pixel_size_by_molecular_weight": {
+        "description": "Pixel size must satisfy the Nyquist criterion for the target resolution. The rule is: pixel_size ≤ target_resolution / 2. For membrane proteins in nanodiscs, use 0.649 Å/pix for MW <60 kDa regardless of the Nyquist calculation.",
         "situations": {
-          "gold_standard_fsc": {
-            "value_or_range": "FSC=0.143 between two half-maps",
-            "when": "Reporting final map resolution from any single-particle reconstruction",
-            "why": "The FSC=0.143 criterion (gold-standard) is the community-accepted standard for reporting cryo-EM map resolution. It corresponds to the point where map correlation between independent half-datasets drops below 0.143.",
-            "source": "https://doi.org/10.1016/j.jsb.2012.09.006"
+          "mw_lt50_kDa": {
+            "value_or_range": "0.649 Å/pix; 256 px box; 60 e⁻/Å² dose",
+            "when": "Soluble or membrane proteins with MW <50 kDa; also applies to saposin nanodisc samples up to ~60 kDa TM core.",
+            "why": "At 0.649 Å/pix, the Nyquist limit is 1.30 Å — required to reach sub-2 Å resolution for small proteins. The MFSD2B (21 kDa TM core) study achieved 3.03 Å at 0.649 Å/pix. Using 0.83 Å/pix for these targets would cap resolution at ~1.66 Å Nyquist but introduce insufficient sampling for the true high-resolution signal.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "mw_100_300_kDa": {
+            "value_or_range": "0.83 Å/pix; 256–320 px box; 50 e⁻/Å² dose",
+            "when": "Standard membrane proteins in MSP nanodisc or detergent (VMAT2 55 kDa, μOR-Gi ~130 kDa, CaV1.2 ~400 kDa total).",
+            "why": "0.83 Å/pix is the industry standard for the 100–600 kDa range. Nyquist = 1.66 Å. VMAT2 achieved 2.7 Å, μOR 2.9 Å, CaV1.2 2.6–3.1 Å at this pixel size.",
+            "source": "docs/cryo_em_skills/02_VMAT2_nature2023.md; docs/cryo_em_skills/05_muOR_cell2022.md; docs/cryo_em_skills/03_CaV1_2_cell2023.md"
+          },
+          "mw_600_1500_kDa": {
+            "value_or_range": "1.06–1.08 Å/pix; 400 px box; 50 e⁻/Å² dose",
+            "when": "Large complexes 600–1500 kDa (spliceosome at ~1.5 MDa, large ribosomes).",
+            "why": "Nyquist = 2.12–2.16 Å at 1.06 Å/pix, which is sufficient since large flexible complexes rarely achieve better than 3.5–5 Å resolution due to conformational heterogeneity. Larger pixel size is needed to fit the particle in a manageable box.",
+            "source": "docs/cryo_em_skills/07_spliceosome_multistate.md; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "mw_gt1500_kDa": {
+            "value_or_range": "1.30 Å/pix; 512 px box; 45 e⁻/Å² dose",
+            "when": "Very large complexes >1.5 MDa (full ribosome, large viral capsids by non-symmetry-expanded SPA).",
+            "why": "Box size constraints at 300 kV Titan Krios with K3 camera limit practical box sizes to 512–800 px. 1.30 Å/pix keeps the full particle within ~650 Å × 650 Å box. Lower dose reduces radiation damage for radiation-sensitive large assemblies.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
           }
         },
         "common_mistakes": [
-          "Using FSC=0.5 criterion (overestimates resolution)",
-          "Reporting FSC without gold-standard half-map protocol"
-        ]
-      },
-      "particle_picking_threshold": {
-        "description": "Picking threshold or predicted confidence for automated particle picking",
-        "situations": {
-          "cryosparc_blob_picking": {
-            "value_or_range": "NCC score >0.3, power >50",
-            "when": "Initial blob-based picking without reference",
-            "why": "NCC (normalized cross-correlation) >0.3 and power >50 typically correspond to genuine particles. More stringent thresholds may miss edge cases.",
-            "source": "https://doi.org/10.1038/nmeth.4169"
-          }
-        },
-        "common_mistakes": [
-          "Picking too few particles in 2D classification",
-          "Not validating 2D class averages before 3D reconstruction"
+          "Using 0.83 Å/pix for proteins <60 kDa in saposin nanodiscs — this misses high-resolution signal that requires 0.649 Å/pix to capture.",
+          "Not adjusting pixel size when switching between microscopes of different magnification — always verify calibration against apoferritin standard before new data collection sessions.",
+          "Using the same box size for all projects — box size must be 1.5–2× the particle diameter in pixels."
         ]
       }
     },
     "key_references": [
       "https://doi.org/10.1038/nmeth.4169",
       "https://doi.org/10.1016/j.jsb.2012.09.006",
-      "https://doi.org/10.7554/eLife.63601"
+      "https://doi.org/10.7554/eLife.18722"
     ],
-    "best_practice_notes": "Always perform motion correction before CTF estimation. Use gold-standard FSC refinement throughout. Validate 2D classes before 3D reconstruction \u2014 discard junk classes aggressively. Local resolution filtering (LocRes in RELION) often improves map interpretability more than global B-factor sharpening. For heterogeneous samples, use 3D classification with multiple classes (4-8) before high-resolution refinement."
+    "best_practice_notes": "Follow the 14-gate QC hierarchy in strict order: G6 motion (<50 Å) → G7 CTF (FOM >0.1, res <4.5 Å) → G8 2D class retention (>60%) → G10 FSC 0.143 → G13 MolProbity (<2.0) → G14 Ramachandran (>97%). Use MW-based pixel size selection: <60 kDa = 0.649 Å/pix, 100–600 kDa = 0.83 Å/pix, 600–1500 kDa = 1.06 Å/pix, >1500 kDa = 1.30 Å/pix. Report both global FSC resolution and per-domain local FSC when local refinement is used."
+  },
+  "cryo_em_saposin_nanodisc_reconstitution": {
+    "description": "Saposin nanodisc reconstitution is the preferred sample preparation method for small membrane proteins (<60 kDa TM core). Saposin A wraps tightly around the transmembrane domain, minimizing the lipid belt area and improving particle alignment quality compared to MSP nanodiscs. Validated in MFSD2B (21 kDa) and VMAT2 (55 kDa) studies achieving 3.03 Å and 2.7 Å respectively.",
+    "key_parameters": {
+      "lipid_composition_and_molar_ratio": {
+        "description": "The lipid type, composition ratio, and molar ratio of protein:saposin:lipid in the reconstitution mixture.",
+        "situations": {
+          "standard_membrane_transporter": {
+            "value_or_range": "POPC:POPE:POPG = 3:1:1 molar; protein:saposin:lipid = 1:10:200 molar ratio",
+            "when": "MFS transporters, ion channels, and other integral membrane proteins in saposin nanodisc.",
+            "why": "3:1:1 POPC:POPE:POPG mimics the inner leaflet of mammalian plasma membranes. 1:10:200 molar ratio gives sufficient saposin A to scaffold all lipid and ensures complete detergent-free reconstitution. This ratio was used in MFSD2B and VMAT2 studies.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md; docs/cryo_em_skills/02_VMAT2_nature2023.md"
+          },
+          "lipid_delivery_method": {
+            "value_or_range": "γ-cyclodextrin lipid delivery (not Bio-Beads or organic solvent)",
+            "when": "Loading lipids into the saposin reconstitution mixture.",
+            "why": "γ-cyclodextrin solubilizes PC/PE/PG lipids as water-soluble complexes that transfer directly to saposin without requiring detergent or organic solvent, giving a cleaner, faster protocol than Bio-Beads. Validated to produce monodisperse nanodiscs for sub-3 Å SPA.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md"
+          },
+          "detergent_removal": {
+            "value_or_range": "SM-2 Bio-Beads overnight at 4°C; SEC polish to 100–120 kDa peak",
+            "when": "After mixing protein (in detergent), saposin A, and γ-cyclodextrin lipids.",
+            "why": "SM-2 Bio-Beads remove the trace detergent from the protein solubilization step. Overnight incubation at 4°C ensures complete removal. The final SEC peak at 100–120 kDa (verified by NS-EM as ~10 nm monodisperse particles) is the go/no-go gate before cryo-EM grid preparation.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md; docs/cryo_em_skills/02_VMAT2_nature2023.md"
+          }
+        },
+        "common_mistakes": [
+          "Using MSP1D1 nanodisc for proteins <60 kDa — MSP creates a 10–12 nm disc with excess lipid belt area that dilutes and blurs the TM core signal; saposin wraps tightly at ~10 nm for 55 kDa proteins.",
+          "Not verifying monodispersity by NS-EM before cryo-EM — aggregated or empty nanodiscs produce unusable 2D class averages.",
+          "Using DMPC or DPPC instead of POPC/POPE/POPG — saturated lipids form rigid bilayers that may distort the protein conformation at 4°C."
+        ]
+      },
+      "grid_preparation_saposin": {
+        "description": "Specific grid preparation conditions for saposin nanodisc samples.",
+        "situations": {
+          "preferred_grid_and_blot": {
+            "value_or_range": "UltrAuFoil R1.2/1.3 Au grids; blot 1.5 s at 10°C, 100% RH; add 0.4 mM fluorinated octyl maltoside",
+            "when": "Cryo-EM grid preparation for saposin nanodisc samples (e.g., MFSD2B protocol).",
+            "why": "UltrAuFoil reduces background scatter vs standard holey carbon. 1.5 s blot at 10°C (non-standard — shorter and warmer than conventional 3–4 s at 4°C) was optimized empirically for MFSD2B to achieve thin ice without denaturation. Fluorinated octyl maltoside (0.4 mM) reduces air-water interface adsorption and preferred orientation.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md"
+          },
+          "particle_concentration": {
+            "value_or_range": "0.1–0.4 mg/mL protein in nanodisc; target 20–80 particles per hole",
+            "when": "Applying sample to glow-discharged grid before vitrification.",
+            "why": "Saposin nanodiscs adsorb strongly to the air-water interface. Concentration optimization is empirical; too high causes crowding and preferred orientation, too low gives sparse holes requiring more data collection.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md"
+          }
+        },
+        "common_mistakes": [
+          "Using standard 3–4 s blot at 4°C from a different project — optimal blot conditions are protein-specific and must be determined empirically.",
+          "Not glow-discharging grids within 30 minutes before use — the hydrophobic surface prevents uniform thin ice formation.",
+          "Not adding fluorinated surfactant to prevent preferred orientation — for small membrane proteins in saposin, preferred orientation is the most common cause of data unusability."
+        ]
+      },
+      "particle_picking_three_strategy": {
+        "description": "Three-stage picking strategy for saposin nanodisc samples to maximize recall of small, low-contrast particles.",
+        "situations": {
+          "three_picker_approach": {
+            "value_or_range": "Stage 1: crYOLO blob; Stage 2: template from 2D classes; Stage 3: TOPAZ trained on project particles",
+            "when": "Any saposin nanodisc dataset; especially important for proteins <40 kDa where contrast is low.",
+            "why": "Blob picking misses low-contrast particles. Template picking adds recall but is biased by the template. TOPAZ neural network trained on curated project-specific particles achieves the highest recall (+20–40% over blob alone) without template bias. All three contribute to the final particle stack.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md; docs/cryo_em_skills/02_VMAT2_nature2023.md"
+          },
+          "expected_yield": {
+            "value_or_range": "2–5% yield from initial picks to final refined particles (e.g., 6.6M picked → 146K final at 2.2%)",
+            "when": "Assessing whether the data collection is proceeding normally.",
+            "why": "Saposin nanodisc samples have inherently low contrast and many empty nanodiscs; 2–5% yield is normal and expected. Do not adjust picking threshold to artificially increase yield — this adds junk particles.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md"
+          }
+        },
+        "common_mistakes": [
+          "Using only blob picking for saposin nanodisc samples — misses the majority of genuine particles due to low contrast.",
+          "Skipping TOPAZ training because it requires curated training data — the 20–40% recall improvement is critical for small protein datasets where particle counts are inherently limited.",
+          "Setting picking threshold too stringent to 'clean up' the stack — better to over-pick and clean by 2D classification."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/01_MFSD2B_preprint.md",
+      "docs/cryo_em_skills/02_VMAT2_nature2023.md",
+      "https://doi.org/10.1038/nmeth.4169"
+    ],
+    "best_practice_notes": "Use 0.649 Å/pix (non-negotiable for <60 kDa proteins). Saposin A reconstitution protocol: POPC:POPE:POPG 3:1:1, 1:10:200 protein:saposin:lipid molar ratio, γ-cyclodextrin lipid delivery, SM-2 Bio-Beads overnight at 4°C. Verify by NS-EM (~10 nm monodisperse particles) before cryo-EM. For grid prep: UltrAuFoil R1.2/1.3, add 0.4 mM fluorinated octyl maltoside, optimize blot time (start at 1.5 s, 10°C). Use three-stage picking (blob + template + TOPAZ trained). Expect 2–5% yield from initial picks."
+  },
+  "cryo_em_gpcr_complex_assembly": {
+    "description": "GPCR-G protein complex assembly for cryo-EM requires a multi-day stepwise protocol with precise nucleotide manipulation. Missing any step reduces complex yield by 10-fold. Validated for μ-opioid receptor-Gi (2.9 Å) and D1 dopamine receptor-Gs (3.0 Å) complexes.",
+    "key_parameters": {
+      "nanodisc_scaffold_selection": {
+        "description": "Choice of MSP scaffold for the GPCR nanodisc.",
+        "situations": {
+          "gpcr_gi_gs_complex": {
+            "value_or_range": "MSP1D1ΔH5 (NOT standard MSP1D1); disc diameter ~9 nm",
+            "when": "Any GPCR reconstituted in nanodisc for G protein coupling.",
+            "why": "MSP1D1ΔH5 is a truncated scaffold forming smaller ~9 nm discs vs 12 nm standard MSP1D1. Smaller disc reduces the lipid belt flexibility that blurs alignment during 3D refinement. This is the standard choice for all GPCR structural studies from the Xu lab and others.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md; docs/cryo_em_skills/06_D1_PAM_preprint2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Using standard MSP1D1 — produces a larger, more flexible disc that limits achievable resolution by 0.2–0.5 Å.",
+          "Using MSP2N2 — creates even larger ~16 nm discs, completely inappropriate for GPCR-G protein complexes."
+        ]
+      },
+      "five_step_assembly_protocol": {
+        "description": "Stepwise complex assembly order; deviating from this sequence drops yield 10-fold.",
+        "situations": {
+          "mandatory_assembly_sequence": {
+            "value_or_range": "Step 1: GPCR nanodisc reconstitution → Step 2: agonist addition (10–50 μM, 30 min 4°C) → Step 3: G protein addition (5× molar excess, 2 hr 25°C) → Step 4: apyrase (0.02 U/mL, removes GDP) → Step 5: scFv16 (1.5× molar excess vs Gi) → Step 6: anti-FLAG capture + SEC polish",
+            "when": "Assembling any GPCR-Gi or GPCR-Gs complex for cryo-EM.",
+            "why": "The sequence is non-negotiable: (1) Nanodisc first ensures stable GPCR without detergent-induced denaturation. (2) Agonist pre-activates the receptor before G protein addition. (3) Excess G protein drives complex formation. (4) Apyrase is critical — it hydrolyzes GDP to GMP, stabilizing the nucleotide-free Gα in the receptor-bound state; omission drops yield 10×. (5) scFv16 nanobody locks the Gβ-Gγ interface preventing dissociation during SEC and vitrification.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md"
+          },
+          "scfv16_sourcing": {
+            "value_or_range": "scFv16 from AddGene #114469; expressed in E. coli Origami2; purified from periplasm",
+            "when": "Preparing scFv16 stabilizer for Gi-coupled receptor complexes.",
+            "why": "scFv16 is mandatory for GPCR-Gi complexes. Nb35 serves the same function for Gs-coupled complexes. Without the stabilizer, the complex yield drops 10× and the Gβγ orientation is poorly defined in the density.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md"
+          }
+        },
+        "common_mistakes": [
+          "Adding G protein before agonist — GPCR must be agonist-bound (active state) before G protein coupling or binding affinity is insufficient.",
+          "Omitting apyrase step — GDP in the Gα subunit pocket prevents stable complex formation by promoting G protein release.",
+          "Adding scFv16 before SEC — add after initial affinity capture to prevent stabilizer from competing with anti-FLAG binding."
+        ]
+      },
+      "ns_em_hard_gate": {
+        "description": "NS-EM quality check that must be passed before cryo-EM grid preparation.",
+        "situations": {
+          "gpcr_gi_ns_em_standard": {
+            "value_or_range": "12–14 nm round particles in NS-EM; go/no-go gate before cryo-EM",
+            "when": "After SEC polish of assembled GPCR-Gi complex.",
+            "why": "12–14 nm diameter corresponds to the GPCR (~5 nm TM core) + MSP1D1ΔH5 nanodisc (~9 nm) + Gi protein (~5 nm). Particles outside this range indicate incomplete complex, aggregation, or empty nanodiscs. This gate saves expensive cryo-EM time.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md"
+          }
+        },
+        "common_mistakes": [
+          "Proceeding to cryo-EM without NS-EM verification — complex yield can be <10% of total protein requiring SEC repurification.",
+          "Accepting NS-EM images with mixed populations (some 12 nm, some 9 nm) — the 9 nm particles are empty nanodiscs that will dilute the complex fraction."
+        ]
+      },
+      "local_refinement_two_mask_strategy": {
+        "description": "GPCR-G protein complexes require separate local refinements with two independent masks to optimize resolution for each rigid domain.",
+        "situations": {
+          "tm_core_mask": {
+            "value_or_range": "Mask on GPCR TM helices: expected 2.7–2.9 Å resolution",
+            "when": "First local refinement pass after global homogeneous refinement.",
+            "why": "The TM core is the most rigid part of the complex and achieves the best local resolution. Focused refinement removes the resolution-limiting effect of Gi protein flexibility.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md; docs/cryo_em_skills/06_D1_PAM_preprint2025.md"
+          },
+          "g_protein_ras_mask": {
+            "value_or_range": "Mask on Gα ras domain: expected 3.2–4.0 Å resolution (always lower than TM core)",
+            "when": "Second local refinement pass; report separately from TM core.",
+            "why": "The Gi/Gs protein is flexibly connected to the receptor via the Gα5 helix. It always achieves lower resolution than the TM core. Both must be reported separately in publications; reporting only the better TM core number misrepresents the overall map quality.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md"
+          }
+        },
+        "common_mistakes": [
+          "Reporting only one global FSC resolution for a GPCR-G protein complex — the G protein domain is always at lower resolution and must be reported separately.",
+          "Using the same mask for both TM core and G protein — combining them in one mask prevents each region from achieving its optimal alignment."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/05_muOR_cell2022.md",
+      "docs/cryo_em_skills/06_D1_PAM_preprint2025.md"
+    ],
+    "best_practice_notes": "Use MSP1D1ΔH5 (not standard MSP1D1) for all GPCR nanodisc reconstitutions. Follow the 5-step assembly: nanodisc → agonist → G protein (5× excess, 2 hr 25°C) → apyrase (0.02 U/mL) → scFv16 (1.5× excess). Apyrase and scFv16 are mandatory — omitting either drops yield 10×. Verify 12–14 nm round particles by NS-EM before cryo-EM. Collect 5,000–10,000 movies at 0.83 Å/pix, −0.8 to −2.0 μm defocus, 50 e⁻/Å². Apply two separate local refinement masks (TM core and Gα ras domain) and report both resolutions."
+  },
+  "cryo_em_drug_difference_map": {
+    "description": "Drug difference map workflow identifies small-molecule binding density in cryo-EM maps by subtracting a reference (apo or drug-free) map from a drug-bound map. Validated across 7 drug conditions for CaV1.2 calcium channel (2.6–3.1 Å) and multi-PAM D1 receptor studies.",
+    "key_parameters": {
+      "map_normalization_before_subtraction": {
+        "description": "Before subtraction, both maps must be on the same resolution and density scale.",
+        "situations": {
+          "standard_normalization": {
+            "value_or_range": "Low-pass filter both maps to the same resolution (use the lower of the two); match density scales by protein region normalization",
+            "when": "Preparing apo and drug-bound maps for difference map calculation.",
+            "why": "Resolution mismatch creates systematic edge-frequency artifacts that mimic drug density. Even small differences in FSC resolution between apo and drug-bound datasets must be corrected. Normalize in ChimeraX using 'molmap' at a shared resolution cutoff.",
+            "source": "docs/cryo_em_skills/03_CaV1_2_cell2023.md"
+          }
+        },
+        "common_mistakes": [
+          "Subtracting maps at different resolutions — creates artifactual density at the boundary of the resolution mismatch.",
+          "Not normalizing density levels — if one map is dimmer/brighter than the other, the difference map shows global protein density rather than ligand density."
+        ]
+      },
+      "difference_map_threshold": {
+        "description": "Sigma threshold for identifying genuine ligand density in the difference map.",
+        "situations": {
+          "standard_threshold": {
+            "value_or_range": "±3σ threshold in the difference map; ligand density contoured at ≥4σ for confident placement",
+            "when": "Identifying drug/ligand density peaks in the subtracted map.",
+            "why": "±3σ is the community standard for cryo-EM difference maps. Peaks <3σ are within noise. For definitive ligand placement, using 4σ cutoff reduces false positives. The CaV1.2 multi-drug atlas used ±3σ as the initial threshold and 4σ for final placement.",
+            "source": "docs/cryo_em_skills/03_CaV1_2_cell2023.md; docs/cryo_em_skills/06_D1_PAM_preprint2025.md"
+          },
+          "ligand_occupancy_validation": {
+            "value_or_range": "Occupancy ≥0.7 after phenix.real_space_refine; correlation coefficient >0.8 in ligand region",
+            "when": "Refining the ligand into the difference map density.",
+            "why": "Occupancy <0.7 suggests partial binding or mixed apo/bound population. CC >0.8 in the ligand region confirms the placed molecule matches the density shape. Both are required for publication credibility.",
+            "source": "docs/cryo_em_skills/03_CaV1_2_cell2023.md"
+          }
+        },
+        "common_mistakes": [
+          "Using 1σ threshold to 'find more density' — below 3σ the map is dominated by noise peaks; any density placed at <3σ is not credible.",
+          "Not calculating occupancy after refinement — partial occupancy will be mistaken for a fully bound ligand at standard contour levels.",
+          "Not using eLBOW (phenix.elbow --smiles '...') to generate CIF restraints — refining without proper geometry restraints distorts the ligand and produces incorrect binding mode."
+        ]
+      },
+      "multi_condition_template_consistency": {
+        "description": "When collecting multiple drug conditions (multi-drug atlas), use a single particle picking template trained on the first condition and applied to all subsequent conditions.",
+        "situations": {
+          "atlas_workflow": {
+            "value_or_range": "Train template picker on apo/first-condition 2D classes; apply identically to all drug conditions; only threshold varies",
+            "when": "Running a multi-drug atlas with >3 ligand conditions on the same protein.",
+            "why": "Template consistency across conditions ensures that apparent density differences in the reconstructed maps are due to the drug, not picking bias. CaV1.2 multi-drug atlas applied the same template to all 7 conditions (~45,000 movies total).",
+            "source": "docs/cryo_em_skills/03_CaV1_2_cell2023.md"
+          }
+        },
+        "common_mistakes": [
+          "Training a new picker for each drug condition — introduces picking bias that creates artifactual differences between conditions.",
+          "Not collecting an apo (drug-free) dataset — the apo reference is mandatory for the subtraction to be interpretable."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/03_CaV1_2_cell2023.md",
+      "docs/cryo_em_skills/06_D1_PAM_preprint2025.md"
+    ],
+    "best_practice_notes": "Always collect an apo (drug-free) reference dataset under identical conditions. Low-pass filter both maps to the same resolution before ChimeraX volumesubtract. Use ±3σ threshold for initial identification, ≥4σ for confident ligand placement. Generate CIF restraints with phenix.elbow --smiles for each ligand. Refine occupancy and confirm CC >0.8 in the ligand region. For multi-drug atlases: train one template picker on apo data and apply consistently across all conditions. At least two independent reconstructions (different dataset halves) should show the same density peak for publication."
+  },
+  "cryo_em_liposome_pore_forming": {
+    "description": "Pore-forming proteins in lipid bilayers are the most challenging SPA sample type. Functional validation (lysis assay) is mandatory before any cryo-EM data collection. Two complementary EM approaches are required: SPA (atomic detail from DDM-extracted pore) and cryo-ET (native-state visualization in liposomes). Validated for BAX pore (3.1 Å SPA, ~10 Å cryo-ET).",
+    "key_parameters": {
+      "liposome_composition_and_qc": {
+        "description": "Liposome lipid composition and quality control thresholds before protein reconstitution.",
+        "situations": {
+          "omm_mimetic_liposome": {
+            "value_or_range": "DOPC:DOPE:CL = 4:3:1 molar ratio; extrusion through 100 nm polycarbonate membrane; DLS: PDI <0.1, size 90–110 nm",
+            "when": "Preparing liposomes for BAX family pore-forming proteins that target the outer mitochondrial membrane (OMM).",
+            "why": "DOPC:DOPE:CL 4:3:1 mimics the OMM lipid composition. Cardiolipin (CL) is specifically required for BAX recognition — BAX α9 helix inserts selectively into CL-containing bilayers. Without CL, BAX does not bind or form pores. PDI <0.1 and 90–110 nm diameter confirm monodisperse SUVs; heterogeneous liposomes give variable pore-forming efficiency.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Using DOPC alone or DOPC:DOPE without cardiolipin — BAX pore formation is severely impaired; this is a hard biochemical requirement not a preference.",
+          "Not checking PDI by DLS before reconstitution — polydisperse liposomes (PDI >0.2) give heterogeneous pore reconstitution and poor cryo-EM 2D classes."
+        ]
+      },
+      "functional_validation_gate": {
+        "description": "ANTS/DPX liposome lysis assay is a hard go/no-go gate; cryo-EM grid preparation is not attempted if lysis <50%.",
+        "situations": {
+          "ants_dpx_lysis_assay": {
+            "value_or_range": ">50% ANTS/DPX liposome lysis at BAX:cBID = 5:1 molar, 37°C, 30–60 min",
+            "when": "Verifying BAX pore activation before cryo-EM data collection.",
+            "why": "Cryo-EM can visualize inactive BAX adsorbed to liposomes without forming pores, giving misleading structural information. >50% lysis confirms that the majority of observed particles are functional pore assemblies. This gate saved months of data collection in the BAX study by identifying failed batches before committing to cryo-EM.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Proceeding to cryo-EM without lysis assay — cryo-EM cannot distinguish active pores from inactive membrane-adsorbed BAX oligomers.",
+          "Using less than 5:1 BAX:cBID molar ratio — insufficient cBID activator gives partial activation and mixed states that are unresolvable by SPA."
+        ]
+      },
+      "two_em_approach": {
+        "description": "Both SPA and cryo-ET are performed on the same system for complementary structural information.",
+        "situations": {
+          "spa_ddm_extraction": {
+            "value_or_range": "1% DDM (w/v), 30 min, 4°C; yields extracted pore + lipid belt; 0.83 Å/pix, 50 e⁻/Å², 5,000 movies; expected 3.1 Å",
+            "when": "High-resolution atomic structure determination of the pore complex.",
+            "why": "DDM extracts the pore from liposomes while maintaining the lipid annulus. The extracted pore particle is amenable to standard SPA. Without extraction, the curvature of the liposome bilayer prevents uniform particle alignment in 2D classification.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          },
+          "cryo_et_in_liposome": {
+            "value_or_range": "1.37 Å/pix; ±60° tilt series; ~3 e⁻/Å² per tilt angle; 100–120 e⁻/Å² total; 200–500 tilt series → ~10 Å subtomogram resolution",
+            "when": "Verifying native pore structure in intact liposomes to confirm SPA structure is not a DDM extraction artifact.",
+            "why": "Cryo-ET shows the pore in its native bilayer context, confirming that the DDM-extracted SPA structure is not distorted by detergent. The BAX study showed that the arc oligomer shape and dimensions match between SPA and cryo-ET.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Relying only on SPA without cryo-ET — cannot rule out DDM-induced oligomerization artifacts; reviewers require native-state verification for pore-forming proteins.",
+          "Using standard blob picker for arc-shaped pores — TOPAZ must be trained specifically on arc-shaped particles because the circular blob assumption fails for asymmetric oligomers."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+    ],
+    "best_practice_notes": "Prepare liposomes with DOPC:DOPE:CL 4:3:1 (cardiolipin is mandatory for BAX-family pores). Extrude through 100 nm polycarbonate; verify by DLS (PDI <0.1, 90–110 nm). Perform ANTS/DPX lysis assay before any cryo-EM: >50% lysis at BAX:cBID 5:1 is the go/no-go gate. Run both SPA (DDM-extracted, 3.1 Å target) and cryo-ET (in-liposome, ~10 Å target) for complementary validation. Train TOPAZ on arc-shaped pore particles — blob picker misses them. Use 3D multi-body refinement (4 BAX dimers as rigid bodies) to model inter-dimer flexibility."
+  },
+  "cryo_em_symmetric_assembly": {
+    "description": "Viral capsids, ring ATPases, and proteasomes exploit symmetry to amplify effective particle count by the symmetry order. A T=4 icosahedral capsid (240 subunits) gives 240× more views per particle than a C1 asymmetric particle. Always verify symmetry from 2D class averages before imposing it — never impose symmetry based solely on the known biology.",
+    "key_parameters": {
+      "symmetry_detection_and_verification": {
+        "description": "Procedure for determining and confirming the correct symmetry before applying it in refinement.",
+        "situations": {
+          "start_with_c1_always": {
+            "value_or_range": "Perform C1 reconstruction first; verify all symmetry-related views (5-fold, 3-fold, 2-fold) are present in 2D classes; confirm FSC improves by >0.5 Å when correct symmetry is applied",
+            "when": "Any assembly suspected of having rotational or helical symmetry.",
+            "why": "Imposing wrong symmetry destroys structural information. The C1 reconstruction at 2,000–5,000 movies is fast and reveals the correct symmetry from the map itself. CryoSPARC's symmetry search (C1→I1/D/C) uses FSC improvement as the metric — correct symmetry gives >0.5 Å FSC resolution gain.",
+            "source": "docs/cryo_em_skills/08_symmetric_assembly_capsid.md"
+          }
+        },
+        "common_mistakes": [
+          "Imposing I1 symmetry on a particle because 'it should be icosahedral' without verifying from the data — non-icosahedral capsid variants and pseudo-symmetric assemblies exist.",
+          "Not checking all symmetry views in 2D classes — missing views indicate preferred orientation that will cause artifacts in the symmetric reconstruction."
+        ]
+      },
+      "symmetry_amplification_efficiency": {
+        "description": "The effective particle count multiplier provided by symmetry application.",
+        "situations": {
+          "icosahedral_t4": {
+            "value_or_range": "T=4 icosahedral: 240 subunits/particle → 240× effective views; need only ~5,000 particles for near-atomic resolution",
+            "when": "HBV, HFTV1, adenovirus, and other T=4 icosahedral capsids.",
+            "why": "5,000 particles × 240 symmetry = 1.2M effective subunit views. For comparison, a C1 protein needs 500K–1M particles for sub-3 Å resolution. This is why viral capsids were the first sub-3 Å cryo-EM structures even with poor microscopes.",
+            "source": "docs/cryo_em_skills/08_symmetric_assembly_capsid.md"
+          },
+          "internal_cargo_strategy": {
+            "value_or_range": "Symmetry expansion (CryoSPARC symex) → signal subtraction (remove outer shell) → focused C1 classification on interior (6–10 classes) → asymmetric refinement of cargo",
+            "when": "Studying the portal, packaged DNA/RNA, or other internal asymmetric cargo in a symmetric capsid.",
+            "why": "The exterior symmetry conflicts with the interior asymmetry (portal is always unique). Symmetry expansion creates copies of all equivalent views; signal subtraction removes the symmetric shell; focused classification then isolates the asymmetric cargo in distinct views.",
+            "source": "docs/cryo_em_skills/08_symmetric_assembly_capsid.md"
+          }
+        },
+        "common_mistakes": [
+          "Not applying symmetry expansion when studying asymmetric cargo — direct C1 refinement of the intact symmetric particle averages out the internal asymmetric features.",
+          "Using too few classes (2–3) in the focused classification of cargo — cargo is often heterogeneous (empty vs full, different DNA packaging states) and requires 6–10 classes."
+        ]
+      },
+      "preferred_orientation_capsid": {
+        "description": "Capsid preferred orientation is the most common failure mode for icosahedral SPA.",
+        "situations": {
+          "adsorption_to_interface": {
+            "value_or_range": "Add 0.1% OG (n-octyl β-D-glucopyranoside) to sample; or tilt stage 30° during collection; or use graphene oxide grids",
+            "when": "2D class averages show only 2-fold and 5-fold views but missing 3-fold (face-on orientation missing or over-represented).",
+            "why": "Capsids >50 nm diameter adsorb strongly to the air-water interface, presenting consistent faces to the beam. OG detergent modifies the ice surface to reduce preferred adsorption. 30° stage tilt presents the particle from multiple angles relative to the beam.",
+            "source": "docs/cryo_em_skills/08_symmetric_assembly_capsid.md"
+          }
+        },
+        "common_mistakes": [
+          "Not checking for preferred orientation in 2D classes before proceeding to 3D — a missing symmetry view will create a blind spot in the reconstruction.",
+          "Using the same data collection strategy that failed for a related capsid — preferred orientation is sample-specific and must be re-characterized."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/08_symmetric_assembly_capsid.md"
+    ],
+    "best_practice_notes": "Always perform C1 reconstruction before imposing any symmetry. Verify symmetry from 2D class averages (all symmetry-related views must be present). Confirm FSC improvement >0.5 Å when applying the correct symmetry vs C1. For T=4 icosahedral, 2,000–5,000 movies give near-atomic resolution. For asymmetric internal cargo: symmetry expansion → signal subtraction → focused C1 classification (6–10 classes). Address preferred orientation with OG detergent, stage tilt, or graphene oxide grids."
+  },
+  "cryo_em_3d_refinement": {
+    "description": "3D refinement aligns particles to a 3D reference in orientation space and reconstructs the density map. Gold-standard refinement (independent half-map refinement) prevents overfitting. CTF refinement and Bayesian polishing are critical second-pass steps for pushing beyond 3 Å resolution.",
+    "key_parameters": {
+      "particle_box_size": {
+        "description": "2D image box size for particle extraction; must contain the full particle with margin.",
+        "situations": {
+          "standard_rule": {
+            "value_or_range": "box_px = round_up_to_power_of_2( (particle_diameter_Å × 1.5) / pixel_size_Å ); minimum 1.5× diameter",
+            "when": "Extracting particles for refinement.",
+            "why": "The box must contain the complete particle with context for alignment. Smaller boxes clip the particle and degrade alignment accuracy at high resolution. Calculation: particle diameter (Å) = 13.3 × MW_kDa^(1/3); then box_px = diameter × 1.5 / pixel_size, rounded up to power-of-2 for FFT efficiency.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "membrane_protein_in_nanodisc": {
+            "value_or_range": "2.0–2.5× protein diameter (include full nanodisc belt in box)",
+            "when": "Membrane proteins in saposin or MSP nanodisc.",
+            "why": "The lipid nanodisc belt extends 2–4 nm beyond the TM core. Including it in the box helps the algorithm model the surrounding density correctly and prevents alignment from being driven by the lipid signal.",
+            "source": "docs/cryo_em_skills/01_MFSD2B_preprint.md; docs/cryo_em_skills/05_muOR_cell2022.md"
+          }
+        },
+        "common_mistakes": [
+          "Using a box that clips the particle — high-resolution signal from the particle periphery is lost.",
+          "Not rounding to power-of-2 — non-power-of-2 box sizes are incompatible with CryoSPARC's FFT implementation and produce errors or slowdowns."
+        ]
+      },
+      "ctf_refinement_per_particle": {
+        "description": "Per-particle CTF refinement corrects defocus variations between particles in the same micrograph due to height differences in the ice.",
+        "situations": {
+          "ctf_refinement_after_global": {
+            "value_or_range": "Run CTF refinement after global homogeneous refinement reaches 3.5–4 Å; expected 0.2–0.5 Å improvement",
+            "when": "After initial 3D refinement convergence, before attempting local refinement.",
+            "why": "Micrograph CTF estimation gives one defocus value per micrograph, but particles at different heights in ice have different defocus values. Per-particle CTF refinement corrects this and is essential for pushing below 3 Å. The μOR-Gi study achieved 2.9 Å only after per-particle CTF refinement.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          }
+        },
+        "common_mistakes": [
+          "Skipping CTF refinement and going directly to local refinement — loses 0.2–0.5 Å of achievable resolution.",
+          "Running CTF refinement before global convergence — per-particle defocus estimation requires a good reference model; starting too early gives unreliable corrections."
+        ]
+      },
+      "local_refinement_masking": {
+        "description": "Soft-edged masks for local refinement to focus alignment on rigid subdomains.",
+        "situations": {
+          "single_domain_mask": {
+            "value_or_range": "Threshold at 2–3σ in the map; soft edge 5–10 pixels wide",
+            "when": "Standard local refinement of a homogeneous globular particle.",
+            "why": "Masking removes solvent noise and focuses alignment accuracy on protein density. Soft edges prevent Fourier ripple artifacts that corrupt high-resolution shells.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          },
+          "gpcr_two_mask_strategy": {
+            "value_or_range": "Mask 1: GPCR TM helices → 2.7–2.9 Å; Mask 2: Gα ras domain → 3.2–4.0 Å; report both",
+            "when": "GPCR-G protein complexes with inherent domain flexibility.",
+            "why": "The TM core and G protein move relative to each other during vitrification. A single global mask cannot optimally align both simultaneously. Two independent local refinements reach the resolution limit of each domain independently.",
+            "source": "docs/cryo_em_skills/05_muOR_cell2022.md"
+          }
+        },
+        "common_mistakes": [
+          "Creating a mask too tight that clips legitimate protein surface density.",
+          "Not applying the same mask to both half-maps during FSC calculation — produces artificially inflated resolution estimates."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.7554/eLife.18722",
+      "docs/cryo_em_skills/05_muOR_cell2022.md",
+      "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+    ],
+    "best_practice_notes": "Box size = 1.5–2× particle diameter in pixels, rounded to power-of-2. Run CTF refinement after global convergence (3.5–4 Å) for 0.2–0.5 Å improvement. For GPCR-G protein complexes use two separate local refinement masks (TM core and Gα ras domain) and report both resolutions. Apply local resolution filtering (LocRes or MonoRes) rather than global B-factor sharpening for maps with resolution variation. Target >50K particles for routine 3–4 Å; >200K particles for <3 Å."
+  },
+  "cryo_em_heterogeneity_3dva": {
+    "description": "Structural heterogeneity analysis separates conformational or compositional mixtures into distinct structural states. 3D Variability Analysis (3DVA) in CryoSPARC decomposes continuous motion into principal components. RELION 3D classification handles discrete states. Multi-body refinement addresses domain-level flexibility. Validated in spliceosome (multi-state from one dataset) and CaV1.2 (multi-drug atlas).",
+    "key_parameters": {
+      "3dva_components": {
+        "description": "Number of variability components and filter resolution for 3DVA analysis.",
+        "situations": {
+          "continuous_motion_3dva": {
+            "value_or_range": "5–10 variability components; filter resolution 6–12 Å; K-means clustering into 4–6 states per component",
+            "when": "Spliceosome, GPCR activation trajectory, ribosome ratcheting, any conformationally flexible complex.",
+            "why": "3DVA captures the principal axes of molecular motion in the particle ensemble. The first 1–3 components contain the dominant structural changes. Lower filter resolution (6–12 Å) prevents overfitting to noise. K-means clustering discretizes the continuous trajectory into interpretable states.",
+            "source": "docs/cryo_em_skills/07_spliceosome_multistate.md"
+          },
+          "spliceosome_multi_state": {
+            "value_or_range": "8–12 global 3D classes first (hetero refine) → 3DVA (5 components) → K-means → 4–6 final states, each 3.5–5 Å",
+            "when": "Large RNA-protein assemblies (spliceosome, ribosome with multiple assembly states).",
+            "why": "One spliceosome dataset can yield 6 distinct structural states representing different assembly intermediates. At 3.5–5 Å resolution per state, this is the expected ceiling for >500 kDa flexible RNPs — it is world-class, not a failure.",
+            "source": "docs/cryo_em_skills/07_spliceosome_multistate.md"
+          }
+        },
+        "common_mistakes": [
+          "Expecting <3 Å from a multi-MDa flexible RNP — resolution is limited by conformational averaging; 3.5–5 Å is excellent for flexible assemblies.",
+          "Using only global 3D classification without 3DVA for continuously flexible particles — 3D classes are forced discrete while motion is continuous, splitting good particles into too many bins."
+        ]
+      },
+      "3d_classification_focused": {
+        "description": "Focused 3D classification using a mask on the heterogeneous region.",
+        "situations": {
+          "occupancy_sorting": {
+            "value_or_range": "2–4 classes with mask on heterogeneous region; minimum 20,000 particles per retained class for sub-4 Å",
+            "when": "Sorting partial occupancy states (cofactor bound vs unbound, open vs closed conformation).",
+            "why": "Focused classification uses a tight mask that excludes the rigid scaffold, concentrating all the signal on the heterogeneous region. Without the mask, the rigid bulk of the particle dominates alignment and the heterogeneous site sees insufficient attention.",
+            "source": "docs/cryo_em_skills/07_spliceosome_multistate.md; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          }
+        },
+        "common_mistakes": [
+          "Running 3D classification without a focused mask — the rigid bulk dominates, heterogeneous regions are blurred in all classes.",
+          "Retaining classes with <10,000 particles — too noisy for meaningful interpretation at sub-5 Å resolution."
+        ]
+      },
+      "multi_body_refinement_pore": {
+        "description": "RELION/CryoSPARC multi-body refinement for oligomeric assemblies with inter-subunit flexibility.",
+        "situations": {
+          "bax_four_body": {
+            "value_or_range": "4 rigid bodies (each = 1 BAX dimer); allows ±5–10° inter-dimer movement; improves local dimer resolution by 0.2–0.5 Å",
+            "when": "Arc-shaped oligomeric pore complexes (BAX pore, perforin, gasdermin) with sub-unit flexibility.",
+            "why": "The BAX arc pore consists of 4 dimers that can flex at the dimer-dimer junction. Global refinement averages this flexibility, degrading resolution. Multi-body refinement treats each dimer as a rigid body that can be independently aligned, recovering resolution within each dimer.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Defining body masks that overlap — violates the rigid-body independence assumption and produces artifacts at the interface.",
+          "Using too many bodies (>6) when the assembly does not have genuine multi-level flexibility — adds parameters without improving resolution."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/07_spliceosome_multistate.md",
+      "docs/cryo_em_skills/04_BAX_pore_science2025.md",
+      "https://doi.org/10.1038/s41592-021-01135-1"
+    ],
+    "best_practice_notes": "For continuous heterogeneity: use 3DVA (5–10 components, 6–12 Å filter), then K-means cluster into 4–6 states. For discrete states: focused 3D classification with mask on heterogeneous region, minimum 20K particles per class. For flexible oligomers: multi-body refinement with one body per rigid domain (4 bodies for BAX pore). Resolution expectations for large flexible RNPs: 3.5–5 Å per state is excellent, sub-3 Å is not achievable for >500 kDa flexible complexes. Validate that classified states are biochemically interpretable, not just statistical noise separation."
+  },
+  "cryo_em_map_validation": {
+    "description": "Map validation ensures the reconstruction is free from overfitting artifacts and accurately represents molecular structure. Mandatory: gold-standard FSC, local resolution mapping, MolProbity stereochemistry, and EMRinger sidechain validation.",
+    "key_parameters": {
+      "fsc_gold_standard": {
+        "description": "FSC 0.143 between independently refined half-maps with phase-randomization correction.",
+        "situations": {
+          "standard_fsc_0143": {
+            "value_or_range": "FSC = 0.143 cutoff; apply phase randomization beyond the claimed resolution",
+            "when": "Reporting resolution for any cryo-EM structure.",
+            "why": "FSC 0.143 is the EMDB-required standard. Phase randomization test rules out mask-induced FSC inflation — soft masks can artificially correlate the two half-maps at high frequency. The corrected FSC accounts for this. Never use FSC 0.5 as the primary criterion.",
+            "source": "https://doi.org/10.1016/j.jsb.2012.09.006; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          }
+        },
+        "common_mistakes": [
+          "Reporting FSC 0.5 criterion — overestimates resolution by 0.5–1.5 Å; not accepted by EMDB.",
+          "Not applying phase randomization correction — masking can inflate FSC by 0.3–0.8 Å at high frequencies."
+        ]
+      },
+      "model_validation_molprobity": {
+        "description": "MolProbity stereochemistry validation after PHENIX real-space refinement.",
+        "situations": {
+          "standard_targets": {
+            "value_or_range": "MolProbity score <2.0 (publication minimum); <1.5 (excellent); Ramachandran favored >97%; Ramachandran outliers <1%; rotamer outliers <1%",
+            "when": "After phenix.real_space_refine on the atomic model fit to the cryo-EM map.",
+            "why": "MolProbity score aggregates Ramachandran, rotamer, CaBLAM, and clash score into a single metric. <2.0 is the minimum for publication; <1.5 indicates a high-quality model. Scores >2.5 will trigger reviewer concerns regardless of map resolution.",
+            "source": "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md; https://doi.org/10.1107/S2059798321012122"
+          },
+          "emringer_sidechain": {
+            "value_or_range": "EMRinger score >1.0 confirms credible sidechain rotamer placement (requires map <3.5 Å)",
+            "when": "Validating sidechain accuracy for maps better than 3.5 Å.",
+            "why": "EMRinger measures the correlation between sidechain χ1 dihedral angles and map density peaks. Scores >1.0 confirm sidechains are genuinely resolved in the map rather than built by model bias.",
+            "source": "https://doi.org/10.1038/nmeth.3541"
+          }
+        },
+        "common_mistakes": [
+          "Reporting model quality statistics before real-space refinement — raw AlphaFold2 models used as starting points will have poor rotamer scores until after refinement.",
+          "Not validating model statistics per-chain for multimeric complexes — one poorly refined chain can pass overall statistics while hiding localized problems."
+        ]
+      },
+      "map_to_model_correlation": {
+        "description": "CC between refined model and experimental density as a per-residue quality indicator.",
+        "situations": {
+          "cc_threshold": {
+            "value_or_range": "Map-to-model CC >0.8 in core protein region; CC >0.7 at periphery; local CC in ligand region >0.8",
+            "when": "ChimeraX or PHENIX map-to-model correlation analysis after refinement.",
+            "why": "CC directly measures how well each residue fits the experimental density. CC <0.6 at specific residues flags model errors or genuinely disordered regions. Ligand region CC >0.8 is the threshold for credible small-molecule placement.",
+            "source": "docs/cryo_em_skills/03_CaV1_2_cell2023.md; docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+          }
+        },
+        "common_mistakes": [
+          "Reporting only global CC — residue-level CC identifies local model problems that global metrics miss.",
+          "Placing ligands in density peaks with CC <0.7 — below this threshold the density may be noise or disordered lipid rather than a specific ligand."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.1016/j.jsb.2012.09.006",
+      "https://doi.org/10.1107/S2059798321012122",
+      "https://doi.org/10.1038/nmeth.3541",
+      "docs/cryo_em_skills/00_GENERAL_FRAMEWORK.md"
+    ],
+    "best_practice_notes": "Always apply gold-standard FSC with phase-randomization correction; report FSC 0.143. Deposit both half-maps and the FSC mask in EMDB. MolProbity <2.0 is the publication minimum; target <1.5. Ramachandran favored >97%, outliers <1%, rotamer outliers <1%. For maps <3.5 Å, validate sidechains with EMRinger (score >1.0). Per-residue CC analysis identifies local model errors. For small-molecule ligands: CC >0.8, occupancy ≥0.7, eLBOW-generated restraints."
+  },
+  "cryo_et_subtomogram_averaging": {
+    "description": "Cryo-electron tomography (cryo-ET) with subtomogram averaging (STA) determines in-situ structures of macromolecular complexes in their native cellular environment. Key parameters: dose-symmetric tilt scheme, AreTomo2 alignment, missing wedge correction, and per-tilt CTF estimation.",
+    "key_parameters": {
+      "tilt_scheme": {
+        "description": "Angular acquisition scheme for tilt-series collection.",
+        "situations": {
+          "dose_symmetric": {
+            "value_or_range": "Dose-symmetric: 0° → ±3° → ±6° ... → ±60–70°; per-tilt dose 2–3 e⁻/Å²; total dose 100–120 e⁻/Å²",
+            "when": "Standard high-resolution cryo-ET with Titan Krios/Glacios.",
+            "why": "Dose-symmetric acquisition (Hagen 2017) collects low-tilt angles first when the sample is least radiation-damaged, preserving high-resolution information at the angles that contribute most to the reconstruction. Total dose 100–120 e⁻/Å² for STA; BAX cryo-ET used ~3 e⁻/Å² per tilt × 41 tilts = ~120 e⁻/Å² total.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md; https://doi.org/10.1016/j.str.2017.06.011"
+          }
+        },
+        "common_mistakes": [
+          "Unidirectional tilt scheme — applies full dose to one angular half before collecting the other, wasting the high-SNR early frames on only half the angular space.",
+          "Exceeding ±70° tilt on samples >200 nm thick — projected thickness becomes too great for useful signal."
+        ]
+      },
+      "aretomo2_alignment": {
+        "description": "Tilt-series alignment with AreTomo2 for cryo-ET.",
+        "situations": {
+          "fiducial_free_cellular": {
+            "value_or_range": "AreTomo2 patch-tracking; patch size 200–400 Å; local motion correction per frame",
+            "when": "FIB-SEM lamellae or in-situ cellular cryo-ET where gold fiducials cannot be applied.",
+            "why": "AreTomo2 adds per-frame local motion correction to the tilt-series frames, then patch-tracks across tilts for alignment. Residual mean error (RME) should be <1.5 nm; the BioMate et_full_pipeline uses AreTomo2 as the standard aligner.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Not inspecting RME after alignment — RME >2 nm indicates poor alignment that will limit STA resolution regardless of particle count.",
+          "Using coarse patch tracking (large patches) on thin lamellae — small patches fail at high tilts due to reduced overlap area."
+        ]
+      },
+      "in_situ_resolution_expectations": {
+        "description": "Realistic resolution expectations for different cryo-ET STA scenarios.",
+        "situations": {
+          "in_situ_cellular": {
+            "value_or_range": "10–25 Å for in-situ STA of cellular complexes (ribosomes, proteasomes) with 200–500 tilt series",
+            "when": "In-situ structural determination of endogenous complexes in FIB-SEM lamellae.",
+            "why": "In-situ STA is limited by lamella thickness, missing wedge, local structural heterogeneity, and tilt-series alignment accuracy. 10–25 Å is the practical range for most complexes. Sub-10 Å requires >1,000 subtomograms from high-quality <100 nm lamellae.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          },
+          "purified_sample_cryo_et": {
+            "value_or_range": "~10 Å for in-liposome pore-forming proteins with 200–500 tilt series",
+            "when": "Purified complexes in liposomes or thin layers (not cellular context).",
+            "why": "Purified-sample cryo-ET (PEST) avoids the thickness and heterogeneity of cellular samples. BAX-in-liposome achieved ~10 Å resolution confirming the SPA structure in native-like context.",
+            "source": "docs/cryo_em_skills/04_BAX_pore_science2025.md"
+          }
+        },
+        "common_mistakes": [
+          "Expecting SPA-equivalent (<4 Å) resolution from in-situ STA without extremely large particle numbers (>10,000) and exceptional lamella quality.",
+          "Using STA alone to claim an atomic structure — always complement with SPA on purified/extracted sample for atomic details."
+        ]
+      }
+    },
+    "key_references": [
+      "docs/cryo_em_skills/04_BAX_pore_science2025.md",
+      "https://doi.org/10.1016/j.str.2017.06.011",
+      "https://doi.org/10.1016/j.jsb.2022.107923"
+    ],
+    "best_practice_notes": "Use dose-symmetric tilt scheme; collect 100–120 e⁻/Å² total (2–3 e⁻/Å² per tilt at ±60–70°). Use AreTomo2 for alignment; verify RME <1.5 nm. Expect 10–25 Å for in-situ STA; <10 Å requires >1,000 subtomograms from <100 nm lamellae. For pore-forming proteins: complement SPA (atomic resolution) with cryo-ET (native bilayer confirmation). Apply wedge-masked FSC for resolution reporting. TOPAZ picking is required for arc-shaped or non-globular particles."
+  },
+  "helical_cryo_em": {
+    "description": "Helical cryo-EM reconstructs filamentous assemblies (actin, amyloid fibrils, TMV, flagella, intermediate filaments) by exploiting the built-in translational-rotational symmetry of the helix. Rise (translation per subunit, Å) and twist (rotation per subunit, °) must be accurately determined before reconstruction.",
+    "key_parameters": {
+      "helical_rise_and_twist": {
+        "description": "Fundamental symmetry parameters defining the helical lattice.",
+        "situations": {
+          "amyloid_fibrils": {
+            "value_or_range": "Rise 2.3–2.5 Å (beta-strand repeat); twist 70–180° (highly variable, polymorph-specific)",
+            "when": "α-synuclein, tau, Aβ, TDP-43, and other amyloid fibril structure determination.",
+            "why": "Amyloid fibrils are cross-β structures with a 4.7 Å axial repeat from beta-strand spacing, but the 2-start helical symmetry gives an apparent 2.3–2.5 Å rise per subunit. The twist varies dramatically between polymorphs and between disease-associated vs synthetic fibrils — it is always measured experimentally, never assumed.",
+            "source": "https://doi.org/10.1038/s41586-020-2686-x"
+          },
+          "cytoskeletal_filaments": {
+            "value_or_range": "Actin: rise 27.5 Å, twist −167°; microtubule: 13 protofilaments, 4 nm rise",
+            "when": "F-actin or microtubule structural studies.",
+            "why": "Known parameters for standard cytoskeletal filaments can be used as starting points but should be refined. Actin-binding proteins and post-translational modifications alter the twist by 1–3°.",
+            "source": "https://doi.org/10.7554/eLife.18722"
+          }
+        },
+        "common_mistakes": [
+          "Assuming twist from related fibril literature — polymorphs of the same protein can differ by 20–40° in twist, giving completely different structures.",
+          "Not searching for multiple helical families when micrographs show polymorphic fibrils — forcing one symmetry gives a blurred average of multiple lattices."
+        ]
+      },
+      "segment_extraction": {
+        "description": "Overlapping segment extraction from helical filaments for averaging.",
+        "situations": {
+          "standard_overlap": {
+            "value_or_range": "90% overlap (step size = 10% of box length); box length ≈ 3–5× helical repeat",
+            "when": "Helical reconstruction in RELION or CryoSPARC helical mode.",
+            "why": "90% overlap extracts many overlapping segments from each filament, giving each subunit multiple independent views. For a 1 μm filament with 10 nm box at 90% overlap: ~1,000 segments per filament, each with a different rotational sample. This dramatically increases effective particle count.",
+            "source": "https://doi.org/10.7554/eLife.18722"
+          }
+        },
+        "common_mistakes": [
+          "Using <70% overlap — reduces effective particle count per filament by 3–10×.",
+          "Not correcting for filament curvature before extraction — curved filaments have varying orientation that blurs the helical average."
+        ]
+      }
+    },
+    "key_references": [
+      "https://doi.org/10.7554/eLife.18722",
+      "https://doi.org/10.1038/s41586-020-2686-x"
+    ],
+    "best_practice_notes": "Always determine rise and twist experimentally from the power spectrum layer lines — never assume from related filaments. For amyloid fibrils: sort polymorphs by 2D classification before imposing any helical symmetry. Use 90% segment overlap for maximum particle yield. Apply polarity correction for polar filaments (actin, microtubules). CTF refinement and Bayesian polishing are equally important as for SPA — implement after initial convergence."
   }
 }

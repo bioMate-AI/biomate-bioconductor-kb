@@ -903,7 +903,9 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
 
     # Optional: verify the specific object exists (for input file paths).
     # Skip for directory-style prefixes (key ends with '/') or bucket-only URLs.
-    if check_object and key and not key.endswith("/"):
+    # Also skip head_object for glob patterns — use list_objects_v2 instead.
+    _is_glob_key = any(c in key for c in ("*", "?", "[", "]"))
+    if check_object and key and not key.endswith("/") and not _is_glob_key:
         try:
             s3.head_object(Bucket=bucket, Key=key)
         except ClientError as exc:
@@ -1031,6 +1033,22 @@ def _generate_executor_config(
         if before_script_str:
             lines.append(f"    beforeScript = '{before_script_str}'")
         lines.append("}")
+        # Per-label GPU queue routing: processes labeled 'process_gpu' go to the GPU queue.
+        # Avoids a single monolithic queue for all workflows.
+        gpu_queue = (
+            compute.get("gpu_batch_queue")
+            or os.environ.get("GPU_BATCH_QUEUE", "")
+        )
+        if gpu_queue:
+            lines += [
+                "process {",
+                "    withLabel: 'process_gpu' {",
+                f"        queue = '{gpu_queue}'",
+                "        accelerator = 1",
+                "    }",
+                "}",
+            ]
+            log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
         lines += [
             f"aws {{",
             f"    region = '{region}'",

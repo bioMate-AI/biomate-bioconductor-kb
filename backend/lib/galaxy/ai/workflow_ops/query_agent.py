@@ -79,7 +79,7 @@ class WorkflowQueryAgent:
                     {"role": "user", "content": prompt}
                 ],
                 model='claude-3-haiku-20240307',
-                temperature=0.7,
+                temperature=0.0,
             )
 
             content = result['content']

@@ -687,6 +687,163 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     return {"parameters": parameters, "parameter_metadata": parameter_metadata}
 
 
+def _infer_params_from_intent_llm(
+    user_intent: str,
+    workflow_name: str,
+    all_params: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Use Claude Haiku to extract parameter values from the user's natural language message.
+
+    Called after the workflow is identified but before the response is returned.
+    Returns a dict of {param_name: extracted_value} for any params whose values
+    can be confidently inferred from the user's message.
+
+    Falls back silently to {} on any error or when ANTHROPIC_API_KEY is unset.
+    """
+    api_key = _os.getenv("ANTHROPIC_API_KEY")
+    if not api_key or not all_params:
+        return {}
+
+    # Only ask about params that could plausibly appear in natural language
+    # (skip file paths, boolean flags, pure numeric tuning params)
+    _SKIP_TYPES = {"file", "boolean"}
+    _SKIP_SUFFIXES = ("_path", "_file", "_dir", "_bam", "_fastq", "_fasta", "_vcf", "_gtf", "_bed")
+    extractable = [
+        p for p in all_params
+        if not p.get("default")  # only unfilled params
+        and not str(p.get("type", "")).lower() in _SKIP_TYPES
+        and not any(p["name"].endswith(s) for s in _SKIP_SUFFIXES)
+    ]
+    if not extractable:
+        return {}
+
+    param_descriptions = "\n".join(
+        f'  - "{p["name"]}": {p.get("description") or p.get("label") or p["name"]}'
+        for p in extractable
+    )
+
+    prompt = f"""You are extracting workflow parameter values from a bioinformatics research request.
+
+Workflow: {workflow_name}
+User message: {user_intent}
+
+Parameters to extract (only extract if clearly present in the message):
+{param_descriptions}
+
+Return a JSON object with only the parameters whose values you can confidently extract.
+For text search queries, extract the search string the user wants to use.
+For gene names, extract the gene symbol (e.g. "TP53").
+For SMILES strings, extract the full SMILES.
+For PDB IDs, extract the 4-character code (e.g. "6OIM").
+For protein sequences, extract the full sequence string.
+For numeric params, extract the number.
+For enum/select params, extract the most appropriate option.
+
+If a value is not clearly present in the message, do NOT include that parameter.
+Return ONLY a JSON object, no markdown, no explanation.
+Example: {{"query": "serine threonine kinase DNA damage", "query_type": "text", "top_k": 50}}"""
+
+    try:
+        import anthropic as _anthropic
+        client = _anthropic.Anthropic(api_key=api_key)
+        completion = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            temperature=0.0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = (completion.content[0].text or "{}").strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        extracted = json.loads(raw)
+        if isinstance(extracted, dict):
+            return {str(k): str(v) if not isinstance(v, (int, float, bool)) else v
+                    for k, v in extracted.items()}
+    except Exception as exc:
+        log.debug("_infer_params_from_intent_llm failed (%s) — no pre-fill", exc)
+    return {}
+
+
+class RankedSearchRequest(BaseModel):
+    query: str
+    limit: int = 10
+    preferred_domains: Optional[List[str]] = None
+
+
+@router.post(
+    "/api/ai_assistant/search_ranked",
+    summary="Return a ranked list of workflows for IR evaluation (MRR/P@K/NDCG)."
+)
+def search_ranked(
+    request: RankedSearchRequest,
+    trans: ProvidesUserContext = DependsOnTrans
+) -> Dict[str, Any]:
+    """Return a ranked list of up to `limit` workflows for a query.
+
+    Used by the IR evaluation layer to compute MRR, P@K, and NDCG@K without
+    going through the full chat pipeline.  Includes chain candidates (returned
+    first with type='chain') followed by individual workflow matches.
+
+    Response:
+      {
+        "results": [
+          {"rank": 1, "name": "nf-core/rnaseq", "display_name": "...",
+           "description": "...", "source": "nfcore", "format": "nextflow",
+           "score": 14.3, "type": "workflow"},
+          ...
+        ],
+        "query": "..."
+      }
+    """
+    if not _workflow_search:
+        raise HTTPException(status_code=503, detail="Workflow search not available")
+
+    ranked: List[Dict[str, Any]] = []
+
+    # Chains first (using the standard threshold for the live path)
+    try:
+        chain_results = _workflow_search.search_chains(request.query, min_score=0.35, limit=3)
+        for c in chain_results:
+            ranked.append({
+                "rank": 0,  # will be set below
+                "name": c.name,
+                "display_name": c.display_name or c.name,
+                "description": (c.description or "")[:200],
+                "source": "chain",
+                "format": "chain",
+                "score": None,  # chains use cosine similarity, not raw score
+                "type": "chain",
+            })
+    except Exception as exc:
+        log.warning("[search_ranked] chain search failed: %s", exc)
+
+    # Individual workflow results
+    try:
+        wf_results = _workflow_search.search(
+            request.query,
+            limit=request.limit,
+            preferred_domains=request.preferred_domains or None,
+        )
+        for r in wf_results:
+            ranked.append({
+                "rank": 0,
+                "name": r.name,
+                "display_name": getattr(r, "display_name", None) or r.name,
+                "description": (getattr(r, "description", None) or "")[:200],
+                "source": getattr(r, "source", ""),
+                "format": getattr(r, "format", ""),
+                "score": round(r.score, 3),
+                "type": "workflow",
+            })
+    except Exception as exc:
+        log.warning("[search_ranked] workflow search failed: %s", exc)
+
+    # Assign ranks (chains first, then workflows)
+    for i, item in enumerate(ranked):
+        item["rank"] = i + 1
+
+    return {"query": request.query, "results": ranked}
+
+
 @router.post(
     "/api/ai_assistant/search_nextflow_workflow",
     summary="Search Nextflow workflow database (no LLM required)."
@@ -883,6 +1040,22 @@ def search_nextflow_workflow(
                 else _p
                 for _p in _req_params
             ]
+
+        # LLM-based extraction: fill any remaining unfilled params from natural language
+        _llm_extracted = _infer_params_from_intent_llm(
+            user_intent, best.name, _req_params + _opt_params
+        )
+        if _llm_extracted:
+            def _apply_llm_fill(params: list) -> list:
+                return [
+                    {**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True}
+                    if p['name'] in _llm_extracted and not p.get('default')
+                    else p
+                    for p in params
+                ]
+            _req_params = _apply_llm_fill(_req_params)
+            _opt_params = _apply_llm_fill(_opt_params)
+            log.info("LLM param extraction for %s: filled %s", best.name, list(_llm_extracted.keys()))
 
         # Only treat params as "missing" if they have no pre-filled default (e.g. SRR accession injected)
         _truly_missing = [p for p in _req_params if not p.get('default')]
@@ -3406,6 +3579,124 @@ def store_session_summary(
     except Exception as exc:
         log.error("Failed to store session summary: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc))
+
+# ── Input Data Analysis ────────────────────────────────────────────────────────
+
+class AnalyzeInputDataRequest(BaseModel):
+    workflow_id: Optional[str] = None
+    workflow_name: Optional[str] = None
+    parameters: Dict[str, Any] = {}
+
+
+@router.post(
+    "/api/ai_assistant/analyze-input-data",
+    summary="Analyze workflow input parameters and return recommendations."
+)
+def analyze_input_data(request: AnalyzeInputDataRequest) -> Dict[str, Any]:
+    """
+    Analyzes workflow parameters before execution and returns actionable recommendations.
+    Calls LLM when ANTHROPIC_API_KEY is available, falls back to rule-based analysis.
+    """
+    import os as _os
+    import json as _json
+
+    workflow_name = request.workflow_name or request.workflow_id or "unknown"
+    parameters = request.parameters
+
+    # Build a list of potential issues from the parameters
+    issues = []
+
+    # Check for common parameter problems using simple heuristics
+    for param_name, param_value in parameters.items():
+        # Missing / empty required-looking params
+        if param_value is None or param_value == "" or param_value == []:
+            if any(kw in param_name.lower() for kw in ["input", "genome", "fasta", "gtf", "ref", "reads"]):
+                issues.append({
+                    "parameter": param_name,
+                    "type": "missing_required",
+                    "current_value": param_value,
+                })
+            continue
+
+        val_str = str(param_value)
+
+        # Local path that looks wrong for AWS
+        if isinstance(param_value, str) and param_value.startswith("/") and not param_value.startswith("/tmp"):
+            issues.append({
+                "parameter": param_name,
+                "type": "local_path_in_aws",
+                "current_value": param_value,
+            })
+
+        # Suspiciously small numbers for resource params
+        if param_name.lower() in ("max_memory", "max_cpus", "memory"):
+            try:
+                num = float(re.sub(r"[^0-9.]", "", val_str))
+                if param_name.lower() == "max_memory" and num < 4:
+                    issues.append({
+                        "parameter": param_name,
+                        "type": "low_resource",
+                        "current_value": param_value,
+                    })
+            except (ValueError, TypeError):
+                pass
+
+    api_key = _os.getenv("ANTHROPIC_API_KEY")
+    recommendations: List[Dict[str, Any]] = []
+
+    if api_key and issues:
+        try:
+            import anthropic as _anthropic
+            client = _anthropic.Anthropic(api_key=api_key)
+            prompt = f"""You are a bioinformatics workflow parameter expert.
+Workflow: {workflow_name}
+Current parameters: {_json.dumps(parameters, indent=2)}
+Detected issues: {_json.dumps(issues, indent=2)}
+
+For each issue (and any other problems you notice), return a JSON array of recommendations:
+[
+  {{
+    "parameter": "<name>",
+    "fix_type": "set_value|add_missing|fix_type|aws_resource",
+    "current_value": "<current or null>",
+    "recommended_value": "<recommended>",
+    "reason": "<1 sentence why>",
+    "risk_level": "low|medium|high",
+    "auto_apply": true|false
+  }}
+]
+Return ONLY the JSON array, no markdown."""
+            completion = client.messages.create(
+                model="claude-haiku-4-5",
+                max_tokens=600,
+                temperature=0.1,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            raw = completion.content[0].text.strip() if completion.content else "[]"
+            raw = raw.replace("```json", "").replace("```", "").strip()
+            recommendations = _json.loads(raw)
+        except Exception as exc:
+            log.warning("analyze_input_data LLM call failed: %s — using rule-based fallback", exc)
+
+    # Rule-based fallback / supplement
+    if not recommendations:
+        aws_config = {
+            "instance_type": _os.environ.get("AWS_INSTANCE_TYPE", "m5.xlarge"),
+            "max_memory": _os.environ.get("AWS_MAX_MEMORY", "16GB"),
+            "max_cpus": _os.environ.get("AWS_MAX_CPUS", "4"),
+        }
+        rule_result = generate_rule_based_fixes(issues, aws_config)
+        recommendations = rule_result.get("recommendations", [])
+
+    critical_count = sum(1 for r in recommendations if r.get("risk_level") == "high")
+    auto_apply_count = sum(1 for r in recommendations if r.get("auto_apply"))
+
+    return {
+        "recommendations": recommendations,
+        "critical_count": critical_count,
+        "auto_apply_count": auto_apply_count,
+    }
+
 
 # ── D4: Workflow Error Explanation ─────────────────────────────────────────────
 

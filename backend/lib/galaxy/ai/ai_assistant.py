@@ -1963,6 +1963,29 @@ class AIAssistant:
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
     }
 
+    # Params that are `= null` in .nf files but are auto-calculated or truly optional.
+    # These should NOT be treated as hard required-by-user params even though their
+    # default is null — they fall back gracefully inside the workflow scripts.
+    _OPTIONAL_NULL_PARAMS = frozenset({
+        # Cryo-EM / CryoSPARC
+        'gain_ref',                   # optional gain reference for gain correction
+        'dose_per_frame',             # auto-estimated from total_dose / num_frames
+        'particle_box_size',          # auto-calculated from particle diameter
+        'particle_diameter_angstroms', # estimated from molecular_weight_kda if absent
+        'molecular_weight_kda',       # used only to estimate diameter when explicit diameter absent
+        # Drug discovery / MD
+        'receptor_pdb',               # optional — sometimes passed via uploaded file
+        'ligand_sdf',                 # optional — sometimes passed via uploaded file
+        'topology_file',              # optional — used for restart/continuation runs
+        'checkpoint_file',            # optional — restart only
+        'restraints_file',            # optional — position restraints
+        # Genomics
+        'known_sites',                # optional — dbSNP for BQSR (hg38 auto-injected)
+        'intervals',                  # optional — targeted sequencing intervals
+        'pon',                        # optional — Panel of Normals for somatic callers
+        'germline_resource',          # optional — gnomAD for mutect2
+    })
+
     def _find_nf_file(self, filename: str) -> Optional[Any]:
         """Resolve DB-stored filename to absolute .nf path using same walk-up as executor."""
         from pathlib import Path as _Path
@@ -1973,7 +1996,9 @@ class AIAssistant:
                 backend_root = ancestor
                 break
         candidates = [
+            backend_root / "biomni_workflows" / "nextflow_nfcore" / "subworkflows" / filename,
             backend_root / "biomni_workflows" / "nextflow_nfcore" / filename,
+            backend_root / "biomni_workflows" / "subworkflows" / filename,
             backend_root / "biomni_workflows" / filename,
             backend_root / filename,
         ]
@@ -2046,7 +2071,9 @@ class AIAssistant:
                 continue
             label = name.replace("_", " ").title()
             description = f"Workflow parameter: {label}"
-            is_required = (val_raw == "null")
+            # A param is truly required only if it's null AND not in the known-optional set.
+            # Optional-null params auto-calculate or have workflow-level fallbacks.
+            is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
             default_str = None if is_required else val_raw.strip("'\"")
             param_type = self._detect_param_type(name, default_str or "")
             # Convert boolean string defaults to actual Python bools so the JSON
@@ -2350,7 +2377,12 @@ class AIAssistant:
 Given a workflow name, a list of its configurable parameters (with type and description), and a user's natural-language query, suggest pre-filled values for parameters that can be inferred from the user's context.
 
 Rules:
-- ONLY suggest values for parameters where the user's query makes the value unambiguous.
+- Suggest values for parameters that can be reasonably inferred from the user's message, even if not stated word-for-word.
+- For text search / query parameters: extract the biological topic the user describes and form a clean search string.
+- For gene / perturbation parameters: extract the gene symbol (e.g. "TP53", "KRAS") directly.
+- For SMILES parameters: extract the full SMILES string from the message.
+- For PDB ID parameters: extract the 4-character PDB code (e.g. "6OIM").
+- For protein/nucleotide sequence parameters: extract the raw sequence string.
 - For select parameters, the value MUST be one of the listed enum values.
 - For boolean parameters, value must be true or false (unquoted).
 - Do NOT guess file paths — never suggest a value for file-type parameters.
@@ -2366,7 +2398,12 @@ Examples of good inference:
 - User says "de novo design" → mode = "de_novo"
 - User says "SARS-CoV-2 Mpro" → reactive_residue = "CYS:145" for covalent docking
 - User says "oral drug" → route = "oral"
-- User says "GPU available" or "use GPU" → gpu = true"""
+- User says "GPU available" or "use GPU" → gpu = true
+- User says "search for serine threonine kinases involved in DNA damage response" → query = "serine threonine kinase DNA damage response", query_type = "text"
+- User says "find proteins that function as RNA helicases" → query = "RNA helicase", query_type = "text"
+- User says "predict TP53 knockout response" → perturbation = "TP53", perturbation_type = "genetic"
+- User says "optimize synthesizability of CC(C)Oc1ccc(cc1)C(C)N" → input_smiles = "CC(C)Oc1ccc(cc1)C(C)N"
+- User says "screen against KRAS G12C (PDB: 6OIM)" → receptor_pdb = "6OIM\""""
 
     def _infer_params_from_intent_llm(
         self,
@@ -2446,6 +2483,47 @@ Examples of good inference:
         except Exception as exc:
             log.debug("[ParamSuggest] LLM inference failed: %s", exc)
             return []
+
+    def _extract_explicit_params_from_query(
+        self,
+        user_intent: str,
+        req: list,
+        opt: list,
+    ) -> list:
+        """Extract explicit key=value param assignments from user query text.
+
+        Handles patterns like:
+          movies_path=/data/empiar10345/movies/
+          pixel_size=0.83, symmetry=O
+          cryosparc_license=f312a30e-63fc-11f0-8e36-e3c932851287.
+
+        This supplements LLM inference for file-type params (which LLM skips) and
+        for any param the user typed explicitly in the query.
+        Returns list of {name, value} dicts.
+        """
+        import re as _re
+
+        all_param_names = {p["name"] for p in req + opt}
+        if not all_param_names:
+            return []
+
+        suggestions = []
+        # Match: param_name=value  where value ends at comma, space, newline, or end-of-string
+        pattern = _re.compile(
+            r'\b(' + '|'.join(_re.escape(n) for n in all_param_names) + r')\s*=\s*([^\s,;]+)',
+            _re.IGNORECASE,
+        )
+        for m in pattern.finditer(user_intent):
+            name_lower = m.group(1).lower()
+            value = m.group(2).rstrip('.,;')
+            # Match case-insensitively to actual param name
+            matched_name = next(
+                (n for n in all_param_names if n.lower() == name_lower), None
+            )
+            if matched_name and value:
+                suggestions.append({"name": matched_name, "value": value, "rationale": "Value provided explicitly in your query."})
+
+        return suggestions
 
     def _apply_llm_suggestions(
         self,
@@ -2559,13 +2637,33 @@ Examples of good inference:
             # Clarification requested — return a structured response the
             # endpoint can handle (success=False, message carries the question).
             if terminal_state.get("clarification_needed"):
+                # Build scientific_rationale from candidate workflows if available,
+                # so the LLM can use tool-specific knowledge to ask better
+                # differentiating questions on this clarification turn.
+                _pipeline_clarif_rationale: dict = {}
+                _candidates = terminal_state.get("workflow_candidates") or []
+                _cand_tools: List[str] = []
+                for _cand in _candidates[:3]:
+                    _t = getattr(_cand, 'tools', None) or (
+                        _cand.get('tools_used', []) if isinstance(_cand, dict) else []
+                    )
+                    for _tool in (_t or []):
+                        if _tool not in _cand_tools:
+                            _cand_tools.append(_tool)
+                if _cand_tools:
+                    _pipeline_clarif_rationale = self._build_scientific_rationale(
+                        '', 'candidate workflows', _cand_tools
+                    ) or {}
+                _final_resp = terminal_state.get("final_response") or {}
                 return {
                     "success": False,
                     "message": (
-                        terminal_state.get("final_response", {}).get("message")
+                        _final_resp.get("message")
                         or "Please clarify your request."
                     ),
                     "source": "clarification",
+                    **({'scientific_rationale': _pipeline_clarif_rationale}
+                       if _pipeline_clarif_rationale else {}),
                 }
             log.warning("[run_via_pipeline] terminal state has no final_response, falling back")
             return self.generate_workflow_unified(user_intent, uploaded_datasets, user_id)
@@ -2593,6 +2691,7 @@ Examples of good inference:
         nf_params = self._get_workflow_params(match.filename)
         req = nf_params['required']
         opt = nf_params['optional']
+        log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
             req, opt = self._inject_sra_into_params(req, opt, sra)
@@ -2605,11 +2704,13 @@ Examples of good inference:
         # Layer 2: apply DB-driven tool_knowledge hints
         hints = (scientific_rationale or {}).get('parameter_hints', [])
         req, opt = self._apply_parameter_hints(req, opt, hints)
+        # Layer 1b: extract explicit key=value assignments from user query (covers file-type params
+        # that LLM inference skips, and any param the user typed verbatim).
+        explicit_suggestions = self._extract_explicit_params_from_query(user_intent, req, opt)
+        req, opt = self._apply_llm_suggestions(req, opt, explicit_suggestions)
         # Layer 2: apply LLM intent-inferred suggestions (non-blocking)
         llm_suggestions = self._infer_params_from_intent_llm(user_intent, match.name, req, opt)
         req, opt = self._apply_llm_suggestions(req, opt, llm_suggestions)
-        # Build knowledge highlights and citations
-        knowledge_highlights = self._build_knowledge_highlights(match.domain, match.name, match.tools)
         citations = self._build_workflow_citations(match.tools, match.domain, match.tags)
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
@@ -2661,8 +2762,6 @@ Examples of good inference:
                 {'name': m.name, 'domain': m.domain, 'source': m.source, 'score': m.score, 'format': m.format}
                 for m in (search_results or [])[:3]
             ],
-            **({'knowledge_highlights': knowledge_highlights}
-               if any(knowledge_highlights.values()) else {}),
             **({'citations': citations} if citations else {}),
         }
 
@@ -2728,8 +2827,21 @@ Examples of good inference:
             # Step 0: Chain lookup — preferred path for multi-step research projects.
             # The search uses embedding similarity (threshold 0.42) + LLM scope check.
             # If the LLM is uncertain it sets clarification_needed and returns a question.
+            # Skip chain lookup when the user is clearly requesting a specific single workflow:
+            # do a preliminary workflow search; if the top result scores very high (meaning the
+            # query names a specific workflow explicitly), chains are inappropriate.
             try:
-                chain_results = self.workflow_search.search_chains(user_intent, min_score=0.35, limit=3)
+                _prelim = self.workflow_search.search(user_intent, limit=1)
+                _prelim_score = _prelim[0].score if _prelim else 0.0
+                _SPECIFIC_WORKFLOW_THRESHOLD = 55.0
+                if _prelim_score >= _SPECIFIC_WORKFLOW_THRESHOLD:
+                    chain_results = []
+                    log.info(
+                        "[UnifiedWorkflowGeneration] Skipping chain lookup — specific workflow match "
+                        f"(top_score={_prelim_score:.1f} >= {_SPECIFIC_WORKFLOW_THRESHOLD})"
+                    )
+                else:
+                    chain_results = self.workflow_search.search_chains(user_intent, min_score=0.35, limit=3)
                 if chain_results:
                     top_chain = chain_results[0]
                     # LLM requested clarification — surface the question; do NOT launch chain.
@@ -2740,6 +2852,23 @@ Examples of good inference:
                             f"({len(top_chain.steps)} steps), or a simpler single-step analysis?"
                         )
                         log.info("[UnifiedWorkflowGeneration] Chain clarification needed: %s", q)
+                        # Build scientific_rationale for the candidate chain's tools so the
+                        # LLM can ask targeted differentiating questions on clarification turns.
+                        _chain_clarif_tools: List[str] = []
+                        for _step in (top_chain.steps or []):
+                            _wf_name = _step.get('workflow_name', '') if isinstance(_step, dict) else ''
+                            if _wf_name:
+                                _wf_hits = self.workflow_search.search(_wf_name, limit=1)
+                                if _wf_hits and _wf_hits[0].tools:
+                                    _chain_clarif_tools.extend(
+                                        t for t in _wf_hits[0].tools
+                                        if t not in _chain_clarif_tools
+                                    )
+                        _chain_clarif_rationale = (
+                            self._build_scientific_rationale(
+                                '', top_chain.display_name, _chain_clarif_tools
+                            ) if _chain_clarif_tools else {}
+                        )
                         return {
                             'success': False,
                             'workflow_type': 'clarification',
@@ -2748,15 +2877,11 @@ Examples of good inference:
                             'message': q,
                             'clarification_question': q,
                             'candidate_chain': top_chain.name,
+                            **({'scientific_rationale': _chain_clarif_rationale,
+                                'workflow_name': top_chain.display_name}
+                               if _chain_clarif_rationale else {}),
                         }
                     log.info("[UnifiedWorkflowGeneration] Chain match: %s (%d steps)", top_chain.name, len(top_chain.steps))
-                    # Build knowledge highlights for the chain's domain so frontend receives
-                    # parameter guidance even on chain_lookup paths.
-                    chain_kh = self._build_knowledge_highlights(
-                        top_chain.domain or '',
-                        top_chain.display_name or top_chain.name,
-                        [],
-                    )
                     chain_result: Dict[str, Any] = {
                         'success': True,
                         'workflow_type': 'chain',
@@ -2776,8 +2901,6 @@ Examples of good inference:
                         'format': 'chain',
                         'all_chains': [c.to_dict() for c in chain_results],
                     }
-                    if any(chain_kh.values()):
-                        chain_result['knowledge_highlights'] = chain_kh
                     return chain_result
             except Exception as chain_exc:
                 log.warning("[UnifiedWorkflowGeneration] Chain lookup failed: %s", chain_exc)
@@ -2832,6 +2955,45 @@ Examples of good inference:
             source = None
             datasets_assigned = False
             generated_parameters = []  # Initialize for all paths
+
+            # ── Disambiguation gate ──────────────────────────────────────────────
+            # When no single dominant match exists and multiple plausible candidates
+            # score within 3 points of each other, surface them for user selection
+            # instead of silently committing to #1.
+            # Thresholds match UnifiedWorkflowSearch._classify_match():
+            #   _MATCH_SCORE_HIGH = 12.0  (high_confidence)
+            #   _MATCH_SCORE_MED  = 6.0   (medium_confidence / plausible)
+            _DISAMBIG_MIN_SCORE = 6.0
+            _DISAMBIG_GAP_THRESHOLD = 3.0
+            if search_results and match_type != 'high_confidence':
+                plausible = [r for r in search_results if r.score >= _DISAMBIG_MIN_SCORE]
+                if (len(plausible) >= 2
+                        and (plausible[0].score - plausible[1].score) < _DISAMBIG_GAP_THRESHOLD):
+                    disambig_candidates = []
+                    for m in plausible[:4]:
+                        disambig_candidates.append({
+                            'name': m.name,
+                            'display_name': getattr(m, 'display_name', None) or m.name,
+                            'description': (getattr(m, 'description', None) or '')[:220],
+                            'source': getattr(m, 'source', ''),
+                            'format': getattr(m, 'format', ''),
+                            'score': round(m.score, 2),
+                        })
+                    log.info(
+                        "[UnifiedWorkflowGeneration] Disambiguation — %d plausible candidates "
+                        "(gap=%.1f < %.1f): %s",
+                        len(plausible), plausible[0].score - plausible[1].score,
+                        _DISAMBIG_GAP_THRESHOLD, [c['name'] for c in disambig_candidates],
+                    )
+                    return {
+                        'success': False,
+                        'workflow_type': 'disambiguation',
+                        'message': (
+                            "I found several workflows that could match your request. "
+                            "Which best fits what you need?"
+                        ),
+                        'candidates': disambig_candidates,
+                    }
 
             # Step 2: Decide strategy based on template match confidence
             # match_type is set by UnifiedWorkflowSearch._classify_match():
@@ -3045,6 +3207,13 @@ Examples of good inference:
                     _genome_lc = self._extract_genome_build(user_intent)
                     if _genome_lc:
                         _req_lc, _opt_lc = self._inject_genome_into_params(_req_lc, _opt_lc, _genome_lc)
+                    # Build scientific rationale for composed tools so the response LLM
+                    # has DB-verified context about the selected tools' constraints and pitfalls.
+                    _composed_rationale = self._build_scientific_rationale(
+                        composed['nextflow_path'],
+                        composed['workflow_name'],
+                        composed.get('tools_used', []),
+                    )
                     return {
                         'success': True,
                         'nextflow_path': composed['nextflow_path'],
@@ -3066,6 +3235,7 @@ Examples of good inference:
                         ),
                         'execution_engine': 'nextflow',
                         'format': 'nextflow',
+                        'scientific_rationale': _composed_rationale,
                         'workflow_ga': {
                             'name': composed['workflow_name'],
                             'description': f"Composed Nextflow workflow for: {user_intent}",
@@ -3076,6 +3246,7 @@ Examples of good inference:
                             'tools_used': composed['tools_used'],
                             'required_params': _req_lc,
                             'optional_params': _opt_lc,
+                            'scientific_rationale': _composed_rationale,
                         },
                         'datasets_assigned': False,
                         'required_params': _req_lc,
@@ -4088,6 +4259,221 @@ Examples of good inference:
         'bioengineering': 'expert_knowledge_microbio_sysbio.json',
     }
 
+    # Per-domain reference descriptions used to build BGE centroids for semantic
+    # domain inference. Each string blends a natural-language summary with
+    # representative tool names, method terms, and common user phrasings so the
+    # embedding captures the full semantic space of that domain.
+    #
+    # These are reference material only — the BGE model makes its own cosine-
+    # similarity decision and is not bound by any term listed here. Ambiguous
+    # queries will naturally score low on all domains and return no domain (→ '').
+    _DOMAIN_DESCRIPTIONS: Dict[str, str] = {
+        'cryo_em': (
+            'Cryo-electron microscopy single particle analysis for high-resolution '
+            'protein structure determination. Tools: CryoSPARC, RELION, MotionCor2, '
+            'CTFFIND4, Topaz, crYOLO, DeepEMhancer, EMAN2. Methods: motion correction, '
+            'CTF estimation, particle picking, 2D classification, 3D refinement, '
+            'map sharpening, local resolution, model building. Keywords: cryo-EM, '
+            'cryoEM, cryo electron microscopy, single particle, micrograph, FSC, '
+            'gold-standard, nanodisc, membrane protein structure.'
+        ),
+        'cryo_et': (
+            'Cryo-electron tomography and subtomogram averaging for in-situ structural '
+            'biology. Tools: AreTomo2, IsoNet, Dynamo, IMOD, eTomo. Methods: tilt series '
+            'acquisition, tomogram reconstruction, subtomogram averaging, missing wedge '
+            'correction, FIB milling, lamella preparation. Keywords: cryo-ET, tomography, '
+            'tilt series, subtomogram, lamella, FIB-SEM, in-cell cryo-ET, in situ.'
+        ),
+        'genomics': (
+            'DNA variant calling, genome sequencing, and genotyping pipelines. '
+            'Tools: GATK, HaplotypeCaller, BWA, Bowtie2, samtools, bcftools, FreeBayes, '
+            'DeepVariant, snpEff, VEP. Methods: germline and somatic variant calling, '
+            'SNP, indel, CNV detection, WGS, WES, genome assembly, haplotyping. '
+            'Keywords: variant calling, whole genome sequencing, WGS, SNP, indel, '
+            'germline, somatic, mutation, genotype, exome.'
+        ),
+        'transcriptomics': (
+            'Bulk RNA sequencing, gene expression quantification, and differential '
+            'expression analysis. Tools: STAR, HISAT2, salmon, kallisto, featureCounts, '
+            'HTSeq, DESeq2, edgeR, limma. Methods: read alignment, transcript '
+            'quantification, differential expression, splicing analysis, gene ontology. '
+            'Keywords: RNA-seq, bulk RNA, differential expression, transcriptome, '
+            'read counts, TPM, FPKM, DESeq2, edgeR.'
+        ),
+        'epigenomics': (
+            'Chromatin accessibility, histone modification, and DNA methylation profiling. '
+            'Tools: MACS2, HOMER, Bismark, Bowtie2, deepTools, ENCODE pipeline, '
+            'chromHMM. Methods: ChIP-seq peak calling, ATAC-seq open chromatin, '
+            'bisulfite sequencing, CUT&RUN, CUT&TAG, WGBS. Keywords: ChIP-seq, '
+            'ATAC-seq, epigenomics, histone, methylation, peak calling, chromatin, '
+            'accessibility, H3K27ac, H3K4me3.'
+        ),
+        'single_cell': (
+            'Single-cell RNA sequencing, dimensionality reduction, and cell type '
+            'annotation. Tools: Seurat, Scanpy, Cell Ranger, Monocle, scVI, SCENIC. '
+            'Methods: clustering, UMAP, t-SNE, Leiden, Louvain, trajectory inference, '
+            'doublet detection, cell type annotation, RNA velocity. Keywords: scRNA-seq, '
+            'single cell, single-cell, 10x Genomics, droplet, cell clustering, cell '
+            'type, UMAP, Leiden, Seurat, Scanpy, spatial transcriptomics.'
+        ),
+        'proteomics': (
+            'Mass spectrometry-based proteomics, protein identification, and '
+            'quantification. Tools: MaxQuant, Perseus, Proteome Discoverer, MSFragger, '
+            'Spectronaut, DIA-NN, FragPipe. Methods: LC-MS/MS, data-dependent '
+            'acquisition DDA, data-independent acquisition DIA, label-free quantification '
+            'LFQ, TMT labeling, FDR filtering, peptide identification. Keywords: '
+            'proteomics, LC-MS, mass spectrometry, peptide, protein abundance, '
+            'label-free, LFQ, DIA, DDA, FDR.'
+        ),
+        'metabolomics': (
+            'Small molecule metabolite profiling and metabolic pathway analysis. '
+            'Tools: XCMS, MetaboAnalyst, MZmine, OpenMS, CAMERA. Methods: untargeted '
+            'and targeted metabolomics, peak detection, metabolite annotation, '
+            'pathway enrichment, flux analysis. Keywords: metabolomics, metabolite, '
+            'small molecule, XCMS, MetaboAnalyst, metabolic pathway, NMR, LC-MS '
+            'metabolomics, mass spectrometry metabolomics.'
+        ),
+        'drug_discovery': (
+            'Computational drug discovery, molecular docking, ADMET prediction, and '
+            'molecular dynamics simulation. Tools: AutoDock Vina, DiffDock, GROMACS, '
+            'AMBER, REINVENT4, OpenFE, Schrödinger, RDKit, AlphaFold. Methods: '
+            'virtual screening, SMILES-based design, lead optimization, free energy '
+            'perturbation, MD simulation, pharmacokinetics. Keywords: drug discovery, '
+            'ADMET, docking, molecular dynamics, SMILES, lead optimization, drug design, '
+            'binding affinity, pharmacophore, GROMACS, AMBER.'
+        ),
+        'structural_biology': (
+            'Computational protein structure prediction and analysis outside of cryo-EM. '
+            'Tools: AlphaFold2, AlphaFold3, RoseTTAFold, ESMFold, ColabFold, MODELLER. '
+            'Methods: homology modeling, ab initio folding, structure refinement, '
+            'interface analysis, evolutionary covariation. Keywords: protein structure '
+            'prediction, AlphaFold, homology model, folding, structure refinement, '
+            'multimer, protein complex structure prediction.'
+        ),
+        'metagenomics': (
+            'Microbial community profiling from environmental or clinical samples. '
+            'Tools: MetaPhlAn, Kraken2, HUMAnN, QIIME2, mothur, DADA2, MEGAHIT. '
+            'Methods: 16S rRNA amplicon sequencing, shotgun metagenomics, taxonomic '
+            'classification, OTU clustering, diversity analysis, functional profiling. '
+            'Keywords: metagenomics, microbiome, 16S, amplicon, OTU, ASV, microbial '
+            'diversity, MetaPhlAn, Kraken, shotgun.'
+        ),
+        'microbiology': (
+            'Microbial genomics, pathogen analysis, and antimicrobial resistance. '
+            'Tools: Prokka, Roary, ABRicate, CARD, Snippy, Gubbins. Methods: '
+            'bacterial genome assembly, annotation, pan-genome analysis, AMR detection, '
+            'phylogenetics, outbreak investigation. Keywords: microbiology, bacteria, '
+            'pathogen, antimicrobial resistance, AMR, prokaryote, genome annotation, '
+            'pan-genome, bacterial.'
+        ),
+        'systems_biology': (
+            'Network analysis, pathway enrichment, and metabolic modeling. '
+            'Tools: Cytoscape, GSEA, COBRA, EFMEvolver, STRING, BioGRID. Methods: '
+            'gene set enrichment, flux balance analysis, protein interaction networks, '
+            'regulatory network inference. Keywords: systems biology, network, pathway '
+            'enrichment, GSEA, gene ontology, flux balance, metabolic network.'
+        ),
+        'synthetic_biology': (
+            'Genetic circuit design, metabolic pathway engineering, and biosynthesis. '
+            'Tools: SBOL, iBioSim, Geneious, Benchling, CRISPR design tools. Methods: '
+            'gene circuit optimization, promoter design, codon optimization, CRISPR '
+            'editing, metabolic flux engineering. Keywords: synthetic biology, gene '
+            'circuit, metabolic engineering, CRISPR, biosynthesis, pathway design, '
+            'codon optimization.'
+        ),
+        'immunology': (
+            'Immune cell profiling, repertoire analysis, and immune response '
+            'characterization. Tools: ImmGen, CellRanger VDJ, MiXCR, TRUST4, '
+            'VDJTOOLS, Immcantation. Methods: flow cytometry analysis, TCR/BCR '
+            'repertoire sequencing, immune cell type classification, clonotype '
+            'tracking. Keywords: immunology, T cell, B cell, antibody, immune, '
+            'TCR, BCR, repertoire, flow cytometry, cytokine, checkpoint.'
+        ),
+        'cell_biology': (
+            'Cell imaging, morphology analysis, and subcellular structure '
+            'characterization. Tools: ImageJ, CellProfiler, ilastik, StarDist, '
+            'Cellpose, napari. Methods: fluorescence microscopy, confocal imaging, '
+            'segmentation, tracking, organelle quantification. Keywords: cell biology, '
+            'confocal, fluorescence microscopy, live imaging, segmentation, imaging '
+            'analysis, organelle, CellProfiler, Cellpose.'
+        ),
+        'cancer_biology': (
+            'Cancer genomics, tumor evolution, and oncology data analysis. '
+            'Tools: TCGA pipelines, MuTect2, TITAN, ABSOLUTE, OncoKB. Methods: '
+            'somatic mutation calling, copy number variation, tumor purity estimation, '
+            'driver gene identification, survival analysis. Keywords: cancer, tumor, '
+            'oncology, somatic mutation, CNV, driver gene, TCGA, tumor mutational '
+            'burden, TMB, immunotherapy response.'
+        ),
+        'bioengineering': (
+            'Biomaterial design, tissue engineering, and bioprocess optimization. '
+            'Tools: FEniCS, OpenFOAM, BioNet. Methods: scaffold design, bioreactor '
+            'modeling, fermentation optimization, protein expression optimization. '
+            'Keywords: bioengineering, tissue engineering, biomaterial, scaffold, '
+            'bioreactor, fermentation, bioprocess.'
+        ),
+    }
+
+    # Module-level BGE centroid cache — populated once per worker on first call
+    _domain_centroids: Dict[str, List[float]] = {}
+
+    def _get_domain_centroids(self) -> Dict[str, List[float]]:
+        """Build and cache per-domain BGE centroids (once per process)."""
+        if not self.__class__._domain_centroids:
+            try:
+                from .cryo_em_knowledge.rag_index import _get_bge_model
+                model = _get_bge_model()
+                domains = list(self._DOMAIN_DESCRIPTIONS.keys())
+                vecs = model.encode(
+                    [self._DOMAIN_DESCRIPTIONS[d] for d in domains],
+                    normalize_embeddings=True,
+                )
+                self.__class__._domain_centroids = {
+                    d: v.tolist() for d, v in zip(domains, vecs)
+                }
+            except Exception as e:
+                logging.getLogger(__name__).warning(
+                    "[DomainInfer] centroid build failed: %s", e
+                )
+        return self.__class__._domain_centroids
+
+    def _infer_domain_from_intent(self, user_intent: str) -> str:
+        """
+        Infer knowledge domain from user intent using BGE cosine similarity
+        against per-domain description centroids.
+
+        Returns the best-matching key from _DOMAIN_KNOWLEDGE_FILES, or ''.
+        Requires score ≥ 0.40 with margin ≥ 0.03 over second-best.
+        """
+        import math as _math
+        centroids = self._get_domain_centroids()
+        if not centroids:
+            return ''
+        try:
+            from .cryo_em_knowledge.rag_index import _get_bge_model
+            model = _get_bge_model()
+            q_vec = model.encode([user_intent], normalize_embeddings=True)[0].tolist()
+
+            def _cos(a: List[float], b: List[float]) -> float:
+                dot = sum(x * y for x, y in zip(a, b))
+                na = _math.sqrt(sum(x * x for x in a)) or 1.0
+                nb = _math.sqrt(sum(x * x for x in b)) or 1.0
+                return dot / (na * nb)
+
+            scored = sorted(
+                [(d, _cos(q_vec, c)) for d, c in centroids.items()],
+                key=lambda x: -x[1]
+            )
+            best_domain, best_score = scored[0]
+            second_score = scored[1][1] if len(scored) > 1 else 0.0
+            if best_score >= 0.40 and (best_score - second_score) >= 0.03:
+                return best_domain
+        except Exception as e:
+            logging.getLogger(__name__).warning(
+                "[DomainInfer] BGE inference failed: %s", e
+            )
+        return ''
+
     def _build_knowledge_highlights(
         self,
         domain: str,
@@ -4095,126 +4481,223 @@ Examples of good inference:
         workflow_tools: List[str],
     ) -> Dict[str, Any]:
         """
-        Load domain expert knowledge and return best_practices, qc_thresholds,
-        and literature_guidance relevant to this workflow.
+        Build best_practices, qc_thresholds, and literature_guidance from DB sources.
+
+        Priority:
+        1. cryo_em_protocols DB (cryo-EM / cryo-ET domain only) — protocol-level rules, QC gates, papers
+        2. tool_knowledge DB (all domains) — per-tool use cases and primary citations
+        3. Expert JSON file (all domains) — keyword-scored topic fallback
         """
         import json as _json
         import logging as _log
         log = _log.getLogger(__name__)
 
-        fname = self._DOMAIN_KNOWLEDGE_FILES.get(domain, '')
-        if not fname:
-            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
-
-        # ai_assistant.py lives at backend/lib/galaxy/ai/ — 4 parents up = backend/
-        knowledge_dir = Path(__file__).parent.parent.parent.parent / 'scripts' / 'domain_knowledge'
-        knowledge_path = knowledge_dir / fname
-        if not knowledge_path.exists():
-            log.debug(f"[KnowledgeHighlights] File not found: {knowledge_path}")
-            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
-
-        try:
-            with open(knowledge_path) as f:
-                all_topics = _json.load(f)
-        except Exception as e:
-            log.warning(f"[KnowledgeHighlights] Failed to load {fname}: {e}")
-            return {'best_practices': [], 'qc_thresholds': [], 'literature_guidance': []}
-
-        # Build keyword set from workflow name and tools
-        # Replace all common separators (dash, underscore, slash) before splitting
-        _normalize = lambda s: s.lower().replace('-', ' ').replace('_', ' ').replace('/', ' ')
-        name_words = set(_normalize(workflow_name).split())
-        tool_words = set()
-        for t in (workflow_tools or []):
-            tool_words.update(_normalize(t).split())
-        all_keywords = name_words | tool_words
-        # Expand keywords with common bioinformatics abbreviation mappings
-        _kw_expansions = {
-            'scrnaseq': {'scrna', 'rna', 'seq', 'single', 'cell'},
-            'scrna': {'rna', 'seq', 'single', 'cell'},
-            'wgs': {'whole', 'genome', 'sequencing', 'genomics', 'variant', 'calling'},
-            'gatk': {'variant', 'calling', 'germline', 'genotyping'},
-            'diaproteomics': {'dia', 'proteomics', 'ms', 'lc'},
-            'proteomicslfq': {'proteomics', 'lfq', 'lc', 'ms', 'label', 'free', 'quantification'},
-            'rnaseq': {'rna', 'seq', 'transcriptomics', 'expression'},
-            'atacseq': {'atac', 'seq', 'chromatin', 'epigenomics'},
-            'chipseq': {'chip', 'seq', 'histone', 'epigenomics'},
-            'methylseq': {'methylation', 'bisulfite', 'epigenomics'},
-            'sarek': {'somatic', 'variant', 'calling', 'cancer'},
-            'nfcore': set(),  # strip nf-core prefix — no signal
-        }
-        for kw in list(all_keywords):
-            if kw in _kw_expansions:
-                all_keywords.update(_kw_expansions[kw])
-
-        # Score topics by keyword overlap
-        scored = []
-        for topic_key, topic_data in all_topics.items():
-            topic_words = set(topic_key.lower().replace('_', ' ').split())
-            overlap = len(topic_words & all_keywords)
-            # Also check topic description
-            desc_words = set((topic_data.get('description', '') or '').lower().split())
-            desc_overlap = len(desc_words & all_keywords)
-            score = overlap * 3 + desc_overlap
-            if score > 0:
-                scored.append((score, topic_key, topic_data))
-
-        # Sort by relevance; take top 3 topics
-        scored.sort(key=lambda x: -x[0])
-        top_topics = scored[:3]
-
         best_practices: List[str] = []
         qc_thresholds: List[Dict] = []
         literature_guidance: List[Dict] = []
 
-        for _score, _topic_key, topic_data in top_topics:
-            # Best practices
-            bpn = topic_data.get('best_practice_notes', '')
-            if isinstance(bpn, str) and bpn.strip():
-                # Split on numbered items or line breaks
-                import re as _re
-                items = _re.split(r'\n\s*\d+\.\s*|\.\s+(?=[A-Z])', bpn.strip())
-                for item in items[:3]:
-                    item = item.strip()
-                    if len(item) > 20 and item not in best_practices:
-                        best_practices.append(item)
-            elif isinstance(bpn, list):
-                for item in bpn[:3]:
-                    if isinstance(item, str) and item.strip() and item not in best_practices:
-                        best_practices.append(item.strip())
-
-            # QC thresholds from key_parameters → situations
-            kp = topic_data.get('key_parameters', {})
-            if isinstance(kp, dict):
-                for param_name, param_data in list(kp.items())[:5]:
-                    situations = param_data.get('situations', {})
-                    if isinstance(situations, dict):
-                        for sit_name, sit_data in list(situations.items())[:3]:
-                            val = sit_data.get('value_or_range', '')
-                            if val and len(qc_thresholds) < 5:
+        # ── Path 1: cryo_em_protocols DB (cryo-EM / cryo-ET only) ──────────────
+        if domain in ('cryo_em', 'cryo_et', 'bioimaging'):
+            try:
+                from .cryo_em_knowledge.retriever import get_retriever
+                retriever = get_retriever()
+                # Detect sample class from workflow name + tool list
+                probe = workflow_name + ' ' + ' '.join(workflow_tools or [])
+                sample_class = retriever.detect_sample_class(probe)
+                if sample_class:
+                    protocol = retriever.get_protocol(sample_class)
+                    if protocol:
+                        # retriever._row_to_dict pre-parses JSON fields → already Python objects
+                        def _as_list(v):
+                            if isinstance(v, list):
+                                return v
+                            if isinstance(v, str):
+                                try:
+                                    return _json.loads(v)
+                                except Exception:
+                                    return []
+                            return []
+                        # key_principles → best_practices
+                        for principle in _as_list(protocol.get('key_principles'))[:4]:
+                            if isinstance(principle, str) and principle.strip():
+                                best_practices.append(principle.strip())
+                        # qc_gates → qc_thresholds
+                        for gate in _as_list(protocol.get('qc_gates'))[:5]:
+                            if isinstance(gate, dict) and gate.get('name'):
                                 qc_thresholds.append({
-                                    'metric': param_name,
-                                    'threshold': str(val),
-                                    'context': sit_data.get('when', ''),
-                                    'source': sit_data.get('source', ''),
+                                    'metric': gate['name'],
+                                    'threshold': gate.get('criterion', ''),
+                                    'context': gate.get('action_if_fail', ''),
+                                    'source': sample_class,
                                 })
+                        # reference_papers → literature_guidance
+                        for paper in _as_list(protocol.get('reference_papers'))[:3]:
+                            if isinstance(paper, dict):
+                                literature_guidance.append({
+                                    'url': paper.get('doi', ''),
+                                    'context': paper.get('title', ''),
+                                })
+                        log.info(
+                            "[KnowledgeHighlights] cryo-EM DB path: class=%s bp=%d qc=%d lit=%d",
+                            sample_class, len(best_practices), len(qc_thresholds), len(literature_guidance),
+                        )
+            except Exception as e:
+                log.warning("[KnowledgeHighlights] cryo-EM DB lookup failed: %s", e)
 
-            # Literature guidance from key_references
-            refs = topic_data.get('key_references', [])
-            if isinstance(refs, list):
-                for ref in refs[:3]:
-                    if isinstance(ref, str) and ref.startswith('http'):
-                        if len(literature_guidance) < 3:
-                            literature_guidance.append({'url': ref, 'context': _topic_key})
-                    elif isinstance(ref, dict):
-                        if len(literature_guidance) < 3:
-                            literature_guidance.append({
-                                'url': ref.get('url', ref.get('doi', '')),
-                                'context': ref.get('title', _topic_key),
-                            })
+        # ── Path 2: tool DB (works for every domain) ─────────────────────────────
+        # Pulls from two tables: `tool_knowledge` (curated) and `tools` (rich scientific_context)
+        tools_to_query = [t for t in (workflow_tools or []) if t and len(t) > 1]
+        if tools_to_query:
+            try:
+                import sqlite3 as _sqlite3
+                db_path = Path(__file__).resolve().parents[3] / "database" / "galaxy_ai_tools.db"
+                if db_path.exists():
+                    conn = _sqlite3.connect(str(db_path))
+                    conn.row_factory = _sqlite3.Row
+                    placeholders = ','.join('?' * len(tools_to_query))
 
-        log.info(f"[KnowledgeHighlights] domain={domain} workflow={workflow_name}: "
-                 f"bp={len(best_practices)}, qc={len(qc_thresholds)}, lit={len(literature_guidance)}")
+                    # 2a. tool_knowledge — curated use_cases and primary citation
+                    tk_rows = conn.execute(
+                        f"SELECT tool_name, use_cases, primary_citation "
+                        f"FROM tool_knowledge WHERE tool_name IN ({placeholders}) LIMIT 8",
+                        tools_to_query,
+                    ).fetchall()
+                    for row in tk_rows:
+                        uc_raw = row['use_cases']
+                        if uc_raw:
+                            uc_list = _json.loads(uc_raw) if isinstance(uc_raw, str) else uc_raw
+                            for uc in (uc_list or [])[:2]:
+                                if (isinstance(uc, str) and len(uc) > 20
+                                        and not uc.lower().startswith('note:')
+                                        and uc not in best_practices):
+                                    best_practices.append(uc)
+                                    break
+                        cit_raw = row['primary_citation']
+                        if cit_raw and len(literature_guidance) < 3:
+                            cit = _json.loads(cit_raw) if isinstance(cit_raw, str) else cit_raw
+                            doi = cit.get('doi', '') or cit.get('url', '')
+                            title = cit.get('title', row['tool_name'])
+                            if doi and not any(g.get('url') == doi for g in literature_guidance):
+                                literature_guidance.append({'url': doi, 'context': title})
+
+                    # 2b. tools.scientific_context — best_for and structured_citations
+                    # Deduplicate by name; prefer rows with scientific_context populated
+                    t_rows = conn.execute(
+                        f"SELECT name, scientific_context, structured_citations "
+                        f"FROM tools WHERE name IN ({placeholders}) "
+                        f"AND scientific_context IS NOT NULL AND scientific_context != '' "
+                        f"GROUP BY name LIMIT 8",
+                        tools_to_query,
+                    ).fetchall()
+                    for row in t_rows:
+                        sc_raw = row['scientific_context']
+                        if sc_raw:
+                            try:
+                                sc = _json.loads(sc_raw) if isinstance(sc_raw, str) else sc_raw
+                                best_for = (sc.get('tool_selection') or {}).get('best_for') or []
+                                for bf in best_for[:2]:
+                                    if (isinstance(bf, str) and len(bf) > 20
+                                            and bf not in best_practices):
+                                        best_practices.append(bf)
+                                        break
+                            except Exception:
+                                pass
+                        cits_raw = row['structured_citations']
+                        if cits_raw and len(literature_guidance) < 3:
+                            try:
+                                cits = _json.loads(cits_raw) if isinstance(cits_raw, str) else cits_raw
+                                for cit in (cits if isinstance(cits, list) else [])[:2]:
+                                    doi = cit.get('doi', '') or cit.get('url', '')
+                                    title = cit.get('title', row['name'])
+                                    if doi and not any(g.get('url') == doi for g in literature_guidance):
+                                        literature_guidance.append({'url': doi, 'context': title})
+                                        break
+                            except Exception:
+                                pass
+
+                    # 2c. cryo_em_tools.use_when — tool-specific guidance for cryo-EM workflows
+                    if domain in ('cryo_em', 'cryo_et', 'bioimaging'):
+                        ct_rows = conn.execute(
+                            f"SELECT tool_name, use_when, key_parameters, biomate_status "
+                            f"FROM cryo_em_tools WHERE tool_name IN ({placeholders}) LIMIT 6",
+                            tools_to_query,
+                        ).fetchall()
+                        for row in ct_rows:
+                            uw_raw = row['use_when']
+                            if uw_raw:
+                                uw_list = _json.loads(uw_raw) if isinstance(uw_raw, str) else uw_raw
+                                for uw in (uw_list or [])[:1]:
+                                    entry = f"{row['tool_name']}: use when {uw}"
+                                    if entry not in best_practices:
+                                        best_practices.append(entry)
+
+                    conn.close()
+            except Exception as e:
+                log.warning("[KnowledgeHighlights] tool DB lookup failed: %s", e)
+
+        # ── Path 3: expert JSON fallback (fills gaps when DB results are sparse) ─
+        fname = self._DOMAIN_KNOWLEDGE_FILES.get(domain, '')
+        if fname and len(best_practices) < 3:
+            knowledge_dir = Path(__file__).parent.parent.parent.parent / 'scripts' / 'domain_knowledge'
+            knowledge_path = knowledge_dir / fname
+            if knowledge_path.exists():
+                try:
+                    with open(knowledge_path) as f:
+                        all_topics = _json.load(f)
+                    _normalize = lambda s: s.lower().replace('-', ' ').replace('_', ' ').replace('/', ' ')
+                    all_keywords = set(_normalize(workflow_name).split())
+                    for t in (workflow_tools or []):
+                        all_keywords.update(_normalize(t).split())
+                    scored = []
+                    for topic_key, topic_data in all_topics.items():
+                        topic_words = set(topic_key.lower().replace('_', ' ').split())
+                        desc_words = set((topic_data.get('description', '') or '').lower().split())
+                        score = len(topic_words & all_keywords) * 3 + len(desc_words & all_keywords)
+                        if score > 0:
+                            scored.append((score, topic_key, topic_data))
+                    scored.sort(key=lambda x: -x[0])
+                    import re as _re
+                    for _score, _topic_key, topic_data in scored[:3]:
+                        bpn = topic_data.get('best_practice_notes', '')
+                        if isinstance(bpn, str) and bpn.strip():
+                            items = _re.split(r'\n\s*\d+\.\s*|\.\s+(?=[A-Z])', bpn.strip())
+                            for item in items[:3]:
+                                item = item.strip()
+                                if len(item) > 20 and item not in best_practices:
+                                    best_practices.append(item)
+                        elif isinstance(bpn, list):
+                            for item in bpn[:3]:
+                                if isinstance(item, str) and item.strip() and item not in best_practices:
+                                    best_practices.append(item.strip())
+                        kp = topic_data.get('key_parameters', {})
+                        if isinstance(kp, dict):
+                            for param_name, param_data in list(kp.items())[:5]:
+                                for sit_name, sit_data in list((param_data.get('situations') or {}).items())[:3]:
+                                    val = sit_data.get('value_or_range', '')
+                                    if val and len(qc_thresholds) < 5:
+                                        qc_thresholds.append({
+                                            'metric': param_name,
+                                            'threshold': str(val),
+                                            'context': sit_data.get('when', ''),
+                                            'source': sit_data.get('source', ''),
+                                        })
+                        for ref in (topic_data.get('key_references') or [])[:3]:
+                            if len(literature_guidance) >= 3:
+                                break
+                            if isinstance(ref, str) and ref.startswith('http'):
+                                literature_guidance.append({'url': ref, 'context': _topic_key})
+                            elif isinstance(ref, dict):
+                                literature_guidance.append({
+                                    'url': ref.get('url', ref.get('doi', '')),
+                                    'context': ref.get('title', _topic_key),
+                                })
+                except Exception as e:
+                    log.warning("[KnowledgeHighlights] JSON fallback failed: %s", e)
+
+        log.info(
+            "[KnowledgeHighlights] domain=%s workflow=%s: bp=%d qc=%d lit=%d",
+            domain, workflow_name, len(best_practices), len(qc_thresholds), len(literature_guidance),
+        )
         return {
             'best_practices': best_practices[:3],
             'qc_thresholds': qc_thresholds[:5],

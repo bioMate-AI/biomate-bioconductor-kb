@@ -90,7 +90,7 @@ class LLMParameterGenerator:
 
             response = self.llm_client.generate(
                 prompt=prompt,
-                temperature=0.3,  # Low temperature for consistent parameter generation
+                temperature=0.0,  # Low temperature for consistent parameter generation
                 max_tokens=1000
             )
 

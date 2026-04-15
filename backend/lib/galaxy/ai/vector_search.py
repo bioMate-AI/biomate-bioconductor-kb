@@ -79,10 +79,9 @@ class VectorToolSearch:
     Falls back gracefully if sentence-transformers is not installed.
     """
 
-    # Default model - all-MiniLM-L6-v2 (384 dimensions, MTEB 56.3)
-    # TODO: Consider upgrading to BAAI/bge-small-en-v1.5 (MTEB 62.17, +9% recall)
-    # See docs/20260121_embedding_model_survey.md for comparison
-    DEFAULT_MODEL = 'all-MiniLM-L6-v2'
+    # BAAI/bge-small-en-v1.5: 384 dimensions, MTEB 62.17 (+9% recall vs MiniLM)
+    # Benchmarked in docs/20260121_AI_TOOLS_COMPARISON.md — chosen as the standard model.
+    DEFAULT_MODEL = 'BAAI/bge-small-en-v1.5'
 
     def __init__(
         self,
@@ -126,9 +125,11 @@ class VectorToolSearch:
                 self.device = _detect_device_safe(timeout_seconds=5.0)
                 log.info(f"Auto-detected device: {self.device}")
 
-            # Load model on specified device
+            # Load model on specified device — local_files_only prevents network
+            # check on HuggingFace (model is already cached).
             log.info(f"Loading sentence transformer model: {self.model_name} on {self.device}")
-            self.model = SentenceTransformer(self.model_name, device=self.device)
+            self.model = SentenceTransformer(self.model_name, device=self.device,
+                                             local_files_only=True)
 
             # Load or create embeddings
             if Path(self.embedding_path).exists():

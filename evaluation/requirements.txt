@@ -1,0 +1,10 @@
+anthropic>=0.40.0
+requests>=2.31.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+pyyaml>=6.0
+datasets>=2.18.0        # HuggingFace datasets (BiomniEval1)
+tqdm>=4.66.0
+tabulate>=0.9.0
+scipy>=1.12.0           # Statistical tests in results_store
+numpy>=1.26.0

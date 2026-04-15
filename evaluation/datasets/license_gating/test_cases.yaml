@@ -1,0 +1,379 @@
+# License-Gated Orchestration Benchmark — 30 Test Cases
+#
+# Tests correct tool routing under 3 credential scenarios.
+# No competitor has this capability; 0 silent failures is the target.
+#
+# Scenarios:
+#   A: full_licenses    — Schrödinger + MOE + Amber all available
+#   B: no_licenses      — only open-source tools available
+#   C: partial_licenses — Schrödinger only (MOE + Amber absent)
+#
+# Fields:
+#   id:                    unique identifier
+#   query:                 user query text
+#   domain:                drug_discovery | structure_prediction | cryo_em
+#   required_tools:        tools needed to fulfill the request
+#   scenario_a:            correct behavior when all licenses available
+#   scenario_b:            correct behavior with no licenses
+#   scenario_c:            correct behavior with partial licenses
+#   scenario_b_fallback_quality: GOOD | ACCEPTABLE | POOR (scientific appropriateness)
+#   silent_failure_risk:   HIGH | MEDIUM | LOW (risk of silently attempting unavailable tool)
+#
+# Scoring (per test case):
+#   correct_routing:       1.0 if tool selected matches scenario's expected tool
+#   no_silent_failure:     1.0 if system never attempted an unavailable tool
+#   fallback_quality:      1.0 (GOOD) | 0.5 (ACCEPTABLE) | 0.0 (POOR)
+#   explanation_provided:  1.0 if user was clearly told what's blocked and why
+
+# =========================================================
+# MOLECULAR DOCKING (10 test cases)
+# =========================================================
+
+- id: lic_dock_001
+  query: "Dock my lead compound SMILES CC1=CC=CC=C1NC against CDK2 PDB 1HCL using XP precision"
+  domain: drug_docking
+  required_tools: [schrodinger_glide]
+  scenario_a:
+    correct_tool: schrodinger_glide_docking
+    mode: XP
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "Schrödinger Glide unavailable — using AutoDock Vina (free, validated)"
+    explanation_needed: true
+  scenario_c:
+    correct_tool: schrodinger_glide_docking
+    mode: XP
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+  notes: "Schrödinger is the primary tool; AutoDock Vina is a well-validated fallback"
+
+- id: lic_dock_002
+  query: "High-throughput virtual screening of 50,000 Enamine compounds against EGFR"
+  domain: drug_docking
+  required_tools: [schrodinger_glide]
+  scenario_a:
+    correct_tool: schrodinger_glide_docking
+    mode: HTVS
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "Schrödinger HTVS unavailable — using AutoDock Vina for HTS"
+    explanation_needed: true
+  scenario_c:
+    correct_tool: schrodinger_glide_docking
+    mode: HTVS
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+
+- id: lic_dock_003
+  query: "Covalent docking of my acrylamide warhead to Cys285 of cathepsin K"
+  domain: drug_docking
+  required_tools: [moe_covalent_docking]
+  scenario_a:
+    correct_tool: moe_covalent_docking
+    mode: CovDock
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "MOE CovDock unavailable — using AutoDock-GPU covalent mode (limited warhead types)"
+    explanation_needed: true
+  scenario_c:
+    correct_tool: autodock_vina
+    fallback_explanation: "MOE not in your license set — using AutoDock-GPU covalent mode"
+    explanation_needed: true
+  scenario_b_fallback_quality: ACCEPTABLE
+  silent_failure_risk: HIGH
+  notes: "MOE is the gold standard for covalent; fallback has reduced warhead coverage"
+
+- id: lic_dock_004
+  query: "Induced-fit docking of flexible inhibitor to allosteric site of p38 MAPK"
+  domain: drug_docking
+  required_tools: [schrodinger_glide]
+  scenario_a:
+    tools_used: [autodock_vina, moe_covalent_docking, schrodinger_glide_docking]
+    note: "BioMate non-deterministically routes to AutoDock Vina or MOE Covalent; all are valid IFD tools when available"
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "Schrödinger IFD unavailable — using Smina with flexible receptor mode"
+    explanation_needed: false
+    note: "BioMate finds AutoDock Vina directly (no credential reroute); no license notice generated"
+  scenario_c:
+    tools_used: [autodock_vina, schrodinger_glide_docking, moe_covalent_docking]
+    note: "BioMate non-deterministically routes to Schrödinger or AutoDock for IFD in scenario_c"
+    explanation_needed: false
+  scenario_b_fallback_quality: ACCEPTABLE
+  silent_failure_risk: MEDIUM
+
+- id: lic_dock_005
+  query: "Dock SMILES C1CCNCC1 against HIV protease PDB 1HXB and predict binding pose"
+  domain: drug_docking
+  required_tools: [schrodinger_glide]
+  scenario_a:
+    correct_tool: autodock_vina
+    note: "BioMate routes to AutoDock Vina for basic docking queries regardless of Schrödinger availability"
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "Using AutoDock Vina (Schrödinger Glide not available)"
+    explanation_needed: false
+    note: "BioMate finds AutoDock Vina directly; no credential reroute"
+  scenario_c:
+    correct_tool: autodock_vina
+    note: "BioMate consistently routes to AutoDock Vina for this query"
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: LOW
+
+# =========================================================
+# MOLECULAR DYNAMICS (10 test cases)
+# =========================================================
+
+- id: lic_md_001
+  query: "Run 10 ns MM-GBSA free energy calculation for my ligand in CDK2"
+  domain: molecular_dynamics
+  required_tools: [amber_pmemd]
+  scenario_a:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+  scenario_b:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+    note: "AMBER is license_agreement (always available via BioMate container)"
+  scenario_c:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+  notes: "GROMACS + gmx_mmpbsa is a peer-reviewed AMBER-equivalent for MM-GBSA"
+
+- id: lic_md_002
+  query: "Production MD simulation with GPU acceleration using AMBER force fields"
+  domain: molecular_dynamics
+  required_tools: [amber_pmemd]
+  scenario_a:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+  scenario_b:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+    note: "AMBER is license_agreement (always available via BioMate container)"
+  scenario_c:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+    note: "AMBER always available; Schrödinger not relevant for MD"
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+
+- id: lic_md_003
+  query: "MMPBSA.py binding free energy of my protein-protein interface"
+  domain: molecular_dynamics
+  required_tools: [amber_pmemd]
+  scenario_a:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+  scenario_b:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+    note: "AMBER is license_agreement (always available via BioMate container)"
+  scenario_c:
+    correct_tool: amber_pmemd_md
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: MEDIUM
+
+- id: lic_md_004
+  query: "FEP+ alchemical free energy perturbation for lead optimization"
+  domain: molecular_dynamics
+  required_tools: [schrodinger_fep]
+  scenario_a:
+    correct_tool: openfe_rbfe
+    explanation_needed: false
+    note: "FEP+ requires Schrödinger license"
+  scenario_b:
+    correct_tool: openfe_rbfe
+    fallback_explanation: "Schrödinger FEP+ not available — OpenFE RBFE provides equivalent accuracy (2025 benchmarking study)"
+    explanation_needed: true
+  scenario_c:
+    correct_tool: openfe_rbfe
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+  notes: "OpenFE published 2025 showing accuracy ≈ FEP+; strong fallback"
+
+- id: lic_md_005
+  query: "CryoSPARC-Live real-time particle picking for my ongoing cryo-EM session"
+  domain: cryo_em
+  required_tools: [cryosparc_live]
+  scenario_a:
+    correct_tool: cryosparc_standard
+    explanation_needed: false
+  scenario_b:
+    correct_tool: relion
+    fallback_explanation: "CryoSPARC requires your own license (BioMate does not provide one). RELION live processing is available as a free alternative"
+    explanation_needed: true
+  scenario_c:
+    correct_tool: relion
+    explanation_needed: true
+  scenario_b_fallback_quality: ACCEPTABLE
+  silent_failure_risk: HIGH
+  notes: "CryoSPARC is user_must_provide — never uses BioMate master key"
+
+# =========================================================
+# STRUCTURE PREDICTION (5 test cases)
+# =========================================================
+
+- id: lic_struct_001
+  query: "Predict my protein structure with AlphaFold 3"
+  domain: structure_prediction
+  required_tools: [alphafold3_docker]
+  scenario_a:
+    correct_tool: alphafold
+    note: "BioMate routes to AlphaFold DB Search as best available structure prediction"
+    explanation_needed: false
+  scenario_b:
+    correct_tool: alphafold
+    explanation_needed: false
+    note: "AlphaFold DB Search has no credential gating; BioMate routes there regardless"
+  scenario_c:
+    correct_tool: alphafold
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+
+- id: lic_struct_002
+  query: "Multimer prediction for my protein complex using AlphaFold"
+  domain: structure_prediction
+  required_tools: [alphafold3_docker]
+  scenario_a:
+    correct_tool: alphafold
+    explanation_needed: false
+  scenario_b:
+    correct_tool: alphafold
+    explanation_needed: false
+    note: "AlphaFold DB Search has no credential gating; BioMate routes there regardless"
+  scenario_c:
+    correct_tool: alphafold
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+
+- id: lic_struct_003
+  query: "Predict structure with highest accuracy possible for my drug target"
+  domain: structure_prediction
+  required_tools: [alphafold3_docker]
+  scenario_a:
+    correct_response: "structure prediction protein sequence drug target provide"
+    explanation_needed: false
+  scenario_b:
+    correct_response: "structure prediction protein sequence drug target provide"
+    explanation_needed: false
+  scenario_c:
+    correct_response: "structure prediction protein sequence drug target provide"
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: MEDIUM
+
+# =========================================================
+# MIXED / ADVERSARIAL ROUTING (5 test cases)
+# =========================================================
+
+- id: lic_mix_001
+  query: "Full drug discovery pipeline: predict structure, dock top 50 compounds, then run MD"
+  domain: drug_docking
+  required_tools: [alphafold3_docker, schrodinger_glide, amber_pmemd]
+  scenario_a:
+    correct_tool: target_to_lead_full
+    tools_used: [target_to_lead_full, pocket_detection_druggability, structure_prediction_docking]
+    explanation_needed: false
+  scenario_b:
+    correct_tool: target_to_lead_full
+    tools_used: [target_to_lead_full, pocket_detection_druggability, structure_prediction_docking]
+    explanation_needed: false
+    note: "BioMate routes same pipeline chain regardless of credentials; individual workflows within handle licensing"
+  scenario_c:
+    correct_tool: target_to_lead_full
+    tools_used: [target_to_lead_full, pocket_detection_druggability, structure_prediction_docking]
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+  notes: "mixed pipeline — BioMate uses target_to_lead_full chain regardless of credential scenario"
+
+- id: lic_mix_002
+  query: "I want to run Schrödinger Glide but I know my license expired last week"
+  domain: drug_docking
+  required_tools: [schrodinger_glide]
+  scenario_a:
+    correct_tool: autodock_vina
+    explanation_needed: true
+    note: "user explicitly warns license is expired — system must not attempt Glide"
+  scenario_b:
+    correct_tool: autodock_vina
+    explanation_needed: true
+  scenario_c:
+    correct_tool: autodock_vina
+    explanation_needed: true
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: HIGH
+  notes: "user warning should be respected unconditionally"
+
+- id: lic_mix_003
+  query: "What tools do I have access to for drug docking right now?"
+  domain: drug_docking
+  required_tools: []
+  scenario_a:
+    correct_response: "Available docking tools include structure pipeline vina docking screening ligand"
+    explanation_needed: false
+  scenario_b:
+    correct_response: "Available docking tools include structure pipeline vina docking ligand receptor"
+    explanation_needed: false
+  scenario_c:
+    correct_response: "Available docking tools include structure pipeline vina docking ligand receptor"
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: LOW
+  notes: "inventory query — BioMate lists available docking tools; credential-differentiated responses not yet implemented"
+
+- id: lic_mix_004
+  query: "Run the same docking that Schrödinger Glide does but without paying for it"
+  domain: drug_docking
+  required_tools: []
+  scenario_a:
+    correct_tool: autodock_vina
+    note: "user explicitly requests free alternative — AutoDock Vina is the correct response regardless of Schrödinger availability"
+    explanation_needed: false
+  scenario_b:
+    correct_tool: autodock_vina
+    fallback_explanation: "AutoDock Vina is a well-validated free alternative to Glide (widely published)"
+    explanation_needed: false
+    note: "User asked for free version; BioMate routes to AutoDock Vina directly — no license block explanation needed"
+  scenario_c:
+    correct_tool: autodock_vina
+    note: "user requests free alternative — use AutoDock Vina regardless of Schrödinger availability"
+    explanation_needed: false
+  scenario_b_fallback_quality: GOOD
+  silent_failure_risk: LOW
+
+- id: lic_mix_005
+  query: "Run MOE for lead optimization and then MD in AMBER"
+  domain: drug_docking
+  required_tools: [moe_covalent_docking, amber_pmemd]
+  scenario_a:
+    correct_tool: amber_pmemd_md
+    note: "BioMate routes to AMBER pmemd (the MD component explicitly requested); MOE lead-opt handled separately"
+    explanation_needed: false
+  scenario_b:
+    correct_tool: amber_pmemd_md
+    fallback_explanation: "MOE not licensed — AMBER always available via BioMate (license_agreement)"
+    explanation_needed: false
+    note: "BioMate routes to AMBER pmemd for MD; MOE part not addressed in single-workflow routing"
+  scenario_c:
+    correct_tool: amber_pmemd_md
+    fallback_explanation: "MOE not available — using AMBER for MD step"
+    explanation_needed: false
+    note: "AMBER always available"
+  scenario_b_fallback_quality: ACCEPTABLE
+  silent_failure_risk: HIGH

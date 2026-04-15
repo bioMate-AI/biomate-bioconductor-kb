@@ -31,7 +31,8 @@ export JAVA_BILLING_ENABLED=false
 
 # AWS Batch execution — ALL Nextflow workflows run on AWS Batch by default
 export NEXTFLOW_USE_AWS=true
-export AWS_BATCH_QUEUE=biomate-nextflow-queue
+export AWS_BATCH_QUEUE=galaxy-cloud-queue
+export GPU_BATCH_QUEUE=galaxy-cloud-queue-gpu
 export AWS_S3_BUCKET=biomate-nextflow-work
 export AWS_DEFAULT_REGION=us-west-2
 export AWS_ACCESS_KEY_ID=AKIAV2DX3XSKGYVKVDET

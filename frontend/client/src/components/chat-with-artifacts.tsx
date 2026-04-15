@@ -1334,7 +1334,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             <div className="flex-1 overflow-y-auto p-4">
               {panelWorkflow ? (
                 (() => {
-                  const executionStatusStr = (currentRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle')) as string
+                  // Derive effective status. If the execution record is non-terminal but
+                  // nextflowStatus.status is already terminal (e.g. 'succeeded'), promote it
+                  // immediately in the UI without waiting for the DB promotion to round-trip.
+                  const nfStatusRaw = (currentRun?.execution?.nextflowStatus?.status || '').toLowerCase()
+                  const nfDerivedStatus: string | null =
+                    nfStatusRaw === 'succeeded' ? 'completed'
+                    : (nfStatusRaw === 'failed' || nfStatusRaw === 'error') ? 'failed'
+                    : null
+                  const dbStatus = currentRun?.execution?.status
+                  const isDbTerminal = dbStatus && ['completed', 'failed', 'cancelled'].includes(dbStatus)
+                  // If DB says non-terminal but nextflowStatus is terminal, use NF state.
+                  const effectiveStatus = (isDbTerminal ? dbStatus : (nfDerivedStatus || dbStatus)) || (isWorkflowRunning ? 'running' : 'idle')
+                  const executionStatusStr = effectiveStatus as string
                   const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
                     executionStatusStr === 'completed' || executionStatusStr === 'ok' ? 'completed'
                     : executionStatusStr === 'paused' ? 'paused'

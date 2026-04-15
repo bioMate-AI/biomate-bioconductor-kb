@@ -53,6 +53,7 @@ import { ChatOutputAttachments } from "./chat-output-attachments"
 import { ThinkingDisplay } from "./thinking-display"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { WorkflowChainPlan } from "./workflow-chain-plan"
+import { WorkflowDisambiguationCard } from "./workflow-disambiguation-card"
 import { PipelineListView } from "./pipeline-list-view"
 import { BenchmarkEvidence, ResearchResponseDisplay } from "./benchmark-evidence"
 import { InlineFeedbackWidget } from "./feedback/inline-feedback-widget"
@@ -428,6 +429,29 @@ export function ChatMessage({
                     />
                   </div>
                 )
+              }
+
+              // Disambiguation — backend found multiple close-scoring candidates
+              const isDisambiguation = message.metadata?.workflow?.workflow_type === 'disambiguation'
+              if (isDisambiguation) {
+                const wf = message.metadata?.workflow
+                const candidates = wf?.candidates || []
+                if (candidates.length > 0) {
+                  return (
+                    <div
+                      id={`workflow-artifact-anchor-${message.id}`}
+                      data-testid={`workflow-artifact-anchor-${message.id}`}
+                    >
+                      <WorkflowDisambiguationCard
+                        message={wf.message || "I found several workflows that could match. Which best fits your needs?"}
+                        candidates={candidates}
+                        onSelect={(c) => {
+                          onAdjustViaChat?.(`I want to use ${c.display_name}`)
+                        }}
+                      />
+                    </div>
+                  )
+                }
               }
 
               // Chain plan — curated multi-step pipeline returned by workflow_chains lookup

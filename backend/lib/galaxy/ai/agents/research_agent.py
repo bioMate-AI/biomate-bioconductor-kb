@@ -516,12 +516,21 @@ Format your response as a clear, well-structured answer that a scientist would f
         if not self.llm_client:
             raise ValueError("LLM client not available")
 
-        # Use the generate method from LLMClient
-        response = await self.llm_client.generate(
-            prompt=prompt,
-            max_tokens=2000,
-            temperature=0.7
-        )
+        # generate() is synchronous; generate_async() is the awaitable version
+        if hasattr(self.llm_client, 'generate_async'):
+            response = await self.llm_client.generate_async(
+                prompt=prompt,
+                max_tokens=2000,
+                temperature=0.7
+            )
+        else:
+            # Fallback: call sync version in thread executor to avoid blocking
+            import asyncio
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: self.llm_client.generate(prompt, max_tokens=2000, temperature=0.7)
+            )
 
         return response
 

@@ -282,7 +282,7 @@ Research groups are protective of their data — not just for IP reasons but bec
 
 **Obstacle 2: Regulatory and compliance (HIS, clinical)**
 
-Hospital and pharma users have HIPAA, 21 CFR Part 11, GxP, and SOC 2 requirements. These are not features that can be added in a sprint — they require auditing, penetration testing, policy documentation, and third-party certification. SOC 2 Type II takes 6–12 months from the start of the audit period. **This must start now** to be ready when HIS connections are deployed. The to-do list item 8 ("Preparation for SOC 2 and HIPAA compliance — auditing material") is a blocking dependency for Stages 3–5.
+Hospital and pharma users expect HIPAA, 21 CFR Part 11, GxP, and SOC 2 compliance. The right framing is: **compliance certifies what the system already does — it does not define what to build**. The priority is building the system correctly (private deployment, complete audit trail, role-based access, HL7 FHIR output, de-identification tools). Once these capabilities exist, compliance certification (SOC 2 Type II observation window, HIPAA BAA) runs as a parallel administrative track. The to-do list item 8 ("Preparation for SOC 2 and HIPAA compliance — auditing material") is about documenting system behavior, not blocking product entry.
 
 **Obstacle 3: Fragmentation of existing systems**
 
@@ -321,7 +321,7 @@ The network's edges (data transfers between labs) require a shared schema. In li
 | Priority | Rationale | Timeline |
 |----------|-----------|----------|
 | Stage 2 lab identity + project management | Unlocks personalization, team collaboration, network bootstrapping | Next 2 sprints |
-| SOC 2 audit start | Blocking dependency for HIS, clinical, pharma segments | Immediately (6–12 month lead time) |
+| SOC 2 audit start | Blocking dependency for HIS, clinical, pharma segments | Immediately (3-month observation window) |
 | MCP server (biomate as callable service) | Unlocks computational biologist segment; enables lab robot connection | Next sprint |
 | Execution data logging infrastructure | Foundation for LLM fine-tuning moat; must start now | Next sprint |
 | WeChat / Slack integration (Open Claw) | Large Chinese research community; zero-friction access | Next 3 months |

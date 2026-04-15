@@ -1,0 +1,612 @@
+# Prereq Recovery Benchmark — 40 Multi-Turn Dialogue Trajectories
+#
+# Tests BioMate's ability to detect missing prerequisites, ask for them exactly once,
+# and successfully launch the correct workflow after the user provides them.
+#
+# Fields:
+#   id:                trajectory identifier
+#   domain:            rna_seq | variant_calling | drug_docking | proteomics
+#   turns:             list of {role: user|assistant_expected, text, attachment_type?}
+#   expected_outcome:  RESOLVED | UNRESOLVED | LOOP | FALSE_LAUNCH
+#   max_turns_allowed: number of turns before outcome is considered "slow"
+#   correct_workflow:  the workflow that should be launched after recovery
+#   missing_prereq:    what was initially missing
+#   recovery_type:     wrong_format | missing_accession | missing_file | ambiguous_reference
+#
+# Scoring:
+#   RESOLVED in <= max_turns_allowed:  1.0
+#   RESOLVED in > max_turns_allowed:   0.5
+#   UNRESOLVED:                        0.0
+#   LOOP (asked same thing twice):     0.0
+#   FALSE_LAUNCH (wrong data used):   -0.5
+
+# =========================================================
+# DOMAIN 1: RNA-SEQ (10 trajectories)
+# =========================================================
+
+- id: rna_rec_001
+  domain: rna_seq
+  missing_prereq: "no input files or accessions provided"
+  recovery_type: missing_accession
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run differential expression analysis on my lung cancer RNA-seq data"
+    - role: user
+      text: "Here is my data"
+      attachment_type: pdf_file
+      attachment_note: "user attaches a PDF paper, not a FASTQ"
+    - role: user
+      text: "SRR8562951,SRR8562952,SRR8562953,SRR8562954"
+      attachment_note: "correct SRR accessions provided"
+
+- id: rna_rec_002
+  domain: rna_seq
+  missing_prereq: "no reference genome specified"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "I have FASTQ files from a mouse experiment at GSE150728. Run RNA-seq analysis"
+    - role: user
+      text: "Mouse, GRCm39"
+      attachment_note: "user specifies organism and genome build"
+
+- id: rna_rec_003
+  domain: rna_seq
+  missing_prereq: "wrong file format (BAM not FASTQ)"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run RNA-seq differential expression on these files"
+      attachment_type: bam_files
+      attachment_note: "user uploads BAM files; pipeline expects FASTQ"
+    - role: user
+      text: "Can you work with BAM? I don't have the original FASTQ anymore"
+    - role: user
+      text: "SRR123456,SRR123457,SRR123458"
+      attachment_note: "agrees to use SRA accessions instead"
+
+- id: rna_rec_004
+  domain: rna_seq
+  missing_prereq: "no sample sheet / group labels provided"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "I have 12 RNA-seq samples from a drug treatment experiment. Run DESeq2"
+    - role: user
+      text: "6 samples are treated with drug A, 6 are controls. SRR IDs: SRR100001,SRR100002,SRR100003,SRR100004,SRR100005,SRR100006 for treatment, SRR100007,SRR100008,SRR100009,SRR100010,SRR100011,SRR100012 for control"
+
+- id: rna_rec_005
+  domain: rna_seq
+  missing_prereq: "ZIP file containing unrelated images"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Analyze this RNA-seq dataset for differential expression"
+      attachment_type: zip_images
+      attachment_note: "user uploads ZIP of microscopy images by mistake"
+    - role: user
+      text: "Oh sorry, wrong file. Here are the actual sequencing files: GSE200000"
+
+- id: rna_rec_006
+  domain: rna_seq
+  missing_prereq: "only one sample provided — need at least 2 groups"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run differential expression on SRR999001"
+    - role: user
+      text: "I need to compare it to controls. Controls are SRR999002, SRR999003, SRR999004"
+
+- id: rna_rec_007
+  domain: rna_seq
+  missing_prereq: "Excel spreadsheet with counts (wrong format)"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Here is my RNA-seq count table, please run DESeq2"
+      attachment_type: xlsx_file
+      attachment_note: "Excel file — pipeline expects raw FASTQ not pre-computed counts"
+    - role: user
+      text: "I see. The raw data is at GSE155123 on GEO"
+
+- id: rna_rec_008
+  domain: rna_seq
+  missing_prereq: "species not specified (human vs mouse ambiguous)"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Differential expression analysis on my cortex RNA-seq samples GSE180001"
+    - role: user
+      text: "Human cortex, hg38"
+
+- id: rna_rec_009
+  domain: rna_seq
+  missing_prereq: "no data at all — just a biological question"
+  recovery_type: missing_accession
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "What genes are differentially expressed in Parkinson's disease?"
+    - role: user
+      text: "I have RNA-seq data from 10 PD patients and 10 controls"
+    - role: user
+      text: "The GEO accession is GSE99999"
+
+- id: rna_rec_010
+  domain: rna_seq
+  missing_prereq: "incomplete SRR list (only 1 of 2 conditions)"
+  recovery_type: missing_accession
+  max_turns_allowed: 3
+  correct_workflow: nf-core/rnaseq
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run RNA-seq analysis. Treatment samples: SRR200001, SRR200002, SRR200003"
+    - role: user
+      text: "Oh, controls are SRR200004, SRR200005, SRR200006"
+
+# =========================================================
+# DOMAIN 2: VARIANT CALLING — GERMLINE (10 trajectories)
+# =========================================================
+
+- id: var_rec_001
+  domain: variant_calling
+  missing_prereq: "no BAM or FASTQ files provided"
+  recovery_type: missing_accession
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run germline variant calling for my rare disease patient"
+    - role: user
+      text: "I have WGS data but I'm not sure how to share it"
+    - role: user
+      text: "The data is at SRR1518169 on SRA"
+
+- id: var_rec_002
+  domain: variant_calling
+  missing_prereq: "VCF file provided instead of FASTQ"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Annotate my patient variants and check ClinVar"
+      attachment_type: vcf_file
+      attachment_note: "VCF provided — sarek needs raw reads; annotation alone is a different step"
+    - role: user
+      text: "I only have the VCF from my hospital. Can you annotate it directly?"
+    - role: user
+      text: "Yes please, just annotate the VCF with ClinVar and gnomAD"
+      attachment_note: "user confirms annotation-only mode is acceptable"
+
+- id: var_rec_003
+  domain: variant_calling
+  missing_prereq: "reference genome not specified"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Whole exome sequencing analysis on my patient. FASTQ files at SRR555001"
+    - role: user
+      text: "Human, hg38 please"
+
+- id: var_rec_004
+  domain: variant_calling
+  missing_prereq: "ambiguous: germline vs somatic not specified"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run variant calling on my tumor biopsy WGS data at SRR777001"
+    - role: user
+      text: "I also have a matched normal tissue sample: SRR777002. Please run somatic analysis"
+
+- id: var_rec_005
+  domain: variant_calling
+  missing_prereq: "only tumor sample, no normal"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Somatic mutation calling on my breast cancer sample SRR888001"
+    - role: user
+      text: "I don't have a matched normal. Can you use a panel of normals?"
+    - role: user
+      text: "Yes, use a public panel of normals. The tumor sample is hg38"
+
+- id: var_rec_006
+  domain: variant_calling
+  missing_prereq: "PDF sequencing report attached instead of FASTQ"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Analyze my genetic data for hereditary cancer variants"
+      attachment_type: pdf_file
+      attachment_note: "attached PDF sequencing report from clinical lab"
+    - role: user
+      text: "I got this from my doctor. I think the raw data is at SRR999100"
+
+- id: var_rec_007
+  domain: variant_calling
+  missing_prereq: "trio data — proband only provided initially"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "De novo mutation analysis for my child with autism. WGS at SRR111001"
+    - role: user
+      text: "For trio analysis I also have parents: father SRR111002, mother SRR111003"
+
+- id: var_rec_008
+  domain: variant_calling
+  missing_prereq: "RNA-seq file provided instead of WGS"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Find variants in my sequencing data"
+      attachment_type: rnaseq_fastq
+      attachment_note: "RNA-seq FASTQ provided — variant calling needs WGS/WES"
+    - role: user
+      text: "Oh, I see. I do have WGS from the same patient at SRR222001"
+
+- id: var_rec_009
+  domain: variant_calling
+  missing_prereq: "no sequencing data — just wants clinical interpretation"
+  recovery_type: missing_accession
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "My patient has BRCA2 p.Asp2723His. Is this pathogenic?"
+    - role: user
+      text: "Actually I want to run the full pipeline. The WGS is at SRR333001, human hg38"
+
+- id: var_rec_010
+  domain: variant_calling
+  missing_prereq: "multiple patients, no clear group structure"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 3
+  correct_workflow: nf-core/sarek
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "I have WGS for 5 patients: SRR400001 through SRR400005. Run variant calling"
+    - role: user
+      text: "They are all unrelated individuals with rare disease. Run germline variant calling on each independently"
+
+# =========================================================
+# DOMAIN 3: DRUG DOCKING (10 trajectories)
+# =========================================================
+
+- id: dock_rec_001
+  domain: drug_docking
+  missing_prereq: "no protein structure provided"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock my lead compound library against my kinase target"
+    - role: user
+      text: "The kinase is CDK2. I don't have a structure"
+    - role: user
+      text: "Use PDB 1HCL and my ligands are attached as SMILES"
+      attachment_type: smiles_file
+
+- id: dock_rec_002
+  domain: drug_docking
+  missing_prereq: "image of molecule provided instead of SMILES"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock this compound against EGFR"
+      attachment_type: png_structure
+      attachment_note: "image of chemical structure drawn in ChemDraw"
+    - role: user
+      text: "Here is the SMILES: CC1=CC=CC=C1NC(=O)C2=CC=CN=C2"
+
+- id: dock_rec_003
+  domain: drug_docking
+  missing_prereq: "PDB ID with multiple chains — binding site ambiguous"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run docking of SMILES CC1CCCCC1 against PDB 2HHI"
+    - role: user
+      text: "Use chain A, the ATP binding site in the kinase domain"
+
+- id: dock_rec_004
+  domain: drug_docking
+  missing_prereq: "no ligand provided"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "I want to dock compounds against HIV protease PDB 1HXB"
+    - role: user
+      text: "I'm testing inhibitors. Here are the SMILES for my 3 compounds"
+      attachment_type: smiles_list
+
+- id: dock_rec_005
+  domain: drug_docking
+  missing_prereq: "protein provided in wrong format (FASTA not PDB)"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock my ligand CC1=CC=CC=C1 against this protein"
+      attachment_type: fasta_file
+      attachment_note: "FASTA sequence provided — docking needs 3D structure (PDB)"
+    - role: user
+      text: "I only have the sequence. Can you predict the structure first?"
+    - role: user
+      text: "Yes, predict the structure with AlphaFold and then dock"
+
+- id: dock_rec_006
+  domain: drug_docking
+  missing_prereq: "wants covalent docking but non-covalent tool selected"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: moe_covalent_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock my acrylamide warhead to Cys285 of my cysteine protease"
+      attachment_type: smiles_file
+    - role: user
+      text: "Yes, I need covalent docking specifically"
+
+- id: dock_rec_007
+  domain: drug_docking
+  missing_prereq: "100,000 compound library — throughput mismatch"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Screen 100,000 compounds from the Enamine library against my target PDB 3ERT"
+    - role: user
+      text: "Yes, use HTVS mode for high-throughput virtual screening"
+
+- id: dock_rec_008
+  domain: drug_docking
+  missing_prereq: "confuses MD with docking"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Simulate my drug binding to the protein to see if it fits"
+    - role: user
+      text: "I want to see the binding pose, not a long MD simulation. Static docking is fine"
+
+- id: dock_rec_009
+  domain: drug_docking
+  missing_prereq: "multiple targets specified — needs clarification"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock my compound against kinases. SMILES: CC1=CC=CC=C1N"
+    - role: user
+      text: "Focus on CDK2. Use PDB 1JST"
+
+- id: dock_rec_010
+  domain: drug_docking
+  missing_prereq: "docking grid box dimensions missing for large protein"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: schrodinger_glide_docking
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Dock compound CC1CCCCC1NC into the binding site of PDB 5VBL"
+    - role: user
+      text: "The binding site is at residues LEU100, PHE103, TRP120 in chain B"
+
+# =========================================================
+# DOMAIN 4: PROTEOMICS (10 trajectories)
+# =========================================================
+
+- id: prot_rec_001
+  domain: proteomics
+  missing_prereq: "no raw files provided"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Analyze my LC-MS/MS proteomics data for protein identification"
+    - role: user
+      text: "I have .raw files from a Thermo Orbitrap. How do I share them?"
+    - role: user
+      text: "The data is deposited at ProteomeXchange PXD040001"
+
+- id: prot_rec_002
+  domain: proteomics
+  missing_prereq: "Excel file instead of mzML/raw"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run proteomics analysis on my mass spectrometry results"
+      attachment_type: xlsx_file
+      attachment_note: "Excel with peak areas — needs raw mzML/raw"
+    - role: user
+      text: "This was exported from Proteome Discoverer. I don't have raw files"
+    - role: user
+      text: "The raw data is at PXD040002 on PRIDE"
+
+- id: prot_rec_003
+  domain: proteomics
+  missing_prereq: "no protein database/FASTA specified"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Protein identification from DDA mass spectrometry. Data at PXD050000"
+    - role: user
+      text: "Human proteome, UniProt Swiss-Prot"
+
+- id: prot_rec_004
+  domain: proteomics
+  missing_prereq: "only one sample — no comparison group"
+  recovery_type: missing_file
+  max_turns_allowed: 3
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Differential protein abundance from my LC-MS experiment. File: PXD060001"
+    - role: user
+      text: "I need to compare two conditions"
+    - role: user
+      text: "PXD060001 has 3 treated samples (sample_001 to sample_003) and 3 controls (sample_004 to sample_006)"
+
+- id: prot_rec_005
+  domain: proteomics
+  missing_prereq: "DIA data but DDA pipeline requested"
+  recovery_type: wrong_format
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run standard proteomics pipeline on my DIA data at PXD070000"
+    - role: user
+      text: "Yes, I need DIA-NN analysis not DDA"
+
+- id: prot_rec_006
+  domain: proteomics
+  missing_prereq: "wrong experiment type (RNA-seq requested for proteomics data)"
+  recovery_type: wrong_format
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run RNA-seq differential expression analysis on my samples"
+      attachment_type: mzml_files
+      attachment_note: "user attaches mzML files — these are mass spec, not RNA-seq"
+    - role: user
+      text: "Oh those are mass spec files. I want proteomics quantification instead"
+
+- id: prot_rec_007
+  domain: proteomics
+  missing_prereq: "phosphoproteomics but standard pipeline requested"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Quantify my proteomics experiment at PXD080000"
+    - role: user
+      text: "This is a TiO2 phosphoproteomics enrichment experiment. Please use phospho-specific settings"
+
+- id: prot_rec_008
+  domain: proteomics
+  missing_prereq: "plasma proteomics with high-abundance depletion"
+  recovery_type: ambiguous_reference
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Analyze my plasma proteomics data at PXD090000"
+    - role: user
+      text: "Samples were depleted of the top 14 high-abundance proteins. Please account for this"
+
+- id: prot_rec_009
+  domain: proteomics
+  missing_prereq: "cross-linking mass spectrometry — wrong pipeline"
+  recovery_type: wrong_format
+  max_turns_allowed: 2
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Identify protein-protein interactions from my cross-linking MS data at PXD100000"
+    - role: user
+      text: "Yes, I understand this is XL-MS and needs specialized software"
+
+- id: prot_rec_010
+  domain: proteomics
+  missing_prereq: "instrument format not supported (.wiff Sciex)"
+  recovery_type: wrong_format
+  max_turns_allowed: 3
+  correct_workflow: nf-core/quantms
+  expected_outcome: RESOLVED
+  turns:
+    - role: user
+      text: "Run proteomics analysis on my Sciex TripleTOF data"
+      attachment_type: wiff_files
+      attachment_note: ".wiff files need conversion to mzML first"
+    - role: user
+      text: "Can you convert them first?"
+    - role: user
+      text: "Yes, please convert with ProteoWizard and then run the pipeline"

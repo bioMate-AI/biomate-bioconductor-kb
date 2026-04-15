@@ -62,9 +62,9 @@ params.symmetry = 'C1'                       // Point group symmetry
 params.phase_plate = false                   // true = Volta Phase Plate (VPP) data collection
 
 // Processing mode
-params.mock_mode = true                      // Use mock mode for testing
+params.mock_mode = false                     // Set to true only for CI unit tests
 params.use_cryosparc = false                 // Use live CryoSPARC API
-params.cryosparc_license = null              // CryoSPARC license ID
+params.cryosparc_license = null              // CryoSPARC license ID (set via --cryosparc_license or env)
 params.cryosparc_host = 'localhost'
 params.cryosparc_port = 39000
 params.cryosparc_lane = 'default'

@@ -7,6 +7,7 @@ import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
 import { CompressionDialog, CompressionStatusBadge } from "./compression-dialog"
+import { WorkflowUploadModal } from "./workflow-upload-modal"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -27,7 +28,8 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Settings
+  Settings,
+  FolderUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
@@ -251,6 +253,9 @@ export function ChatInterface({
 
   // File analysis results per message (Track 2D)
   const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, any[]>>({})
+
+  // Workflow upload modal state
+  const [showWorkflowUploadModal, setShowWorkflowUploadModal] = useState(false)
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -1711,6 +1716,18 @@ export function ChatInterface({
           </div>
         </div>
       )}
+      {/* Import Workflow button — compact secondary action above input */}
+      <div className="flex justify-end px-4 pt-1">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          data-testid="button-import-workflow"
+          onClick={() => setShowWorkflowUploadModal(true)}
+        >
+          <FolderUp className="h-3.5 w-3.5" />
+          Import Workflow
+        </button>
+      </div>
       <ChatInput
         onSend={(msg, files) => { setChatDraft(undefined); handleSendOrQueue(msg, files); }}
         pendingCount={pendingMessages.length}
@@ -1741,6 +1758,12 @@ export function ChatInterface({
         isCompressing={isCompressing}
         onCompress={handleCompress}
         onCancel={handleCancelCompression}
+      />
+
+      {/* Import Workflow modal */}
+      <WorkflowUploadModal
+        open={showWorkflowUploadModal}
+        onOpenChange={setShowWorkflowUploadModal}
       />
     </div>
   )

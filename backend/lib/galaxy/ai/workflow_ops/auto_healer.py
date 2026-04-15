@@ -546,7 +546,7 @@ class WorkflowAutoHealer:
             result = self.llm_client.call(
                 messages=[{"role": "user", "content": prompt}],
                 model='claude-3-haiku-20240307',
-                temperature=0.3,
+                temperature=0.0,
             )
 
             content = result['content']

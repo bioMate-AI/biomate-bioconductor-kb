@@ -403,7 +403,7 @@ class WorkflowLogAnalyzer:
             result = self.llm_client.call(
                 messages=messages,
                 model=model,
-                temperature=0.3,
+                temperature=0.0,
                 max_tokens=2000,
             )
 
