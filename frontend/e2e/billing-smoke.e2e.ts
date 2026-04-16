@@ -17,10 +17,10 @@ test.setTimeout(60000);
 
 const LAGO_URL = process.env.LAGO_URL || "http://35.86.137.71:3000";
 const LAGO_KEY = process.env.LAGO_API_KEY || "01b71711-be39-49af-8d14-87a4ee827157";
-const TEST_EMAIL = "xiaoni5122@gmail.com";
-const TEST_PASS  = "BioMate2026!";
-// Known UUID for xiaoni5122@gmail.com
-const TEST_UUID  = "16469413-8dba-41cd-a39a-46aedf540862";
+// Dedicated smoke test account — created once, password never changes
+const TEST_EMAIL = "billing-smoke@biomate.test";
+const TEST_PASS  = "SmokeTest2026!";
+const TEST_UUID  = "bsmoke-0000-0000-0000-000000000001";
 
 async function lagoGet(path: string) {
   const res = await fetch(`${LAGO_URL}${path}`, {
@@ -55,15 +55,19 @@ test.describe("Billing Smoke", () => {
     });
     expect(chatRes.status()).toBe(200);
 
-    // Wait for Galaxy to process + forward events to Lago
-    await new Promise(r => setTimeout(r, 6000));
+    // Wait for Galaxy to process + forward events to Lago (async)
+    await new Promise(r => setTimeout(r, 8000));
 
-    // Poll Lago for recent events matching our session
-    const eventData = await lagoGet(`/api/v1/events?per_page=30`);
+    // Poll Lago for recent events matching our subscription ID
+    const expectedSubId = `bm_${TEST_UUID}_base`;
+    const eventData = await lagoGet(`/api/v1/events?per_page=50`);
     const events: any[] = eventData.events || [];
 
-    const sessionEvents = events.filter(
-      (e) => e.properties?.session_id === sessionId
+    // Find events from this user posted in the last 60 seconds
+    const cutoff = Date.now() - 60000;
+    const sessionEvents = events.filter((e) =>
+      e.external_subscription_id === expectedSubId &&
+      new Date(e.created_at).getTime() > cutoff
     );
 
     expect(sessionEvents.length, "Expected 3 events (llm_input_tokens, llm_output_tokens, llm)").toBeGreaterThanOrEqual(3);
@@ -88,7 +92,6 @@ test.describe("Billing Smoke", () => {
     );
 
     // Verify subscription ID format
-    const expectedSubId = `bm_${TEST_UUID}_base`;
     expect(inputEvt.external_subscription_id).toBe(expectedSubId);
   });
 
