@@ -57,6 +57,8 @@ interface ConfusionTriageResponse {
 
 interface PilotKpiSummary {
   respondents: number;
+  sessions_submitted: number;
+  sessions_no_correction: number;
   // H1
   avg_workflow_quality_pct: number | null;
   h1_pass_count: number;
@@ -319,7 +321,7 @@ export default function AdminFeedbackDashboardPage() {
               <CardTitle className="flex items-center gap-2 text-base">
                 Pilot Evaluation KPIs
                 <span className="text-xs font-normal text-muted-foreground">
-                  — {pilotKpi.respondents} exit survey {pilotKpi.respondents === 1 ? "response" : "responses"}
+                  — {pilotKpi.sessions_submitted} sessions · {pilotKpi.respondents} exit {pilotKpi.respondents === 1 ? "survey" : "surveys"}
                 </span>
               </CardTitle>
               <CardDescription>
@@ -329,6 +331,17 @@ export default function AdminFeedbackDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {/* Sessions overview */}
+                <div className="space-y-1">
+                  <div className="text-xs font-medium text-muted-foreground">Sessions Submitted</div>
+                  <div className="text-2xl font-bold">{pilotKpi.sessions_submitted}</div>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pilotKpi.sessions_no_correction} without correction
+                    {pilotKpi.sessions_submitted > 0
+                      ? ` (${Math.round((pilotKpi.sessions_no_correction / pilotKpi.sessions_submitted) * 100)}%)`
+                      : ""}
+                  </p>
+                </div>
                 {/* H1 — Workflow quality */}
                 {(() => {
                   const pct = pilotKpi.avg_workflow_quality_pct;

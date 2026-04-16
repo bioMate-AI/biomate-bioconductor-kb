@@ -6477,7 +6477,6 @@ Be specific. If output data is available above, extract real numbers. If binary 
 
     try {
       const request = req.body;
-      console.log('[Execute] workflow_type:', request.workflowDefinition?.workflow_type, '| nextflow_path:', request.workflowDefinition?.nextflow_path?.slice(0, 60));
       const generationAssessment = request.generationAssessment || request.workflowDefinition?.__generationAssessment;
       const retryContext = request.retryContext || request.workflowDefinition?.__retryContext;
       const retryOfRunId =
@@ -6757,8 +6756,12 @@ Be specific. If output data is available above, extract real numbers. If binary 
       }
 
       // ==================== CRYOSPARC DIRECT EXECUTION ====================
-      if (request.workflowDefinition.workflow_type === 'cryosparc') {
-        console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc');
+      // When CRYOSPARC_INSTANCE_ID or CRYOSPARC_AMI_ID is set, use the dedicated
+      // CryoSPARC executor; otherwise fall through to Nextflow which runs the
+      // cryosparc_standard_spa/main.nf pipeline on AWS Batch GPU workers.
+      const hasCryoSPARCInstance = !!(process.env.CRYOSPARC_INSTANCE_ID || process.env.CRYOSPARC_AMI_ID);
+      if (request.workflowDefinition.workflow_type === 'cryosparc' && hasCryoSPARCInstance) {
+        console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc (instance configured)');
 
         // Require user's own CryoSPARC license key — fetched from the existing credential store
         const userGalaxyKey = (req.user as any)?.galaxyApiKey || '';
@@ -6886,9 +6889,13 @@ Be specific. If output data is available above, extract real numbers. If binary 
       // ==================== END CRYOSPARC DIRECT EXECUTION ====================
 
       // ==================== NEXTFLOW DIRECT EXECUTION ====================
-      // Check if this is a DIRECT Nextflow workflow (new format from NextflowWorkflowGenerator)
-      if (request.workflowDefinition.workflow_type === 'nextflow') {
-        console.log('[Nextflow Direct] Detected workflow_type=nextflow');
+      // Handles Nextflow workflows AND CryoSPARC workflows when no dedicated instance is configured.
+      // CryoSPARC SPA runs via cryosparc_standard_spa/main.nf on AWS Batch GPU workers.
+      const isNextflowOrCryoSPARCFallback =
+        request.workflowDefinition.workflow_type === 'nextflow' ||
+        (request.workflowDefinition.workflow_type === 'cryosparc' && !hasCryoSPARCInstance);
+      if (isNextflowOrCryoSPARCFallback) {
+        console.log('[Nextflow Direct] Detected workflow_type=', request.workflowDefinition.workflow_type, hasCryoSPARCInstance ? '' : '(cryosparc→nextflow fallback)');
         console.log('[Nextflow Direct] Path:', request.workflowDefinition.nextflow_path);
         console.log('[Nextflow Direct] Parameters:', request.workflowDefinition.parameters);
 

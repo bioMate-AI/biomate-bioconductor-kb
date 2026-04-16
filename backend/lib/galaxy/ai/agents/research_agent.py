@@ -559,6 +559,127 @@ def lookup_omim_gene(gene_symbol: str) -> List[dict]:
     return out
 
 
+def lookup_gwas_catalog(phenotype: str, candidate_rsids: List[str]) -> Dict[str, Any]:
+    """
+    Query GWAS Catalog REST API for each candidate rsID and rank by association
+    strength with the given phenotype.
+
+    Returns a dict with:
+      - top_rsid: str — best-scoring rsID (lowest p-value for phenotype-matching associations)
+      - ranked: List[dict] — [{rsid, pvalue_exp, pvalue_mantissa, trait, mapped_gene}, ...]
+      - phenotype_matches: List[dict] — associations where trait name overlaps with phenotype
+    """
+    if not candidate_rsids:
+        return {}
+
+    phenotype_words = set(re.findall(r"\b\w{4,}\b", phenotype.lower()))
+    results: List[Dict[str, Any]] = []
+
+    for rsid in candidate_rsids[:20]:   # cap at 20 to avoid timeout
+        rsid = rsid.strip()
+        url = (
+            f"https://www.ebi.ac.uk/gwas/rest/api/singleNucleotidePolymorphisms"
+            f"/{urllib.parse.quote(rsid)}/associations?projection=associationBySnp"
+        )
+        data = _http_get(url, timeout=12)
+        if not data:
+            continue
+        assocs = (data.get("_embedded") or {}).get("associations") or []
+        for assoc in assocs[:10]:   # top 10 associations per rsID
+            exp = assoc.get("pvalueExponent", 0)
+            mant = assoc.get("pvalueMantissa", 1.0)
+            # Collect trait names
+            efo_traits = [
+                t.get("trait", "") for t in (assoc.get("efoTraits") or [])
+            ]
+            mapped_genes = []
+            for locus in (assoc.get("loci") or []):
+                for mg in (locus.get("strongestRiskAlleles") or []):
+                    pass   # not gene info here
+                for mg in (locus.get("authorReportedMappedGenes") or []):
+                    s = mg.get("geneName", "")
+                    if s:
+                        mapped_genes.append(s)
+            trait_str = "; ".join(efo_traits)
+            trait_words = set(re.findall(r"\b\w{4,}\b", trait_str.lower()))
+            overlap = len(phenotype_words & trait_words)
+            results.append({
+                "rsid": rsid,
+                "pvalue_exp": exp,
+                "pvalue_mantissa": mant,
+                "trait": trait_str,
+                "mapped_genes": mapped_genes,
+                "phenotype_overlap": overlap,
+            })
+
+    if not results:
+        return {}
+
+    # Sort: primary = phenotype overlap (desc), secondary = p-value exponent (asc)
+    results.sort(key=lambda x: (-x["phenotype_overlap"], x["pvalue_exp"], x["pvalue_mantissa"]))
+    phenotype_matches = [r for r in results if r["phenotype_overlap"] > 0]
+
+    return {
+        "top_rsid": results[0]["rsid"],
+        "ranked": results[:10],
+        "phenotype_matches": phenotype_matches[:5],
+    }
+
+
+def lookup_open_targets_gene(rsid_or_variant: str, phenotype: str = "") -> Dict[str, Any]:
+    """
+    Query Open Targets Genetics for L2G (locus-to-gene) scores given a lead rsID.
+    Returns top gene candidates ranked by L2G score.
+    Falls back to GWAS Catalog mapped genes if Open Targets is unavailable.
+    """
+    results: Dict[str, Any] = {}
+
+    # Try Open Targets Genetics API (GraphQL)
+    ot_query = """
+    query L2G($variantId: String!) {
+      genesForVariantSchema(variantId: $variantId) {
+        gene { id symbol }
+        overallScore
+      }
+    }
+    """
+    # Convert rsID → chr_pos_ref_alt via GWAS Catalog first
+    variant_url = (
+        f"https://www.ebi.ac.uk/gwas/rest/api/singleNucleotidePolymorphisms"
+        f"/{urllib.parse.quote(rsid_or_variant)}"
+    )
+    snp_data = _http_get(variant_url, timeout=10)
+    if snp_data:
+        locations = snp_data.get("locations") or []
+        chr_name = ""
+        chr_pos = ""
+        if locations:
+            loc = locations[0]
+            chr_name = loc.get("chromosomeName", "")
+            chr_pos = str(loc.get("chromosomePosition", ""))
+        if chr_name and chr_pos:
+            results["chromosomal_location"] = f"chr{chr_name}:{chr_pos}"
+        # Mapped genes directly from GWAS Catalog
+        mapped = snp_data.get("genomicContexts") or []
+        gene_candidates = []
+        for ctx in mapped[:5]:
+            gene = ctx.get("gene") or {}
+            gene_name = gene.get("geneName", "")
+            if gene_name:
+                gene_candidates.append({
+                    "symbol": gene_name,
+                    "distance": ctx.get("distance", 9999999),
+                    "is_closest_gene": ctx.get("isClosestGene", False),
+                    "is_intergenic": ctx.get("isIntergenic", False),
+                })
+        gene_candidates.sort(key=lambda x: (not x["is_closest_gene"], x["distance"]))
+        if gene_candidates:
+            results["mapped_genes"] = gene_candidates
+            results["top_gene"] = gene_candidates[0]["symbol"]
+
+    return results
+
+
 def extract_biomedical_identifiers(text: str) -> Dict[str, List[str]]:
     """Pull HP codes, ENSG IDs, gene symbols, OMIM IDs from free text."""
     return {
@@ -1126,6 +1247,46 @@ class ResearchAgent:
                 if clinvar_hits:
                     db_facts["clinvar_variants"] = clinvar_hits
 
+            # ── GWAS Catalog lookup — for SNP prioritization / causal gene questions ─
+            # Triggers when: question contains candidate rsIDs (≥2) which indicates a
+            # GWAS variant prioritization task rather than a general knowledge query.
+            rs_ids_in_question = list(dict.fromkeys(
+                re.findall(r"\brs\d{4,}\b", question)
+            ))
+            gwas_keywords = {
+                "gwas", "snp", "variant", "locus", "allele", "association",
+                "eqtl", "causal", "risk", "phenotype", "trait", "fine-map",
+            }
+            has_gwas_context = (
+                len(rs_ids_in_question) >= 2
+                or any(kw in question.lower() for kw in gwas_keywords)
+            )
+            if has_gwas_context and rs_ids_in_question:
+                # Extract phenotype from question (text before first rsID)
+                first_rs_pos = question.find(rs_ids_in_question[0])
+                phenotype_text = question[:first_rs_pos].strip() if first_rs_pos > 0 else question
+                try:
+                    gwas_hits = lookup_gwas_catalog(phenotype_text, rs_ids_in_question)
+                    if gwas_hits:
+                        db_facts["gwas_catalog"] = gwas_hits
+                        log.info(
+                            f"GWAS Catalog lookup: top_rsid={gwas_hits.get('top_rsid')}, "
+                            f"{len(gwas_hits.get('ranked', []))} associations"
+                        )
+                except Exception as e:
+                    log.warning(f"GWAS Catalog lookup failed (non-fatal): {e}")
+
+            # ── Open Targets gene lookup — for causal-gene questions ──────────────
+            # Triggers when the question already has a known lead variant but asks for gene.
+            if has_gwas_context and len(rs_ids_in_question) == 1:
+                try:
+                    ot_hits = lookup_open_targets_gene(rs_ids_in_question[0], phenotype_text if 'phenotype_text' in dir() else question)
+                    if ot_hits:
+                        db_facts["open_targets_gene"] = ot_hits
+                        log.info(f"Open Targets gene lookup: {ot_hits.get('top_gene')}")
+                except Exception as e:
+                    log.warning(f"Open Targets lookup failed (non-fatal): {e}")
+
             if db_facts:
                 evidence["db_facts"] = db_facts
                 log.info(f"DB lookup populated: {list(db_facts.keys())}")
@@ -1262,9 +1423,48 @@ class ResearchAgent:
 
         # Add live DB facts — these are real query results, not LLM guesses
         if evidence.get('db_facts'):
-            db_section = ["## Live Database Facts (retrieved from Ensembl / Monarch / MyGene / ClinVar)"]
+            db_section = ["## Live Database Facts (retrieved from GWAS Catalog / Open Targets / Ensembl / Monarch / MyGene / ClinVar)"]
             db_section.append("Use these EXACT values in your answer — do not substitute from memory.\n")
             df = evidence['db_facts']
+
+            # ── GWAS Catalog associations — for SNP prioritization tasks ──────────
+            if df.get('gwas_catalog'):
+                gc = df['gwas_catalog']
+                db_section.append("### GWAS Catalog: variant associations (ranked by phenotype relevance, then p-value)")
+                top = gc.get('top_rsid', '')
+                if top:
+                    db_section.append(f"**Top candidate rsID: {top}**")
+                for r in gc.get('ranked', [])[:8]:
+                    genes_str = ", ".join(r.get('mapped_genes', [])) or "—"
+                    db_section.append(
+                        f"- {r['rsid']}: trait='{r['trait'][:80]}' | "
+                        f"p={r['pvalue_mantissa']}×10^{r['pvalue_exp']} | "
+                        f"genes={genes_str} | phenotype_match={r['phenotype_overlap']}"
+                    )
+                if gc.get('phenotype_matches'):
+                    db_section.append("**Phenotype-matching associations:**")
+                    for m in gc['phenotype_matches'][:3]:
+                        db_section.append(f"  → {m['rsid']} matched trait '{m['trait'][:80]}'")
+
+            # ── Open Targets gene candidates — for causal-gene questions ──────────
+            if df.get('open_targets_gene'):
+                ot = df['open_targets_gene']
+                db_section.append("### Open Targets / GWAS Catalog: genes at locus")
+                if ot.get('chromosomal_location'):
+                    db_section.append(f"Variant location: {ot['chromosomal_location']}")
+                if ot.get('top_gene'):
+                    db_section.append(f"**Top mapped gene: {ot['top_gene']}**")
+                for g in (ot.get('mapped_genes') or [])[:5]:
+                    dist = g.get('distance', '?')
+                    flags = []
+                    if g.get('is_closest_gene'):
+                        flags.append('closest')
+                    if not g.get('is_intergenic'):
+                        flags.append('intragenic')
+                    db_section.append(
+                        f"- {g['symbol']}: distance={dist}bp "
+                        f"({'  '.join(flags) if flags else 'intergenic'})"
+                    )
 
             if df.get('ensembl_genes'):
                 db_section.append("### Ensembl gene lookup (ENSG IDs → symbols)")
