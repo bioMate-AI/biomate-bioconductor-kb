@@ -24,6 +24,7 @@ interface PostRunMicroSurveyProps {
   sessionId?: string;
   invocationId?: string;
   workflowName?: string;
+  actualTimeSec?: number;
 }
 
 // Likert scale labels
@@ -76,6 +77,7 @@ export function PostRunMicroSurvey({
   sessionId,
   invocationId,
   workflowName,
+  actualTimeSec,
 }: PostRunMicroSurveyProps) {
   if (!UX_FEEDBACK_ENABLED) return null;
 
@@ -137,6 +139,7 @@ export function PostRunMicroSurvey({
       qc_publication_rating: qcRating ?? undefined,
       ran_without_manual_correction: ranWithoutCorrection ?? undefined,
       prior_time_hours: priorTimeHours ? Number(priorTimeHours) : undefined,
+      actual_time_minutes: actualTimeSec != null ? Math.round(actualTimeSec / 60 * 10) / 10 : undefined,
       pricing_response: pricingResponse ?? undefined,
       // UX signal
       execution_clear: executionClear ?? undefined,

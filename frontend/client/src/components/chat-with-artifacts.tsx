@@ -101,6 +101,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
     invocationId?: string
+    actualTimeSec?: number
   } | null>(null)
   const surveyedRunIds = useRef<Set<string>>(new Set())
   const pulseShownForSession = useRef<Set<string>>(new Set())
@@ -296,6 +297,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         runId,
         runStatus: status,
         invocationId: currentRun?.execution?.galaxyInvocationId,
+        actualTimeSec: currentRun?.execution?.nextflowStatus?.duration_s ?? undefined,
       })
       setShowPostRunSurvey(true)
     }
@@ -409,7 +411,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setIsWorkflowRunning(true);
     setWorkflowProgress(0);
 
-    const isNextflow = workflow.workflow_type === 'nextflow' || workflow.format === 'nextflow' || !!workflow.nextflow_path;
+    const isNextflow = workflow.workflow_type === 'nextflow' || workflow.workflow_type === 'cryosparc' || workflow.format === 'nextflow' || !!workflow.nextflow_path;
 
     // Non-Nextflow workflows still require concrete step definitions.
     if (!isNextflow && (!steps || steps.length === 0)) {
@@ -423,11 +425,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       let workflowDefinition: any;
 
       if (isNextflow) {
-        console.log('[ChatWithArtifacts] Preparing Nextflow workflow for unified execution');
+        console.log('[ChatWithArtifacts] Preparing Nextflow/CryoSPARC workflow for unified execution');
         workflowDefinition = {
           ...workflow,
           name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
-          workflow_type: 'nextflow',
+          // Preserve the original workflow_type (e.g. 'cryosparc') — do not force 'nextflow'
+          workflow_type: workflow.workflow_type || 'nextflow',
           format: workflow.format || 'nextflow',
           parameters: workflow.parameters || {},
         };
@@ -1210,6 +1213,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           runStatus={postRunSurveyContext.runStatus}
           sessionId={currentChatSession?.id}
           invocationId={postRunSurveyContext.invocationId}
+          actualTimeSec={postRunSurveyContext.actualTimeSec}
         />
       )}
 

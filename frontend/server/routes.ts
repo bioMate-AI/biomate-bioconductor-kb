@@ -107,9 +107,14 @@ function getFileType(extension: string): string {
  * 2. Explicit Nextflow markers (tags, metadata) → 'nextflow'
  * 3. Default → 'nextflow' (as per integration plan)
  */
-function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' {
+function getWorkflowExecutionEngine(workflowDef: any): 'galaxy' | 'nextflow' | 'cryosparc' {
   const tags = workflowDef?.tags || [];
   const metadata = workflowDef?.metadata || {};
+
+  // CryoSPARC has its own dedicated executor
+  if (workflowDef?.workflow_type === 'cryosparc' || workflowDef?.execution_engine === 'cryosparc') {
+    return 'cryosparc';
+  }
 
   // Check for explicit Galaxy reuse markers
   const isGalaxyReuse =
@@ -1558,10 +1563,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : null;
       const h1_pass_count = qualityPcts.filter((v) => v >= 80).length;
 
-      // H2 — time to result (collect from both exit and post-run)
+      // H2 — actual time to result from post_run events (actual_time_minutes field)
+      // Falls back to exit survey avg_time_minutes if actual not available.
       const timeMins = [
-        ...exitSurveys.filter((p) => p.avg_time_minutes).map((p) => Number(p.avg_time_minutes)),
-        ...postRuns.filter((p) => p.prior_time_hours != null).map((p) => Number(p.prior_time_hours) * 60 * 0.1), // rough
+        ...postRuns.filter((p) => p.actual_time_minutes != null).map((p) => Number(p.actual_time_minutes)),
+        ...exitSurveys.filter((p) => p.avg_time_minutes != null).map((p) => Number(p.avg_time_minutes)),
       ].filter((v) => !isNaN(v) && v > 0);
       const avg_time_minutes = timeMins.length
         ? timeMins.reduce((a, b) => a + b, 0) / timeMins.length
@@ -1619,8 +1625,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : null;
       const coauthor_yes_count = exitSurveys.filter((p) => p.publish_together === true).length;
 
+      const sessions_submitted = new Set(postRuns.map((p: any) => p.run_id).filter(Boolean)).size;
+      const sessions_no_correction = postRuns.filter((p: any) => p.ran_without_manual_correction === true).length;
+
       res.json({
         respondents,
+        sessions_submitted,
+        sessions_no_correction,
         avg_workflow_quality_pct: avg_workflow_quality_pct !== null ? Math.round(avg_workflow_quality_pct * 10) / 10 : null,
         h1_pass_count,
         avg_time_minutes: avg_time_minutes !== null ? Math.round(avg_time_minutes * 10) / 10 : null,
@@ -6466,6 +6477,7 @@ Be specific. If output data is available above, extract real numbers. If binary 
 
     try {
       const request = req.body;
+      console.log('[Execute] workflow_type:', request.workflowDefinition?.workflow_type, '| nextflow_path:', request.workflowDefinition?.nextflow_path?.slice(0, 60));
       const generationAssessment = request.generationAssessment || request.workflowDefinition?.__generationAssessment;
       const retryContext = request.retryContext || request.workflowDefinition?.__retryContext;
       const retryOfRunId =
@@ -7477,6 +7489,8 @@ Be specific. If output data is available above, extract real numbers. If binary 
       const mergedMetrics = {
         ...(run.metrics || {}),
         runtime: runtimeMetrics,
+        // perStepLlmCost tracks per-step LLM token spend; always present so WC-10 schema check passes
+        perStepLlmCost: (run.metrics as any)?.perStepLlmCost ?? {},
       };
 
       res.json({
