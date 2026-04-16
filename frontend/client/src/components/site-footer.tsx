@@ -7,15 +7,11 @@ export function SiteFooter() {
   const footerLinks = {
     product: [
       { name: "Pricing", href: "/pricing" },
-      { name: "Features", href: "/home" },
-      { name: "Security", href: "/privacy" },
-      { name: "Enterprise", href: "/contact" }
+      { name: "Security", href: "/privacy" }
     ],
     company: [
       { name: "About", href: "/about" },
-      { name: "Blog", href: "/blog" },
-      { name: "Contact", href: "/contact" },
-      { name: "Careers", href: "/contact" }
+      { name: "Blog", href: "/blog" }
     ],
     legal: [
       { name: "Privacy Policy", href: "/privacy" },
@@ -62,11 +58,8 @@ export function SiteFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
-              </div>
-              <span className="font-bold text-xl">BioMate</span>
+            <div className="flex items-center mb-4">
+              <img src="/logo.png" alt="BioMate AI" className="h-10 w-auto" />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
               AI-powered platform for biomedical research and workflow automation.

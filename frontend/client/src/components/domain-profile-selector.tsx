@@ -8,7 +8,7 @@ import { Check, ChevronRight, SkipForward } from "lucide-react"
 
 // ── Taxonomy (hardcoded to avoid an extra round-trip) ─────────────────────────
 
-const DOMAIN_TAXONOMY: Record<string, string[]> = {
+export const DOMAIN_TAXONOMY: Record<string, string[]> = {
   genomics: ["variant calling", "WGS", "WES", "copy number", "structural variants", "population genetics"],
   transcriptomics: ["bulk RNA-seq", "spatial transcriptomics", "long-read RNA-seq", "ATAC-seq"],
   single_cell: ["scRNA-seq", "scATAC-seq", "multiome", "cell typing", "trajectory analysis"],
@@ -25,7 +25,7 @@ const DOMAIN_TAXONOMY: Record<string, string[]> = {
   bioimaging: ["cell segmentation", "fluorescence microscopy", "spatial omics imaging", "flow cytometry"],
 }
 
-const DOMAIN_LABELS: Record<string, string> = {
+export const DOMAIN_LABELS: Record<string, string> = {
   genomics: "Genomics",
   transcriptomics: "Transcriptomics",
   single_cell: "Single Cell",

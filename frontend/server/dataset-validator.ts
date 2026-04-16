@@ -83,7 +83,7 @@ export class DatasetValidator {
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.3,
+        temperature: 0,
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');

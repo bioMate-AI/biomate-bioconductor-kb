@@ -17,10 +17,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setLoginError(null)
 
     try {
       await login(email, password)
@@ -29,11 +31,8 @@ export default function LoginPage() {
         description: "You have been logged in successfully.",
       })
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
-      })
+      const msg = error instanceof Error ? error.message : "Please check your credentials and try again."
+      setLoginError(msg)
     } finally {
       setIsLoading(false)
     }
@@ -120,6 +119,20 @@ export default function LoginPage() {
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
+
+            {loginError && (
+              <Alert variant="destructive" className="mt-3">
+                <AlertDescription>
+                  {loginError === "Invalid credentials"
+                    ? <>No account found for this email or the password is incorrect.{" "}
+                        <Button variant="link" className="px-0 h-auto text-sm underline text-destructive-foreground" onClick={() => setLocation('/register')}>
+                          Register a new account
+                        </Button>
+                      </>
+                    : loginError}
+                </AlertDescription>
+              </Alert>
+            )}
           </form>
 
           <div className="relative my-6">

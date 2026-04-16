@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { useToast } from "@/hooks/use-toast"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
 import { ChatInput } from "./chat-input"
@@ -7,7 +6,6 @@ import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
 // FileUpload moved into ChatInput component as a popover
 import { CompressionDialog, CompressionStatusBadge } from "./compression-dialog"
-import { WorkflowUploadModal } from "./workflow-upload-modal"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -28,110 +26,9 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  Settings,
-  FolderUp,
+  Settings
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
-import { FindingsCard } from "./findings-card"
-
-// ── Onboarding welcome (shown when chat has no messages yet) ──────────────────
-
-type OnboardingDomain = 'genomics' | 'drug_discovery' | 'cryo_em' | 'proteomics' | 'single_cell'
-
-const ONBOARDING_DOMAINS: { key: OnboardingDomain; label: string }[] = [
-  { key: 'genomics',       label: 'Genomics' },
-  { key: 'drug_discovery', label: 'Drug Discovery' },
-  { key: 'cryo_em',        label: 'Cryo-EM' },
-  { key: 'proteomics',     label: 'Proteomics' },
-  { key: 'single_cell',    label: 'Single Cell' },
-]
-
-const ONBOARDING_PROMPTS: Record<OnboardingDomain, string[]> = {
-  genomics: [
-    'Run whole genome sequencing analysis on SRR1518169',
-    'Call germline variants with GATK HaplotypeCaller on my WGS data',
-    'Perform RNA-seq differential expression analysis',
-  ],
-  drug_discovery: [
-    'Run ADMET property prediction for aspirin (CC(=O)Oc1ccccc1C(=O)O)',
-    'Predict binding affinity between imatinib and BCR-ABL kinase',
-    'Screen my compound library for drug-likeness',
-  ],
-  cryo_em: [
-    'Process my cryo-EM micrographs with standard SPA pipeline',
-    'Run helical reconstruction for my filament data',
-    'Perform focused classification on my ribosome dataset',
-  ],
-  proteomics: [
-    'Run label-free quantification proteomics analysis',
-    'Identify post-translational modifications in my MS data',
-    'Perform protein-protein interaction network analysis',
-  ],
-  single_cell: [
-    'Run single-cell RNA-seq clustering analysis',
-    'Perform trajectory analysis on my scRNA-seq data',
-    'Integrate multi-modal single-cell data',
-  ],
-}
-
-function OnboardingWelcome({ onSend }: { onSend: (msg: string) => void }) {
-  const [selectedDomain, setSelectedDomain] = useState<OnboardingDomain | null>(null)
-
-  const handlePromptClick = (prompt: string) => {
-    onSend(prompt)
-  }
-
-  return (
-    <div
-      data-testid="onboarding-welcome"
-      className="flex flex-col items-center gap-6 py-8 px-2"
-    >
-      <div className="text-center space-y-1">
-        <h2 className="text-xl font-semibold">Welcome to BioMate</h2>
-        <p className="text-sm text-muted-foreground">
-          Choose a domain to get started, or type your own question below.
-        </p>
-      </div>
-
-      {/* Domain picker */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {ONBOARDING_DOMAINS.map(({ key, label }) => (
-          <button
-            key={key}
-            data-testid={`onboarding-domain-btn-${key}`}
-            onClick={() => setSelectedDomain(key === selectedDomain ? null : key)}
-            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-              selectedDomain === key
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border hover:bg-muted'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Starter prompts */}
-      {selectedDomain && (
-        <div className="w-full max-w-lg space-y-2">
-          {ONBOARDING_PROMPTS[selectedDomain].map((prompt) => (
-            <button
-              key={prompt}
-              data-testid="onboarding-starter-prompt"
-              onClick={() => handlePromptClick(prompt)}
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface WorkflowProgress {
   id: string
@@ -171,14 +68,6 @@ interface ChatInterfaceProps {
   onExternalPromptConsumed?: (id: number) => void
   focusedRunId?: string | null
   runAnchorRequestId?: number
-  /** Called when the user clicks "View in panel" on a workflow pill */
-  onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
-  /** The message ID whose workflow is currently shown in the right panel */
-  panelWorkflowMessageId?: string | null
-  /** Called when the AI response contains a multi-step chain_steps array */
-  onChainSteps?: (steps: any[]) => void
-  /** Callback to register the setChatDraft function so parent can pre-fill the input without sending */
-  onRegisterSetDraft?: (setter: (draft: string) => void) => void
 }
 
 export function ChatInterface({
@@ -204,12 +93,7 @@ export function ChatInterface({
   onExternalPromptConsumed,
   focusedRunId = null,
   runAnchorRequestId = 0,
-  onOpenWorkflowInPanel,
-  panelWorkflowMessageId = null,
-  onChainSteps,
-  onRegisterSetDraft,
 }: ChatInterfaceProps) {
-  const { toast } = useToast()
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Soft query queue: messages submitted while AI is responding are held here
   // and auto-submitted one-at-a-time once each response completes.
@@ -220,21 +104,8 @@ export function ChatInterface({
   const abortControllerRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const prevMessageCountRef = useRef(0)
   const [focusedAnchorMessageId, setFocusedAnchorMessageId] = useState<string | null>(null)
   const [highlightedAnchorMessageId, setHighlightedAnchorMessageId] = useState<string | null>(null)
-
-  // Surface workflowError prop as a toast — executionError covers the hook path, but
-  // early-return failures or prop-only errors would be invisible without this.
-  useEffect(() => {
-    if (workflowError) {
-      toast({
-        title: 'Workflow could not start',
-        description: workflowError,
-        variant: 'destructive',
-      })
-    }
-  }, [workflowError])
 
   // Stop dialog state
   const [showStopDialog, setShowStopDialog] = useState(false)
@@ -245,17 +116,6 @@ export function ChatInterface({
   const [langgraphTasks, setLanggraphTasks] = useState<TaskItem[]>([])
   const langgraphTasksRef = useRef<TaskItem[]>([])
   langgraphTasksRef.current = langgraphTasks
-
-  // Chat draft pre-fill (from "Continue in chat" prereq button or error CTA)
-  const [chatDraft, setChatDraft] = useState<string | undefined>(undefined)
-  // Register setChatDraft with parent so the right-panel viewer can pre-fill input
-  useEffect(() => { onRegisterSetDraft?.(setChatDraft) }, [onRegisterSetDraft])
-
-  // File analysis results per message (Track 2D)
-  const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, any[]>>({})
-
-  // Workflow upload modal state
-  const [showWorkflowUploadModal, setShowWorkflowUploadModal] = useState(false)
 
   // Compression state
   const [showCompressionDialog, setShowCompressionDialog] = useState(false)
@@ -280,14 +140,9 @@ export function ChatInterface({
     console.log('[ChatInterface] displayMessages IDs:', displayMessages.map(m => m.id))
   }, [displayMessages])
 
-  // Auto-scroll to bottom only when a new message is added — NOT when existing message
-  // metadata updates (e.g. parameter edits), which would cause unwanted scroll jumps.
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    const currentCount = displayMessages.length;
-    const prevCount = prevMessageCountRef.current;
-    prevMessageCountRef.current = currentCount;
-    // Only scroll on genuine message additions or when typing indicator changes
-    if ((currentCount > prevCount || displayTyping) && messagesEndRef.current) {
+    if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [displayMessages, displayTyping])
@@ -549,18 +404,6 @@ export function ChatInterface({
         workflowData = null;
       }
 
-      // Merge inline parameters (e.g. SMILES, sequences extracted from user message) into workflowData
-      // so that buildViewerParameters can show them even when structured required/optional params are empty.
-      if (workflowData && data.metadata?.inlineParameters && Object.keys(data.metadata.inlineParameters).length > 0) {
-        workflowData = {
-          ...workflowData,
-          inline_parameters: {
-            ...(workflowData.inline_parameters || {}),
-            ...data.metadata.inlineParameters,
-          },
-        };
-      }
-
       // Use the natural language response from /api/chat
       // This includes tool recommendations, dataset suggestions, etc.
       let workflowInfo: string = data.response || '';
@@ -735,11 +578,6 @@ export function ChatInterface({
           invocationId: data.invocationId,
         })
         onWorkflowGenerated(workflowData)
-      }
-
-      // Detect multi-step pipeline (chain_steps) from AI response
-      if (data.chain_steps && Array.isArray(data.chain_steps) && data.chain_steps.length > 0) {
-        onChainSteps?.(data.chain_steps)
       }
     },
     onError: (error, variables) => {
@@ -1136,10 +974,9 @@ export function ChatInterface({
 
   const handleSendMessage = async (content: string, files?: File[]) => {
     // Handle attached files: upload to backend and include dataset IDs in prompt context.
-    let uploadedForAnalysis: Array<{ name: string; filePath?: string }> = []
     if (files && files.length > 0) {
       console.log('[ChatInterface] Files attached:', files.map((f) => f.name))
-      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string; filePath?: string }> = []
+      const uploaded: Array<{ name: string; datasetId?: string; galaxyDatasetId?: string }> = []
       const failedUploads: string[] = []
 
       for (const file of files) {
@@ -1164,13 +1001,11 @@ export function ChatInterface({
             name: file.name,
             datasetId: result.dataset_id,
             galaxyDatasetId: result.galaxy_dataset_id,
-            filePath: result.file_path,
           })
         } catch {
           failedUploads.push(file.name)
         }
       }
-      uploadedForAnalysis = uploaded.filter(u => !!u.filePath)
 
       const fileNames = files.map((f) => f.name).join(', ')
       const uploadedContext =
@@ -1185,20 +1020,6 @@ export function ChatInterface({
               .join('; ')
           : ''
       const failedContext = failedUploads.length > 0 ? failedUploads.join(', ') : ''
-
-      if (failedUploads.length > 0) {
-        // Try to give a useful hint based on the rejected extensions
-        const rejectedExts = failedUploads.map(name => {
-          const ext = name.split('.').pop()?.toLowerCase() ?? '';
-          return ext ? `.${ext}` : name;
-        });
-        const supported = 'FASTQ, BAM, SAM, CSV, TSV, FASTA, VCF, BED, GFF, H5AD, MRC, TIFF, EER';
-        toast({
-          title: `${failedUploads.length} file${failedUploads.length > 1 ? 's' : ''} could not be uploaded`,
-          description: `Unsupported format: ${rejectedExts.join(', ')}. Supported types: ${supported}.`,
-          variant: 'destructive',
-        });
-      }
 
       content =
         content +
@@ -1243,28 +1064,6 @@ export function ChatInterface({
     setIsTypingLocal(true)
 
     analytics.track('query_sent', { query_length: content.length })
-
-    // Fire background file analysis (non-blocking, Track 2D)
-    if (uploadedForAnalysis.length > 0) {
-      const msgId = userMessage.id
-      Promise.all(
-        uploadedForAnalysis.map(({ name, filePath }) =>
-          fetch('/api/data/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ filePath, fileType: name.split('.').pop()?.toLowerCase() }),
-          })
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-        )
-      ).then(results => {
-        const valid = results.filter((r): r is FileAnalysisResult => !!r?.analyzed)
-        if (valid.length > 0) {
-          setFileAnalysisMap(prev => ({ ...prev, [msgId]: valid }))
-        }
-      })
-    }
 
     // Call Galaxy API (always, regardless of session)
     chatMutation.mutate({ content, sessionId, placeholderId })
@@ -1426,18 +1225,9 @@ export function ChatInterface({
       setShowCompressionDialog(false)
       setCompressionDismissed(false) // Allow showing again if needed
 
-      toast({
-        title: 'Conversation compressed',
-        description: `${result.messagesBeforeCount} → ${result.messagesAfterCount} messages (${(result.compressionRatio * 100).toFixed(0)}% reduction). Context window freed.`,
-      })
-
     } catch (error) {
       console.error('[ChatInterface] Compression failed:', error)
-      toast({
-        title: 'Compression failed',
-        description: 'Could not compress the conversation. Your session is unchanged — please try again.',
-        variant: 'destructive',
-      })
+      alert('Compression failed. Please try again.')
     } finally {
       setIsCompressing(false)
     }
@@ -1522,65 +1312,34 @@ export function ChatInterface({
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
         <div className="space-y-4">
-          {displayMessages.length === 0 && <OnboardingWelcome onSend={handleSendOrQueue} />}
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
             .map((message) => (
-            <div key={message.id}>
-              <ChatMessage
-                message={message}
-                sessionId={chatSession?.id}
-                onToolClick={handleToolClick}
-                onDatasetClick={handleDatasetClick}
-                onCreateWorkflow={() => {
-                  if (message.metadata?.workflow) {
-                    onWorkflowGenerated(message.metadata.workflow);
-                  }
-                }}
-                // Workflow execution props for inline artifacts
-                onRunWorkflow={onRunWorkflow}
-                onStopWorkflow={onStopWorkflow}
-                onPauseWorkflow={onPauseWorkflow}
-                onResumeWorkflow={onResumeWorkflow}
-                onParameterChange={onParameterChange}
-                onSuggestionClick={handleSuggestionClick}
-                onAdjustViaChat={(msg) => msg && setChatDraft(msg)}
-                isWorkflowRunning={isWorkflowRunning}
-                workflowProgress={workflowProgress}
-                currentExecutionRun={currentExecutionRun}
-                isLatestAssistantMessage={message.id === latestAssistantMessageId}
-                isGeneratingWorkflow={streamingHasContent && message.id === latestAssistantMessageId}
-                isRunAnchorFocused={focusedAnchorMessageId === message.id}
-                isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-                isInPanel={panelWorkflowMessageId === message.id}
-                onOpenInPanel={
-                  message.metadata?.type === 'workflow' && message.metadata?.workflow
-                    ? () => onOpenWorkflowInPanel?.(message.id, message.metadata?.workflow)
-                    : undefined
+            <ChatMessage
+              key={message.id}
+              message={message}
+              sessionId={chatSession?.id}
+              onToolClick={handleToolClick}
+              onDatasetClick={handleDatasetClick}
+              onCreateWorkflow={() => {
+                if (message.metadata?.workflow) {
+                  onWorkflowGenerated(message.metadata.workflow);
                 }
-              />
-              {message.role === 'user' && fileAnalysisMap[message.id] && (
-                <div className="ml-10 mt-1 space-y-1">
-                  {(fileAnalysisMap[message.id] as FileAnalysisResult[]).map((result, i) => (
-                    <DataAnalysisCard key={i} result={result} />
-                  ))}
-                </div>
-              )}
-              {/* FindingsCard — shown below a completed workflow message */}
-              {message.role === 'assistant' &&
-                message.metadata?.type === 'workflow' &&
-                currentExecutionRun?.id &&
-                (currentExecutionRun?.execution?.status === 'completed' ||
-                  (currentExecutionRun?.execution?.status as string) === 'ok') &&
-                message.id === latestAssistantMessageId && (
-                <div className="ml-10 mt-1">
-                  <FindingsCard
-                    runId={currentExecutionRun.id}
-                    onContinueAnalysis={(suggestion) => setChatDraft(suggestion)}
-                  />
-                </div>
-              )}
-            </div>
+              }}
+              // Workflow execution props for inline artifacts
+              onRunWorkflow={onRunWorkflow}
+              onStopWorkflow={onStopWorkflow}
+              onPauseWorkflow={onPauseWorkflow}
+              onResumeWorkflow={onResumeWorkflow}
+              onParameterChange={onParameterChange}
+              onSuggestionClick={handleSuggestionClick}
+              isWorkflowRunning={isWorkflowRunning}
+              workflowProgress={workflowProgress}
+              currentExecutionRun={currentExecutionRun}
+              isLatestAssistantMessage={message.id === latestAssistantMessageId}
+              isRunAnchorFocused={focusedAnchorMessageId === message.id}
+              isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+            />
           ))}
           {displayTyping && <TypingIndicator />}
           {/* Auto-scroll anchor */}
@@ -1716,24 +1475,11 @@ export function ChatInterface({
           </div>
         </div>
       )}
-      {/* Import Workflow button — compact secondary action above input */}
-      <div className="flex justify-end px-4 pt-1">
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          data-testid="button-import-workflow"
-          onClick={() => setShowWorkflowUploadModal(true)}
-        >
-          <FolderUp className="h-3.5 w-3.5" />
-          Import Workflow
-        </button>
-      </div>
       <ChatInput
-        onSend={(msg, files) => { setChatDraft(undefined); handleSendOrQueue(msg, files); }}
+        onSend={handleSendOrQueue}
         pendingCount={pendingMessages.length}
         isStreaming={displayTyping}
         onStop={stopStreaming}
-        externalDraft={chatDraft}
       />
       {displayTyping && (
         <div
@@ -1758,12 +1504,6 @@ export function ChatInterface({
         isCompressing={isCompressing}
         onCompress={handleCompress}
         onCancel={handleCancelCompression}
-      />
-
-      {/* Import Workflow modal */}
-      <WorkflowUploadModal
-        open={showWorkflowUploadModal}
-        onOpenChange={setShowWorkflowUploadModal}
       />
     </div>
   )

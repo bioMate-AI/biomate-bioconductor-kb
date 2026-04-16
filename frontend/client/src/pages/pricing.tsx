@@ -31,12 +31,12 @@ export default function PricingPage() {
       popular: false
     },
     {
-      name: "Pro",
+      name: "Premium",
       description: "For individual researchers",
-      price: { monthly: 20, annual: 18 },
-      credits: "$30",
+      price: { monthly: 29, annual: 26 },
+      credits: "$45",
       features: [
-        { name: "$30 in monthly credits", included: true },
+        { name: "$45 in monthly credits", included: true },
         { name: "Unlimited workflow generation", included: true },
         { name: "Priority compute resources", included: true },
         { name: "Priority support", included: true },
@@ -51,12 +51,12 @@ export default function PricingPage() {
     {
       name: "Team",
       description: "For research teams",
-      price: { monthly: 40, annual: 36 },
-      credits: "$60",
+      price: { monthly: 79, annual: 71 },
+      credits: "$120",
       perUser: true,
       features: [
-        { name: "$60 in monthly credits per user", included: true },
-        { name: "Everything in Pro", included: true },
+        { name: "$120 in monthly credits per user", included: true },
+        { name: "Everything in Premium", included: true },
         { name: "Shared workspaces", included: true },
         { name: "100 GB storage per user", included: true },
         { name: "Team management dashboard", included: true },
@@ -258,7 +258,7 @@ export default function PricingPage() {
                   <li>• Simple workflow: ~$2-5</li>
                   <li>• Medium analysis: ~$10-20</li>
                   <li>• Complex pipeline: ~$30-50</li>
-                  <li>• Most Pro users stay within $30 credits</li>
+
                 </ul>
               </CardContent>
             </Card>

@@ -22,7 +22,10 @@ class ToolSearchIndex:
 
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = str(Path(__file__).parent.parent.parent.parent / "galaxy_ai_tools.db")
+            app_root = Path(__file__).parent.parent.parent.parent
+            # DB lives in database/ subdirectory; fall back to app root for legacy paths
+            candidate = app_root / "database" / "galaxy_ai_tools.db"
+            db_path = str(candidate if candidate.exists() else app_root / "galaxy_ai_tools.db")
         self.db_path = db_path
         self._local = threading.local()
         self._lock = threading.RLock()

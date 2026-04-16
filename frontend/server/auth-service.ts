@@ -292,6 +292,32 @@ export class AuthService {
       }).catch((err) =>
         console.warn('[billing] java service registration failed:', err.message),
       );
+    } else {
+      // Fallback: create Lago customer + subscription directly when Java service is unavailable.
+      // Used in dev/staging where JAVA_BILLING_SERVICE_URL is not set.
+      const lagoUrl = process.env.LAGO_URL || process.env.LAGO_API_URL;
+      const lagoKey = process.env.LAGO_API_KEY;
+      if (lagoUrl && lagoKey) {
+        const externalId = `bm_${user.id}`;
+        // 1. Create/upsert customer
+        fetch(`${lagoUrl}/api/v1/customers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lagoKey}` },
+          body: JSON.stringify({ customer: { external_id: externalId, name: user.fullName || user.email, email: user.email, currency: 'USD' } }),
+          signal: AbortSignal.timeout(5000),
+        }).then(() => {
+          // 2. Create subscription (plan_code must match an existing Lago plan)
+          const planCode = process.env.LAGO_PLAN_CODE || 'base';
+          return fetch(`${lagoUrl}/api/v1/subscriptions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lagoKey}` },
+            body: JSON.stringify({ subscription: { external_customer_id: externalId, external_id: `${externalId}_base`, plan_code: planCode } }),
+            signal: AbortSignal.timeout(5000),
+          });
+        }).catch((err) =>
+          console.warn('[billing] direct lago registration failed:', err.message),
+        );
+      }
     }
   }
 
@@ -476,12 +502,12 @@ export class AuthService {
   /**
    * Request password reset
    */
-  async requestPasswordReset(email: string): Promise<boolean> {
+  async requestPasswordReset(email: string): Promise<{ sent: boolean; resetToken?: string }> {
     const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
     // Don't reveal if email exists - security best practice
     if (!user) {
-      return true; // Pretend it worked
+      return { sent: true };
     }
 
     // Generate reset token
@@ -498,10 +524,10 @@ export class AuthService {
       })
       .where(eq(users.id, user.id));
 
-    // Send email
-    await emailService.sendPasswordResetEmail(user.email, token, user.fullName);
+    // Send email; if not configured, return token for dev bypass
+    const emailSent = await emailService.sendPasswordResetEmail(user.email, token, user.fullName);
 
-    return true;
+    return { sent: emailSent, resetToken: emailSent ? undefined : token };
   }
 
   /**

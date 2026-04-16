@@ -46,7 +46,6 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
       { name: "About", href: "/about" },
       { name: "Pricing", href: "/pricing" },
       { name: "Blog", href: "/blog" },
-      { name: "Contact", href: "/contact" }
     ],
     authenticated: [
       { name: "Dashboard", href: "/dashboard" },
@@ -66,13 +65,10 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
           {/* Logo */}
           <div className="flex items-center">
             <button
-              onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/home')}
+              onClick={() => handleNavigation(isAuthenticated ? '/dashboard' : '/pricing')}
               className="flex items-center space-x-2"
             >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">B</span>
-              </div>
-              <span className="font-bold text-xl">BioMate</span>
+              <img src="/logo.png" alt="BioMate AI" className="h-12 w-auto" />
             </button>
           </div>
 

@@ -389,38 +389,42 @@ function ReproducibilityExportButton({ runId }: { runId: string }) {
   );
 }
 
+
 // ---------------------------------------------------------------------------
 // Track 3D: Pre-run cost estimate badge
+// Commented out — static lookup table values are not accurate enough to show
+// users. Actual infrastructure cost should appear on the per-user billing page
+// sourced from real Lago billing events.
 // ---------------------------------------------------------------------------
-function CostEstimateBadge({ nextflowPath, sampleCount }: { nextflowPath: string; sampleCount?: number }) {
-  const [estimate, setEstimate] = React.useState<{
-    cost_min_usd: number;
-    cost_max_usd: number;
-    estimated_runtime_hours: number;
-  } | null>(null);
-
-  React.useEffect(() => {
-    if (!nextflowPath) return;
-    const params = new URLSearchParams({ nextflow_path: nextflowPath });
-    if (sampleCount) params.set('sample_count', String(sampleCount));
-    fetch(`/api/workflows/estimate_cost?${params}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => data && setEstimate(data))
-      .catch(() => {});
-  }, [nextflowPath, sampleCount]);
-
-  if (!estimate) return null;
-  return (
-    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1" data-testid="cost-estimate-badge">
-      <span>Est. cost:</span>
-      <span className="font-medium text-foreground">
-        ${estimate.cost_min_usd}–${estimate.cost_max_usd}
-      </span>
-      <span>·</span>
-      <span>{estimate.estimated_runtime_hours}h runtime</span>
-    </div>
-  );
-}
+// function CostEstimateBadge({ nextflowPath, sampleCount }: { nextflowPath: string; sampleCount?: number }) {
+//   const [estimate, setEstimate] = React.useState<{
+//     cost_min_usd: number;
+//     cost_max_usd: number;
+//     estimated_runtime_hours: number;
+//   } | null>(null);
+//
+//   React.useEffect(() => {
+//     if (!nextflowPath) return;
+//     const params = new URLSearchParams({ nextflow_path: nextflowPath });
+//     if (sampleCount) params.set('sample_count', String(sampleCount));
+//     fetch(`/api/workflows/estimate_cost?${params}`)
+//       .then(r => r.ok ? r.json() : null)
+//       .then(data => data && setEstimate(data))
+//       .catch(() => {});
+//   }, [nextflowPath, sampleCount]);
+//
+//   if (!estimate) return null;
+//   return (
+//     <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1" data-testid="cost-estimate-badge">
+//       <span>Est. cost:</span>
+//       <span className="font-medium text-foreground">
+//         ${estimate.cost_min_usd}–${estimate.cost_max_usd}
+//       </span>
+//       <span>·</span>
+//       <span>{estimate.estimated_runtime_hours}h runtime</span>
+//     </div>
+//   );
+// }
 
 export function NextflowWorkflowViewer({
   workflowId,
@@ -509,6 +513,54 @@ export function NextflowWorkflowViewer({
     llm_used: boolean;
   } | null>(null);
   const [errorExplaining, setErrorExplaining] = useState(false);
+
+  // Input data analysis state
+  type InputRecommendation = {
+    parameter: string;
+    fix_type: string;
+    current_value: any;
+    recommended_value: any;
+    reason: string;
+    risk_level: 'low' | 'medium' | 'high';
+    auto_apply: boolean;
+  };
+  const [inputAnalysis, setInputAnalysis] = useState<{
+    recommendations: InputRecommendation[];
+    critical_count: number;
+    auto_apply_count: number;
+  } | null>(null);
+  const [inputAnalysisLoading, setInputAnalysisLoading] = useState(false);
+  const [inputAnalysisOpen, setInputAnalysisOpen] = useState(false);
+
+  const handleAnalyzeInputs = async () => {
+    setInputAnalysisLoading(true);
+    setInputAnalysisOpen(true);
+    try {
+      const resp = await fetch('/api/workflows/analyze-inputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow_id: workflowId,
+          workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
+          parameters: params,
+        }),
+      });
+      const data = await resp.json();
+      setInputAnalysis(data);
+      // Auto-apply low-risk recommendations silently
+      if (data.recommendations) {
+        for (const rec of data.recommendations as InputRecommendation[]) {
+          if (rec.auto_apply && rec.risk_level === 'low' && rec.recommended_value != null) {
+            setParams((prev: any) => ({ ...prev, [rec.parameter]: rec.recommended_value }));
+          }
+        }
+      }
+    } catch {
+      setInputAnalysis({ recommendations: [], critical_count: 0, auto_apply_count: 0 });
+    } finally {
+      setInputAnalysisLoading(false);
+    }
+  };
 
   const handleValidateEnvironment = async () => {
     const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath || '';
@@ -797,15 +849,14 @@ export function NextflowWorkflowViewer({
       nfProcessByName[phase.id.toLowerCase()] ||
       nfProcessByName[phase.name.toLowerCase()] ||
       null;
-    const outputFiles: Array<{ name: string; path: string; extension: string }> = (
-      nfProc
-        ? (nfProc.task_files || nfProc.taskFiles || []).map((f: string) => ({
-            name: f.split('/').pop() || f,
-            path: f,
-            extension: (f.split('.').pop() || '').toLowerCase(),
-          }))
-        : (phase.outputFiles || [])
-    );
+    const rawFiles = nfProc ? (nfProc.task_files || nfProc.taskFiles || []) : (phase.outputFiles || []);
+    const outputFiles: Array<{ name: string; path: string; extension: string }> = Array.isArray(rawFiles)
+      ? rawFiles.map((f: string) => ({
+          name: (f && typeof f === 'string' ? f.split('/').pop() : null) || String(f),
+          path: String(f),
+          extension: (f && typeof f === 'string' ? f.split('.').pop() : '') || '',
+        }))
+      : [];
 
     const stepExecution = stepExecutionById[phase.id];
     if (!stepExecution) {
@@ -1431,6 +1482,101 @@ export function NextflowWorkflowViewer({
                 </p>
               )}
 
+              {/* Input Data Analysis panel */}
+              {(status === 'idle' || status === 'pending_review') && renderedParameters.length > 0 && (
+                <div className="rounded-md border border-border" data-testid="input-analysis-section">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between p-3 text-sm font-medium"
+                    onClick={() => {
+                      if (!inputAnalysis && !inputAnalysisLoading) {
+                        handleAnalyzeInputs();
+                      } else {
+                        setInputAnalysisOpen(prev => !prev);
+                      }
+                    }}
+                    aria-expanded={inputAnalysisOpen}
+                    data-testid="button-analyze-inputs"
+                  >
+                    <span className="flex items-center gap-1.5 text-xs">
+                      {inputAnalysisLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : inputAnalysis ? (
+                        inputAnalysis.recommendations.length === 0 ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                        )
+                      ) : (
+                        <Activity className="h-3.5 w-3.5" />
+                      )}
+                      {inputAnalysisLoading
+                        ? 'Analyzing inputs…'
+                        : inputAnalysis
+                        ? inputAnalysis.recommendations.length === 0
+                          ? 'All inputs look good'
+                          : `Input analysis — ${inputAnalysis.recommendations.length} suggestion${inputAnalysis.recommendations.length !== 1 ? 's' : ''}`
+                        : 'Analyze inputs'}
+                    </span>
+                    {inputAnalysis && (
+                      inputAnalysisOpen
+                        ? <ChevronDown className="h-3.5 w-3.5" />
+                        : <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+
+                  {inputAnalysisOpen && inputAnalysis && inputAnalysis.recommendations.length > 0 && (
+                    <div className="border-t border-border p-3 space-y-2">
+                      {inputAnalysis.recommendations.map((rec, idx) => {
+                        const riskColor =
+                          rec.risk_level === 'high'
+                            ? 'text-destructive'
+                            : rec.risk_level === 'medium'
+                            ? 'text-amber-600'
+                            : 'text-green-700 dark:text-green-400';
+                        const applied = rec.auto_apply && rec.risk_level === 'low';
+                        return (
+                          <div
+                            key={idx}
+                            className="flex flex-col gap-1 rounded border border-border/60 bg-muted/30 p-2 text-xs"
+                            data-testid={`input-analysis-rec-${idx}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-mono font-medium truncate">{rec.parameter}</span>
+                              <span className={`shrink-0 text-[10px] font-semibold uppercase ${riskColor}`}>
+                                {rec.risk_level}
+                              </span>
+                            </div>
+                            <p className="text-muted-foreground">{rec.reason}</p>
+                            {rec.recommended_value != null && (
+                              <div className="flex items-center justify-between gap-2 mt-0.5">
+                                <span className="text-muted-foreground truncate">
+                                  Recommended: <span className="font-mono text-foreground">{String(rec.recommended_value)}</span>
+                                </span>
+                                {!applied && (
+                                  <button
+                                    type="button"
+                                    className="shrink-0 rounded border border-primary/40 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10"
+                                    onClick={() => {
+                                      setParams((prev: any) => ({ ...prev, [rec.parameter]: rec.recommended_value }));
+                                    }}
+                                  >
+                                    Apply
+                                  </button>
+                                )}
+                                {applied && (
+                                  <span className="shrink-0 text-[10px] text-green-600">auto-applied</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Uploaded dataset selection — shown when session has files */}
               {sessionDatasets.length > 0 && (
                 <div className="rounded-md border border-border p-3 space-y-2" data-testid="session-dataset-panel">
@@ -1524,11 +1670,14 @@ export function NextflowWorkflowViewer({
                 >
                   {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
                 </Button>
+
+                {/* Cost estimate badge commented out — not accurate enough to show users yet.
+                    Actual cost goes on the per-user billing page.
                 {workflowDefinition?.nextflow_path && (status === 'idle' || status === 'failed') && (
                   <CostEstimateBadge
                     nextflowPath={workflowDefinition.nextflow_path}
                   />
-                )}
+                )} */}
                 {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
                   <span data-testid="usage-meter" className="text-xs text-muted-foreground">
                     {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
@@ -1638,38 +1787,45 @@ export function NextflowWorkflowViewer({
                           </div>
                           <div className="space-y-1.5">
                             {displayedQcThresholds.map(t => (
-                              <div key={t.key} className="flex items-center gap-2">
-                                <span className="flex-1 text-xs truncate" title={t.rationale}>
-                                  {t.label}
-                                  <span className="ml-1 text-[10px] text-muted-foreground">
-                                    ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
+                              <div key={t.key} className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="flex-1 text-xs truncate">
+                                    {t.label}
+                                    <span className="ml-1 text-[10px] text-muted-foreground">
+                                      ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
+                                    </span>
                                   </span>
-                                </span>
-                                <Input
-                                  type="number"
-                                  className={`h-6 w-20 text-xs px-1.5 py-0 text-right ${t.modified ? 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
-                                  value={t.value}
-                                  step="any"
-                                  onChange={e => {
-                                    const v = parseFloat(e.target.value);
-                                    if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v }));
-                                  }}
-                                  onBlur={e => {
-                                    const v = parseFloat(e.target.value);
-                                    if (isNaN(v)) {
-                                      setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; });
-                                    }
-                                  }}
-                                />
-                                {t.modified && (
-                                  <button
-                                    type="button"
-                                    className="text-[10px] text-muted-foreground hover:text-destructive shrink-0"
-                                    title="Reset to default"
-                                    onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}
-                                  >
-                                    ×
-                                  </button>
+                                  <Input
+                                    type="number"
+                                    className={`h-6 w-20 text-xs px-1.5 py-0 text-right ${t.modified ? 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+                                    value={t.value}
+                                    step="any"
+                                    onChange={e => {
+                                      const v = parseFloat(e.target.value);
+                                      if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v }));
+                                    }}
+                                    onBlur={e => {
+                                      const v = parseFloat(e.target.value);
+                                      if (isNaN(v)) {
+                                        setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; });
+                                      }
+                                    }}
+                                  />
+                                  {t.modified && (
+                                    <button
+                                      type="button"
+                                      className="text-[10px] text-muted-foreground hover:text-destructive shrink-0"
+                                      title="Reset to default"
+                                      onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                                {t.rationale && (
+                                  <p className="text-[10px] text-muted-foreground leading-snug pl-0.5 pr-20">
+                                    {t.rationale}
+                                  </p>
                                 )}
                               </div>
                             ))}
@@ -1841,6 +1997,7 @@ export function NextflowWorkflowViewer({
                   variant="outline"
                   className="w-full"
                   data-testid="button-download-methods-report"
+                  data-invocation-id={invocationId || ''}
                   disabled={!invocationId || status === 'failed'}
                   title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No report — workflow failed" : "Download methods report"}
                   onClick={() => {

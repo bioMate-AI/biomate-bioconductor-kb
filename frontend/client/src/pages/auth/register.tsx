@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Check, CreditCard, Lock, Shield, Zap } from "lucide-react"
+import { Loader2, Check, CreditCard, Lock, Shield, Zap, Mail, Eye, EyeOff } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
@@ -20,8 +20,12 @@ export default function RegisterPage() {
   // Pre-fill invite code from ?invite=CODE query param
   const prefilledCode = new URLSearchParams(search).get('invite') || ''
 
-  // Three-step: "account" → "domain" → "trial"
-  const [step, setStep] = useState<"account" | "domain" | "trial">("account")
+  // Four-step: "account" → "email-sent" → "domain" → "trial"
+  const [step, setStep] = useState<"account" | "email-sent" | "domain" | "trial">("account")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState<string>("")
+  const [verificationToken, setVerificationToken] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -80,17 +84,21 @@ export default function RegisterPage() {
           INVALID_INVITE_CODE: 'That invite code is not valid. Please check it and try again.',
           INVITE_CODE_EXPIRED: 'That invite code has expired. Please request a new one.',
           INVITE_CODE_EXHAUSTED: 'That invite code has already been used the maximum number of times.',
+          REGISTRATION_LIMIT_EXCEEDED: 'Too many registration attempts from this device. Please wait 1 hour and try again.',
         }
-        throw new Error(friendlyMsg[msg] ?? msg)
+        throw new Error(friendlyMsg[msg] ?? data.message ?? msg)
       }
 
       // Store token so start-trial call can authenticate
       localStorage.setItem('auth_token', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       setAuthToken(data.token)
+      setRegisteredEmail(formData.email)
+      // Keep verification token for dev bypass link (null in prod if not returned)
+      setVerificationToken(data.user?.verificationToken ?? null)
 
-      // Move to domain profile step before trial
-      setStep("domain")
+      // Show email-sent confirmation before domain profile
+      setStep("email-sent")
     } catch (error) {
       toast({
         variant: "destructive",
@@ -140,28 +148,28 @@ export default function RegisterPage() {
         credentials: 'include',
         body: JSON.stringify({ returnUrl: `${window.location.origin}/dashboard` }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Could not start trial')
 
+      // If endpoint doesn't exist or Stripe not configured, go straight to app
+      if (!res.ok) {
+        setLocation('/dashboard')
+        return
+      }
+
+      const data = await res.json()
       if (data.devMode || !data.url) {
-        // Stripe not configured — go straight to dashboard
         setLocation('/dashboard')
         return
       }
       // Redirect to Stripe Checkout to collect payment method
       window.location.href = data.url
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Could not start trial",
-        description: error instanceof Error ? error.message : "Please try again.",
-      })
-      setIsLoading(false)
+    } catch {
+      // No Stripe / network error — proceed anyway
+      setLocation('/dashboard')
     }
   }
 
   const handleSkipForNow = () => {
-    setLocation('/dashboard')
+    setLocation('/')
   }
 
   // ── OAuth helpers ──────────────────────────────────────────────────────────
@@ -184,6 +192,49 @@ export default function RegisterPage() {
       toast({ variant: "destructive", title: "Sign up failed", description: "GitHub sign up is not configured yet." })
       setIsLoading(false)
     }
+  }
+
+  // ── Step 1.5 UI: email verification sent ──────────────────────────────────
+
+  if (step === "email-sent") {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader className="space-y-1">
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3">
+                <Mail className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl font-bold">Check your email</CardTitle>
+            <CardDescription>
+              We sent a verification link to <strong>{registeredEmail}</strong>.
+              Click the link in your email to verify your account, then come back to log in.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {verificationToken && (
+              <div className="rounded-md border border-dashed p-3 text-xs text-left text-muted-foreground">
+                <p className="font-semibold mb-1 text-foreground">Dev mode — email not configured</p>
+                <p>Click this link to verify directly:</p>
+                <a
+                  href={`/verify-email?token=${verificationToken}`}
+                  className="text-blue-600 dark:text-blue-400 underline break-all"
+                >
+                  /verify-email?token={verificationToken.slice(0, 16)}…
+                </a>
+              </div>
+            )}
+            <Button className="w-full" onClick={() => setStep("domain")}>
+              Continue setup
+            </Button>
+            <Button variant="ghost" className="w-full text-sm text-muted-foreground" onClick={() => setLocation('/login')}>
+              Go to login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   // ── Step 2 UI: domain profile ─────────────────────────────────────────────
@@ -333,14 +384,25 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                disabled={isLoading}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  disabled={isLoading}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {formData.password && (
                 <div className="space-y-1 mt-2">
                   {passwordRequirements.map((req, index) => (
@@ -359,14 +421,25 @@ export default function RegisterPage() {
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                disabled={isLoading}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  disabled={isLoading}
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-start space-x-2">

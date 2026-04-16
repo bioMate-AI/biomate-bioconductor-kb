@@ -211,6 +211,7 @@ export class IterativeWorkflowGenerator {
     const response = await this.claude.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 3000,
+      temperature: 0,
       system: systemPrompt,
       messages: [{
         role: 'user',
@@ -355,6 +356,7 @@ Format as a clear, structured explanation that a user can review.`;
     const response = await this.claude.messages.create({
       model: 'claude-sonnet-4-5',
       max_tokens: 2000,
+      temperature: 0,
       system: systemPrompt,
       messages: [{
         role: 'user',

@@ -5,7 +5,7 @@
  * TODO: Update BASE_URL when deploying to production
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5173/api'
+const BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 class ApiClient {
   private getHeaders(): HeadersInit {

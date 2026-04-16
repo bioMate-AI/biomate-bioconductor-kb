@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react"
+import { Loader2, CheckCircle2, ArrowLeft, Link2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export default function ForgotPasswordPage() {
@@ -14,22 +14,22 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [resetToken, setResetToken] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      await api.forgotPassword(email)
+      const result = await api.forgotPassword(email) as any
       setSuccess(true)
-      toast({
-        title: "Email sent!",
-        description: "Check your inbox for password reset instructions.",
-      })
+      if (result?.resetToken) {
+        setResetToken(result.resetToken)
+      }
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Failed to send email",
+        title: "Failed to send reset request",
         description: error instanceof Error ? error.message : "Please try again.",
       })
     } finally {
@@ -55,13 +55,27 @@ export default function ForgotPasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Didn't receive the email? Check your spam folder or try again with a different email address.
-            </p>
+            {resetToken ? (
+              <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950 p-3 space-y-2">
+                <p className="text-xs font-medium text-amber-800 dark:text-amber-200 flex items-center gap-1">
+                  <Link2 className="h-3 w-3" /> Email not configured — click your reset link directly:
+                </p>
+                <a
+                  href={`/reset-password?token=${resetToken}`}
+                  className="text-xs break-all text-blue-600 dark:text-blue-400 underline"
+                >
+                  {window.location.origin}/reset-password?token={resetToken}
+                </a>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                Didn't receive the email? Check your spam folder or try again with a different email address.
+              </p>
+            )}
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => setSuccess(false)}
+              onClick={() => { setSuccess(false); setResetToken(null) }}
             >
               Try another email
             </Button>

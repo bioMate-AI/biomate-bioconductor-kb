@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { ChatInterface } from "./chat-interface"
-import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
-import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
@@ -12,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
-import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
+import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
@@ -26,7 +24,6 @@ import {
   type RunBucket,
   type RunListItem,
 } from "./run-manager-utils"
-import { PipelineListView, type PipelineStep } from "./pipeline-list-view"
 
 function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cancelled' | null {
   if (!status) return null
@@ -86,9 +83,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const [workflowProgress, setWorkflowProgress] = useState(0)
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(null)
   const [workflowError, setWorkflowError] = useState<string | null>(null)
-  // Multi-step pipeline state (Track 3B)
-  const [pipelineSteps, setPipelineSteps] = useState<PipelineStep[] | null>(null)
-  const [chainRunId, setChainRunId] = useState<string | undefined>(undefined)
   const [showPostRunSurvey, setShowPostRunSurvey] = useState(false)
   const [showSessionEndPulse, setShowSessionEndPulse] = useState(false)
   const [externalPromptRequest, setExternalPromptRequest] = useState<{ id: number; prompt: string } | null>(null)
@@ -103,12 +97,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const [runSort, setRunSort] = useState<RunManagerSort>("updated_desc")
   const [focusedRunId, setFocusedRunId] = useState<string | null>(null)
   const [runAnchorRequestId, setRunAnchorRequestId] = useState(0)
-  // Right panel state: tracks which workflow message is open in the panel
-  const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
-  const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
-  const [panelOpen, setPanelOpen] = useState(false)
-  // Ref to ChatInterface's setChatDraft — set when ChatInterface mounts
-  const setChatDraftRef = useRef<((draft: string) => void) | undefined>(undefined)
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -298,22 +286,18 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   }, [runList]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Post-run micro-survey: trigger once per run when status is completed/failed/cancelled
-  // A 3-second delay is applied after the terminal state is detected before showing the survey.
   useEffect(() => {
     const status = normalizeSurveyStatus(currentRun?.execution?.status)
     const runId = currentRun?.id
     if (!runId || !status) return
     if (!surveyedRunIds.current.has(runId)) {
       surveyedRunIds.current.add(runId)
-      const timer = setTimeout(() => {
-        setPostRunSurveyContext({
-          runId,
-          runStatus: status,
-          invocationId: currentRun?.execution?.galaxyInvocationId,
-        })
-        setShowPostRunSurvey(true)
-      }, 3000)
-      return () => clearTimeout(timer)
+      setPostRunSurveyContext({
+        runId,
+        runStatus: status,
+        invocationId: currentRun?.execution?.galaxyInvocationId,
+      })
+      setShowPostRunSurvey(true)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
 
@@ -417,7 +401,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
     if (!workflow) {
       console.error('[ChatWithArtifacts] No workflow to run');
-      toast({ title: 'No workflow selected', description: 'Ask BioMate to recommend a workflow first, then click Run.', variant: 'destructive' });
       return;
     }
 
@@ -432,7 +415,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     if (!isNextflow && (!steps || steps.length === 0)) {
       console.error('[ChatWithArtifacts] No steps to run (Galaxy workflow requires steps)');
       setIsWorkflowRunning(false);
-      toast({ title: 'Workflow definition incomplete', description: 'No steps were generated. Try asking BioMate to regenerate the workflow.', variant: 'destructive' });
       return;
     }
 
@@ -447,12 +429,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
           name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
           workflow_type: 'nextflow',
           format: workflow.format || 'nextflow',
-          // Merge: inline_parameters (user edits in the viewer) take priority over
-          // parameters (AI-suggested defaults set at generation time).
-          parameters: {
-            ...(workflow.parameters || {}),
-            ...(workflow.inline_parameters || {}),
-          },
+          parameters: workflow.parameters || {},
         };
       } else if (workflow.a_galaxy_workflow) {
         console.log('[ChatWithArtifacts] Using AI-generated .ga workflow format');
@@ -607,11 +584,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       setCurrentWorkflowId(null);
     } catch (error: any) {
       console.error('[ChatWithArtifacts] Failed to stop workflow:', error);
-      toast({
-        title: 'Could not stop workflow',
-        description: error?.message || 'The cancellation request failed. The workflow may still be running — check the Run Manager.',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -622,13 +594,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error("[ChatWithArtifacts] Failed to pause workflow:", error)
-      toast({
-        title: 'Could not pause workflow',
-        description: error?.message || 'The pause request failed. The workflow is still running.',
-        variant: 'destructive',
-      });
     }
   }
 
@@ -639,13 +606,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         sessionId: currentChatSession?.id,
         runId: currentRun?.id,
       })
-    } catch (error: any) {
+    } catch (error) {
       console.error("[ChatWithArtifacts] Failed to resume workflow:", error)
-      toast({
-        title: 'Could not resume workflow',
-        description: error?.message || 'The resume request failed. Try refreshing the page.',
-        variant: 'destructive',
-      });
     }
   }
 
@@ -772,131 +734,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setExternalPromptRequest({ id: promptRequestCounter.current, prompt })
   }
 
-  // Track 3B: Handle chain_steps from AI response — set pipeline view
-  const handleChainStepsFromResponse = (rawChainSteps: any[]) => {
-    const steps: PipelineStep[] = rawChainSteps.map((s: any, i: number) => ({
-      id: `step_${i}`,
-      workflowName:
-        s.name ||
-        s.workflow_name ||
-        s.nextflow_path?.split("/").slice(-2, -1)[0] ||
-        `Step ${i + 1}`,
-      nextflowPath: s.nextflow_path || "",
-      params: s.params || {},
-      status: "pending" as const,
-      inputFrom: s.input_from,
-      inputType: s.input_type,
-      outputTypes: s.output_types,
-    }))
-    setPipelineSteps(steps)
-    setChainRunId(undefined)
-  }
-
-  // Track 3B: Called when user confirms the pipeline — submits to /api/workflows/chain
-  const handlePipelineConfirm = async (steps: PipelineStep[]) => {
-    try {
-      const response = await fetch("/api/workflows/chain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          steps: steps.map((s) => ({
-            nextflow_path: s.nextflowPath,
-            params: s.params,
-          })),
-        }),
-      })
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || "Failed to start pipeline")
-      }
-      const result = await response.json()
-      setChainRunId(result.chain_run_id)
-      // Optimistically mark first step as running
-      setPipelineSteps((prev) =>
-        prev
-          ? prev.map((s, i) => (i === 0 ? { ...s, status: "running" } : s))
-          : prev
-      )
-      analytics.track("pipeline_started", { chain_run_id: result.chain_run_id, step_count: steps.length })
-    } catch (error: any) {
-      console.error("[ChatWithArtifacts] Failed to start pipeline:", error)
-      toast({
-        variant: "destructive",
-        title: "Pipeline failed to start",
-        description: error.message || "Could not submit pipeline for execution.",
-      })
-    }
-  }
-
-  // Track 3B: Poll chain status and sync step statuses to UI
-  useEffect(() => {
-    if (!chainRunId) return
-    const poll = setInterval(async () => {
-      try {
-        const resp = await fetch(`/api/workflows/chain/${chainRunId}`)
-        if (!resp.ok) return
-        const data = await resp.json()
-        const remoteSteps: Array<{ index: number; status: string }> = data.steps || []
-        setPipelineSteps((prev) => {
-          if (!prev) return prev
-          return prev.map((s, i) => {
-            const remote = remoteSteps.find((r) => r.index === i)
-            if (!remote) return s
-            const remoteStatus = remote.status as PipelineStep["status"]
-            return { ...s, status: remoteStatus }
-          })
-        })
-        // Stop polling once all steps are terminal
-        const allDone = remoteSteps.every((s) => s.status === "completed" || s.status === "failed")
-        if (allDone) clearInterval(poll)
-      } catch {
-        // silently ignore polling errors
-      }
-    }, 5000)
-    return () => clearInterval(poll)
-  }, [chainRunId])
-
-  // Open a workflow in the right panel
-  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any) => {
-    setPanelWorkflowMessageId(messageId)
-    setPanelWorkflow(workflow)
-    setPanelOpen(true)
-  }, [])
-
-  const handleClosePanelWorkflow = useCallback(() => {
-    setPanelOpen(false)
-    setPanelWorkflowMessageId(null)
-    setPanelWorkflow(null)
-  }, [])
-
-  // Auto-open right panel when a new workflow is generated.
-  // Dependency: the ID of the last workflow message in the session — changes whenever
-  // a new workflow response arrives OR an existing message gains workflow metadata.
-  const autoOpenedWorkflowMsgIdRef = useRef<string | null>(null)
-  const lastWorkflowMsgId = useMemo(() => {
-    const msgs = currentChatSession?.messages ?? []
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i]
-      if (m.role === 'assistant' && m.metadata?.type === 'workflow' && m.metadata?.workflow) {
-        return m.id
-      }
-    }
-    return null
-  }, [currentChatSession?.messages])
-
-  useEffect(() => {
-    if (!lastWorkflowMsgId) return
-    if (lastWorkflowMsgId === autoOpenedWorkflowMsgIdRef.current) return
-    autoOpenedWorkflowMsgIdRef.current = lastWorkflowMsgId
-    const msgs = currentChatSession?.messages ?? []
-    const wf = msgs.find(m => m.id === lastWorkflowMsgId)
-    if (wf?.metadata?.workflow) {
-      setPanelWorkflowMessageId(lastWorkflowMsgId)
-      setPanelWorkflow(wf.metadata.workflow)
-      setPanelOpen(true)
-    }
-  }, [lastWorkflowMsgId, currentChatSession?.messages])
-
   const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
@@ -916,8 +753,6 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     const updatedAt = run.updatedAt ? new Date(run.updatedAt).getTime() : 0
     return Date.now() - updatedAt < 86400000
   }).length
-  // Badge count: running + queued + recent failures — all runs the user should be aware of
-  const runManagerBadgeCount = runningCount + queuedCount + failedCount
 
   // Format elapsed time for status bar (e.g. "4 min")
   const formatElapsed = (runId: string): string => {
@@ -987,17 +822,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             <MessageCircle className="w-5 h-5 text-primary" />
             <h2 className="font-semibold">bioMate</h2>
             {/* Connection status indicator */}
-            {isConnected ? (
-              <div className="flex items-center gap-1 ml-2" data-testid="connection-status-live">
+            {isConnected && (
+              <div className="flex items-center gap-1 ml-2">
                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-xs text-muted-foreground">Live</span>
               </div>
-            ) : isRunning ? (
-              <div className="flex items-center gap-1 ml-2" data-testid="connection-status-reconnecting">
-                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-xs text-amber-600 dark:text-amber-400">Reconnecting…</span>
-              </div>
-            ) : null}
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -1008,9 +838,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             >
               <Layers className="h-4 w-4 mr-1" />
               Run Manager
-              {runManagerBadgeCount > 0 && (
-                <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{runManagerBadgeCount}</span>
-              )}
+              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{runningCount}</span>
             </Button>
             <Button
               variant="ghost"
@@ -1245,8 +1073,133 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         </div>
       )}
 
-      {/* Execution error and parallel-action panels removed — error details are shown
-          inside the workflow viewer's "Workflow Failed" card instead. */}
+      {isWorkflowRunning && (
+        <div className="border-b bg-blue-50 dark:bg-blue-950/20 px-4 py-2">
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-blue-700 dark:text-blue-300">
+                Executing workflow... {workflowProgress}%
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Live execution updates enabled
+            </span>
+          </div>
+          <div className="mt-2 h-1 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 transition-all duration-500"
+              style={{ width: `${workflowProgress}%` }}
+            />
+          </div>
+          <div
+            className="mt-3 rounded-md border border-blue-200/70 bg-white/70 p-2 text-xs dark:border-blue-800/70 dark:bg-blue-950/25"
+            data-testid="background-assist-panel"
+          >
+            <p className="mb-2 text-blue-900 dark:text-blue-200">
+              Workflow is running. I can help in parallel:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="button-background-action-review-params"
+                onClick={() =>
+                  submitBackgroundPrompt(
+                    "Review current workflow parameters and suggest quality/performance improvements before completion.",
+                    "review_parameters"
+                  )
+                }
+              >
+                Review parameters
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="button-background-action-prepare-next"
+                onClick={() =>
+                  submitBackgroundPrompt(
+                    "Prepare a candidate next workflow based on this run type, likely outputs, and common follow-up analyses.",
+                    "prepare_next_workflow"
+                  )
+                }
+              >
+                Prepare next workflow
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                data-testid="button-background-action-draft-report"
+                onClick={() =>
+                  submitBackgroundPrompt(
+                    "Draft a concise report outline template for this run (methods, QC checks, expected outputs, and interpretation checklist).",
+                    "draft_report_outline"
+                  )
+                }
+              >
+                Draft report outline
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Execution error display */}
+      {executionError && (
+        <div className="border-b bg-red-50 dark:bg-red-950/20 px-4 py-2">
+          <div className="space-y-2 text-sm text-red-700 dark:text-red-300">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="font-semibold">{executionGuidance.title}</span>
+            </div>
+            <p>
+              <span className="font-medium">Reason:</span>{" "}
+              {executionGuidance.reason}
+            </p>
+            <p>
+              <span className="font-medium">Retry guidance:</span>{" "}
+              {executionGuidance.retry}
+            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs">
+                <span className="font-medium">Escalation path:</span>{" "}
+                {executionGuidance.escalation}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-execution-try-again"
+                  onClick={handleRetryExecution}
+                  disabled={isWorkflowRunning || isAutofixActive}
+                >
+                  {isAutofixActive ? "Auto-fix in progress" : "Try again"}
+                </Button>
+                <ReportConfusionButton
+                  runId={currentRun?.id}
+                  sessionId={currentChatSession?.id}
+                  invocationId={currentRun?.execution?.galaxyInvocationId}
+                  workflowId={currentRun?.execution?.galaxyWorkflowId}
+                  context={{
+                    executionStatus: currentRun?.execution?.status,
+                    errorMessage: executionError,
+                    workflowName: currentRun?.workflowName,
+                  }}
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    emitUxEvent("async.report_issue_clicked", {
+                      sessionId: currentChatSession?.id,
+                      runId: currentRun?.id,
+                      source: "execution_error_surface",
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Post-run micro-survey (once per run) */}
       {postRunSurveyContext && (
@@ -1268,175 +1221,33 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         invocationId={currentRun?.execution?.galaxyInvocationId}
       />
 
-      {/* Split layout: Chat (60%) + optional Workflow Panel (40%) */}
-      <div
-        className={
-          panelOpen
-            ? "flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-[60fr_40fr]"
-            : "flex-1 overflow-hidden"
-        }
-      >
-        {/* Left: Chat */}
-        <div className="overflow-hidden min-h-0">
-          <ChatInterface
-            chatSession={currentChatSession}
-            onWorkflowGenerated={handleWorkflowGenerated}
-            onChatUpdated={onChatUpdated}
-            activeWorkflow={null}
-            showProgress={false}
-            onToggleProgress={() => {}}
-            // Workflow execution props - passed down to chat messages
-            onRunWorkflow={handleRunWorkflow}
-            onStopWorkflow={handleStopWorkflow}
-            onPauseWorkflow={handlePauseWorkflow}
-            onResumeWorkflow={handleResumeWorkflow}
-            onParameterChange={handleParameterChange}
-            isWorkflowRunning={isWorkflowRunning}
-            workflowProgress={workflowProgress}
-            currentExecutionRun={currentRun}
-            workflowError={workflowError}
-            externalPromptRequest={externalPromptRequest}
-            focusedRunId={focusedRunId}
-            runAnchorRequestId={runAnchorRequestId}
-            onExternalPromptConsumed={(id) => {
-              setExternalPromptRequest((prev) => (prev?.id === id ? null : prev))
-            }}
-            onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
-            panelWorkflowMessageId={panelWorkflowMessageId}
-            onChainSteps={handleChainStepsFromResponse}
-            onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
-          />
-        </div>
-
-        {/* Right: Workflow Panel */}
-        {panelOpen && (
-          <div
-            className="border-l bg-background flex flex-col overflow-hidden"
-            data-testid="workflow-right-panel"
-            style={{ position: "sticky", top: 0, height: "100%" }}
-          >
-            {/* Panel header */}
-            <div className="flex items-center justify-between border-b px-4 py-2 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <FlaskConical className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Workflow Panel</span>
-              </div>
-              <button
-                onClick={handleClosePanelWorkflow}
-                className="rounded-sm p-1 hover:bg-muted"
-                aria-label="Close workflow panel"
-                data-testid="workflow-panel-close"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            {/* Panel body */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {panelWorkflow ? (
-                (() => {
-                  // Derive effective status. If the execution record is non-terminal but
-                  // nextflowStatus.status is already terminal (e.g. 'succeeded'), promote it
-                  // immediately in the UI without waiting for the DB promotion to round-trip.
-                  const nfStatusRaw = (currentRun?.execution?.nextflowStatus?.status || '').toLowerCase()
-                  const nfDerivedStatus: string | null =
-                    nfStatusRaw === 'succeeded' ? 'completed'
-                    : (nfStatusRaw === 'failed' || nfStatusRaw === 'error') ? 'failed'
-                    : null
-                  const dbStatus = currentRun?.execution?.status
-                  const isDbTerminal = dbStatus && ['completed', 'failed', 'cancelled'].includes(dbStatus)
-                  // If DB says non-terminal but nextflowStatus is terminal, use NF state.
-                  const effectiveStatus = (isDbTerminal ? dbStatus : (nfDerivedStatus || dbStatus)) || (isWorkflowRunning ? 'running' : 'idle')
-                  const executionStatusStr = effectiveStatus as string
-                  const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
-                    executionStatusStr === 'completed' || executionStatusStr === 'ok' ? 'completed'
-                    : executionStatusStr === 'paused' ? 'paused'
-                    : executionStatusStr === 'failed' || executionStatusStr === 'cancelled' || executionStatusStr === 'error' ? 'failed'
-                    : executionStatusStr === 'running' ? 'running'
-                    : 'idle'
-                  const FILE_PATH_RE = /^[\w./~\-]+\.(mrc|pdb|cif|tif|tiff|eer|fastq|fq|bam|sam|vcf|gz|zip|tar|hdf5|h5|ccp4|map|spi|xmf|star|mrcs|xtc|gro|top|itp|mol2|sdf|sd)$/i
-                  const inlineParams = panelWorkflow?.inline_parameters || {}
-                  const hasInlineData = Object.values(inlineParams).some((v: any) => {
-                    if (v == null) return false
-                    const s = String(v).trim()
-                    if (!s || s.length < 3) return false
-                    if (FILE_PATH_RE.test(s)) return false
-                    return true
-                  })
-                  const prereqChecklist = normalizePrereqChecklist(
-                    panelWorkflow?.prerequisitesValidation,
-                    { hasInlineData }
-                  )
-                  return (
-                    <NextflowWorkflowViewer
-                      workflowDefinition={panelWorkflow}
-                      invocationId={currentRun?.execution?.galaxyInvocationId || currentRun?.id}
-                      workflowId={panelWorkflow?.id}
-                      prereqChecklist={prereqChecklist}
-                      autofix={currentRun?.execution?.nextflowStatus?.autofix}
-                      nextflowStatus={currentRun?.execution?.nextflowStatus}
-                      status={currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
-                      errorMessage={currentRun?.execution?.errorMessage}
-                      progress={workflowProgress}
-                      onExecute={(params) => {
-                        const userParams = Object.fromEntries(
-                          Object.entries(params || {}).filter(([k]) => !k.startsWith('__'))
-                        )
-                        handleRunWorkflow(
-                          {
-                            ...panelWorkflow,
-                            inline_parameters: {
-                              ...(panelWorkflow?.inline_parameters || {}),
-                              ...userParams,
-                            },
-                            __executionOverrides: params?.__executionOverrides || undefined,
-                            __qcConfig: params?.__qcConfig || undefined,
-                          },
-                          []
-                        )
-                      }}
-                      onParameterChange={(id, value) => handleParameterChange(id, { value })}
-                      onPause={handlePauseWorkflow}
-                      onResume={handleResumeWorkflow}
-                      onCancel={handleStopWorkflow}
-                      onAdjustViaChat={(msg) => {
-                        if (msg) {
-                          // Pre-fill the chat input (do NOT send — user completes the sentence)
-                          setChatDraftRef.current?.(msg)
-                        }
-                      }}
-                      sessionId={currentChatSession?.id}
-                      runId={currentRun?.id}
-                      executionEngine={currentRun?.execution?.executionEngine}
-                      executionMetrics={currentRun?.metrics}
-                    />
-                  )
-                })()
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-sm text-muted-foreground text-center px-4">
-                    Workflow details will appear here when you run a workflow.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+      {/* Full-width Chat - Workflows appear inline as artifacts */}
+      <div className="flex-1 overflow-hidden">
+        <ChatInterface
+          chatSession={currentChatSession}
+          onWorkflowGenerated={handleWorkflowGenerated}
+          onChatUpdated={onChatUpdated}
+          activeWorkflow={null}
+          showProgress={false}
+          onToggleProgress={() => {}}
+          // Workflow execution props - passed down to chat messages
+          onRunWorkflow={handleRunWorkflow}
+          onStopWorkflow={handleStopWorkflow}
+          onPauseWorkflow={handlePauseWorkflow}
+          onResumeWorkflow={handleResumeWorkflow}
+          onParameterChange={handleParameterChange}
+          isWorkflowRunning={isWorkflowRunning}
+          workflowProgress={workflowProgress}
+          currentExecutionRun={currentRun}
+          workflowError={workflowError}
+          externalPromptRequest={externalPromptRequest}
+          focusedRunId={focusedRunId}
+          runAnchorRequestId={runAnchorRequestId}
+          onExternalPromptConsumed={(id) => {
+            setExternalPromptRequest((prev) => (prev?.id === id ? null : prev))
+          }}
+        />
       </div>
-
-      {/* Track 3B: Multi-step pipeline list view — shown when AI returns chain_steps */}
-      {pipelineSteps && pipelineSteps.length > 0 && (
-        <div className="border-t bg-muted/10 p-4" data-testid="pipeline-list-view-container">
-          <PipelineListView
-            steps={pipelineSteps}
-            onConfirm={handlePipelineConfirm}
-            onClose={() => {
-              setPipelineSteps(null)
-              setChainRunId(undefined)
-            }}
-            chainRunId={chainRunId}
-          />
-        </div>
-      )}
     </div>
   )
 }

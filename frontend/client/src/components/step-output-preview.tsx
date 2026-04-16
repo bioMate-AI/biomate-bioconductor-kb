@@ -1,13 +1,26 @@
 /**
  * StepOutputPreview — inline viewer for a single Nextflow step output file.
- * Fetches file content from the /api/workflows/runs/:id/step-file endpoint
- * and renders it using the most appropriate viewer for the file type.
+ *
+ * Fetches file content from /api/workflows/runs/:id/step-file and renders
+ * the most appropriate viewer for the file type:
+ *
+ *   image   → <img> with click-to-zoom lightbox
+ *   table   → InlineTableViewer (handles CSV/TSV/JSON + STAR/RELION format)
+ *   density → DensityMapViewer (full 3-axis slice viewer — same as ChatOutputAttachments)
+ *   sequence → FASTA/FASTQ record list
+ *   vcf     → variant table
+ *   annotation → BED/GFF table
+ *   structure  → PDB/mmCIF text fallback (3D viewer requires NGL — future work)
+ *   html    → sandboxed iframe
+ *   text    → <pre> with tail toggle
+ *   download → download link for unknown binary formats
  */
 
 import { useState, useEffect } from "react";
-import { Loader2, X, FileText, Download } from "lucide-react";
+import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { DensityMapViewer } from "./viewers/density-map-viewer";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,21 +73,75 @@ function resolveViewer(ext: string): ViewerKind {
 /** Viewers that need text content (not a blob URL). */
 const TEXT_VIEWERS: ViewerKind[] = ['table', 'sequence', 'vcf', 'annotation', 'structure', 'text'];
 
+/**
+ * Viewers that fetch their own data — StepOutputPreview skips the blob/text
+ * fetch entirely and hands the URL to the viewer component directly.
+ */
+const SELF_FETCHING: ViewerKind[] = ['density'];
+
 // ---------------------------------------------------------------------------
-// Lazy-import helpers for heavy viewers
-// We use dynamic import + inline rendering to avoid circular deps with the
-// existing Galaxy-API-backed viewers.  Text/table content is rendered directly.
-// Structure / density viewers need the blob URL or ArrayBuffer, so we pass
-// the object URL we created from the blob.
+// STAR / RELION format parser
+// CryoSPARC and RELION both use the STAR format:
+//   data_
+//   loop_
+//   _rlnColumnName #1
+//   _rlnOtherName  #2
+//   value1  value2
+//   ...
 // ---------------------------------------------------------------------------
 
-/** Simple table renderer for CSV/TSV/JSON content without requiring CsvTableViewer's
- *  Galaxy dataset plumbing.  Parses and renders the first 200 rows inline. */
-function InlineTableViewer({ text }: { text: string }) {
+function parseStar(text: string): { headers: string[]; rows: string[][] } | null {
+  const lines = text.split('\n');
+  const headers: string[] = [];
+  let inLoop = false;
+  let dataStartIdx = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line === 'loop_') { inLoop = true; continue; }
+    if (inLoop && line.startsWith('_')) {
+      // "_rlnColumnName #N" — take just the column name, strip leading _
+      headers.push(line.split(/\s+/)[0].slice(1));
+    } else if (inLoop && headers.length > 0 && line && !line.startsWith('#') && !line.startsWith('data_')) {
+      dataStartIdx = i;
+      break;
+    }
+  }
+
+  if (headers.length === 0 || dataStartIdx < 0) return null;
+
+  const rows: string[][] = [];
+  for (let i = dataStartIdx; i < lines.length && rows.length < 200; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('#') || line.startsWith('data_') || line.startsWith('loop_') || line.startsWith('_')) continue;
+    rows.push(line.split(/\s+/));
+  }
+
+  return rows.length > 0 ? { headers, rows } : null;
+}
+
+// ---------------------------------------------------------------------------
+// Inline table viewer (CSV / TSV / JSON / STAR)
+// ---------------------------------------------------------------------------
+
+function InlineTableViewer({ text, ext }: { text: string; ext: string }) {
   const lines = text.trim().split('\n').filter(Boolean);
   if (lines.length === 0) return <p className="text-xs text-muted-foreground">Empty file</p>;
 
-  // JSON array detection
+  // STAR / RELION format (used by CryoSPARC and RELION for particle tables)
+  if (ext === 'star' || (text.includes('loop_') && text.includes('_rln'))) {
+    const star = parseStar(text);
+    if (star) {
+      return (
+        <>
+          <p className="text-[10px] text-muted-foreground mb-1">STAR/RELION format · {star.rows.length} particles shown</p>
+          <TableGrid headers={star.headers} rows={star.rows} totalRows={star.rows.length} />
+        </>
+      );
+    }
+  }
+
+  // JSON array
   const trimmed = text.trim();
   if (trimmed.startsWith('[')) {
     try {
@@ -86,17 +153,14 @@ function InlineTableViewer({ text }: { text: string }) {
         );
         return <TableGrid headers={headers} rows={rows} totalRows={parsed.length} />;
       }
-    } catch {
-      // fall through to delimiter detection
-    }
+    } catch { /* fall through */ }
   }
 
-  // Delimiter detection
+  // Delimiter detection (CSV / TSV)
   const firstLine = lines[0];
-  const tabCount  = (firstLine.match(/\t/g)  || []).length;
+  const tabCount   = (firstLine.match(/\t/g)  || []).length;
   const commaCount = (firstLine.match(/,/g)   || []).length;
-  const delimiter = tabCount >= commaCount ? '\t' : ',';
-
+  const delimiter  = tabCount >= commaCount ? '\t' : ',';
   const headers = firstLine.split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
   const rows = lines.slice(1, 201).map(l => l.split(delimiter).map(c => c.trim().replace(/^"|"$/g, '')));
 
@@ -133,7 +197,56 @@ function TableGrid({ headers, rows, totalRows }: { headers: string[]; rows: stri
   );
 }
 
-/** Lightweight FASTA/FASTQ sequence viewer. */
+// ---------------------------------------------------------------------------
+// Image viewer with click-to-zoom lightbox
+// ---------------------------------------------------------------------------
+
+function InlineImageViewer({ src, name }: { src: string; name: string }) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  return (
+    <>
+      <div className="relative group cursor-zoom-in" onClick={() => setLightboxOpen(true)}>
+        <img
+          src={src}
+          alt={name}
+          className="max-h-64 w-auto rounded border mx-auto block"
+        />
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded">
+          <ZoomIn className="h-6 w-6 text-white drop-shadow" />
+        </div>
+      </div>
+      <p className="text-[10px] text-muted-foreground text-center mt-1">Click to enlarge</p>
+
+      {lightboxOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <img
+              src={src}
+              alt={name}
+              className="max-w-full max-h-[85vh] rounded shadow-2xl object-contain"
+            />
+            <button
+              className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"
+              onClick={() => setLightboxOpen(false)}
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="text-center text-white/70 text-xs mt-2">{name}</p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sequence viewer (FASTA / FASTQ)
+// ---------------------------------------------------------------------------
+
 function InlineSequenceViewer({ text }: { text: string }) {
   const lines = text.split('\n');
   const records: { id: string; seq: string }[] = [];
@@ -148,7 +261,6 @@ function InlineSequenceViewer({ text }: { text: string }) {
     if (records.length >= 20) break;
   }
   if (current) records.push(current);
-
   return (
     <div className="max-h-64 overflow-auto space-y-1.5 text-xs font-mono">
       {records.slice(0, 20).map((r, i) => (
@@ -163,27 +275,28 @@ function InlineSequenceViewer({ text }: { text: string }) {
   );
 }
 
-/** Lightweight VCF/BCF viewer — shows variant table. */
+// ---------------------------------------------------------------------------
+// VCF viewer
+// ---------------------------------------------------------------------------
+
 function InlineVcfViewer({ text }: { text: string }) {
   const lines = text.split('\n').filter(l => !l.startsWith('##'));
   const dataLines = lines.filter(l => l.trim() !== '');
   if (dataLines.length === 0) return <p className="text-xs text-muted-foreground">Empty VCF</p>;
-
   const headers = dataLines[0].startsWith('#CHROM')
     ? dataLines[0].slice(1).split('\t')
     : ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'QUAL', 'FILTER', 'INFO'];
-  const rows = dataLines
-    .filter(l => !l.startsWith('#'))
-    .slice(0, 100)
-    .map(l => l.split('\t'));
-
+  const rows = dataLines.filter(l => !l.startsWith('#')).slice(0, 100).map(l => l.split('\t'));
   return <TableGrid headers={headers} rows={rows} totalRows={rows.length} />;
 }
 
-/** Lightweight annotation (BED/GFF) viewer. */
+// ---------------------------------------------------------------------------
+// Annotation viewer (BED / GFF)
+// ---------------------------------------------------------------------------
+
 function InlineAnnotationViewer({ text, ext }: { text: string; ext: string }) {
   const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#') && !l.startsWith('track') && !l.startsWith('browser'));
-  const isBed = ['bed'].includes(ext);
+  const isBed = ext === 'bed';
   const headers = isBed
     ? ['chrom', 'start', 'end', 'name', 'score', 'strand']
     : ['seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute'];
@@ -192,40 +305,96 @@ function InlineAnnotationViewer({ text, ext }: { text: string; ext: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Text viewer with tail toggle (log files are useful from the end)
+// ---------------------------------------------------------------------------
+
+function InlineTextViewer({ text }: { text: string }) {
+  const lines = text.split('\n');
+  const [showTail, setShowTail] = useState(lines.length > 50);
+  const displayed = showTail ? lines.slice(-80).join('\n') : text;
+  return (
+    <div>
+      {lines.length > 50 && (
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] text-muted-foreground">{lines.length} lines total</span>
+          <button
+            onClick={() => setShowTail(t => !t)}
+            className="text-[10px] text-primary flex items-center gap-0.5 hover:underline"
+          >
+            {showTail ? <><ChevronDown className="h-3 w-3" />Show from start</> : <><ChevronUp className="h-3 w-3" />Show tail (last 80 lines)</>}
+          </button>
+        </div>
+      )}
+      <pre className={cn("text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap")}>
+        {showTail && lines.length > 80 && <span className="text-muted-foreground italic">… {lines.length - 80} lines above …{'\n'}</span>}
+        {displayed}
+      </pre>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
+// Density viewer wrapper — renders DensityMapViewer without going through
+// the blob/text fetch machinery (the viewer fetches its own data).
+function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+  return (
+    <div className="mt-2">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <DensityMapViewer src={stepFileUrl} name={file.name} />
+    </div>
+  );
+}
+
 export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewProps) {
+  const ext = file.extension.toLowerCase().replace(/^\./, '');
+  const viewer = resolveViewer(ext);
+
+  // Route density files to a separate component (avoids hook-after-conditional).
+  if (SELF_FETCHING.includes(viewer)) {
+    return <DensityPreview runId={runId} file={file} onClose={onClose} />;
+  }
+
+  return <FetchingPreview runId={runId} file={file} onClose={onClose} viewer={viewer} ext={ext} />;
+}
+
+function FetchingPreview({
+  runId, file, onClose, viewer, ext,
+}: StepOutputPreviewProps & { viewer: ViewerKind; ext: string }) {
   const [content, setContent] = useState<FetchedContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const ext = file.extension.toLowerCase().replace(/^\./, '');
-  const viewer = resolveViewer(ext);
   const needsText = TEXT_VIEWERS.includes(viewer);
+  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
+    setLoading(true); setError(null); setContent(null);
 
-    setLoading(true);
-    setError(null);
-    setContent(null);
-
-    const url = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
-
-    fetch(url)
+    fetch(stepFileUrl)
       .then(async res => {
         if (!res.ok) {
           const body = await res.text();
           throw new Error(`HTTP ${res.status}: ${body}`);
         }
         const ct = res.headers.get('content-type') || 'application/octet-stream';
-
         if (needsText) {
           const text = await res.text();
           if (cancelled) return;
-          setContent({ url, contentType: ct, text });
+          setContent({ url: stepFileUrl, contentType: ct, text });
         } else {
           const blob = await res.blob();
           if (cancelled) return;
@@ -244,41 +413,31 @@ export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewPro
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [runId, file.path, file.name, needsText]);
+  }, [stepFileUrl, needsText]);
 
   return (
     <div className="mt-2 border rounded-md bg-background p-3">
-      {/* Header */}
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="text-xs font-mono font-medium truncate" title={file.name}>{file.name}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 shrink-0"
-          onClick={onClose}
-          aria-label="Close preview"
-        >
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose} aria-label="Close preview">
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      {/* Content area */}
       {loading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading preview…
         </div>
       )}
-
       {error && (
         <div className="text-xs text-destructive bg-destructive/10 rounded p-2">
           Failed to load file: {error}
         </div>
       )}
-
       {!loading && !error && content && (
         <ViewerContent viewer={viewer} content={content} file={file} ext={ext} />
       )}
@@ -291,10 +450,7 @@ export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewPro
 // ---------------------------------------------------------------------------
 
 function ViewerContent({
-  viewer,
-  content,
-  file,
-  ext,
+  viewer, content, file, ext,
 }: {
   viewer: ViewerKind;
   content: FetchedContent;
@@ -303,83 +459,44 @@ function ViewerContent({
 }) {
   switch (viewer) {
     case 'image':
-      return (
-        <img
-          src={content.url}
-          alt={file.name}
-          className="max-h-96 w-auto rounded border mx-auto block"
-        />
-      );
+      return <InlineImageViewer src={content.url} name={file.name} />;
 
     case 'html':
       return (
-        <iframe
-          src={content.url}
-          sandbox="allow-scripts"
-          className="w-full h-64 border rounded"
-          title={file.name}
-        />
+        <iframe src={content.url} sandbox="allow-scripts" className="w-full h-64 border rounded" title={file.name} />
       );
 
     case 'table':
-      return content.text != null
-        ? <InlineTableViewer text={content.text} />
-        : null;
+      return content.text != null ? <InlineTableViewer text={content.text} ext={ext} /> : null;
 
     case 'sequence':
-      return content.text != null
-        ? <InlineSequenceViewer text={content.text} />
-        : null;
+      return content.text != null ? <InlineSequenceViewer text={content.text} /> : null;
 
     case 'vcf':
-      return content.text != null
-        ? <InlineVcfViewer text={content.text} />
-        : null;
+      return content.text != null ? <InlineVcfViewer text={content.text} /> : null;
 
     case 'annotation':
-      return content.text != null
-        ? <InlineAnnotationViewer text={content.text} ext={ext} />
-        : null;
+      return content.text != null ? <InlineAnnotationViewer text={content.text} ext={ext} /> : null;
 
     case 'structure':
-      // Structure viewer needs data from /api/outputs/:id/display — not available here.
-      // Fall back to text preview for PDB/mmCIF files.
+      // PDB/mmCIF: text fallback — full 3D viewer (NGL) is future work
       return content.text != null ? (
         <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
           {content.text.slice(0, 4000)}{content.text.length > 4000 ? '\n…' : ''}
         </pre>
       ) : null;
 
-    case 'density':
-      // MRC/MAP files are binary — just offer a download link.
-      return (
-        <a
-          href={content.url}
-          download={file.name}
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Download {file.name}
-        </a>
-      );
-
     case 'text':
-      return (
-        <pre className={cn(
-          "text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap"
-        )}>
-          {content.text}
-        </pre>
-      );
+      return content.text != null ? <InlineTextViewer text={content.text} /> : null;
+
+    case 'density':
+      // Handled above in the self-fetching early-return path; unreachable here.
+      return null;
 
     case 'download':
     default:
       return (
-        <a
-          href={content.url}
-          download={file.name}
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
-        >
+        <a href={content.url} download={file.name} className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline">
           <Download className="h-3.5 w-3.5" />
           Download {file.name}
         </a>

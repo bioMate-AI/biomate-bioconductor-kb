@@ -77,6 +77,40 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
     }
   }, [runId])
 
+  // useMemo MUST be called unconditionally (Rules of Hooks — no early returns before hooks).
+  // We guard for null data by defaulting to empty values.
+  const parsedData = React.useMemo(() => {
+    if (!data || data.status === 'pending') {
+      return { summary: undefined, keyResults: [], citations: [], caveats: [], nextSteps: [] }
+    }
+    const keyResults = data.keyResults || data.key_results || []
+    const citations = data.citations || []
+    const caveats = data.caveats || []
+    const nextSteps = data.nextSteps || data.next_steps || []
+    if (!data.reportMd) return { summary: data.summary, keyResults, citations, caveats, nextSteps }
+    const md = data.reportMd
+    // Extract summary from ## Findings Summary section
+    const summaryMatch = md.match(/## Findings Summary\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
+    const parsedSummary = summaryMatch ? summaryMatch[1].trim() : data.summary
+    // Extract caveats
+    const caveatsMatch = md.match(/## Caveats\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
+    const parsedCaveats = caveatsMatch
+      ? caveatsMatch[1].trim().split('\n').filter(l => l.startsWith('- ')).map(l => l.replace(/^- /, ''))
+      : caveats
+    // Extract next steps
+    const nextMatch = md.match(/## Recommended Next Steps\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
+    const parsedNextSteps = nextMatch
+      ? nextMatch[1].trim().split('\n').filter(l => /^\d+\./.test(l)).map(l => l.replace(/^\d+\.\s*/, ''))
+      : nextSteps
+    return {
+      summary: parsedSummary || data.summary,
+      keyResults,
+      citations,
+      caveats: parsedCaveats,
+      nextSteps: parsedNextSteps,
+    }
+  }, [data])
+
   if (loading) {
     return (
       <div className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
@@ -101,40 +135,6 @@ export function FindingsCard({ runId, onContinueAnalysis }: FindingsCardProps) {
   if (!data.summary && !data.reportMd) return null
 
   const reportUrl = data.reportUrl || `/api/workflows/runs/${runId}/findings/report`
-  const keyResults = data.keyResults || data.key_results || []
-  const citations = data.citations || []
-  const caveats = data.caveats || []
-  const nextSteps = data.nextSteps || data.next_steps || []
-
-  // Parse key results / citations / caveats / next steps from reportMd if not present
-  // (the GET endpoint returns reportMd when reading from disk)
-  const parsedData = React.useMemo(() => {
-    if (!data.reportMd) return { summary: data.summary, keyResults, citations, caveats, nextSteps }
-    const md = data.reportMd
-    // Extract summary from ## Findings Summary section
-    const summaryMatch = md.match(/## Findings Summary\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
-    const parsedSummary = summaryMatch ? summaryMatch[1].trim() : data.summary
-
-    // Extract caveats
-    const caveatsMatch = md.match(/## Caveats\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
-    const parsedCaveats = caveatsMatch
-      ? caveatsMatch[1].trim().split('\n').filter(l => l.startsWith('- ')).map(l => l.replace(/^- /, ''))
-      : caveats
-
-    // Extract next steps
-    const nextMatch = md.match(/## Recommended Next Steps\s*\n+([\s\S]*?)(?=\n##|\s*$)/)
-    const parsedNextSteps = nextMatch
-      ? nextMatch[1].trim().split('\n').filter(l => /^\d+\./.test(l)).map(l => l.replace(/^\d+\.\s*/, ''))
-      : nextSteps
-
-    return {
-      summary: parsedSummary || data.summary,
-      keyResults,
-      citations,
-      caveats: parsedCaveats,
-      nextSteps: parsedNextSteps,
-    }
-  }, [data.reportMd, data.summary, keyResults, citations, caveats, nextSteps])
 
   const { summary, keyResults: kr, citations: cits, caveats: cavs, nextSteps: ns } = parsedData
 

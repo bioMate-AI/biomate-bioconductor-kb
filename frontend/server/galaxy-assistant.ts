@@ -1197,6 +1197,95 @@ export class GalaxyAssistant {
   }
 
   /**
+   * P1 — Build an episode memory block from the user's past project episodes.
+   * Scores episodes by keyword overlap with the current message, injects top-5.
+   * Non-fatal: returns empty string on any error.
+   */
+  private async _buildEpisodeMemoryBlock(message: string, userId: string): Promise<string> {
+    try {
+      const episodes = await memoryService.episodes.getRecentUserEpisodes(userId, 10)
+        .catch(() => []);
+      if (!episodes.length) return '';
+
+      const queryTokens = new Set(
+        message.toLowerCase().split(/\W+/).filter((t: string) => t.length > 2)
+      );
+
+      const scored = episodes.map((ep: any) => {
+        const text = [
+          ep.userQuery || '',
+          ep.userIntent || '',
+          (ep.lessonsLearned || []).join(' '),
+          (ep.whatWorked || []).join(' '),
+          (ep.whatFailed || []).join(' '),
+        ].join(' ').toLowerCase();
+        const tokens = text.split(/\W+/).filter((t: string) => t.length > 2);
+        const overlap = tokens.filter((t: string) => queryTokens.has(t)).length;
+        return { ep, score: overlap };
+      });
+      scored.sort((a: any, b: any) =>
+        b.score - a.score || (b.ep.importanceScore || 0) - (a.ep.importanceScore || 0)
+      );
+
+      const top = scored.slice(0, 5).map(({ ep }: any) => {
+        const date = ep.createdAt
+          ? new Date(ep.createdAt).toISOString().slice(0, 10)
+          : 'recent';
+        const outcome = ep.outcomeSuccess === true ? '✓' : ep.outcomeSuccess === false ? '✗' : '·';
+        const query = (ep.userQuery || '').slice(0, 100);
+        const parts = [`  ${outcome} ${date} — "${query}"`];
+        if (ep.lessonsLearned?.length) {
+          parts.push(`    Lessons: ${ep.lessonsLearned.slice(0, 2).join('; ')}`);
+        }
+        if (ep.whatWorked?.length) {
+          parts.push(`    Worked: ${ep.whatWorked.slice(0, 2).join('; ')}`);
+        }
+        if (ep.whatFailed?.length) {
+          parts.push(`    Failed: ${ep.whatFailed.slice(0, 1).join('; ')}`);
+        }
+        return parts.join('\n');
+      }).filter(Boolean);
+
+      if (!top.length) return '';
+      return `[Past research episodes — use to inform context-aware responses]\n${top.join('\n')}\n\n`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
+   * P2 — Build a correction context block from the user's correction history.
+   * Formats past corrections as routing constraints to inject before intent analysis.
+   * Non-fatal: returns empty string on any error.
+   */
+  private async _buildCorrectionContextBlock(userId: string): Promise<string> {
+    try {
+      const corrections = await memoryService.users.getUserCorrections(userId, 5)
+        .catch(() => []);
+      if (!corrections.length) return '';
+
+      const lines = corrections.map((c: any) => {
+        const suggested = c.suggestedApproach;
+        const corrected = c.correctedApproach;
+        if (!suggested || !corrected) return null;
+        const from = typeof suggested === 'object' && suggested.workflow
+          ? suggested.workflow
+          : JSON.stringify(suggested).slice(0, 60);
+        const to = typeof corrected === 'object' && corrected.workflow
+          ? corrected.workflow
+          : JSON.stringify(corrected).slice(0, 60);
+        const note = c.userExplanation ? ` — "${c.userExplanation.slice(0, 80)}"` : '';
+        return `  • Prefer ${to} over ${from}${note}`;
+      }).filter(Boolean);
+
+      if (!lines.length) return '';
+      return `[User routing corrections — apply these preferences when selecting workflows]\n${lines.join('\n')}\n\n`;
+    } catch {
+      return '';
+    }
+  }
+
+  /**
    * ClarificationGate (S1): Check if the intent is ambiguous and, if so, return a clarifying
    * question response before workflow generation proceeds.
    *
@@ -1388,23 +1477,39 @@ Rules:
 
     // 6B — Cross-session memory injection: on the first message of a session, fetch
     // relevant memories from the user's past sessions and prepend them to ltmContextBlock.
-    // This is non-fatal — failures are silently ignored.
+    // Also injects P1 episode memory and P2 correction constraints.
+    // All injections are non-fatal — failures are silently ignored.
     const isFirstMessage = !context.previousMessages || context.previousMessages.length === 0;
     if (isFirstMessage && context.userId) {
+      const uid = String(context.userId);
       try {
-        const crossSessionBlock = await this._buildCrossSessionContextBlock(
-          message,
-          String(context.userId)
-        );
+        const [crossSessionBlock, episodeBlock, correctionBlock] = await Promise.all([
+          this._buildCrossSessionContextBlock(message, uid),
+          this._buildEpisodeMemoryBlock(message, uid),          // P1
+          this._buildCorrectionContextBlock(uid),               // P2
+        ]);
+
+        let prefix = '';
+        if (correctionBlock) {
+          prefix += correctionBlock;
+          log('P2 correction context injected for user ' + uid);
+        }
+        if (episodeBlock) {
+          prefix += episodeBlock;
+          log('P1 episode memory injected for user ' + uid);
+        }
         if (crossSessionBlock) {
-          log('Cross-session context injected for user ' + context.userId);
+          prefix += crossSessionBlock;
+          log('Cross-session context injected for user ' + uid);
+        }
+        if (prefix) {
           context = {
             ...context,
-            ltmContextBlock: crossSessionBlock + (context.ltmContextBlock || ''),
+            ltmContextBlock: prefix + (context.ltmContextBlock || ''),
           };
         }
       } catch {
-        // non-fatal: skip injection on error
+        // non-fatal: skip all injections on error
       }
     }
 
@@ -1491,10 +1596,22 @@ Rules:
     // (2) message lacks clear research/conceptual markers, (3) message contains method/analysis terms.
     if (!actions.needsWorkflowGeneration) {
       const _isConceptualQuestion = /\b(what\s+is|what\s+are|how\s+does|how\s+do|why\s+is|why\s+do|explain|describe|tell\s+me\s+about|definition|concept|overview|introduction|paper|review|literature|published|citation|reference)\b/i.test(message);
-      const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing)\b/i.test(message)
-        && /\b(mass\s+spec|RNA.?seq|DNA.?seq|WGS|WES|ChIP|ATAC|BCR|TCR|VDJ|FASTQ|BAM|VCF|mzML|mzXML|proteomics|genomics|transcriptomics|metagenomics|epigenomics|immunomics|metabolomics|scaffold|SMILES|GPCR|kinase|inhibitor|DDA|DIA|iRT|ASV|OTU|amplicon|nanopore|Illumina|single.?cell|bulk.?RNA|paired.?end)\b/i.test(message);
+      const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing|search|prioritize|prioritizes|prioritization|ranking|ranked)\b/i.test(message)
+        && /\b(mass\s+spec|RNA.?seq|DNA.?seq|WGS|WES|ChIP|ATAC|BCR|TCR|VDJ|FASTQ|BAM|VCF|variants?|SNPs?|indels?|pathogenicity|mzML|mzXML|proteomics|genomics|transcriptomics|metagenomics|epigenomics|immunomics|metabolomics|scaffold|SMILES|GPCR|kinase|inhibitor|DDA|DIA|iRT|ASV|OTU|amplicon|nanopore|Illumina|single.?cell|bulk.?RNA|paired.?end|protein.?search|sequence.?search|structure.?search|embedding|trimodal|UniProt|AlphaFold|PDB)\b/i.test(message);
       if (!_isConceptualQuestion && _hasBioMethodTerms) {
         log('Bioinformatics method-description override: forcing needsWorkflowGeneration=true');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
+    // AI container workflow name override:
+    // If the query explicitly names a known AI/ML workflow by name, the user wants to RUN it.
+    // The intent classifier often misclassifies these as tool_search.
+    if (!actions.needsWorkflowGeneration) {
+      const _mentionsAIWorkflow = /\b(ProTrek|Boltz[- ]?2?|Chai[- ]?1?|DrugCLIP|SynCraft|STATE\s+(?:model|perturbation|workflow)|scFv.?PMPNN|ProFam|trimodal protein search|protein language model search|ESM|AlphaFold\s+search|structure.?based protein|function.?based protein)\b/i.test(message);
+      if (_mentionsAIWorkflow) {
+        log('AI workflow name override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
       }
@@ -1553,6 +1670,20 @@ Rules:
            generatedWorkflow?.workflow_type === 'chain')
         );
         log('Step 4 complete - workflowGenerated: ' + workflowGenerated);
+
+        // Track 7A — Confidence-gated near-tie detection
+        // If top-1 and top-2 candidate scores are within 0.15 (normalized), flag the runner-up
+        // so the LLM response can surface it as a soft "did you mean X?" note.
+        if (workflowGenerated && generatedWorkflow?.candidate_workflows?.length >= 2) {
+          const [top, runner] = generatedWorkflow.candidate_workflows as Array<{name: string; domain: string; score: number}>;
+          const maxScore = 12; // raw score ceiling observed from UnifiedWorkflowSearch
+          const normTop = (top.score ?? 0) / maxScore;
+          const normRunner = (runner.score ?? 0) / maxScore;
+          if (normTop - normRunner <= 0.15 && runner.name && runner.name !== top.name) {
+            generatedWorkflow = { ...generatedWorkflow, _nearTieAlternative: runner.name };
+            log(`near-tie: "${top.name}" (${normTop.toFixed(2)}) vs "${runner.name}" (${normRunner.toFixed(2)}) — will surface alternative`);
+          }
+        }
       } catch (error: any) {
         log('Step 4 failed: ' + error.message);
         console.error('[GalaxyAssistant] Workflow generation failed:', error);
@@ -1765,10 +1896,12 @@ Rules:
     }
 
     // ── Key parameters ────────────────────────────────────────────────────────
+    // required_params / optional_params live inside workflow_ga in backend responses
+    const _wfGaParams = wf.workflow_ga || {};
     // Combine required_params + optional_params; only show those with a value set
     const allParams: Array<{ name: string; value?: any; default?: any; autoFilled?: boolean; rationale?: string; required?: boolean }> = [
-      ...(wf.required_params || []),
-      ...(wf.optional_params || []),
+      ...(_wfGaParams.required_params || wf.required_params || []),
+      ...(_wfGaParams.optional_params || wf.optional_params || []),
     ];
     const NON_TRIVIAL_SKIP = new Set(['outdir', 'email', 'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs', 'hook_url', 'multiqc_title', 'multiqc_methods_description']);
     for (const p of allParams) {
@@ -1812,7 +1945,7 @@ Rules:
     }
 
     // ── Unfilled required params warning ─────────────────────────────────────
-    const unfilledRequired = (wf.required_params || []).filter(
+    const unfilledRequired = (_wfGaParams.required_params || wf.required_params || []).filter(
       (p: any) => (p.value === null || p.value === undefined || p.value === '') &&
                   (p.default === null || p.default === undefined || p.default === '') &&
                   !p.autoFilled
@@ -2594,11 +2727,22 @@ Describe the user's information need with a descriptive label. You may use these
 
 You may also create a novel label if none of the above fit (e.g., "cost_estimation", "regulatory_compliance", "multi_step_procedure").
 
+## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
+
+Ask a single question: **"Does completing this task require running computational tools on biological data?"**
+
+- If yes → **workflow_generation**. The user may not have named their files yet; BioMate will ask. Clinical or disease context does not change this — a clinician requesting variant analysis or repeat expansion detection has data that needs processing.
+- If the task can be fully resolved from biological knowledge databases, literature, or reasoning without touching any user data → **research_question**.
+
+The distinction is the nature of the task, not the presence of file names in the message.
+
+---
+
 ## Critical Classification Rules for Bioinformatics Queries
 
-These patterns MUST be classified as **workflow_generation** even when they sound like research or data questions, because answering them computationally requires running a pipeline:
+These patterns MUST be classified as **workflow_generation** even when they sound like research questions, because they involve processing user data:
 
-**Omics analysis requests (always workflow_generation):**
+**Omics analysis requests (always workflow_generation when user-data is involved):**
 - "Identify genes [upregulated/downregulated/differentially expressed] in [condition/tissue/disease]" → the user wants to run RNA-seq + DE analysis
 - "Find [variants/mutations/SNPs/indels] in [my samples/cohort/patient]" → the user wants to run variant calling
 - "Identify [cell types/clusters/populations] in [my single-cell data/samples]" → the user wants to run scRNA-seq
@@ -2613,6 +2757,14 @@ These patterns MUST be classified as **workflow_generation** even when they soun
 - "Quality control of single-cell sequencing: filter empty droplets and doublets" → run scRNA-seq pipeline (includes QC steps)
 - "Filter/remove [empty droplets/doublets/low-quality cells] from [my scRNA-seq]" → run scRNA-seq pipeline
 
+**AI/ML model workflow requests (always workflow_generation):**
+Any message naming a specific AI/ML model workflow indicates the user wants to RUN it — never classify as tool_search:
+- "Search for [proteins/genes] using ProTrek [trimodal/text-based/structure-based] protein search" → run protrek_protein_search workflow
+- "Search for [biological entities] using [Boltz/Chai/DrugCLIP/SynCraft/ProFam] model" → run the named AI model workflow
+- "Run [ProTrek/Boltz-2/Chai-1/DrugCLIP/SynCraft/STATE/ProFam] on [data]" → run the named AI model workflow
+- "Trimodal protein search across UniProt/AlphaFold" → ProTrek workflow_generation
+- "Predict [structure/binding] using [Boltz-2/Chai-1]" → run the named structure prediction workflow
+
 **Method-description requests (always workflow_generation):**
 Queries that NAME a computational technique or pipeline without action verbs still require workflow execution.
 These EXACT QUERIES are workflow_generation, NOT research_question:
@@ -2624,9 +2776,9 @@ These EXACT QUERIES are workflow_generation, NOT research_question:
 - "Alpha and beta diversity analysis with phylogenetic placement of my microbiome ASVs" → nf-core/ampliseq (amplicon diversity + phylogenetic placement pipeline)
 General pattern: "[computational method/analysis] [from/using/of] [data type or instrument]" = the user wants to EXECUTE that method on their data. Not a literature search. Not a conceptual question.
 
-**Key rule**: If the user's goal would be achieved by running a computational biology pipeline (even if phrased as "I need [data]" or "identify [biological entities]" or describes a technique/method without action verbs), classify as **workflow_generation**, not research_question or data_interpretation.
+**Key rule**: workflow_generation requires user DATA to be processed (files, accessions, "my samples/data"). If all inputs are biological identifiers (gene names/IDs, disease names, phenotype codes, protein names) with NO user data files → it's a knowledge reasoning task (research_question with needsResearchAgent=true). "Identify differentially expressed genes in my fastq files" = workflow; "which of these candidate genes causes this phenotype?" = knowledge reasoning.
 
-Only use research_question when the user is explicitly asking about scientific literature, existing published findings, or conceptual explanations ("what is", "how does", "why do", "what papers").
+Use research_question for questions about biological knowledge that can be answered without processing user data files: gene-disease associations, phenotype-to-gene mapping, mechanism questions, literature questions, etc.
 
 ## Requests that are NEVER workflow_generation
 
@@ -2943,6 +3095,262 @@ For MULTI-intent messages (parallel), respond with an "intents" array:
       "dependsOn": []
     }
   ]
+}
+
+## Research Question Examples (needsResearchAgent: true)
+
+For KNOWLEDGE and RESEARCH questions (not workflow execution), set needsResearchAgent: true:
+
+"What is the causal gene for Huntington's disease?"
+{
+  "type": "research_question",
+  "keywords": ["Huntington's disease", "causal gene", "HTT"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [{"category": "analysis_goal", "value": "identify causal gene for Huntington's disease", "confidence": 0.95}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["Huntington", "causal gene", "HTT"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"Which genes are associated with the HPO phenotype HP:0001250 (seizure)?"
+{
+  "type": "research_question",
+  "keywords": ["HPO", "phenotype", "seizure", "HP:0001250", "gene association"],
+  "inlineParameters": {"hpo_term": "HP:0001250"},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "gene-phenotype association lookup", "confidence": 0.95},
+    {"category": "parameter", "value": "HP:0001250", "confidence": 1.0}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["HPO", "HP:0001250", "seizure", "gene association"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"What are the known pathogenic variants in BRCA1 associated with hereditary breast cancer?"
+{
+  "type": "research_question",
+  "keywords": ["BRCA1", "pathogenic variants", "hereditary breast cancer"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "gene", "value": "BRCA1", "confidence": 1.0},
+    {"category": "analysis_goal", "value": "pathogenic variant lookup", "confidence": 0.9}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["BRCA1", "pathogenic variants", "hereditary breast cancer", "ClinVar"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"Which genes, when mutated, cause rare disease with features: intellectual disability, seizures, hypotonia?"
+{
+  "type": "research_question",
+  "keywords": ["rare disease", "intellectual disability", "seizures", "hypotonia", "gene mutation"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.9,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "rare disease gene identification from phenotype cluster", "confidence": 0.9}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["rare disease", "phenotype", "intellectual disability", "seizures", "HPO"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
+
+"Task: Given a patient's phenotypes and a list of candidate genes, identify the causal gene.\nPhenotypes: HP:0001250, HP:0002300, HP:0001347\nCandidate genes: ENSG00000161011, ENSG00000092330, ENSG00000131174\nOutput format: {'causal_gene': [gene1]}"
+{
+  "type": "research_question",
+  "keywords": ["causal gene", "phenotypes", "HPO", "candidate genes", "patient gene detection"],
+  "inlineParameters": {"hpo_terms": ["HP:0001250", "HP:0002300", "HP:0001347"], "genes": ["ENSG00000161011", "ENSG00000092330", "ENSG00000131174"]},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "identify causal gene from phenotype+candidate list", "confidence": 0.95},
+    {"category": "task_type", "value": "patient_gene_detection", "confidence": 0.95}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["causal gene", "HPO phenotypes", "candidate genes", "gene-disease association"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
+
+IMPORTANT: Set needsResearchAgent: true whenever the user asks:
+- What gene causes / is associated with [disease/phenotype]
+- What does gene [X] do / what is its function
+- Which variants in gene [X] are pathogenic / disease-causing
+- What are the known [disease] genes
+- What HPO terms correspond to [phenotype description]
+- Literature questions: "what papers / what is known about..."
+- Mechanism questions: "how does [gene/protein] work"
+- Clinical questions: "what is the prognosis / treatment for..."
+- Structured tasks with "Phenotypes: HP:..." + "Candidate genes: ENSG..." → these are gene-phenotype reasoning tasks, NOT workflow requests
+- Literature deep-research: "In [paper/study], what [statistic/result] was reported for [subgroup/condition]?" → look up from literature
+- Numerical/statistical questions about published data: "What is the ORR / hazard ratio / p-value reported in [study X]?"
+- Computational biology analysis questions where no user data file is provided: "What proportion of variance is explained by batch effects?", "Given these summary statistics, calculate..."
+- Questions about specific clinical trial results, drug response rates, biomarker cutoffs, benchmark scores
+- GWAS / functional genomics knowledge: "Which gene at GWAS locus Xq22 is the likely causal gene for trait Y?" → database + literature lookup, NOT workflow
+
+"In the MPDL3280A Phase I study of non-small cell lung cancer, what was the objective response rate for patients with TC3 PD-L1 expression?"
+{
+  "type": "research_question",
+  "keywords": ["MPDL3280A", "atezolizumab", "NSCLC", "PD-L1", "TC3", "ORR", "objective response rate"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [{"category": "analysis_goal", "value": "retrieve clinical trial result from published study", "confidence": 0.95}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["clinical"],
+  "key_terms": ["MPDL3280A", "PD-L1", "TC3", "ORR", "NSCLC", "clinical trial"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
+
+"High mutational burden group (n=9, DCB=83%) and low burden group (n=9, DCB=22%). A POLE-mutant patient from the low group is reclassified to high. What is the new difference in DCB rates?"
+{
+  "type": "research_question",
+  "keywords": ["mutational burden", "DCB rate", "POLE mutation", "reclassification", "calculation"],
+  "inlineParameters": {"high_n": 9, "high_dcb": 0.83, "low_n": 9, "low_dcb": 0.22},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.97,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [{"category": "analysis_goal", "value": "numerical calculation on published clinical data", "confidence": 0.97}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["clinical"],
+  "key_terms": ["DCB rate", "mutation burden", "statistical calculation"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"What is the proportion of gene expression variance explained by batch effects in this scRNA-seq study? Answer choices: A) 0.12  B) 0.34  C) 0.67  D) 0.89"
+{
+  "type": "research_question",
+  "keywords": ["variance", "batch effects", "scRNA-seq", "gene expression", "proportion"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [{"category": "analysis_goal", "value": "answer computational biology multiple-choice question from knowledge", "confidence": 0.95}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["single_cell"],
+  "key_terms": ["batch effects", "variance", "scRNA-seq"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
+"Find the paper 'Predictive correlates of response to the anti-PD-L1 antibody MPDL3280A in cancer patients'. In Extended Data Figure 4c, what is the ORR for the IHC 3 tumor cell group?"
+{
+  "type": "research_question",
+  "keywords": ["MPDL3280A", "predictive correlates", "IHC 3", "ORR", "tumor cell", "PD-L1"],
+  "inlineParameters": {},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.95,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [{"category": "analysis_goal", "value": "extract specific data point from named publication", "confidence": 0.95}],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["clinical"],
+  "key_terms": ["MPDL3280A", "IHC", "ORR", "clinical trial data extraction"],
+  "needs_thinking": true,
+  "chain_hint": null
 }
 
 For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequential": true and chain dependsOn:
@@ -3565,6 +3973,8 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       console.log('[GalaxyAssistant] Template match:', response.template_match_score?.toFixed(2));
       console.log('[GalaxyAssistant] Datasets assigned:', response.datasets_assigned);
       console.log('[GalaxyAssistant] Generated parameters:', response.generated_parameters?.length || 0);
+      const _respWfGa = (response as any).workflow_ga || {};
+      console.log('[GalaxyAssistant] Optional params (autofilled):', JSON.stringify((_respWfGa.optional_params || (response as any).optional_params || []).filter((p: any) => p.autoFilled).map((p: any) => ({name: p.name, value: p.value}))));
       console.log('[GalaxyAssistant] Message:', response.message);
       console.log('[GalaxyAssistant] ========================================');
     } else {
@@ -3655,8 +4065,25 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
     // never asking the user to re-supply them.
     const inlineDataBlock = (() => {
       const entries = Object.entries(inlineDataMap);
-      if (entries.length === 0) return '';
-      const lines = entries.map(([k, v]) => `  ${k}: ${v}`);
+      // Also include LLM-inferred params (autoFilled=true) from the workflow backend.
+      // These are params the Python backend extracted from the user's natural language query
+      // (e.g. ProTrek query string, SMILES, perturbation gene). They are already set and
+      // the LLM must not ask for them again.
+      const autoFilledEntries: [string, string][] = [];
+      // optional_params / required_params live inside workflow_ga, not at the root of the response
+      const _wfGa = (generatedWorkflow as any)?.workflow_ga || {};
+      const allParams = [
+        ...(_wfGa.required_params || (generatedWorkflow as any)?.required_params || []),
+        ...(_wfGa.optional_params || (generatedWorkflow as any)?.optional_params || []),
+      ];
+      for (const p of allParams) {
+        if (p?.autoFilled && (p.value !== null && p.value !== undefined && p.value !== '')) {
+          autoFilledEntries.push([p.name, String(p.value)]);
+        }
+      }
+      const allEntries = [...entries, ...autoFilledEntries];
+      if (allEntries.length === 0) return '';
+      const lines = allEntries.map(([k, v]) => `  ${k}: ${v}`);
       // When a genome build is present, add an explicit note that reference genome files
       // are auto-resolved via igenomes — the LLM must not ask for FASTA paths or known-sites VCFs.
       const genomeBuild = inlineDataMap['genome_build'];
@@ -3695,7 +4122,12 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\nNote: long-term memory reflects patterns across past sessions — use it to personalise responses but let the current conversation take precedence.\n\n`
       : '';
 
-    const isResearchIntent = !!researchResponse;
+    const RESEARCH_INTENT_TYPES_FOR_PROMPT = new Set([
+      'research_question', 'troubleshooting', 'parameter_optimization',
+      'experiment_design', 'data_interpretation', 'protocol_guidance',
+      'methods_writing', 'comparative_methodology', 'regulatory_compliance',
+    ]);
+    const isResearchIntent = !!researchResponse || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '');
     const systemPrompt = isResearchIntent
       ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
@@ -3704,7 +4136,13 @@ Your role:
 - Cite specific papers using [N] inline notation matching the numbered reference list provided
 - Only cite papers from the provided list — never fabricate citations
 - Structure answers clearly with headings and bullet points
-- End with a ## References section listing only the papers you cited`
+- End with a ## References section listing only the papers you cited
+
+COMPUTATION RULE:
+- You CAN and SHOULD compute and calculate directly for scientific/knowledge questions
+- For non-trivial numerical work (statistics, sequence operations, data processing), use the run_code tool (Python preferred, R for statistics)
+- Never refuse to compute just because a bioinformatics tool exists for it — use run_code for ad-hoc calculations
+- For simple arithmetic or lookups, answer directly without run_code`
       : `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant.
 
 Your capabilities:
@@ -3735,8 +4173,7 @@ Do NOT deviate from these three formats. No freeform narrative, no "Next Steps" 
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
-- NEVER compute or calculate results yourself (e.g., reverse complement, sequence alignment, etc.)
-- ALWAYS recommend running the appropriate BioMate tool or workflow instead
+${RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '') ? `- You CAN and SHOULD compute, calculate, and reason directly when the question is scientific/knowledge-based and no workflow is needed. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.` : `- NEVER compute or calculate results yourself for workflow tasks (e.g., reverse complement, sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead`}
 - If a runnable workflow was generated, explain it and encourage the user to click "Run"
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
@@ -3745,6 +4182,7 @@ IMPORTANT RULES:
 
 DATA-FIRST RULE (hard prohibition — no exceptions except demo/test/mock):
 - NEVER describe workflow steps, list pipeline stages, explain tools, or provide any execution instructions in response to a workflow-generation request when the user has not yet provided input data. This is a strict prohibition, not a preference. Violating this rule means the system cannot run.
+- EXCEPTION — PRE-SATISFIED PARAMETERS: If a <pre_satisfied_parameters> block appears above AND a runnable workflow was generated, the DATA-FIRST RULE does NOT apply. The parameters are already provided (either explicitly in the message or auto-extracted by the AI). Proceed directly to the "Workflow generated" format.
 - "Input data provided" means the user's message contains ANY of: a file path (e.g. /path/to/sample.fastq, /data/reads_R1.fastq.gz), an S3 URI (s3://…), an SRA/ENA/DDBJ accession (SRR followed by digits, ERR followed by digits, DRR followed by digits), a GEO accession (GSE followed by digits, GSM followed by digits), an ArrayExpress accession (E-MTAB- followed by digits), a PXD accession (PXD followed by digits), a SMILES string, an InChI string, an amino acid sequence, a PDB ID, or an "[Uploaded datasets: ...]" block.
 - SRA ACCESSION RULE: An SRA/ENA/DDBJ accession number (e.g. SRR1518169, ERR204916, DRR013480) IS input data. Treat it as the reads/input parameter. Proceed directly to workflow generation. DO NOT ask for a file path or S3 URI when an SRA accession is present in the message.
 - If NO input data is present: ask EXACTLY ONE specific question. State what the workflow needs and list the accepted data formats. Example: "To run this GATK germline pipeline I need your input data. Please provide one of: (1) FASTQ file paths or S3 URIs for your sequencing reads, or (2) an SRA accession number (e.g. SRR1518169). Which do you have?" Do NOT explain workflow steps. Do NOT list pipeline stages. Do NOT describe what the tools do.
@@ -3776,7 +4214,7 @@ Workflow routing (use these specific workflows when the user's intent matches):
 - "ingest assay data", "composite ranking", "safety-potency ranking", "hERG + IC50 ranking", "BCR-ABL1 campaign ranking", "multi-assay compound ranking", or "rank compounds by potency and safety": use the assay_ingestion_and_ranking workflow (3-step pipeline: parse CSV → composite score → ranked report. Inputs: assay_csv with compound_id/assay_type/value columns. Outputs: ranked_compounds.csv + HTML report + JSON summary).
 - "CRO submission", "WuXi AppTec export", "compound export for CRO", "format compounds for outsourcing", "CRO outsourcing package", or "submit compounds to CRO": use the cro_submission_export workflow (3-step pipeline: validate hERG safety → format WuXi columns + RDKit MW/LogP → export CSV. Inputs: compound_csv with SMILES + assay data. Outputs: wuxiapptec_submission.csv + metadata JSON).
 
-${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}Style guide:
+${cryoEmContextBlock ? `${cryoEmContextBlock}\n\n` : ''}${buildDomainSpecialistBlock(preferredDomains)}${buildDomainCatalogBlock(preferredDomains)}${(generatedWorkflow as any)?._nearTieAlternative ? `\n[NEAR-TIE NOTE] The workflow search found "${(generatedWorkflow as any)._nearTieAlternative}" with a very similar match score. At the end of your response, add exactly one sentence: "If you were looking for ${(generatedWorkflow as any)._nearTieAlternative} instead, let me know and I'll switch." Do not ask this as a question — state it as a note.\n` : ''}Style guide:
 - Be concise and practical
 - When mentioning tools, use the primary user-facing name (e.g. "CryoSPARC", "BWA-MEM2", "GATK") — never use internal pipeline paths or tool IDs
 - Explain workflow steps and expected outputs clearly
@@ -4026,12 +4464,18 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         thinkingWords: thinkingResult.thinkingWordCount
       });
 
+      const RESEARCH_INTENT_TYPES = new Set([
+        'research_question', 'troubleshooting', 'parameter_optimization',
+        'experiment_design', 'data_interpretation', 'protocol_guidance',
+        'methods_writing', 'comparative_methodology', 'regulatory_compliance',
+      ]);
       const qualityEnforcedMessage = this.enforceDrugDevelopmentResponseQuality({
         userMessage: message,
         assistantMessage: thinkingResult.answerContent,
         runnableWorkflow,
         workflowGenerationFailed,
         workflowFailureSignals,
+        isResearchAnswer: RESEARCH_INTENT_TYPES.has((intent as any)?.type ?? ''),
       });
 
       const wasTruncated = lastStopReason === 'max_tokens';
@@ -4211,8 +4655,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     runnableWorkflow: boolean;
     workflowGenerationFailed: boolean;
     workflowFailureSignals: any;
+    isResearchAnswer?: boolean;
   }): string {
-    const { userMessage, assistantMessage, runnableWorkflow, workflowGenerationFailed, workflowFailureSignals } = params;
+    const { userMessage, assistantMessage, runnableWorkflow, workflowGenerationFailed, workflowFailureSignals, isResearchAnswer } = params;
+    // Never append workflow boilerplate to pure research/knowledge answers.
+    if (isResearchAnswer) {
+      return assistantMessage;
+    }
     const isDrugDevelopmentQuery = /(drug|admet|herg|dili|toxicity|docking|ligand|pk|pharmacokinetic|nca|auc|cmax|tmax|half[- ]?life|clinical)/i.test(
       userMessage || ''
     );

@@ -66,40 +66,54 @@ def _forward_to_lago(entry: Dict[str, Any]) -> None:
         return
     try:
         import urllib.request
-        external_sub_id = entry.get("user_id") or "anonymous"
+        raw_uid = entry.get("user_id") or ""
+        # Lago subscription IDs are created as "bm_{uuid}_base" by auth-service.ts.
+        # Raw postgres UUIDs won't match — prefix and suffix must be added.
+        if raw_uid and not raw_uid.startswith("bm_"):
+            external_sub_id = f"bm_{raw_uid}_base"
+        else:
+            external_sub_id = raw_uid or "anonymous"
         ts_epoch = int(datetime.fromisoformat(entry["ts"]).timestamp())
-        payload = {
-            "event": {
+        shared_props = {
+            "model": entry.get("model", ""),
+            "session_id": entry.get("session_id", ""),
+        }
+        # Emit two events matching the Lago billable metrics: llm_input_tokens + llm_output_tokens.
+        # sum_agg metrics expect a numeric field in properties with the same name as the metric code.
+        events = [
+            {
                 "transaction_id": str(uuid.uuid4()),
                 "external_subscription_id": external_sub_id,
-                "code": "llm_tokens",
+                "code": "llm_input_tokens",
                 "timestamp": ts_epoch,
-                "properties": {
-                    "model": entry.get("model", ""),
-                    "input_tokens": entry.get("input_tokens", 0),
-                    "output_tokens": entry.get("output_tokens", 0),
-                    "total_tokens": entry.get("total_tokens", 0),
-                    "cost_usd": str(entry.get("cost_usd", 0.0)),
-                    "session_id": entry.get("session_id", ""),
-                },
-            }
-        }
-        body = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            f"{lago_url}/api/v1/events",
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {lago_key}",
+                "properties": {**shared_props, "llm_input_tokens": entry.get("input_tokens", 0)},
             },
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            status_code = resp.getcode()
-            if status_code not in (200, 201, 200):
-                log.debug("[CostLog→Lago] HTTP %s", status_code)
-            else:
-                log.debug("[CostLog→Lago] Event accepted for user=%s", external_sub_id)
+            {
+                "transaction_id": str(uuid.uuid4()),
+                "external_subscription_id": external_sub_id,
+                "code": "llm_output_tokens",
+                "timestamp": ts_epoch,
+                "properties": {**shared_props, "llm_output_tokens": entry.get("output_tokens", 0)},
+            },
+        ]
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {lago_key}",
+        }
+        for event in events:
+            body = json.dumps({"event": event}).encode("utf-8")
+            req = urllib.request.Request(
+                f"{lago_url}/api/v1/events",
+                data=body,
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                status_code = resp.getcode()
+                if status_code not in (200, 201):
+                    log.debug("[CostLog→Lago] HTTP %s for %s", status_code, event["code"])
+                else:
+                    log.debug("[CostLog→Lago] %s accepted for user=%s", event["code"], external_sub_id)
     except Exception as exc:
         log.debug("[CostLog→Lago] Forward failed (non-fatal): %s", exc)
 

@@ -150,7 +150,7 @@ export function PhaseCard({
   }[status];
 
   return (
-    <Card className={cn("w-full transition-all duration-200", className)} data-testid={`phase-card-${phase.id}`}>
+    <Card className={cn("w-full transition-all duration-200", className)} data-testid={`phase-card-${phase.id}`} data-status={status}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2 px-3">
         <div className="flex items-center gap-2 min-w-0">
           {statusIcon}
@@ -167,7 +167,7 @@ export function PhaseCard({
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Badge variant="secondary" className={cn("text-[10px] uppercase px-1.5 py-0", badgeClass)}>
+          <Badge variant="secondary" className={cn("text-[10px] uppercase px-1.5 py-0", badgeClass)} data-testid={`step-status-badge-${phase.id}`} data-status={status}>
             {status}
           </Badge>
           {status === 'pending' && onExecute && (

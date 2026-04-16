@@ -218,7 +218,7 @@ The summary will replace these older messages, and the user will continue their 
       const response = await this.claude.messages.create({
         model: 'claude-sonnet-4-5',
         max_tokens: maxTokens,
-        temperature: 0.3, // Lower temperature for more focused summaries
+        temperature: 0, // Lower temperature for more focused summaries
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       });

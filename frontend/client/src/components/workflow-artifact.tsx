@@ -237,6 +237,7 @@ export function WorkflowArtifact({
   const pauseAtQcRef = useRef(true)
   // Gap 6 — progress milestone timeline
   const [milestones, setMilestones] = useState<Array<{label: string; ts: string}>>([])
+  const [longRunAdvisory, setLongRunAdvisory] = useState<{message: string; suggestion: string; phases: Array<{name: string; label: string; pct_start: number; pct_end: number}>} | null>(null)
   // Gap 3 — AI realtime status (polled every 5s while running)
   const [aiRealtimeStatus, setAiRealtimeStatus] = useState<any>(null)
 
@@ -390,6 +391,20 @@ export function WorkflowArtifact({
           }])
         } catch (error) {
           console.error("[Progress Milestone] Failed to parse event:", error)
+        }
+      })
+
+      // Long-running job advisory — show "you can close this tab" banner
+      es.addEventListener("long_run_advisory", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          setLongRunAdvisory({
+            message: data.message || "",
+            suggestion: data.suggestion || "You can close this tab and come back later — your session will resume automatically.",
+            phases: data.phases || [],
+          })
+        } catch (error) {
+          console.error("[LongRunAdvisory] Failed to parse event:", error)
         }
       })
 
@@ -973,6 +988,25 @@ export function WorkflowArtifact({
               <p className="text-sm text-muted-foreground mt-2">
                 {workflow.annotation}
               </p>
+            )}
+
+            {/* Long-running job advisory — "you can close this tab" */}
+            {longRunAdvisory && isRunning && (
+              <Alert className="mt-2 py-2 border-blue-500/40 bg-blue-50/30 dark:bg-blue-950/10">
+                <AlertDescription className="text-xs text-blue-800 dark:text-blue-200 flex items-start justify-between gap-2">
+                  <div>
+                    <span className="font-medium">{longRunAdvisory.message}</span>
+                    <span className="ml-2 text-blue-600 dark:text-blue-400">{longRunAdvisory.suggestion}</span>
+                  </div>
+                  <button
+                    className="shrink-0 text-blue-500 hover:text-blue-700"
+                    onClick={() => setLongRunAdvisory(null)}
+                    aria-label="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </AlertDescription>
+              </Alert>
             )}
 
             {/* US-7.2 — SSE reconnection banner */}

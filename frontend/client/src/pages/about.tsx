@@ -1,49 +1,10 @@
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardHeader } from "@/components/ui/card"
 import { useLocation } from "wouter"
 import { Target, Users, Lightbulb, Award } from "lucide-react"
 
 export default function AboutPage() {
   const [, setLocation] = useLocation()
-
-  const team = [
-    {
-      name: "Dr. Sarah Chen",
-      role: "Co-Founder & CEO",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      bio: "Former Principal Investigator at Stanford, PhD in Computational Biology"
-    },
-    {
-      name: "Dr. Michael Rodriguez",
-      role: "Co-Founder & CTO",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Michael",
-      bio: "Ex-Google AI researcher, PhD in Computer Science from MIT"
-    },
-    {
-      name: "Dr. Emily Watson",
-      role: "Head of Research",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
-      bio: "Proteomics expert from Johns Hopkins, 15+ years in drug discovery"
-    },
-    {
-      name: "Dr. James Liu",
-      role: "Head of AI",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=James",
-      bio: "Former DeepMind researcher, PhD in Machine Learning"
-    },
-    {
-      name: "Dr. Maria Garcia",
-      role: "Head of Product",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
-      bio: "Product leader with 10+ years in biotech, MBA from Harvard"
-    },
-    {
-      name: "Dr. Robert Kim",
-      role: "Head of Security",
-      image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Robert",
-      bio: "Cybersecurity expert, former CISO at biotech companies"
-    }
-  ]
 
   const values = [
     {
@@ -150,37 +111,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team Section */}
-      <section className="py-24 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Meet Our Team</h2>
-            <p className="text-xl text-muted-foreground">
-              World-class researchers and engineers building the future of biomedicine
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {team.map((member, index) => (
-              <Card key={index}>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <img
-                      src={member.image}
-                      alt={member.name}
-                      className="w-24 h-24 rounded-full mx-auto mb-4"
-                    />
-                    <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
-                    <p className="text-primary font-medium mb-3">{member.role}</p>
-                    <p className="text-sm text-muted-foreground">{member.bio}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Stats Section */}
       <section className="py-24 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -216,8 +146,8 @@ export default function AboutPage() {
             <Button size="lg" onClick={() => setLocation('/register')}>
               Start Free Trial
             </Button>
-            <Button size="lg" variant="outline" onClick={() => setLocation('/contact')}>
-              Contact Us
+            <Button size="lg" variant="outline" onClick={() => setLocation('/pricing')}>
+              See Pricing
             </Button>
           </div>
         </div>

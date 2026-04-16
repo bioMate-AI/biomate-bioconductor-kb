@@ -270,6 +270,13 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const artifactReadinessTelemetrySentRef = useRef<Set<string>>(new Set());
+  // Synchronous mirror of state.currentRun so polling can check without setState-callback timing issues
+  const currentRunRef = useRef<ExecutionRun | null>(null);
+
+  // Keep currentRunRef in sync with state.currentRun
+  useEffect(() => {
+    currentRunRef.current = state.currentRun;
+  }, [state.currentRun]);
 
   // ============================================================================
   // SSE Connection (leverages existing /api/galaxy/workflows/sse endpoint)
@@ -442,38 +449,83 @@ export function useUnifiedExecution(options: UseUnifiedExecutionOptions = {}) {
           });
         }
 
-        setState((prev) => {
-          if (!prev.currentRun || prev.currentRun.id !== runId) return prev;
+        // Use the ref (not setState callback) to check currentRun synchronously —
+        // avoids React 18 batching timing issue with in-updater variable mutation.
+        const runIsCurrentlyNull = !currentRunRef.current || currentRunRef.current.id !== runId;
 
-          if (['completed', 'failed', 'cancelled'].includes(status.status)) {
+        if (runIsCurrentlyNull) {
+          // currentRun was lost (e.g. component remount) — restore from API so the
+          // completion banner can render.
+          console.log('[UnifiedExecution] currentRun null/mismatch during poll — restoring from API');
+          try {
+            const run = await apiGetRun(runId);
+            if (run) {
+              // Apply the freshly-polled status (DB may still show 'running')
+              const restoredRun: ExecutionRun = {
+                ...run,
+                execution: {
+                  ...run.execution,
+                  status: status.status,
+                  errorMessage: status.errorMessage ?? run.execution.errorMessage,
+                  nextflowStatus: {
+                    ...(run.execution.nextflowStatus || {}),
+                    ...(status.nextflowStatus || {}),
+                    ...(status.artifactReadiness ? { artifactReadiness: status.artifactReadiness } : {}),
+                    ...(status.autofix ? { autofix: status.autofix } : {}),
+                  },
+                },
+                progress: status.progress ?? run.progress,
+              };
+              setState((prev) => {
+                // If a different run is active, don't overwrite it
+                if (prev.currentRun && prev.currentRun.id !== runId) return prev;
+                // Always apply the restoration — even if prev.currentRun is set for this run,
+                // because prev may have a stale 'running' status (from executeWorkflow's initial fetch)
+                // while restoredRun has the correct terminal status.
+                return { ...prev, currentRun: restoredRun };
+              });
+            }
+          } catch (restoreError) {
+            console.error('[UnifiedExecution] Failed to restore run:', restoreError);
+          }
+        } else {
+          // Emit status-change telemetry OUTSIDE the updater (side effects don't belong in setState)
+          if (['completed', 'failed', 'cancelled'].includes(status.status) && currentRunRef.current) {
             emitUxEvent('workflow.status_changed', {
               runId,
-              workflowId: prev.currentRun.execution.galaxyWorkflowId,
-              invocationId: prev.currentRun.execution.galaxyInvocationId,
+              workflowId: currentRunRef.current.execution.galaxyWorkflowId,
+              invocationId: currentRunRef.current.execution.galaxyInvocationId,
               status: status.status,
             });
           }
 
-          return {
-            ...prev,
-            currentRun: {
-              ...prev.currentRun,
-              execution: {
-                ...prev.currentRun.execution,
-                status: status.status,
-                errorMessage: status.errorMessage,
-                nextflowStatus: {
-                  ...(status.nextflowStatus || {}),
-                  ...(status.artifactReadiness ? { artifactReadiness: status.artifactReadiness } : {}),
-                  ...(status.autofix ? { autofix: status.autofix } : {}),
+          setState((prev) => {
+            // Guard: skip if no current run OR if it's a different run
+            if (!prev.currentRun || prev.currentRun.id !== runId) return prev;
+
+            return {
+              ...prev,
+              currentRun: {
+                ...prev.currentRun,
+                execution: {
+                  ...prev.currentRun.execution,
+                  status: status.status,
+                  errorMessage: status.errorMessage,
+                  nextflowStatus: {
+                    // Preserve existing nextflowStatus so process data / logs aren't wiped
+                    ...(prev.currentRun.execution.nextflowStatus || {}),
+                    ...(status.nextflowStatus || {}),
+                    ...(status.artifactReadiness ? { artifactReadiness: status.artifactReadiness } : {}),
+                    ...(status.autofix ? { autofix: status.autofix } : {}),
+                  },
                 },
+                progress: status.progress,
+                metrics: status.metrics || prev.currentRun.metrics,
+                steps: status.steps || prev.currentRun.steps,
               },
-              progress: status.progress,
-              metrics: status.metrics || prev.currentRun.metrics,
-              steps: status.steps || prev.currentRun.steps,
-            },
-          };
-        });
+            };
+          });
+        }
 
         if (['completed', 'failed', 'cancelled', 'ok', 'error'].includes(status.status)) {
           stopPolling();

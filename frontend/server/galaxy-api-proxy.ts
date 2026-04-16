@@ -911,11 +911,11 @@ export class GalaxyAPIProxy {
    */
   async queryResearch(payload: Record<string, any>): Promise<any> {
     try {
-      const response = await this.client.post('/api/ai_assistant/query_research', payload);
+      const response = await this.client.post('/api/ai_assistant/research_query', payload);
       return response.data;
     } catch (error: any) {
       // Backward-compatible fallback endpoint
-      const fallback = await this.client.post('/api/ai_assistant/research', payload).catch(() => null);
+      const fallback = await this.client.post('/api/ai_assistant/query_research', payload).catch(() => null);
       if (fallback?.data) return fallback.data;
       throw error;
     }

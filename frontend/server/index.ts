@@ -34,6 +34,10 @@ const app = express();
 // Initialize security FIRST (before any other middleware)
 const security = initializeSecurity(app);
 
+// Trust the first proxy hop so req.ip is the real client IP (not the nginx/LB IP).
+// Without this, all users share one rate-limit bucket (the proxy IP).
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

@@ -28,6 +28,8 @@ import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
+import ResetPasswordPage from "@/pages/auth/reset-password";
+import VerifyEmailPage from "@/pages/auth/verify-email";
 import PricingPage from "@/pages/pricing";
 import CheckoutPage from "@/pages/checkout";
 import BlogPage from "@/pages/blog";
@@ -35,7 +37,6 @@ import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
 import PrivacyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
-import ContactPage from "@/pages/contact";
 import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
@@ -140,7 +141,7 @@ function PlatformLayout({
     }
   }, [isAuthenticated, isLoading, navigate])
 
-  if (!isLoading && !isAuthenticated) return null
+  if (!isAuthenticated) return null
 
   const toggleSidebar = () => {
     setSidebarCollapsed(!sidebarCollapsed)
@@ -245,6 +246,8 @@ function Router({
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
 
       {/* Public pages */}
       <Route path="/pricing">
@@ -275,11 +278,6 @@ function Router({
       <Route path="/terms">
         <PublicPageLayout>
           <TermsPage />
-        </PublicPageLayout>
-      </Route>
-      <Route path="/contact">
-        <PublicPageLayout>
-          <ContactPage />
         </PublicPageLayout>
       </Route>
 
