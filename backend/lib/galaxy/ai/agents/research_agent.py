@@ -121,40 +121,75 @@ def _fetch_pmc_fulltext(pmid_or_pmcid: str) -> str:
     except Exception as e:
         log.debug(f"PMC BioC fetch failed for {pmcid_num}: {e}")
 
-    # --- Fall back to E-utils XML if BioC gave nothing -----------------------
-    if not extracted:
-        try:
-            xml_url = (
-                f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                f"?db=pmc&id=PMC{pmcid_num}&rettype=xml&retmode=xml"
-            )
-            xml_text = _http_get_text(xml_url, headers={"Accept": "application/xml"}, timeout=15)
-            if xml_text:
-                # Extract <sec sec-type="methods"> and <sec sec-type="results"> text
-                method_blocks = re.findall(
-                    r'<sec[^>]*sec-type=["\'](?:methods?|materials[^"\']*)["\'][^>]*>(.*?)</sec>',
-                    xml_text, re.DOTALL | re.IGNORECASE
-                )
-                result_blocks = re.findall(
-                    r'<sec[^>]*sec-type=["\']results?["\'][^>]*>(.*?)</sec>',
-                    xml_text, re.DOTALL | re.IGNORECASE
-                )
-                # Also grab any <title> that mentions Methods/Results as a fallback
-                all_blocks = method_blocks + result_blocks
-                if not all_blocks:
-                    # Generic paragraph extraction across full text
-                    all_blocks = re.findall(r'<p>(.*?)</p>', xml_text, re.DOTALL)[:30]
-                # Strip XML tags
-                clean_parts = []
-                for block in all_blocks[:8]:
-                    clean = re.sub(r'<[^>]+>', ' ', block)
-                    clean = re.sub(r'\s+', ' ', clean).strip()
-                    clean_parts.append(clean)
-                extracted = " ".join(clean_parts)
-        except Exception as e:
-            log.debug(f"PMC XML fetch failed for {pmcid_num}: {e}")
+    # --- E-utils efetch XML: primary source for Extended Data + tables -------
+    # Always try this — it provides Extended Data figure captions and table data
+    # that BioC JSON misses entirely. This is essential for SGI-style questions
+    # that ask about specific numbers from Extended Data Figures.
+    efetch_text = ""
+    try:
+        xml_url = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+            f"?db=pmc&id={pmcid_num}&rettype=xml&retmode=text"
+        )
+        xml_text = _http_get_text(xml_url, timeout=20)
+        if xml_text and len(xml_text) > 500:
+            parts: list = []
 
-    return extracted[:3000]
+            # 1. Extended Data figure captions (highest priority for SGI questions)
+            figs = re.findall(r'<fig[^>]*>(.*?)</fig>', xml_text, re.DOTALL)
+            for fig in figs:
+                label = re.search(r'<label>(.*?)</label>', fig)
+                cap = re.search(r'<caption>(.*?)</caption>', fig, re.DOTALL)
+                if label and cap:
+                    lbl = re.sub(r'<[^>]+>', '', label.group(1)).strip()
+                    cap_text = re.sub(r'<[^>]+>', ' ', cap.group(1))
+                    cap_text = re.sub(r'\s+', ' ', cap_text).strip()
+                    parts.append(f"[{lbl}] {cap_text[:400]}")
+
+            # 2. Tables — contain actual numerical results
+            tables = re.findall(r'<table-wrap[^>]*>(.*?)</table-wrap>', xml_text, re.DOTALL)
+            for tbl in tables:
+                clean = re.sub(r'<[^>]+>', ' ', tbl)
+                clean = re.sub(r'\s+', ' ', clean).strip()
+                if re.search(r'\d', clean):  # only include tables with numbers
+                    parts.append(f"[Table] {clean[:500]}")
+
+            # 3. Results + Methods paragraphs
+            result_secs = re.findall(
+                r'<sec[^>]*sec-type=["\']results?["\'][^>]*>(.*?)</sec>',
+                xml_text, re.DOTALL | re.IGNORECASE
+            )
+            method_secs = re.findall(
+                r'<sec[^>]*sec-type=["\'](?:methods?|materials[^"\']*)["\'][^>]*>(.*?)</sec>',
+                xml_text, re.DOTALL | re.IGNORECASE
+            )
+            for sec in (result_secs + method_secs)[:6]:
+                clean = re.sub(r'<[^>]+>', ' ', sec)
+                clean = re.sub(r'\s+', ' ', clean).strip()
+                parts.append(clean[:500])
+
+            # 4. If no sections found, use general paragraphs
+            if not result_secs and not method_secs:
+                paras = re.findall(r'<p[^>]*>(.*?)</p>', xml_text, re.DOTALL)[:20]
+                for p in paras:
+                    clean = re.sub(r'<[^>]+>', ' ', p)
+                    clean = re.sub(r'\s+', ' ', clean).strip()
+                    if len(clean) > 50:
+                        parts.append(clean[:300])
+
+            efetch_text = "\n".join(parts)
+    except Exception as e:
+        log.debug(f"PMC efetch XML failed for {pmcid_num}: {e}")
+
+    # Merge: prefer efetch (has Extended Data) but supplement with BioC text
+    if efetch_text and extracted:
+        combined = f"{efetch_text}\n\n[BioC sections]\n{extracted}"
+    elif efetch_text:
+        combined = efetch_text
+    else:
+        combined = extracted
+
+    return combined[:5000]
 
 
 def _extract_fulltext_for_question(question: str, paper_titles: list) -> str:
@@ -166,7 +201,7 @@ def _extract_fulltext_for_question(question: str, paper_titles: list) -> str:
     """
     collected: list = []
     total_chars = 0
-    MAX_TOTAL = 4000
+    MAX_TOTAL = 6000  # increased: efetch XML includes Extended Data captions + tables
 
     for title in paper_titles[:5]:
         if total_chars >= MAX_TOTAL:
@@ -1261,9 +1296,9 @@ class ResearchAgent:
         if evidence.get('paper_fulltext'):
             fulltext_section = (
                 "<paper_full_text>\n"
-                "These are full-text excerpts from the most relevant papers — "
-                "prefer these specific numbers/facts over your training knowledge.\n\n"
-                f"{evidence['paper_fulltext'][:4000]}\n"
+                "These are full-text excerpts from the most relevant papers including Extended Data figure "
+                "captions and tables — ALWAYS use these specific numbers/facts over your training knowledge.\n\n"
+                f"{evidence['paper_fulltext'][:6000]}\n"
                 "</paper_full_text>"
             )
             prompt_parts.append(fulltext_section)

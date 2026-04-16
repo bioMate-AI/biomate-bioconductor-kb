@@ -1762,14 +1762,16 @@ class UnifiedWorkflowSearch:
             # MUST signal single-cell assay explicitly.
             # Bulk RNA-seq queries ("process 30 bulk RNA-seq samples", "produce a gene counts
             # matrix") share vocabulary with this chain but describe completely different assays.
-            # Required: user must mention single-cell sequencing, cell barcodes, or Cell Ranger.
+            # Required: user must mention single-cell sequencing technology, barcodes, or Cell Ranger.
+            # EXCLUDED from this list: generic biology terms like "cell types", "clustering" that
+            # appear in bulk RNA-seq analysis of heterogeneous samples.
             frozenset({'single cell', 'single-cell', 'scrnaseq', 'scrna-seq', 'scrna seq',
                        'sc-rnaseq', 'sc rna', '10x genomics', '10x chromium',
-                       'cell ranger', 'cellranger', 'droplet', 'dropseq', 'drop-seq',
-                       'smartseq', 'smart-seq', 'smart seq', 'indrops', 'seq-well',
-                       'cell barcode', 'umi', 'umis', 'cells per sample',
-                       'per-cell', 'per cell', 'cell types', 'cell type annotation',
-                       'clustering cells', 'cell clustering'}),
+                       'cell ranger', 'cellranger', 'droplet-based', 'droplet sequencing',
+                       'dropseq', 'drop-seq', 'smartseq', 'smart-seq', 'smart seq',
+                       'indrops', 'seq-well', 'cell barcode', 'barcoded cells',
+                       'cells per sample', 'per-cell reads', 'umi counts',
+                       'scrnaseq qc', 'scanpy', 'seurat', 'anndata'}),
         ],
     }
 

@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
+import { LicenseGate } from "./license-gate";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -1052,6 +1053,7 @@ export function NextflowWorkflowViewer({
         .filter((p: any) => p.required === true)
         .some((p: any) => (p.value === '' || p.value === null || p.value === undefined));
   const isPrereqBlocked = (!!prereqChecklist && !prereqChecklist.canRun) || hasUnfilledRequired;
+  const [isLicenseBlocked, setIsLicenseBlocked] = useState(false);
   const isGlobalExecutionActive = status === "running" || status === "paused";
   const isAutofixActive =
     autofix?.active === true ||
@@ -1621,6 +1623,13 @@ export function NextflowWorkflowViewer({
               )}
 
               <div className="space-y-2" data-testid="workflow-run-controls">
+                {/* License gate — shown for any workflow that requires per-user credentials */}
+                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
+                  <LicenseGate
+                    nextflowPath={workflowDefinition.nextflow_path || workflowDefinition.nextflowPath}
+                    onBlockedChange={setIsLicenseBlocked}
+                  />
+                )}
                 {/* C3: Validate environment button — only show for Nextflow workflows */}
                 {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
                   <div className="space-y-1">
@@ -1666,7 +1675,7 @@ export function NextflowWorkflowViewer({
                   className="w-full"
                   data-testid="button-run-workflow-panel"
                   onClick={handleExecute}
-                  disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive}
+                  disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
                 >
                   {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
                 </Button>
@@ -1926,7 +1935,8 @@ export function NextflowWorkflowViewer({
                       status === 'running' ||
                       status === 'completed' ||
                       (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ||
-                      isAutofixActive
+                      isAutofixActive ||
+                      isLicenseBlocked
                     }
                   >
                     Confirm and Run Anyway

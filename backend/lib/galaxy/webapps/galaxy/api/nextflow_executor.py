@@ -3790,6 +3790,43 @@ class CryoSPARCExecuteRequest(BaseModel):
     license_key: Optional[str] = None  # overrides CRYOSPARC_LICENSE env var for this run
 
 
+def _make_cryosparc_sse_callback(run_id: str):
+    """Build a progress_callback that forwards CryoSPARC events to the Node SSE bus."""
+    import urllib.request as _urllib_req
+    import json as _json
+
+    node_sse_url = "http://localhost:3000/internal/sse-inject"
+
+    def _inject(event_type: str, data: dict):
+        try:
+            body = _json.dumps({
+                "invocation_id": run_id,
+                "event_type": event_type,
+                "data": data,
+            }).encode()
+            req = _urllib_req.Request(
+                node_sse_url, data=body,
+                headers={"Content-Type": "application/json"}, method="POST"
+            )
+            _urllib_req.urlopen(req, timeout=2)
+        except Exception:
+            pass  # SSE delivery is best-effort; never block the pipeline
+
+    def _cb(pct: int, msg: str):
+        # pct == -1 signals a structured event (msg is JSON)
+        if pct == -1:
+            try:
+                payload = _json.loads(msg)
+                ev_type = payload.get("type", "cryosparc_event")
+                _inject(ev_type, payload)
+                return
+            except Exception:
+                pass
+        _inject("cryosparc_progress", {"percent": pct, "message": msg})
+
+    return _cb
+
+
 @router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline")
 def execute_cryosparc(
     request: CryoSPARCExecuteRequest,
@@ -3815,6 +3852,7 @@ def execute_cryosparc(
         run_id=run_id,
         params=params,
         user_id=request.user_id or "",
+        progress_callback=_make_cryosparc_sse_callback(run_id),
         license_key=request.license_key or "",
     )
 

@@ -408,6 +408,14 @@ export function WorkflowArtifact({
         }
       })
 
+      // CryoSPARC live progress — shown in progress bar while pipeline runs
+      es.addEventListener("cryosparc_progress", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          console.log(`[CryoSPARC] ${data.percent}% — ${data.message}`)
+        } catch {}
+      })
+
       es.onerror = () => {
         es.close()
         sseRef.current = null

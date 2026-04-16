@@ -2796,11 +2796,15 @@ Examples of good inference:
         warnings = [] if not needs_user_feedback else [
             'Medium confidence match — please verify tool selection is appropriate'
         ]
+        # CryoSPARC SPA has its own dedicated GPU executor — route it there
+        _is_cryosparc = "cryosparc" in match.filename.lower() or "cryosparc" in match.name.lower()
+        _wf_type = 'cryosparc' if _is_cryosparc else 'nextflow'
+        _exec_engine = 'cryosparc' if _is_cryosparc else 'nextflow'
         return {
             'success': True,
             'nextflow_path': match.filename,
             'workflow_name': match.name,
-            'workflow_type': 'nextflow',
+            'workflow_type': _wf_type,
             'source': source,
             'confidence': int(score),
             'template_match_score': int(score),
@@ -2811,7 +2815,7 @@ Examples of good inference:
             )}) if needs_user_feedback else {}),
             'message': f"{'Found' if not needs_user_feedback else 'Best available'} workflow: {match.name}",
             'note': f'Found workflow with {match.step_count} step(s)',
-            'execution_engine': 'nextflow',
+            'execution_engine': _exec_engine,
             'format': 'nextflow',
             'hardware_requirements': hardware_requirements,
             **({'qc_profile': qc_profile} if qc_profile else {}),
@@ -2823,7 +2827,7 @@ Examples of good inference:
                 'tags': match.tags,
                 'format': 'nextflow',
                 'nextflow_path': match.filename,
-                'workflow_type': 'nextflow',
+                'workflow_type': _wf_type,
                 'steps': {},
                 'scientific_rationale': scientific_rationale,
                 'hardware_requirements': hardware_requirements,

@@ -362,6 +362,7 @@ class CryoSPARCRun:
     finished_at: Optional[float] = None
     user_id: str = ""
     params: Dict[str, Any] = field(default_factory=dict)
+    license_key: str = ""           # per-user CryoSPARC license key
 
 
 _cs_runs: Dict[str, CryoSPARCRun] = {}
@@ -930,6 +931,7 @@ def execute_spa_pipeline(
     user_id: str = "",
     progress_callback: Optional[Callable[[int, str], None]] = None,
     num_gpu_workers: int = 1,
+    license_key: str = "",
 ) -> str:
     """
     Submit a CryoSPARC SPA pipeline for the given parameters.
@@ -962,7 +964,8 @@ def execute_spa_pipeline(
     )
     params["num_gpu_workers"] = effective_gpu_workers
 
-    run = CryoSPARCRun(run_id=run_id, status="queued", user_id=user_id, params=params)
+    run = CryoSPARCRun(run_id=run_id, status="queued", user_id=user_id, params=params,
+                       license_key=license_key)
     _cs_runs[run_id] = run
 
     def _run():
@@ -1225,8 +1228,10 @@ def _execute_spa_pipeline_sync(
     run.status = "running"
 
     # ------------------------------------------------------------------
-    # Step 0: Provision instance + connect
+    # Step 0: License validation + instance provision + connect
     # ------------------------------------------------------------------
+    if not mock_mode and not run.license_key:
+        raise RuntimeError("No CryoSPARC license key — user must register one at Settings → Credentials")
     if not mock_mode:
         ensure_cryosparc_running(cb)
     _progress(run, 1, "Connecting to CryoSPARC...", cb)

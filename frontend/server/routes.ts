@@ -3453,6 +3453,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
+  // Proxy for CryoSPARC status endpoint — frontend can poll run status directly
+  app.get("/api/cryosparc/status/:runId", async (req: any, res: any) => {
+    try {
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${req.params.runId}`,
+        { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+      );
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } catch (err: any) {
+      return res.status(502).json({ error: 'CryoSPARC status proxy error' });
+    }
+  });
+
   // Proxy for QC gate endpoints — frontend POSTs to /api/qc-gates/:id/decision
   // which must be forwarded to the Galaxy backend. No dedicated route existed before.
   // Proxy for QC profiles list — GET /api/qc/profiles → Galaxy /api/qc/profiles
@@ -6729,6 +6743,135 @@ Be specific. If output data is available above, extract real numbers. If binary 
           }
         });
       }
+
+      // ==================== CRYOSPARC DIRECT EXECUTION ====================
+      if (request.workflowDefinition.workflow_type === 'cryosparc') {
+        console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc');
+
+        // Require user's own CryoSPARC license key — fetched from the existing credential store
+        const userGalaxyKey = (req.user as any)?.galaxyApiKey || '';
+        const credResp = await fetch(
+          `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/users/credentials/cryosparc/value`,
+          { headers: { 'X-API-Key': userGalaxyKey } }
+        ).catch(() => null);
+
+        let userLicenseKey: string | null = null;
+        if (credResp?.ok) {
+          const credData = await credResp.json().catch(() => null);
+          userLicenseKey = credData?.data?.license_key || null;
+        }
+
+        if (!userLicenseKey) {
+          return res.status(402).json({
+            error: 'cryosparc_license_required',
+            message: 'A CryoSPARC license key is required. Add yours at Settings → Credentials → CryoSPARC.',
+          });
+        }
+
+        try {
+          const cryosparcResponse = await fetch(
+            `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/execute`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': process.env.GALAXY_API_KEY || '',
+              },
+              body: JSON.stringify({
+                parameters: request.workflowDefinition.parameters || {},
+                user_id: req.user ? String(req.user.id) : undefined,
+                history_id: galaxyHistoryId,
+                license_key: userLicenseKey,
+              }),
+            }
+          );
+
+          if (!cryosparcResponse.ok) {
+            const errBody = await cryosparcResponse.text().catch(() => cryosparcResponse.statusText);
+            throw new Error(`CryoSPARC execution failed (${cryosparcResponse.status}): ${errBody}`);
+          }
+
+          const cryosparcData = await cryosparcResponse.json();
+          const csRunId = cryosparcData.run_id || cryosparcData.invocation_id || '';
+          console.log('[CryoSPARC Direct] Queued run_id:', csRunId);
+
+          await storage.updateExecutionRun(executionRun.id, {
+            execution: {
+              ...executionRun.execution,
+              galaxyInvocationId: csRunId,
+              galaxyHistoryId: galaxyHistoryId,
+              status: 'running',
+              startedAt: new Date(),
+              executionEngine: 'cryosparc',
+            }
+          });
+
+          await storage.createInvocation({
+            userId: req.user?.id,
+            workflowName: executionRun.workflowName,
+            workflowDefinition: request.workflowDefinition,
+            galaxyInvocationId: csRunId,
+            galaxyHistoryId: galaxyHistoryId,
+            galaxyWorkflowId: '',
+            inputDatasets: [],
+            totalSteps: 4,
+            status: 'ok',
+          });
+
+          // Background poller: sync CryoSPARC run status → Node executionRun every 8s
+          const csPollerTimer = setInterval(async () => {
+            try {
+              const statusResp = await fetch(
+                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${csRunId}`,
+                { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+              );
+              if (!statusResp.ok) return;
+              const s = await statusResp.json();
+              const terminal = ['completed', 'failed', 'qc_halt'].includes(s.status);
+              await storage.updateExecutionRun(executionRun.id, {
+                execution: {
+                  ...executionRun.execution,
+                  galaxyInvocationId: csRunId,
+                  status: s.status === 'completed' ? 'completed'
+                        : s.status === 'failed' ? 'failed'
+                        : s.status === 'qc_halt' ? 'failed'
+                        : 'running',
+                },
+                progress: {
+                  ...executionRun.progress,
+                  completedSteps: Math.round((s.progress_percent || 0) / 25),
+                  totalSteps: 4,
+                },
+              });
+              if (terminal) clearInterval(csPollerTimer);
+            } catch { /* non-fatal */ }
+          }, 8000);
+
+          return res.json({
+            runId: executionRun.id,
+            galaxyInvocationId: csRunId,
+            galaxyHistoryId: galaxyHistoryId,
+            executionEngine: 'cryosparc',
+            status: 'running',
+            message: `CryoSPARC SPA pipeline queued (run_id: ${csRunId})`,
+          });
+
+        } catch (error) {
+          console.error('[CryoSPARC Direct] Execution error:', error);
+          const rawErrorMsg = error instanceof Error ? error.message : String(error);
+          if (executionRun) {
+            await storage.updateExecutionRun(executionRun.id, {
+              execution: { ...executionRun.execution, status: 'failed', error: rawErrorMsg }
+            });
+          }
+          return res.status(500).json({
+            error: 'cryosparc_execution_failed',
+            message: 'CryoSPARC pipeline failed to start. Please check GPU instance availability.',
+            runId: executionRun?.id,
+          });
+        }
+      }
+      // ==================== END CRYOSPARC DIRECT EXECUTION ====================
 
       // ==================== NEXTFLOW DIRECT EXECUTION ====================
       // Check if this is a DIRECT Nextflow workflow (new format from NextflowWorkflowGenerator)
