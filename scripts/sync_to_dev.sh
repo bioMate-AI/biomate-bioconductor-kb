@@ -79,12 +79,13 @@ deploy_frontend() {
     # Prune dangling images + build cache to prevent disk-full build failures
     docker image prune -f > /dev/null 2>&1 || true
     docker builder prune -f > /dev/null 2>&1 || true
+    docker stop biomate-dev-frontend 2>/dev/null || true
+    docker rm -f biomate-dev-frontend 2>/dev/null || true
     echo "[frontend] Building image..."
     docker build -t biomate-dev-frontend:latest \
       -f /opt/biomate/frontend_sync/frontend/Dockerfile \
       /opt/biomate/frontend_sync/frontend/ 2>&1 | tail -3
     echo "[frontend] Restarting container..."
-    docker rm -f biomate-dev-frontend 2>/dev/null || true
     sleep 1
     docker run -d --name biomate-dev-frontend --network biomate-dev-net \
       -p 3000:3000 --env-file /opt/biomate/.env \
@@ -294,19 +295,46 @@ sync_logo() {
   '
 }
 
+# ---------------------------------------------------------------------------
+# Layer 5: Marketing website (webpage_design/ → /var/www/biomate-marketing/)
+# ---------------------------------------------------------------------------
+
+deploy_marketing() {
+  log "[marketing] Syncing webpage_design/ to /var/www/biomate-marketing/..."
+  local tar_file="/tmp/biomate_marketing.tar.gz"
+  tar -czf "$tar_file" -C "$REPO_ROOT" webpage_design/ 2>/dev/null
+  log "[marketing] Archive: $(du -sh $tar_file | cut -f1)"
+
+  ec2_scp "$tar_file" "${EC2_USER}@${EC2_HOST}:/tmp/marketing_sync.tar.gz"
+
+  ec2_ssh '
+    set -e
+    sudo mkdir -p /var/www/biomate-marketing
+    sudo tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract --strip-components=1 2>/dev/null || \
+      (mkdir -p /tmp/marketing_extract && tar -xzf /tmp/marketing_sync.tar.gz -C /tmp/marketing_extract)
+    sudo rsync -a --delete /tmp/marketing_extract/webpage_design/ /var/www/biomate-marketing/ 2>/dev/null || \
+      sudo cp -r /tmp/marketing_extract/webpage_design/. /var/www/biomate-marketing/
+    sudo chown -R www-data:www-data /var/www/biomate-marketing/ 2>/dev/null || true
+    rm -rf /tmp/marketing_extract
+    echo "[marketing] Done — $(ls /var/www/biomate-marketing/*.html 2>/dev/null | wc -l) HTML files"
+  '
+  log "[marketing] Done"
+}
+
 do_sync() {
   local commit="$1"
   local changed_paths="$2"
 
   log "=== Syncing commit ${commit:0:8} ==="
 
-  local do_frontend=false do_backend=false do_workflows=false do_db=false
+  local do_frontend=false do_backend=false do_workflows=false do_db=false do_marketing=false
 
   # Determine what changed
   echo "$changed_paths" | grep -q "^frontend/" && do_frontend=true
   echo "$changed_paths" | grep -q "^backend/lib/" && do_backend=true
   echo "$changed_paths" | grep -q "^backend/biomni_workflows/" && do_workflows=true
   echo "$changed_paths" | grep -q "^backend/database/" && do_db=true
+  echo "$changed_paths" | grep -q "^webpage_design/" && do_marketing=true
 
   # Always sync logo
   sync_logo 2>/dev/null || true
@@ -321,6 +349,7 @@ do_sync() {
   $do_backend && restart_galaxy
   $do_db        && deploy_databases
   $do_frontend  && deploy_frontend
+  $do_marketing && deploy_marketing
 
   log "=== Sync complete for ${commit:0:8} ==="
 }
@@ -337,6 +366,21 @@ log "Interval: ${CHECK_INTERVAL}s | Target: https://dev-public.biomate.ai"
 FORCE_FULL=true
 
 while true; do
+  # Auto-commit any uncommitted source changes before syncing — never lose work.
+  DIRTY_SOURCE=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | \
+    grep -E "^(frontend/client/|frontend/server/|frontend/shared/|backend/lib/|backend/biomni_workflows/)" || true)
+  if [[ -n "$DIRTY_SOURCE" ]]; then
+    dirty_count=$(echo "$DIRTY_SOURCE" | wc -l)
+    log "Auto-committing ${dirty_count} uncommitted source file(s) before sync..."
+    git -C "$REPO_ROOT" add \
+      frontend/client/ frontend/server/ frontend/shared/ \
+      backend/lib/ backend/biomni_workflows/ 2>/dev/null || true
+    git -C "$REPO_ROOT" commit -m "auto-commit: pre-sync snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>" 2>/dev/null && \
+      log "Auto-commit created" || log "Auto-commit skipped (nothing to commit)"
+  fi
+
   CURRENT_COMMIT=$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "")
 
   if [[ -z "$CURRENT_COMMIT" ]]; then
@@ -347,7 +391,7 @@ while true; do
 
   if $FORCE_FULL || [[ "$CURRENT_COMMIT" != "$LAST_DEPLOYED_COMMIT" ]]; then
     if $FORCE_FULL; then
-      CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/')"
+      CHANGED="$(printf 'frontend/\nbackend/lib/\nbackend/biomni_workflows/\nbackend/database/\nwebpage_design/')"
       FORCE_FULL=false
     else
       CHANGED=$(git -C "$REPO_ROOT" diff --name-only \
@@ -373,7 +417,7 @@ while true; do
     fi
 
     # Also sync uncommitted edits (dirty working tree) so live testing sees latest code
-    DIRTY=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -E "^(frontend/|backend/lib/|backend/biomni_workflows/)" || true)
+    DIRTY=$(git -C "$REPO_ROOT" diff --name-only HEAD 2>/dev/null | grep -E "^(frontend/|backend/lib/|backend/biomni_workflows/|webpage_design/)" || true)
     if [[ -n "$DIRTY" ]]; then
       dirty_count=$(echo "$DIRTY" | wc -l)
       log "Dirty working tree: ${dirty_count} file(s) — syncing uncommitted edits..."
