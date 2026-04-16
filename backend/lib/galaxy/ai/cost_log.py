@@ -79,21 +79,32 @@ def _forward_to_lago(entry: Dict[str, Any]) -> None:
             "session_id": entry.get("session_id", ""),
         }
         # Emit two events matching the Lago billable metrics: llm_input_tokens + llm_output_tokens.
-        # sum_agg metrics expect a numeric field in properties with the same name as the metric code.
+        # Three events:
+        # - llm_input_tokens / llm_output_tokens: field must be "tokens" (sum_agg on field_name=tokens)
+        # - llm: field must be "value" (total tokens); this is what the base plan charges against
+        input_tokens = entry.get("input_tokens", 0)
+        output_tokens = entry.get("output_tokens", 0)
         events = [
             {
                 "transaction_id": str(uuid.uuid4()),
                 "external_subscription_id": external_sub_id,
                 "code": "llm_input_tokens",
                 "timestamp": ts_epoch,
-                "properties": {**shared_props, "llm_input_tokens": entry.get("input_tokens", 0)},
+                "properties": {**shared_props, "tokens": input_tokens},
             },
             {
                 "transaction_id": str(uuid.uuid4()),
                 "external_subscription_id": external_sub_id,
                 "code": "llm_output_tokens",
                 "timestamp": ts_epoch,
-                "properties": {**shared_props, "llm_output_tokens": entry.get("output_tokens", 0)},
+                "properties": {**shared_props, "tokens": output_tokens},
+            },
+            {
+                "transaction_id": str(uuid.uuid4()),
+                "external_subscription_id": external_sub_id,
+                "code": "llm",
+                "timestamp": ts_epoch,
+                "properties": {**shared_props, "value": input_tokens + output_tokens},
             },
         ]
         headers = {
