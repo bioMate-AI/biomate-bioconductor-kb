@@ -687,6 +687,194 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
     return {"parameters": parameters, "parameter_metadata": parameter_metadata}
 
 
+def _build_cryoem_rationale(user_intent: str) -> Dict[str, Any]:
+    """Inject expert cryo-EM domain knowledge into scientific_rationale when the
+    CryoSPARC SPA workflow is matched.
+
+    Covers:
+    - Sample class → pixel size, picker strategy, dose (GENERAL_FRAMEWORK V1/V2)
+    - Target resolution → required particle count (GENERAL_FRAMEWORK V5)
+    - Scientific question → number of datasets needed (GENERAL_FRAMEWORK V3)
+    - Heterogeneity → classification depth (GENERAL_FRAMEWORK V4)
+    - Universal invariants (FSC 0.143, MolProbity, reference dataset rule)
+    """
+    import re as _re
+
+    hints: List[Dict[str, str]] = []
+    guidance: List[str] = []
+
+    intent_lower = user_intent.lower()
+
+    # ── Sample class detection ──────────────────────────────────────────────
+    # GPCR check must come BEFORE the generic nanodisc/membrane check because
+    # GPCR–G protein complexes are frequently prepared in nanodiscs (MSP1D1).
+    # Without this ordering, a query like "mu-opioid receptor Gi complex in nanodisc"
+    # would be misclassified as membrane_small.
+    _GPCR_TERMS = (
+        "gpcr", "g protein", "g-protein",
+        "gi complex", "gs complex", "gq complex", "go complex",
+        "opioid receptor", "adrenergic receptor", "dopamine receptor",
+        "muscarinic", "adenosine receptor", "serotonin receptor",
+        "adenylyl", "arrestin", "receptor kinase",
+        "beta-adrenergic", "alpha-adrenergic",
+    )
+    if any(t in intent_lower for t in _GPCR_TERMS):
+        hints.append({
+            "param": "sample_class",
+            "recommended": "gpcr_g_protein",
+            "rationale": "GPCR–G protein complexes use MSP1D1ΔH5 nanodiscs (POPC:POPG:POPE 3:1:1), apyrase to maintain GTP→GDP hydrolysis, and scFv16 to lock Gi interface. (Source: μOR Cell 2022, D1R PAM preprint 2025)",
+            "tool": "CryoSPARC",
+        })
+    elif any(t in intent_lower for t in ("saposin", "nanodisc", "mfsd", "vmat", "slc", "membrane transporter", "membrane protein")):
+        hints.append({
+            "param": "sample_class",
+            "recommended": "membrane_small",
+            "rationale": "Membrane transporters in saposin nanodiscs are <60 kDa TM core — use 0.649 Å/pix and 3-picker strategy (blob+template+TOPAZ). Expect 2–5% particle yield from picked movies. (Source: MFSD2B preprint, VMAT2 Nature 2023)",
+            "tool": "CryoSPARC",
+        })
+        hints.append({
+            "param": "pixel_size",
+            "recommended": "0.649",
+            "rationale": "< 60 kDa membrane TM core requires 0.649 Å/pix at 130,000× on K3 to resolve secondary structure. (Source: MFSD2B 0.649 Å/pix; VMAT2 0.83 Å/pix for 55 kDa full transporter)",
+            "tool": "CryoSPARC",
+        })
+    elif any(t in intent_lower for t in ("ribosome", "spliceosome", "rnp", "proteasome", "complex > 500", "megadalton")):
+        hints.append({
+            "param": "sample_class",
+            "recommended": "large_rna_protein",
+            "rationale": "> 500 kDa complexes use 1.06–1.30 Å/pix, defocus −1.5 to −3.0 μm, and 6-class ab initio to capture assembly heterogeneity. (Source: GENERAL_FRAMEWORK spliceosome / ribosome protocol)",
+            "tool": "CryoSPARC",
+        })
+    elif any(t in intent_lower for t in ("bax", "pore", "gasdermin", "perforin", "liposome")):
+        hints.append({
+            "param": "sample_class",
+            "recommended": "pore_forming",
+            "rationale": "Pore-forming proteins form arc/ring shapes on liposomes — TOPAZ picking trained on arcs is mandatory. Validate pore activity with ANTS/DPX fluorescence lysis assay (>50% release) before cryo-EM. (Source: BAX pore Science 2025)",
+            "tool": "CryoSPARC",
+        })
+    elif any(t in intent_lower for t in ("virus", "capsid", "icosahedral", "symmetric", "ring atpase")):
+        hints.append({
+            "param": "sample_class",
+            "recommended": "symmetric",
+            "rationale": "Symmetric assemblies: always start ab initio in C1, verify symmetry from 2D classes before imposing. Higher total dose (55 e⁻/Å²) tolerated for stable capsids. (Source: HBV/HFTV1 capsid protocol)",
+            "tool": "CryoSPARC",
+        })
+
+    # ── Target resolution → particle count ─────────────────────────────────
+    # Regex matches "3.5 angstrom", "3.5 å", "3.5 Å", or "3.5 resolution".
+    # The bare "a\b" alternative was removed — it matched standalone letter "a"
+    # causing false positives in sentences like "... at 3 a priori ...".
+    tr_match = _re.search(r'(\d+(?:\.\d+)?)\s*(?:å|angstrom)', intent_lower)
+    if not tr_match:
+        tr_match = _re.search(r'(\d+(?:\.\d+)?)\s*resolution', intent_lower)
+    if tr_match:
+        tr = float(tr_match.group(1))
+        if tr < 2.5:
+            count_str = "> 1,000,000 particles"
+        elif tr < 3.0:
+            count_str = "200,000–1,000,000 particles"
+        elif tr < 3.5:
+            count_str = "50,000–200,000 particles"
+        elif tr < 4.5:
+            count_str = "20,000–50,000 particles"
+        else:
+            count_str = "5,000–20,000 particles"
+        hints.append({
+            "param": "target_resolution_A",
+            "recommended": str(tr),
+            "rationale": f"To reach {tr} Å resolution you need approximately {count_str}. (Source: GENERAL_FRAMEWORK V5 resolution-particle count table)",
+            "tool": "CryoSPARC",
+        })
+
+    # ── Scientific question → dataset count ─────────────────────────────────
+    # Reference: GENERAL_FRAMEWORK V3 — never collect drug-only; apo reference mandatory
+    if any(t in intent_lower for t in ("drug", "ligand", "inhibitor", "agonist", "antagonist", "compound", "bound")):
+        guidance.append(
+            "DATASET RULE: Collect an apo (ligand-free) reference dataset in addition to drug-bound. "
+            "Drug-only data cannot be interpreted without structural reference. "
+            "For multiple drug conditions: N drug states + 1 apo = N+1 total datasets. "
+            "Use difference maps (drug_map − apo_map) to isolate ligand density; "
+            "accept ligand placement only at ≥ 4σ in the sharpened map. "
+            "(Source: CaV1.2 Cell 2023 — 7 drug states + apo; GENERAL_FRAMEWORK V3)"
+        )
+    # "state" alone is too broad (matches "steady state", "oxidation state", etc.).
+    # Require at least one explicit conformational biology term.
+    if any(t in intent_lower for t in ("conformational", "open state", "closed state", "open and closed",
+                                        "inactivat", "activat", "gating state", "apo state")):
+        guidance.append(
+            "CONFORMATIONAL STATES: Collect 2–4 datasets capturing distinct states "
+            "(e.g., apo, agonist-bound, inhibitor-bound, inactivated). "
+            "Use 3DVA (3D Variability Analysis) to decompose heterogeneity into principal components — "
+            "first 3 components typically capture the major conformational motions. "
+            "(Source: GENERAL_FRAMEWORK V3/V4)"
+        )
+
+    # ── Heterogeneity depth ─────────────────────────────────────────────────
+    if any(t in intent_lower for t in ("heterogeneous", "flexible", "multi-state", "conformational ensemble")):
+        hints.append({
+            "param": "heterogeneity",
+            "recommended": "medium",
+            "rationale": "Medium heterogeneity: 6–8 3D classes + 3DVA on top 3 components. "
+                         "For highly flexible samples (pore arcs, spliceosome intermediates): use 'high' — "
+                         "multi-body refinement with 3–6 rigid bodies. (Source: GENERAL_FRAMEWORK V4)",
+            "tool": "CryoSPARC",
+        })
+
+    # ── Universal invariants (always inject for cryo-EM) ────────────────────
+    guidance.append(
+        "UNIVERSAL RULES: (1) Always report resolution at FSC = 0.143 (gold-standard, Henderson et al. 2012) — "
+        "never use 0.5 as primary criterion. "
+        "(2) Collect negative-stain EM before cryo-EM to confirm complex assembly and particle size. "
+        "(3) MolProbity < 2.0 required for PDB deposition; < 1.5 is excellent. "
+        "(4) CTF FOM < 0.1 → discard micrograph regardless of particle count. "
+        "(5) Ligand density valid only at ≥ 4σ in sharpened map."
+    )
+
+    # ── Pre-cryo-EM checklist (G1-G5) ────────────────────────────────────────
+    # Only inject when the query suggests starting fresh (contains "structure of",
+    # "determine structure", "solve structure", "cryo-em of", "run cryosparc",
+    # "spa pipeline", or doesn't mention an existing dataset/run)
+    _new_project_signals = [
+        "structure of", "determine structure", "solve structure", "cryo-em of",
+        "cryo em of", "spa pipeline", "run cryosparc", "new dataset",
+        "fresh grid", "new sample", "just purified",
+    ]
+    _existing_data_signals = [
+        "existing", "already collected", "reprocess", "re-process",
+        "have the data", "have movies", "movies are", "micrographs are",
+        "dataset ready", "empiar",
+    ]
+    _is_new_project = (
+        any(s in intent_lower for s in _new_project_signals)
+        and not any(s in intent_lower for s in _existing_data_signals)
+    )
+    if _is_new_project:
+        guidance.append(
+            "PRE-CRYO-EM CHECKLIST (complete before booking microscope time):\n"
+            "G1 PURITY: Confirm >90% purity by SDS-PAGE; single symmetric SEC peak "
+            "(no shoulders = no aggregation). A280/A260 < 0.6 indicates nucleic acid contamination.\n"
+            "G2 CONCENTRATION: Target 3-5 mg/mL. Too dilute (<1 mg/mL) → sparse particles; "
+            "too concentrated (>10 mg/mL for membrane proteins) → aggregation on grid.\n"
+            "G3 NEGATIVE STAIN (mandatory): Run negative stain EM before cryo. Confirms: "
+            "(a) complex assembled correctly, (b) expected particle size (~MW^(1/3) × 13.3 Å), "
+            "(c) monodisperse (no aggregates). If negative stain fails, cryo-EM will fail.\n"
+            "G4 FUNCTIONAL ASSAY: Confirm >50% activity after purification. "
+            "Use: transport flux (SLC), BRET/FRET (GPCR), cAMP accumulation (Gs-coupled), "
+            "cytochrome c release (BAX pore), ATPase activity (ring ATPases). "
+            "Structural study of inactive protein = wasted beam time.\n"
+            "G5 ICE QUALITY: Screen Vitrobot conditions (humidity 100%, temp 4°C, "
+            "blot time 2-4 s, force 0-5). For membrane proteins: use fluorinated octyl maltoside "
+            "(FOM) 0.02% to prevent preferred orientation. "
+            "Check ice thickness by survey: should see individual particles, not a continuous layer.\n"
+            "(Source: GENERAL_FRAMEWORK G1-G5; MFSD2B preprint blot conditions; VMAT2 Nature 2023)"
+        )
+
+    return {
+        "cryo_em_domain_hints": hints,
+        "cryo_em_guidance": guidance,
+    }
+
+
 def _infer_params_from_intent_llm(
     user_intent: str,
     workflow_name: str,
@@ -799,24 +987,7 @@ def search_ranked(
 
     ranked: List[Dict[str, Any]] = []
 
-    # Chains first (using the standard threshold for the live path)
-    try:
-        chain_results = _workflow_search.search_chains(request.query, min_score=0.35, limit=3)
-        for c in chain_results:
-            ranked.append({
-                "rank": 0,  # will be set below
-                "name": c.name,
-                "display_name": c.display_name or c.name,
-                "description": (c.description or "")[:200],
-                "source": "chain",
-                "format": "chain",
-                "score": None,  # chains use cosine similarity, not raw score
-                "type": "chain",
-            })
-    except Exception as exc:
-        log.warning("[search_ranked] chain search failed: %s", exc)
-
-    # Individual workflow results
+    # Individual workflow results (primary ranking signal)
     try:
         wf_results = _workflow_search.search(
             request.query,
@@ -837,7 +1008,27 @@ def search_ranked(
     except Exception as exc:
         log.warning("[search_ranked] workflow search failed: %s", exc)
 
-    # Assign ranks (chains first, then workflows)
+    # Chains: appended after workflows so individual workflow rankings are not
+    # displaced.  Chain search requires LLM confirmation; without a wired-up LLM
+    # client on the singleton used by this endpoint the chain would be selected by
+    # embedding similarity alone and always appear rank-1, corrupting IR metrics.
+    try:
+        chain_results = _workflow_search.search_chains(request.query, min_score=0.35, limit=3)
+        for c in chain_results:
+            ranked.append({
+                "rank": 0,  # will be set below
+                "name": c.name,
+                "display_name": c.display_name or c.name,
+                "description": (c.description or "")[:200],
+                "source": "chain",
+                "format": "chain",
+                "score": None,  # chains use cosine similarity, not raw score
+                "type": "chain",
+            })
+    except Exception as exc:
+        log.warning("[search_ranked] chain search failed: %s", exc)
+
+    # Assign ranks
     for i, item in enumerate(ranked):
         item["rank"] = i + 1
 
@@ -920,16 +1111,11 @@ def search_nextflow_workflow(
             name = (getattr(match, "name", "") or "").lower()
             tags = [str(t).lower() for t in (getattr(match, "tags", []) or [])]
 
-            # Exclude known non-entry nf-core subworkflow library paths.
-            if filename.startswith("nfcore/subworkflows/"):
+            # Exclude subworkflow library paths — any path containing /subworkflows/ is
+            # a pipeline component, not a standalone entry point the user would run directly.
+            if "/subworkflows/" in filename:
                 return False
             if filename.startswith("nf-core-modules/"):
-                return False
-            if "nf-core-modules/subworkflows/" in filename:
-                return False
-            if "/nf-core-modules/subworkflows/" in filename:
-                return False
-            if "/nfcore/subworkflows/" in filename:
                 return False
             if "subworkflow" in name:
                 return False
@@ -970,16 +1156,29 @@ def search_nextflow_workflow(
             if runnable_executable:
                 best = runnable_executable
 
-        # Helper: resolve a DB filename to an absolute path, checking biomni_workflows/ prefix too
+        # Helper: resolve a DB filename to an absolute path, checking biomni_workflows/ and
+        # nf-core-workflows/ prefixes.  nf-core DB entries use 'nfcore/<pipeline>/main.nf'
+        # but the actual files live under 'backend/nf-core-workflows/<pipeline>/main.nf'.
         def _nf_file_exists(fname: str) -> bool:
             if not fname:
                 return False
             _root = FilePath(__file__).resolve().parents[5]
-            for candidate in [
+            _backend = _root / "backend"
+            # Strip leading 'nfcore/' to get bare pipeline path for nf-core-workflows lookup
+            _nfcore_bare = fname.removeprefix("nfcore/") if fname.startswith("nfcore/") else None
+            candidates = [
                 FilePath(fname) if FilePath(fname).is_absolute() else _root / fname,
                 _root / "biomni_workflows" / fname,
                 _root / "biomni_workflows" / "nextflow_nfcore" / fname,
-            ]:
+                _backend / "biomni_workflows" / fname,
+                _backend / "biomni_workflows" / "nextflow_nfcore" / fname,
+            ]
+            if _nfcore_bare:
+                candidates += [
+                    _backend / "nf-core-workflows" / _nfcore_bare,
+                    _root / "nf-core-workflows" / _nfcore_bare,
+                ]
+            for candidate in candidates:
                 if candidate.exists():
                     return True
             return False
@@ -999,6 +1198,31 @@ def search_nextflow_workflow(
         workflow_tools = getattr(best, "tools", []) or []
         hardware_requirements = _collect_workflow_hardware_requirements(workflow_tools)
         scientific_rationale = _build_scientific_rationale_from_tools(workflow_tools)
+
+        # Inject cryo-EM domain knowledge when the matched workflow is CryoSPARC SPA
+        _is_cryoem_spa = (
+            "cryosparc" in (best.name or "").lower()
+            or "cryosparc" in (best.filename or "").lower()
+            or "cryo_em" in (best.domain or "").lower()
+            or "cryo-em" in (best.description or "").lower()
+        )
+        if _is_cryoem_spa:
+            _cryo_extra = _build_cryoem_rationale(user_intent)
+            if not isinstance(scientific_rationale, dict):
+                scientific_rationale = {}
+            # Merge domain hints into parameter_hints
+            existing_hints = scientific_rationale.get("parameter_hints", [])
+            existing_hint_params = {h.get("param") for h in existing_hints}
+            for _h in _cryo_extra.get("cryo_em_domain_hints", []):
+                if _h.get("param") not in existing_hint_params:
+                    existing_hints.append(_h)
+            scientific_rationale["parameter_hints"] = existing_hints
+            # Add guidance as key_assumptions (surfaced in the AI rationale panel)
+            existing_ka = scientific_rationale.get("key_assumptions", [])
+            for _g in _cryo_extra.get("cryo_em_guidance", []):
+                if _g not in existing_ka:
+                    existing_ka.append(_g)
+            scientific_rationale["key_assumptions"] = existing_ka
 
         # Build parameter_metadata from scientific_rationale parameter_hints
         _search_param_keys = [

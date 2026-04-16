@@ -1796,6 +1796,87 @@ class AIAssistant:
                 return match
         return None
 
+    def _llm_verify_routing(
+        self,
+        query: str,
+        candidates: List[Any],
+        match_type: str,
+    ) -> Dict[str, Any]:
+        """
+        Ask the LLM to verify the top-scored workflow candidate against the user query,
+        produce an auditable rationale, and optionally override to a better candidate.
+
+        Returns:
+          {
+            "selected_idx": int,   # 0-based index into candidates
+            "rationale": str,      # why this workflow matches the query
+            "audit": str,          # any red flags found (or "none")
+            "flag": bool,          # True = clear mismatch, selection overridden
+          }
+
+        Falls back to {"selected_idx": 0, ...} if the LLM client is unavailable.
+        Only called for non-trivial decisions (high_confidence with close competitors,
+        or medium_confidence).
+        """
+        if not candidates or self._fast_llm_client is None:
+            return {"selected_idx": 0, "rationale": "", "audit": "", "flag": False}
+
+        top = candidates[:4]
+        lines = []
+        for i, c in enumerate(top):
+            desc = (getattr(c, 'description', '') or '')[:250].replace('\n', ' ')
+            lines.append(f"{i+1}. [{c.name}] score={c.score:.1f}\n   {desc}")
+        candidates_text = "\n".join(lines)
+
+        prompt = f"""You are auditing a bioinformatics workflow routing decision.
+
+User query: "{query}"
+
+Candidate workflows (ranked by retrieval score):
+{candidates_text}
+
+Steps:
+1. RATIONALE — Write 1–2 sentences explaining why candidate #1 fits (or does not fit) the query.
+2. AUDIT — Check for mismatches: wrong assay type (e.g. ChIP-seq picked for ATAC-seq query),
+   wrong scope (annotation-only tool for a full pipeline request), wrong data type
+   (single-cell pipeline for bulk RNA-seq), or clearly irrelevant domain.
+   Write one sentence about any red flag, or "none".
+3. SELECTION — Which candidate number (1–{len(top)}) best fits the query?
+   Prefer #1 unless there is a CLEAR mismatch. Switching to #2/#3 requires a concrete reason.
+
+Respond with a single JSON object — no other text:
+{{"selected": 1, "rationale": "...", "audit": "...", "flag": false}}
+
+"flag" must be true only when you switch away from #1 due to a clear mismatch."""
+
+        try:
+            raw = (self._fast_llm_client.generate(prompt, max_tokens=220, temperature=0.0) or "").strip()
+            # Extract JSON from response
+            import re as _re
+            m = _re.search(r'\{.*\}', raw, _re.DOTALL)
+            if not m:
+                log.debug("[_llm_verify_routing] No JSON found in LLM response: %r", raw[:200])
+                return {"selected_idx": 0, "rationale": "", "audit": "", "flag": False}
+            parsed = json.loads(m.group())
+            sel = int(parsed.get("selected", 1)) - 1  # convert to 0-based
+            sel = max(0, min(sel, len(top) - 1))
+            result = {
+                "selected_idx": sel,
+                "rationale": str(parsed.get("rationale", "")),
+                "audit": str(parsed.get("audit", "")),
+                "flag": bool(parsed.get("flag", False)),
+            }
+            log.info(
+                "[_llm_verify_routing] query=%r | match_type=%s | selected=%d (%s) | flag=%s\n"
+                "  rationale: %s\n  audit: %s",
+                query[:80], match_type, sel + 1, top[sel].name if sel < len(top) else "?",
+                result["flag"], result["rationale"], result["audit"],
+            )
+            return result
+        except Exception as exc:
+            log.warning("[_llm_verify_routing] failed: %s", exc)
+            return {"selected_idx": 0, "rationale": "", "audit": "", "flag": False}
+
     def _parse_memory_gb(self, value: Any) -> Optional[float]:
         """Parse memory declarations like '16GB' or numeric values into GB."""
         if value is None:
@@ -2824,6 +2905,25 @@ Examples of good inference:
             # so the final return dict can always reference them safely.
             dataset_match_result: Dict[str, Any] = {}
 
+            # Ensure the fast LLM client is initialized before chain search.
+            # _llm_select_chain (chain verifier) needs workflow_search._llm_client set BEFORE
+            # search_chains() is called — otherwise it returns None (no verification) and
+            # embedding-ranked candidates are returned unchecked.
+            # We create the client without making an API call by checking _fast_llm_client directly.
+            if self._fast_llm_client is None:
+                try:
+                    from .llm_client import LLMClient
+                    _init_client = LLMClient(self.config)
+                    _provider = self.config.llm_provider.lower()
+                    _fast_model = _FAST_CLASSIFICATION_MODELS.get(_provider)
+                    if _fast_model:
+                        _init_client.model = _fast_model
+                    self._fast_llm_client = _init_client
+                    self.workflow_search.set_llm_client(self._fast_llm_client)
+                    log.info("[UnifiedWorkflowGeneration] Fast LLM client initialized for chain verification")
+                except Exception as _init_err:
+                    log.warning("[UnifiedWorkflowGeneration] Fast LLM client init failed: %s", _init_err)
+
             # Step 0: Chain lookup — preferred path for multi-step research projects.
             # The search uses embedding similarity (threshold 0.42) + LLM scope check.
             # If the LLM is uncertain it sets clarification_needed and returns a question.
@@ -3000,6 +3100,45 @@ Examples of good inference:
             #   high_confidence  : score >= 12.0  → reuse workflow as-is
             #   medium_confidence: score >= 6.0   → adapt template or compose via NextflowComposer
             #   low_confidence / no_match         → compose from scratch via NextflowComposer
+
+            # ── LLM routing verification (rationale + self-audit) ────────────────
+            # For medium_confidence and high_confidence cases where the top-2 gap is
+            # narrow (< 8 points), ask the LLM to confirm the top pick and flag obvious
+            # mismatches (wrong assay type, wrong data scope, irrelevant domain).
+            # temperature=0 → deterministic; adds an audit trail to every routing decision.
+            _routing_audit: Dict[str, Any] = {}
+            if search_results and match_type in ("high_confidence", "medium_confidence"):
+                _top2_gap = (search_results[0].score - search_results[1].score
+                             if len(search_results) >= 2 else 999)
+                _needs_verify = (
+                    match_type == "medium_confidence"              # always verify borderline
+                    or _top2_gap < 8.0                            # close race even at high_confidence
+                )
+                if _needs_verify:
+                    _routing_audit = self._llm_verify_routing(
+                        user_intent, search_results, match_type
+                    )
+                    if _routing_audit.get("flag") and _routing_audit.get("selected_idx", 0) != 0:
+                        _override_idx = _routing_audit["selected_idx"]
+                        _override = search_results[_override_idx]
+                        log.info(
+                            "[UnifiedWorkflowGeneration] LLM audit overriding #1 (%s) → #%d (%s). "
+                            "Reason: %s",
+                            search_results[0].name, _override_idx + 1, _override.name,
+                            _routing_audit.get("audit", ""),
+                        )
+                        # Rebuild search_results with override at position 0
+                        search_results = (
+                            [_override]
+                            + [r for i, r in enumerate(search_results) if i != _override_idx]
+                        )
+                        best_match = search_results[0]
+                        score = best_match.score
+                        match_type = best_match.match_type
+                        executable_nextflow_match = self._pick_best_executable_nextflow_match(
+                            search_results
+                        )
+
             if match_type == "high_confidence":
                 # High confidence - reuse existing workflow
                 log.info("[UnifiedWorkflowGeneration] High confidence match - reusing workflow")
@@ -3036,11 +3175,16 @@ Examples of good inference:
 
                 if match_type == "high_confidence" and best_match and best_match.format == 'nextflow':
                     log.info(f"[UnifiedWorkflowGeneration] High-confidence Nextflow match: {best_match.filename}")
-                    return self._return_nextflow_match(
+                    result = self._return_nextflow_match(
                         match=best_match, score=score, user_intent=user_intent,
                         source='template_reuse', needs_user_feedback=False,
                         search_results=search_results, selected_trial=selected_trial, trials=trials,
                     )
+                    if _routing_audit:
+                        result['routing_rationale'] = _routing_audit.get('rationale', '')
+                        result['routing_audit'] = _routing_audit.get('audit', '')
+                        result['routing_audit_flag'] = _routing_audit.get('flag', False)
+                    return result
 
                 # Parse workflow JSON if available (Galaxy format)
                 workflow_json = {}
@@ -3085,11 +3229,16 @@ Examples of good inference:
                 nf_formats = {'nextflow', 'bioconductor_nf'}
                 if best_match and getattr(best_match, 'format', '') in nf_formats:
                     log.info(f"[UnifiedWorkflowGeneration] Medium-confidence Nextflow match: {best_match.filename}")
-                    return self._return_nextflow_match(
+                    result = self._return_nextflow_match(
                         match=best_match, score=score, user_intent=user_intent,
                         source='template_adapt', needs_user_feedback=True,
                         search_results=search_results, selected_trial=selected_trial, trials=trials,
                     )
+                    if _routing_audit:
+                        result['routing_rationale'] = _routing_audit.get('rationale', '')
+                        result['routing_audit'] = _routing_audit.get('audit', '')
+                        result['routing_audit_flag'] = _routing_audit.get('flag', False)
+                    return result
 
                 # Galaxy .ga format medium-confidence match — compose Nextflow via NextflowComposer
                 # using best_match as a structural reference (same path as low-confidence but with

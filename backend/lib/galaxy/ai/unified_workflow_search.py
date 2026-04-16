@@ -39,7 +39,7 @@ _CHAIN_EMBED_MODEL_NAME = "all-MiniLM-L6-v2"
 # Minimum cosine similarity for a chain to be passed to LLM reranking.
 # Intentionally higher than single-workflow search (chains are broad; weak overlap
 # means the query is asking for a sub-step, not the full pipeline).
-_CHAIN_EMBED_MIN_SIMILARITY = 0.42
+_CHAIN_EMBED_MIN_SIMILARITY = 0.50  # raised from 0.42 — reduces false-positive chain matches
 
 # Score thresholds for _classify_match().
 # Calibrated to the raw scoring sum produced by _score_workflow().
@@ -61,6 +61,7 @@ try:
     _CHAIN_EMBED_MODEL: Optional[Any] = None      # lazy singleton
     _CHAIN_EMBED_NAMES: List[str] = []            # chain names in index order
     _CHAIN_EMBED_MATRIX: Optional[Any] = None     # np.ndarray (n_chains × dim)
+    _CHAIN_EMBED_DESC_HASH: str = ""              # hash of chain descriptions for cache invalidation
     _EMBEDDINGS_AVAILABLE = True
 except ImportError:
     _np = None
@@ -1456,7 +1457,7 @@ class UnifiedWorkflowSearch:
 
     def _rebuild_chain_embedding_index(self, chains: List["WorkflowChain"]) -> None:
         """Recompute the in-memory embedding index for all chains."""
-        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX
+        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX, _CHAIN_EMBED_DESC_HASH
         if not _EMBEDDINGS_AVAILABLE:
             return
         try:
@@ -1473,10 +1474,14 @@ class UnifiedWorkflowSearch:
                                         local_files_only=True)
             texts = [self._chain_embed_text(c) for c in chains]
             _CHAIN_EMBED_NAMES = [c.name for c in chains]
+            import hashlib as _hashlib
+            _CHAIN_EMBED_DESC_HASH = _hashlib.md5(
+                "|".join(f"{c.name}:{c.description or ''}:{','.join(c.tags)}" for c in chains).encode()
+            ).hexdigest()
             _CHAIN_EMBED_MATRIX = _CHAIN_EMBED_MODEL.encode(
                 texts, convert_to_numpy=True, show_progress_bar=False
             )
-            log.info("[ChainIndex] Indexed %d chains", len(chains))
+            log.info("[ChainIndex] Indexed %d chains (desc_hash=%s)", len(chains), _CHAIN_EMBED_DESC_HASH[:8])
         except Exception as exc:
             log.warning("[ChainIndex] Failed to build embedding index: %s", exc)
             _CHAIN_EMBED_NAMES = []
@@ -1490,13 +1495,17 @@ class UnifiedWorkflowSearch:
         min_similarity: float,
     ) -> List[Tuple[float, "WorkflowChain"]]:
         """Return (cosine_score, chain) pairs for chains above min_similarity."""
-        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX
+        global _CHAIN_EMBED_MODEL, _CHAIN_EMBED_NAMES, _CHAIN_EMBED_MATRIX, _CHAIN_EMBED_DESC_HASH
         if not _EMBEDDINGS_AVAILABLE or _CHAIN_EMBED_MODEL is None:
             return []
 
-        # Rebuild index if chain set changed
+        # Rebuild index if chain set changed OR descriptions/tags changed
+        import hashlib as _hashlib
         current_names = [c.name for c in all_chains]
-        if current_names != _CHAIN_EMBED_NAMES:
+        current_desc_hash = _hashlib.md5(
+            "|".join(f"{c.name}:{c.description or ''}:{','.join(c.tags)}" for c in all_chains).encode()
+        ).hexdigest()
+        if current_names != _CHAIN_EMBED_NAMES or current_desc_hash != _CHAIN_EMBED_DESC_HASH:
             self._rebuild_chain_embedding_index(all_chains)
 
         if _CHAIN_EMBED_MATRIX is None or len(_CHAIN_EMBED_NAMES) == 0:
@@ -1706,18 +1715,61 @@ class UnifiedWorkflowSearch:
     # multi-modal pipelines that also need RNA-seq, etc.
     _CHAIN_REQUIRED_CONTEXT: Dict[str, List[frozenset]] = {
         'rare_disease_multimodal_workup': [
-            # Group 1: MUST signal rare disease, undiagnosed, or multi-modal intent.
-            # "rna-seq" alone is NOT enough — prevents scRNA-seq queries from matching
-            # (because "scrna-seq" contains "rna-seq" as substring).
+            # Group 1: MUST signal rare disease or undiagnosed clinical context.
             frozenset({'rare disease', 'rare_disease', 'rare-disease', 'rare genetic',
                        'undiagnosed', 'unexplained', 'unresolved diagnosis',
                        'inherited disease', 'hereditary disease', 'mendelian',
-                       'outrider', 'fraser', 'aberrant expression', 'splicing outlier',
-                       'multimodal', 'multi-modal', 'multi modal',
+                       'trio', 'proband'}),
+            # Group 2: MUST also signal multi-modal data (WGS + RNA-seq).
+            # This separates "rare disease variant calling" (→ nf-core/raredisease alone)
+            # from "rare disease multi-modal workup" (WGS + RNA = this chain).
+            frozenset({'rna-seq', 'rnaseq', 'rna seq', 'transcriptome', 'transcriptomic',
+                       'rna data', 'outrider', 'fraser', 'drop',
+                       'aberrant expression', 'splicing outlier',
                        'wgs and rna', 'wgs + rna', 'genome and transcriptome',
-                       'trio', 'proband',
-                       # OR: explicitly mentions both WGS AND RNA data types
-                       'drop', 'fraser'}),
+                       'multimodal', 'multi-modal', 'multi modal',
+                       'paired wgs', 'paired rna'}),
+        ],
+        'cutandtag_chromatin_analysis': [
+            # MUST signal CUT&Tag assay explicitly.
+            # Prevents this chain from firing for ATAC-seq, Hi-C, scRNA-seq, ChIP-seq, or
+            # any other chromatin/sequencing query that shares peak-calling / epigenomics
+            # vocabulary but is NOT a CUT&Tag experiment.
+            # Structural principle: chains require a specific assay signal, not just domain proximity.
+            frozenset({'cut&tag', 'cutandtag', 'cut-and-tag', 'cuttag',
+                       'cut & tag', 'pa-tn5', 'protein a-tn5', 'protein a tn5',
+                       'cut and tag', 'cutntag'}),
+        ],
+        'bulk_rnaseq_de_analysis': [
+            # MUST signal either (a) the user is explicitly requesting differential expression
+            # analysis, OR (b) they clearly already have processed count data as input.
+            # Queries about "processing raw RNA-seq samples" or "producing a counts matrix"
+            # route to nf-core/rnaseq instead.
+            # Avoids false-positive substring matches (e.g. "produce a gene counts matrix"
+            # should NOT match — the user is producing counts, not inputting them).
+            frozenset({'differential expression', 'differential abundance',
+                       'deseq2', 'edger', 'limma', 'voom',
+                       'de analysis', 'differentially expressed',
+                       'salmon output', 'salmon quant', 'salmon quantification',
+                       'kallisto output', 'my count table', 'my counts table',
+                       'my count matrix', 'have a count', 'have counts',
+                       'pathway enrichment', 'gsea', 'go enrichment', 'gene ontology',
+                       'enrichment analysis', 'pathway analysis',
+                       'upregulated', 'downregulated', 'differentially',
+                       'fold change', 'log2fc', 'padj', 'fdr'}),
+        ],
+        'single_cell_multimodal_analysis': [
+            # MUST signal single-cell assay explicitly.
+            # Bulk RNA-seq queries ("process 30 bulk RNA-seq samples", "produce a gene counts
+            # matrix") share vocabulary with this chain but describe completely different assays.
+            # Required: user must mention single-cell sequencing, cell barcodes, or Cell Ranger.
+            frozenset({'single cell', 'single-cell', 'scrnaseq', 'scrna-seq', 'scrna seq',
+                       'sc-rnaseq', 'sc rna', '10x genomics', '10x chromium',
+                       'cell ranger', 'cellranger', 'droplet', 'dropseq', 'drop-seq',
+                       'smartseq', 'smart-seq', 'smart seq', 'indrops', 'seq-well',
+                       'cell barcode', 'umi', 'umis', 'cells per sample',
+                       'per-cell', 'per cell', 'cell types', 'cell type annotation',
+                       'clustering cells', 'cell clustering'}),
         ],
     }
 

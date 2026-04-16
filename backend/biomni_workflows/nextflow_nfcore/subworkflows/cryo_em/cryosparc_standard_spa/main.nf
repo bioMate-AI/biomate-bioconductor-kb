@@ -81,6 +81,12 @@ params.max_resolution_refinement = 2.5       // Angstroms
 params.gpu_memory_gb = 16
 params.enable_low_memory_mode = false        // Auto-enabled for <16GB GPUs
 
+// Parallelism parameters
+params.micrograph_batch_size = 200           // micrographs per parallel batch
+params.particle_batch_size = 10000           // particles per parallel 2D class batch
+params.num_gpu_workers = 1                   // controls ThreadPoolExecutor in Python side
+params.max_parallel_jobs = 20                // Nextflow queueSize cap
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -142,75 +148,76 @@ def get_sample_recommendations(sample_type) {
 }
 
 // ============================================================================
-// Process Definitions
+// Process Definitions — Batch-parallel processes (Phase A / B / C)
 // ============================================================================
 
-process IMPORT_MOVIES {
-    tag "import"
-    publishDir "${params.outdir}/01_import_movies", mode: 'copy'
+process SPLIT_INTO_BATCHES {
+    tag "split_batches"
+    publishDir "${params.outdir}/00_batch_split", mode: 'copy'
 
     input:
-    path movies
+    path movies_dir
 
     output:
-    path "movies.cs", emit: movies_cs
-    path "import_report.json", emit: report
+    path "batch_manifest.csv", emit: manifest
 
     script:
     def mock = params.mock_mode ? 'True' : 'False'
+    def batch_size = params.micrograph_batch_size
     """
     #!/usr/bin/env python3
-    import json
+    import glob
     import os
+    import csv
     from pathlib import Path
-    from datetime import datetime
 
-    movies = sorted(Path('.').glob('*.tif')) + sorted(Path('.').glob('*.mrc')) + sorted(Path('.').glob('*.eer'))
+    mock_mode = ${mock}
+    batch_size = ${batch_size}
+    movies_dir = '${movies_dir}'
 
-    report = {
-        'step': '01_import_movies',
-        'timestamp': datetime.now().isoformat(),
-        'num_movies': len(movies),
-        'pixel_size_angstroms': ${params.pixel_size},
-        'voltage_kv': ${params.voltage},
-        'spherical_aberration_mm': ${params.spherical_aberration},
-        'gain_reference': '${params.gain_ref}' if '${params.gain_ref}' != 'null' else None,
-        'mock_mode': ${mock}
-    }
+    # Find all movie files
+    movie_files = []
+    for ext in ('*.tif', '*.mrc', '*.eer', '*.tiff'):
+        movie_files.extend(glob.glob(os.path.join(movies_dir, ext)))
 
-    # Create CryoSPARC-style .cs file (mock format)
-    cs_data = {
-        'movies': [
-            {
-                'movie_path': str(m),
-                'movie_idx': i,
-                'num_frames': 40,
-                'total_dose': ${params.total_dose}
-            } for i, m in enumerate(movies)
-        ]
-    }
+    movie_files = sorted(movie_files)
 
-    with open('movies.cs', 'w') as f:
-        json.dump(cs_data, f, indent=2)
+    if not movie_files and mock_mode:
+        # In mock mode create dummy entries so downstream processes run
+        movie_files = [f'mock_movie_{i:05d}.tif' for i in range(min(batch_size, 20))]
 
-    with open('import_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
+    # Split into batches; ensure at least one batch even for empty input
+    if not movie_files:
+        movie_files = ['placeholder.tif']
 
-    print(f"✓ Imported {len(movies)} movies")
+    batches = []
+    for start in range(0, len(movie_files), batch_size):
+        batches.append(movie_files[start:start + batch_size])
+
+    # Write one batch-list file per batch and record in the manifest CSV
+    with open('batch_manifest.csv', 'w', newline='') as manifest_f:
+        writer = csv.writer(manifest_f)
+        for batch_idx, batch_files in enumerate(batches):
+            batch_id = f'batch_{batch_idx:04d}'
+            list_file = f'{batch_id}_files.txt'
+            with open(list_file, 'w') as lf:
+                lf.write('\\n'.join(batch_files))
+            writer.writerow([batch_id, os.path.abspath(list_file)])
+
+    print(f"Split {len(movie_files)} movies into {len(batches)} batches of <= ${batch_size}")
     """
 }
 
-process PATCH_MOTION_CORRECTION {
-    tag "motion"
-    publishDir "${params.outdir}/02_motion_correction", mode: 'copy'
+process PATCH_MOTION_CORRECTION_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/02_motion_correction/${batch_id}", mode: 'copy'
 
     input:
-    path movies_cs
+    tuple val(batch_id), path(batch_file)
 
     output:
-    path "micrographs.cs", emit: micrographs_cs
-    path "motion_report.json", emit: report
-    path "motion_trajectories.json", emit: trajectories
+    tuple val(batch_id), path("micrographs_${batch_id}.cs"), emit: micrographs_cs
+    path "motion_report_${batch_id}.json", emit: report
 
     script:
     def mock = params.mock_mode ? 'True' : 'False'
@@ -220,71 +227,67 @@ process PATCH_MOTION_CORRECTION {
     #!/usr/bin/env python3
     import json
     import random
+    import time
     from datetime import datetime
+    from pathlib import Path
 
-    movies_data = json.load(open('${movies_cs}'))
-    num_movies = len(movies_data.get('movies', []))
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
 
-    # Simulate motion correction
+    if mock_mode:
+        time.sleep(0.5)
+
+    # Read batch file list
+    batch_file = Path('${batch_file}')
+    movie_paths = [l.strip() for l in batch_file.read_text().splitlines() if l.strip()]
+    num_movies = len(movie_paths) if movie_paths else 10
+
     micrographs = []
-    trajectories = []
-
-    for i in range(num_movies):
-        # Simulate realistic motion metrics
+    for i, movie_path in enumerate(movie_paths):
         total_motion = round(random.uniform(8.0, 45.0), 2)
         early_motion = round(random.uniform(5.0, 25.0), 2)
-        late_motion = total_motion - early_motion
-
         micrographs.append({
             'micrograph_idx': i,
-            'micrograph_path': f'micrograph_{i:05d}.mrc',
+            'micrograph_path': f'micrograph_{batch_id}_{i:05d}.mrc',
+            'source_movie': movie_path,
             'total_motion_angstroms': total_motion,
             'early_motion_angstroms': early_motion,
-            'late_motion_angstroms': late_motion,
-            'dose_weighted': ${dose_weight}
-        })
-
-        # Simulate frame-by-frame motion trajectory
-        trajectories.append({
-            'micrograph_idx': i,
-            'frame_motions': [round(random.uniform(0.5, 3.0), 2) for _ in range(40)]
+            'late_motion_angstroms': round(total_motion - early_motion, 2),
+            'dose_weighted': ${dose_weight},
+            'batch_id': batch_id
         })
 
     report = {
         'step': '02_patch_motion_correction',
+        'batch_id': batch_id,
         'timestamp': datetime.now().isoformat(),
         'num_micrographs': num_movies,
-        'avg_total_motion_angstroms': round(sum(m['total_motion_angstroms'] for m in micrographs) / num_movies, 2),
+        'avg_total_motion_angstroms': round(sum(m['total_motion_angstroms'] for m in micrographs) / num_movies, 2) if micrographs else 0,
         'dose_weighting_enabled': ${dose_weight},
         'low_memory_mode': ${low_mem},
-        'mock_mode': ${mock}
+        'mock_mode': mock_mode
     }
 
-    with open('micrographs.cs', 'w') as f:
-        json.dump({'micrographs': micrographs}, f, indent=2)
+    with open(f'micrographs_${batch_id}.cs', 'w') as f:
+        json.dump({'micrographs': micrographs, 'batch_id': batch_id}, f, indent=2)
 
-    with open('motion_trajectories.json', 'w') as f:
-        json.dump({'trajectories': trajectories}, f, indent=2)
-
-    with open('motion_report.json', 'w') as f:
+    with open(f'motion_report_${batch_id}.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Motion corrected {num_movies} micrographs")
-    print(f"  Average motion: {report['avg_total_motion_angstroms']} Å")
+    print(f"✓ [{batch_id}] Motion corrected {num_movies} micrographs")
     """
 }
 
-process PATCH_CTF_ESTIMATION {
-    tag "ctf"
-    publishDir "${params.outdir}/03_ctf_estimation", mode: 'copy'
+process PATCH_CTF_ESTIMATION_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/03_ctf_estimation/${batch_id}", mode: 'copy'
 
     input:
-    path micrographs_cs
+    tuple val(batch_id), path(micrographs_cs)
 
     output:
-    path "micrographs_ctf.cs", emit: ctf_cs
-    path "ctf_report.json", emit: report
-    path "ctf_diagnostics.json", emit: diagnostics
+    tuple val(batch_id), path("micrographs_ctf_${batch_id}.cs"), emit: ctf_cs
+    path "ctf_report_${batch_id}.json", emit: report
 
     script:
     def mock = params.mock_mode ? 'True' : 'False'
@@ -293,26 +296,28 @@ process PATCH_CTF_ESTIMATION {
     #!/usr/bin/env python3
     import json
     import random
+    import time
     from datetime import datetime
+
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
+
+    if mock_mode:
+        time.sleep(0.5)
 
     mics_data = json.load(open('${micrographs_cs}'))
     micrographs = mics_data.get('micrographs', [])
     use_phase_plate = ${use_phase_plate}
 
-    # Simulate CTF estimation
     ctf_data = []
-    diagnostics = []
     phase_shifts = []
 
     for mic in micrographs:
-        # VPP data: lower defocus (1000-5000 Å) and near-focus collection
         if use_phase_plate:
             defocus_u = round(random.uniform(1000, 5000), 1)
         else:
             defocus_u = round(random.uniform(10000, 35000), 1)
         defocus_v = round(random.uniform(defocus_u * 0.9, defocus_u * 1.1), 1)
-        astigmatism = abs(defocus_u - defocus_v)
-        astigmatism_angle = round(random.uniform(0, 180), 1)
         fit_resolution = round(random.uniform(3.5, 8.0), 2)
         cross_correlation = round(random.uniform(0.05, 0.20), 4)
 
@@ -320,60 +325,615 @@ process PATCH_CTF_ESTIMATION {
             **mic,
             'defocus_u_angstroms': defocus_u,
             'defocus_v_angstroms': defocus_v,
-            'astigmatism_angstroms': astigmatism,
-            'astigmatism_angle_degrees': astigmatism_angle,
+            'astigmatism_angstroms': abs(defocus_u - defocus_v),
+            'astigmatism_angle_degrees': round(random.uniform(0, 180), 1),
             'ctf_fit_resolution_angstroms': fit_resolution,
             'ctf_cross_correlation': cross_correlation,
         }
 
-        # Volta Phase Plate: simulate phase shift accumulation per micrograph
-        # Optimal VPP phase shift: 0.4-0.8π rad (≈ 1.26-2.51 rad);
-        # practical productive range: 0.2-1.5 rad
         if use_phase_plate:
-            phase_shift = round(random.gauss(0.75, 0.2), 4)  # centred on productive range
+            phase_shift = round(random.gauss(0.75, 0.2), 4)
             entry['phase_shift_rad'] = phase_shift
             phase_shifts.append(phase_shift)
 
         ctf_data.append(entry)
 
-        diagnostics.append({
-            'micrograph_idx': mic['micrograph_idx'],
-            'ice_thickness': random.choice(['thin', 'optimal', 'thick']),
-            'estimated_b_factor': round(random.uniform(-150, -50), 1)
-        })
-
     report = {
         'step': '03_patch_ctf_estimation',
+        'batch_id': batch_id,
         'timestamp': datetime.now().isoformat(),
         'num_micrographs': len(micrographs),
-        'avg_defocus_angstroms': round(sum(m['defocus_u_angstroms'] for m in ctf_data) / len(ctf_data), 1),
-        'avg_fit_resolution_angstroms': round(sum(m['ctf_fit_resolution_angstroms'] for m in ctf_data) / len(ctf_data), 2),
+        'avg_defocus_angstroms': round(sum(m['defocus_u_angstroms'] for m in ctf_data) / len(ctf_data), 1) if ctf_data else 0,
+        'avg_fit_resolution_angstroms': round(sum(m['ctf_fit_resolution_angstroms'] for m in ctf_data) / len(ctf_data), 2) if ctf_data else 0,
         'voltage_kv': ${params.voltage},
         'spherical_aberration_mm': ${params.spherical_aberration},
         'phase_plate': use_phase_plate,
-        'mock_mode': ${mock}
+        'mock_mode': mock_mode
     }
 
-    # Include phase plate aggregate when VPP data
     if use_phase_plate and phase_shifts:
         report['avg_phase_shift_rad'] = round(sum(phase_shifts) / len(phase_shifts), 4)
         report['min_phase_shift_rad'] = round(min(phase_shifts), 4)
         report['max_phase_shift_rad'] = round(max(phase_shifts), 4)
 
-    with open('micrographs_ctf.cs', 'w') as f:
-        json.dump({'micrographs': ctf_data}, f, indent=2)
+    with open(f'micrographs_ctf_${batch_id}.cs', 'w') as f:
+        json.dump({'micrographs': ctf_data, 'batch_id': batch_id}, f, indent=2)
 
-    with open('ctf_diagnostics.json', 'w') as f:
-        json.dump({'diagnostics': diagnostics}, f, indent=2)
-
-    with open('ctf_report.json', 'w') as f:
+    with open(f'ctf_report_${batch_id}.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ CTF estimated for {len(micrographs)} micrographs")
+    print(f"✓ [{batch_id}] CTF estimated for {len(micrographs)} micrographs")
     if use_phase_plate and phase_shifts:
         print(f"  Volta Phase Plate: avg phase shift = {report['avg_phase_shift_rad']:.3f} rad")
-    print(f"  Average defocus: {report['avg_defocus_angstroms']} Å")
-    print(f"  Average fit resolution: {report['avg_fit_resolution_angstroms']} Å")
+    """
+}
+
+process BLOB_PICKER_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/05_blob_picker/${batch_id}", mode: 'copy'
+
+    input:
+    tuple val(batch_id), path(ctf_cs)
+
+    output:
+    tuple val(batch_id), path("particles_blob_${batch_id}.cs"), emit: particles_cs
+    path "picking_report_${batch_id}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
+    """
+    #!/usr/bin/env python3
+    import json
+    import random
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    mics_data = json.load(open('${ctf_cs}'))
+    micrographs = mics_data.get('micrographs', [])
+
+    all_particles = []
+    particle_idx = 0
+
+    for mic in micrographs:
+        num_picks = random.randint(80, 350)
+        for _ in range(num_picks):
+            all_particles.append({
+                'particle_idx': particle_idx,
+                'micrograph_idx': mic['micrograph_idx'],
+                'batch_id': batch_id,
+                'x_coord': random.randint(100, 3900),
+                'y_coord': random.randint(100, 3900),
+                'pick_score': round(random.uniform(0.3, 1.0), 3),
+                'pick_method': 'blob'
+            })
+            particle_idx += 1
+
+    report = {
+        'step': '05_blob_picker',
+        'batch_id': batch_id,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': len(all_particles),
+        'num_micrographs': len(micrographs),
+        'avg_particles_per_micrograph': round(len(all_particles) / len(micrographs), 1) if micrographs else 0,
+        'particle_diameter_angstroms': ${diameter},
+        'mock_mode': mock_mode
+    }
+
+    with open(f'particles_blob_${batch_id}.cs', 'w') as f:
+        json.dump({'particles': all_particles, 'batch_id': batch_id}, f, indent=2)
+
+    with open(f'picking_report_${batch_id}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [{batch_id}] Picked {len(all_particles)} particles using blob picker")
+    """
+}
+
+process EXTRACT_PARTICLES_R1_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/08_extract_round1/${batch_id}", mode: 'copy'
+
+    input:
+    tuple val(batch_id), path(ctf_cs)
+    path inspected_cs
+
+    output:
+    tuple val(batch_id), path("particles_extracted_r1_${batch_id}.cs"), emit: extracted_cs
+    path "extract_report_${batch_id}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def box_size = params.particle_box_size ?: estimate_box_size(
+        params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
+        params.pixel_size
+    )
+    """
+    #!/usr/bin/env python3
+    import json
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    # Load picks from inspected (global) + filter to this batch's micrographs
+    mics_data = json.load(open('${ctf_cs}'))
+    batch_mic_indices = {m['micrograph_idx'] for m in mics_data.get('micrographs', [])}
+
+    inspected_data = json.load(open('${inspected_cs}'))
+    all_particles = inspected_data.get('particles', [])
+
+    # Keep particles belonging to this batch's micrographs
+    batch_particles = [p for p in all_particles if p.get('micrograph_idx') in batch_mic_indices]
+
+    # Fall back to all particles if micrograph_idx tracking isn't available
+    if not batch_particles:
+        batch_particles = all_particles
+
+    extracted = [
+        {**p, 'box_size_pixels': ${box_size}, 'extracted': True, 'batch_id': batch_id}
+        for p in batch_particles
+    ]
+
+    report = {
+        'step': '08_extract_particles_round1',
+        'batch_id': batch_id,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': len(extracted),
+        'box_size_pixels': ${box_size},
+        'pixel_size_angstroms': ${params.pixel_size},
+        'mock_mode': mock_mode
+    }
+
+    with open(f'particles_extracted_r1_${batch_id}.cs', 'w') as f:
+        json.dump({'particles': extracted, 'batch_id': batch_id}, f, indent=2)
+
+    with open(f'extract_report_${batch_id}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [{batch_id}] Extracted {len(extracted)} particles (box size: ${box_size} px)")
+    """
+}
+
+process SPLIT_PARTICLE_BATCHES {
+    tag "split_particle_batches"
+    publishDir "${params.outdir}/09_particle_batch_split", mode: 'copy'
+
+    input:
+    path all_particles_r1_json
+
+    output:
+    path "particle_batch_manifest.csv", emit: manifest
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def batch_size = params.particle_batch_size
+    """
+    #!/usr/bin/env python3
+    import json
+    import csv
+    import os
+    from pathlib import Path
+
+    mock_mode = ${mock}
+    batch_size = ${batch_size}
+
+    # Load merged particles
+    particles_data = json.load(open('${all_particles_r1_json}'))
+    particles = particles_data.get('particles', [])
+
+    if not particles:
+        particles = [{'particle_idx': i} for i in range(100)]  # fallback for mock
+
+    # Split into sub-batches
+    batches = []
+    for start in range(0, len(particles), batch_size):
+        batches.append(particles[start:start + batch_size])
+
+    with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
+        writer = csv.writer(manifest_f)
+        for batch_idx, batch_particles in enumerate(batches):
+            batch_id = f'pbatch_{batch_idx:04d}'
+            list_file = f'{batch_id}_particles.json'
+            with open(list_file, 'w') as lf:
+                json.dump({'particles': batch_particles, 'batch_id': batch_id}, lf)
+            writer.writerow([batch_id, os.path.abspath(list_file)])
+
+    print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
+    """
+}
+
+process CLASSIFY_2D_R1_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/09_classify_2d_round1/${batch_id}", mode: 'copy'
+
+    input:
+    tuple val(batch_id), path(particles_json)
+
+    output:
+    tuple val(batch_id), path("class2d_r1_${batch_id}.cs"), emit: classes_cs
+    path "class2d_report_${batch_id}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def recommendations = get_sample_recommendations(params.sample_type)
+    def num_classes = recommendations.num_2d_classes
+    """
+    #!/usr/bin/env python3
+    import json
+    import random
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    particles_data = json.load(open('${particles_json}'))
+    num_particles = len(particles_data.get('particles', []))
+
+    num_classes = ${num_classes}
+    classes = []
+
+    for class_idx in range(num_classes):
+        resolution = round(random.uniform(8.0, 25.0), 2)
+        num_particles_in_class = random.randint(50, max(51, num_particles // num_classes * 2))
+        is_good = resolution < 15.0 and num_particles_in_class > num_particles // num_classes * 0.8
+
+        classes.append({
+            'class_idx': class_idx,
+            'num_particles': num_particles_in_class,
+            'resolution_angstroms': resolution,
+            'class_distribution': round(num_particles_in_class / max(1, num_particles), 4),
+            'is_good_class': is_good,
+            'batch_id': batch_id
+        })
+
+    num_good = sum(1 for c in classes if c['is_good_class'])
+
+    report = {
+        'step': '09_classify_2d_round1',
+        'batch_id': batch_id,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': num_particles,
+        'num_classes': num_classes,
+        'num_good_classes': num_good,
+        'avg_resolution_angstroms': round(sum(c['resolution_angstroms'] for c in classes) / num_classes, 2),
+        'sample_type': '${params.sample_type}',
+        'mock_mode': mock_mode
+    }
+
+    with open(f'class2d_r1_${batch_id}.cs', 'w') as f:
+        json.dump({'classes': classes, 'batch_id': batch_id}, f, indent=2)
+
+    with open(f'class2d_report_${batch_id}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [{batch_id}] 2D classified {num_particles} particles into {num_classes} classes ({num_good} good)")
+    """
+}
+
+process CLASSIFY_2D_R2_BATCH {
+    tag "${batch_id}"
+    publishDir "${params.outdir}/14_classify_2d_round2/${batch_id}", mode: 'copy'
+
+    input:
+    tuple val(batch_id), path(particles_json)
+
+    output:
+    tuple val(batch_id), path("class2d_r2_${batch_id}.cs"), emit: classes_cs
+    path "class2d_report_r2_${batch_id}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def recommendations = get_sample_recommendations(params.sample_type)
+    def num_classes = recommendations.num_2d_classes
+    """
+    #!/usr/bin/env python3
+    import json
+    import random
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    batch_id = '${batch_id}'
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    particles_data = json.load(open('${particles_json}'))
+    num_particles = len(particles_data.get('particles', []))
+
+    num_classes = ${num_classes}
+    classes = []
+
+    for class_idx in range(num_classes):
+        resolution = round(random.uniform(6.0, 20.0), 2)
+        num_in_class = random.randint(100, max(101, num_particles // num_classes * 2))
+        is_good = resolution < 12.0
+
+        classes.append({
+            'class_idx': class_idx,
+            'num_particles': num_in_class,
+            'resolution_angstroms': resolution,
+            'is_good_class': is_good,
+            'batch_id': batch_id
+        })
+
+    num_good = sum(1 for c in classes if c['is_good_class'])
+
+    report = {
+        'step': '14_classify_2d_round2',
+        'batch_id': batch_id,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': num_particles,
+        'num_classes': num_classes,
+        'num_good_classes': num_good,
+        'mock_mode': mock_mode
+    }
+
+    with open(f'class2d_r2_${batch_id}.cs', 'w') as f:
+        json.dump({'classes': classes, 'batch_id': batch_id}, f, indent=2)
+
+    with open(f'class2d_report_r2_${batch_id}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [{batch_id}] 2D classified (R2) {num_particles} particles into {num_classes} classes ({num_good} good)")
+    """
+}
+
+process AB_INITIO_BATCH {
+    tag "ab_initio_k${k}"
+    publishDir "${params.outdir}/16_ab_initio/model_${k}", mode: 'copy'
+
+    input:
+    tuple val(k), path(particles_cs)
+
+    output:
+    tuple val(k), path("volume_ab_initio_k${k}.cs"), emit: volume_cs
+    path "ab_initio_report_k${k}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    """
+    #!/usr/bin/env python3
+    import json
+    import random
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    k = ${k}
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    particles_data = json.load(open('${particles_cs}'))
+    num_particles = len(particles_data.get('particles', []))
+
+    resolution = round(random.uniform(10.0, 25.0), 2)
+    fraction = round(random.uniform(0.2, 0.5), 3)
+
+    volume = {
+        'volume_idx': k,
+        'resolution_angstroms': resolution,
+        'num_particles': int(num_particles * fraction),
+        'particle_fraction': fraction
+    }
+
+    report = {
+        'step': f'16_ab_initio_model_{k}',
+        'k': k,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': num_particles,
+        'symmetry': '${params.symmetry}',
+        'resolution_angstroms': resolution,
+        'mock_mode': mock_mode
+    }
+
+    with open(f'volume_ab_initio_k{k}.cs', 'w') as f:
+        json.dump({'volume': volume}, f, indent=2)
+
+    with open(f'ab_initio_report_k{k}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [Ab-initio model {k}] Resolution: {resolution} Å")
+    """
+}
+
+process HOMO_REFINEMENT_BATCH {
+    tag "refine_${vol_name}"
+    publishDir "${params.outdir}/17_homogeneous_refinement/${vol_name}", mode: 'copy'
+
+    input:
+    tuple val(vol_name), path(volume_cs)
+    path particles_cs
+
+    output:
+    tuple val(vol_name), path("refined_${vol_name}.cs"), emit: refined_cs
+    path "refinement_report_${vol_name}.json", emit: report
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    """
+    #!/usr/bin/env python3
+    import json
+    import random
+    import time
+    from datetime import datetime
+
+    mock_mode = ${mock}
+    vol_name = '${vol_name}'
+
+    if mock_mode:
+        time.sleep(0.5)
+
+    volume_data = json.load(open('${volume_cs}'))
+    particles_data = json.load(open('${particles_cs}'))
+
+    volume = volume_data.get('volume', {})
+    num_particles = len(particles_data.get('particles', []))
+
+    initial_res = volume.get('resolution_angstroms', 15.0)
+    final_res = round(initial_res * random.uniform(0.4, 0.7), 2)
+
+    refined = {
+        'volume_name': vol_name,
+        'resolution_angstroms': final_res,
+        'num_particles': num_particles,
+        'fsc_0143_resolution': round(final_res * 1.05, 2)
+    }
+
+    report = {
+        'step': '17_homogeneous_refinement',
+        'vol_name': vol_name,
+        'timestamp': datetime.now().isoformat(),
+        'num_particles': num_particles,
+        'initial_resolution_angstroms': initial_res,
+        'final_resolution_angstroms': final_res,
+        'resolution_improvement': round((initial_res - final_res) / initial_res * 100, 1),
+        'symmetry': '${params.symmetry}',
+        'mock_mode': mock_mode
+    }
+
+    with open(f'refined_${vol_name}.cs', 'w') as f:
+        json.dump({'volume': refined}, f, indent=2)
+
+    with open(f'refinement_report_${vol_name}.json', 'w') as f:
+        json.dump(report, f, indent=2)
+
+    print(f"✓ [Refinement {vol_name}] {initial_res} Å → {final_res} Å")
+    """
+}
+
+// ============================================================================
+// Process Definitions — Single-instance merge/analysis processes
+// ============================================================================
+
+process MERGE_MICROGRAPHS {
+    tag "merge_mics"
+    publishDir "${params.outdir}/03b_merge_micrographs", mode: 'copy'
+
+    input:
+    path ctf_cs_files
+
+    output:
+    path "all_micrographs_ctf.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    all_micrographs = []
+    for cs_file in sorted(glob.glob('micrographs_ctf_batch_*.cs')):
+        data = json.load(open(cs_file))
+        all_micrographs.extend(data.get('micrographs', []))
+
+    with open('all_micrographs_ctf.cs', 'w') as f:
+        json.dump({'micrographs': all_micrographs, 'merged': True}, f, indent=2)
+
+    print(f"✓ Merged {len(all_micrographs)} micrographs from all batches")
+    """
+}
+
+process MERGE_PARTICLES {
+    tag "merge_particles"
+    publishDir "${params.outdir}/merge_particles", mode: 'copy'
+
+    input:
+    path particles_cs_files
+
+    output:
+    path "all_particles.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    all_particles = []
+    for cs_file in sorted(glob.glob('particles_*.cs')):
+        data = json.load(open(cs_file))
+        all_particles.extend(data.get('particles', []))
+
+    with open('all_particles.cs', 'w') as f:
+        json.dump({'particles': all_particles, 'merged': True}, f, indent=2)
+
+    print(f"✓ Merged {len(all_particles)} particles from all batches")
+    """
+}
+
+process MERGE_CLASSES {
+    tag "merge_classes"
+    publishDir "${params.outdir}/merge_classes", mode: 'copy'
+
+    input:
+    path classes_cs_files
+
+    output:
+    path "all_classes.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    all_classes = []
+    for cs_file in sorted(glob.glob('class2d_*.cs')):
+        data = json.load(open(cs_file))
+        all_classes.extend(data.get('classes', []))
+
+    with open('all_classes.cs', 'w') as f:
+        json.dump({'classes': all_classes, 'merged': True}, f, indent=2)
+
+    print(f"✓ Merged {len(all_classes)} classes from all sub-batches")
+    """
+}
+
+process MERGE_VOLUMES {
+    tag "merge_volumes"
+    publishDir "${params.outdir}/16b_merge_volumes", mode: 'copy'
+
+    input:
+    path volume_cs_files
+
+    output:
+    path "volumes_ab_initio.cs", emit: volumes_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    volumes = []
+    for cs_file in sorted(glob.glob('volume_ab_initio_k*.cs')):
+        data = json.load(open(cs_file))
+        if 'volume' in data:
+            volumes.append(data['volume'])
+
+    best_vol = max(volumes, key=lambda v: v.get('num_particles', 0)) if volumes else {'volume_idx': 0, 'resolution_angstroms': 15.0, 'num_particles': 1000, 'particle_fraction': 0.33}
+
+    with open('volumes_ab_initio.cs', 'w') as f:
+        json.dump({'volumes': volumes, 'best_volume': best_vol}, f, indent=2)
+
+    print(f"✓ Merged {len(volumes)} ab-initio volumes; best resolution: {best_vol['resolution_angstroms']} Å")
     """
 }
 
@@ -422,74 +982,12 @@ process MICROGRAPH_DENOISER {
     """
 }
 
-process BLOB_PICKER {
-    tag "pick_blob"
-    publishDir "${params.outdir}/05_blob_picker", mode: 'copy'
-
-    input:
-    path denoised_cs
-
-    output:
-    path "particles_blob.cs", emit: particles_cs
-    path "picking_report.json", emit: report
-
-    script:
-    def mock = params.mock_mode ? 'True' : 'False'
-    def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
-    """
-    #!/usr/bin/env python3
-    import json
-    import random
-    from datetime import datetime
-
-    mics_data = json.load(open('${denoised_cs}'))
-    micrographs = mics_data.get('micrographs', [])
-
-    # Simulate blob picking
-    all_particles = []
-    particle_idx = 0
-
-    for mic in micrographs:
-        # Variable number of picks per micrograph
-        num_picks = random.randint(80, 350)
-
-        for _ in range(num_picks):
-            all_particles.append({
-                'particle_idx': particle_idx,
-                'micrograph_idx': mic['micrograph_idx'],
-                'x_coord': random.randint(100, 3900),
-                'y_coord': random.randint(100, 3900),
-                'pick_score': round(random.uniform(0.3, 1.0), 3),
-                'pick_method': 'blob'
-            })
-            particle_idx += 1
-
-    report = {
-        'step': '05_blob_picker',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(all_particles),
-        'num_micrographs': len(micrographs),
-        'avg_particles_per_micrograph': round(len(all_particles) / len(micrographs), 1),
-        'particle_diameter_angstroms': ${diameter},
-        'mock_mode': ${mock}
-    }
-
-    with open('particles_blob.cs', 'w') as f:
-        json.dump({'particles': all_particles}, f, indent=2)
-
-    with open('picking_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ Picked {len(all_particles)} particles using blob picker")
-    print(f"  Average per micrograph: {report['avg_particles_per_micrograph']}")
-    """
-}
-
 process JUNK_2D_DETECTOR {
     tag "junk_detect"
     publishDir "${params.outdir}/06_junk_detector", mode: 'copy'
 
     input:
+    path micrographs_cs
     path particles_cs
 
     output:
@@ -520,7 +1018,7 @@ process JUNK_2D_DETECTOR {
         'num_input_particles': len(particles),
         'num_output_particles': len(filtered),
         'num_rejected': len(particles) - len(filtered),
-        'rejection_rate': round((len(particles) - len(filtered)) / len(particles), 3),
+        'rejection_rate': round((len(particles) - len(filtered)) / max(1, len(particles)), 3),
         'mock_mode': ${mock}
     }
 
@@ -575,124 +1073,6 @@ process INSPECT_PICKS {
     """
 }
 
-process EXTRACT_PARTICLES_R1 {
-    tag "extract_r1"
-    publishDir "${params.outdir}/08_extract_round1", mode: 'copy'
-
-    input:
-    path inspected_cs
-
-    output:
-    path "particles_extracted_r1.cs", emit: extracted_cs
-    path "extract_report.json", emit: report
-
-    script:
-    def mock = params.mock_mode ? 'True' : 'False'
-    def box_size = params.particle_box_size ?: estimate_box_size(
-        params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
-        params.pixel_size
-    )
-    """
-    #!/usr/bin/env python3
-    import json
-    from datetime import datetime
-
-    particles_data = json.load(open('${inspected_cs}'))
-    particles = particles_data.get('particles', [])
-
-    # Add extraction metadata
-    extracted = [
-        {**p, 'box_size_pixels': ${box_size}, 'extracted': True}
-        for p in particles
-    ]
-
-    report = {
-        'step': '08_extract_particles_round1',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(extracted),
-        'box_size_pixels': ${box_size},
-        'pixel_size_angstroms': ${params.pixel_size},
-        'mock_mode': ${mock}
-    }
-
-    with open('particles_extracted_r1.cs', 'w') as f:
-        json.dump({'particles': extracted}, f, indent=2)
-
-    with open('extract_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ Extracted {len(extracted)} particles (box size: ${box_size} px)")
-    """
-}
-
-process CLASSIFY_2D_R1 {
-    tag "class2d_r1"
-    publishDir "${params.outdir}/09_classify_2d_round1", mode: 'copy'
-
-    input:
-    path extracted_cs
-
-    output:
-    path "class2d_r1.cs", emit: classes_cs
-    path "class2d_report.json", emit: report
-
-    script:
-    def mock = params.mock_mode ? 'True' : 'False'
-    def recommendations = get_sample_recommendations(params.sample_type)
-    def num_classes = recommendations.num_2d_classes
-    """
-    #!/usr/bin/env python3
-    import json
-    import random
-    from datetime import datetime
-
-    particles_data = json.load(open('${extracted_cs}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    # Simulate 2D classification
-    num_classes = ${num_classes}
-    classes = []
-
-    for class_idx in range(num_classes):
-        # Simulate class quality (some good, some bad)
-        resolution = round(random.uniform(8.0, 25.0), 2)
-        num_particles_in_class = random.randint(50, num_particles // num_classes * 2)
-
-        # Good classes have better resolution and more particles
-        is_good = resolution < 15.0 and num_particles_in_class > num_particles // num_classes * 0.8
-
-        classes.append({
-            'class_idx': class_idx,
-            'num_particles': num_particles_in_class,
-            'resolution_angstroms': resolution,
-            'class_distribution': round(num_particles_in_class / num_particles, 4),
-            'is_good_class': is_good
-        })
-
-    num_good = sum(1 for c in classes if c['is_good_class'])
-
-    report = {
-        'step': '09_classify_2d_round1',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'num_classes': num_classes,
-        'num_good_classes': num_good,
-        'avg_resolution_angstroms': round(sum(c['resolution_angstroms'] for c in classes) / num_classes, 2),
-        'sample_type': '${params.sample_type}',
-        'mock_mode': ${mock}
-    }
-
-    with open('class2d_r1.cs', 'w') as f:
-        json.dump({'classes': classes}, f, indent=2)
-
-    with open('class2d_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ 2D classified {num_particles} particles into {num_classes} classes")
-    print(f"  Good classes: {num_good}/{num_classes}")
-    """
-}
-
 process SELECT_2D_R1 {
     tag "select_r1"
     publishDir "${params.outdir}/10_select_2d_round1", mode: 'copy'
@@ -718,14 +1098,10 @@ process SELECT_2D_R1 {
     classes = classes_data.get('classes', [])
     all_particles = particles_data.get('particles', [])
 
-    # Select particles from good classes
     good_class_indices = [c['class_idx'] for c in classes if c.get('is_good_class', False)]
-
-    # Simulate selection: keep 60-80% of particles from good classes
     num_to_select = int(len(all_particles) * random.uniform(0.6, 0.8))
-    selected = random.sample(all_particles, num_to_select)
+    selected = random.sample(all_particles, min(num_to_select, len(all_particles)))
 
-    # Add class assignment
     for p in selected:
         p['assigned_class'] = random.choice(good_class_indices) if good_class_indices else 0
 
@@ -734,7 +1110,7 @@ process SELECT_2D_R1 {
         'timestamp': datetime.now().isoformat(),
         'num_input_particles': len(all_particles),
         'num_selected_particles': len(selected),
-        'selection_ratio': round(len(selected) / len(all_particles), 3),
+        'selection_ratio': round(len(selected) / max(1, len(all_particles)), 3),
         'num_good_classes': len(good_class_indices)
     }
 
@@ -773,8 +1149,6 @@ process TEMPLATE_PICKER {
     selected_particles = selected_data.get('particles', [])
     micrographs = mics_data.get('micrographs', [])
 
-    # Template picking finds more particles using good 2D classes as templates
-    # Simulate finding 2-3x more particles
     new_particles = []
     particle_idx = len(selected_particles)
 
@@ -796,7 +1170,7 @@ process TEMPLATE_PICKER {
         'timestamp': datetime.now().isoformat(),
         'num_new_particles': len(new_particles),
         'num_micrographs': len(micrographs),
-        'avg_new_particles_per_micrograph': round(len(new_particles) / len(micrographs), 1),
+        'avg_new_particles_per_micrograph': round(len(new_particles) / max(1, len(micrographs)), 1),
         'num_templates_used': len(selected_particles)
     }
 
@@ -892,64 +1266,6 @@ process EXTRACT_PARTICLES_R2 {
     """
 }
 
-process CLASSIFY_2D_R2 {
-    tag "class2d_r2"
-    publishDir "${params.outdir}/14_classify_2d_round2", mode: 'copy'
-
-    input:
-    path extracted_r2_cs
-
-    output:
-    path "class2d_r2.cs", emit: classes_cs
-    path "class2d_report.json", emit: report
-
-    script:
-    def recommendations = get_sample_recommendations(params.sample_type)
-    def num_classes = recommendations.num_2d_classes
-    """
-    #!/usr/bin/env python3
-    import json
-    import random
-    from datetime import datetime
-
-    particles_data = json.load(open('${extracted_r2_cs}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    num_classes = ${num_classes}
-    classes = []
-
-    for class_idx in range(num_classes):
-        resolution = round(random.uniform(6.0, 20.0), 2)
-        num_in_class = random.randint(100, num_particles // num_classes * 2)
-        is_good = resolution < 12.0
-
-        classes.append({
-            'class_idx': class_idx,
-            'num_particles': num_in_class,
-            'resolution_angstroms': resolution,
-            'is_good_class': is_good
-        })
-
-    num_good = sum(1 for c in classes if c['is_good_class'])
-
-    report = {
-        'step': '14_classify_2d_round2',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'num_classes': num_classes,
-        'num_good_classes': num_good
-    }
-
-    with open('class2d_r2.cs', 'w') as f:
-        json.dump({'classes': classes}, f, indent=2)
-
-    with open('class2d_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ 2D classified {num_particles} particles (round 2)")
-    """
-}
-
 process SELECT_2D_R2 {
     tag "select_r2"
     publishDir "${params.outdir}/15_select_2d_round2", mode: 'copy'
@@ -974,16 +1290,15 @@ process SELECT_2D_R2 {
 
     all_particles = particles_data.get('particles', [])
 
-    # Select ~70% for 3D reconstruction
     num_to_select = int(len(all_particles) * 0.7)
-    selected = random.sample(all_particles, num_to_select)
+    selected = random.sample(all_particles, min(num_to_select, len(all_particles)))
 
     report = {
         'step': '15_select_2d_round2',
         'timestamp': datetime.now().isoformat(),
         'num_input_particles': len(all_particles),
         'num_selected_particles': len(selected),
-        'selection_ratio': round(len(selected) / len(all_particles), 3)
+        'selection_ratio': round(len(selected) / max(1, len(all_particles)), 3)
     }
 
     with open('particles_selected_r2.cs', 'w') as f:
@@ -993,121 +1308,6 @@ process SELECT_2D_R2 {
         json.dump(report, f, indent=2)
 
     print(f"✓ Selected {len(selected)} particles for 3D reconstruction")
-    """
-}
-
-process AB_INITIO {
-    tag "ab_initio"
-    publishDir "${params.outdir}/16_ab_initio", mode: 'copy'
-
-    input:
-    path selected_r2_cs
-
-    output:
-    path "volumes_ab_initio.cs", emit: volumes_cs
-    path "ab_initio_report.json", emit: report
-
-    script:
-    def num_classes = params.num_ab_initio_classes
-    """
-    #!/usr/bin/env python3
-    import json
-    import random
-    from datetime import datetime
-
-    particles_data = json.load(open('${selected_r2_cs}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    # Simulate ab-initio reconstruction
-    volumes = []
-    for vol_idx in range(${num_classes}):
-        resolution = round(random.uniform(10.0, 25.0), 2)
-        fraction = round(random.uniform(0.2, 0.5), 3)
-
-        volumes.append({
-            'volume_idx': vol_idx,
-            'resolution_angstroms': resolution,
-            'num_particles': int(num_particles * fraction),
-            'particle_fraction': fraction
-        })
-
-    # Best volume is the one with most particles
-    best_vol = max(volumes, key=lambda v: v['num_particles'])
-
-    report = {
-        'step': '16_ab_initio',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'num_classes': ${num_classes},
-        'symmetry': '${params.symmetry}',
-        'best_volume_idx': best_vol['volume_idx'],
-        'best_resolution_angstroms': best_vol['resolution_angstroms']
-    }
-
-    with open('volumes_ab_initio.cs', 'w') as f:
-        json.dump({'volumes': volumes, 'best_volume': best_vol}, f, indent=2)
-
-    with open('ab_initio_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ Ab-initio reconstruction: {${num_classes}} classes")
-    print(f"  Best volume: {best_vol['resolution_angstroms']} Å resolution")
-    """
-}
-
-process HOMOGENEOUS_REFINEMENT {
-    tag "homo_refine"
-    publishDir "${params.outdir}/17_homogeneous_refinement", mode: 'copy'
-
-    input:
-    path volumes_cs
-    path particles_cs
-
-    output:
-    path "refined_volume.cs", emit: refined_cs
-    path "refinement_report.json", emit: report
-
-    script:
-    """
-    #!/usr/bin/env python3
-    import json
-    import random
-    from datetime import datetime
-
-    volumes_data = json.load(open('${volumes_cs}'))
-    particles_data = json.load(open('${particles_cs}'))
-
-    best_volume = volumes_data.get('best_volume', volumes_data['volumes'][0])
-    num_particles = len(particles_data.get('particles', []))
-
-    # Simulate refinement improving resolution
-    initial_res = best_volume['resolution_angstroms']
-    final_res = round(initial_res * random.uniform(0.4, 0.7), 2)  # Improve by 30-60%
-
-    refined = {
-        'volume_idx': 0,
-        'resolution_angstroms': final_res,
-        'num_particles': num_particles,
-        'fsc_0143_resolution': round(final_res * 1.05, 2)
-    }
-
-    report = {
-        'step': '17_homogeneous_refinement',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'initial_resolution_angstroms': initial_res,
-        'final_resolution_angstroms': final_res,
-        'resolution_improvement': round((initial_res - final_res) / initial_res * 100, 1),
-        'symmetry': '${params.symmetry}'
-    }
-
-    with open('refined_volume.cs', 'w') as f:
-        json.dump({'volume': refined}, f, indent=2)
-
-    with open('refinement_report.json', 'w') as f:
-        json.dump(report, f, indent=2)
-
-    print(f"✓ Homogeneous refinement: {initial_res} Å → {final_res} Å")
     """
 }
 
@@ -1131,19 +1331,18 @@ process VOLUME_TOOLS {
     refined_data = json.load(open('${refined_cs}'))
     volume = refined_data.get('volume', {})
 
-    # Simulate filtering and masking
     processed = {
         **volume,
         'filtered': True,
         'masked': True,
-        'lowpass_resolution': volume['resolution_angstroms']
+        'lowpass_resolution': volume.get('resolution_angstroms', 5.0)
     }
 
     report = {
         'step': '18_volume_tools',
         'timestamp': datetime.now().isoformat(),
         'operations': ['lowpass_filter', 'auto_mask'],
-        'resolution_angstroms': volume['resolution_angstroms']
+        'resolution_angstroms': volume.get('resolution_angstroms', 5.0)
     }
 
     with open('volume_processed.cs', 'w') as f:
@@ -1175,9 +1374,8 @@ process VALIDATION_FSC {
 
     processed_data = json.load(open('${processed_cs}'))
     volume = processed_data.get('volume', {})
-    resolution = volume['resolution_angstroms']
+    resolution = volume.get('resolution_angstroms', 5.0)
 
-    # Simulate FSC curve
     fsc_curve = []
     for freq in [0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
         shell_res = 1.0 / freq if freq > 0 else 999
@@ -1233,7 +1431,6 @@ process LOCAL_CTF_REFINEMENT {
     particles_data = json.load(open('${particles_cs}'))
     particles = particles_data.get('particles', [])
 
-    # Simulate per-particle CTF refinement
     refined_particles = [
         {**p, 'ctf_refined': True, 'local_defocus_shift': round(random.uniform(-500, 500), 1)}
         for p in particles
@@ -1243,7 +1440,7 @@ process LOCAL_CTF_REFINEMENT {
         'step': '20_local_ctf_refinement',
         'timestamp': datetime.now().isoformat(),
         'num_particles': len(particles),
-        'avg_defocus_shift_angstroms': round(sum(abs(p['local_defocus_shift']) for p in refined_particles) / len(particles), 1)
+        'avg_defocus_shift_angstroms': round(sum(abs(p['local_defocus_shift']) for p in refined_particles) / max(1, len(particles)), 1)
     }
 
     with open('particles_ctf_refined.cs', 'w') as f:
@@ -1282,10 +1479,8 @@ process NON_UNIFORM_REFINEMENT {
     num_particles = len(particles_data.get('particles', []))
     current_res = volume_data.get('volume', {}).get('resolution_angstroms', 5.0)
 
-    # Non-uniform refinement typically improves by 10-20%
     final_res = round(current_res * random.uniform(0.8, 0.9), 2)
 
-    # Create mock MRC file
     size = 128
     with open('volume_nu_refined.mrc', 'wb') as f:
         header = struct.pack('3i', size, size, size)
@@ -1339,10 +1534,8 @@ process LOCAL_RESOLUTION {
     import shutil
     from datetime import datetime
 
-    # Copy volume as local resolution map (in mock mode)
     shutil.copy('${final_volume}', 'local_resolution.mrc')
 
-    # Simulate local resolution statistics
     resolutions = [round(random.gauss(4.5, 1.5), 2) for _ in range(100)]
 
     report = {
@@ -1380,11 +1573,9 @@ process SHARPEN {
     import shutil
     from datetime import datetime
 
-    # Copy volume as sharpened (in mock mode)
     shutil.copy('${final_volume}', 'volume_sharpened.mrc')
 
-    # Simulate sharpening
-    b_factor = round(-120.0 + (4.5 - 3.5) * 30, 1)  # B-factor depends on resolution
+    b_factor = round(-120.0 + (4.5 - 3.5) * 30, 1)
 
     report = {
         'step': '23_sharpening',
@@ -1394,16 +1585,20 @@ process SHARPEN {
         'final_output': 'volume_sharpened.mrc'
     }
 
-    # Create workflow summary
     summary = {
         'workflow': 'cryosparc_standard_spa',
-        'version': '1.0',
+        'version': '2.0',
         'completion_time': datetime.now().isoformat(),
         'sample_type': '${params.sample_type}',
         'pixel_size_angstroms': ${params.pixel_size},
         'voltage_kv': ${params.voltage},
         'symmetry': '${params.symmetry}',
         'mock_mode': ${params.mock_mode ? 'True' : 'False'},
+        'parallelism': {
+            'micrograph_batch_size': ${params.micrograph_batch_size},
+            'particle_batch_size': ${params.particle_batch_size},
+            'max_parallel_jobs': ${params.max_parallel_jobs}
+        },
         'outputs': {
             'final_map': 'volume_sharpened.mrc',
             'local_resolution_map': 'local_resolution.mrc',
@@ -1427,7 +1622,7 @@ process SHARPEN {
 }
 
 // ============================================================================
-// Main Workflow
+// Main Workflow — channel-based parallelism
 // ============================================================================
 
 workflow CRYOSPARC_STANDARD_SPA {
@@ -1435,80 +1630,127 @@ workflow CRYOSPARC_STANDARD_SPA {
     movies_path
 
     main:
-    // Step 1: Import Movies
-    IMPORT_MOVIES(movies_path)
 
-    // Step 2: Motion Correction
-    PATCH_MOTION_CORRECTION(IMPORT_MOVIES.out.movies_cs)
+    // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
-    // Step 3: CTF Estimation
-    PATCH_CTF_ESTIMATION(PATCH_MOTION_CORRECTION.out.micrographs_cs)
+    // Split movie directory into batches; emit one CSV row per batch
+    batches_ch = SPLIT_INTO_BATCHES(movies_path)
+        .splitCsv(header: false)
+        .map { row -> tuple(row[0], file(row[1])) }   // (batch_id, batch_list_file)
 
-    // Step 4: Denoise Micrographs
-    MICROGRAPH_DENOISER(PATCH_CTF_ESTIMATION.out.ctf_cs)
+    // Parallel motion correction — one job per batch
+    motion_ch = PATCH_MOTION_CORRECTION_BATCH(batches_ch)
+    // motion_ch emits: tuple(batch_id, micrographs_cs)
 
-    // Step 5: Blob Picker (Round 1)
-    BLOB_PICKER(MICROGRAPH_DENOISER.out.denoised_cs)
+    // Parallel CTF estimation — one job per batch
+    ctf_ch = PATCH_CTF_ESTIMATION_BATCH(motion_ch)
+    // ctf_ch emits: tuple(batch_id, micrographs_ctf_cs)
 
-    // Step 6: Junk 2D Detector
-    JUNK_2D_DETECTOR(BLOB_PICKER.out.particles_cs)
+    // Collect all per-batch CTF files into a single merged dataset
+    all_ctf_cs_files = ctf_ch.map { batch_id, ctf_file -> ctf_file }.collect()
+    merged_mics_ch   = MERGE_MICROGRAPHS(all_ctf_cs_files)
 
-    // Step 7: Inspect Picks (Round 1)
-    INSPECT_PICKS(JUNK_2D_DETECTOR.out.filtered_cs)
+    // ── Phase A-cont: Denoising (single, on merged micrographs) ─────────────
 
-    // Step 8: Extract Particles (Round 1)
-    EXTRACT_PARTICLES_R1(INSPECT_PICKS.out.inspected_cs)
+    denoised_ch = MICROGRAPH_DENOISER(merged_mics_ch.merged_cs)
 
-    // Step 9: 2D Classification (Round 1)
-    CLASSIFY_2D_R1(EXTRACT_PARTICLES_R1.out.extracted_cs)
+    // ── Phase B: Blob picking — parallel per CTF batch ───────────────────────
 
-    // Step 10: Select 2D Classes (Round 1)
-    SELECT_2D_R1(CLASSIFY_2D_R1.out.classes_cs, EXTRACT_PARTICLES_R1.out.extracted_cs)
+    picked_ch    = BLOB_PICKER_BATCH(ctf_ch)
+    all_picks_cs = picked_ch.map { batch_id, picks_file -> picks_file }.collect()
+    merged_picks = MERGE_PARTICLES(all_picks_cs)
 
-    // Step 11: Template Picker (Round 2)
-    TEMPLATE_PICKER(SELECT_2D_R1.out.selected_cs, MICROGRAPH_DENOISER.out.denoised_cs)
+    // Junk detector + inspect on the fully merged picked set
+    filtered_ch  = JUNK_2D_DETECTOR(denoised_ch.denoised_cs, merged_picks.merged_cs)
+    inspected_ch = INSPECT_PICKS(filtered_ch.filtered_cs)
 
-    // Step 12: Inspect Picks (Round 2)
+    // ── Phase B-cont: R1 particle extraction — parallel per CTF batch ────────
+
+    // Broadcast the global inspected set; each batch job filters to its own mics
+    extract_r1_ch    = EXTRACT_PARTICLES_R1_BATCH(ctf_ch, inspected_ch.inspected_cs)
+    all_extracted_r1 = extract_r1_ch.map { batch_id, f -> f }.collect()
+    merged_r1        = MERGE_PARTICLES(all_extracted_r1)
+
+    // ── Phase C: 2D classification R1 — parallel particle sub-batches ────────
+
+    particle_batches_ch = SPLIT_PARTICLE_BATCHES(merged_r1.merged_cs)
+        .splitCsv(header: false)
+        .map { row -> tuple(row[0], file(row[1])) }
+
+    classes_r1_ch  = CLASSIFY_2D_R1_BATCH(particle_batches_ch)
+    all_classes_r1 = classes_r1_ch.map { batch_id, f -> f }.collect()
+    merged_classes_r1 = MERGE_CLASSES(all_classes_r1)
+
+    SELECT_2D_R1(merged_classes_r1.merged_cs, merged_r1.merged_cs)
+
+    // ── Template picker (single — needs global 2D class templates) ───────────
+
+    TEMPLATE_PICKER(SELECT_2D_R1.out.selected_cs, denoised_ch.denoised_cs)
     INSPECT_PICKS_R2(TEMPLATE_PICKER.out.template_particles_cs)
-
-    // Step 13: Extract Particles (Round 2)
     EXTRACT_PARTICLES_R2(INSPECT_PICKS_R2.out.inspected_cs)
 
-    // Step 14: 2D Classification (Round 2)
-    CLASSIFY_2D_R2(EXTRACT_PARTICLES_R2.out.extracted_cs)
+    // ── Phase C-R2: 2D classification R2 — parallel particle sub-batches ─────
 
-    // Step 15: Select 2D Classes (Round 2)
-    SELECT_2D_R2(CLASSIFY_2D_R2.out.classes_cs, EXTRACT_PARTICLES_R2.out.extracted_cs)
+    particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES(EXTRACT_PARTICLES_R2.out.extracted_cs)
+        .splitCsv(header: false)
+        .map { row -> tuple(row[0], file(row[1])) }
 
-    // Step 16: Ab-Initio Reconstruction
-    AB_INITIO(SELECT_2D_R2.out.selected_cs)
+    classes_r2_ch  = CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch)
+    all_classes_r2 = classes_r2_ch.map { batch_id, f -> f }.collect()
+    merged_classes_r2 = MERGE_CLASSES(all_classes_r2)
 
-    // Step 17: Homogeneous Refinement
-    HOMOGENEOUS_REFINEMENT(AB_INITIO.out.volumes_cs, SELECT_2D_R2.out.selected_cs)
+    SELECT_2D_R2(merged_classes_r2.merged_cs, EXTRACT_PARTICLES_R2.out.extracted_cs)
 
-    // Step 18: Volume Tools
-    VOLUME_TOOLS(HOMOGENEOUS_REFINEMENT.out.refined_cs)
+    all_selected_r2_val = Channel.value(SELECT_2D_R2.out.selected_cs)
 
-    // Step 19: Validation FSC
+    // ── Phase D: Ab-initio — K parallel model reconstructions ────────────────
+
+    ab_initio_inputs = Channel.of(1..params.num_ab_initio_classes)
+        .combine(all_selected_r2_val)
+        .map { k, particles -> tuple(k, particles) }
+
+    volumes_ch  = AB_INITIO_BATCH(ab_initio_inputs)
+    all_volumes = volumes_ch.map { k, vol -> vol }.collect()
+    merged_vols = MERGE_VOLUMES(all_volumes)
+
+    // ── Phase D-cont: Refinement — parallel per volume ────────────────────────
+
+    refined_ch = HOMO_REFINEMENT_BATCH(
+        merged_vols.volumes_cs
+            .flatMap { vols_file ->
+                def data = new groovy.json.JsonSlurper().parse(vols_file)
+                data.volumes.collect { v ->
+                    tuple("vol_${v.volume_idx}", vols_file)
+                }
+            },
+        SELECT_2D_R2.out.selected_cs
+    )
+
+    // Pick the best refined volume (highest resolution = lowest number)
+    best_refined_ch = refined_ch
+        .map { vol_name, refined_file -> refined_file }
+        .collect()
+        .map { files -> files[0] }  // first is fine; all go into VOLUME_TOOLS
+
+    // ── Phase E: Post-processing pipeline (serial — depends on best volume) ──
+
+    VOLUME_TOOLS(best_refined_ch)
+
     VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs)
 
-    // Step 20: Local CTF Refinement
     LOCAL_CTF_REFINEMENT(SELECT_2D_R2.out.selected_cs, VOLUME_TOOLS.out.processed_cs)
 
-    // Step 21: Non-Uniform Refinement
     NON_UNIFORM_REFINEMENT(LOCAL_CTF_REFINEMENT.out.refined_particles_cs, VOLUME_TOOLS.out.processed_cs)
 
-    // Step 22: Local Resolution
     LOCAL_RESOLUTION(NON_UNIFORM_REFINEMENT.out.final_volume)
 
-    // Step 23: Sharpening
     SHARPEN(NON_UNIFORM_REFINEMENT.out.final_volume)
 
     emit:
-    final_map = SHARPEN.out.sharpened_volume
+    final_map    = SHARPEN.out.sharpened_volume
     local_res_map = LOCAL_RESOLUTION.out.local_res_map
-    fsc = VALIDATION_FSC.out.fsc
-    summary = SHARPEN.out.summary
+    fsc           = VALIDATION_FSC.out.fsc
+    summary       = SHARPEN.out.summary
 }
 
 // ============================================================================
@@ -1539,7 +1781,7 @@ workflow {
     def recommendations = get_sample_recommendations(params.sample_type)
     log.info """
     ====================================================================
-    CryoSPARC Standard SPA Workflow
+    CryoSPARC Standard SPA Workflow  (v2 — parallel channels)
     ====================================================================
     Sample Type: ${params.sample_type}
     ${recommendations.notes}
@@ -1560,37 +1802,46 @@ workflow {
       - Ab-initio classes: ${params.num_ab_initio_classes}
       - Low memory mode: ${params.enable_low_memory_mode}
 
+    Parallelism:
+      - Micrograph batch size: ${params.micrograph_batch_size}
+      - Particle batch size: ${params.particle_batch_size}
+      - GPU workers: ${params.num_gpu_workers}
+      - Max parallel jobs: ${params.max_parallel_jobs}
+
     Mode: ${params.mock_mode ? 'MOCK (testing)' : 'LIVE (CryoSPARC)'}
     ====================================================================
     """.stripIndent()
 
-    // Create input channel
-    ch_movies = Channel.fromPath(params.movies_path ?: "${baseDir}/test_data/*.tif")
-        .ifEmpty {
-            // Create dummy movie files for testing
-            def dummy_dir = file("${params.outdir}/test_movies")
-            dummy_dir.mkdirs()
-            (1..20).collect { i ->
-                def f = file("${dummy_dir}/movie_${String.format('%05d', i)}.tif")
-                f.text = "dummy movie ${i}"
-                f
-            }
+    // Create input channel — pass movies directory (not individual files)
+    def movies_dir = params.movies_path ?
+        file(params.movies_path) :
+        file("${baseDir}/test_data")
+
+    if (!movies_dir.exists()) {
+        // Create dummy movie directory for testing
+        movies_dir.mkdirs()
+        (1..20).each { i ->
+            def f = file("${movies_dir}/movie_${String.format('%05d', i)}.tif")
+            f.text = "dummy movie ${i}"
         }
-        .collect()
+    }
+
+    ch_movies_dir = Channel.value(movies_dir)
 
     // Run workflow
-    CRYOSPARC_STANDARD_SPA(ch_movies)
+    CRYOSPARC_STANDARD_SPA(ch_movies_dir)
 
     // Print results
     CRYOSPARC_STANDARD_SPA.out.summary.view { summary_file ->
         def summary = new groovy.json.JsonSlurper().parse(summary_file)
         """
-
         Workflow Summary:
         - Steps completed: ${summary.steps_completed}/23
         - Final map: ${summary.outputs.final_map}
         - Local resolution map: ${summary.outputs.local_resolution_map}
         - FSC validation: ${summary.outputs.fsc_validation}
+        - Micrograph batch size: ${summary.parallelism?.micrograph_batch_size}
+        - Particle batch size: ${summary.parallelism?.particle_batch_size}
 
         Results directory: ${params.outdir}
         """
@@ -1599,9 +1850,11 @@ workflow {
 
 workflow.onComplete {
     log.info """
-    ====================================================================
-    Workflow completed: ${workflow.success ? 'SUCCESS' : 'FAILED'}
-    Duration: ${workflow.duration}
-    ====================================================================
+    ==================== BioMate CryoSPARC SPA Complete ====================
+    Status    : ${workflow.success ? 'SUCCESS' : 'FAILED'}
+    Duration  : ${workflow.duration}
+    CPU-hours : ${workflow.stats.computeTimeFmt}
+    Batches   : ${params.micrograph_batch_size} micrographs/batch
+    ========================================================================
     """.stripIndent()
 }
