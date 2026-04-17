@@ -85,6 +85,26 @@ const DOMAIN_LABELS: Record<string, string> = {
   cryo_em: "Cryo-EM Processing",
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  // Cryo-EM phases
+  phase_A: "Phase A — Motion Correction & CTF",
+  phase_B: "Phase B — Particle Picking",
+  phase_C: "Phase C — 2D Classification",
+  phase_D: "Phase D — Ab-Initio Model",
+  phase_E: "Phase E — FSC Validation",
+  // Drug discovery
+  phase_1_docking:           "Phase 1 — Docking",
+  phase_2_admet_prediction:  "Phase 2 — ADMET Prediction",
+  phase_3_herg_screen:       "Phase 3 — hERG Screen",
+  phase_4_dili_ames:         "Phase 4 — DILI/Ames",
+  phase_1_cyp_ddi:           "Phase 1 — CYP DDI",
+  phase_1_nca_pk:            "Phase 1 — NCA-PK",
+}
+
+function phaseLabel(phase: string): string {
+  return PHASE_LABELS[phase] ?? phase.replace(/_/g, " ")
+}
+
 const GATE_LABELS: Record<string, string> = {
   // Drug discovery — ADMET
   herg_ic50:                    "hERG IC50 (µM)",
@@ -250,9 +270,12 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
       <CardHeader className="pb-2 flex flex-row items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base">🔬</span>
-          <CardTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200 truncate">
-            Auto-Loop QC — {domain}
-          </CardTitle>
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200 truncate">
+              Auto-Loop QC — {domain}
+            </CardTitle>
+            <p className="text-xs text-blue-700 dark:text-blue-400 truncate">{phaseLabel(gateResults.phase)}</p>
+          </div>
           {levelDot(gateResults.overall_level)}
           <span className="text-xs text-gray-500 dark:text-gray-400">{gateResults.overall_level}</span>
         </div>

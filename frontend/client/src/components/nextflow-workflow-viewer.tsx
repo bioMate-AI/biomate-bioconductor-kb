@@ -1459,14 +1459,6 @@ export function NextflowWorkflowViewer({
           </div>
         </div>
       )}
-      {/* Auto-Loop QC Panel — appears when backend emits autoloop_* SSE events */}
-      {autoLoopPanel.gateResults && (
-        <AutoLoopPanel
-          state={autoLoopPanel}
-          onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
-        />
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -1485,6 +1477,16 @@ export function NextflowWorkflowViewer({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Auto-Loop QC Panel — appears inline within the workflow card when backend emits autoloop_* SSE events */}
+          {autoLoopPanel.gateResults && (
+            <div className="mb-4">
+              <AutoLoopPanel
+                state={autoLoopPanel}
+                onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
+              />
+            </div>
+          )}
+
           {/* Completion banner — shown when workflow reaches terminal success state */}
           {status === 'completed' && (
             <div
