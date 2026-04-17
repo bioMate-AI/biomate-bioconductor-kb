@@ -4,7 +4,6 @@ import type { ChatSession, Message, DatasetConfig, WorkflowStepWithDatasets } fr
 const BACKEND_SYNC_ENABLED = import.meta.env.VITE_ENABLE_BACKEND_SYNC !== 'false';
 // Default to same-origin API to avoid browser CORS/CSP issues in dev/test.
 const BACKEND_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
-const API_KEY = import.meta.env.VITE_GALAXY_API_KEY || 'a7e9f73a7c25300e222d27c84efb10f6';
 
 // Sync status type
 type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error';
@@ -49,7 +48,7 @@ class ChatHistoryService {
     try {
       const response = await fetch(`${BACKEND_URL}/api/sessions/${id}`, {
         credentials: 'include',
-        headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+        headers: this.authHeaders(),
       });
       if (response.status === 401 || response.status === 403) {
         this.backendSyncBlocked = true;
@@ -210,10 +209,7 @@ class ChatHistoryService {
         const response = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
           method: 'DELETE',
           credentials: 'include',
-          headers: {
-            'x-api-key': API_KEY,
-            'Content-Type': 'application/json'
-          }
+          headers: this.authHeaders()
         });
 
         if (!response.ok) {
@@ -253,6 +249,29 @@ class ChatHistoryService {
   // ============================================================================
   // BACKEND SYNC METHODS
   // ============================================================================
+
+  /** Read the JWT from wherever auth-context stores it */
+  private getAuthToken(): string | null {
+    // Try localStorage keys used by the auth context
+    for (const key of ['biomate_token', 'biomate-auth-token', 'token']) {
+      const v = localStorage.getItem(key);
+      if (v && v.startsWith('eyJ')) return v;
+    }
+    // Try sessionStorage
+    for (const key of ['biomate_token', 'biomate-auth-token', 'token']) {
+      const v = sessionStorage.getItem(key);
+      if (v && v.startsWith('eyJ')) return v;
+    }
+    return null;
+  }
+
+  private authHeaders(): Record<string, string> {
+    const token = this.getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+  }
 
   /**
    * Get sync status
@@ -317,11 +336,12 @@ class ChatHistoryService {
 
     try {
       this.syncStatus = 'syncing';
+      const token = this.getAuthToken();
       const response = await fetch(`${BACKEND_URL}/api/sessions`, {
         credentials: 'include',
         headers: {
-          'x-api-key': API_KEY,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         }
       });
 
@@ -421,10 +441,7 @@ class ChatHistoryService {
       // Check if session exists on backend
       const checkResponse = await fetch(`${BACKEND_URL}/api/sessions/${sessionId}`, {
         credentials: 'include',
-        headers: {
-          'x-api-key': API_KEY,
-          'Content-Type': 'application/json'
-        }
+        headers: this.authHeaders(),
       });
 
       if (checkResponse.status === 401 || checkResponse.status === 403) {
@@ -443,10 +460,7 @@ class ChatHistoryService {
       const response = await fetch(url, {
         method,
         credentials: 'include',
-        headers: {
-          'x-api-key': API_KEY,
-          'Content-Type': 'application/json'
-        },
+        headers: this.authHeaders(),
         body: JSON.stringify(backendPayload)
       });
 

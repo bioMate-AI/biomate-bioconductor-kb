@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import OpenAI from "openai";
 import { datasetConfigSchema, inviteCodes, inviteCodeUses, executionRunStatusSchema, auditLogs, instrumentEvents } from "../shared/schema";
 import type { InsertInviteCode, ExecutionRunStatus } from "../shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { mockGalaxyAPI } from "./mock-galaxy-api";
 import { GalaxyAPIProxy } from "./galaxy-api-proxy";
@@ -6918,11 +6918,14 @@ Extract every real number from the output data. A reviewer should be able to ver
                 return;
               }
               const s = await statusResp.json();
-              console.log(`[CryoSPARC Poller] run=${csRunId} status=${s.status} steps=${s.completedSteps}/${s.totalSteps}`);
+              // Check log_tail for "Status    : FAILED" — Nextflow can exit 0 even if the
+              // workflow script errored (e.g., DSL2 compile-time errors return returncode=0)
+              const logTail: string[] = s.log_tail || [];
+              const workflowFailed = logTail.some((l: string) => l.includes('Status') && l.includes('FAILED'));
               const nfStatus = s.status as string;
-              const mappedStatus = nfStatus === 'succeeded' ? 'completed'
-                : nfStatus === 'failed' ? 'failed'
-                : nfStatus === 'running' ? 'running'
+              console.log(`[CryoSPARC Poller] run=${csRunId} status=${nfStatus} wfFailed=${workflowFailed} steps=${s.completedSteps}/${s.totalSteps}`);
+              const mappedStatus = (nfStatus === 'failed' || workflowFailed) ? 'failed'
+                : nfStatus === 'succeeded' ? 'completed'
                 : 'running';
               const terminal = ['completed', 'failed'].includes(mappedStatus);
               await storage.updateExecutionRun(executionRun.id, {
@@ -9624,42 +9627,94 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
   });
 
   // ---------------------------------------------------------------------------
-  // Chat sessions proxy: forward /api/sessions* to the Galaxy backend so
-  // browser clients can call same-origin endpoints without CORS issues.
-  // Galaxy authenticates via per-user API key (not JWT), so we inject
-  // req.user.galaxyApiKey when the user is authenticated.
+  // Chat sessions — stored directly in PostgreSQL (chat_sessions table).
+  // Requires migration 0006_chat_sessions.sql.
   // ---------------------------------------------------------------------------
-  app.all(/^\/api\/sessions(\/.*)?$/, optionalAuth, async (req: any, res) => {
+  app.get("/api/sessions", authenticateToken, async (req: any, res) => {
     try {
-      const _sessionsGalaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const target = `${_sessionsGalaxyUrl}${req.path}${query}`;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-
-      // Galaxy uses its own per-user API key for auth (not our app JWT).
-      // Inject it from the authenticated user record.
-      if (req.user?.galaxyApiKey) {
-        headers["x-api-key"] = req.user.galaxyApiKey;
-      } else {
-        // Fallback: pass through whatever the client sent
-        const apiKey = req.headers["x-api-key"];
-        if (apiKey) headers["x-api-key"] = apiKey as string;
-      }
-
-      const fetchInit: RequestInit = { method: req.method, headers };
-      if (req.method !== "GET" && req.method !== "HEAD") {
-        fetchInit.body = JSON.stringify(req.body);
-      }
-
-      const upstream = await fetch(target, fetchInit);
-      res.status(upstream.status);
-      upstream.headers.forEach((v, k) => {
-        if (!["transfer-encoding", "connection"].includes(k)) res.setHeader(k, v);
-      });
-      const text = await upstream.text();
-      res.send(text);
+      const limit = Math.min(parseInt((req.query as any).limit || '20', 10), 100);
+      const rows = await pool.query(
+        `SELECT session_id, title, status, created_at, last_activity,
+                jsonb_array_length(messages) AS message_count
+         FROM chat_sessions WHERE user_id = $1
+         ORDER BY last_activity DESC LIMIT $2`,
+        [req.user.id, limit]
+      );
+      res.json(rows.rows);
     } catch (err: any) {
-      res.status(502).json({ error: "SessionsProxyError", message: err.message });
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/sessions/:sessionId", authenticateToken, async (req: any, res) => {
+    try {
+      const rows = await pool.query(
+        `SELECT session_id, title, status, created_at, last_activity, messages, workflows, datasets
+         FROM chat_sessions WHERE session_id = $1 AND user_id = $2`,
+        [req.params.sessionId, req.user.id]
+      );
+      if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
+      res.json(rows.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/sessions", authenticateToken, express.json(), async (req: any, res) => {
+    try {
+      const { session_id, title, messages, workflows, datasets } = req.body;
+      if (!session_id) return res.status(400).json({ error: 'session_id required' });
+      const rows = await pool.query(
+        `INSERT INTO chat_sessions (session_id, user_id, title, messages, workflows, datasets)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (session_id) DO UPDATE SET
+           title = EXCLUDED.title, messages = EXCLUDED.messages,
+           workflows = EXCLUDED.workflows, datasets = EXCLUDED.datasets,
+           last_activity = NOW()
+         RETURNING *`,
+        [session_id, req.user.id, title || 'New Chat',
+         JSON.stringify(messages || []), JSON.stringify(workflows || []), JSON.stringify(datasets || [])]
+      );
+      res.status(201).json(rows.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put("/api/sessions/:sessionId", authenticateToken, express.json(), async (req: any, res) => {
+    try {
+      const { title, status, messages, workflows, datasets } = req.body;
+      const rows = await pool.query(
+        `UPDATE chat_sessions SET
+           title = COALESCE($3, title),
+           status = COALESCE($4, status),
+           messages = COALESCE($5::jsonb, messages),
+           workflows = COALESCE($6::jsonb, workflows),
+           datasets = COALESCE($7::jsonb, datasets),
+           last_activity = NOW()
+         WHERE session_id = $1 AND user_id = $2
+         RETURNING *`,
+        [req.params.sessionId, req.user.id, title, status,
+         messages ? JSON.stringify(messages) : null,
+         workflows ? JSON.stringify(workflows) : null,
+         datasets ? JSON.stringify(datasets) : null]
+      );
+      if (!rows.rows.length) return res.status(404).json({ error: 'Session not found' });
+      res.json(rows.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete("/api/sessions/:sessionId", authenticateToken, async (req: any, res) => {
+    try {
+      await pool.query(
+        `DELETE FROM chat_sessions WHERE session_id = $1 AND user_id = $2`,
+        [req.params.sessionId, req.user.id]
+      );
+      res.status(204).send();
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 

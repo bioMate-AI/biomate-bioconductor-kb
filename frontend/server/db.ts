@@ -16,8 +16,8 @@ const combinedSchema = { ...schema, ...ltmSchema };
 // Create Drizzle instance with combined schema
 export const db = drizzle(pool, { schema: combinedSchema });
 
-// Export schemas for use in queries
-export { schema, ltmSchema };
+// Export schemas and raw pool for use in queries
+export { schema, ltmSchema, pool };
 
 // Health check function
 export async function checkDatabaseConnection(): Promise<boolean> {
