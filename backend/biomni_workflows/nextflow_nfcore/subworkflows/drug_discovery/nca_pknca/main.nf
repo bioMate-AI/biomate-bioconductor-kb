@@ -99,7 +99,7 @@ cat("Reading:", input_file, "\\n")
 
 df <- tryCatch(
     read_csv(input_file, show_col_types = FALSE),
-    error = function(e) stop(paste("Cannot read CSV:", e$message))
+    error = function(e) stop(paste("Cannot read CSV:", e\$message))
 )
 
 required_cols <- c("subject_id", "time", "conc", "dose", "route")
@@ -351,7 +351,7 @@ output:
 ---
 
 ``` {r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+knitr::opts_chunk\$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -363,13 +363,13 @@ library(jsonlite)
 ``` {r load-data}
 nca_df   <- read_csv("''' + nca_csv + '''", show_col_types = FALSE)
 smry     <- fromJSON("''' + nca_json + '''")
-info     <- smry$study_info
-dose_val <- info$dose
-route    <- info$route
-time_u   <- info$time_unit
-conc_u   <- info$conc_unit
-auc_u    <- info$auc_unit
-n_subj   <- info$n_subjects
+info     <- smry\$study_info
+dose_val <- info\$dose
+route    <- info\$route
+time_u   <- info\$time_unit
+conc_u   <- info\$conc_unit
+auc_u    <- info\$auc_unit
+n_subj   <- info\$n_subjects
 ```
 
 ## Study Information

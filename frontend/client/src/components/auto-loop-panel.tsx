@@ -113,6 +113,15 @@ function actionBadge(action: "pass" | "advisory" | "halt") {
   return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">HALT</Badge>
 }
 
+/** Format a gate value/threshold without scientific notation. */
+function fmtNum(n: number): string {
+  if (!isFinite(n)) return String(n)
+  if (Number.isInteger(n)) return n.toString()
+  if (Math.abs(n) >= 100)  return n.toFixed(1)
+  if (Math.abs(n) >= 1)    return n.toFixed(2)
+  return n.toFixed(4)
+}
+
 function levelDot(level: string) {
   const colors: Record<string, string> = {
     GOLD:   "bg-yellow-400",
@@ -241,10 +250,10 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
                 <tr key={g.gate} className="border-b border-blue-100 dark:border-blue-900/40 last:border-0">
                   <td className="py-1 pr-3 text-gray-700 dark:text-gray-300">{gateLabel(g.gate)}</td>
                   <td className="py-1 pr-3 text-right font-mono text-gray-600 dark:text-gray-400">
-                    {typeof g.value === "number" ? g.value.toPrecision(4) : g.value}
+                    {typeof g.value === "number" ? fmtNum(g.value) : g.value}
                   </td>
                   <td className="py-1 pr-3 text-right font-mono text-gray-500">
-                    {typeof g.threshold === "number" ? g.threshold.toPrecision(4) : g.threshold}
+                    {typeof g.threshold === "number" ? fmtNum(g.threshold) : g.threshold}
                   </td>
                   <td className="py-1 text-center">{actionBadge(g.action)}</td>
                 </tr>
@@ -289,8 +298,8 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
               Suggested parameter adjustments for next run:
             </p>
-            {remediations.map((rem, i) => (
-              <RemediationCard key={`${rem.gate}-${i}`} rem={rem} />
+            {remediations.map((rem) => (
+              <RemediationCard key={rem.gate} rem={rem} />
             ))}
           </div>
         )}

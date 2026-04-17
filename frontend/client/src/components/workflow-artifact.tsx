@@ -437,9 +437,19 @@ export function WorkflowArtifact({
       es.addEventListener("autoloop_update", (event) => {
         try {
           const data = JSON.parse(event.data)
+          // Bridge emits autoloop_update (not autoloop_escalation) when a phase
+          // fails in reactive/advisory mode.  Set both remediations AND complete
+          // so the panel shows a "failed" outcome banner alongside the suggestions.
+          // failed_gates is emitted directly by the bridge (not reconstructed).
           setAutoLoopPanel(prev => ({
             ...prev,
             remediations: data.remediations ?? [],
+            complete: {
+              phase: data.phase,
+              domain: data.domain,
+              outcome: "escalated",
+              failed_gates: data.failed_gates ?? [],
+            },
           }))
         } catch (err) {
           console.error("[AutoLoop] update parse error:", err)
@@ -455,12 +465,16 @@ export function WorkflowArtifact({
         }
       })
 
+      // autoloop_escalation: emitted by the full UXLoop retry orchestrator (future).
+      // The reactive bridge uses autoloop_update instead, but keep this handler for
+      // forward-compatibility when active-retry mode is wired up.
       es.addEventListener("autoloop_escalation", (event) => {
         try {
           const data = JSON.parse(event.data)
           setAutoLoopPanel(prev => ({
             ...prev,
-            complete: { ...data, outcome: "escalated" },
+            complete: { phase: data.phase, domain: data.domain,
+                        outcome: "escalated", failed_gates: data.failed_gates },
           }))
         } catch (err) {
           console.error("[AutoLoop] escalation parse error:", err)

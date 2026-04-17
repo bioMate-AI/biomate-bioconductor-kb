@@ -64,7 +64,7 @@ process PBPK_PEDIATRIC_PREGNANCY {
     python3 << 'PYEOF'
 import json, os, csv, sys, math
 import numpy as np
-from scipy.integrate import solve_ivp
+
 
 def ac(v, default=None):
     if v in (None,'','null','None'): return default

@@ -144,7 +144,7 @@ def thompson_weights(successes, failures, exponent=0.5):
     samples = [beta_dist.rvs(s+1, f+1, size=1000) for s, f in zip(successes, failures)]
     probs   = np.mean(np.array(samples) == np.max(samples, axis=0), axis=1)
     probs   = probs ** exponent
-    probs  /= probs.sum()
+    probs  /= (probs.sum() + 1e-10)
     return probs
 
 # ── MAMS simulation ───────────────────────────────────────────────────────────
