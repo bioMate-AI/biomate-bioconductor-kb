@@ -40,7 +40,7 @@ process ALPHAFOLD_API_SEARCH {
     label 'process_low'
     publishDir "${params.outdir}/${meta.id}", mode: params.publish_dir_mode
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest' \
         : 'python:3.11-slim'
 

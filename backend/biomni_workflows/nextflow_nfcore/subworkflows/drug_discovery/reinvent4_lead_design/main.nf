@@ -82,7 +82,7 @@ params.gpu                  = false      // true = GPU-accelerated RL (much fast
 
 // local (ARM dev): biomate/biomni-drug-discovery-nf:latest
 // aws batch (AMD64 ECR): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86
-def _useAws = System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _useAws = System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def _ECR_DD = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86'
 def _LOCAL  = 'biomate/biomni-drug-discovery-nf:latest'
 def REINVENT4_CONTAINER = _useAws ? _ECR_DD : _LOCAL

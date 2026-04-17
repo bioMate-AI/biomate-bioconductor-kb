@@ -79,7 +79,7 @@ params.use_aws              = false
 // Containers
 // ============================================================================
 
-def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
 // OpenFE unified container: openfe + openff-toolkit + openmmforcefields + cinnabar + lomap2
 def _ECR        = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/openfe-rbfe:1.0'
 def OPENFE_CONTAINER = _useAws ? _ECR : 'ghcr.io/openfreeenergy/openfe:0.15.0'

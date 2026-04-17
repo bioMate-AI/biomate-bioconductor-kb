@@ -64,7 +64,7 @@ process FPOCKET_POCKET_DETECTION {
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(protein_pdb)
@@ -256,7 +256,7 @@ process DRUGGABILITY_QC_GATE {
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     tuple val(meta), path(pocket_json)

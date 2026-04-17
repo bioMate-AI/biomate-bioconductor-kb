@@ -78,7 +78,7 @@ params.use_aws              = false
 
 // On AWS Batch use single ECR image containing all tools (avoids Docker Hub auth issues)
 // Also honour the legacy NEXTFLOW_USE_AWS env var for backwards compatibility.
-def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def _ECR    = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/ambertools-gromacs-nf:latest'
 // AmberTools 23: antechamber, tleap, parmchk2, pdb4amber, ParmEd, acpype
 def AMBERTOOLS_CONTAINER = _useAws ? _ECR : 'ambermd/ambertools:23'

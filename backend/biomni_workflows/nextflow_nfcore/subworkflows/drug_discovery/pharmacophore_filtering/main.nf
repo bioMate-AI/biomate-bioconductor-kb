@@ -64,7 +64,7 @@ process PHARMACOPHORE_GENERATE {
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path reference_actives   // one SMILES per line
@@ -207,7 +207,7 @@ process PHARMACOPHORE_SCREEN {
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path model_json    // pharmacophore_model.json from PHARMACOPHORE_GENERATE
@@ -352,7 +352,7 @@ process PHARMACOPHORE_REPORT {
 
     // local (ARM dev placeholder): biomate/biomni-drug-discovery-nf:latest
     // aws batch (AMD64): 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-structure-to-drug:x86' : 'biomate/biomni-drug-discovery-nf:latest'
 
     input:
     path model_json      // pharmacophore_model.json

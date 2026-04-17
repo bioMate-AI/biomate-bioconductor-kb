@@ -82,7 +82,7 @@ params.use_aws              = false
 // Containers
 // ============================================================================
 
-def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes']
+def _useAws = params.use_aws || System.getenv('NEXTFLOW_USE_AWS') == 'true'
 def _ECR = '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86'
 // Unified container with RDKit + scikit-learn + matplotlib + transformers
 def CHEM_CONTAINER = _useAws ? _ECR : 'condaforge/miniforge3:latest'

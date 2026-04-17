@@ -33,7 +33,7 @@ process P0_PHARMACOPHORE_VALIDATION {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' \
         : 'biomate/biomni-tools:latest'
 
