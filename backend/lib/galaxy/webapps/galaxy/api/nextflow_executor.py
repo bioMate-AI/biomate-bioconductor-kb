@@ -3902,6 +3902,9 @@ def execute_cryosparc(
         parameters=nf_params,
         user_id=user_id,
         history_id=request.history_id,
+        # "standard" profile — cryosparc nextflow.config already has executor=awsbatch
+        # directly; don't use the BIOMATE_NF_PROFILE='aws' default which has no match.
+        profile="standard",
         compute_config={"executor": "awsbatch", "s3_bucket": s3_bucket},
     )
 
