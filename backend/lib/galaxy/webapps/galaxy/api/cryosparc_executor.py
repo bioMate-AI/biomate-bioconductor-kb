@@ -780,7 +780,15 @@ def _check_motion_ctf_gates(ctf_jobs, run, cb, qc_profile, audit_dir, mock_mode)
 
     for ctf_job in ctf_jobs:
         try:
-            mics = ctf_job.load_output("micrographs")
+            mics = None
+            for _qc_out in ("micrographs", "exposures", "exposures_ctf", "micrographs_ctf"):
+                try:
+                    mics = ctf_job.load_output(_qc_out)
+                    break
+                except Exception:
+                    pass
+            if mics is None:
+                raise RuntimeError("no CTF output found")
             # Motion columns (present after patch_motion_correction step)
             if "total_motion" in mics.fields():
                 drift_px = mics["total_motion"]
@@ -1587,40 +1595,37 @@ def _execute_spa_pipeline_sync(
         except Exception:
             pass
 
-    # CryoSPARC v5 renamed many I/O group names.  This map lets us try the
-    # canonical name first, then fall back to the version-alternate name so
-    # the code works with both v4 and v5 without branching everywhere.
-    _IO_ALIASES: Dict[str, str] = {
-        # v4 name       : v5 name
-        "micrographs":   "exposures",
-        "micrographs_ctf": "exposures_ctf",
-        # reverse mapping (v5→v4) so callers can pass either form
-        "exposures":     "micrographs",
-        "exposures_ctf": "micrographs_ctf",
+    # CryoSPARC v5 renamed many I/O group names.  Map each canonical name to
+    # all known alternates so _connect_job / load_output try every combination.
+    # v5 CTF output: "exposures_ctf" OR just "exposures" (passes through with CTF data)
+    _IO_ALIASES: Dict[str, List[str]] = {
+        "micrographs":     ["exposures"],
+        "micrographs_ctf": ["exposures_ctf", "exposures"],  # v5 CTF may just be "exposures"
+        "exposures":       ["micrographs"],
+        "exposures_ctf":   ["micrographs_ctf", "exposures"],
+        "imported_movies": ["movies"],
+        "movies":          ["imported_movies"],
     }
 
     def _connect_job(job: Any, target_input: str, src_job_uid: str, src_output: str) -> None:
-        """Connect job input with version-aware name fallback (v4↔v5)."""
-        alt_input  = _IO_ALIASES.get(target_input, target_input)
-        alt_output = _IO_ALIASES.get(src_output, src_output)
+        """Connect job input trying all v4/v5 name aliases until one succeeds."""
+        input_names  = [target_input]  + _IO_ALIASES.get(target_input,  [])
+        output_names = [src_output]    + _IO_ALIASES.get(src_output,     [])
         tried: List[str] = []
-        for t_in, s_out in [
-            (target_input, src_output),
-            (alt_input,    src_output),
-            (target_input, alt_output),
-            (alt_input,    alt_output),
-        ]:
-            key = f"{t_in}<-{s_out}"
-            if key in tried:
-                continue
-            tried.append(key)
-            try:
-                job.connect(t_in, src_job_uid, s_out)
-                log.info("[CryoSPARC] Connected %s.%s <- %s.%s", job.uid, t_in, src_job_uid, s_out)
-                return
-            except Exception as _ce:
-                log.debug("[CryoSPARC] connect attempt %s.%s<-%s.%s failed: %s",
-                          job.uid, t_in, src_job_uid, s_out, _ce)
+        for t_in in input_names:
+            for s_out in output_names:
+                key = f"{t_in}<-{s_out}"
+                if key in tried:
+                    continue
+                tried.append(key)
+                try:
+                    job.connect(t_in, src_job_uid, s_out)
+                    log.info("[CryoSPARC] Connected %s.%s <- %s.%s",
+                             job.uid, t_in, src_job_uid, s_out)
+                    return
+                except Exception as _ce:
+                    log.debug("[CryoSPARC] connect attempt %s.%s<-%s.%s failed: %s",
+                              job.uid, t_in, src_job_uid, s_out, _ce)
         log.error("[CryoSPARC] All connect attempts failed for %s input %s (tried: %s)",
                   job.uid, target_input, tried)
 
@@ -1777,7 +1782,7 @@ def _execute_spa_pipeline_sync(
         ctf_jobs = [cs.find_job(proj_uid, j.uid) for j in ctf_jobs]
     all_micrographs: List[Any] = []
     for j in ctf_jobs:
-        for _out_name in ("exposures_ctf", "micrographs_ctf"):  # v5 / v4 fallback
+        for _out_name in ("exposures_ctf", "micrographs_ctf", "exposures", "micrographs"):
             try:
                 _outs = j.load_output(_out_name)
                 all_micrographs.extend(_outs)
