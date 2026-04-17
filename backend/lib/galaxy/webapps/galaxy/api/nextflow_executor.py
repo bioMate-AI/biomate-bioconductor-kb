@@ -1069,13 +1069,10 @@ def _generate_executor_config(
             #   public third-party containers (gromacs, rocker, etc.) without aws of their own.
             # DO NOT change to /usr/local/bin/aws — that shadows /usr/local/lib/python3
             #   site-packages inside containers, causing exit 127 on all python tasks.
-            # NOTE: CryoSPARC's own nextflow.config sets cliPath = /usr/local/bin/aws;
-            #   Nextflow merges configs (later wins), so cryosparc's config overrides this.
+            # cliPath auto-mounts /opt/aws-cli (grandparent) host→container; no explicit
+            # volumes needed — adding volumes=['/opt/aws-cli'] would duplicate the mount
+            # and cause "containerPath values aren't unique across mountPoints" on AWS Batch.
             "        cliPath = '/opt/aws-cli/bin/aws'",
-            # Explicitly bind-mount /opt/aws-cli from the AMI host into every container.
-            # Required for non-base containers (biomni-drug-discovery-nf, rocker, etc.)
-            # that don't have AWS CLI pre-installed. The AMI installs it via LT user-data.
-            "        volumes = ['/opt/aws-cli']",
             "    }",
             "}",
             "docker.enabled = true",

@@ -154,6 +154,10 @@ def occupancy_ode(cp_interp, kon_M, koff_s, t_eval, rtot_nM=10):
     y0 = [0.0]
     sol = solve_ivp(ode, [t_eval[0], t_eval[-1]], y0, t_eval=t_eval,
                     method='RK45', rtol=1e-5, dense_output=False)
+    if not sol.success:
+        import sys as _sys
+        print(f"WARNING: occupancy ODE failed: {sol.message}", file=_sys.stderr)
+        return np.zeros(len(t_eval))
     occupancy_pct = np.array(sol.y[0]) / (rtot_nM * 1e-9) * 100
     return np.clip(occupancy_pct, 0, 100)
 

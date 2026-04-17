@@ -148,10 +148,17 @@ t_eval = np.linspace(0, t_end, int(t_end * 4) + 1)  # every 15 min
 
 sol = solve_ivp(np_ode, [0, t_end], y0, t_eval=t_eval, method='RK45', rtol=1e-6)
 
-blood_arr   = sol.y[0]
-tumor_arr   = sol.y[1]
-liver_arr   = sol.y[2]
-periph_arr  = sol.y[3]
+if not sol.success:
+    print(f"WARNING: ODE solver did not converge: {sol.message}", file=sys.stderr)
+    blood_arr   = np.zeros(len(t_eval))
+    tumor_arr   = np.zeros(len(t_eval))
+    liver_arr   = np.zeros(len(t_eval))
+    periph_arr  = np.zeros(len(t_eval))
+else:
+    blood_arr   = sol.y[0]
+    tumor_arr   = sol.y[1]
+    liver_arr   = sol.y[2]
+    periph_arr  = sol.y[3]
 spleen_arr  = liver_arr * 0.3  # spleen ~30% of MPS uptake
 
 # ── Derived PK metrics ─────────────────────────────────────────────────────────

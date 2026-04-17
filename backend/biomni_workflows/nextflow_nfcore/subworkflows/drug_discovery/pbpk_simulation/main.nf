@@ -278,9 +278,16 @@ t_eval = np.linspace(0, t_end, int(t_end * 12) + 1)  # every 5 min
 sol = solve_ivp(pbpk_ode, [0, t_end], y0, t_eval=t_eval, method='LSODA',
                 rtol=1e-5, atol=1e-10)
 
-Cblood_arr  = sol.y[2] / Vblood    # µg/mL = µg/mL
-Cliver_arr  = sol.y[3] / Vliver
-Ckidney_arr = sol.y[5] / Vkidney
+if not sol.success:
+    print(f"WARNING: ODE solver did not converge: {sol.message}", file=sys.stderr)
+    # Fall back to zero-filled arrays so downstream NCA still runs without crash
+    Cblood_arr  = np.zeros(len(t_eval))
+    Cliver_arr  = np.zeros(len(t_eval))
+    Ckidney_arr = np.zeros(len(t_eval))
+else:
+    Cblood_arr  = sol.y[2] / Vblood    # µg/mL
+    Cliver_arr  = sol.y[3] / Vliver
+    Ckidney_arr = sol.y[5] / Vkidney
 
 # ── NCA parameters ─────────────────────────────────────────────────────────────
 def nca(t, cp, dose_ug, mw):

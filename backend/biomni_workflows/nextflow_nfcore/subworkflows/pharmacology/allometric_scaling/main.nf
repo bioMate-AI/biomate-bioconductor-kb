@@ -95,7 +95,10 @@ def power_law_regression(bw_list, param_list):
         return None, None
     log_bw = np.log(bw_list)
     log_p  = np.log(param_list)
-    b = np.cov(log_bw, log_p)[0,1] / np.var(log_bw)
+    var_bw = np.var(log_bw)
+    if var_bw == 0:
+        return None, None  # all body weights identical — regression undefined
+    b = np.cov(log_bw, log_p)[0,1] / var_bw
     a = np.exp(np.mean(log_p) - b * np.mean(log_bw))
     # R²
     pred = a * np.array(bw_list)**b
