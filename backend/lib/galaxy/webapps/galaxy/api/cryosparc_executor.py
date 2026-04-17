@@ -1570,14 +1570,26 @@ def _execute_spa_pipeline_sync(
                 connections: Optional[Dict] = None,
                 extra_params: Optional[Dict] = None,
                 phase_key: Optional[str] = None) -> Any:
-        job = cs.create_job(
-            project_uid=proj_uid,
-            workspace_uid=ws_uid,
-            type=job_type,
-            params=extra_params or {},
-            connections=connections or {},
-            title=title,
-        )
+        # Create job first (no params — avoid bulk-params 500 bug in CryoSPARC v5)
+        try:
+            job = cs.create_job(
+                project_uid=proj_uid,
+                workspace_uid=ws_uid,
+                type=job_type,
+                connections=connections or {},
+                title=title,
+            )
+        except Exception as _cj_exc:
+            # Attempt to extract raw response body for diagnosis
+            _body = getattr(getattr(_cj_exc, 'response', None), 'text', None) or str(_cj_exc)
+            log.error("[CryoSPARC] create_job(%s) failed: %s | body: %s", job_type, _cj_exc, _body[:500])
+            raise
+        # Apply params individually via set_param (per cryosparc-tools docs)
+        for _k, _v in (extra_params or {}).items():
+            try:
+                job.set_param(_k, _v)
+            except Exception as _sp_exc:
+                log.warning("[CryoSPARC] set_param(%s=%r) failed: %s", _k, _v, _sp_exc)
         job.queue(lane="default")
         run.job_uids.append(job.uid)
         run.total_jobs += 1
