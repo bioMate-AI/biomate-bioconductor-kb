@@ -503,8 +503,11 @@ def _ssh_check_cryosparc(host: str) -> str:
         f"{ssh_user}@{host}",
         # Count RUNNING processes in cryosparcm status
         "export PATH=/home/ubuntu/cryosparc_master/bin:$PATH; "
-        "TOTAL=$(cryosparcm status 2>/dev/null | grep -cE '(RUNNING|STOPPED|STARTING|FATAL)' || echo 0); "
-        "UP=$(cryosparcm status 2>/dev/null | grep -c 'RUNNING' || echo 0); "
+        "STATUS=$(cryosparcm status 2>/dev/null); "
+        "TOTAL=$(echo \"$STATUS\" | grep -cE '(RUNNING|STOPPED|STARTING|FATAL)' 2>/dev/null); "
+        "TOTAL=${TOTAL:-0}; "
+        "UP=$(echo \"$STATUS\" | grep -c 'RUNNING' 2>/dev/null); "
+        "UP=${UP:-0}; "
         "echo \"${UP}/${TOTAL}\" && "
         # Grab last 5 lines of supervisor/CryoSPARC error log for diagnosis
         "tail -5 /home/ubuntu/cryosparc_master/run/supervisord.log 2>/dev/null || true",
@@ -591,7 +594,9 @@ def ensure_cryosparc_running(
             if "FATAL" in ssh_status or "error:ssh-timeout" in ssh_status:
                 log.warning("[CryoSPARC] Detected potential startup error: %s", ssh_status)
             # Auto-start CryoSPARC if SSH is up but no processes running
-            if ssh_status.strip() in ("0/0", "0") or ssh_status.startswith("0/"):
+            # Use first_line for matching (multi-line output from SSH)
+            _first_line = ssh_status.split("\n")[0].strip()
+            if _first_line in ("0/0", "0") or _first_line.startswith("0/"):
                 log.info("[CryoSPARC] CryoSPARC not running — triggering cryosparcm start via SSH")
                 try:
                     subprocess.run(
@@ -603,7 +608,7 @@ def ensure_cryosparc_running(
                 except Exception as _se:
                     log.warning("[CryoSPARC] cryosparcm start SSH call failed: %s", _se)
             # If 9/9 processes up but API still failing, log it prominently
-            if ssh_status.startswith("9/9"):
+            if _first_line.startswith("9/9"):
                 log.info("[CryoSPARC] All 9 processes UP but API still connecting — port may be busy")
 
             if progress_callback:
@@ -1515,6 +1520,18 @@ def _execute_spa_pipeline_sync(
         raise RuntimeError("No CryoSPARC license key — user must register one at Settings → Credentials")
     if not mock_mode:
         ensure_cryosparc_running(cb)
+    # Re-stage S3 movies if initial staging failed (e.g. SSH timed out before instance was ready)
+    s3_url = params.get("s3_movies_url") or ""
+    if s3_url and not mock_mode:
+        from galaxy.webapps.galaxy.api.nextflow_executor import _stage_s3_movies_on_cryosparc as _restage
+        _restaged = _restage(
+            s3_url=s3_url,
+            instance_ip=CRYOSPARC_HOST,
+            ssh_key=os.environ.get("CRYOSPARC_SSH_KEY", ""),
+            ssh_user=os.environ.get("CRYOSPARC_SSH_USER", "ubuntu"),
+        )
+        params["movie_dir"] = _restaged
+        log.info("[CryoSPARC] Re-staged S3 movies to: %s", _restaged)
     _progress(run, 1, "Connecting to CryoSPARC...", cb)
 
     cs: Any = _MockCS() if mock_mode else _connect(license_key=run.license_key)

@@ -4002,7 +4002,9 @@ def execute_cryosparc(
     if movies_path_raw.startswith("s3://") and not movies_path_raw.endswith("/") and \
             not any(c in movies_path_raw.split("/")[-1] for c in ("*", "?", "[")):
         movies_path_raw += "/"
+    s3_movies_url: str = ""  # preserved for retry inside pipeline thread
     if movies_path_raw.startswith("s3://"):
+        s3_movies_url = movies_path_raw   # save for retry
         movies_path_raw = _stage_s3_movies_on_cryosparc(
             s3_url=movies_path_raw,
             instance_ip=cs_exec.CRYOSPARC_HOST,
@@ -4014,6 +4016,7 @@ def execute_cryosparc(
     # ── Step 3: build params for execute_spa_pipeline ────────────────────────
     spa_params: Dict[str, Any] = {
         "movie_dir":              movies_path_raw,
+        "s3_movies_url":          s3_movies_url or None,  # for retry in pipeline thread
         "pixel_size":             float(params.get("pixel_size", params.get("micrograph_pixel_size", 1.0))),
         "voltage":                int(params.get("voltage", 300)),
         "cs":                     float(params.get("spherical_aberration", params.get("cs", 2.7))),
