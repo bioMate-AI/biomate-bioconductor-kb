@@ -1099,6 +1099,16 @@ export function WorkflowArtifact({
               </Alert>
             )}
 
+            {/* Auto-loop enriched QC panel (ADMET / docking / CYP-DDI / NCA-PK) */}
+            {autoLoopPanel.gateResults && (
+              <div className="mt-3">
+                <AutoLoopPanel
+                  state={autoLoopPanel}
+                  onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
+                />
+              </div>
+            )}
+
             {/* Inline QC Gate Review (replaces full-screen modal) */}
             {showQcInline && qcGateData && (
               <div

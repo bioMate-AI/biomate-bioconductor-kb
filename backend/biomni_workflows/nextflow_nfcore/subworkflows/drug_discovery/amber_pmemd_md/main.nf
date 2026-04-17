@@ -706,7 +706,25 @@ workflow {
     // -----------------------------------------------------------------------
     // Input channels
     // -----------------------------------------------------------------------
-    receptor_ch = Channel.fromPath(params.receptor, checkIfExists: true)
+    // Resolve receptor: accept .pdb path, S3 URI, or 4-char PDB ID (auto-download from RCSB)
+    def receptor_input = params.receptor.trim()
+    def _is_pdb_id = (receptor_input ==~ /^[A-Za-z0-9]{4}$/)
+    if (_is_pdb_id) {
+        def pdb_id = receptor_input.toUpperCase()
+        def pdb_file = file("/tmp/biomate_nf_inputs/pdb/${pdb_id}.pdb")
+        pdb_file.parent.mkdirs()
+        if (!pdb_file.exists()) {
+            log.info("[AMBER] Downloading PDB ${pdb_id} from RCSB...")
+            ["curl", "-sSf", "-o", pdb_file.toString(),
+             "https://files.rcsb.org/download/${pdb_id}.pdb"].execute().waitFor()
+        }
+        if (!pdb_file.exists() || pdb_file.size() == 0) {
+            error "Failed to download PDB ID ${pdb_id} from RCSB. Check the ID and network access."
+        }
+        receptor_ch = Channel.fromPath(pdb_file.toString())
+    } else {
+        receptor_ch = Channel.fromPath(receptor_input, checkIfExists: true)
+    }
 
     def ligand_input = params.ligand.trim()
     def _is_smiles = !(ligand_input.contains('/') || ligand_input.contains('\\') ||
@@ -719,7 +737,7 @@ workflow {
         // Write SMILES to a .smi file on the head node; rdkit conversion to SDF
         // happens inside LIGAND_PREP process where AMBERTOOLS container has rdkit.
         log.info("[AMBER] Detected SMILES input for ligand — staging as .smi for in-container RDKit conversion...")
-        def smi_file = file("${workflow.workDir}/ligand_inputs/ligand.smi")
+        def smi_file = file("/tmp/biomate_nf_inputs/smi/ligand_${System.currentTimeMillis()}.smi")
         smi_file.parent.mkdirs()
         smi_file.text = ligand_input
         ligand_ch = Channel.fromPath(smi_file.toString())

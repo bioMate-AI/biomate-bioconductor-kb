@@ -1018,7 +1018,7 @@ workflow {
     if (_is_pdb_id) {
         // Download PDB from RCSB into the work directory before creating the channel
         def pdb_id = receptor_input.toUpperCase()
-        def pdb_file = file("${workflow.workDir}/pdb_inputs/${pdb_id}.pdb")
+        def pdb_file = file("/tmp/biomate_nf_inputs/pdb/${pdb_id}.pdb")
         pdb_file.parent.mkdirs()
         if (!pdb_file.exists()) {
             log.info("[GROMACS] Downloading PDB ${pdb_id} from RCSB...")
@@ -1044,7 +1044,7 @@ workflow {
         // Write SMILES to a .smi file on the head node; conversion to SDF happens
         // inside the LIGAND_PREP process where rdkit is available (AMBERTOOLS container).
         log.info("[GROMACS] Detected SMILES input for ligand — staging as .smi for in-container RDKit conversion...")
-        def smi_file = file("${workflow.workDir}/ligand_inputs/ligand.smi")
+        def smi_file = file("/tmp/biomate_nf_inputs/smi/ligand_${System.currentTimeMillis()}.smi")
         smi_file.parent.mkdirs()
         smi_file.text = ligand_input
         ligand_ch = Channel.fromPath(smi_file.toString())
