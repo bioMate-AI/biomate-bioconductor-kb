@@ -156,30 +156,30 @@ def CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-n
 
 // Shared Python helper emitted inline into every process script
 def CS_HELPER = '''
-import json, os, sys, time
+    import json, os, sys, time
 
-def cs_connect(license, host, port, email, password):
-    from cryosparc.tools import CryoSPARC
-    return CryoSPARC(license=license, host=host, base_port=int(port),
-                     email=email, password=password)
+    def cs_connect(license, host, port, email, password):
+        from cryosparc.tools import CryoSPARC
+        return CryoSPARC(license=license, host=host, base_port=int(port),
+                         email=email, password=password)
 
-def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
-                    lane="default", timeout=14400):
-    job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid,
-                        type=job_type, connections=connections, params=params)
-    job.queue(lane=lane)
-    print(f"[CS] Submitted {job_type} uid={job.uid}", flush=True)
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        job = cs.find_job(proj_uid, job.uid)
-        status = job.status
-        print(f"[CS] {job_type} uid={job.uid} status={status}", flush=True)
-        if status in ("completed",):
-            return job
-        if status in ("failed", "killed", "aborted"):
-            raise RuntimeError(f"CryoSPARC job {job.uid} {status}: {getattr(job, 'error_message', '')}")
-        time.sleep(20)
-    raise TimeoutError(f"CryoSPARC job {job_type} timed out after {timeout}s")
+    def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
+                        lane="default", timeout=14400):
+        job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid,
+                            type=job_type, connections=connections, params=params)
+        job.queue(lane=lane)
+        print(f"[CS] Submitted {job_type} uid={job.uid}", flush=True)
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            job = cs.find_job(proj_uid, job.uid)
+            status = job.status
+            print(f"[CS] {job_type} uid={job.uid} status={status}", flush=True)
+            if status in ("completed",):
+                return job
+            if status in ("failed", "killed", "aborted"):
+                raise RuntimeError(f"CryoSPARC job {job.uid} {status}: {getattr(job, 'error_message', '')}")
+            time.sleep(20)
+        raise TimeoutError(f"CryoSPARC job {job_type} timed out after {timeout}s")
 '''
 
 // ============================================================================
