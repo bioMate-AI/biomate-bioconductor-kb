@@ -3737,43 +3737,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Claude Sonnet — generate publication-quality methods + results report
-        const SYSTEM = `You are a senior scientist writing the Methods and Results sections of a peer-reviewed paper.
-Generate a comprehensive, publication-quality methods report based on the computational workflow execution data provided.
-Structure the report exactly as shown, using plain text (no markdown headers with #). Use section numbers.
-Be specific, quantitative, and scientifically precise. Include parameter justifications.`;
+        const SYSTEM = `You are a senior structural biologist and computational scientist writing a complete, submission-ready Methods and Results manuscript section for a peer-reviewed journal (e.g., Nature Methods, IUCrJ, eLife, Journal of Structural Biology).
 
-        const USER = `Generate a full methods report for this computational biology workflow execution.
+Your output must be:
+- Written in formal third-person scientific prose, past tense
+- Specific and quantitative: include every parameter value, version number, and hardware spec provided
+- Complete enough that an independent researcher could reproduce the analysis exactly
+- Structured for direct copy-paste into a journal submission
+- Properly cited with author (Year) format, PMIDs listed in References
+- Include statistical quality indicators wherever available (FSC, map quality, particle counts, resolution)
 
+Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
+
+        const isCryoEM = workflowName.toLowerCase().includes('cryo') || workflowName.toLowerCase().includes('spa');
+        const cryoemSections = isCryoEM ? `
+8. CRYO-EM DATA QUALITY ASSESSMENT — Resolution at FSC 0.143 gold-standard criterion; local resolution range; map-to-model cross-correlation if applicable; Rosenthal-Henderson B-factor; preferred orientation analysis (sphericity score); particle yield efficiency (picked / selected / final); defocus range and CTF fit quality
+9. EMDB/PDB DEPOSITION NOTE — Recommended deposition metadata: map pixel size, symmetry imposed, final particle count, box size, applied B-factor sharpening, reconstruction software version, licensing constraints
+10. REPRODUCIBILITY STATEMENT — Steps taken to ensure reproducibility: random seed (if applicable), software version pinning, cloud environment specification, parameter archiving` : '';
+
+        const USER = `Generate a complete, publication-quality computational biology manuscript section for journal submission.
+
+=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
 INVOCATION ID: ${invocationId}
 NEXTFLOW RUN ID: ${nfRunId}
-STATUS: ${runStatus}
-STARTED: ${startedAt}
-COMPLETED: ${completedAt || 'N/A'}
-WALL TIME: ${wallTimeStr}
+EXECUTION STATUS: ${runStatus}
+START TIME: ${startedAt}
+COMPLETION TIME: ${completedAt || 'N/A'}
+TOTAL WALL TIME: ${wallTimeStr}
+CLOUD PLATFORM: AWS Batch (us-west-2 region)
+ORCHESTRATION: Nextflow DSL2 + AWS Batch
+${isCryoEM ? 'GPU COMPUTE: NVIDIA L4 (g6.2xlarge EC2 instance, 1x GPU, 8 vCPU, 32 GB RAM)\nSOFTWARE: CryoSPARC v5.0.2, cryosparc-tools Python API' : ''}
 
-INPUT PARAMETERS:
+=== INPUT PARAMETERS ===
 ${paramLines || '(not recorded)'}
 
-WORKFLOW STEPS:
+=== WORKFLOW STEPS AND TIMING ===
 ${stepLines}
 
-OUTPUT FILES PRODUCED:
+=== OUTPUT FILES ===
 ${outputInventory}
 
-OUTPUT FILE CONTENTS (text-parseable files):
+=== OUTPUT FILE CONTENTS (text-parseable) ===
 ${fileContext}
 
-Write the report with these exact numbered sections:
-1. STUDY OVERVIEW — What was done, why this workflow, scientific objective
-2. METHODS — Computational environment (AWS Batch, Nextflow), workflow engine, execution platform; one paragraph per major processing stage with parameter values and scientific justification for each parameter choice
-3. EXPERIMENTAL PROCESS — Step-by-step narrative of what happened during execution, wall time, intermediate checkpoints
-4. RESULTS — Quantitative findings from the output files; describe figures and plots produced (class averages, FSC curves, density maps, etc.); key metrics
-5. DATA ANALYSIS AND FINDINGS — Scientific interpretation of results; quality assessment; significance
-6. OUTPUT FILES AND DATA AVAILABILITY — Complete inventory of all output files with descriptions; S3 location
-7. REFERENCES — Key tools and publications cited (PMID where known)
+=== REQUIRED SECTIONS ===
+Write ALL of these sections. Never skip a section — if data is unavailable, state "Data not available for this run" and explain what would normally appear.
 
-Be specific. If output data is available above, extract real numbers. If binary outputs (MRC maps, STAR files) were produced, describe what they represent scientifically.`;
+1. ABSTRACT (150 words max) — Concise summary of the computational analysis, key inputs, methods, and most important quantitative results
+
+2. STUDY OVERVIEW — Scientific objective, dataset description, biological question being addressed, significance of the chosen workflow
+
+3. COMPUTATIONAL ENVIRONMENT — Cloud infrastructure details (AWS Batch, region, instance type, GPU model, vCPU count, RAM, storage); Nextflow version; pipeline version; all software tool versions with version numbers
+
+4. DATA ACQUISITION AND PREPROCESSING — Input data description, format, source; quality control steps performed; preprocessing parameters with scientific justification for each value
+
+5. METHODS — One detailed paragraph per major processing stage. For each stage: tool used with version, key parameters with values, scientific rationale for parameter choices, quality thresholds applied. Be exhaustive.
+
+6. PIPELINE EXECUTION — Step-by-step narrative of execution with wall-clock times per step, parallelization strategy, resource utilization (CPU/GPU hours, memory peak), any retries or parameter adjustments made
+
+7. RESULTS — All quantitative outcomes extracted from output files. Include real numbers. Describe all output files and what they represent scientifically. For cryo-EM: particle statistics, resolution, map quality metrics. Use precise language.
+
+8. DATA ANALYSIS AND SCIENTIFIC INTERPRETATION — Quality assessment against field standards; comparison to expected values; limitations; confidence in results; suggestions for further analysis${cryoemSections}
+
+${isCryoEM ? `REQUIRED CRYO-EM REFERENCES (always include these with correct PMIDs):
+- CryoSPARC: Punjani et al. (2017) Nature Methods 14:290-296. PMID: 28165473
+- CTFFIND4: Rohou & Grigorieff (2015) JSB 192:216-221. PMID: 26278980
+- MotionCor2: Zheng et al. (2017) Nature Methods 14:331-332. PMID: 28250466
+- Non-uniform refinement: Punjani et al. (2020) Nature Methods 17:1214-1221. PMID: 33257830
+- Local CTF refinement: Punjani & Fleet (2021) Nature Methods 18:860-869. PMID: 34282325
+- DeepEMhancer (if sharpening used): Sanchez-Garcia et al. (2021) Commun Biol 4:874. PMID: 34267316` : ''}
+
+N. REFERENCES — Complete numbered reference list in Vancouver format with PMIDs. Include all tools cited above.
+
+Extract every real number from the output data. A reviewer should be able to verify your numbers against the raw output files.`;
+
+        const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
         const Anthropic = (await import('@anthropic-ai/sdk')).default;
         const client = new Anthropic({ apiKey });
@@ -3798,8 +3837,27 @@ Be specific. If output data is available above, extract real numbers. If binary 
           reportText,
         ].join('\n');
 
+        const safeName = workflowName.replace(/[^a-z0-9]+/gi, '_');
+
+        if (reportFormat === 'docx') {
+          // Convert to DOCX via pandoc for journal submission
+          const { execSync } = await import('child_process');
+          const os = await import('os');
+          const path = await import('path');
+          const tmpMd = path.join(os.tmpdir(), `methods_${invocationId.slice(0,8)}.md`);
+          const tmpDocx = path.join(os.tmpdir(), `methods_${invocationId.slice(0,8)}.docx`);
+          // Write markdown version (pandoc handles numbered headings well from plain text)
+          const fs = await import('fs');
+          fs.writeFileSync(tmpMd, header, 'utf-8');
+          execSync(`pandoc "${tmpMd}" -o "${tmpDocx}" --from=plain --to=docx`, { timeout: 30000 });
+          const docxBuf = fs.readFileSync(tmpDocx);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          res.setHeader('Content-Disposition', `attachment; filename="methods_report_${safeName}_${invocationId.slice(0,8)}.docx"`);
+          return res.status(200).send(docxBuf);
+        }
+
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="methods_report_${workflowName.replace(/[^a-z0-9]+/gi, '_')}_${invocationId.slice(0,8)}.txt"`);
+        res.setHeader('Content-Disposition', `attachment; filename="methods_report_${safeName}_${invocationId.slice(0,8)}.txt"`);
         return res.status(200).send(header);
       } catch (fallbackErr: any) {
         console.error('[MethodsReport] Generation failed:', fallbackErr.message);
@@ -6893,10 +6951,19 @@ Be specific. If output data is available above, extract real numbers. If binary 
               execution: { ...executionRun.execution, status: 'failed', error: rawErrorMsg }
             });
           }
+          // Alert admin so we can respond proactively
+          emailService.sendAdminAlert('CryoSPARC Execution Failed', {
+            runId: executionRun?.id || 'unknown',
+            userId: String((req.user as any)?.id || 'anon'),
+            userEmail: String((req.user as any)?.email || 'unknown'),
+            error: rawErrorMsg.slice(0, 800),
+            timestamp: new Date().toISOString(),
+          }).catch(() => {});
           return res.status(500).json({
             error: 'cryosparc_execution_failed',
-            message: 'CryoSPARC pipeline failed to start. Please check GPU instance availability.',
+            message: 'Our GPU infrastructure is warming up — the team has been notified and will resolve this shortly. Please try again in a few minutes.',
             runId: executionRun?.id,
+            executionEngine: 'cryosparc',
           });
         }
       }
@@ -7038,17 +7105,12 @@ Be specific. If output data is available above, extract real numbers. If binary 
           }
 
           // Email admin with full error details (fire-and-forget)
-          emailService.sendAdminAlert({
-            subject: 'Nextflow Execution Failed',
-            body: [
-              `Time: ${new Date().toISOString()}`,
-              `Run ID: ${executionRun?.id || 'n/a'}`,
-              `Workflow: ${executionRun?.workflowName || 'n/a'}`,
-              `User: ${(req.user as any)?.email || (req.user as any)?.id || 'anonymous'}`,
-              '',
-              'Error:',
-              rawErrorMsg,
-            ].join('\n'),
+          emailService.sendAdminAlert('Nextflow Execution Failed', {
+            time: new Date().toISOString(),
+            runId: executionRun?.id || 'n/a',
+            workflow: executionRun?.workflowName || 'n/a',
+            user: String((req.user as any)?.email || (req.user as any)?.id || 'anonymous'),
+            error: rawErrorMsg.slice(0, 800),
           }).catch(() => {/* ignore email failures */});
 
           return res.status(500).json({
@@ -7161,18 +7223,13 @@ Be specific. If output data is available above, extract real numbers. If binary 
       }
 
       // Email admin with full error details (fire-and-forget)
-      emailService.sendAdminAlert({
-        subject: 'Workflow Execution Error',
-        body: [
-          `Time: ${new Date().toISOString()}`,
-          `Run ID: ${executionRun?.id || 'n/a'}`,
-          `Workflow: ${executionRun?.workflowName || 'n/a'}`,
-          `User: ${(req.user as any)?.email || (req.user as any)?.id || 'anonymous'}`,
-          '',
-          'Error:',
-          rawErrorMsg,
-          ...(error.detail ? ['\nDetail:', JSON.stringify(error.detail, null, 2)] : []),
-        ].join('\n'),
+      emailService.sendAdminAlert('Workflow Execution Error', {
+        time: new Date().toISOString(),
+        runId: executionRun?.id || 'n/a',
+        workflow: executionRun?.workflowName || 'n/a',
+        user: String((req.user as any)?.email || (req.user as any)?.id || 'anonymous'),
+        error: rawErrorMsg.slice(0, 800),
+        detail: error.detail ? JSON.stringify(error.detail).slice(0, 400) : '',
       }).catch(() => {/* ignore email failures */});
 
       // Return a friendly message to the user (don't expose internal details)
@@ -9564,8 +9621,10 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
   // ---------------------------------------------------------------------------
   app.all(/^\/api\/sessions(\/.*)?$/, optionalAuth, async (req: any, res) => {
     try {
+      const _sessionsGalaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const _sessionsGalaxySecret = process.env.GALAXY_JWT_SECRET || process.env.JWT_SECRET || 'dev-only-insecure-secret-do-not-use-in-production';
       const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      const target = `${GALAXY_URL}${req.path}${query}`;
+      const target = `${_sessionsGalaxyUrl}${req.path}${query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
 
       // Re-sign the JWT using Galaxy's secret so Galaxy recognises the user.
@@ -9573,7 +9632,7 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
         const import_jwt = (await import('jsonwebtoken')).default;
         const galaxyToken = import_jwt.sign(
           { user_id: req.user.id, email: req.user.email },
-          _GALAXY_JWT_SECRET,
+          _sessionsGalaxySecret,
           { expiresIn: '1h' }
         );
         headers["Authorization"] = `Bearer ${galaxyToken}`;
