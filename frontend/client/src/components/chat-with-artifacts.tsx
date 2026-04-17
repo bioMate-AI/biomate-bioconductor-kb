@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { ChatInterface } from "./chat-interface"
+import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
+import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
 // WorkflowHistoryPanel removed
 import { chatHistoryService } from "@/lib/chat-history"
 import { useUnifiedExecution } from "@/hooks/useUnifiedExecution"
@@ -10,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { ToastAction } from "@/components/ui/toast"
 import type { ChatSession } from "@shared/schema"
-import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { AlertTriangle, MessageCircle, Layers, RefreshCw, Play, CheckCircle2, XCircle, Clock, X, FlaskConical } from "lucide-react"
 import { PostRunMicroSurvey } from "./feedback/post-run-micro-survey"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { SessionEndPulse } from "./feedback/session-end-pulse"
@@ -97,6 +99,12 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
   const [runSort, setRunSort] = useState<RunManagerSort>("updated_desc")
   const [focusedRunId, setFocusedRunId] = useState<string | null>(null)
   const [runAnchorRequestId, setRunAnchorRequestId] = useState(0)
+  // ── Right panel (workflow panel) ────────────────────────────────────────────
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
+  const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // Ref to ChatInterface's setChatDraft — set when ChatInterface registers it
+  const setChatDraftRef = useRef<((draft: string) => void) | undefined>(undefined)
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
     runId: string
     runStatus: 'completed' | 'failed' | 'cancelled'
@@ -737,6 +745,45 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setExternalPromptRequest({ id: promptRequestCounter.current, prompt })
   }
 
+  // ── Right panel handlers ────────────────────────────────────────────────────
+  const handleOpenWorkflowInPanel = useCallback((messageId: string, workflow: any) => {
+    setPanelWorkflowMessageId(messageId)
+    setPanelWorkflow(workflow)
+    setPanelOpen(true)
+  }, [])
+
+  const handleClosePanelWorkflow = useCallback(() => {
+    setPanelOpen(false)
+    setPanelWorkflowMessageId(null)
+    setPanelWorkflow(null)
+  }, [])
+
+  // Auto-open right panel whenever a new workflow message arrives
+  const autoOpenedWorkflowMsgIdRef = useRef<string | null>(null)
+  const lastWorkflowMsgId = useMemo(() => {
+    const msgs = currentChatSession?.messages ?? []
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m.role === 'assistant' && m.metadata?.type === 'workflow' && m.metadata?.workflow) {
+        return m.id
+      }
+    }
+    return null
+  }, [currentChatSession?.messages])
+
+  useEffect(() => {
+    if (!lastWorkflowMsgId) return
+    if (lastWorkflowMsgId === autoOpenedWorkflowMsgIdRef.current) return
+    autoOpenedWorkflowMsgIdRef.current = lastWorkflowMsgId
+    const msgs = currentChatSession?.messages ?? []
+    const wf = msgs.find(m => m.id === lastWorkflowMsgId)
+    if (wf?.metadata?.workflow) {
+      setPanelWorkflowMessageId(lastWorkflowMsgId)
+      setPanelWorkflow(wf.metadata.workflow)
+      setPanelOpen(true)
+    }
+  }, [lastWorkflowMsgId, currentChatSession?.messages])
+
   const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
   const isAutofixActive =
@@ -1225,32 +1272,131 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         invocationId={currentRun?.execution?.galaxyInvocationId}
       />
 
-      {/* Full-width Chat - Workflows appear inline as artifacts */}
-      <div className="flex-1 overflow-hidden">
-        <ChatInterface
-          chatSession={currentChatSession}
-          onWorkflowGenerated={handleWorkflowGenerated}
-          onChatUpdated={onChatUpdated}
-          activeWorkflow={null}
-          showProgress={false}
-          onToggleProgress={() => {}}
-          // Workflow execution props - passed down to chat messages
-          onRunWorkflow={handleRunWorkflow}
-          onStopWorkflow={handleStopWorkflow}
-          onPauseWorkflow={handlePauseWorkflow}
-          onResumeWorkflow={handleResumeWorkflow}
-          onParameterChange={handleParameterChange}
-          isWorkflowRunning={isWorkflowRunning}
-          workflowProgress={workflowProgress}
-          currentExecutionRun={currentRun}
-          workflowError={workflowError}
-          externalPromptRequest={externalPromptRequest}
-          focusedRunId={focusedRunId}
-          runAnchorRequestId={runAnchorRequestId}
-          onExternalPromptConsumed={(id) => {
-            setExternalPromptRequest((prev) => (prev?.id === id ? null : prev))
-          }}
-        />
+      {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
+      <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
+        {/* Center: Chat */}
+        <div className="flex-1 overflow-hidden min-w-0">
+          <ChatInterface
+            chatSession={currentChatSession}
+            onWorkflowGenerated={handleWorkflowGenerated}
+            onChatUpdated={onChatUpdated}
+            activeWorkflow={null}
+            showProgress={false}
+            onToggleProgress={() => {}}
+            onRunWorkflow={handleRunWorkflow}
+            onStopWorkflow={handleStopWorkflow}
+            onPauseWorkflow={handlePauseWorkflow}
+            onResumeWorkflow={handleResumeWorkflow}
+            onParameterChange={handleParameterChange}
+            isWorkflowRunning={isWorkflowRunning}
+            workflowProgress={workflowProgress}
+            currentExecutionRun={currentRun}
+            workflowError={workflowError}
+            externalPromptRequest={externalPromptRequest}
+            focusedRunId={focusedRunId}
+            runAnchorRequestId={runAnchorRequestId}
+            onExternalPromptConsumed={(id) => {
+              setExternalPromptRequest((prev) => (prev?.id === id ? null : prev))
+            }}
+            onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
+            panelWorkflowMessageId={panelWorkflowMessageId}
+            onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
+          />
+        </div>
+
+        {/* Right: Workflow Panel — auto-opens when AI returns a workflow */}
+        {panelOpen && (
+          <div
+            className="w-[420px] flex-shrink-0 border-l bg-background flex flex-col overflow-hidden"
+            data-testid="workflow-right-panel"
+          >
+            {/* Panel header */}
+            <div className="flex items-center justify-between border-b px-4 py-2 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <FlaskConical className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold">Workflow Panel</span>
+              </div>
+              <button
+                onClick={handleClosePanelWorkflow}
+                className="rounded-sm p-1 hover:bg-muted"
+                aria-label="Close workflow panel"
+                data-testid="workflow-panel-close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Panel body — scrollable */}
+            <div className="flex-1 overflow-y-auto p-3">
+              {panelWorkflow ? (
+                (() => {
+                  const execStatusStr = (
+                    currentRun?.execution?.status ||
+                    (isWorkflowRunning ? 'running' : 'idle')
+                  ) as string
+                  const viewerStatus: 'pending_review' | 'idle' | 'running' | 'paused' | 'completed' | 'failed' =
+                    execStatusStr === 'completed' || execStatusStr === 'ok' ? 'completed'
+                    : execStatusStr === 'paused'  ? 'paused'
+                    : execStatusStr === 'failed'  || execStatusStr === 'cancelled' || execStatusStr === 'error' ? 'failed'
+                    : execStatusStr === 'running' ? 'running'
+                    : 'idle'
+
+                  const prereqChecklist = normalizePrereqChecklist(
+                    panelWorkflow?.prerequisitesValidation,
+                    {}
+                  )
+                  return (
+                    <NextflowWorkflowViewer
+                      workflowDefinition={panelWorkflow}
+                      invocationId={currentRun?.execution?.galaxyInvocationId || currentRun?.id}
+                      workflowId={panelWorkflow?.id}
+                      prereqChecklist={prereqChecklist}
+                      autofix={currentRun?.execution?.nextflowStatus?.autofix}
+                      nextflowStatus={currentRun?.execution?.nextflowStatus}
+                      status={currentRun ? viewerStatus : (panelWorkflow?.workflowViewerStatus || viewerStatus)}
+                      errorMessage={currentRun?.execution?.errorMessage}
+                      progress={workflowProgress}
+                      onExecute={(params) => {
+                        const userParams = Object.fromEntries(
+                          Object.entries(params || {}).filter(([k]) => !k.startsWith('__'))
+                        )
+                        handleRunWorkflow(
+                          {
+                            ...panelWorkflow,
+                            inline_parameters: {
+                              ...(panelWorkflow?.inline_parameters || {}),
+                              ...userParams,
+                            },
+                            __executionOverrides: params?.__executionOverrides || undefined,
+                            __qcConfig: params?.__qcConfig || undefined,
+                          },
+                          []
+                        )
+                      }}
+                      onParameterChange={(id, value) => handleParameterChange(id, { value })}
+                      onPause={handlePauseWorkflow}
+                      onResume={handleResumeWorkflow}
+                      onCancel={handleStopWorkflow}
+                      onAdjustViaChat={(msg) => {
+                        if (msg) setChatDraftRef.current?.(msg)
+                      }}
+                      sessionId={currentChatSession?.id}
+                      runId={currentRun?.id}
+                      executionEngine={currentRun?.execution?.executionEngine}
+                      executionMetrics={currentRun?.metrics}
+                    />
+                  )
+                })()
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-sm text-muted-foreground text-center px-4">
+                    Workflow details will appear here when you run a workflow.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

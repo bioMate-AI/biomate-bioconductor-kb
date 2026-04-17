@@ -69,6 +69,10 @@ interface ChatInterfaceProps {
   onExternalPromptConsumed?: (id: number) => void
   focusedRunId?: string | null
   runAnchorRequestId?: number
+  // Right panel
+  onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
+  panelWorkflowMessageId?: string | null
+  onRegisterSetDraft?: (setter: (draft: string) => void) => void
 }
 
 // ── Onboarding welcome ────────────────────────────────────────────────────────
@@ -332,6 +336,9 @@ export function ChatInterface({
   onExternalPromptConsumed,
   focusedRunId = null,
   runAnchorRequestId = 0,
+  onOpenWorkflowInPanel,
+  panelWorkflowMessageId,
+  onRegisterSetDraft,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
   // Soft query queue: messages submitted while AI is responding are held here
@@ -1585,6 +1592,13 @@ export function ChatInterface({
               isLatestAssistantMessage={message.id === latestAssistantMessageId}
               isRunAnchorFocused={focusedAnchorMessageId === message.id}
               isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+              // Right panel: show compact pill when this workflow is open in the panel
+              isInPanel={!!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+              onOpenInPanel={
+                message.metadata?.type === 'workflow' && message.metadata?.workflow
+                  ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                  : undefined
+              }
             />
           ))}
           {displayTyping && <TypingIndicator />}
