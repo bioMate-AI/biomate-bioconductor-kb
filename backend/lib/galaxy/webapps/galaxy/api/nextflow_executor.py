@@ -1052,28 +1052,6 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
-        # AlphaFold DB search: FOLDSEEK and MMSEQS2 need 64 GB — route to HPC queue.
-        # The Galaxy override config's general process.queue would otherwise route them to
-        # the standard queue (m5.xlarge, 16 GB), which is too small for in-memory DB search.
-        # withName selectors in the override config take precedence over the workflow's own
-        # nextflow.config, so we inject them here rather than relying on the workflow file.
-        if "alphafold_db_search" in nf_path.lower():
-            hpc_queue = os.environ.get("HPC_BATCH_QUEUE", "biomate-hpc-queue")
-            lines += [
-                "process {",
-                "    withName: 'FOLDSEEK_STRUCTURAL_SEARCH' {",
-                f"        queue = '{hpc_queue}'",
-                "        cpus = 16",
-                "        memory = '64 GB'",
-                "    }",
-                "    withName: 'MMSEQS2_SEQUENCE_SEARCH' {",
-                f"        queue = '{hpc_queue}'",
-                "        cpus = 16",
-                "        memory = '64 GB'",
-                "    }",
-                "}",
-            ]
-            log.info(f"[Nextflow] AlphaFold DB search: FOLDSEEK/MMSEQS2 → {hpc_queue} (64 GB)")
         lines += [
             f"aws {{",
             f"    region = '{region}'",

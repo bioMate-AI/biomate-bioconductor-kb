@@ -1,331 +1,317 @@
 #!/usr/bin/env nextflow
 
 /**
- * alphafold_db_search -- structural + sequence similarity search against AlphaFold DB
+ * alphafold_db_search -- structural + sequence similarity search via web APIs
  *
- * Searches a query protein (PDB/CIF/FASTA) against the BioMate mirror of the
- * AlphaFold Human Proteome (~48k structures) using:
- *   - Foldseek  : 3Di alphabet structural search (finds structural analogs)
- *   - MMseqs2   : Sequence search (finds sequence homologs)
+ * Uses free public APIs instead of a local database copy:
+ *   - Foldseek web server (search.foldseek.com): structural search against
+ *     AlphaFold DB, PDB100, and SwissProt via the 3Di alphabet
+ *   - EBI HMMER (hmmer.ebi.ac.uk): sequence-based homology search
  *
- * S3 pre-built indexes (built once by scripts/build_alphafold_db.sh):
- *   s3://biomate-structure-db/alphafold/human/foldseek_db/
- *   s3://biomate-structure-db/alphafold/human/mmseqs2_db/
+ * Runs on a single cheap instance (1 vCPU, 2 GB) — no S3 database sync,
+ * no heavy binaries, no 64 GB memory requirement.
  *
  * Inputs:
- *   params.query_pdb     -- path/S3 URI to query structure (PDB or mmCIF)
- *   params.query_fasta   -- path/S3 URI to query FASTA (for MMseqs2; optional)
- *   params.search_mode   -- 'structural' | 'sequence' | 'both' (default: 'both')
- *   params.max_hits      -- max results to return (default: 50)
- *   params.evalue        -- e-value cutoff (default: 0.001)
- *   (always live — no mock mode)
- *   params.s3_db_base    -- S3 base URI for pre-built indexes
+ *   params.query_pdb   -- PDB ID (4 chars, e.g. '1IEP') OR path to .pdb file
+ *   params.query_fasta -- FASTA sequence string or path (for HMMER; auto-extracted from PDB if absent)
+ *   params.max_hits    -- max results per search (default: 50)
+ *   params.evalue      -- e-value cutoff (default: 0.001)
+ *   params.databases   -- comma-separated Foldseek databases (default: 'afdb50,afdb-swissprot,pdb100')
  */
 
 nextflow.enable.dsl = 2
 
-// ---------------------------------------------------------------------------
-// Parameters
-// ---------------------------------------------------------------------------
-
-params.query_pdb     = ''
-params.query_fasta   = ''
-params.search_mode   = 'both'
-params.max_hits      = 50
-params.evalue        = 0.001
-params.min_seq_id    = 0.0
-params.coverage      = 0.8
-params.s3_db_base    = 's3://biomate-structure-db/alphafold/human'
-params.outdir        = 'results'
+params.query_pdb   = ''
+params.query_fasta = ''
+params.max_hits    = 50
+params.evalue      = 0.001
+params.databases   = 'afdb50,afdb-swissprot,pdb100'
+params.outdir      = 'results'
 params.publish_dir_mode = 'copy'
 
 // ---------------------------------------------------------------------------
-// Foldseek structural search
+// Process: Foldseek API structural search + EBI HMMER sequence search
+// Single process — both are async HTTP polls, no heavy tools needed.
+// Runs on the standard queue with minimal resources.
 // ---------------------------------------------------------------------------
 
-process FOLDSEEK_STRUCTURAL_SEARCH {
-    tag "${meta.id}"
-    label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/foldseek", mode: params.publish_dir_mode
-
-    // On AWS Batch use drug-discovery-nf image (has aws cli + curl).
-    // foldseek binary is auto-installed at job start if not present.
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' \
-        : 'steineggerlab/foldseek:latest'
-
-    input:
-    tuple val(meta), path(query)
-    val  db_base
-    val  max_hits
-    val  evalue
-    val  coverage
-
-    output:
-    tuple val(meta), path('foldseek_hits.tsv'),    emit: hits
-    tuple val(meta), path('foldseek_report.html'), emit: report
-    path 'versions.yml',                           emit: versions
-
-    script:
-    """
-        # Auto-install foldseek if not present (AWS Batch: binary-only container)
-        if ! command -v foldseek &>/dev/null; then
-            curl -sSfL https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz | tar -xz -C /tmp/
-            export PATH="/tmp/foldseek/bin:\$PATH"
-        fi
-        mkdir -p tmp_query foldseek_db_local
-        aws s3 sync ${db_base}/foldseek_db/ foldseek_db_local/ --quiet
-        foldseek createdb ${query} query_db
-        foldseek search query_db foldseek_db_local/af_db result_db tmp_query \\
-            --max-seqs ${max_hits} \\
-            -e ${evalue} \\
-            --cov-mode 0 \\
-            -c ${coverage} \\
-            --threads ${task.cpus}
-        foldseek convertalis query_db foldseek_db_local/af_db result_db foldseek_hits.tsv \\
-            --format-output "query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,theader"
-        # Add header
-        sed -i '1s/^/query\\ttarget\\tpident\\talnlen\\tmismatch\\tgapopen\\tqstart\\tqend\\ttstart\\ttend\\tevalue\\tbitscore\\ttdescription\\n/' foldseek_hits.tsv
-
-    python3 << 'PYEOF'
-import csv, datetime, os
-hits = []
-try:
-    with open('foldseek_hits.tsv') as f:
-        reader = csv.DictReader(f, delimiter='\\t')
-        hits = list(reader)
-except Exception:
-    pass
-rows = ''.join(
-    '<tr><td>{target}</td><td>{tdescription}</td><td>{pident}</td><td>{evalue}</td><td>{bitscore}</td></tr>'.format(**h)
-    for h in hits
-)
-html = '''<!DOCTYPE html>
-<html><head><title>Foldseek Structural Search</title>
-<style>body{{font-family:sans-serif;max-width:900px;margin:2em auto}}
-table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ddd;padding:8px}}
-th{{background:#2563eb;color:#fff}}tr:nth-child(even){{background:#f9fafb}}</style></head>
-<body><h1>Foldseek Structural Search</h1>
-<p>Date: {date} &nbsp;|&nbsp; Hits: {n}</p>
-<table><tr><th>Target</th><th>Description</th><th>% ID</th><th>E-value</th><th>Score</th></tr>
-{rows}</table></body></html>'''.format(date=str(datetime.date.today()), n=len(hits), rows=rows)
-open('foldseek_report.html', 'w').write(html)
-PYEOF
-
-    cat > versions.yml << EOF
-FOLDSEEK_STRUCTURAL_SEARCH:
-  foldseek: \$(foldseek version 2>/dev/null || echo "unknown")
-EOF
-    """
-}
-
-// ---------------------------------------------------------------------------
-// MMseqs2 sequence search
-// ---------------------------------------------------------------------------
-
-process MMSEQS2_SEQUENCE_SEARCH {
-    tag "${meta.id}"
-    label 'process_medium'
-    publishDir "${params.outdir}/${meta.id}/mmseqs2", mode: params.publish_dir_mode
-
-    // On AWS Batch use drug-discovery-nf image (has aws cli + curl).
-    // mmseqs2 binary is auto-installed at job start if not present.
-    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
-        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' \
-        : 'soedinglab/mmseqs2:latest'
-
-    input:
-    tuple val(meta), path(query)
-    val  db_base
-    val  max_hits
-    val  evalue
-    val  min_seq_id
-    val  coverage
-
-    output:
-    tuple val(meta), path('mmseqs2_hits.tsv'),    emit: hits
-    tuple val(meta), path('mmseqs2_report.html'), emit: report
-    path 'versions.yml',                          emit: versions
-
-    script:
-    """
-        # Auto-install mmseqs2 if not present (AWS Batch: binary-only container)
-        if ! command -v mmseqs &>/dev/null; then
-            curl -sSfL https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz | tar -xz -C /tmp/
-            export PATH="/tmp/mmseqs/bin:\$PATH"
-        fi
-        mkdir -p tmp_mmseqs mmseqs2_db_local
-        aws s3 sync ${db_base}/mmseqs2_db/ mmseqs2_db_local/ --quiet
-        mmseqs createdb ${query} query_db
-        mmseqs search query_db mmseqs2_db_local/af_db result_db tmp_mmseqs \\
-            --max-seqs ${max_hits} \\
-            -e ${evalue} \\
-            --min-seq-id ${min_seq_id} \\
-            -c ${coverage} \\
-            --threads ${task.cpus}
-        mmseqs convertalis query_db mmseqs2_db_local/af_db result_db mmseqs2_hits.tsv \\
-            --format-output "query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits,theader"
-        sed -i '1s/^/query\\ttarget\\tpident\\talnlen\\tmismatch\\tgapopen\\tqstart\\tqend\\ttstart\\ttend\\tevalue\\tbitscore\\ttdescription\\n/' mmseqs2_hits.tsv
-
-    python3 << 'PYEOF'
-import csv, datetime
-hits = []
-try:
-    with open('mmseqs2_hits.tsv') as f:
-        reader = csv.DictReader(f, delimiter='\\t')
-        hits = list(reader)
-except Exception:
-    pass
-rows = ''.join(
-    '<tr><td>{target}</td><td>{tdescription}</td><td>{pident}</td><td>{evalue}</td><td>{bitscore}</td></tr>'.format(**h)
-    for h in hits
-)
-html = '''<!DOCTYPE html>
-<html><head><title>MMseqs2 Sequence Search</title>
-<style>body{{font-family:sans-serif;max-width:900px;margin:2em auto}}
-table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ddd;padding:8px}}
-th{{background:#16a34a;color:#fff}}tr:nth-child(even){{background:#f9fafb}}</style></head>
-<body><h1>MMseqs2 Sequence Search</h1>
-<p>Date: {date} &nbsp;|&nbsp; Hits: {n}</p>
-<table><tr><th>Target</th><th>Description</th><th>% ID</th><th>E-value</th><th>Score</th></tr>
-{rows}</table></body></html>'''.format(date=str(datetime.date.today()), n=len(hits), rows=rows)
-open('mmseqs2_report.html', 'w').write(html)
-PYEOF
-
-    cat > versions.yml << EOF
-MMSEQS2_SEQUENCE_SEARCH:
-  mmseqs2: \$(mmseqs version 2>/dev/null || echo "unknown")
-EOF
-    """
-}
-
-// ---------------------------------------------------------------------------
-// Merge and summarise results
-// ---------------------------------------------------------------------------
-
-process MERGE_SEARCH_RESULTS {
+process ALPHAFOLD_API_SEARCH {
     tag "${meta.id}"
     label 'process_low'
     publishDir "${params.outdir}/${meta.id}", mode: params.publish_dir_mode
 
     container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
         ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate-nextflow-base:latest' \
-        : 'biomate-nextflow-base:latest'
+        : 'python:3.11-slim'
 
     input:
-    tuple val(meta), path(foldseek_hits)
-    tuple val(meta2), path(mmseqs2_hits)
+    tuple val(meta), val(query_pdb)
+    val  max_hits
+    val  evalue
+    val  databases
 
     output:
-    tuple val(meta), path('combined_hits.tsv'),   emit: hits
-    tuple val(meta), path('search_summary.json'), emit: summary
-    tuple val(meta), path('combined_report.html'),emit: report
-    path 'versions.yml',                          emit: versions
+    tuple val(meta), path('foldseek_hits.tsv'),    emit: foldseek_hits
+    tuple val(meta), path('hmmer_hits.tsv'),        emit: hmmer_hits
+    tuple val(meta), path('search_summary.json'),   emit: summary
+    tuple val(meta), path('combined_report.html'),  emit: report
+    path 'versions.yml',                            emit: versions
 
     script:
     """
     python3 << 'PYEOF'
-import csv, json, datetime, os
+import json, csv, time, datetime, urllib.request, urllib.parse, urllib.error, sys, os, re
 
-def load_tsv(path):
-    if not os.path.exists(path): return []
-    with open(path) as f:
-        return list(csv.DictReader(f, delimiter='\\t'))
+query_pdb = "${query_pdb}".strip()
+max_hits  = int("${max_hits}")
+evalue    = float("${evalue}")
+databases = "${databases}".split(',')
 
-fs  = load_tsv('${foldseek_hits}')
-mms = load_tsv('${mmseqs2_hits}')
-for h in fs:  h['search_type'] = 'structural'
-for h in mms: h['search_type'] = 'sequence'
-all_hits = fs + mms
+# ---------------------------------------------------------------------------
+# Step 1: Fetch PDB structure (if 4-char ID) or read from file
+# ---------------------------------------------------------------------------
+def fetch_pdb(query):
+    pdb_id = query.upper()
+    if re.match(r'^[A-Z0-9]{4}$', pdb_id):
+        url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
+        print(f"[API] Fetching PDB {pdb_id} from RCSB...")
+        with urllib.request.urlopen(url, timeout=30) as r:
+            return pdb_id, r.read().decode()
+    elif os.path.exists(query):
+        with open(query) as f:
+            return os.path.basename(query), f.read()
+    else:
+        raise ValueError(f"query_pdb '{query}' is not a 4-char PDB ID or existing file path")
 
-fields = ['search_type','query','target','pident','alnlen','evalue','bitscore','tdescription']
-with open('combined_hits.tsv','w',newline='') as f:
-    w = csv.DictWriter(f, fieldnames=fields, delimiter='\\t', extrasaction='ignore')
-    w.writeheader(); w.writerows(all_hits)
+sample_id, pdb_content = fetch_pdb(query_pdb)
+print(f"[API] Got structure for {sample_id} ({len(pdb_content)} bytes)")
+
+# Extract SEQRES / ATOM sequence for HMMER
+fasta_seq = ""
+aa3 = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLN':'Q','GLU':'E',
+       'GLY':'G','HIS':'H','ILE':'I','LEU':'L','LYS':'K','MET':'M','PHE':'F',
+       'PRO':'P','SER':'S','THR':'T','TRP':'W','TYR':'Y','VAL':'V'}
+seqres = []
+for line in pdb_content.splitlines():
+    if line.startswith('SEQRES'):
+        seqres += [aa3.get(r,'X') for r in line[19:].split()]
+if seqres:
+    fasta_seq = ''.join(seqres)
+    print(f"[API] Extracted SEQRES sequence: {len(fasta_seq)} residues")
+
+# ---------------------------------------------------------------------------
+# Step 2: Foldseek web API structural search
+# Docs: https://search.foldseek.com/api
+# ---------------------------------------------------------------------------
+foldseek_hits = []
+try:
+    print("[API] Submitting Foldseek structural search...")
+    import tempfile, io
+    # Build multipart form: q=pdb_content, mode=3diaa, database[]=afdb50, ...
+    boundary = "BioMateBoundary42"
+    body_parts = []
+    def add_field(name, value):
+        body_parts.append(
+            f'--{boundary}\\r\\nContent-Disposition: form-data; name="{name}"\\r\\n\\r\\n{value}\\r\\n'.encode()
+        )
+    def add_file(name, filename, content):
+        body_parts.append(
+            f'--{boundary}\\r\\nContent-Disposition: form-data; name="{name}"; filename="{filename}"\\r\\nContent-Type: text/plain\\r\\n\\r\\n'.encode()
+            + content.encode() + b'\\r\\n'
+        )
+
+    add_file('q', f'{sample_id}.pdb', pdb_content)
+    add_field('mode', '3diaa')
+    for db in databases:
+        add_field('database[]', db.strip())
+    body = b''.join(body_parts) + f'--{boundary}--\\r\\n'.encode()
+
+    req = urllib.request.Request(
+        'https://search.foldseek.com/api/ticket',
+        data=body,
+        headers={'Content-Type': f'multipart/form-data; boundary={boundary}'},
+        method='POST'
+    )
+    with urllib.request.urlopen(req, timeout=60) as r:
+        ticket = json.loads(r.read())
+    ticket_id = ticket['id']
+    print(f"[API] Foldseek ticket: {ticket_id}")
+
+    # Poll for completion (up to 10 minutes)
+    for attempt in range(60):
+        time.sleep(10)
+        url = f'https://search.foldseek.com/api/ticket/{ticket_id}'
+        with urllib.request.urlopen(url, timeout=30) as r:
+            status = json.loads(r.read())
+        print(f"[API] Foldseek status: {status.get('status','?')} (attempt {attempt+1})")
+        if status.get('status') == 'COMPLETE':
+            break
+        if status.get('status') == 'ERROR':
+            raise RuntimeError(f"Foldseek search failed: {status}")
+    else:
+        raise TimeoutError("Foldseek search timed out after 10 minutes")
+
+    # Fetch results
+    url = f'https://search.foldseek.com/api/result/{ticket_id}/0'
+    with urllib.request.urlopen(url, timeout=30) as r:
+        results = json.loads(r.read())
+
+    for db_result in results.get('results', []):
+        for aln in db_result.get('alignments', [[]])[0][:max_hits]:
+            if float(aln.get('eval', 1)) <= evalue:
+                foldseek_hits.append({
+                    'database':    db_result.get('db', ''),
+                    'target':      aln.get('target', ''),
+                    'description': aln.get('taxName', '') or aln.get('target', ''),
+                    'pident':      f"{aln.get('seqId', 0)*100:.1f}",
+                    'alnlen':      aln.get('alnLength', ''),
+                    'evalue':      aln.get('eval', ''),
+                    'bitscore':    aln.get('score', ''),
+                    'prob':        f"{aln.get('prob', 0)*100:.1f}",
+                })
+    print(f"[API] Foldseek: {len(foldseek_hits)} hits (e<={evalue})")
+except Exception as ex:
+    print(f"[WARN] Foldseek search failed: {ex}", file=sys.stderr)
+
+# ---------------------------------------------------------------------------
+# Step 3: EBI HMMER phmmer sequence search (runs against UniProtKB)
+# API: https://www.ebi.ac.uk/Tools/hmmer/search/phmmer
+# ---------------------------------------------------------------------------
+hmmer_hits = []
+if fasta_seq:
+    try:
+        print("[API] Submitting EBI HMMER phmmer sequence search...")
+        fasta_str = f">query\\n{fasta_seq}"
+        post_data = urllib.parse.urlencode({
+            'seqdb': 'uniprotkb',
+            'seq':   fasta_str,
+            'E':     str(evalue),
+            'domE':  str(evalue),
+            'incE':  str(evalue),
+            'incdomE': str(evalue),
+        }).encode()
+        req = urllib.request.Request(
+            'https://www.ebi.ac.uk/Tools/hmmer/search/phmmer',
+            data=post_data,
+            headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json',
+            },
+            method='POST'
+        )
+        # EBI HMMER returns redirect to results
+        opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
+        with opener.open(req, timeout=120) as r:
+            hmmer_data = json.loads(r.read())
+
+        hits_raw = hmmer_data.get('results', {}).get('hits', [])[:max_hits]
+        for h in hits_raw:
+            hmmer_hits.append({
+                'accession':   h.get('acc', ''),
+                'name':        h.get('name', ''),
+                'description': h.get('desc', ''),
+                'evalue':      h.get('evalue', ''),
+                'score':       h.get('score', ''),
+                'species':     h.get('species', ''),
+            })
+        print(f"[API] HMMER: {len(hmmer_hits)} hits")
+    except Exception as ex:
+        print(f"[WARN] HMMER search failed: {ex}", file=sys.stderr)
+else:
+    print("[WARN] No SEQRES found in PDB — skipping HMMER sequence search")
+
+# ---------------------------------------------------------------------------
+# Write outputs
+# ---------------------------------------------------------------------------
+fs_fields = ['database','target','description','pident','alnlen','evalue','bitscore','prob']
+with open('foldseek_hits.tsv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=fs_fields, delimiter='\\t', extrasaction='ignore')
+    w.writeheader(); w.writerows(foldseek_hits)
+
+hmmer_fields = ['accession','name','description','evalue','score','species']
+with open('hmmer_hits.tsv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=hmmer_fields, delimiter='\\t', extrasaction='ignore')
+    w.writeheader(); w.writerows(hmmer_hits)
 
 summary = {
-    'generated_at': datetime.datetime.utcnow().isoformat()+'Z',
-    'sample_id': '${meta.id}',
-    'foldseek_hits': len(fs), 'mmseqs2_hits': len(mms), 'total_hits': len(all_hits),
-    'top_structural': [{'target':h['target'],'evalue':h.get('evalue',''),'description':h.get('tdescription','')} for h in fs[:5]],
-    'top_sequence':   [{'target':h['target'],'evalue':h.get('evalue',''),'description':h.get('tdescription','')} for h in mms[:5]],
+    'generated_at':    datetime.datetime.utcnow().isoformat() + 'Z',
+    'query':           query_pdb,
+    'sample_id':       sample_id,
+    'foldseek_hits':   len(foldseek_hits),
+    'hmmer_hits':      len(hmmer_hits),
+    'databases':       databases,
+    'evalue_cutoff':   evalue,
+    'top_structural':  foldseek_hits[:5],
+    'top_sequence':    hmmer_hits[:5],
 }
-json.dump(summary, open('search_summary.json','w'), indent=2)
+json.dump(summary, open('search_summary.json', 'w'), indent=2)
 
-def make_rows(hits):
+def fs_rows(hits):
     return ''.join(
-        '<tr><td>{target}</td><td>{tdescription}</td><td>{pident}</td><td>{evalue}</td><td>{bitscore}</td></tr>'.format(**h)
+        f'<tr><td>{h["target"]}</td><td>{h["description"]}</td>'
+        f'<td>{h["pident"]}%</td><td>{h["evalue"]}</td>'
+        f'<td>{h["prob"]}%</td><td>{h["database"]}</td></tr>'
         for h in hits)
 
-html = '''<!DOCTYPE html>
-<html><head><title>AlphaFold DB Search Report</title>
-<style>body{{font-family:sans-serif;max-width:1000px;margin:2em auto}}h2{{margin-top:2em}}
-table{{border-collapse:collapse;width:100%;margin-bottom:2em}}
-th,td{{border:1px solid #ddd;padding:8px;font-size:.9em}}
-.fsh th{{background:#2563eb;color:#fff}}.msh th{{background:#16a34a;color:#fff}}
+def hm_rows(hits):
+    return ''.join(
+        f'<tr><td>{h["accession"]}</td><td>{h["name"]}</td>'
+        f'<td>{h["description"][:80]}</td><td>{h["evalue"]}</td>'
+        f'<td>{h["species"]}</td></tr>'
+        for h in hits)
+
+html = f'''<!DOCTYPE html>
+<html><head><title>AlphaFold DB Search — {sample_id}</title>
+<style>body{{font-family:sans-serif;max-width:1100px;margin:2em auto}}
+h2{{margin-top:2em}}table{{border-collapse:collapse;width:100%;margin-bottom:2em}}
+th,td{{border:1px solid #ddd;padding:7px;font-size:.85em}}
+.fsh th{{background:#2563eb;color:#fff}}.hh th{{background:#16a34a;color:#fff}}
 tr:nth-child(even){{background:#f9fafb}}</style></head>
-<body><h1>AlphaFold DB Search -- {sample}</h1>
-<p>{date} | Structural: <b>{nfs}</b> | Sequence: <b>{nmms}</b></p>
-<h2>Foldseek -- Structural Analogs</h2>
-<table><tr class="fsh"><th>Target</th><th>Description</th><th>% ID</th><th>E-value</th><th>Score</th></tr>{fs_rows}</table>
-<h2>MMseqs2 -- Sequence Homologs</h2>
-<table><tr class="msh"><th>Target</th><th>Description</th><th>% ID</th><th>E-value</th><th>Score</th></tr>{mms_rows}</table>
-</body></html>'''.format(
-    sample='${meta.id}', date=str(datetime.date.today()),
-    nfs=len(fs), nmms=len(mms),
-    fs_rows=make_rows(fs), mms_rows=make_rows(mms))
-open('combined_report.html','w').write(html)
-print(f"Combined: {len(all_hits)} hits ({len(fs)} structural + {len(mms)} sequence)")
+<body>
+<h1>AlphaFold DB Search — {sample_id}</h1>
+<p>{datetime.date.today()} | Foldseek structural: <b>{len(foldseek_hits)}</b> | HMMER sequence: <b>{len(hmmer_hits)}</b></p>
+<h2>Foldseek — Structural Analogs (3Di)</h2>
+<table class="fsh"><tr><th>Target</th><th>Description</th><th>% SeqID</th><th>E-value</th><th>Prob</th><th>Database</th></tr>
+{fs_rows(foldseek_hits)}</table>
+<h2>EBI HMMER phmmer — Sequence Homologs</h2>
+<table class="hh"><tr><th>Accession</th><th>Name</th><th>Description</th><th>E-value</th><th>Species</th></tr>
+{hm_rows(hmmer_hits)}</table>
+</body></html>'''
+open('combined_report.html', 'w').write(html)
+print(f"[API] Done: {len(foldseek_hits)} structural + {len(hmmer_hits)} sequence hits")
 PYEOF
 
     cat > versions.yml << EOF
-MERGE_SEARCH_RESULTS:
+ALPHAFOLD_API_SEARCH:
   python: \$(python3 --version | cut -d' ' -f2)
+  foldseek_api: search.foldseek.com
+  hmmer_api: hmmer.ebi.ac.uk
 EOF
     """
 }
 
 // ---------------------------------------------------------------------------
-// Workflow
+// Named workflow (for inclusion by parent pipelines)
 // ---------------------------------------------------------------------------
 
 workflow ALPHAFOLD_DB_SEARCH {
-
     take:
-    ch_query   // channel: tuple [meta, path] -- query structure (PDB/CIF)
+    ch_query   // channel: tuple [meta, val(pdb_id_or_path)]
 
     main:
-    FOLDSEEK_STRUCTURAL_SEARCH(
+    ALPHAFOLD_API_SEARCH(
         ch_query,
-        params.s3_db_base,
         params.max_hits,
         params.evalue,
-        params.coverage
-    )
-
-    MMSEQS2_SEQUENCE_SEARCH(
-        ch_query,
-        params.s3_db_base,
-        params.max_hits,
-        params.evalue,
-        params.min_seq_id,
-        params.coverage
-    )
-
-    MERGE_SEARCH_RESULTS(
-        FOLDSEEK_STRUCTURAL_SEARCH.out.hits,
-        MMSEQS2_SEQUENCE_SEARCH.out.hits
+        params.databases
     )
 
     emit:
-    combined_hits   = MERGE_SEARCH_RESULTS.out.hits
-    summary         = MERGE_SEARCH_RESULTS.out.summary
-    report          = MERGE_SEARCH_RESULTS.out.report
-    foldseek_hits   = FOLDSEEK_STRUCTURAL_SEARCH.out.hits
-    foldseek_report = FOLDSEEK_STRUCTURAL_SEARCH.out.report
-    mmseqs2_hits    = MMSEQS2_SEQUENCE_SEARCH.out.hits
-    mmseqs2_report  = MMSEQS2_SEQUENCE_SEARCH.out.report
-    versions        = MERGE_SEARCH_RESULTS.out.versions
+    foldseek_hits = ALPHAFOLD_API_SEARCH.out.foldseek_hits
+    hmmer_hits    = ALPHAFOLD_API_SEARCH.out.hmmer_hits
+    summary       = ALPHAFOLD_API_SEARCH.out.summary
+    report        = ALPHAFOLD_API_SEARCH.out.report
+    versions      = ALPHAFOLD_API_SEARCH.out.versions
 }
 
 // ---------------------------------------------------------------------------
@@ -334,11 +320,9 @@ workflow ALPHAFOLD_DB_SEARCH {
 
 workflow {
     if (!params.query_pdb) {
-        error "Provide --query_pdb <path_or_s3_uri>"
+        error "Provide --query_pdb <PDB_ID_or_path>"
     }
-
-    ch_query = Channel.fromPath(params.query_pdb)
-        .map { f -> [ [id: f.baseName], f ] }
-
+    ch_query = Channel.of( [ [id: params.query_pdb.toString().replaceAll(/\.pdb$/, '').toUpperCase()],
+                               params.query_pdb.toString() ] )
     ALPHAFOLD_DB_SEARCH(ch_query)
 }

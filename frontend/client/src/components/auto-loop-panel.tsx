@@ -105,12 +105,15 @@ function gateLabel(gate: string): string {
   return GATE_LABELS[gate] ?? gate.replace(/_/g, " ")
 }
 
-function actionBadge(action: "pass" | "advisory" | "halt") {
+function actionBadge(action: "pass" | "advisory" | "halt" | string) {
   if (action === "pass")
     return <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">PASS</Badge>
   if (action === "advisory")
     return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">ADVISORY</Badge>
-  return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">HALT</Badge>
+  if (action === "halt")
+    return <Badge className="bg-red-100 text-red-800 border-red-200 text-xs">HALT</Badge>
+  // Unknown action — render neutral badge so the gate row is still visible
+  return <Badge className="bg-gray-100 text-gray-700 border-gray-200 text-xs">{action.toUpperCase()}</Badge>
 }
 
 /** Format a gate value/threshold without scientific notation. */
@@ -133,6 +136,10 @@ function levelDot(level: string) {
     <span className={`inline-block w-2 h-2 rounded-full ${colors[level] ?? "bg-gray-300"} mr-1`} />
   )
 }
+
+// Max citations shown inline per remediation — keeps the card compact;
+// the full list is available via the suggestion store REST endpoint.
+const MAX_INLINE_CITATIONS = 3
 
 // ── RemediationCard sub-component ──────────────────────────────────────────────
 
@@ -181,7 +188,7 @@ function RemediationCard({ rem }: { rem: AutoLoopRemediation }) {
 
           {showCitations && (
             <div className="mt-1 space-y-1">
-              {rem.citations.slice(0, 3).map((c, i) => (
+              {rem.citations.slice(0, MAX_INLINE_CITATIONS).map((c, i) => (
                 <div key={i} className="text-xs bg-white dark:bg-slate-900 rounded p-2 border border-amber-100 dark:border-amber-900">
                   <p className="font-semibold text-gray-700 dark:text-gray-300">{c.paper_ref}</p>
                   <p className="text-gray-500 dark:text-gray-400 italic mt-0.5 line-clamp-2">
@@ -298,8 +305,8 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
               Suggested parameter adjustments for next run:
             </p>
-            {remediations.map((rem) => (
-              <RemediationCard key={rem.gate} rem={rem} />
+            {remediations.map((rem, i) => (
+              <RemediationCard key={`${rem.phase ?? ""}-${rem.gate}-${i}`} rem={rem} />
             ))}
           </div>
         )}

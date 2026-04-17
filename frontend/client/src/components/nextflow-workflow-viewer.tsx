@@ -1198,6 +1198,8 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     if (!invocationId) return;
     let stopped = false;
+    // Reset auto-loop panel when the invocationId changes (new run)
+    setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
 
     const es = new EventSource(`/api/workflows/${invocationId}/events`);
 
@@ -1222,7 +1224,13 @@ export function NextflowWorkflowViewer({
     es.addEventListener("autoloop_gate_results", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data as string);
-        setAutoLoopPanel(prev => ({ ...prev, gateResults: data, complete: null }));
+        // Only reset `complete` when starting a new phase; preserve an already-received
+        // phase_complete event for the same phase to avoid out-of-order SSE race.
+        setAutoLoopPanel(prev => ({
+          ...prev,
+          gateResults: data,
+          complete: prev.complete?.phase === data.phase ? prev.complete : null,
+        }));
       } catch (err) {
         console.error("[AutoLoop] gate_results parse error:", err);
       }
