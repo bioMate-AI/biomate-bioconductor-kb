@@ -110,6 +110,10 @@ CRYOSPARC_SSH_USER = os.environ.get("CRYOSPARC_SSH_USER", "ubuntu")
 # Tracks the instance launched for the current/last job (set by start_instance)
 _active_instance_id: str = ""
 
+# Serialises instance-provision + connect so two concurrent requests don't
+# each launch their own EC2 instance and race on the same local tunnel port.
+_INSTANCE_LOCK = __import__("threading").Lock()
+
 # ---------------------------------------------------------------------------
 # CryoSPARC job type constants — full SPA pipeline (23 types)
 # ---------------------------------------------------------------------------
@@ -1262,6 +1266,23 @@ def execute_spa_pipeline(
     )
     params["num_gpu_workers"] = effective_gpu_workers
 
+    # Active-run gate: reject a second submission while one is already running.
+    # CryoSPARC runs on a single EC2 instance; two concurrent pipelines would
+    # create separate projects on separate instances and race on the SSH tunnel.
+    active = [r for r in _cs_runs.values() if r.status in ("queued", "running")]
+    if active:
+        existing = active[0]
+        log.warning(
+            "[CryoSPARC] Rejecting new run %s — run %s is already %s (%.0f%%). "
+            "Wait for it to finish or cancel it first.",
+            run_id, existing.run_id, existing.status, existing.progress_percent,
+        )
+        raise RuntimeError(
+            f"CryoSPARC already has an active run ({existing.run_id}, "
+            f"status={existing.status}, {existing.progress_percent}% complete). "
+            "Submit a new run only after the current one finishes."
+        )
+
     run = CryoSPARCRun(run_id=run_id, status="queued", user_id=user_id, params=params,
                        license_key=license_key)
     _cs_runs[run_id] = run
@@ -1532,7 +1553,10 @@ def _execute_spa_pipeline_sync(
     if not mock_mode and not run.license_key:
         raise RuntimeError("No CryoSPARC license key — user must register one at Settings → Credentials")
     if not mock_mode:
-        ensure_cryosparc_running(cb)
+        # Serialise provision+connect: only one thread launches EC2 at a time.
+        # Subsequent callers wait then reuse the already-running instance.
+        with _INSTANCE_LOCK:
+            ensure_cryosparc_running(cb)
     # Re-stage S3 movies if initial staging failed (e.g. SSH timed out before instance was ready)
     s3_url = params.get("s3_movies_url") or ""
     if s3_url and not mock_mode:

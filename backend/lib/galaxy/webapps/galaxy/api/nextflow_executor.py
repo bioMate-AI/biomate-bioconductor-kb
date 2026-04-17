@@ -4075,6 +4075,45 @@ def get_cryosparc_status(run_id: str) -> Dict[str, Any]:
     return status
 
 
+@router.get("/api/cryosparc/instances", summary="List active CryoSPARC runs and instance state")
+def get_cryosparc_instances() -> Dict[str, Any]:
+    """Return all known runs plus the current EC2 instance state.
+
+    Use this endpoint to detect duplicate instances and diagnose stuck runs.
+    """
+    try:
+        from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"CryoSPARC executor not available: {exc}")
+
+    active_runs = [
+        cs_exec.get_run_status(rid)
+        for rid, r in cs_exec._cs_runs.items()
+        if r.status in ("queued", "running")
+    ]
+    all_runs = cs_exec.list_runs()
+
+    try:
+        instance_state = cs_exec.get_instance_state()
+        instance_ip = cs_exec.CRYOSPARC_HOST
+        instance_id = cs_exec._active_instance_id or cs_exec.CRYOSPARC_INSTANCE_ID
+    except Exception as _e:
+        instance_state = f"error: {_e}"
+        instance_ip = ""
+        instance_id = ""
+
+    return {
+        "instance": {
+            "id":    instance_id,
+            "ip":    instance_ip,
+            "state": instance_state,
+        },
+        "active_runs":  active_runs,
+        "all_runs":     all_runs,
+        "lock_held":    cs_exec._INSTANCE_LOCK.locked(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Index health check
 # ---------------------------------------------------------------------------
