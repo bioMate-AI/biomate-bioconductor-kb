@@ -1639,6 +1639,22 @@ Rules:
       }
     }
 
+    // HPO + ENSG candidate gene override:
+    // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
+    // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate
+    // list. These are NEVER pipeline execution tasks. Override any workflow_generation
+    // misclassification back to clinical_genomics + needsResearchAgent.
+    if (actions.needsWorkflowGeneration) {
+      const _hasHpoTerms = /\bHP:\d{7}\b/.test(message);
+      const _hasEnsgGenes = /\bENSG\d{11}\b/.test(message);
+      if (_hasHpoTerms && _hasEnsgGenes) {
+        log('HPO+ENSG override: patient_gene_detection task — forcing clinical_genomics, needsWorkflowGeneration=false, needsResearchAgent=true');
+        actions.needsWorkflowGeneration = false;
+        actions.needsResearchAgent = true;
+        intent.type = 'clinical_genomics';
+      }
+    }
+
     // Multi-turn data-provision override:
     // In multi-turn conversations the user may first state a research goal (classified as
     // research_question) and then provide input data (SRR/GEO/EMBL accession, file path, SMILES)
@@ -2731,7 +2747,7 @@ Describe the user's information need with a descriptive label. You may use these
 **research_question** — Look up or synthesize information from scientific literature and papers.
 **database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
 **genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links, published CRISPR screen results. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates, "which gene showed the strongest effect in this CRISPR screen", "identify the gene from this published screen". Requires live GWAS Catalog / Open Targets / DepMap / GenomeCRISPR lookup. Candidate gene/SNP lists in the prompt are published data to look up — NOT user-provided files.
-**clinical_genomics** — Rare disease diagnosis (OMIM), patient gene detection (ClinVar + Monarch + HPO), phenotype-to-gene mapping. Triggered by: HPO term lists, ENSG candidate gene lists, disease name + gene + phenotype combinations.
+**clinical_genomics** — Rare disease diagnosis (OMIM), patient gene detection (ClinVar + Monarch + HPO), phenotype-to-gene mapping. Triggered by: HPO term lists (HP:XXXXXXX), ENSG candidate gene lists (ENSG00000XXXXXX), disease name + gene + phenotype combinations, "identify the causal gene from this list", "which of these candidate genes matches these phenotypes". IMPORTANT: A question that provides HPO phenotype terms AND a list of ENSG candidate genes asking to identify the causal gene is ALWAYS clinical_genomics — it is a database/knowledge lookup task, NOT a pipeline execution. No user data files are involved.
 **result_comparison** — Compare tools, methods, or approaches with evidence.
 **tool_search** — Find or learn about available tools and their capabilities.
 **benchmark_query** — Get specific performance data or benchmarks.
@@ -2760,6 +2776,8 @@ Ask a single question: **"Does completing this task require running computationa
 - If the task can be fully resolved from scientific literature or general biological knowledge → **research_question**.
 
 Key distinction: **candidate lists are NOT user data.** A question giving a list of rsIDs or gene names and asking to select the causal one is a database lookup task — NOT a pipeline execution. No files need to be processed.
+
+**HPO terms + ENSG candidate genes = clinical_genomics, NOT workflow_generation.** A task that provides HPO phenotype codes (HP:XXXXXXX) and a list of ENSG gene IDs and asks to identify the causal gene is a knowledge/database lookup — it queries ClinVar, OMIM, and Monarch. It does NOT require running a computational pipeline on user data files. Never classify such tasks as workflow_generation.
 
 The distinction is the nature of the task, not the presence of file names in the message.
 
@@ -3264,6 +3282,34 @@ For KNOWLEDGE and RESEARCH questions (not workflow execution), set needsResearch
   "chain_hint": null
 }
 
+"Task: Given a patient with phenotypes HP:0001761 (pes cavus), HP:0010522 (retinal abnormality) and candidate genes ENSG00000161011, ENSG00000130812, ENSG00000197746, identify the causal gene.\n\nSearch ClinVar and OMIM for the gene whose known disease associations match these phenotypes. Identify the ONE causal gene from the candidate list.\nAnswer with ONLY this JSON: {\"causal_gene\": [\"ENSG_ID\"]}"
+{
+  "type": "clinical_genomics",
+  "keywords": ["causal gene", "HPO phenotypes", "pes cavus", "retinal abnormality", "candidate genes", "patient gene detection", "ClinVar", "OMIM"],
+  "inlineParameters": {"hpo_terms": ["HP:0001761", "HP:0010522"], "genes": ["ENSG00000161011", "ENSG00000130812", "ENSG00000197746"]},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.98,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "identify causal gene from HPO phenotype list and ENSG candidate list via ClinVar/OMIM lookup", "confidence": 0.98},
+    {"category": "task_type", "value": "patient_gene_detection", "confidence": 0.98}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["causal gene", "HPO phenotypes", "pes cavus", "retinal abnormality", "ENSG candidate genes", "gene-disease association", "ClinVar", "OMIM"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
+
 IMPORTANT: Set needsResearchAgent: true whenever the user asks:
 - What gene causes / is associated with [disease/phenotype]
 - What does gene [X] do / what is its function
@@ -3644,6 +3690,8 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           'research_question', 'troubleshooting', 'parameter_optimization',
           'experiment_design', 'data_interpretation', 'protocol_guidance',
           'methods_writing', 'comparative_methodology', 'regulatory_compliance',
+          // Knowledge/DB lookup types must always use ResearchAgent for live DB queries
+          'clinical_genomics', 'genomics_knowledge', 'database_lookup',
         ]);
         const mustUseResearch = researchAgentTypes.has(type);
         return {

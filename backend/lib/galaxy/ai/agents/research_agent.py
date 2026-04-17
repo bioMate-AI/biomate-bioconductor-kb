@@ -559,6 +559,138 @@ def lookup_omim_gene(gene_symbol: str) -> List[dict]:
     return out
 
 
+# ── Improvement A: HPO gene phenotype scorer ──────────────────────────────────
+
+def _lookup_hpo_associated_genes(hp_terms: list) -> dict:
+    """Return {HP:XXXXXXX: [gene_symbol1, gene_symbol2, ...]} via Monarch API."""
+    result = {}
+    for hp in hp_terms[:10]:  # cap at 10 HPO terms
+        try:
+            url = (
+                f"https://api-v3.monarchinitiative.org/v3/api/association/all"
+                f"?object={urllib.parse.quote(hp)}"
+                f"&subject_category=biolink%3AGene"
+                f"&limit=20&offset=0"
+            )
+            data = _http_get(url, timeout=8)
+            if data and "items" in data:
+                genes = [item.get("subject_label", "") for item in data["items"] if item.get("subject_label")]
+                result[hp] = genes
+            else:
+                result[hp] = []
+        except Exception:
+            result[hp] = []
+    return result
+
+
+def _score_ensg_by_hpo(ensg_info: dict, hpo_gene_map: dict) -> dict:
+    """
+    Score candidate ENSG IDs by how many HPO terms map to them.
+
+    ensg_info: {ensg_id: {"symbol": ..., ...}}
+    hpo_gene_map: {hp_term: [gene_symbol1, ...]}
+    Returns: {ensg_id: {"symbol": ..., "hpo_score": int, "matching_hps": [...]}}
+    """
+    scores = {}
+    total_hps = len(hpo_gene_map)
+    for ensg_id, info in ensg_info.items():
+        symbol = info.get("symbol", "")
+        if not symbol:
+            continue
+        matching_hps = []
+        for hp, genes in hpo_gene_map.items():
+            if symbol.upper() in [g.upper() for g in genes]:
+                matching_hps.append(hp)
+        scores[ensg_id] = {
+            "symbol": symbol,
+            "hpo_score": len(matching_hps),
+            "total_hps": total_hps,
+            "matching_hps": matching_hps,
+        }
+    # Sort by score descending
+    return dict(sorted(scores.items(), key=lambda x: -x[1]["hpo_score"]))
+
+
+# ── Improvement B: OMIM disease phenotype scoring ────────────────────────────
+
+def lookup_omim_disease_phenotypes(omim_id: str) -> list:
+    """Return HPO terms associated with an OMIM disease via Monarch."""
+    try:
+        url = (
+            f"https://api-v3.monarchinitiative.org/v3/api/association/all"
+            f"?subject=OMIM%3A{urllib.parse.quote(str(omim_id))}"
+            f"&object_category=biolink%3APhenotypicFeature"
+            f"&limit=30&offset=0"
+        )
+        data = _http_get(url, timeout=8)
+        if data and "items" in data:
+            return [item.get("object", "") for item in data["items"] if item.get("object", "").startswith("HP:")]
+        return []
+    except Exception:
+        return []
+
+
+def _score_omim_diseases_by_hpo_overlap(
+    gene_omim_results: list,
+    patient_hp_terms: list,
+) -> list:
+    """
+    For each gene in gene_omim_results, fetch OMIM disease phenotypes and score
+    overlap with patient HPO terms.
+
+    gene_omim_results: output of lookup_omim_gene()
+    patient_hp_terms: list of HP:XXXXXXX strings from the question
+    Returns: list of dicts sorted by overlap score desc
+    """
+    if not patient_hp_terms:
+        return []
+    patient_hp_set = set(patient_hp_terms)
+    scored = []
+    for gene_entry in gene_omim_results[:3]:  # limit to avoid long waits
+        symbol = gene_entry.get("symbol", "")
+        for omim_id in (gene_entry.get("omim_ids") or [])[:3]:
+            disease_hps = lookup_omim_disease_phenotypes(str(omim_id))
+            overlap = patient_hp_set & set(disease_hps)
+            scored.append({
+                "gene": symbol,
+                "omim_id": omim_id,
+                "overlap_count": len(overlap),
+                "total_patient_hps": len(patient_hp_set),
+                "overlapping_hps": sorted(overlap),
+                "disease_total_hps": len(disease_hps),
+            })
+    scored.sort(key=lambda x: -x["overlap_count"])
+    return scored
+
+
+# ── Improvement C: CRISPR screen literature search ───────────────────────────
+
+def _search_crispr_screen_pubmed(condition: str) -> str:
+    """Search PubMed for CRISPR screen papers matching condition, return top abstracts."""
+    try:
+        query = urllib.parse.quote(f"CRISPR screen {condition[:80]} fitness")
+        url = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+            f"?db=pubmed&term={query}&retmax=3&retmode=json"
+        )
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=8) as r:
+            ids = json.loads(r.read()).get("esearchresult", {}).get("idlist", [])
+        if not ids:
+            return ""
+        # Fetch abstracts
+        id_str = ",".join(ids[:3])
+        url2 = (
+            f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+            f"?db=pubmed&id={id_str}&rettype=abstract&retmode=text"
+        )
+        req2 = urllib.request.Request(url2)
+        with urllib.request.urlopen(req2, timeout=10) as r:
+            return r.read().decode("utf-8", errors="ignore")[:3000]
+    except Exception:
+        return ""
+
+
 def lookup_gwas_catalog(phenotype: str, candidate_rsids: List[str]) -> Dict[str, Any]:
     """
     Query GWAS Catalog REST API for each candidate rsID and rank by association
@@ -1433,6 +1565,67 @@ class ResearchAgent:
                 except Exception as e:
                     log.warning(f"GWAS gene lookup failed (non-fatal): {e}")
 
+            # ── Improvement A: HPO gene phenotype scoring ─────────────────────
+            # When the question has both HPO terms and ENSG candidate genes,
+            # score each ENSG by how many HPO phenotypes map to it.
+            if ids["hp_terms"] and ids["ensg_ids"] and db_facts.get("ensembl_genes"):
+                try:
+                    hpo_gene_map = _lookup_hpo_associated_genes(ids["hp_terms"])
+                    if hpo_gene_map:
+                        hpo_scores = _score_ensg_by_hpo(db_facts["ensembl_genes"], hpo_gene_map)
+                        if hpo_scores:
+                            db_facts["hpo_ensg_scores"] = hpo_scores
+                            log.info(
+                                f"HPO-ENSG scoring: {len(hpo_scores)} genes scored, "
+                                f"top={next(iter(hpo_scores.values()), {}).get('symbol','?')}"
+                            )
+                except Exception as e:
+                    log.warning(f"HPO-ENSG scoring failed (non-fatal): {e}")
+
+            # ── Improvement B: OMIM disease phenotype overlap scoring ─────────
+            # For rare-disease questions, score OMIM diseases by HPO overlap.
+            rare_disease_keywords = {"omim", "rare disease", "disease_name", "search omim", "mendelian"}
+            is_rare_disease_task = any(kw in question.lower() for kw in rare_disease_keywords)
+            if is_rare_disease_task and ids["hp_terms"] and ids["ensg_ids"] and db_facts.get("mygene_annotation"):
+                try:
+                    # Build gene_omim_results from mygene_annotation
+                    gene_omim_for_scoring = [
+                        {"symbol": hit.get("symbol", ""), "omim_ids": hit.get("OMIM") or hit.get("omim") or []}
+                        for hit in db_facts["mygene_annotation"]
+                        if hit.get("symbol")
+                    ]
+                    if gene_omim_for_scoring:
+                        omim_disease_scores = _score_omim_diseases_by_hpo_overlap(
+                            gene_omim_for_scoring, ids["hp_terms"]
+                        )
+                        if omim_disease_scores:
+                            db_facts["omim_disease_hpo_scores"] = omim_disease_scores
+                            log.info(
+                                f"OMIM disease HPO scoring: {len(omim_disease_scores)} diseases scored, "
+                                f"top={omim_disease_scores[0].get('gene','?')} OMIM:{omim_disease_scores[0].get('omim_id','?')}"
+                            )
+                except Exception as e:
+                    log.warning(f"OMIM disease HPO scoring failed (non-fatal): {e}")
+
+            # ── Improvement C: CRISPR screen PubMed search ────────────────────
+            # For screen_gene questions, fetch targeted PubMed literature.
+            crispr_keywords = {"crispr screen", "perturbation effect", "fitness effect", "genetic screen"}
+            is_screen_gene_task = any(kw in question.lower() for kw in crispr_keywords)
+            if is_screen_gene_task:
+                try:
+                    # Extract experimental condition: look for cell line / disease name
+                    condition_match = re.search(
+                        r"(?:in\s+|condition[:\s]+|cell\s+line[:\s]+|cancer[:\s]+)([A-Za-z0-9 \-]{5,60})",
+                        question, re.IGNORECASE
+                    )
+                    condition = condition_match.group(1).strip() if condition_match else question[:80]
+                    crispr_abstracts = _search_crispr_screen_pubmed(condition)
+                    if crispr_abstracts:
+                        db_facts["crispr_screen_literature"] = crispr_abstracts
+                        log.info(f"CRISPR screen PubMed: {len(crispr_abstracts)} chars retrieved")
+                except Exception as e:
+                    log.warning(f"CRISPR screen PubMed search failed (non-fatal): {e}")
+
             if db_facts:
                 evidence["db_facts"] = db_facts
                 log.info(f"DB lookup populated: {list(db_facts.keys())}")
@@ -1660,7 +1853,49 @@ class ResearchAgent:
                 for v in df['clinvar_variants'][:5]:
                     db_section.append(f"- {v.get('title','')} | {v.get('clinical_significance','')} | {v.get('condition','')}")
 
+            # ── Improvement A: HPO phenotype scoring ─────────────────────────
+            if df.get('hpo_ensg_scores'):
+                db_section.append(
+                    "### HPO phenotype scoring (ENSG candidates ranked by phenotype match count)"
+                )
+                db_section.append(
+                    "**Use this to rank candidate genes — higher score = more phenotype evidence.**"
+                )
+                total_hps = next(iter(df['hpo_ensg_scores'].values()), {}).get("total_hps", 0)
+                for ensg_id, s in df['hpo_ensg_scores'].items():
+                    hp_list = ", ".join(s.get("matching_hps", []))
+                    db_section.append(
+                        f"- {ensg_id} ({s['symbol']}): score {s['hpo_score']}/{total_hps} HPO terms matched"
+                        + (f" → {hp_list}" if hp_list else "")
+                    )
+
+            # ── Improvement B: OMIM disease HPO overlap scoring ───────────────
+            if df.get('omim_disease_hpo_scores'):
+                db_section.append(
+                    "### OMIM disease HPO overlap scoring (ranked by patient phenotype overlap)"
+                )
+                db_section.append(
+                    "**Higher overlap_count = disease phenotype better matches patient HPO terms.**"
+                )
+                for entry in df['omim_disease_hpo_scores'][:6]:
+                    overlap_hps = ", ".join(entry.get("overlapping_hps", []))
+                    db_section.append(
+                        f"- {entry['gene']} / OMIM:{entry['omim_id']}: "
+                        f"overlap {entry['overlap_count']}/{entry['total_patient_hps']} patient HPOs"
+                        + (f" (matching: {overlap_hps})" if overlap_hps else "")
+                    )
+
             prompt_parts.append("\n".join(db_section))
+
+        # ── Improvement C: CRISPR screen literature ──────────────────────────
+        if evidence.get('db_facts', {}).get('crispr_screen_literature'):
+            crispr_section = (
+                "## Published CRISPR screen literature found:\n"
+                "These PubMed abstracts describe published CRISPR fitness screens relevant to the question. "
+                "Use gene names, experimental conditions, and fitness effects from these abstracts to answer.\n\n"
+                f"{evidence['db_facts']['crispr_screen_literature']}"
+            )
+            prompt_parts.append(crispr_section)
 
         # Add full-text paper excerpts (Methods / Results sections) — highest-priority facts
         if evidence.get('paper_fulltext'):
