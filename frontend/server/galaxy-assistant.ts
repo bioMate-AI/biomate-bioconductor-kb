@@ -582,6 +582,9 @@ export function buildDomainSpecialistBlock(preferredDomains: string[]): string {
 export type IntentType =
   | 'workflow_generation'
   | 'research_question'
+  | 'database_lookup'          // live query to GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, etc.
+  | 'genomics_knowledge'       // GWAS variant prioritization, causal gene, gene-phenotype associations
+  | 'clinical_genomics'        // rare disease diagnosis, patient gene detection, HPO-based reasoning
   | 'tool_search'
   | 'result_comparison'
   | 'benchmark_query'
@@ -617,8 +620,17 @@ export function inferActionsFromType(type: string): ActionCategories {
     'troubleshooting': { needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
     'parameter_optimization': { needsBenchmarkAgent: true, needsResearchAgent: true, needsToolSearch: true, needsLLMReasoning: true },
     'result_comparison': { needsToolSearch: true, needsBenchmarkAgent: true, needsLLMReasoning: true },
-    // Research/knowledge intents
+    // Research/knowledge intents — ALL route through ResearchAgent for live DB + literature
     'research_question': { needsResearchAgent: true, needsLLMReasoning: true },
+    // Live database lookup: GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info
+    // Use when the answer requires querying a specific biological database with real-time data.
+    'database_lookup': { needsResearchAgent: true, needsLLMReasoning: true },
+    // Genomics knowledge: GWAS variant-to-trait associations, causal gene at locus, eQTL evidence.
+    // Triggered by candidate SNP/gene selection tasks where the answer needs GWAS Catalog or Open Targets.
+    'genomics_knowledge': { needsResearchAgent: true, needsLLMReasoning: true },
+    // Clinical genomics: rare disease diagnosis (OMIM), patient gene detection (ClinVar + Monarch),
+    // HPO phenotype-to-gene mapping. Triggered by HPO terms, ENSG candidate lists, disease matching.
+    'clinical_genomics': { needsResearchAgent: true, needsLLMReasoning: true },
     'benchmark_query': { needsBenchmarkAgent: true, needsLLMReasoning: true },
     'dataset_inquiry': { needsDatasetAccess: true, needsLLMReasoning: true },
     'experiment_design': { needsResearchAgent: true, needsLLMReasoning: true },
@@ -1601,9 +1613,9 @@ Rules:
       // Only override when the intent is genuinely ambiguous — never override a correctly
       // classified knowledge/research intent just because it uses biological terminology.
       const _knowledgeIntentTypes = new Set([
-        'research_question', 'data_interpretation', 'experiment_design',
-        'protocol_guidance', 'methods_writing', 'comparative_methodology',
-        'troubleshooting', 'regulatory_compliance', 'parameter_optimization',
+        'research_question', 'database_lookup', 'genomics_knowledge', 'clinical_genomics',
+        'data_interpretation', 'experiment_design', 'protocol_guidance', 'methods_writing',
+        'comparative_methodology', 'troubleshooting', 'regulatory_compliance', 'parameter_optimization',
       ]);
       const _intentAlreadyKnowledge = _knowledgeIntentTypes.has(intent.type);
       if (!_isConceptualQuestion && !_intentAlreadyKnowledge && _hasBioMethodTerms) {
@@ -2714,8 +2726,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
 Describe the user's information need with a descriptive label. You may use these common labels or create a new one that better fits:
 
-**workflow_generation** — Execute a computational task, run a tool, process data, perform an analysis.
-**research_question** — Search/review scientific literature, papers, databases.
+**workflow_generation** — Execute a computational pipeline, run a tool on user data, process files or accessions.
+**research_question** — Look up or synthesize information from scientific literature and papers.
+**database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
+**genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates. Requires live GWAS Catalog / Open Targets lookup.
+**clinical_genomics** — Rare disease diagnosis (OMIM), patient gene detection (ClinVar + Monarch + HPO), phenotype-to-gene mapping. Triggered by: HPO term lists, ENSG candidate gene lists, disease name + gene + phenotype combinations.
 **result_comparison** — Compare tools, methods, or approaches with evidence.
 **tool_search** — Find or learn about available tools and their capabilities.
 **benchmark_query** — Get specific performance data or benchmarks.
@@ -2737,10 +2752,13 @@ You may also create a novel label if none of the above fit (e.g., "cost_estimati
 
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
 
-Ask a single question: **"Does completing this task require running computational tools on biological data?"**
+Ask a single question: **"Does completing this task require running computational tools on user-provided biological data files?"**
 
-- If yes → **workflow_generation**. The user may not have named their files yet; BioMate will ask. Clinical or disease context does not change this — a clinician requesting variant analysis or repeat expansion detection has data that needs processing.
-- If the task can be fully resolved from biological knowledge databases, literature, or reasoning without touching any user data → **research_question**.
+- If yes → **workflow_generation**. The user may not have named their files yet; BioMate will ask.
+- If the task requires querying a live biological database (GWAS Catalog, OMIM, ClinVar, Open Targets, Ensembl) → **database_lookup**, **genomics_knowledge**, or **clinical_genomics** as appropriate.
+- If the task can be fully resolved from scientific literature or general biological knowledge → **research_question**.
+
+Key distinction: **candidate lists are NOT user data.** A question giving a list of rsIDs or gene names and asking to select the causal one is a database lookup task — NOT a pipeline execution. No files need to be processed.
 
 The distinction is the nature of the task, not the presence of file names in the message.
 
@@ -3219,7 +3237,7 @@ For KNOWLEDGE and RESEARCH questions (not workflow execution), set needsResearch
 
 "Task: Given a patient's phenotypes and a list of candidate genes, identify the causal gene.\nPhenotypes: HP:0001250, HP:0002300, HP:0001347\nCandidate genes: ENSG00000161011, ENSG00000092330, ENSG00000131174\nOutput format: {'causal_gene': [gene1]}"
 {
-  "type": "research_question",
+  "type": "clinical_genomics",
   "keywords": ["causal gene", "phenotypes", "HPO", "candidate genes", "patient gene detection"],
   "inlineParameters": {"hpo_terms": ["HP:0001250", "HP:0002300", "HP:0001347"], "genes": ["ENSG00000161011", "ENSG00000092330", "ENSG00000131174"]},
   "needsToolSearch": false,
@@ -3260,6 +3278,64 @@ IMPORTANT: Set needsResearchAgent: true whenever the user asks:
 - Computational biology analysis questions where no user data file is provided: "What proportion of variance is explained by batch effects?", "Given these summary statistics, calculate..."
 - Questions about specific clinical trial results, drug response rates, biomarker cutoffs, benchmark scores
 - GWAS / functional genomics knowledge: "Which gene at GWAS locus Xq22 is the likely causal gene for trait Y?" → database + literature lookup, NOT workflow
+- GWAS variant prioritization: "From this list of candidate SNPs, which is most likely causal for trait X?" → GWAS Catalog + literature lookup, NOT a pipeline execution
+- Any question giving a LIST OF CANDIDATE VARIANTS or CANDIDATE GENES and asking to select one → research_question (DB lookup), NOT workflow_generation
+
+"Your task is to identify the most promising variant associated with a given GWAS phenotype. From the list, prioritize the top associated variant (matching one of the given variant). GWAS phenotype: Bradykinin. Variants: rs7700133, rs1280, rs7651090, rs4253311, rs3738934."
+{
+  "type": "genomics_knowledge",
+  "keywords": ["GWAS", "variant prioritization", "bradykinin", "causal SNP", "rsID"],
+  "inlineParameters": {"phenotype": "Bradykinin", "candidate_variants": ["rs7700133", "rs1280", "rs7651090", "rs4253311", "rs3738934"]},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.97,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "identify causal GWAS variant from candidate list using GWAS Catalog", "confidence": 0.97},
+    {"category": "task_type", "value": "gwas_variant_prioritization", "confidence": 0.97}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["GWAS", "variant prioritization", "candidate SNPs", "causal variant", "GWAS Catalog"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
+
+"Your task is to identify likely causal genes within a locus for a given GWAS phenotype. From the list, provide only the likely causal gene. GWAS phenotype: Lymphoma, Large B-Cell, Diffuse. Genes in locus: {C2orf74},{CCT4},{COMMD1},{FAM161A}"
+{
+  "type": "genomics_knowledge",
+  "keywords": ["GWAS", "causal gene", "locus", "lymphoma", "DLBCL"],
+  "inlineParameters": {"phenotype": "Lymphoma, Large B-Cell, Diffuse", "candidate_genes": ["C2orf74", "CCT4", "COMMD1", "FAM161A"]},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.97,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "identify causal gene at GWAS locus using Open Targets / GWAS Catalog", "confidence": 0.97},
+    {"category": "task_type", "value": "gwas_causal_gene", "confidence": 0.97}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["GWAS locus", "causal gene", "Open Targets", "gene prioritization"],
+  "needs_thinking": true,
+  "chain_hint": null
+}
 
 "In the MPDL3280A Phase I study of non-small cell lung cancer, what was the objective response rate for patients with TC3 PD-L1 expression?"
 {

@@ -602,6 +602,32 @@ class EmailService {
       return false;
     }
   }
+
+  async sendAdminAlert(subject: string, details: Record<string, unknown>): Promise<boolean> {
+    const ADMIN_EMAIL = 'yaoyun.zhang@biomate.ai';
+    const ts = new Date().toISOString();
+    const rows = Object.entries(details)
+      .map(([k, v]) => `<tr><td style="padding:4px 8px;font-weight:bold;color:#555">${k}</td><td style="padding:4px 8px;font-family:monospace;word-break:break-all">${String(v)}</td></tr>`)
+      .join('');
+    const html = `
+      <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333">
+      <div style="max-width:700px;margin:0 auto;padding:20px">
+        <div style="background:#dc2626;color:white;padding:16px;border-radius:6px 6px 0 0">
+          <h2 style="margin:0">BioMate System Alert</h2>
+          <p style="margin:4px 0 0;font-size:13px">${ts}</p>
+        </div>
+        <div style="background:#fef2f2;border:1px solid #fecaca;padding:20px;border-radius:0 0 6px 6px">
+          <h3 style="color:#dc2626">${subject}</h3>
+          <table style="width:100%;border-collapse:collapse;background:white;border-radius:4px;overflow:hidden">
+            ${rows}
+          </table>
+        </div>
+        <p style="font-size:12px;color:#888;margin-top:12px">Sent by BioMate ops alerting — reply to investigate.</p>
+      </div>
+      </body></html>
+    `;
+    return this.sendEmail({ to: ADMIN_EMAIL, subject: `[BioMate Alert] ${subject}`, html });
+  }
 }
 
 // Export singleton instance

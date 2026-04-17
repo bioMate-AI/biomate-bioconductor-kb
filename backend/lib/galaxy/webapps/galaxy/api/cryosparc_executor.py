@@ -216,15 +216,17 @@ def _find_existing_instance() -> Optional[Dict[str, str]]:
 
 def get_instance_state() -> str:
     """Return 'running' | 'stopped' | 'pending' | 'stopping' | 'unknown'."""
-    global _active_instance_id
+    global _active_instance_id, CRYOSPARC_HOST
     instance_id = CRYOSPARC_INSTANCE_ID or _active_instance_id
     if not instance_id:
         # Auto-discover any previously launched tagged instance surviving a restart
         existing = _find_existing_instance()
         if existing:
             _active_instance_id = existing["instance_id"]
-            log.info("[CryoSPARC] Auto-discovered existing instance %s (state=%s)",
-                     existing["instance_id"], existing["state"])
+            if existing.get("ip"):
+                CRYOSPARC_HOST = existing["ip"]
+            log.info("[CryoSPARC] Auto-discovered existing instance %s (state=%s ip=%s)",
+                     existing["instance_id"], existing["state"], existing.get("ip", ""))
             instance_id = existing["instance_id"]
         else:
             return "unknown"
@@ -336,8 +338,6 @@ echo "[biomate] CryoSPARC ready with {num_gpus} GPU(s): {gpu_ids}"
         )
         new_id = resp["Instances"][0]["InstanceId"]
         log.info("[CryoSPARC] New instance: %s", new_id)
-        # Track so stop_instance() can terminate it
-        global _active_instance_id
         _active_instance_id = new_id
         if wait:
             _wait_for_instance_running(ec2, new_id)
