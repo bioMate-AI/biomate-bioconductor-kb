@@ -72,7 +72,7 @@ databases = "${databases}".split(',')
 # ---------------------------------------------------------------------------
 def fetch_pdb(query):
     pdb_id = query.upper()
-    if re.match("^[A-Z0-9]{4}$", pdb_id):
+    if re.match("^[A-Z0-9]{4}\$", pdb_id):
         url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
         print(f"[API] Fetching PDB {pdb_id} from RCSB...")
         with urllib.request.urlopen(url, timeout=30) as r:

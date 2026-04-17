@@ -1586,11 +1586,17 @@ def _execute_spa_pipeline_sync(
     movie_dir = movie_dir or "/mock/movies"
 
     _progress(run, 3, "Importing movies...", cb)
+    # Determine blob_paths: if movie_dir already contains a glob, use it directly;
+    # otherwise append *.mrcs (most common multi-frame movie format, inc. EMPIAR datasets)
+    if any(c in movie_dir for c in ('*', '?', '[')):
+        _blob_paths = movie_dir
+    else:
+        _blob_paths = str(Path(movie_dir.rstrip('/')) / "*.mrcs")
     import_job = _submit(
         _IMPORT_JOB,
         "Import Movies",
         extra_params={
-            "blob_paths":     str(Path(movie_dir) / "*.eer"),
+            "blob_paths":     _blob_paths,
             "psize_A":        float(params.get("pixel_size", 1.0)),
             "accel_kv":       float(params.get("voltage", 300)),
             "cs_mm":          float(params.get("cs", 2.7)),
