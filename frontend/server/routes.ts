@@ -6905,12 +6905,12 @@ Extract every real number from the output data. A reviewer should be able to ver
             status: 'ok',
           });
 
-          // Background poller: sync Nextflow run status → Node executionRun every 15s
-          // Uses /api/nextflow/status since the CryoSPARC pipeline runs via Nextflow on AWS Batch
+          // Background poller: sync CryoSPARC direct-executor status → Node executionRun every 15s
+          // Uses /api/cryosparc/status since execute_spa_pipeline runs directly on the GPU instance.
           const csPollerTimer = setInterval(async () => {
             try {
               const statusResp = await fetch(
-                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${csRunId}`,
+                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${csRunId}`,
                 { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
               );
               if (!statusResp.ok) {
@@ -6918,14 +6918,11 @@ Extract every real number from the output data. A reviewer should be able to ver
                 return;
               }
               const s = await statusResp.json();
-              // Check log_tail for "Status    : FAILED" — Nextflow can exit 0 even if the
-              // workflow script errored (e.g., DSL2 compile-time errors return returncode=0)
-              const logTail: string[] = s.log_tail || [];
-              const workflowFailed = logTail.some((l: string) => l.includes('Status') && l.includes('FAILED'));
-              const nfStatus = s.status as string;
-              console.log(`[CryoSPARC Poller] run=${csRunId} status=${nfStatus} wfFailed=${workflowFailed} steps=${s.completedSteps}/${s.totalSteps}`);
-              const mappedStatus = (nfStatus === 'failed' || workflowFailed) ? 'failed'
-                : nfStatus === 'succeeded' ? 'completed'
+              const csStatus = (s.status as string || '').toLowerCase();
+              console.log(`[CryoSPARC Poller] run=${csRunId} status=${csStatus} progress=${s.progress_percent}% jobs=${s.completed_jobs}/${s.total_jobs}`);
+              // CryoSPARC executor reports: queued | running | completed | failed | qc_halt
+              const mappedStatus = csStatus === 'completed' ? 'completed'
+                : (csStatus === 'failed' || csStatus === 'qc_halt') ? 'failed'
                 : 'running';
               const terminal = ['completed', 'failed'].includes(mappedStatus);
               await storage.updateExecutionRun(executionRun.id, {
@@ -6936,8 +6933,8 @@ Extract every real number from the output data. A reviewer should be able to ver
                 },
                 progress: {
                   ...executionRun.progress,
-                  completedSteps: s.completedSteps || 0,
-                  totalSteps: Math.max(s.totalSteps || 4, 4),
+                  completedSteps: s.completed_jobs || 0,
+                  totalSteps: Math.max(s.total_jobs || 4, 4),
                 },
               });
               if (terminal) clearInterval(csPollerTimer);

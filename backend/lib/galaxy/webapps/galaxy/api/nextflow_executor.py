@@ -939,7 +939,7 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
 
 def _generate_executor_config(
     compute: dict, config_dir: Path, *, user_id: str = "unknown", run_id: str = "unknown",
-    credentials: Optional[Dict[str, Any]] = None,
+    credentials: Optional[Dict[str, Any]] = None, nf_path: str = "",
 ) -> Optional[Path]:
     """
     Generate a temporary nextflow.config for non-local executors.
@@ -1052,6 +1052,28 @@ def _generate_executor_config(
                 "}",
             ]
             log.info(f"[Nextflow] GPU queue routing: process_gpu → {gpu_queue}")
+        # AlphaFold DB search: FOLDSEEK and MMSEQS2 need 64 GB — route to HPC queue.
+        # The Galaxy override config's general process.queue would otherwise route them to
+        # the standard queue (m5.xlarge, 16 GB), which is too small for in-memory DB search.
+        # withName selectors in the override config take precedence over the workflow's own
+        # nextflow.config, so we inject them here rather than relying on the workflow file.
+        if "alphafold_db_search" in nf_path.lower():
+            hpc_queue = os.environ.get("HPC_BATCH_QUEUE", "biomate-hpc-queue")
+            lines += [
+                "process {",
+                "    withName: 'FOLDSEEK_STRUCTURAL_SEARCH' {",
+                f"        queue = '{hpc_queue}'",
+                "        cpus = 16",
+                "        memory = '64 GB'",
+                "    }",
+                "    withName: 'MMSEQS2_SEQUENCE_SEARCH' {",
+                f"        queue = '{hpc_queue}'",
+                "        cpus = 16",
+                "        memory = '64 GB'",
+                "    }",
+                "}",
+            ]
+            log.info(f"[Nextflow] AlphaFold DB search: FOLDSEEK/MMSEQS2 → {hpc_queue} (64 GB)")
         lines += [
             f"aws {{",
             f"    region = '{region}'",
@@ -2279,6 +2301,7 @@ def execute_nextflow(
     executor_config_path = _generate_executor_config(
         compute, log_dir, user_id=billing_user_id, run_id=run_id,
         credentials=dict(request.credentials or {}),
+        nf_path=str(nf_path),
     )
     if executor_config_path:
         cmd += ["-c", str(executor_config_path)]
@@ -3952,21 +3975,19 @@ def _stage_s3_movies_on_cryosparc(s3_url: str, instance_ip: str, ssh_key: str, s
     return f"{local_dir}/{filename_pattern}" if filename_pattern else f"{local_dir}/"
 
 
-@router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline via Nextflow on AWS Batch")
+@router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline directly on the GPU EC2 instance")
 def execute_cryosparc(
     request: CryoSPARCExecuteRequest,
 ) -> Dict[str, Any]:
     """
-    Launch the CryoSPARC SPA Nextflow workflow on AWS Batch.
+    Launch the CryoSPARC SPA pipeline via the direct executor (no AWS Batch).
 
     Architecture:
-    1. Start the CryoSPARC GPU EC2 instance (g6.12xlarge, 4x L4 GPUs) and get its public IP.
-    2. Submit the cryosparc_standard_spa Nextflow workflow to AWS Batch, passing the instance
-       IP as --cryosparc_host.  Each Batch container uses the cryosparc-nf ECR image to submit
-       and poll CryoSPARC jobs.  All GPU compute happens on the EC2 instance; Batch handles
-       pipeline orchestration in parallel.
-    3. Return the Nextflow run_id — the frontend monitors via the standard /api/nextflow/status
-       endpoint.
+    1. Start the CryoSPARC GPU EC2 instance and wait for it to be ready.
+    2. Stage S3 movies to the instance local filesystem if needed.
+    3. Call execute_spa_pipeline() — runs in a background thread on the gunicorn
+       worker, submitting each SPA job directly to CryoSPARC via httpx REST API.
+    4. Return the run_id — the frontend monitors via /api/cryosparc/status/:runId.
     """
     from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
 
@@ -3975,9 +3996,7 @@ def execute_cryosparc(
     license_key = request.license_key or os.environ.get("CRYOSPARC_LICENSE", "")
 
     # ── Step 1: provision the CryoSPARC GPU instance ─────────────────────────
-    # start_instance auto-discovers any tagged running instance (survives restarts)
-    # and updates CRYOSPARC_HOST to the live IP before submitting Nextflow.
-    log.info("[CryoSPARC] Provisioning GPU instance for Nextflow workflow...")
+    log.info("[CryoSPARC] Provisioning GPU instance for direct execution...")
     try:
         instance_ip = cs_exec.start_instance(wait=True)
         cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
@@ -3986,27 +4005,15 @@ def execute_cryosparc(
         raise HTTPException(status_code=503,
                             detail=f"Failed to provision CryoSPARC GPU instance: {exc}")
 
-    # ── Step 2: build Nextflow params and route through execute_nextflow ──────
-    s3_bucket = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
-    run_short  = str(uuid.uuid4())[:8]
-    uid_path   = user_id.replace("/", "_").replace("..", "_") or "anon"
-
-    # ── Step 2a: stage S3 movies to CryoSPARC instance if needed ─────────────
-    # CryoSPARC's import_movies job reads from local filesystem on the EC2 host.
-    # If movies_path is an S3 URL, SSH to the CryoSPARC instance and sync the
-    # files there (the instance has CryoEMBenchmarkProfile IAM role for S3 access).
+    # ── Step 2: resolve movies_path — stage from S3 if needed ────────────────
     movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or
                        params.get("input_movies") or params.get("data_path") or "")
-    # Fall back to env-configured defaults when params have no movies_path
     if not movies_path_raw:
         s3_default = os.environ.get("CRYOSPARC_MOVIES_S3", "")
         local_default = os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", "")
-        # Prefer pre-staged local dir (no SSH round-trip) if it exists on the CryoSPARC host;
-        # otherwise stage from S3.  We can't check the remote path here, so prefer local first.
         movies_path_raw = local_default or s3_default
         if movies_path_raw:
             log.info("[CryoSPARC] movies_path not in params — using env default: %s", movies_path_raw)
-    # Ensure S3 directory URL ends with '/' so _stage_s3_movies_on_cryosparc syncs the full dir
     if movies_path_raw.startswith("s3://") and not movies_path_raw.endswith("/") and \
             not any(c in movies_path_raw.split("/")[-1] for c in ("*", "?", "[")):
         movies_path_raw += "/"
@@ -4017,64 +4024,41 @@ def execute_cryosparc(
             ssh_key=os.environ.get("CRYOSPARC_SSH_KEY", ""),
             ssh_user=os.environ.get("CRYOSPARC_SSH_USER", "ubuntu"),
         )
-        log.info("[CryoSPARC] movies_path resolved to local: %s", movies_path_raw)
+        log.info("[CryoSPARC] movies staged to local: %s", movies_path_raw)
 
-    nf_params = {
-        # CryoSPARC connection (EC2 instance just started)
-        "cryosparc_host":        cs_exec.CRYOSPARC_HOST,
-        # Use CRYOSPARC_DIRECT_PORT (or hardcode 30000) — the CRYOSPARC_PORT env var may be set
-        # to an SSH tunnel port (e.g. 31000) for local dev, but Batch containers connect directly
-        # to the EC2 instance at the real CryoSPARC base port (30000).
-        "cryosparc_port":        int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
-        "cryosparc_email":       os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
-        "cryosparc_password":    os.environ.get("CRYOSPARC_PASSWORD", ""),
-        "cryosparc_license":     license_key,
-        "cryosparc_project_dir": os.environ.get("CRYOSPARC_PROJECT_DIR", "/home/ubuntu/cryosparc_projects"),
-        "num_gpu":               cs_exec._gpu_count_for_instance(
-                                     os.environ.get("CRYOSPARC_INSTANCE_TYPE", "g6.12xlarge")),
-        # Acquisition / sample
-        "movies_path":           movies_path_raw,
-        "pixel_size":            float(params.get("pixel_size", 1.0)),
-        "voltage":               int(params.get("voltage", 300)),
-        "spherical_aberration":  float(params.get("cs", 2.7)),
-        "total_dose":            float(params.get("total_dose", 40.0)),
-        "symmetry":              params.get("symmetry", "C1"),
-        "particle_diameter_angstroms": params.get("particle_diameter") or params.get("particle_diameter_angstroms"),
-        "num_ab_initio_classes": int(params.get("num_ab_initio_classes", 3)),
-        "micrograph_batch_size": int(params.get("batch_size", 200)),
-        "use_cryosparc":         True,
-        "mock_mode":             False,
-        # Output to S3
-        "outdir": f"s3://{s3_bucket}/nextflow/outputs/{uid_path}/{run_short}",
+    # ── Step 3: build params for execute_spa_pipeline ────────────────────────
+    spa_params: Dict[str, Any] = {
+        "movie_dir":              movies_path_raw,
+        "pixel_size":             float(params.get("pixel_size", params.get("micrograph_pixel_size", 1.0))),
+        "voltage":                int(params.get("voltage", 300)),
+        "cs":                     float(params.get("spherical_aberration", params.get("cs", 2.7))),
+        "amplitude_contrast":     float(params.get("amplitude_contrast", 0.1)),
+        "particle_diameter":      float(params.get("particle_diameter_angstroms",
+                                                   params.get("particle_diameter", 180))),
+        "symmetry":               params.get("symmetry", "C1"),
+        "num_movies":             int(params.get("num_movies", 0)),
+        "num_ab_initio_classes":  int(params.get("num_ab_initio_classes", 3)),
+        "molecular_weight_kda":   float(params.get("molecular_weight_kda", 0)) or None,
     }
-    # Remove None values — Nextflow rejects null params
-    nf_params = {k: v for k, v in nf_params.items() if v is not None}
+    spa_params = {k: v for k, v in spa_params.items() if v is not None}
 
-    nf_request = NextflowExecuteRequest(
-        nextflow_path="nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
-        parameters=nf_params,
+    run_id = str(uuid.uuid4())
+    cs_exec.execute_spa_pipeline(
+        run_id=run_id,
+        params=spa_params,
         user_id=user_id,
-        history_id=request.history_id,
-        # "standard" profile — cryosparc nextflow.config already has executor=awsbatch
-        # directly; don't use the BIOMATE_NF_PROFILE='aws' default which has no match.
-        profile="standard",
-        compute_config={"executor": "awsbatch", "s3_bucket": s3_bucket},
+        license_key=license_key,
     )
-
-    result = execute_nextflow(nf_request)
-
-    nf_run_id = result.get("run_id", "")
-    log.info("[CryoSPARC] Nextflow run %s submitted (cryosparc_host=%s, num_gpu=%s)",
-             nf_run_id, cs_exec.CRYOSPARC_HOST, nf_params.get("num_gpu"))
+    log.info("[CryoSPARC] Direct run %s started (instance=%s, movies=%s)",
+             run_id, cs_exec.CRYOSPARC_HOST, movies_path_raw)
 
     return {
-        "success":      True,
-        "run_id":       nf_run_id,
-        "invocation_id": nf_run_id,
-        "executor":     "nextflow",        # frontend polls /api/nextflow/status
-        "execution_engine": "cryosparc",   # labels it as cryo-EM in the UI
-        "message":      f"CryoSPARC SPA pipeline submitted to AWS Batch "
-                        f"(instance={cs_exec.CRYOSPARC_HOST}, gpu={nf_params.get('num_gpu')}x L4)",
+        "success":          True,
+        "run_id":           run_id,
+        "invocation_id":    run_id,
+        "executor":         "cryosparc",   # frontend polls /api/cryosparc/status/:runId
+        "execution_engine": "cryosparc",
+        "message":          f"CryoSPARC SPA pipeline started directly on {cs_exec.CRYOSPARC_HOST}",
     }
 
 
