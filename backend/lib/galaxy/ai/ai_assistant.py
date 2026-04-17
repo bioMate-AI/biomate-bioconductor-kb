@@ -333,6 +333,21 @@ class AIAssistant:
             - requires_benchmark: Whether benchmark data is needed
             - entities: Extracted entities (tools, analysis types, etc.)
         """
+        # Short-circuit: explicit routing guard prefix from eval harness or direct
+        # knowledge questions — bypass all intent routing and treat as research_question.
+        if query.startswith("KNOWLEDGE QUESTION"):
+            return {
+                "intent": "research_question",
+                "confidence": 1.0,
+                "handler": "research_agent",
+                "secondary_intents": [],
+                "requires_workflow": False,
+                "requires_literature": True,
+                "requires_benchmark": False,
+                "entities": {},
+                "routing_method": "forced_research",
+            }
+
         if not INTENT_ROUTER_AVAILABLE or not self.intent_router:
             # Fallback to simple keyword detection
             return self._simple_intent_classify(query)

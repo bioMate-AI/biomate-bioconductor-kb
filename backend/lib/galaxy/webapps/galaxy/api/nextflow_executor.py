@@ -4067,7 +4067,7 @@ def execute_cryosparc(
         compute_config={"executor": "awsbatch"},
         workflow_domain="cryo_em",
         user_id=user_id,
-        qc_profile="cryo_em",
+        # qc_profile omitted — auto-inferred from NF path by NextflowQCGateHandler
     )
     nf_result = execute_nextflow(nf_request)
     run_id = nf_result["run_id"]
