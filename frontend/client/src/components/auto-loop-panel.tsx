@@ -254,7 +254,7 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
             </thead>
             <tbody>
               {gateResults.gates.map(g => (
-                <tr key={g.gate} className="border-b border-blue-100 dark:border-blue-900/40 last:border-0">
+                <tr key={g.gate} title={g.message || undefined} className="border-b border-blue-100 dark:border-blue-900/40 last:border-0 cursor-default">
                   <td className="py-1 pr-3 text-gray-700 dark:text-gray-300">{gateLabel(g.gate)}</td>
                   <td className="py-1 pr-3 text-right font-mono text-gray-600 dark:text-gray-400">
                     {typeof g.value === "number" ? fmtNum(g.value) : g.value}

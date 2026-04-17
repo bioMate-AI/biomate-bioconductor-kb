@@ -72,7 +72,7 @@ databases = "${databases}".split(',')
 # ---------------------------------------------------------------------------
 def fetch_pdb(query):
     pdb_id = query.upper()
-    if re.match(r'^[A-Z0-9]{4}$', pdb_id):
+    if re.match("^[A-Z0-9]{4}$", pdb_id):
         url = f"https://files.rcsb.org/download/{pdb_id}.pdb"
         print(f"[API] Fetching PDB {pdb_id} from RCSB...")
         with urllib.request.urlopen(url, timeout=30) as r:
@@ -247,37 +247,47 @@ summary = {
 json.dump(summary, open('search_summary.json', 'w'), indent=2)
 
 def fs_rows(hits):
-    return ''.join(
-        f'<tr><td>{h["target"]}</td><td>{h["description"]}</td>'
-        f'<td>{h["pident"]}%</td><td>{h["evalue"]}</td>'
-        f'<td>{h["prob"]}%</td><td>{h["database"]}</td></tr>'
-        for h in hits)
+    rows = []
+    for h in hits:
+        rows.append(
+            "<tr><td>" + h["target"] + "</td><td>" + h["description"] + "</td>"
+            "<td>" + h["pident"] + "%</td><td>" + str(h["evalue"]) + "</td>"
+            "<td>" + h["prob"] + "%</td><td>" + h["database"] + "</td></tr>"
+        )
+    return "".join(rows)
 
 def hm_rows(hits):
-    return ''.join(
-        f'<tr><td>{h["accession"]}</td><td>{h["name"]}</td>'
-        f'<td>{h["description"][:80]}</td><td>{h["evalue"]}</td>'
-        f'<td>{h["species"]}</td></tr>'
-        for h in hits)
+    rows = []
+    for h in hits:
+        rows.append(
+            "<tr><td>" + h["accession"] + "</td><td>" + h["name"] + "</td>"
+            "<td>" + h["description"][:80] + "</td><td>" + str(h["evalue"]) + "</td>"
+            "<td>" + h["species"] + "</td></tr>"
+        )
+    return "".join(rows)
 
-html = f'''<!DOCTYPE html>
-<html><head><title>AlphaFold DB Search — {sample_id}</title>
-<style>body{{font-family:sans-serif;max-width:1100px;margin:2em auto}}
-h2{{margin-top:2em}}table{{border-collapse:collapse;width:100%;margin-bottom:2em}}
-th,td{{border:1px solid #ddd;padding:7px;font-size:.85em}}
-.fsh th{{background:#2563eb;color:#fff}}.hh th{{background:#16a34a;color:#fff}}
-tr:nth-child(even){{background:#f9fafb}}</style></head>
-<body>
-<h1>AlphaFold DB Search — {sample_id}</h1>
-<p>{datetime.date.today()} | Foldseek structural: <b>{len(foldseek_hits)}</b> | HMMER sequence: <b>{len(hmmer_hits)}</b></p>
-<h2>Foldseek — Structural Analogs (3Di)</h2>
-<table class="fsh"><tr><th>Target</th><th>Description</th><th>% SeqID</th><th>E-value</th><th>Prob</th><th>Database</th></tr>
-{fs_rows(foldseek_hits)}</table>
-<h2>EBI HMMER phmmer — Sequence Homologs</h2>
-<table class="hh"><tr><th>Accession</th><th>Name</th><th>Description</th><th>E-value</th><th>Species</th></tr>
-{hm_rows(hmmer_hits)}</table>
-</body></html>'''
-open('combined_report.html', 'w').write(html)
+today = str(datetime.date.today())
+n_fs  = str(len(foldseek_hits))
+n_hm  = str(len(hmmer_hits))
+html_parts = [
+    "<!DOCTYPE html><html><head><title>AlphaFold DB Search - " + sample_id + "</title>",
+    "<style>body{font-family:sans-serif;max-width:1100px;margin:2em auto}",
+    "h2{margin-top:2em}table{border-collapse:collapse;width:100%;margin-bottom:2em}",
+    "th,td{border:1px solid #ddd;padding:7px;font-size:.85em}",
+    ".fsh th{background:#2563eb;color:#fff}.hh th{background:#16a34a;color:#fff}",
+    "tr:nth-child(even){background:#f9fafb}</style></head><body>",
+    "<h1>AlphaFold DB Search - " + sample_id + "</h1>",
+    "<p>" + today + " | Foldseek structural: <b>" + n_fs + "</b> | HMMER sequence: <b>" + n_hm + "</b></p>",
+    "<h2>Foldseek - Structural Analogs (3Di)</h2>",
+    '<table class="fsh"><tr><th>Target</th><th>Description</th><th>% SeqID</th><th>E-value</th><th>Prob</th><th>Database</th></tr>',
+    fs_rows(foldseek_hits),
+    "</table>",
+    "<h2>EBI HMMER phmmer - Sequence Homologs</h2>",
+    '<table class="hh"><tr><th>Accession</th><th>Name</th><th>Description</th><th>E-value</th><th>Species</th></tr>',
+    hm_rows(hmmer_hits),
+    "</table></body></html>",
+]
+open("combined_report.html", "w").write("".join(html_parts))
 print(f"[API] Done: {len(foldseek_hits)} structural + {len(hmmer_hits)} sequence hits")
 PYEOF
 
