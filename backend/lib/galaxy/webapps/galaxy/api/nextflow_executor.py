@@ -3995,7 +3995,14 @@ def execute_cryosparc(
     # CryoSPARC's import_movies job reads from local filesystem on the EC2 host.
     # If movies_path is an S3 URL, SSH to the CryoSPARC instance and sync the
     # files there (the instance has CryoEMBenchmarkProfile IAM role for S3 access).
-    movies_path_raw = params.get("movie_dir") or params.get("movies_path", "")
+    movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or
+                       params.get("input_movies") or params.get("data_path") or "")
+    # Fall back to env-configured S3 bucket → stage locally; then to pre-staged local dir
+    if not movies_path_raw:
+        movies_path_raw = (os.environ.get("CRYOSPARC_MOVIES_S3") or
+                           os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", ""))
+        if movies_path_raw:
+            log.info("[CryoSPARC] movies_path not in params — using env default: %s", movies_path_raw)
     if movies_path_raw.startswith("s3://"):
         movies_path_raw = _stage_s3_movies_on_cryosparc(
             s3_url=movies_path_raw,
