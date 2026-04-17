@@ -9560,16 +9560,27 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
   // ---------------------------------------------------------------------------
   // Chat sessions proxy: forward /api/sessions* to the Galaxy backend so
   // browser clients can call same-origin endpoints without CORS issues.
+  // Galaxy uses its own JWT secret, so we must re-sign the app JWT.
   // ---------------------------------------------------------------------------
-  app.all(/^\/api\/sessions(\/.*)?$/, async (req, res) => {
+  app.all(/^\/api\/sessions(\/.*)?$/, optionalAuth, async (req: any, res) => {
     try {
       const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const target = `${GALAXY_URL}${req.path}${query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
 
-      // Forward auth headers when present.
-      const auth = req.headers["authorization"];
-      if (auth) headers["Authorization"] = auth as string;
+      // Re-sign the JWT using Galaxy's secret so Galaxy recognises the user.
+      if (req.user) {
+        const import_jwt = (await import('jsonwebtoken')).default;
+        const galaxyToken = import_jwt.sign(
+          { user_id: req.user.id, email: req.user.email },
+          _GALAXY_JWT_SECRET,
+          { expiresIn: '1h' }
+        );
+        headers["Authorization"] = `Bearer ${galaxyToken}`;
+      } else {
+        const auth = req.headers["authorization"];
+        if (auth) headers["Authorization"] = auth as string;
+      }
       const apiKey = req.headers["x-api-key"];
       if (apiKey) headers["x-api-key"] = apiKey as string;
 
