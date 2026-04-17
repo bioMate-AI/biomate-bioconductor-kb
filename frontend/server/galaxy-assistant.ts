@@ -191,7 +191,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'gemini-3-flash-preview',  // Gemini 3 Flash: best intent classification (46.2% BiomniEval1)
+  intentModel: 'claude-sonnet-4-5',      // Sonnet 4-5: strong intent classification (41.3% BiomniEval1)
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: 1.4x faster for ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
@@ -3572,7 +3572,23 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
           generationConfig: { temperature: 0, maxOutputTokens: 2500, responseMimeType: 'application/json' },
           systemInstruction: systemPrompt,
         });
-        const geminiResult = await geminiModel.generateContent(message);
+        // Retry with exponential backoff on 429 rate limit
+        let geminiResult: any;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            geminiResult = await geminiModel.generateContent(message);
+            break;
+          } catch (err: any) {
+            const is429 = err?.message?.includes('429') || err?.status === 429;
+            if (is429 && attempt < 4) {
+              const delay = (attempt + 1) * 3000; // 3s, 6s, 9s, 12s
+              console.warn(`[GalaxyAssistant] Gemini 429 rate limit, retrying in ${delay}ms (attempt ${attempt + 1})`);
+              await new Promise(r => setTimeout(r, delay));
+            } else {
+              throw err;
+            }
+          }
+        }
         resultText = geminiResult.response.text();
         console.log('[GalaxyAssistant] Intent API response (Gemini):', {
           model: this.modelConfig.intentModel,
