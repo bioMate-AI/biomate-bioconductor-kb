@@ -1069,7 +1069,9 @@ def _generate_executor_config(
             #   public third-party containers (gromacs, rocker, etc.) without aws of their own.
             # DO NOT change to /usr/local/bin/aws — that shadows /usr/local/lib/python3
             #   site-packages inside containers, causing exit 127 on all python tasks.
-            "        cliPath = '/opt/aws-cli/bin/aws'",
+            # EXCEPTION: cryosparc-nf container has AWS CLI only at /usr/local/bin/aws;
+            #   its own nextflow.config already sets cliPath correctly — don't override.
+            *(["        cliPath = '/opt/aws-cli/bin/aws'",] if "cryosparc" not in str(nf_path).lower() else []),
             "    }",
             "}",
             "docker.enabled = true",

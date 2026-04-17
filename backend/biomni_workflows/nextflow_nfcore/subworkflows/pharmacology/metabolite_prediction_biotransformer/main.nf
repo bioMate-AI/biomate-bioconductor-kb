@@ -106,12 +106,12 @@ PHASE1_RXNS = [
      '[#16:1]([CX4])[CX4]',
      '[#16:1](=[O])([CX4])[CX4]',
      'CYP3A4/FMO', 0.70, 'phase1'),
-    # Ester hydrolysis
+    # Ester hydrolysis — produces the alcohol/phenol fragment attached to original carbon
     ('ester_hydrolysis',
-     '[CX3:1](=[O])[OX2:2][CX4]',
-     '[CX3:1](=[O])[OH].[OH:2]',
+     '[CX3](=[O])[O:2][#6:3]',
+     '[OH:2][#6:3]',
      'CES1/CES2', 0.90, 'phase1'),
-    # Amide hydrolysis
+    # Amide hydrolysis — generates free acid
     ('amide_hydrolysis',
      '[CX3:1](=[O])[NX3H]',
      '[CX3:1](=[O])[OH]',
@@ -184,10 +184,7 @@ ALL_RXNS = PHASE1_RXNS + PHASE2_RXNS + GUT_RXNS
 def apply_reaction(mol, rxn_smarts_substr, rxn_smarts_prod, rxn_name):
     """Try to apply a single-step reaction SMARTS. Returns list of product molecules."""
     try:
-        # Build reaction from substrate/product SMARTS
-        # Simplified: use HasSubstructMatch to detect applicability, then generate product
-        # Full RDKit ChemicalReaction approach
-        rxn_str = f'[{rxn_smarts_substr}]>>[{rxn_smarts_prod}]'
+        rxn_str = f'{rxn_smarts_substr}>>{rxn_smarts_prod}'
         rxn = AllChem.ReactionFromSmarts(rxn_str)
         if rxn is None:
             return []
