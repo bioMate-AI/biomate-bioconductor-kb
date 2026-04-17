@@ -555,6 +555,7 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                     "inputs": {},
                 }
             if steps:
+                _enrich_steps_with_phase_info(steps, content, nf_filename)
                 return steps
 
         # Strategy 2: UPPERCASE_CALL(...) process invocations in workflow body
@@ -583,7 +584,127 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                     idx += 1
     except Exception as exc:
         log.warning(f"[NextflowSteps] Failed to parse steps from {nf_filename}: {exc}")
+    # ── Enrich steps with phase groups and per-step params ──────────────────────
+    if steps:
+        _enrich_steps_with_phase_info(steps, locals().get('content', ''), nf_filename)
+
     return steps
+
+
+# ── CryoSPARC phase group mapping (step index → phase group + label) ──────────
+_CRYOSPARC_STEP_PHASES: dict = {
+    0:  ('A', 'Phase A — Motion Correction & CTF'),
+    1:  ('A', 'Phase A — Motion Correction & CTF'),
+    2:  ('A', 'Phase A — Motion Correction & CTF'),
+    3:  ('A', 'Phase A — Motion Correction & CTF'),
+    4:  ('A', 'Phase A — Motion Correction & CTF'),
+    5:  ('A', 'Phase A — Motion Correction & CTF'),
+    6:  ('B', 'Phase B — Particle Picking'),
+    7:  ('B', 'Phase B — Particle Picking'),
+    8:  ('B', 'Phase B — Particle Picking'),
+    9:  ('B', 'Phase B — Particle Picking'),
+    10: ('C', 'Phase C — 2D Classification'),
+    11: ('C', 'Phase C — 2D Classification'),
+    12: ('C', 'Phase C — 2D Classification'),
+    13: ('C', 'Phase C — 2D Classification'),
+    14: ('D', 'Phase D — 3D Reconstruction'),
+    15: ('D', 'Phase D — 3D Reconstruction'),
+    16: ('D', 'Phase D — 3D Reconstruction'),
+    17: ('D', 'Phase D — 3D Reconstruction'),
+    18: ('E', 'Phase E — Validation & Post-processing'),
+    19: ('E', 'Phase E — Validation & Post-processing'),
+    20: ('E', 'Phase E — Validation & Post-processing'),
+    21: ('E', 'Phase E — Validation & Post-processing'),
+    22: ('E', 'Phase E — Validation & Post-processing'),
+}
+
+# CryoSPARC per-step parameter lists (param names from workflow params.* declarations)
+_CRYOSPARC_STEP_PARAMS: dict = {
+    0:  ['movies_path', 'pixel_size', 'voltage', 'total_dose'],               # Import Movies
+    1:  ['pixel_size', 'motion_correction_dose_weighting', 'micrograph_batch_size'],  # Patch Motion Correction
+    2:  [],                                                                     # Merge Micrographs
+    3:  ['voltage', 'spherical_aberration'],                                   # Patch CTF Estimation
+    4:  [],                                                                     # Inspect CTF
+    5:  [],                                                                     # Micrograph Denoiser
+    6:  ['particle_diameter_angstroms', 'molecular_weight_kda'],               # Blob Particle Picker
+    7:  [],                                                                     # Inspect Picks Round 1
+    8:  ['particle_box_size', 'particle_diameter_angstroms'],                  # Template Picker
+    9:  [],                                                                     # Inspect Picks Round 2
+    10: ['particle_box_size', 'particle_batch_size'],                          # Extract Particles
+    11: [],                                                                     # 2D Classification
+    12: [],                                                                     # Select 2D Classes
+    13: [],                                                                     # Extract Selected Particles
+    14: ['num_ab_initio_classes', 'symmetry'],                                 # Ab-Initio Reconstruction
+    15: ['symmetry', 'num_gpu'],                                               # Heterogeneous Refinement
+    16: ['symmetry', 'num_gpu'],                                               # Homogeneous Refinement
+    17: [],                                                                     # Class Merge and Select
+    18: [],                                                                     # Local CTF Refinement
+    19: ['max_resolution_refinement', 'pixel_size'],                           # Non-Uniform Refinement
+    20: [],                                                                     # Local Resolution Estimation
+    21: ['max_resolution_refinement'],                                          # Map Sharpening
+    22: [],                                                                     # FSC Validation
+}
+
+# Generic phase group assignment via keyword matching (for non-CryoSPARC workflows)
+_GENERIC_PHASE_RULES: list = [
+    (['IMPORT', 'DOWNLOAD', 'FETCH', 'FASTERQ', 'SRA'],           '1', 'Phase 1 — Input & Download'),
+    (['QC', 'FASTP', 'TRIM', 'FASTQC', 'MULTIQC'],                '2', 'Phase 2 — Quality Control'),
+    (['ALIGN', 'MAP', 'BWA', 'BOWTIE', 'STAR', 'HISAT', 'SORT'],  '3', 'Phase 3 — Alignment'),
+    (['GATK', 'VARIANT', 'CALL', 'GENOTYPE', 'FREEBAYES'],        '4', 'Phase 4 — Variant Calling'),
+    (['ANNOTATE', 'SNPEFF', 'VEP', 'FILTER', 'REPORT'],           '5', 'Phase 5 — Annotation & Report'),
+]
+
+
+def _enrich_steps_with_phase_info(
+    steps: dict,
+    content: str,
+    nf_filename: str,
+) -> None:
+    """Mutates steps in-place: adds phase_group, phase_label, and populates parameters."""
+    is_cryosparc = 'cryosparc' in nf_filename.lower()
+
+    # ── Parse per-process params.* references from the .nf file content ──
+    process_param_refs: dict = {}
+    if content:
+        proc_starts = list(re.finditer(r'^process\s+(\w+)\s*\{', content, re.MULTILINE))
+        for i, m in enumerate(proc_starts):
+            proc_name = m.group(1).upper()
+            start = m.end()
+            end = proc_starts[i + 1].start() if i + 1 < len(proc_starts) else len(content)
+            body = content[start:end]
+            refs = list(dict.fromkeys(re.findall(r'params\.([a-zA-Z_]\w*)', body)))
+            # Remove internal/infra params
+            refs = [r for r in refs if r not in _NF_SKIP_PARAMS]
+            process_param_refs[proc_name] = refs
+
+    # ── Assign phase groups and per-step params ──
+    for idx_str, step in steps.items():
+        idx = int(idx_str)
+        tool_id = step.get('tool_id', '').upper()
+
+        if is_cryosparc and idx in _CRYOSPARC_STEP_PHASES:
+            pg, pl = _CRYOSPARC_STEP_PHASES[idx]
+            step['phase_group'] = pg
+            step['phase_label'] = pl
+            param_names = _CRYOSPARC_STEP_PARAMS.get(idx, [])
+        else:
+            # Generic keyword-based assignment
+            pg, pl = '', ''
+            for keywords, group, label in _GENERIC_PHASE_RULES:
+                if any(k in tool_id for k in keywords):
+                    pg, pl = group, label
+                    break
+            step['phase_group'] = pg
+            step['phase_label'] = pl
+            # Use process body param refs for generic case
+            param_names = process_param_refs.get(tool_id, [])
+
+        # Populate parameters as {name: {default: None}} placeholder metadata
+        if param_names:
+            step['parameters'] = {
+                name: {'type': 'string', 'label': name.replace('_', ' ').title(), 'default': None}
+                for name in param_names
+            }
 
 
 # Internal params to skip — not user-facing

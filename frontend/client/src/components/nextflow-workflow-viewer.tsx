@@ -90,6 +90,10 @@ type ViewerPhase = {
   parameters?: Record<string, unknown>;
   inputs?: Record<string, unknown>;
   outputFiles?: Array<{ name: string; path: string; extension: string }>;
+  /** Phase group key (e.g. 'A'–'E' for cryo-EM) from the backend steps API */
+  phase_group?: string;
+  /** Human-readable phase group label (e.g. 'Phase A — Motion Correction & CTF') */
+  phase_label?: string;
 };
 
 type StepExecutionState = {
@@ -429,6 +433,176 @@ function ReproducibilityExportButton({ runId }: { runId: string }) {
 //   );
 // }
 
+// ── PhaseGroupSection ─────────────────────────────────────────────────────────
+// Wraps a set of PhaseCard steps under a semantic phase label (e.g. "Phase A — Motion Correction & CTF").
+// Shows aggregate status in the header and a collapsible parameter editor below the steps.
+
+interface PhaseGroup {
+  key: string;
+  label: string;
+  steps: any[];
+  phaseParams: string[];
+}
+
+function PhaseGroupSection({
+  group,
+  renderedParameters,
+  params,
+  onParamChange,
+  onRun,
+  onSkip,
+  onPreviewFile,
+  onAdjustAndRerun,
+  activeRunId,
+  executionBlockedReason,
+  isPrereqBlocked,
+  isAutofixActive,
+  isGlobalExecutionActive,
+}: {
+  group: PhaseGroup;
+  renderedParameters: any[];
+  params: Record<string, any>;
+  onParamChange: (id: string, val: any) => void;
+  onRun: (phase: any) => void;
+  onSkip: (id: string) => void;
+  onPreviewFile: (file: any) => void;
+  onAdjustAndRerun: (step: any) => void;
+  activeRunId: string | null;
+  executionBlockedReason?: string;
+  isPrereqBlocked: boolean;
+  isAutofixActive: boolean;
+  isGlobalExecutionActive: boolean;
+}) {
+  const [paramsOpen, setParamsOpen] = useState(false);
+  const { steps, label, phaseParams } = group;
+
+  const completedCount = steps.filter(s =>
+    ['completed', 'COMPLETED'].includes(String(s.status))
+  ).length;
+  const anyRunning = steps.some(s =>
+    ['running', 'RUNNING', 'SUBMITTED'].includes(String(s.status))
+  );
+  const anyFailed = steps.some(s =>
+    ['failed', 'FAILED'].includes(String(s.status))
+  );
+  const allDone = completedCount === steps.length && steps.length > 0;
+
+  // Phase-specific rendered params
+  const groupRenderedParams = renderedParameters.filter(p => phaseParams.includes(p.id));
+
+  const borderClass = anyFailed
+    ? 'border-red-200 dark:border-red-800'
+    : anyRunning
+    ? 'border-blue-300 dark:border-blue-700'
+    : allDone
+    ? 'border-green-200 dark:border-green-800'
+    : 'border-border';
+
+  const headerBg = anyFailed
+    ? 'bg-red-50/40 dark:bg-red-950/20'
+    : anyRunning
+    ? 'bg-blue-50/40 dark:bg-blue-950/20'
+    : allDone
+    ? 'bg-green-50/40 dark:bg-green-950/20'
+    : 'bg-muted/20';
+
+  const phaseIcon = anyFailed
+    ? <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+    : anyRunning
+    ? <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin shrink-0" />
+    : allDone
+    ? <CheckCircle2 className="h-3.5 w-3.5 text-green-600 shrink-0" />
+    : <div className="h-3.5 w-3.5 rounded-full border-2 border-muted-foreground/25 shrink-0" />;
+
+  return (
+    <div className={`rounded-lg border ${borderClass} overflow-hidden`}>
+      {/* Phase header */}
+      <div className={`px-3 py-2 flex items-center gap-2 ${headerBg}`}>
+        {phaseIcon}
+        <span className="text-xs font-semibold flex-1 truncate">{label}</span>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {completedCount}/{steps.length}
+        </span>
+      </div>
+
+      {/* Step cards */}
+      <div className="divide-y divide-border/30">
+        {steps.map((phase: any) => (
+          <PhaseCard
+            key={phase.id}
+            phase={phase}
+            onRun={() => onRun(phase)}
+            runLabel={(phase.runCount ?? 0) > 0 ? 'Rerun Step' : 'Run Step'}
+            runDisabled={
+              !activeRunId ||
+              phase.isExecuting === true ||
+              !!executionBlockedReason ||
+              isPrereqBlocked ||
+              isAutofixActive ||
+              isGlobalExecutionActive
+            }
+            runLoading={phase.isExecuting === true}
+            runButtonTestId={`button-run-step-${phase.id}`}
+            outputFiles={phase.outputFiles}
+            onPreviewFile={onPreviewFile}
+            onAdjustAndRerun={() => onAdjustAndRerun(phase)}
+            onSkip={() => onSkip(phase.id)}
+            runId={activeRunId || undefined}
+          />
+        ))}
+      </div>
+
+      {/* Phase-level parameter editor */}
+      {groupRenderedParams.length > 0 && (
+        <div className="border-t border-border/30">
+          <button
+            type="button"
+            className="w-full px-3 py-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors"
+            onClick={() => setParamsOpen(p => !p)}
+          >
+            {paramsOpen
+              ? <ChevronDown className="h-3 w-3 shrink-0" />
+              : <ChevronRight className="h-3 w-3 shrink-0" />}
+            <span>
+              {paramsOpen ? 'Hide' : 'Show'}{' '}
+              {groupRenderedParams.length} parameter{groupRenderedParams.length !== 1 ? 's' : ''}
+            </span>
+          </button>
+          {paramsOpen && (
+            <div className="px-3 pb-3 pt-1 space-y-1.5 bg-muted/10">
+              {groupRenderedParams.map(p => (
+                <div key={p.id} className="flex items-center gap-2 text-xs">
+                  <span
+                    className="flex-1 text-foreground/80 truncate min-w-0"
+                    title={p.label}
+                  >
+                    {p.required && <span className="text-red-500 mr-0.5 text-[10px]">★</span>}
+                    {p.aiPrefilled && <span className="text-purple-500 mr-0.5 text-[10px]">✦</span>}
+                    {p.label}
+                  </span>
+                  {p.type === 'boolean' ? (
+                    <Switch
+                      checked={!!params[p.id]}
+                      onCheckedChange={v => onParamChange(p.id, v)}
+                    />
+                  ) : (
+                    <Input
+                      value={params[p.id] ?? p.value ?? ''}
+                      onChange={e => onParamChange(p.id, e.target.value)}
+                      className="h-6 w-28 text-xs px-2 py-0 text-right font-mono shrink-0"
+                      placeholder={p.defaultValue != null ? String(p.defaultValue) : '—'}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function NextflowWorkflowViewer({
   workflowId,
   invocationId,
@@ -462,6 +636,10 @@ export function NextflowWorkflowViewer({
   const userOverriddenParams = useRef<Set<string>>(new Set());
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
+  // Global parameters collapsible — open by default when idle so users can fill required params
+  const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(
+    () => status === 'idle' || status === 'pending_review'
+  );
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
@@ -885,6 +1063,28 @@ export function NextflowWorkflowViewer({
       outputFiles,
     };
   });
+
+  // Group updatedPhases by their phase_group field (A/B/C/D/E for cryo-EM, etc.)
+  const groupedPhases = React.useMemo<PhaseGroup[]>(() => {
+    const hasGroups = updatedPhases.some((p: any) => p.phase_group);
+    if (!hasGroups) {
+      const allParams = updatedPhases.flatMap((p: any) => Object.keys(p.parameters || {}));
+      const uniqueParams = Array.from(new Set(allParams)) as string[];
+      return [{ key: 'all', label: 'Steps', steps: updatedPhases, phaseParams: uniqueParams }];
+    }
+    const groupMap = new Map<string, { steps: any[]; label: string; phaseParams: string[] }>();
+    for (const phase of updatedPhases) {
+      const key = (phase.phase_group as string) || 'other';
+      const label = (phase.phase_label as string) || `Phase ${key}`;
+      if (!groupMap.has(key)) groupMap.set(key, { steps: [], label, phaseParams: [] });
+      const group = groupMap.get(key)!;
+      group.steps.push(phase);
+      for (const pName of Object.keys(phase.parameters || {})) {
+        if (!group.phaseParams.includes(pName)) group.phaseParams.push(pName);
+      }
+    }
+    return Array.from(groupMap.entries()).map(([key, g]) => ({ key, ...g }));
+  }, [updatedPhases]);
 
   // QC: derive display thresholds from defaults + auto-detected profile + user edits
   const activeQcProfile = React.useMemo(
@@ -1499,9 +1699,42 @@ export function NextflowWorkflowViewer({
           )}
 
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1 space-y-4">
-              <h3 className="text-lg font-semibold">Parameters</h3>
+          <div className="space-y-4">
+            {/* ── Status strip ─────────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+              <span data-testid="workflow-last-update">Updated {lastUpdateAt.toLocaleTimeString()}</span>
+              {status === 'running' && effectiveProgress > 0 && (
+                <span className="font-medium text-foreground">{effectiveProgress}%</span>
+              )}
+            </div>
+            {status === 'running' && effectiveProgress > 0 && (
+              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-blue-500 transition-all duration-700" style={{ width: `${effectiveProgress}%` }} />
+              </div>
+            )}
+
+            {/* ── Parameters (collapsible) ─────────────────────────────────────── */}
+            <div className="rounded-lg border border-border overflow-hidden">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold hover:bg-muted/20 transition-colors"
+                onClick={() => setGlobalParamsOpen(p => !p)}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Settings2 className="h-3.5 w-3.5" />
+                  Parameters
+                  {renderedParameters.length > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal">({renderedParameters.length})</span>
+                  )}
+                  {hasUnfilledRequired && (
+                    <Badge variant="destructive" className="text-[10px] px-1 py-0 ml-1">Required</Badge>
+                  )}
+                </span>
+                {globalParamsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+              {globalParamsOpen && (
+              <div className="border-t border-border p-3 space-y-4">
+              <div className="space-y-4">
               {/* Format mismatch warning — shown when uploaded file type doesn't match workflow input */}
               {(() => {
                 const allParams: any[] = [
@@ -2099,17 +2332,12 @@ export function NextflowWorkflowViewer({
                   Download Methods Report
                 </Button>
               </div>
+              </div>
+              </div>
+              )}
             </div>
 
-            <div className="md:col-span-2 space-y-4">
-              <h3 className="text-lg font-semibold">Execution Progress</h3>
-              <p className="text-xs text-muted-foreground" data-testid="workflow-last-update">
-                Last update: {lastUpdateAt.toLocaleTimeString()}
-              </p>
-              {/* Run context and Execution evidence — internal debugging info, hidden from users */}
-              {/* <div className="rounded-md border border-muted bg-muted/30 p-3" data-testid="run-context-chip">...</div> */}
-              {/* <div className="rounded-md border border-muted p-3 text-xs space-y-1" data-testid="workflow-execution-evidence">...</div> */}
-              {/* Run metrics strip — execution time and cost */}
+            {/* ── Run metrics strip ─────────────────────────────────────────── */}
               {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
                 <div
                   className="rounded-md border border-muted p-3 text-xs space-y-1"
@@ -2216,36 +2444,32 @@ export function NextflowWorkflowViewer({
                 <p className="text-xs text-muted-foreground" data-testid="workflow-step-controls-hint">
                   Run single steps for targeted checks. Finished or errored steps can be rerun repeatedly.
                 </p>
-                {updatedPhases.map((phase: any) => (
-                  <PhaseCard
-                    key={phase.id}
-                    phase={phase}
-                    onRun={() => handleRunStep(phase)}
-                    runLabel={(phase.runCount ?? 0) > 0 ? "Rerun Step" : "Run Step"}
-                    runDisabled={
-                      !activeRunId ||
-                      phase.isExecuting === true ||
-                      !!executionBlockedReason ||
-                      isPrereqBlocked ||
-                      isAutofixActive ||
-                      isGlobalExecutionActive
-                    }
-                    runLoading={phase.isExecuting === true}
-                    runButtonTestId={`button-run-step-${phase.id}`}
-                    outputFiles={phase.outputFiles}
+                {/* Phase-grouped step cards — groups use semantic labels (Phase A–E for cryo-EM) */}
+                {groupedPhases.map(group => (
+                  <PhaseGroupSection
+                    key={group.key}
+                    group={group}
+                    renderedParameters={renderedParameters}
+                    params={params}
+                    onParamChange={handleParamChange}
+                    onRun={handleRunStep}
+                    onSkip={handleSkipPhase}
                     onPreviewFile={(file) => setPreviewFile(file)}
-                    onAdjustAndRerun={() => setAdjustStep({
+                    onAdjustAndRerun={(phase) => setAdjustStep({
                       id: phase.id,
                       name: phase.name,
                       processName: phase.processName,
                       parameters: phase.parameters as Record<string, any> | undefined,
                     })}
-                    onSkip={() => handleSkipPhase(phase.id)}
-                    runId={activeRunId || undefined}
+                    activeRunId={activeRunId}
+                    executionBlockedReason={executionBlockedReason}
+                    isPrereqBlocked={isPrereqBlocked}
+                    isAutofixActive={isAutofixActive}
+                    isGlobalExecutionActive={isGlobalExecutionActive}
                   />
                 ))}
                 <button
-                  className="mt-3 w-full text-sm text-muted-foreground border border-dashed rounded-md py-2 hover:text-foreground hover:border-foreground transition-colors"
+                  className="mt-2 w-full text-xs text-muted-foreground border border-dashed rounded-md py-2 hover:text-foreground hover:border-foreground transition-colors"
                   data-testid="button-suggest-step"
                   onClick={() => {
                     const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
@@ -2308,7 +2532,6 @@ export function NextflowWorkflowViewer({
                   size="sm"
                 />
               </div>
-            </div>
           </div>
 
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
