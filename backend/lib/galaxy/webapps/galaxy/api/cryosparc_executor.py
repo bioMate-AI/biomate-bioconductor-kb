@@ -1587,18 +1587,56 @@ def _execute_spa_pipeline_sync(
         except Exception:
             pass
 
+    # CryoSPARC v5 renamed many I/O group names.  This map lets us try the
+    # canonical name first, then fall back to the version-alternate name so
+    # the code works with both v4 and v5 without branching everywhere.
+    _IO_ALIASES: Dict[str, str] = {
+        # v4 name       : v5 name
+        "micrographs":   "exposures",
+        "micrographs_ctf": "exposures_ctf",
+        # reverse mapping (v5→v4) so callers can pass either form
+        "exposures":     "micrographs",
+        "exposures_ctf": "micrographs_ctf",
+    }
+
+    def _connect_job(job: Any, target_input: str, src_job_uid: str, src_output: str) -> None:
+        """Connect job input with version-aware name fallback (v4↔v5)."""
+        alt_input  = _IO_ALIASES.get(target_input, target_input)
+        alt_output = _IO_ALIASES.get(src_output, src_output)
+        tried: List[str] = []
+        for t_in, s_out in [
+            (target_input, src_output),
+            (alt_input,    src_output),
+            (target_input, alt_output),
+            (alt_input,    alt_output),
+        ]:
+            key = f"{t_in}<-{s_out}"
+            if key in tried:
+                continue
+            tried.append(key)
+            try:
+                job.connect(t_in, src_job_uid, s_out)
+                log.info("[CryoSPARC] Connected %s.%s <- %s.%s", job.uid, t_in, src_job_uid, s_out)
+                return
+            except Exception as _ce:
+                log.debug("[CryoSPARC] connect attempt %s.%s<-%s.%s failed: %s",
+                          job.uid, t_in, src_job_uid, s_out, _ce)
+        log.error("[CryoSPARC] All connect attempts failed for %s input %s (tried: %s)",
+                  job.uid, target_input, tried)
+
     # Convenience: create_job wrapper that always tracks UIDs
     def _submit(job_type: str, title: str,
                 connections: Optional[Dict] = None,
                 extra_params: Optional[Dict] = None,
                 phase_key: Optional[str] = None) -> Any:
-        # Create job first (no params — avoid bulk-params 500 bug in CryoSPARC v5)
+        # Create job WITHOUT connections first — bulk-connections in create_job
+        # can fail with 422/500 in CryoSPARC v5 due to renamed I/O groups;
+        # we apply connections individually after creation with name fallbacks.
         try:
             job = cs.create_job(
                 project_uid=proj_uid,
                 workspace_uid=ws_uid,
                 type=job_type,
-                connections=connections or {},
                 title=title,
             )
         except Exception as _cj_exc:
@@ -1606,6 +1644,10 @@ def _execute_spa_pipeline_sync(
             _body = getattr(getattr(_cj_exc, 'response', None), 'text', None) or str(_cj_exc)
             log.error("[CryoSPARC] create_job(%s) failed: %s | body: %s", job_type, _cj_exc, _body[:500])
             raise
+        # Apply connections with version-aware fallbacks
+        for _t_input, _conn in (connections or {}).items():
+            _src_job_uid, _src_output = _conn
+            _connect_job(job, _t_input, _src_job_uid, _src_output)
         # Apply params individually via set_param (per cryosparc-tools docs)
         for _k, _v in (extra_params or {}).items():
             try:
@@ -1735,7 +1777,13 @@ def _execute_spa_pipeline_sync(
         ctf_jobs = [cs.find_job(proj_uid, j.uid) for j in ctf_jobs]
     all_micrographs: List[Any] = []
     for j in ctf_jobs:
-        all_micrographs.extend(j.load_output("micrographs_ctf"))
+        for _out_name in ("exposures_ctf", "micrographs_ctf"):  # v5 / v4 fallback
+            try:
+                _outs = j.load_output(_out_name)
+                all_micrographs.extend(_outs)
+                break
+            except Exception:
+                pass
     log.info("[CryoSPARC] Phase A done: %d CTF-corrected micrographs", len(all_micrographs))
 
     # QC: sample motion and CTF quality across micrographs
