@@ -1072,6 +1072,10 @@ def _generate_executor_config(
             # EXCEPTION: cryosparc-nf container has AWS CLI only at /usr/local/bin/aws;
             #   its own nextflow.config already sets cliPath correctly — don't override.
             *(["        cliPath = '/opt/aws-cli/bin/aws'",] if "cryosparc" not in str(nf_path).lower() else []),
+            # Explicitly bind-mount /opt/aws-cli from the AMI host into every container.
+            # Required for non-base containers (biomni-drug-discovery-nf, rocker, etc.)
+            # that don't have AWS CLI pre-installed. The AMI installs it via LT user-data.
+            *(["        volumes = ['/opt/aws-cli']",] if "cryosparc" not in str(nf_path).lower() else []),
             "    }",
             "}",
             "docker.enabled = true",

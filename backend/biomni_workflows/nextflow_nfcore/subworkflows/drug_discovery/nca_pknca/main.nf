@@ -73,7 +73,7 @@ process NCA_INPUT_VALIDATION {
     label 'process_low'
     publishDir "${params.outdir}/01_validation", mode: params.publish_dir_mode
 
-    container 'docker.io/rocker/r-ver:4.3.1'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-nca:latest'
 
     input:
     path input_csv
@@ -168,7 +168,7 @@ process NCA_PKNCA_ANALYSIS {
     label 'process_medium'
     publishDir "${params.outdir}/02_nca_analysis", mode: params.publish_dir_mode
 
-    container 'docker.io/rocker/r-ver:4.3.1'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-nca:latest'
 
     input:
     path validated_csv
@@ -309,7 +309,7 @@ process NCA_REPORT_HTML {
     label 'process_low'
     publishDir "${params.outdir}/03_report", mode: params.publish_dir_mode
 
-    container 'docker.io/rocker/tidyverse:4.3.1'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-nca:latest'
 
     input:
     path nca_results_csv
@@ -549,3 +549,24 @@ workflow NCA_PKNCA {
 
 workflow {
     log_workflow_header()
+
+    if (!params.input_csv) {
+        error "ERROR: --input_csv is required (path to concentration-time CSV with columns: time, conc, subject_id)"
+    }
+
+    ch_csv = Channel.fromPath(params.input_csv, checkIfExists: true)
+
+    NCA_PKNCA(ch_csv)
+
+    NCA_PKNCA.out.report.view { report ->
+        log.info "NCA HTML report: ${report}"
+    }
+
+    NCA_PKNCA.out.nca_results.view { results ->
+        log.info "NCA results CSV: ${results}"
+    }
+
+    NCA_PKNCA.out.nca_summary.view { summary ->
+        log.info "NCA summary JSON: ${summary}"
+    }
+}

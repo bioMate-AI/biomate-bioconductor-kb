@@ -118,8 +118,29 @@ process LIGAND_PREP {
     lig_file="${ligand_file}"
     lig_ext=\$(echo "\$lig_file" | rev | cut -d'.' -f1 | rev | tr '[:upper:]' '[:lower:]')
 
-    # Determine input format flag for antechamber
-    if [ "\$lig_ext" = "sdf" ] || [ "\$lig_ext" = "sd" ]; then
+    # Determine input format flag for antechamber (rdkit converts .smi → .sdf in-container)
+    if [ "\$lig_ext" = "smi" ]; then
+        python3 -c "
+from rdkit import Chem
+from rdkit.Chem import AllChem
+import sys
+with open('${ligand_file}') as f:
+    smi = f.read().strip()
+mol = Chem.MolFromSmiles(smi)
+if mol is None:
+    print('Invalid SMILES: ' + smi, file=sys.stderr)
+    sys.exit(1)
+mol = Chem.AddHs(mol)
+AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+AllChem.MMFFOptimizeMolecule(mol)
+w = Chem.SDWriter('ligand_from_smiles.sdf')
+w.write(mol)
+w.close()
+print('SMILES to SDF conversion done')
+"
+        lig_file="ligand_from_smiles.sdf"
+        in_fmt="sdf"
+    elif [ "\$lig_ext" = "sdf" ] || [ "\$lig_ext" = "sd" ]; then
         in_fmt="sdf"
     elif [ "\$lig_ext" = "mol2" ]; then
         in_fmt="mol2"
@@ -1020,29 +1041,13 @@ workflow {
                        ligand_input.contains('[') || ligand_input.contains('#') ||
                        ligand_input.contains('@') || ligand_input ==~ /[CNOSPFClBrI].+/)
     if (_is_smiles) {
-        log.info("[GROMACS] Detected SMILES input for ligand — converting to SDF via RDKit...")
-        def sdf_file = file("${workflow.workDir}/ligand_inputs/ligand.sdf")
-        sdf_file.parent.mkdirs()
-        def py_script = """
-from rdkit import Chem
-from rdkit.Chem import AllChem
-mol = Chem.MolFromSmiles('${ligand_input}')
-if mol is None:
-    raise ValueError('Invalid SMILES: ${ligand_input}')
-mol = Chem.AddHs(mol)
-AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
-AllChem.MMFFOptimizeMolecule(mol)
-w = Chem.SDWriter('${sdf_file}')
-w.write(mol)
-w.close()
-print('SDF written to ${sdf_file}')
-"""
-        def proc = ['python3', '-c', py_script].execute()
-        proc.waitFor()
-        if (proc.exitValue() != 0 || !sdf_file.exists() || sdf_file.size() == 0) {
-            error "SMILES→SDF conversion failed for: ${ligand_input}\n${proc.err.text}"
-        }
-        ligand_ch = Channel.fromPath(sdf_file.toString())
+        // Write SMILES to a .smi file on the head node; conversion to SDF happens
+        // inside the LIGAND_PREP process where rdkit is available (AMBERTOOLS container).
+        log.info("[GROMACS] Detected SMILES input for ligand — staging as .smi for in-container RDKit conversion...")
+        def smi_file = file("${workflow.workDir}/ligand_inputs/ligand.smi")
+        smi_file.parent.mkdirs()
+        smi_file.text = ligand_input
+        ligand_ch = Channel.fromPath(smi_file.toString())
     } else {
         ligand_ch = Channel.fromPath(ligand_input, checkIfExists: true)
     }

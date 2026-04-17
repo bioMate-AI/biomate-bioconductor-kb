@@ -108,27 +108,51 @@ process LIGAND_PREP {
         source /opt/amber24/amber.sh || true
 
         input_ext=\$(echo "${ligand_file}" | rev | cut -d. -f1 | rev | tr '[:upper:]' '[:lower:]')
-        if [[ "$input_ext" == "sdf" || "$input_ext" == "sd" ]]; then
+        lig_input="${ligand_file}"
+
+        if [[ "\$input_ext" == "smi" ]]; then
+            # Convert SMILES to SDF using RDKit (available in AMBERTOOLS container)
+            python3 -c "
+from rdkit import Chem
+from rdkit.Chem import AllChem
+import sys
+with open('${ligand_file}') as f:
+    smi = f.read().strip()
+mol = Chem.MolFromSmiles(smi)
+if mol is None:
+    print('Invalid SMILES: ' + smi, file=sys.stderr)
+    sys.exit(1)
+mol = Chem.AddHs(mol)
+AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+AllChem.MMFFOptimizeMolecule(mol)
+w = Chem.SDWriter('ligand_from_smiles.sdf')
+w.write(mol)
+w.close()
+print('SMILES to SDF conversion done')
+"
+            lig_input="ligand_from_smiles.sdf"
             input_fmt="sdf"
-        elif [[ "$input_ext" == "mol2" ]]; then
+        elif [[ "\$input_ext" == "sdf" || "\$input_ext" == "sd" ]]; then
+            input_fmt="sdf"
+        elif [[ "\$input_ext" == "mol2" ]]; then
             input_fmt="mol2"
         else
-            echo "Unsupported ligand format: $input_ext" >&2
+            echo "Unsupported ligand format: \$input_ext" >&2
             exit 1
         fi
 
-        antechamber \
-            -i ${ligand_file} -fi $input_fmt \
-            -o ligand_gaff2.mol2 -fo mol2 \
-            -c bcc -s 2 \
-            -at ${params.gaff_version} \
-            -rn LIG \
+        antechamber \\
+            -i \$lig_input -fi \$input_fmt \\
+            -o ligand_gaff2.mol2 -fo mol2 \\
+            -c bcc -s 2 \\
+            -at ${params.gaff_version} \\
+            -rn LIG \\
             2>&1 | tee antechamber.log
 
-        parmchk2 \
-            -i ligand_gaff2.mol2 -f mol2 \
-            -o ligand.frcmod \
-            -s ${params.gaff_version} \
+        parmchk2 \\
+            -i ligand_gaff2.mol2 -f mol2 \\
+            -o ligand.frcmod \\
+            -s ${params.gaff_version} \\
             2>&1 | tee parmchk2.log
 
         cat antechamber.log parmchk2.log > ligand_prep.log
@@ -683,7 +707,25 @@ workflow {
     // Input channels
     // -----------------------------------------------------------------------
     receptor_ch = Channel.fromPath(params.receptor, checkIfExists: true)
-    ligand_ch   = Channel.fromPath(params.ligand,   checkIfExists: true)
+
+    def ligand_input = params.ligand.trim()
+    def _is_smiles = !(ligand_input.contains('/') || ligand_input.contains('\\') ||
+                       ligand_input.endsWith('.sdf') || ligand_input.endsWith('.mol2') ||
+                       ligand_input.endsWith('.pdb') || ligand_input.startsWith('s3://')) &&
+                      (ligand_input.contains('(') || ligand_input.contains('=') ||
+                       ligand_input.contains('[') || ligand_input.contains('#') ||
+                       ligand_input.contains('@') || ligand_input ==~ /[CNOSPFClBrI].+/)
+    if (_is_smiles) {
+        // Write SMILES to a .smi file on the head node; rdkit conversion to SDF
+        // happens inside LIGAND_PREP process where AMBERTOOLS container has rdkit.
+        log.info("[AMBER] Detected SMILES input for ligand — staging as .smi for in-container RDKit conversion...")
+        def smi_file = file("${workflow.workDir}/ligand_inputs/ligand.smi")
+        smi_file.parent.mkdirs()
+        smi_file.text = ligand_input
+        ligand_ch = Channel.fromPath(smi_file.toString())
+    } else {
+        ligand_ch = Channel.fromPath(ligand_input, checkIfExists: true)
+    }
 
     // -----------------------------------------------------------------------
     // Step 1: GAFF2 ligand parameterization
