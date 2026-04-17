@@ -37,6 +37,72 @@ class ChatHistoryService {
     const sessions = this.getAllSessions();
     return sessions.find(session => session.id === id) || null;
   }
+
+  /**
+   * Fetch full session detail from backend (messages + workflows + datasets).
+   * Used when a session was synced from backend but only has metadata (empty messages).
+   */
+  async fetchSessionDetail(id: string): Promise<ChatSession | null> {
+    if (!BACKEND_SYNC_ENABLED || !this.backendSyncActive || this.backendSyncBlocked) {
+      return this.getSession(id);
+    }
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}`, {
+        credentials: 'include',
+        headers: { 'x-api-key': API_KEY, 'Content-Type': 'application/json' },
+      });
+      if (response.status === 401 || response.status === 403) {
+        this.backendSyncBlocked = true;
+        return this.getSession(id);
+      }
+      if (!response.ok) return this.getSession(id);
+
+      const bs = await response.json();
+      const session: ChatSession = {
+        id: bs.session_id,
+        title: bs.title,
+        timestamp: new Date(bs.created_at),
+        lastActivity: new Date(bs.last_activity),
+        status: bs.status as 'active' | 'archived',
+        messages: (bs.messages || []).map((m: any) => ({
+          id: m.message_id,
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.timestamp),
+          suggestions: m.suggestions || undefined,
+          workflowId: m.workflow_id || undefined,
+          thinking_content: m.thinking_content || undefined,
+          thinking_level: m.thinking_level || undefined,
+        })),
+        workflows: (bs.workflows || []).map((w: any) => ({
+          id: w.workflow_id,
+          title: w.workflow_name,
+          description: w.workflow_description || '',
+          status: w.status,
+        })),
+        datasets: (bs.datasets || []).map((d: any) => ({
+          id: d.dataset_id,
+          name: d.dataset_name,
+          type: d.dataset_type,
+          storageType: d.storage_type,
+          localPath: d.storage_path || undefined,
+          format: d.format || undefined,
+          size: d.size_bytes || undefined,
+          description: d.description || undefined,
+          createdAt: new Date(),
+        })),
+      };
+      // Persist hydrated session to localStorage so it's available offline
+      const sessions = this.getAllSessions();
+      const idx = sessions.findIndex(s => s.id === id);
+      if (idx >= 0) sessions[idx] = session;
+      else sessions.unshift(session);
+      this.saveSessions(sessions);
+      return session;
+    } catch {
+      return this.getSession(id);
+    }
+  }
   
   // Create a new chat session
   createNewSession(): ChatSession {

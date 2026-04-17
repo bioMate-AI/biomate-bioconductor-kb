@@ -395,9 +395,13 @@ function App() {
     setLocation('/')
   }
 
-  const handleChatSelect = (chatId: string) => {
+  const handleChatSelect = async (chatId: string) => {
     console.log('Loading chat session:', chatId)
-    const session = chatHistoryService.getSession(chatId)
+    const local = chatHistoryService.getSession(chatId)
+    // If session has no messages (e.g. synced from backend on another machine), fetch full detail
+    const session = (!local || local.messages.length === 0)
+      ? await chatHistoryService.fetchSessionDetail(chatId)
+      : local
     if (session) {
       setCurrentChatSession(session)
       // Navigate to home page for chat

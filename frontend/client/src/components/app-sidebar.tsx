@@ -329,7 +329,7 @@ export function AppSidebar({
   }
 
   // Use chat sessions from props or fallback to default
-  const recentChats = chatSessions.length > 0 ? chatSessions.slice(0, 4).map(session => ({
+  const recentChats = chatSessions.length > 0 ? chatSessions.slice(0, 20).map(session => ({
     id: session.id,
     title: session.title,
     timestamp: getRelativeTime(session.lastActivity)
