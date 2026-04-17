@@ -467,7 +467,7 @@ function PhaseGroupSection({
   onSkip: (id: string) => void;
   onPreviewFile: (file: any) => void;
   onAdjustAndRerun: (step: any) => void;
-  activeRunId: string | null;
+  activeRunId: string | null | undefined;
   executionBlockedReason?: string;
   isPrereqBlocked: boolean;
   isAutofixActive: boolean;
@@ -547,7 +547,7 @@ function PhaseGroupSection({
             onPreviewFile={onPreviewFile}
             onAdjustAndRerun={() => onAdjustAndRerun(phase)}
             onSkip={() => onSkip(phase.id)}
-            runId={activeRunId || undefined}
+            runId={activeRunId ?? undefined}
           />
         ))}
       </div>
@@ -1934,7 +1934,12 @@ export function NextflowWorkflowViewer({
                   </button>
                 </div>
               )}
+              </div>
+              </div>
+              )}
+            </div>
 
+            {/* ── Run controls ─────────────────────────────────────────────────── */}
               <div className="space-y-2" data-testid="workflow-run-controls">
                 {/* License gate — shown for any workflow that requires per-user credentials */}
                 {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
@@ -2332,10 +2337,6 @@ export function NextflowWorkflowViewer({
                   Download Methods Report
                 </Button>
               </div>
-              </div>
-              </div>
-              )}
-            </div>
 
             {/* ── Run metrics strip ─────────────────────────────────────────── */}
               {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
