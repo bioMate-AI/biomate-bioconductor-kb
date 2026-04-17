@@ -1,0 +1,173 @@
+Apr-17 07:50:06.300 [main] DEBUG nextflow.cli.Launcher - $> nextflow run main.nf -c nextflow.config --movies_path 's3://biomate-cryo-data/empiar-10028/Micrographs/00[1-5]_movie.mrcs' --pixel_size 1.77 --voltage 300 --spherical_aberration 2.7 --particle_diameter_angstroms 120 --symmetry D2 --molecular_weight_kda 466 --cryosparc_license f312a30e-63fc-11f0-8e36-e3c932851287 --cryosparc_host 52.42.49.175 --cryosparc_port 30000 --cryosparc_email admin@biomate.ai --cryosparc_password 'BioMate2026!' --cryosparc_project_dir /home/ubuntu/cryosparc_projects --mock_mode false --use_cryosparc true --outdir /tmp/biomate-cryo-direct/results -resume
+Apr-17 07:50:06.342 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-17 07:50:06.368 [main] DEBUG nextflow.config.ConfigBuilder - Found config local: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/nextflow.config
+Apr-17 07:50:06.370 [main] DEBUG nextflow.config.ConfigBuilder - User config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/nextflow.config
+Apr-17 07:50:06.371 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/nextflow.config
+Apr-17 07:50:06.371 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/nextflow.config
+Apr-17 07:50:06.409 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-17 07:50:06.902 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-17 07:50:06.929 [main] WARN  nextflow.config.ConfigBuilder - It appears you have never run this project before -- Option `-resume` is ignored
+Apr-17 07:50:06.961 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-17 07:50:06.970 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-17 07:50:06.970 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-17 07:50:06.975 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-17 07:50:06.988 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-17 07:50:07.161 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-17 07:50:07.163 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[nf-amazon@3.4.1]
+Apr-17 07:50:07.163 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[nf-amazon@3.4.1]
+Apr-17 07:50:07.777 [main] DEBUG n.plugin.HttpPluginRepository - Registry request: https://registry.nextflow.io/api/v1/plugins/dependencies?plugins=nf-amazon%403.4.1&nextflowVersion=25.10.0
+- code: 200
+- body: {"plugins":[{"id":"nf-amazon","releases":[{"version":"3.4.1","url":"https://registry.nextflow.io/api/v1/plugins/nf-amazon/3.4.1/download/nf-amazon-3.4.1.zip","date":"2025-10-22T16:29:06.396625Z","sha512sum":"bc7c4b6166aa5ef32df3362ceec263df434875b1db332594cd71c8d3f462adfcad55802034cbcfd269917e1efa4f45d224143f024fc1170d156daa40897f3873","requires":">=25.09.2-edge","dependsOn":[],"status":"PUBLISHED"}],"projectUrl":"https://github.com/nextflow-io/nf-amazon","provider":"nextflow-io"}]}
+Apr-17 07:50:07.825 [main] DEBUG nextflow.plugin.PluginUpdater - Installing plugin nf-amazon version: 3.4.1
+Apr-17 07:50:07.843 [main] INFO  org.pf4j.AbstractPluginManager - Plugin 'nf-amazon@3.4.1' resolved
+Apr-17 07:50:07.843 [main] INFO  org.pf4j.AbstractPluginManager - Start plugin 'nf-amazon@3.4.1'
+Apr-17 07:50:07.929 [main] DEBUG nextflow.plugin.BasePlugin - Plugin started nf-amazon@3.4.1
+Apr-17 07:50:07.949 [main] DEBUG nextflow.file.FileHelper - > Added 'S3FileSystemProvider' to list of installed providers [s3]
+Apr-17 07:50:07.961 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Apr-17 07:50:07.964 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@1ddc6db2] - activable => nextflow.secret.LocalSecretsProvider@1ddc6db2
+Apr-17 07:50:07.968 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-17 07:50:07.980 [main] INFO  nextflow.cli.CmdRun - Launching `main.nf` [fervent_archimedes] DSL2 - revision: 18a5a1ac93
+Apr-17 07:50:08.020 [main] DEBUG nextflow.Session - Session UUID: d999463d-54b4-443d-a3e4-0b9daeb82ab7
+Apr-17 07:50:08.020 [main] DEBUG nextflow.Session - Run name: fervent_archimedes
+Apr-17 07:50:08.020 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-17 07:50:08.026 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-17 07:50:08.030 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-17 07:50:08.045 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 536581@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (5.3 GB) - Swap: 16 GB (100 KB)
+Apr-17 07:50:08.067 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/work [ext2/ext3]
+Apr-17 07:50:08.067 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/bin
+Apr-17 07:50:08.092 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[AwsBatchExecutor]
+Apr-17 07:50:08.099 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-17 07:50:08.101 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-17 07:50:08.139 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-17 07:50:08.152 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-17 07:50:08.208 [main] DEBUG nextflow.Session - Session start
+Apr-17 07:50:08.211 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: /tmp/biomate-cryo-direct/results/pipeline_trace.txt
+Apr-17 07:50:09.125 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Apr-17 07:50:09.280 [main] WARN  nextflow.script.ScriptBinding - `params.particle_box_size` is defined multiple times -- Assignments following the first are ignored
+Apr-17 07:50:09.283 [main] INFO  nextflow.Nextflow - Calculated box size: null px
+Apr-17 07:50:09.287 [main] INFO  nextflow.Nextflow - 
+====================================================================
+CryoSPARC Standard SPA Workflow  (v2 — parallel channels)
+====================================================================
+Sample Type: unknown
+Default conservative settings
+
+Acquisition:
+  - Pixel size: 1.77 Å/px
+  - Voltage: 300 kV
+  - Spherical aberration: 2.7 mm
+  - Total dose: 50.0 e-/Å²
+
+Particle:
+  - Diameter: 120 Å
+  - Box size: null px
+  - Symmetry: D2
+
+Processing:
+  - 2D classes: 100
+  - Ab-initio classes: 3
+  - Low memory mode: false
+
+Parallelism:
+  - Micrograph batch size: 200
+  - Particle batch size: 10000
+  - GPU workers: 4
+  - Max parallel jobs: 20
+
+Mode: LIVE (CryoSPARC)
+====================================================================
+
+Apr-17 07:50:09.303 [main] DEBUG n.script.dsl.ProcessConfigBuilder - Config settings `withName:INIT_CRYOSPARC_PROJECT|SPLIT_INTO_BATCHES|SPLIT_PARTICLE_BATCHES` matches process CRYOSPARC_STANDARD_SPA:INIT_CRYOSPARC_PROJECT
+Apr-17 07:50:09.310 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: awsbatch
+Apr-17 07:50:09.310 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'awsbatch'
+Apr-17 07:50:09.315 [main] DEBUG nextflow.executor.Executor - [warm up] executor > awsbatch
+Apr-17 07:50:09.325 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-executor, limiter:RateLimiter[stableRate=0.2qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-17 07:50:09.328 [main] DEBUG nextflow.util.ThrottlingExecutor - Creating throttling executor with opts: nextflow.util.ThrottlingExecutor$Options(poolName:AWSBatch-reaper, limiter:RateLimiter[stableRate=0.2qps], poolSize:100, maxPoolSize:100, queueSize:5000, maxRetries:10, keepAlive:1m, autoThrottle:true, errorBurstDelay:1s, rampUpInterval:100, rampUpFactor:1.2, rampUpMaxRate:1.7976931348623157E308, backOffFactor:2.0, backOffMinRate:0.0166666667, retryDelay:1s)
+Apr-17 07:50:09.329 [main] DEBUG n.cloud.aws.batch.AwsBatchExecutor - Creating parallel monitor for executor 'awsbatch' > pollInterval=30s; dumpInterval=5m
+Apr-17 07:50:09.332 [main] DEBUG n.processor.TaskPollingMonitor - >>> barrier register (monitor: awsbatch)
+Apr-17 07:50:09.335 [main] DEBUG nextflow.Session - Session aborted -- Cause: -
+Apr-17 07:50:09.343 [main] INFO  nextflow.Nextflow - 
+==================== BioMate CryoSPARC SPA Complete ====================
+Status    : FAILED
+Duration  : 1.2s
+CPU-hours : (a few seconds)
+Batches   : 200 micrographs/batch
+========================================================================
+
+Apr-17 07:50:09.348 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Apr-17 07:50:09.348 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-17 07:50:09.716 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-17 07:50:09.751 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-17 07:50:09.755 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+  Script_19bcb6f049e135f5: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf
+Apr-17 07:50:09.757 [main] DEBUG nextflow.cli.Launcher - Operation aborted
+nextflow.exception.AbortOperationException: When using `awsbatch` executor an S3 bucket must be provided as working directory using either the `-bucket-dir` or `-work-dir` command line option
+	at nextflow.cloud.aws.batch.AwsBatchExecutor.validateWorkDir(AwsBatchExecutor.groovy:123)
+	at nextflow.cloud.aws.batch.AwsBatchExecutor.register(AwsBatchExecutor.groovy:167)
+	at nextflow.executor.Executor.init(Executor.groovy:74)
+	at nextflow.executor.ExecutorFactory.createExecutor(ExecutorFactory.groovy:210)
+	at nextflow.executor.ExecutorFactory.getExecutor(ExecutorFactory.groovy:200)
+	at nextflow.script.ProcessDef.createTaskProcessor(ProcessDef.groovy:266)
+	at nextflow.script.ProcessDef.runV1(ProcessDef.groovy:208)
+	at nextflow.script.ProcessDef.run(ProcessDef.groovy:152)
+	at nextflow.script.BindableDef.invoke_a(BindableDef.groovy:51)
+	at nextflow.script.ComponentDef.invoke_o(ComponentDef.groovy:40)
+	at nextflow.script.WorkflowBinding.invokeMethod(WorkflowBinding.groovy:105)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:651)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeOnDelegationObjects(ClosureMetaClass.java:392)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:331)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at Script_19bcb6f049e135f5$_runScript_closure34$_closure133.doCall(Script_19bcb6f049e135f5:1850)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovy.lang.Closure.call(Closure.java:412)
+	at nextflow.script.WorkflowDef.run0(WorkflowDef.groovy:205)
+	at nextflow.script.WorkflowDef.run(WorkflowDef.groovy:189)
+	at nextflow.script.BindableDef.invoke_a(BindableDef.groovy:51)
+	at nextflow.script.ComponentDef.invoke_o(ComponentDef.groovy:40)
+	at nextflow.script.WorkflowBinding.invokeMethod(WorkflowBinding.groovy:105)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:651)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeOnDelegationObjects(ClosureMetaClass.java:392)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:331)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.vmplugin.v8.IndyInterface.fromCache(IndyInterface.java:321)
+	at Script_19bcb6f049e135f5$_runScript_closure35$_closure148.doCall(Script_19bcb6f049e135f5:2046)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovy.lang.Closure.call(Closure.java:412)
+	at nextflow.script.WorkflowDef.run0(WorkflowDef.groovy:205)
+	at nextflow.script.WorkflowDef.run(WorkflowDef.groovy:189)
+	at nextflow.script.BindableDef.invoke_a(BindableDef.groovy:51)
+	at nextflow.script.BaseScript.run0(BaseScript.groovy:249)
+	at nextflow.script.BaseScript.run(BaseScript.groovy:260)
+	at nextflow.script.parser.v1.ScriptLoaderV1.runScript(ScriptLoaderV1.groovy:246)
+	at nextflow.script.parser.v1.ScriptLoaderV1.runScript(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.run(ScriptRunner.groovy:246)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:139)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)

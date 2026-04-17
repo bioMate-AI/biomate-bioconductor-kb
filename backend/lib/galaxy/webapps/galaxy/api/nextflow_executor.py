@@ -1069,13 +1069,13 @@ def _generate_executor_config(
             #   public third-party containers (gromacs, rocker, etc.) without aws of their own.
             # DO NOT change to /usr/local/bin/aws — that shadows /usr/local/lib/python3
             #   site-packages inside containers, causing exit 127 on all python tasks.
-            # EXCEPTION: cryosparc-nf container has AWS CLI only at /usr/local/bin/aws;
-            #   its own nextflow.config already sets cliPath correctly — don't override.
-            *(["        cliPath = '/opt/aws-cli/bin/aws'",] if "cryosparc" not in str(nf_path).lower() else []),
+            # NOTE: CryoSPARC's own nextflow.config sets cliPath = /usr/local/bin/aws;
+            #   Nextflow merges configs (later wins), so cryosparc's config overrides this.
+            "        cliPath = '/opt/aws-cli/bin/aws'",
             # Explicitly bind-mount /opt/aws-cli from the AMI host into every container.
             # Required for non-base containers (biomni-drug-discovery-nf, rocker, etc.)
             # that don't have AWS CLI pre-installed. The AMI installs it via LT user-data.
-            *(["        volumes = ['/opt/aws-cli']",] if "cryosparc" not in str(nf_path).lower() else []),
+            "        volumes = ['/opt/aws-cli']",
             "    }",
             "}",
             "docker.enabled = true",
@@ -3850,6 +3850,58 @@ def _make_cryosparc_sse_callback(run_id: str):
     return _cb
 
 
+def _stage_s3_movies_on_cryosparc(s3_url: str, instance_ip: str, ssh_key: str, ssh_user: str) -> str:
+    """
+    Download S3 movie files to the CryoSPARC EC2 instance so CryoSPARC can read them locally.
+
+    The CryoSPARC instance must have IAM credentials (CryoEMBenchmarkProfile) for S3 access.
+    Returns the local path on the CryoSPARC instance (preserving any trailing glob pattern).
+
+    Handles both plain paths (s3://bucket/dir/) and glob patterns (s3://bucket/dir/*.mrcs).
+    """
+    import subprocess, re, hashlib
+
+    if not ssh_key or not instance_ip or instance_ip in ("localhost", "127.0.0.1"):
+        log.warning("[CryoSPARC] Cannot stage S3 movies: no ssh_key or local instance — using path as-is")
+        return s3_url
+
+    # Split into directory prefix + optional glob filename pattern
+    # e.g. s3://bucket/path/00[1-5]_movie.mrcs → ("s3://bucket/path/", "00[1-5]_movie.mrcs")
+    last_slash = s3_url.rfind("/")
+    s3_dir = s3_url[:last_slash + 1]              # "s3://bucket/path/"
+    filename_pattern = s3_url[last_slash + 1:]    # "00[1-5]_movie.mrcs" or ""
+
+    # Deterministic local staging dir keyed on S3 directory
+    dir_hash = hashlib.md5(s3_dir.encode()).hexdigest()[:10]
+    local_dir = f"/home/ubuntu/biomate_movies/{dir_hash}"
+
+    # Build aws s3 sync command with optional --include filter
+    sync_cmd = f"mkdir -p {local_dir}"
+    if filename_pattern:
+        # Sync only files matching the glob pattern
+        sync_cmd += f" && aws s3 sync {s3_dir} {local_dir}/ --exclude '*' --include '{filename_pattern}' --region us-east-1 --no-progress"
+    else:
+        sync_cmd += f" && aws s3 sync {s3_dir} {local_dir}/ --region us-east-1 --no-progress"
+
+    log.info("[CryoSPARC] Staging S3 movies to %s:%s from %s ...", instance_ip, local_dir, s3_url)
+    try:
+        result = subprocess.run(
+            ["ssh", "-i", ssh_key, "-o", "StrictHostKeyChecking=no",
+             "-o", "ConnectTimeout=30", "-o", "ServerAliveInterval=30",
+             f"{ssh_user}@{instance_ip}", sync_cmd],
+            capture_output=True, text=True, timeout=600,
+        )
+        if result.returncode != 0:
+            log.error("[CryoSPARC] S3 staging failed (rc=%d): %s", result.returncode, result.stderr[:500])
+        else:
+            log.info("[CryoSPARC] S3 staging complete: %s", result.stdout.strip()[:200])
+    except Exception as exc:
+        log.error("[CryoSPARC] S3 staging exception: %s", exc)
+
+    # Return local path, preserving the glob pattern if one was present
+    return f"{local_dir}/{filename_pattern}" if filename_pattern else f"{local_dir}/"
+
+
 @router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline via Nextflow on AWS Batch")
 def execute_cryosparc(
     request: CryoSPARCExecuteRequest,
@@ -3889,6 +3941,20 @@ def execute_cryosparc(
     run_short  = str(uuid.uuid4())[:8]
     uid_path   = user_id.replace("/", "_").replace("..", "_") or "anon"
 
+    # ── Step 2a: stage S3 movies to CryoSPARC instance if needed ─────────────
+    # CryoSPARC's import_movies job reads from local filesystem on the EC2 host.
+    # If movies_path is an S3 URL, SSH to the CryoSPARC instance and sync the
+    # files there (the instance has CryoEMBenchmarkProfile IAM role for S3 access).
+    movies_path_raw = params.get("movie_dir") or params.get("movies_path", "")
+    if movies_path_raw.startswith("s3://"):
+        movies_path_raw = _stage_s3_movies_on_cryosparc(
+            s3_url=movies_path_raw,
+            instance_ip=cs_exec.CRYOSPARC_HOST,
+            ssh_key=os.environ.get("CRYOSPARC_SSH_KEY", ""),
+            ssh_user=os.environ.get("CRYOSPARC_SSH_USER", "ubuntu"),
+        )
+        log.info("[CryoSPARC] movies_path resolved to local: %s", movies_path_raw)
+
     nf_params = {
         # CryoSPARC connection (EC2 instance just started)
         "cryosparc_host":        cs_exec.CRYOSPARC_HOST,
@@ -3903,7 +3969,7 @@ def execute_cryosparc(
         "num_gpu":               cs_exec._gpu_count_for_instance(
                                      os.environ.get("CRYOSPARC_INSTANCE_TYPE", "g6.12xlarge")),
         # Acquisition / sample
-        "movies_path":           params.get("movie_dir") or params.get("movies_path", ""),
+        "movies_path":           movies_path_raw,
         "pixel_size":            float(params.get("pixel_size", 1.0)),
         "voltage":               int(params.get("voltage", 300)),
         "spherical_aberration":  float(params.get("cs", 2.7)),

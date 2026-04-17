@@ -318,6 +318,35 @@ def _gpu_count_for_instance(instance_type: str) -> int:
     return _GPU_COUNT_MAP.get(instance_type, 1)
 
 
+_IAM_PROFILE_NAME = "CryoEMBenchmarkProfile"
+
+
+def _ensure_iam_profile(ec2, instance_id: str) -> None:
+    """Attach CryoEMBenchmarkProfile to instance if not already present (idempotent)."""
+    try:
+        assocs = ec2.describe_iam_instance_profile_associations(
+            Filters=[{"Name": "instance-id", "Values": [instance_id]}]
+        ).get("IamInstanceProfileAssociations", [])
+        if any(a.get("IamInstanceProfile", {}).get("Arn", "").endswith(_IAM_PROFILE_NAME) or
+               _IAM_PROFILE_NAME in a.get("IamInstanceProfile", {}).get("Arn", "")
+               for a in assocs):
+            return  # already attached
+        if assocs:
+            # Replace existing profile
+            ec2.replace_iam_instance_profile_association(
+                AssociationId=assocs[0]["AssociationId"],
+                IamInstanceProfile={"Name": _IAM_PROFILE_NAME},
+            )
+        else:
+            ec2.associate_iam_instance_profile(
+                InstanceId=instance_id,
+                IamInstanceProfile={"Name": _IAM_PROFILE_NAME},
+            )
+        log.info("[CryoSPARC] IAM profile %s attached to %s", _IAM_PROFILE_NAME, instance_id)
+    except Exception as exc:
+        log.warning("[CryoSPARC] Could not ensure IAM profile on %s: %s", instance_id, exc)
+
+
 def start_instance(wait: bool = True) -> str:
     """
     Start the stopped CryoSPARC EC2 instance and return its public IP.
@@ -349,6 +378,8 @@ def start_instance(wait: bool = True) -> str:
 
         if wait:
             _wait_for_instance_running(ec2, effective_id)
+
+        _ensure_iam_profile(ec2, effective_id)
 
         resp = ec2.describe_instances(InstanceIds=[effective_id])
         ip = resp["Reservations"][0]["Instances"][0].get("PublicIpAddress", "")
@@ -385,6 +416,7 @@ echo "[biomate] CryoSPARC ready with {num_gpus} GPU(s): {gpu_ids}"
             SecurityGroupIds=["sg-015137721b5fabddb"],
             MinCount=1, MaxCount=1,
             UserData=user_data,
+            IamInstanceProfile={"Name": "CryoEMBenchmarkProfile"},
             # EBS: DeleteOnTermination=True so terminate() cleans up storage automatically
             BlockDeviceMappings=[{
                 "DeviceName": "/dev/sda1",
