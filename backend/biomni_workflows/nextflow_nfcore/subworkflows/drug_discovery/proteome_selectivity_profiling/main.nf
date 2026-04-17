@@ -77,7 +77,7 @@ def tanimoto(fp1, fp2):
 
 # -- ChEMBL similarity search --------------------------------------------------
 def chembl_similarity_search(smiles, threshold=0.7, max_results=50):
-    """Query ChEMBL REST API for similar compounds."""
+    '''Query ChEMBL REST API for similar compounds.'''
     import urllib.parse
     encoded_smiles = urllib.parse.quote(smiles)
     url = f"https://www.ebi.ac.uk/chembl/api/data/similarity/{encoded_smiles}/{int(threshold*100)}?format=json&limit={max_results}"
@@ -91,7 +91,7 @@ def chembl_similarity_search(smiles, threshold=0.7, max_results=50):
         return []
 
 def get_chembl_activities(chembl_ids, target_type='kinase'):
-    """Get activities for ChEMBL compound IDs from REST API."""
+    '''Get activities for ChEMBL compound IDs from REST API.'''
     activities = {}
     if not chembl_ids:
         return activities
@@ -117,7 +117,7 @@ def get_chembl_activities(chembl_ids, target_type='kinase'):
 
 # -- Selectivity metrics -------------------------------------------------------
 def selectivity_entropy(ic50_values):
-    """Shannon entropy on potency distribution -- lower = more selective."""
+    '''Shannon entropy on potency distribution -- lower = more selective.'''
     pchembl = [9 - math.log10(max(v,0.001)) for v in ic50_values]
     pchembl = [p for p in pchembl if p > 0]
     if not pchembl: return 0
@@ -126,7 +126,7 @@ def selectivity_entropy(ic50_values):
     return round(-sum(p*math.log(p) for p in probs if p > 0), 3)
 
 def gini_index(ic50_values):
-    """Gini index on 1/IC50 (higher = more selective)."""
+    '''Gini index on 1/IC50 (higher = more selective).'''
     if len(ic50_values) < 2: return 1.0
     affinities = sorted([1/max(v,0.001) for v in ic50_values])
     n = len(affinities)
@@ -135,10 +135,10 @@ def gini_index(ic50_values):
 
 # -- Fallback: descriptor-based kinase/GPCR panel (when API unavailable) ------
 def descriptor_based_panel(mol, target_class, panel_size):
-    """
+    '''
     Generate synthetic selectivity panel based on fingerprint similarity
     to known scaffolds. Uses hardcoded reference IC50 ranges per target class.
-    """
+    '''
     mw   = Descriptors.ExactMolWt(mol)
     logp = Crippen.MolLogP(mol)
     hba  = len(mol.GetSubstructMatches(Chem.MolFromSmarts('[#7,#8]')))

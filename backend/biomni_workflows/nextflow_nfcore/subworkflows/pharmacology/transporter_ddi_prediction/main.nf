@@ -70,10 +70,10 @@ def parse_smiles_input(raw):
 # Each model returns (substrate_prob, inhibitor_IC50_uM_predicted)
 
 def oatp1b1_model(mw, logp, tpsa, hba, charge_state):
-    """
+    '''
     OATP1B1: liver influx. Substrates: anionic (acid/zwitterion), MW 400-900, logP -2 to 5.
     Inhibitors: strongly lipophilic (logP>3) + MW>400 (Varma et al. 2012).
-    """
+    '''
     substrate_prob = 0.0
     if tpsa > 100 and 400 < mw < 1000 and -2 <= logp <= 5: substrate_prob = 0.75
     elif tpsa > 75 and mw > 350: substrate_prob = 0.4
@@ -85,16 +85,16 @@ def oatp1b1_model(mw, logp, tpsa, hba, charge_state):
     return round(substrate_prob,2), round(inh_ic50,1)
 
 def oatp1b3_model(mw, logp, tpsa, hba, charge_state):
-    """Similar to OATP1B1 but higher MW tolerance (bile acid substrates)."""
+    '''Similar to OATP1B1 but higher MW tolerance (bile acid substrates).'''
     sub_p = 0.6 if (tpsa > 100 and mw > 400) else (0.3 if tpsa > 60 and mw > 300 else 0.1)
     if logp > 3.5 and mw > 500: inh_ic50 = max(0.5, 15 / (logp * mw / 500))
     else: inh_ic50 = 50.0
     return round(sub_p,2), round(inh_ic50,1)
 
 def pgp_model(mw, logp, tpsa, hba, charge_state):
-    """
+    '''
     P-gp: efflux. Substrates: lipophilic, MW 200-1200, Seelig model (H-bond pattern).
-    """
+    '''
     substrate_prob = 0.0
     if mw > 400 and logp > 2 and hba > 4: substrate_prob = 0.8
     elif mw > 300 and hba > 6: substrate_prob = 0.6
@@ -108,26 +108,26 @@ def pgp_model(mw, logp, tpsa, hba, charge_state):
     return round(substrate_prob,2), round(inh_ic50,1)
 
 def bcrp_model(mw, logp, tpsa, hba, charge_state):
-    """BCRP: efflux; flat aromatic substrates, MW < 500."""
+    '''BCRP: efflux; flat aromatic substrates, MW < 500.'''
     substrate_prob = 0.5 if (mw < 500 and logp < 3 and hba > 3) else 0.2
     inh_ic50 = max(0.5, 8 / max(1, logp)) if logp > 1 else 30.0
     return round(substrate_prob,2), round(inh_ic50,1)
 
 def mate_model(mw, logp, tpsa, hba, charge_state):
-    """MATE1/2-K: renal efflux. Substrates: cationic, moderate MW."""
+    '''MATE1/2-K: renal efflux. Substrates: cationic, moderate MW.'''
     # Cationic compounds (basic nitrogen, low tPSA from N)
     substrate_prob = 0.6 if (logp < 4 and mw < 400 and charge_state in ('cation','zwitterion')) else 0.15
     inh_ic50 = max(1.0, 20 / max(0.5, logp)) if logp > 0 else 50.0
     return round(substrate_prob,2), round(inh_ic50,1)
 
 def oat_model(mw, logp, tpsa, hba, charge_state):
-    """OAT1/3: renal uptake. Substrates: anionic organic acids, MW < 500."""
+    '''OAT1/3: renal uptake. Substrates: anionic organic acids, MW < 500.'''
     substrate_prob = 0.65 if (tpsa > 60 and mw < 500 and charge_state in ('anion','zwitterion')) else 0.1
     inh_ic50 = max(1.0, 30 / max(0.5, logp*tpsa/80)) if logp > 0 else 60.0
     return round(substrate_prob,2), round(inh_ic50,1)
 
 def oct2_model(mw, logp, tpsa, hba, charge_state):
-    """OCT2: renal uptake, organic cations. Substrates: small cations MW < 400."""
+    '''OCT2: renal uptake, organic cations. Substrates: small cations MW < 400.'''
     substrate_prob = 0.55 if (mw < 400 and logp < 3 and charge_state in ('cation','zwitterion')) else 0.1
     inh_ic50 = max(0.5, 12 / max(0.5, logp+1)) if logp > -1 else 40.0
     return round(substrate_prob,2), round(inh_ic50,1)
@@ -152,21 +152,21 @@ FDA_INHIBITOR_THRESHOLDS = {
 }
 
 def charge_state(mol):
-    """Rough charge state from SMARTS."""
-    has_acid = mol.HasSubstructMatch(Chem.MolFromSmarts('[$([OH]C(=O)),$([OH]S(=O)(=O)),$([OH]P(=O))]'))
-    has_base = mol.HasSubstructMatch(Chem.MolFromSmarts('[$([NH2]),$([NH]),$([n])]'))
+    '''Rough charge state from SMARTS.'''
+    has_acid = mol.HasSubstructMatch(Chem.MolFromSmarts('[\$([OH]C(=O)),\$([OH]S(=O)(=O)),\$([OH]P(=O))]'))
+    has_base = mol.HasSubstructMatch(Chem.MolFromSmarts('[\$([NH2]),\$([NH]),\$([n])]'))
     if has_acid and has_base: return 'zwitterion'
     if has_acid: return 'anion'
     if has_base: return 'cation'
     return 'neutral'
 
 def fda_basic_ddi(cmax_uM, inh_ic50_uM, threshold_r, clinical_threshold):
-    """
+    '''
     FDA Basic Model (static): R = 1 + Imax,u / IC50
     Imax,u ~ Cmax_u (unbound plasma at portal entry).
     Trigger for in vitro study: R >= threshold.
     Trigger for clinical study: Imax,u / IC50 >= clinical_threshold.
-    """
+    '''
     if cmax_uM is None or inh_ic50_uM is None:
         return None, 'unknown', 'insufficient_data'
 

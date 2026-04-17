@@ -65,11 +65,11 @@ def auto_convert(v, default=None):
 
 # -- Ionizable lipid pKa proxy --------------------------------------------------
 def estimate_pKa_proxy(mol):
-    """
+    '''
     Estimate apparent pKa of ionizable lipid from amine nitrogen environment.
     Optimal range for LNP: pKa 6.2-6.8 (Kulkarni et al. 2019).
     Uses partial charge on N atom as proxy.
-    """
+    '''
     # Try to get the amine nitrogen
     amine_N = None
     for atom in mol.GetAtoms():
@@ -106,14 +106,14 @@ def estimate_pKa_proxy(mol):
     return round(min(10.5, max(4.0, pka_est)), 1)
 
 def ionization_at_pH(pka, ph):
-    """Fraction ionized (Henderson-Hasselbalch)."""
+    '''Fraction ionized (Henderson-Hasselbalch).'''
     return 1 / (1 + 10**(ph - pka))
 
 def endosomal_escape_score(pka, logp):
-    """
+    '''
     Endosomal escape efficiency score (0-1).
     Optimal: pKa 6.0-7.0 (ionizes in endosome pH 5.5-6.5, neutral in plasma pH 7.4).
-    """
+    '''
     # Ionization at endosome pH 5.5 vs plasma pH 7.4
     f_endo   = ionization_at_pH(pka, 5.5)
     f_plasma = ionization_at_pH(pka, 7.4)
@@ -130,11 +130,11 @@ def endosomal_escape_score(pka, logp):
     return round(min(1.0, score), 3)
 
 def tissue_targeting_score(logp, mw, cargo, tissue):
-    """
+    '''
     Tissue targeting score (0-1) based on lipid properties and cargo type.
     Liver: most efficient for current LNPs (hepatic OATP + fenestrated sinusoids)
     Lung: cationic + large particles; spleen: small particles
-    """
+    '''
     base_scores = {
         'liver': {'mRNA': 0.85, 'siRNA': 0.90, 'ASO': 0.75, 'DNA': 0.60},
         'lung':  {'mRNA': 0.60, 'siRNA': 0.55, 'ASO': 0.50, 'DNA': 0.45},
@@ -145,7 +145,7 @@ def tissue_targeting_score(logp, mw, cargo, tissue):
     return base_scores.get(tissue, {}).get(cargo, 0.3)
 
 def predict_size_from_ratio(il_mol_pct, helper_mol_pct, chol_mol_pct, peg_mol_pct, d_nm_lipid):
-    """Empirical size model from Semple et al. + Kulkarni formulation data."""
+    '''Empirical size model from Semple et al. + Kulkarni formulation data.'''
     # Standard: 50/10/38.5/1.5 -> ~80nm
     # More IL -> larger, more PEG -> smaller
     size_base = 80
@@ -153,10 +153,10 @@ def predict_size_from_ratio(il_mol_pct, helper_mol_pct, chol_mol_pct, peg_mol_pc
     return round(max(30, min(300, size)), 0)
 
 def predict_encapsulation(pka, il_mol_pct, cargo):
-    """
+    '''
     Encapsulation efficiency (%) based on charge interaction.
     Optimal pKa 6.2-6.8 for nucleic acid condensation at low pH prep conditions.
-    """
+    '''
     pka_eff = max(0, 1 - abs(pka - 6.5) * 0.3)  # optimal pKa -> higher EE
     il_eff  = min(1.0, il_mol_pct / 50)  # more IL -> better condensation
     base_ee = {'mRNA': 80, 'siRNA': 90, 'ASO': 85, 'DNA': 70}.get(cargo, 80)

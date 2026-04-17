@@ -78,15 +78,15 @@ NAV15_SMARTS = [
     ('class_I_antiarrhythmic',  'c1ccc(cc1)NC(=O)',           'QRS-widening risk (Na+ channel block)'),
     ('local_anesthetic_core',   'c1ccc(OCC)cc1',              'Procaine/lidocaine scaffold -- Nav1.5 alert'),
     ('2_aminobenzamide',        'Nc1ccccc1C(=O)',             'Flecainide-like Nav1.5 inhibitor scaffold'),
-    ('tertiary_amine_aryl',     '[NX3;!$(NC=O)](c)([#6])[#6]','Tertiary aryl amine -- hERG and Nav1.5 risk'),
+    ('tertiary_amine_aryl',     '[NX3;!\$(NC=O)](c)([#6])[#6]','Tertiary aryl amine -- hERG and Nav1.5 risk'),
     ('alkylaminophenol',        'c1cc(O)ccc1CC[NH]',          'Beta-blocker-like cardiac scaffold'),
     ('fluorinated_aryl',        'Fc1ccc(cc1)',                 'Fluorinated aromatic -- metabolic stability but Nav check'),
 ]
 NAV15_PATTERNS = [(name, Chem.MolFromSmarts(s), desc) for name, s, desc in NAV15_SMARTS if Chem.MolFromSmarts(s)]
 
 def estimate_pka_basic(mol):
-    """Proxy pKa for basic nitrogen from descriptor -- Mannhold/Cruciani approach."""
-    amines = mol.GetSubstructMatches(Chem.MolFromSmarts('[NX3;H0,H1,H2;!$(NC=O);!$(Nc)]'))
+    '''Proxy pKa for basic nitrogen from descriptor -- Mannhold/Cruciani approach.'''
+    amines = mol.GetSubstructMatches(Chem.MolFromSmarts('[NX3;H0,H1,H2;!\$(NC=O);!\$(Nc)]'))
     if not amines:
         return None
     # Saturated secondary/tertiary amine proxy: pKa ~9-10; aromatic amines ~4-6
@@ -97,19 +97,19 @@ def estimate_pka_basic(mol):
     return 9.2  # aliphatic amine: strongly basic
 
 def predict_herg_ic50(mol, logp, mw, pka):
-    """
+    '''
     Physicochemical QSAR for hERG IC50 (uM).
     Based on Aronov 2005 model: log(IC50) ~ a*logP + b*pKa + c*MW + d*rings
 
     Range: ~0.01-1000 uM. Positive charge at physiological pH is the dominant driver.
-    """
+    '''
     ring_count = rdMolDescriptors.CalcNumRings(mol)
     hbd = rdMolDescriptors.CalcNumHBD(mol)
     hba = rdMolDescriptors.CalcNumHBA(mol)
     rot = rdMolDescriptors.CalcNumRotatableBonds(mol)
 
     # Cationic amine: strongly increases hERG risk
-    basic_n = mol.GetSubstructMatches(Chem.MolFromSmarts('[NX3;!$(NC=O);!$(Nc);!$(n)]'))
+    basic_n = mol.GetSubstructMatches(Chem.MolFromSmarts('[NX3;!\$(NC=O);!\$(Nc);!\$(n)]'))
     cationic_flag = 1 if (basic_n and pka and pka > 7.4) else 0
 
     # Log IC50 model (lower = more potent = higher risk)
@@ -127,7 +127,7 @@ def predict_herg_ic50(mol, logp, mw, pka):
     return round(ic50_uM, 3)
 
 def qtc_risk_from_herg(ic50_uM, cmax_uM, fu_p=0.1):
-    """
+    '''
     ICH E14/S7B risk stratification.
     Safety margin = hERG IC50_free / free Cmax
     Thresholds (ICH S7B TT model proxy):
@@ -135,7 +135,7 @@ def qtc_risk_from_herg(ic50_uM, cmax_uM, fu_p=0.1):
       3-10:    MEDIUM (5-10ms possible)
       10-30:   LOW (marginal, <5ms)
       >30:     MINIMAL
-    """
+    '''
     if cmax_uM is None or cmax_uM <= 0:
         cmax_uM = 1.0  # default 1 uM if not provided
     free_cmax = cmax_uM * fu_p
@@ -164,7 +164,7 @@ def qtc_risk_from_herg(ic50_uM, cmax_uM, fu_p=0.1):
 
 # -- Cmax estimation from dose -------------------------------------------------
 def estimate_cmax_uM(dose_mg, route, mw_g_mol, fu_p):
-    """Rough Cmax estimate (uM): dose/Vd with typical oral F~0.5."""
+    '''Rough Cmax estimate (uM): dose/Vd with typical oral F~0.5.'''
     if not dose_mg or mw_g_mol <= 0: return 1.0
     moles = (dose_mg / 1000) / mw_g_mol  # mol
     if route == 'oral':

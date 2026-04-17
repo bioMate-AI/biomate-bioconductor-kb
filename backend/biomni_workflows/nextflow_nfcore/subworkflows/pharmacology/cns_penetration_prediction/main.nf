@@ -60,7 +60,7 @@ def auto_convert(v):
     except: return v
 
 def parse_smiles_input(raw):
-    """Accept single SMILES string or JSON array."""
+    '''Accept single SMILES string or JSON array.'''
     raw = raw.strip()
     if raw.startswith('['):
         try:
@@ -72,36 +72,36 @@ def parse_smiles_input(raw):
 # -- CNS MPO Score (Wager et al. 2010) ----------------------------------------
 # 6 descriptors, each scored 0-1, summed. Score >= 4 = favorable CNS profile.
 def clogp_score(clogp):
-    """Desirability: 0-3 -> 1, 3-5 -> linear decline, >5 -> 0."""
+    '''Desirability: 0-3 -> 1, 3-5 -> linear decline, >5 -> 0.'''
     if clogp <= 3: return 1.0
     if clogp >= 5: return 0.0
     return (5 - clogp) / 2
 
 def mw_score(mw):
-    """<=360 -> 1, 360-500 -> linear decline, >500 -> 0."""
+    '''<=360 -> 1, 360-500 -> linear decline, >500 -> 0.'''
     if mw <= 360: return 1.0
     if mw >= 500: return 0.0
     return (500 - mw) / 140
 
 def tpsa_score(tpsa):
-    """<=20 -> 1, 20-90 -> linear, >90 -> 0."""
+    '''<=20 -> 1, 20-90 -> linear, >90 -> 0.'''
     if tpsa <= 20: return 1.0
     if tpsa >= 90: return 0.0
     return (90 - tpsa) / 70
 
 def hbd_score(hbd):
-    """0 -> 1, 1 -> 0.75, 2 -> 0.5, 3 -> 0.25, >=4 -> 0."""
+    '''0 -> 1, 1 -> 0.75, 2 -> 0.5, 3 -> 0.25, >=4 -> 0.'''
     return max(0.0, 1 - 0.25 * hbd)
 
 def pka_score(pka):
-    """Most basic pKa: <8 -> 1, 8-10 -> linear, >10 -> 0."""
+    '''Most basic pKa: <8 -> 1, 8-10 -> linear, >10 -> 0.'''
     if pka is None: return 0.5  # unknown
     if pka <= 8: return 1.0
     if pka >= 10: return 0.0
     return (10 - pka) / 2
 
 def logd_score(logd):
-    """1-3 -> 1, 0-1 -> linear up, 3-5 -> linear down, outside -> 0."""
+    '''1-3 -> 1, 0-1 -> linear up, 3-5 -> linear down, outside -> 0.'''
     if 1 <= logd <= 3: return 1.0
     if 0 <= logd < 1: return logd
     if 3 < logd <= 5: return (5 - logd) / 2
@@ -139,11 +139,11 @@ def predict_cns_mpo(mol, pka=None, logd=None):
     }
 
 def predict_pgp(mol, mw, logp, hbd):
-    """
+    '''
     P-gp substrate probability based on Ecker et al. rules:
     MW > 400 + LogP > 2 + HBD > 2 -> likely substrate
     Seelig model: >=2 H-bond acceptors within 2.5 A or >=4 HBAs -> substrate
-    """
+    '''
     hba = rdMolDescriptors.CalcNumHBA(mol)
     rotbonds = rdMolDescriptors.CalcNumRotatableBonds(mol)
     score = 0
@@ -164,11 +164,11 @@ def predict_pgp(mol, mw, logp, hbd):
     }
 
 def predict_kpuu_brain(pgp_efflux, fu_plasma, logd):
-    """
+    '''
     Kp,uu,brain estimator.
     Simplified: Kp,uu = fu_brain/(fu_plasma) ~ 1/(P-gp x protein_binding_factor)
     Reference: Friden et al., 2011, validated against rat brain homogenate data.
-    """
+    '''
     fu_brain_proxy = 1 / (1 + 0.72 * 10**(0.6 * logd))  # Kalvass model
     if fu_plasma is None: fu_plasma = max(0.01, 0.5 - 0.05 * logd)
     pgp_correction = 1 / pgp_efflux  # P-gp reduces brain exposure

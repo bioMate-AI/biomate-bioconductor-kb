@@ -89,7 +89,7 @@ PKA_RESIDUES = {
 
 # -- pI calculation -------------------------------------------------------------
 def compute_pI(sequence):
-    """Isoelectric point via charge pH titration."""
+    '''Isoelectric point via charge pH titration.'''
     seq = sequence.upper()
     counts = {aa: seq.count(aa) for aa in PKA_RESIDUES if aa in seq}
     n_asp = seq.count('D')
@@ -126,11 +126,11 @@ def compute_pI(sequence):
 
 # -- Aggregation propensity (CamSol proxy) -------------------------------------
 def aggregation_score(cdrs_combined):
-    """
+    '''
     Simplified CamSol-like score: hydrophobic patches in CDR sequences.
     Score > 1.0 = aggregation-prone; < -1.0 = well-behaved.
     Based on mean hydrophobicity of sliding window over CDRs.
-    """
+    '''
     if not cdrs_combined:
         return 0.0, 'UNKNOWN'
     seq = cdrs_combined.upper()
@@ -193,13 +193,13 @@ def scan_oxidation(combined_seq):
 
 # -- FcRn binding model (Deng 2012) --------------------------------------------
 def fcRn_halflife(pI, antibody_format):
-    """
+    '''
     Approximate serum half-life (days) from pI.
     IgG1/IgG4 optimal pI: 6-8 (FcRn binding at pH 6, release at 7.4)
     Very high pI (>9) -> non-specific binding, faster clearance
     Very low pI (<5) -> poor FcRn binding
     scFv/bispecific: shorter baseline t1/2
-    """
+    '''
     if antibody_format in ('IgG1', 'IgG4', 'IgG2'):
         baseline = 21  # days
     elif antibody_format in ('scFv',):

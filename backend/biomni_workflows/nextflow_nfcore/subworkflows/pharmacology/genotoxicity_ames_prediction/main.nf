@@ -66,7 +66,7 @@ AMES_ALERTS = [
     ('nitro_aliphatic',      '[CX4][N+](=O)[O-]',         'A', 'HIGH',  'Aliphatic nitro -- potent mutagen (alpha-nitro activation)'),
     ('primary_aromatic_amine','Nc1ccccc1',                 'A', 'HIGH',  'Primary aromatic amine -- CYP/acetyltransferase activation -> DNA adduct'),
     ('aromatic_amine_meta',  'Nc1cccnc1',                 'A', 'HIGH',  'Heteroaromatic amine -- metabolic activation mutagenicity'),
-    ('nitroso',              '[N;!$(NC=O)]=[O]',           'A', 'HIGH',  'Nitroso compound -- DNA alkylation'),
+    ('nitroso',              '[N;!\$(NC=O)]=[O]',           'A', 'HIGH',  'Nitroso compound -- DNA alkylation'),
     ('nitrosamine',          '[NH]N=O',                   'A', 'HIGH',  'N-Nitrosamine -- strong mutagen / IARC Group 1'),
     ('diazonium',            '[N+]#N',                    'A', 'HIGH',  'Diazonium ion -- direct DNA alkylator'),
     ('epoxide',              '[C@@H]1OC1',                'A', 'HIGH',  'Epoxide -- DNA strand break'),
@@ -103,7 +103,7 @@ ICH_S2_CATS = {
 }
 
 def ames_verdict(alerts):
-    """Overall Ames prediction from alert list."""
+    '''Overall Ames prediction from alert list.'''
     if any(a[3] == 'HIGH' for a in alerts):
         return 'POSITIVE', 'HIGH', 'Predicted Ames-positive: Cat A structural alert(s) found'
     if any(a[3] == 'MEDIUM' for a in alerts):
@@ -111,10 +111,10 @@ def ames_verdict(alerts):
     return 'NEGATIVE', 'LOW', 'No structural alerts detected -- predicted Ames-negative'
 
 def ichs2_genotox_battery(verdict, alerts):
-    """
+    '''
     ICH S2(R1) compliant testing recommendation based on alert findings.
     Standard battery: (1) Ames test, (2) in vitro MN/CA, (3) in vivo comet or MN if 2 positives.
-    """
+    '''
     has_A = any(a[2] == 'A' for a in alerts)
     has_B = any(a[2] == 'B' for a in alerts)
     has_C = any(a[2] == 'C' for a in alerts)

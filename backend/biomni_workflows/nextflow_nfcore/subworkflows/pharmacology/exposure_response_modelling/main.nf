@@ -70,7 +70,7 @@ def ac(v, default=None):
     except: return default
 
 def parse_er_data(raw):
-    """Parse E-R dataset from JSON or generate synthetic Phase I data."""
+    '''Parse E-R dataset from JSON or generate synthetic Phase I data.'''
     if raw and raw not in ('null','None',''):
         try:
             return json.loads(raw)
@@ -92,7 +92,7 @@ def parse_er_data(raw):
 
 # -- Emax model (Hill equation) ------------------------------------------------
 def emax_model(E, emax, ec50, hill):
-    """Effect = Emax * E^hill / (EC50^hill + E^hill)"""
+    '''Effect = Emax * E^hill / (EC50^hill + E^hill)'''
     E = np.array(E, dtype=float)
     return emax * E**hill / (ec50**hill + E**hill)
 
@@ -146,7 +146,7 @@ def fit_power(exposures, effects):
     except: return None, None
 
 def exposure_for_target(pct_target, popt, model):
-    """Invert the E-R model to find exposure achieving pct_target effect."""
+    '''Invert the E-R model to find exposure achieving pct_target effect.'''
     if popt is None: return None
     if model == 'emax':
         emax, ec50, hill = popt

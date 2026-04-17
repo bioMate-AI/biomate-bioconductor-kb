@@ -104,7 +104,7 @@ ALLELE_ACTIVITY = {
 
 # -- CPIC Phenotype assignment (from activity score) ------------------------
 def get_phenotype(gene, allele1, allele2):
-    """Assign CPIC metabolizer/functional phenotype from two alleles."""
+    '''Assign CPIC metabolizer/functional phenotype from two alleles.'''
     act = ALLELE_ACTIVITY.get(gene, {})
     a1 = act.get(allele1, 1.0)  # unknown alleles assumed normal
     a2 = act.get(allele2, 1.0)
@@ -139,7 +139,7 @@ def get_phenotype(gene, allele1, allele2):
     return 'Indeterminate', total
 
 def parse_diplotype(dip):
-    """Split "*1/*4" -> ("*1","*4"). Handle duplications like "*2xN"."""
+    '''Split "*1/*4" -> ("*1","*4"). Handle duplications like "*2xN".'''
     if '/' not in dip:
         return dip, dip
     parts = dip.split('/')

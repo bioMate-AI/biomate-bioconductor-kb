@@ -79,10 +79,10 @@ def parse_smiles_input(raw):
 
 # -- ESOL solubility model (Delaney 2004) -------------------------------------
 def esol_logS(mol):
-    """
+    '''
     Predicted log10(solubility in mol/L).
     ESOL: logS = 0.16 - 0.63*cLogP - 0.0062*MW + 0.066*RingCount - 0.74*aromaticProportion
-    """
+    '''
     mw    = Descriptors.MolWt(mol)
     logp  = Crippen.MolLogP(mol)
     rings = rdMolDescriptors.CalcNumRings(mol)
@@ -98,11 +98,11 @@ def logS_to_ugmL(logS, mw):
 
 # -- Caco-2 QSAR (simplified Hou et al. model) --------------------------------
 def predict_caco2(mol):
-    """
+    '''
     Simplified Caco-2 Papp prediction (x10-6 cm/s).
     Based on: logPapp = -4.6 + 0.11*logP - 0.012*TPSA - 0.26*HBD
     Rule-based: HIGH > 10e-6, MED 2-10e-6, LOW < 2e-6
-    """
+    '''
     logp  = Crippen.MolLogP(mol)
     tpsa  = rdMolDescriptors.CalcTPSA(mol)
     hbd   = rdMolDescriptors.CalcNumHBD(mol)
@@ -114,11 +114,11 @@ def predict_caco2(mol):
     return round(papp, 2)
 
 def bcs_classify(sol_ugmL, papp_cm_s, mw, dose_mg):
-    """
+    '''
     BCS classification:
     - High solubility: dose/vol <= 250 mL @ pH 1-7.5 -> need sol_mg/250 <= dose_mg/250
     - High permeability: Papp > 2x10-6 cm/s (FDA Guidance 2017)
-    """
+    '''
     # High solubility: sol_mg/mL x 250 mL >= dose_mg
     sol_mgmL = sol_ugmL / 1000
     high_sol = (sol_mgmL * 250) >= dose_mg
@@ -132,7 +132,7 @@ def bcs_classify(sol_ugmL, papp_cm_s, mw, dose_mg):
     return 'IV', 'Low Sol + Low Perm', 'both_limiting'
 
 def dissolution_profile(sol_ugmL, dose_mg, perm_class, fed_fasted='both', formulation='free_base'):
-    """First-order dissolution model in GI tract (simplified Wagner model)."""
+    '''First-order dissolution model in GI tract (simplified Wagner model).'''
     times = list(range(0, 241, 15))  # 0-240 min in 15-min steps
 
     # Dissolution rate constant (k_d) depends on solubility and formulation

@@ -66,7 +66,7 @@ def ac(v, default=None):
     except: return default
 
 def parse_plate_data(raw):
-    """Parse plate data from JSON string or generate demo data."""
+    '''Parse plate data from JSON string or generate demo data.'''
     if raw and raw not in ('null','None',''):
         try:
             return json.loads(raw)
@@ -99,7 +99,7 @@ def parse_plate_data(raw):
 
 # -- Plate QC metrics ----------------------------------------------------------
 def compute_z_factor(pos_signals, neg_signals):
-    """Zhang 1999: Z = 1 - 3*(sigmapos + sigmaneg) / |upos - uneg|"""
+    '''Zhang 1999: Z = 1 - 3*(sigmapos + sigmaneg) / |upos - uneg|'''
     if len(pos_signals) < 2 or len(neg_signals) < 2:
         return None
     mu_p = np.mean(pos_signals)
@@ -113,7 +113,7 @@ def compute_z_factor(pos_signals, neg_signals):
     return round(float(z), 4)
 
 def compute_signal_window(pos_signals, neg_signals):
-    """Signal window = (uneg - upos) / pooled SD -- assay robustness."""
+    '''Signal window = (uneg - upos) / pooled SD -- assay robustness.'''
     mu_p = np.mean(pos_signals)
     mu_n = np.mean(neg_signals)
     sd_p = np.std(pos_signals, ddof=1)
@@ -124,10 +124,10 @@ def compute_signal_window(pos_signals, neg_signals):
     return round((mu_n - mu_p) / pooled_sd, 2)
 
 def normalize_to_pct(signal, mu_pos, mu_neg, direction):
-    """
+    '''
     Percent inhibition = (uneg - signal) / (uneg - upos) * 100
     Percent activation = (signal - uneg) / (upos - uneg) * 100
-    """
+    '''
     window = mu_neg - mu_pos
     if abs(window) < 1e-10:
         return 0.0
@@ -139,11 +139,11 @@ def normalize_to_pct(signal, mu_pos, mu_neg, direction):
 
 # -- Hill equation (4PL) -------------------------------------------------------
 def hill_4pl(c, bottom, top, ec50, hill_coeff):
-    """4-parameter logistic: y = Bottom + (Top-Bottom)/(1 + (EC50/x)^n)"""
+    '''4-parameter logistic: y = Bottom + (Top-Bottom)/(1 + (EC50/x)^n)'''
     return bottom + (top - bottom) / (1 + (ec50 / (c + 1e-12)) ** hill_coeff)
 
 def fit_dose_response(concentrations, responses):
-    """Fit 4PL; return (bottom, top, EC50, n, R2) or None on failure."""
+    '''Fit 4PL; return (bottom, top, EC50, n, R2) or None on failure.'''
     if len(concentrations) < 4:
         return None
     c = np.array(concentrations, dtype=float)

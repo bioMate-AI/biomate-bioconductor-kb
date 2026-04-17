@@ -155,10 +155,10 @@ phys = PHYSIOLOGY.get(pop, PHYSIOLOGY['healthy_adult'])
 
 # -- Tissue distribution (Rodgers & Rowland method, simplified) ---------------
 def Kp_tissue(tissue_type, logp, pka, fu_plasma, acid_base='neutral'):
-    """
+    '''
     Simplified Kp (tissue:plasma ratio) using lipophilicity correlation.
     Full Rodgers model requires ionization fractions in each tissue.
-    """
+    '''
     base_Kp = {
         'liver': 2.0 + 0.4*logp,
         'kidney': 1.5 + 0.3*logp,
@@ -172,10 +172,10 @@ def Kp_tissue(tissue_type, logp, pka, fu_plasma, acid_base='neutral'):
 
 # -- Hepatic clearance (well-stirred model) ------------------------------------
 def hepatic_CL(clint_uL_min_mg, fu_mic, fu_plasma, Vliver_L, Qliver_L_h, MPPGL, cl_factor):
-    """
+    '''
     CL_int,u = CLint / fu_mic
     CL_hep = Q_liver * fu_plasma * CL_int,u / (Q_liver + fu_plasma * CL_int,u)
-    """
+    '''
     mppg_total = MPPGL * 1000 * 0.85 / 1000  # mg microsomal protein per g liver x liver weight
     clint_scaled = clint_uL_min_mg * mppg_total * 60 / 1000  # mL/h
     fu_adj = fu_plasma / fu_mic
@@ -221,7 +221,7 @@ pgp_gut_factor = 0.3 if pgp else 1.0
 ka_eff = ka * pgp_gut_factor * phys['fu_gut']
 
 def pbpk_ode(t, y):
-    """y = [gut_lumen, gut, blood, liver, lung, kidney, peripheral, absorbed]"""
+    '''y = [gut_lumen, gut, blood, liver, lung, kidney, peripheral, absorbed]'''
     Agut_lum, Agut, Ablood, Aliver, Alung, Akidney, Aperipheral, Aabs = y
 
     Cgut_lum = Agut_lum / Vgut_lumen

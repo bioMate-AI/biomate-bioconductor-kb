@@ -117,7 +117,7 @@ rng = np.random.default_rng(42)
 
 # -- PK model: 1-compartment oral ---------------------------------------------
 def simulate_pk(dose_mg, CL, Vd, ka, t_eval):
-    """1-compartment: Cp(t) = (F*dose/Vd) * ka/(ka-ke) * (exp(-ke*t) - exp(-ka*t))"""
+    '''1-compartment: Cp(t) = (F*dose/Vd) * ka/(ka-ke) * (exp(-ke*t) - exp(-ka*t))'''
     ke = CL / Vd
     F  = 0.8  # bioavailability
     dose_mg_L = dose_mg * 1e-3  # mg -> g -> divide by Vd in L -> g/L = mg/L = ug/mL
@@ -147,18 +147,18 @@ def predict_DLT(Cmax_nM, EC50=EC50_nM, Emax=Emax, E0=E0, model='Emax'):
     return min(0.99, max(0.001, effect))
 
 def predict_efficacy(Cmax_nM, EC50=EC50_nM*0.5, Emax=0.8, E0=0.05):
-    """Efficacy response: lower EC50 (more potent effect window)."""
+    '''Efficacy response: lower EC50 (more potent effect window).'''
     return min(0.99, E0 + Emax * Cmax_nM / (EC50 + Cmax_nM))
 
 # -- BOIN dose escalation algorithm (Liu & Yuan 2015) -------------------------
 def boin_boundaries(phi, epsilon1=0.1, epsilon2=0.1):
-    """Compute BOIN lambda_e (escalate) and lambda_d (de-escalate) thresholds."""
+    '''Compute BOIN lambda_e (escalate) and lambda_d (de-escalate) thresholds.'''
     lambda_e = phi - epsilon1 * phi
     lambda_d = phi + epsilon2 * (1 - phi)
     return round(lambda_e, 3), round(lambda_d, 3)
 
 def simulate_boin_trial(dose_levels, true_DLT_probs, phi=0.25, cohort_size=3, max_patients=30):
-    """Simulate single BOIN dose escalation trial."""
+    '''Simulate single BOIN dose escalation trial.'''
     lambda_e, lambda_d = boin_boundaries(phi)
     n_levels = len(dose_levels)
     patients_per_level = [0] * n_levels
@@ -201,7 +201,7 @@ def simulate_boin_trial(dose_levels, true_DLT_probs, phi=0.25, cohort_size=3, ma
     return mtd_idx, patients_per_level, DLTs_per_level, trial_history
 
 def simulate_3plus3(dose_levels, true_DLT_probs):
-    """Classic 3+3 design."""
+    '''Classic 3+3 design.'''
     current = 0
     mtd_idx = 0
     n_per_level = [0]*len(dose_levels)

@@ -104,21 +104,21 @@ true_rates = true_rates[:n_arms]
 
 # -- O'Brien-Fleming efficacy boundaries (Lan-DeMets 1983) --------------------
 def obf_boundary(t_frac, alpha_total, n_stages):
-    """
+    '''
     Approximate O'Brien-Fleming alpha-spending at information fraction t.
     Boundary (one-sided z): z* ~ z_alpha / sqrt(t_frac)
     Ensures global Type I error = alpha_total.
-    """
+    '''
     z_alpha = norm.ppf(1 - alpha_total)
     z_star  = z_alpha / math.sqrt(max(t_frac, 0.01))
     return round(z_star, 4)
 
 def pocock_futility_boundary(t_frac, beta, n_stages):
-    """
+    '''
     Pocock-style beta-spending futility boundary.
     Stop for futility if conditional power < futility_b threshold.
     Approximated as z < z_futility (one-sided).
-    """
+    '''
     z_beta = norm.ppf(1 - beta)
     return round(z_beta * math.sqrt(t_frac), 4)
 
@@ -137,10 +137,10 @@ for i, (s, t, eb, fb) in enumerate(zip(stages, stage_fracs, eff_bounds, fut_boun
 
 # -- Thompson sampling (RAR) ---------------------------------------------------
 def thompson_weights(successes, failures, exponent=0.5):
-    """
+    '''
     RAR allocation probabilities: sample beta distributions and normalise.
     Raises to power (exponent < 1) to dampen exploitation vs. exploration.
-    """
+    '''
     samples = [beta_dist.rvs(s+1, f+1, size=1000) for s, f in zip(successes, failures)]
     probs   = np.mean(np.array(samples) == np.max(samples, axis=0), axis=1)
     probs   = probs ** exponent
@@ -150,9 +150,9 @@ def thompson_weights(successes, failures, exponent=0.5):
 # -- MAMS simulation -----------------------------------------------------------
 def simulate_mams_trial(true_rates, n_per_stage, n_interim, alpha, power,
                         rar_exp, futility_b, n_sims, design):
-    """
+    '''
     Returns operating characteristics from n_sims trial simulations.
-    """
+    '''
     n_arms   = len(true_rates)
     n_stages = n_interim + 1
     ctrl_idx = 0  # arm 0 is control

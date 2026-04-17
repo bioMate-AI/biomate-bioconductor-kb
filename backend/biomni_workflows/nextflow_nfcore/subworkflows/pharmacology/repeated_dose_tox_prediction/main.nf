@@ -121,10 +121,10 @@ def check_alerts(mol, min_severity='HIGH'):
     return hits
 
 def estimate_noael(organ_hits, mw, logp):
-    """
+    '''
     Rough NOAEL estimate from organ alert severity.
     Based on Lavoie et al. regression on ToxRefDB (2016).
-    """
+    '''
     if not organ_hits:
         return {'rat_mg_kg': round(100 + logp * 20, 0), 'confidence': 'LOW', 'basis': 'no alerts; physicochemical estimate'}
     high_count = sum(1 for h in organ_hits if h['severity']=='HIGH')

@@ -121,11 +121,11 @@ BIO_CLASS_SCORES = {
 
 # -- Pocket druggability scoring (Edfeldt 2011 / fpocket heuristics) -----------
 def pocket_score_from_volume(vol_A3, has_crystal, has_ligand):
-    """
+    '''
     Druggability score 0-1 from pocket volume.
     Optimal pocket: 300-1000 A3, hydrophobic, well-defined.
     Very large (>1500) or small (<100) = poor druggability.
-    """
+    '''
     if vol_A3 is None:
         return 0.5  # unknown
 
@@ -153,10 +153,10 @@ def pocket_score_from_volume(vol_A3, has_crystal, has_ligand):
 
 # -- ChEMBL data density proxy -------------------------------------------------
 def chembl_tractability(n_compounds, has_crystal):
-    """
+    '''
     TDL-based tractability from compound count.
     Tdark: 0; Tbio: 1-10; Tclin: >100; Tchem: >10
-    """
+    '''
     if n_compounds is None:
         return 0.40 if has_crystal else 0.25  # unknown but has structure
     if n_compounds == 0:

@@ -102,11 +102,11 @@ def check_alerts(mol):
     return hits
 
 def placental_transfer_risk(mol):
-    """
+    '''
     Simplified placental transfer model.
     High transfer: MW < 500, LogP 0-5, low ionization (no strong acid/base).
     Reference: Hutson et al. Placenta 2011 meta-analysis.
-    """
+    '''
     mw   = Descriptors.ExactMolWt(mol)
     logp = Crippen.MolLogP(mol)
     tpsa = rdMolDescriptors.CalcTPSA(mol)
@@ -133,7 +133,7 @@ def placental_transfer_risk(mol):
     }
 
 def overall_risk(alert_hits, pt_likelihood):
-    """Compute overall DART risk tier."""
+    '''Compute overall DART risk tier.'''
     high_alerts  = [a for a in alert_hits if a['severity']=='HIGH']
     med_alerts   = [a for a in alert_hits if a['severity']=='MEDIUM']
     if high_alerts:

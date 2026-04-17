@@ -75,7 +75,7 @@ MLP_YEARS     = {'mouse':3.5,'rat':4.5,'dog':20,'monkey':40,'human':93}
 SPECIES_BW    = {'mouse':0.02,'rat':0.25,'dog':10,'monkey':7,'human':70}
 
 def _fill_defaults(sp):
-    """Impute missing BW from species name."""
+    '''Impute missing BW from species name.'''
     name = sp.get('species','').lower()
     if not sp.get('BW_kg') and name in SPECIES_BW:
         sp['BW_kg'] = SPECIES_BW[name]
@@ -90,7 +90,7 @@ def _fill_defaults(sp):
 species_data = [_fill_defaults(s) for s in species_data if s.get('CL_mL_min_kg')]
 
 def power_law_regression(bw_list, param_list):
-    """Returns (a, b) for param = a * BW^b via log-log linear regression."""
+    '''Returns (a, b) for param = a * BW^b via log-log linear regression.'''
     if len(bw_list) < 2:
         return None, None
     log_bw = np.log(bw_list)

@@ -107,7 +107,7 @@ def classify_warhead(mol):
     return hits, pan_hits
 
 def gsh_reactivity_class(t_half):
-    """Optimal warhead window: 2-5 h."""
+    '''Optimal warhead window: 2-5 h.'''
     if t_half is None: return 'UNKNOWN (reversible or not measured)'
     if t_half < 0.2:   return 'TOO_REACTIVE -- pan-assay interference risk'
     if t_half < 2.0:   return 'REACTIVE -- border of optimal range'
@@ -116,7 +116,7 @@ def gsh_reactivity_class(t_half):
     return 'VERY_MILD -- consider more reactive warhead'
 
 def promiscuity_risk(warhead_name, reactivity_class, mw):
-    """Estimate off-target covalent modification risk."""
+    '''Estimate off-target covalent modification risk.'''
     if reactivity_class == 'VERY_HIGH': return 'HIGH'
     if reactivity_class == 'HIGH' and mw < 300: return 'HIGH'
     if reactivity_class == 'HIGH': return 'MEDIUM'
@@ -124,10 +124,10 @@ def promiscuity_risk(warhead_name, reactivity_class, mw):
     return 'VERY_LOW'
 
 def cys_selectivity_estimate(mol, warhead_hits):
-    """
+    '''
     Simplified kinome Cys accessibility scoring.
     Lists 10 clinically-relevant kinases with known reactive Cys residues.
-    """
+    '''
     KINASE_CYS = [
         ('BTK',  'C481', 'acrylamide | chloroacetamide', 'HIGH'),
         ('EGFR', 'C797', 'acrylamide | cyanoacrylamide', 'HIGH'),

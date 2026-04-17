@@ -78,7 +78,7 @@ def parse_smiles_input(raw):
 PHASE1_RXNS = [
     # Aliphatic hydroxylation
     ('aliphatic_hydroxylation',
-     '[CX4;!$(C=O);!$(C[OH])][H]',
+     '[CX4;!\$(C=O);!\$(C[OH])][H]',
      '[CX4:1][OH]',
      'CYP3A4/CYP2D6', 0.70, 'phase1'),
     # Aromatic hydroxylation
@@ -88,7 +88,7 @@ PHASE1_RXNS = [
      'CYP1A2/CYP2C9', 0.75, 'phase1'),
     # N-demethylation
     ('N_demethylation',
-     '[N;!$(N=O):1][CH3]',
+     '[N;!\$(N=O):1][CH3]',
      '[NH:1]',
      'CYP3A4/CYP1A2', 0.85, 'phase1'),
     # O-demethylation
@@ -182,7 +182,7 @@ GUT_RXNS = [
 ALL_RXNS = PHASE1_RXNS + PHASE2_RXNS + GUT_RXNS
 
 def apply_reaction(mol, rxn_smarts_substr, rxn_smarts_prod, rxn_name):
-    """Try to apply a single-step reaction SMARTS. Returns list of product molecules."""
+    '''Try to apply a single-step reaction SMARTS. Returns list of product molecules.'''
     try:
         rxn_str = f'{rxn_smarts_substr}>>{rxn_smarts_prod}'
         rxn = AllChem.ReactionFromSmarts(rxn_str)
@@ -202,10 +202,10 @@ def apply_reaction(mol, rxn_smarts_substr, rxn_smarts_prod, rxn_name):
     except: return []
 
 def compute_metabolite(smi, met_type, max_cycles, min_conf):
-    """
+    '''
     Run BioTransformer-style metabolite prediction.
     Returns list of metabolite dicts with SMILES, pathway, enzyme, confidence.
-    """
+    '''
     mol = Chem.MolFromSmiles(smi)
     if mol is None:
         return []

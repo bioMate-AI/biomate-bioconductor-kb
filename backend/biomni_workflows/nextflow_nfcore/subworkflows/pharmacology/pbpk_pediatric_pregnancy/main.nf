@@ -110,7 +110,7 @@ def cyp_maturation_factor(age_yr, cyp):
 # For each age group: CL_h scaled by mat_factor * (BW/70)^0.75, Vd by BW
 def pk_for_age(bw_kg, liver_vol_ml, co_L_h, clint_uL_min_mg,
                vss_L_kg, fup, dose_mg_kg, age_yr, cyp, fu_gut=1.0):
-    """Returns (Cmax_ugL, AUC_ugL_h, thalf_h, CL_L_h_kg)."""
+    '''Returns (Cmax_ugL, AUC_ugL_h, thalf_h, CL_L_h_kg).'''
     # Hepatic intrinsic clearance scaled by liver mass
     liver_mass_g = liver_vol_ml * 1.05  # density ~1.05 g/mL
     clint_uL_min = clint_uL_min_mg * liver_mass_g / 1000
@@ -144,7 +144,7 @@ PREGNANCY_TRIMESTERS = [
 
 def pk_for_trimester(bw_kg, plasma_factor, gfr_factor, cyp_factor,
                      clint_uL_min_mg, vss_L_kg, fup, dose_mg_kg):
-    """Simplified pregnancy PK -- adjust CL by enzyme induction factor."""
+    '''Simplified pregnancy PK -- adjust CL by enzyme induction factor.'''
     # Adult liver unchanged in mass; enzyme activity scaled
     liver_mass_g = 1800 * 1.05
     clint_uL_min = clint_uL_min_mg * liver_mass_g / 1000

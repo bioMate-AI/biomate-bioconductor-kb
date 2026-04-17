@@ -78,10 +78,10 @@ sim_h    = auto_convert(os.environ.get('PARAM_SIM_H'), 72)
 
 # -- PEG stealth model (Arvizo et al. modified) -------------------------------
 def peg_stealth_factor(peg_density, peg_mw_da):
-    """
+    '''
     Returns MPS clearance reduction factor (0-1).
     Higher PEG density + MW -> more stealth (lower MPS uptake).
-    """
+    '''
     L_peg = 0.076 * peg_mw_da**0.44  # PEG brush length in nm
     D_peg = (6 / (math.pi * peg_density)) ** 0.5 if peg_density > 0 else 100
     brush_ratio = L_peg / D_peg  # > 1 = brush regime (good stealth)
@@ -91,7 +91,7 @@ def peg_stealth_factor(peg_density, peg_mw_da):
     return 0.9  # poor stealth (bare)
 
 def mps_clearance_rate(d_nm, surface, peg_dens, peg_mw_da, zeta_mv):
-    """Liver + spleen MPS uptake rate constant (1/h)."""
+    '''Liver + spleen MPS uptake rate constant (1/h).'''
     # Size effect: opsonization increases for >200nm, decreases for <100nm but
     # smaller particles avoid splenic filtration
     size_factor = 1.0
@@ -115,7 +115,7 @@ def mps_clearance_rate(d_nm, surface, peg_dens, peg_mw_da, zeta_mv):
 
 # -- EPR rate constant (Wilhelm 2016 meta-analysis: median 0.7 %ID/g at 24h) --
 def epr_rate(d_nm, tumor_model):
-    """Tumor EPR accumulation constant (1/h)."""
+    '''Tumor EPR accumulation constant (1/h).'''
     if tumor_model == 'none': return 0.0
     # Optimal size for EPR: 50-200 nm
     size_score = 1.0 if 50 <= d_nm <= 200 else (0.5 if d_nm < 50 else 0.3)

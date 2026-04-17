@@ -63,11 +63,11 @@ def parse_smiles_input(raw):
     return [('1', raw)]
 
 def predict_caco2_papp(mol, ph=6.8):
-    """
+    '''
     Predict Caco-2 Papp A->B (x10-6 cm/s).
     QSAR model (Hou et al. 2004 + modifications):
       logPapp = -4.36 + 0.071*logP - 0.017*TPSA - 0.22*HBD + 0.003*(MW-350)*sign
-    """
+    '''
     logp  = Crippen.MolLogP(mol)
     tpsa  = rdMolDescriptors.CalcTPSA(mol)
     hbd   = rdMolDescriptors.CalcNumHBD(mol)
@@ -85,10 +85,10 @@ def predict_caco2_papp(mol, ph=6.8):
     return round(papp_ab, 2), round(papp_ba, 2), efflux_ratio
 
 def predict_pampa(mol, ph=6.8):
-    """
+    '''
     PAMPA (passive transcellular). Gao et al. 2008 QSAR.
     logPapp_PAMPA = -4.2 + 0.13*logD(pH) - 0.02*TPSA
-    """
+    '''
     logp = Crippen.MolLogP(mol)
     tpsa = rdMolDescriptors.CalcTPSA(mol)
     # LogD approximation at given pH
@@ -99,7 +99,7 @@ def predict_pampa(mol, ph=6.8):
     return round(max(0.01, 10**log_pampa * 1e6), 2)
 
 def predict_pgp_bcrp(mol):
-    """Predict P-gp and BCRP substrate/inhibitor status."""
+    '''Predict P-gp and BCRP substrate/inhibitor status.'''
     mw   = Descriptors.MolWt(mol)
     logp = Crippen.MolLogP(mol)
     hba  = rdMolDescriptors.CalcNumHBA(mol)

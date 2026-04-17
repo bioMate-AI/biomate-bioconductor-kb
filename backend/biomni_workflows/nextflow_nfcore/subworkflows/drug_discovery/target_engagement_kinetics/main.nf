@@ -82,10 +82,10 @@ def parse_smiles_input(raw):
 # Reference: Copeland 2016 "Evaluation of enzyme inhibitors in drug discovery"
 # + Tummino & Copeland 2008 heuristics
 def estimate_kinetics(mol, kd_nM=None, ic50_nM=None):
-    """
+    '''
     Estimate kon and koff from physicochemical properties.
     Typical range: kon 1e3-1e6 M-1s-1, koff 1e-5 to 1e-1 s-1
-    """
+    '''
     mw   = Descriptors.ExactMolWt(mol)
     logp = Crippen.MolLogP(mol)
     tpsa = rdMolDescriptors.CalcTPSA(mol)
@@ -125,7 +125,7 @@ def estimate_kinetics(mol, kd_nM=None, ic50_nM=None):
 
 # -- PK model: 1-compartment oral absorption -----------------------------------
 def pk_profile(cmax_nM, t_half_h, tmax_h, t_eval):
-    """Biexponential PK: absorption + elimination."""
+    '''Biexponential PK: absorption + elimination.'''
     ke = math.log(2) / t_half_h   # elimination rate constant
     ka = math.log(2) / (tmax_h * 0.7) if tmax_h > 0 else ke * 3  # absorption rate
     cp = np.array([cmax_nM * (math.exp(-ke*t) - math.exp(-ka*t)) / (1 - math.exp(-ka*tmax_h + ke*tmax_h))
@@ -139,10 +139,10 @@ def pk_profile(cmax_nM, t_half_h, tmax_h, t_eval):
 # d[DT]/dt = kon * [D](t) * (Rtot - [DT]) - koff * [DT]
 # Assume Rtot << [D] (excess drug -- common at clinical doses)
 def occupancy_ode(cp_interp, kon_M, koff_s, t_eval, rtot_nM=10):
-    """
+    '''
     Solves occupancy ODE with time-varying drug concentration from PK.
     cp_interp: callable Cp(t) in nM
-    """
+    '''
     def ode(t, y):
         dt = y[0]
         cp_nM = max(0, float(cp_interp(t)))
