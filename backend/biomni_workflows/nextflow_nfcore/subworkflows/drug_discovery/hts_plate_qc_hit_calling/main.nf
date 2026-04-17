@@ -291,8 +291,8 @@ for h in sorted_hits:
     report.append(f"  {h['compound_id']:15s}: {h['pct']:.1f}% inhibition{ec50_str}")
 
 with open('hts_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

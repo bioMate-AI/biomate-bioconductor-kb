@@ -263,8 +263,8 @@ for r in preg_recs:
         f"  {r['trimester']:20s}: AUC={r['AUC_ug_L_h']:7.0f} | CYP factor={r['CYP_activity_factor']:.2f}")
 
 with open('pbpk_peds_preg_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

@@ -239,8 +239,8 @@ report = ["=== NANOPARTICLE PK & BIODISTRIBUTION REPORT ===",
           f"MPS clearance risk:    {mps_risk}  (k_MPS={round(k_mps,4)}/h)",
           "", f"-> {rec}"]
 with open('np_pk_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

@@ -331,8 +331,8 @@ if challenges:
         report.append(f'  WARNING {c}')
 
 with open('tractability_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

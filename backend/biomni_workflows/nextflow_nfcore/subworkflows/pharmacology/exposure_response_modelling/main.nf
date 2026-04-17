@@ -295,8 +295,8 @@ if safety_margin:
     report += ['', f"Safety margin (TEC/{target_pct}% dose): {safety_margin}x -- {safety_flag}"]
 
 with open('er_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

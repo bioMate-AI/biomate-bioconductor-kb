@@ -218,8 +218,8 @@ for r in risk_tiers:
         report.append(f"    HIGH alerts: {', '.join(r['HIGH_alerts'])}")
     report.append(f"    -> {r['recommendation']}")
 with open('dart_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

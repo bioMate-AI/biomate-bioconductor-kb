@@ -217,8 +217,8 @@ for r in all_records:
     report += [f"  Recommended tests: {'; '.join(r['recommended_genotox_battery'])}", '']
 
 with open('genotox_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

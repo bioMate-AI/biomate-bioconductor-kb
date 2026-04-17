@@ -281,8 +281,8 @@ for r in regulatory_compounds:
     report.append(f"  NDA labeling needed: {r['NDA_labeling_needed']}")
     report.append("")
 with open('transporter_ddi_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

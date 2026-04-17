@@ -344,8 +344,8 @@ report = [
 for action in scores['recommended_actions']:
     report.append(f'  - {action}')
 with open('ab_dev_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

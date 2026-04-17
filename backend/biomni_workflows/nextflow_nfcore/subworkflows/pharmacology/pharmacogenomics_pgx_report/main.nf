@@ -370,8 +370,8 @@ lines += ["", f"Total drug-gene pairs: {len(rec_rows)}",
           f"Contraindications: {sum(1 for r in rec_rows if 'CONTRAINDICATED' in r['recommendation'])}"]
 
 with open('pgx_summary.txt', 'w') as f:
-    f.write('\n'.join(lines))
-print('\n'.join(lines))
+    f.write('\\n'.join(lines))
+print('\\n'.join(lines))
 PYEOF
 
     cat << 'EOF' > versions.yml

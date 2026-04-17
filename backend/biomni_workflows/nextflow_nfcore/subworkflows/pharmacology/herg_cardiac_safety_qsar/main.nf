@@ -290,8 +290,8 @@ for r in herg_records:
         f"  -> {r['cardiac_liability']}", ''
     ]
 with open('herg_cardiac_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

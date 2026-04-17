@@ -324,8 +324,8 @@ for cid, smi in smiles_pairs:
     report.append("")
 
 with open('metabolism_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

@@ -312,8 +312,8 @@ for row in bounds_csv[1:]:
     report.append(f"  {row[0]:5d} | {row[1]:.2f}      | {row[2]:.3f}       | {row[3]:.3f}")
 
 with open('adaptive_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

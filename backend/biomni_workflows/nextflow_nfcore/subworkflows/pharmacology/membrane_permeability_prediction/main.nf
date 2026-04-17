@@ -180,8 +180,8 @@ for r in rows:
     flag = " <- HIGH EFFLUX" if r['efflux_ratio'] > 10 else ""
     report.append(f"  [{r['compound']}] Caco-2 Papp={r['Papp_AB_1e6_cm_s']} | ER={r['efflux_ratio']} | PAMPA={r['PAMPA_Papp_1e6_cm_s']} | BCS={r['BCS_permeability_class']} | Pgp={r['Pgp_substrate']}{flag}")
 with open('permeability_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

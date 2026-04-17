@@ -231,9 +231,9 @@ if fih.get("MRSD_total_mg"):
         f"  MABEL:         {fih['MABEL_total_mg']} mg (conservative starting dose)",
     ]
 with open('allometric_scaling_output.txt', 'w') as f:
-    f.write('\n'.join(lines))
+    f.write('\\n'.join(lines))
 
-print('\n'.join(lines))
+print('\\n'.join(lines))
 
 PYEOF
 

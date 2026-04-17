@@ -265,8 +265,8 @@ report = ["=== CNS PENETRATION PREDICTION REPORT ===",
 for s in summary_list:
     report.append(f"  [{s['compound']}] MPO={s['CNS_MPO']} | BBB={s['BBB_class']} | Kpuu={s['Kpuu_brain']} | {s['recommendation']}")
 with open('cns_penetration_output.txt', 'w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

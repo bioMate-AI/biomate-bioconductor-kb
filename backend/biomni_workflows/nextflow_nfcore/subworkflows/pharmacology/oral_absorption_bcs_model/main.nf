@@ -261,8 +261,8 @@ for r in all_results:
                f"  Formulation: {r['formulation_recommended']}",
                f"  -> {r['formulation_rationale']}", ""]
 with open('oral_absorption_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

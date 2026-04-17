@@ -229,8 +229,8 @@ for s in summaries:
         report.append(f"  Safety margin: {s['safety_margin']}x")
     report.append("")
 with open('repeated_dose_tox_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml
