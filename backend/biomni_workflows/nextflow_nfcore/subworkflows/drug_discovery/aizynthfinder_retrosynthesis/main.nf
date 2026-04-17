@@ -705,14 +705,18 @@ workflow {
     // complexity (aspirin → imatinib).  In live mode, supply your own
     // SMILES list via --smiles_file <path> (one SMILES per line).
     // ------------------------------------------------------------------
-    if (!params.smiles_file) {
-        error "params.smiles_file is required. Pass --smiles_file <path>"
+    if (!params.smiles_file && !params.seed_smiles) {
+        error "Provide --smiles_file <path> (one SMILES per line) or --seed_smiles <SMILES>"
     }
-    ch_smiles = Channel
-        .fromPath(params.smiles_file, checkIfExists: true)
-        .splitText()
-        .map { line -> line.trim() }
-        .filter { it && !it.startsWith("#") }
+    if (params.smiles_file) {
+        ch_smiles = Channel
+            .fromPath(params.smiles_file, checkIfExists: true)
+            .splitText()
+            .map { line -> line.trim() }
+            .filter { it && !it.startsWith("#") }
+    } else {
+        ch_smiles = Channel.value(params.seed_smiles.trim())
+    }
 
     // Run the pipeline
     AIZYNTHFINDER_RETROSYNTHESIS(ch_smiles)

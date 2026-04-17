@@ -991,9 +991,61 @@ workflow {
         error "ERROR: --ligand is required (path to ligand.sdf or mol2)"
     }
 
-    // Create channels
-    receptor_ch = Channel.fromPath(params.receptor)
-    ligand_ch   = Channel.fromPath(params.ligand)
+    // Resolve receptor: accept .pdb path, S3 URI, or 4-char PDB ID (auto-download from RCSB)
+    def receptor_input = params.receptor.trim()
+    def _is_pdb_id = (receptor_input ==~ /^[A-Za-z0-9]{4}$/)
+    if (_is_pdb_id) {
+        // Download PDB from RCSB into the work directory before creating the channel
+        def pdb_id = receptor_input.toUpperCase()
+        def pdb_file = file("${workflow.workDir}/pdb_inputs/${pdb_id}.pdb")
+        pdb_file.parent.mkdirs()
+        if (!pdb_file.exists()) {
+            log.info("[GROMACS] Downloading PDB ${pdb_id} from RCSB...")
+            ["curl", "-sSf", "-o", pdb_file.toString(),
+             "https://files.rcsb.org/download/${pdb_id}.pdb"].execute().waitFor()
+        }
+        if (!pdb_file.exists() || pdb_file.size() == 0) {
+            error "Failed to download PDB ID ${pdb_id} from RCSB. Check the ID and network access."
+        }
+        receptor_ch = Channel.fromPath(pdb_file.toString())
+    } else {
+        receptor_ch = Channel.fromPath(receptor_input, checkIfExists: true)
+    }
+    // Resolve ligand: accept .sdf/.mol2 path/S3 URI, or inline SMILES string (auto-convert to SDF)
+    def ligand_input = params.ligand.trim()
+    def _is_smiles = !(ligand_input.contains('/') || ligand_input.contains('\\') ||
+                       ligand_input.endsWith('.sdf') || ligand_input.endsWith('.mol2') ||
+                       ligand_input.endsWith('.pdb') || ligand_input.startsWith('s3://')) &&
+                      (ligand_input.contains('(') || ligand_input.contains('=') ||
+                       ligand_input.contains('[') || ligand_input.contains('#') ||
+                       ligand_input.contains('@') || ligand_input ==~ /[CNOSPFClBrI].+/)
+    if (_is_smiles) {
+        log.info("[GROMACS] Detected SMILES input for ligand — converting to SDF via RDKit...")
+        def sdf_file = file("${workflow.workDir}/ligand_inputs/ligand.sdf")
+        sdf_file.parent.mkdirs()
+        def py_script = """
+from rdkit import Chem
+from rdkit.Chem import AllChem
+mol = Chem.MolFromSmiles('${ligand_input}')
+if mol is None:
+    raise ValueError('Invalid SMILES: ${ligand_input}')
+mol = Chem.AddHs(mol)
+AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+AllChem.MMFFOptimizeMolecule(mol)
+w = Chem.SDWriter('${sdf_file}')
+w.write(mol)
+w.close()
+print('SDF written to ${sdf_file}')
+"""
+        def proc = ['python3', '-c', py_script].execute()
+        proc.waitFor()
+        if (proc.exitValue() != 0 || !sdf_file.exists() || sdf_file.size() == 0) {
+            error "SMILES→SDF conversion failed for: ${ligand_input}\n${proc.err.text}"
+        }
+        ligand_ch = Channel.fromPath(sdf_file.toString())
+    } else {
+        ligand_ch = Channel.fromPath(ligand_input, checkIfExists: true)
+    }
 
     // Step 1: Ligand parameterization (AmberTools)
     LIGAND_PREP(ligand_ch)

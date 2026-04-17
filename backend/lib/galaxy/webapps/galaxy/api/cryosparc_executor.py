@@ -142,11 +142,64 @@ _LOCAL_RES_JOB                = "local_res"
 _SHARPENING_JOB               = "sharpening_fsc"
 
 # ---------------------------------------------------------------------------
+# SSH tunnel helper — ensures local port forwards to CryoSPARC (bypasses ISP filtering)
+# ---------------------------------------------------------------------------
+
+_TUNNEL_LOCAL_PORT = int(os.environ.get("CRYOSPARC_TUNNEL_PORT", "31000"))
+_TUNNEL_REMOTE_HOST = os.environ.get("CRYOSPARC_REMOTE_HOST", "")  # actual EC2 IP when tunnel in use
+_tunnel_pid: int = 0
+
+
+def _ensure_tunnel(remote_ip: str) -> None:
+    """Start SSH tunnel remote_ip:30000 -> localhost:_TUNNEL_LOCAL_PORT if not already up."""
+    global _tunnel_pid
+    import subprocess, socket
+
+    ssh_key = CRYOSPARC_SSH_KEY
+    if not ssh_key or not remote_ip or remote_ip in ("localhost", "127.0.0.1"):
+        return  # no tunnel needed
+
+    # Check if tunnel is already listening
+    try:
+        with socket.create_connection(("127.0.0.1", _TUNNEL_LOCAL_PORT), timeout=1):
+            return  # already up
+    except OSError:
+        pass
+
+    log.info("[CryoSPARC] Starting SSH tunnel %s:30000 -> localhost:%d", remote_ip, _TUNNEL_LOCAL_PORT)
+    proc = subprocess.Popen(
+        [
+            "ssh", "-i", ssh_key,
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "ServerAliveInterval=30",
+            "-o", "ServerAliveCountMax=3",
+            "-o", "ExitOnForwardFailure=yes",
+            "-L", f"{_TUNNEL_LOCAL_PORT}:localhost:30000",
+            "-N", f"{CRYOSPARC_SSH_USER}@{remote_ip}",
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    _tunnel_pid = proc.pid
+    import time
+    for _ in range(10):
+        time.sleep(0.5)
+        try:
+            with socket.create_connection(("127.0.0.1", _TUNNEL_LOCAL_PORT), timeout=1):
+                log.info("[CryoSPARC] SSH tunnel established (pid=%d)", _tunnel_pid)
+                return
+        except OSError:
+            pass
+    raise RuntimeError(f"SSH tunnel to {remote_ip} failed to establish on port {_TUNNEL_LOCAL_PORT}")
+
+
+# ---------------------------------------------------------------------------
 # CryoSPARC connection helper
 # ---------------------------------------------------------------------------
 
-def _connect() -> "CryoSPARC":
-    """Return an authenticated CryoSPARC connection. Raises if unavailable."""
+def _connect(license_key: str = "") -> "CryoSPARC":
+    """Return an authenticated CryoSPARC connection via SSH tunnel when needed."""
+    import warnings
     try:
         from cryosparc.tools import CryoSPARC  # type: ignore
     except ImportError as exc:
@@ -154,16 +207,23 @@ def _connect() -> "CryoSPARC":
             "cryosparc-tools is not installed. Run: pip install cryosparc-tools"
         ) from exc
 
-    cs = CryoSPARC(
-        host=CRYOSPARC_HOST,
-        base_port=CRYOSPARC_PORT,
-        email=CRYOSPARC_EMAIL,
-        password=CRYOSPARC_PASSWORD,
-    )
+    # If CRYOSPARC_HOST is an external IP, ensure SSH tunnel and connect via localhost
+    host = CRYOSPARC_HOST
+    port = CRYOSPARC_PORT
+    if host not in ("localhost", "127.0.0.1"):
+        _ensure_tunnel(host)
+        host = "localhost"
+        port = _TUNNEL_LOCAL_PORT
+
+    key = license_key or os.environ.get("CRYOSPARC_LICENSE_ID", "") or CRYOSPARC_LICENSE
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        if key:
+            cs = CryoSPARC(license=key, host=host, base_port=port, email=CRYOSPARC_EMAIL)
+        else:
+            cs = CryoSPARC(host=host, base_port=port, email=CRYOSPARC_EMAIL, password=CRYOSPARC_PASSWORD)
     if not cs.test_connection():
-        raise RuntimeError(
-            f"Cannot connect to CryoSPARC at {CRYOSPARC_HOST}:{CRYOSPARC_PORT}"
-        )
+        raise RuntimeError(f"Cannot connect to CryoSPARC at {host}:{port}")
     return cs
 
 
@@ -1413,7 +1473,7 @@ def _execute_spa_pipeline_sync(
         ensure_cryosparc_running(cb)
     _progress(run, 1, "Connecting to CryoSPARC...", cb)
 
-    cs: Any = _MockCS() if mock_mode else _connect()
+    cs: Any = _MockCS() if mock_mode else _connect(license_key=run.license_key)
 
     # ------------------------------------------------------------------
     # Step 1: Create project + workspace

@@ -580,6 +580,7 @@ process DDI_RISK_ASSESSMENT {
 
     python3 - <<'PYEOF'
 import json, math
+from rdkit import Chem
 
 cyp     = json.load(open('${cyp_file}'))
 clr     = json.load(open('${clearance_file}'))
@@ -587,6 +588,60 @@ clr     = json.load(open('${clearance_file}'))
 max_dose_mg  = ${max_dose_mg}  # may be None
 dose_route   = '${dose_route}'
 fu_plasma    = clr['fu_plasma']
+
+# ── TDI structural alerts for mechanism-based CYP inhibition ─────────────────
+# Reference: Orr et al. Drug Metab Rev 2012; Fontana et al. Chem Res Toxicol 2005
+TDI_ALERTS = [
+    ('methylenedioxy', 'OCOc1ccccc1',        ['CYP1A2','CYP3A4']),   # berberine, piperine
+    ('terminal_alkyne', 'C#C',               ['CYP3A4']),            # gestodene, ethinyl E2
+    ('furan_ring',      'c1ccoc1',           ['CYP3A4','CYP1A2']),   # furafylline
+    ('thiophene',       'c1ccsc1',           ['CYP2C9','CYP2C19']),  # ticlopidine metabolite
+    ('aniline',         'Nc1ccccc1',         ['CYP1A2','CYP2C19']), # procainamide
+    ('primary_alkyl_amine', '[CH2][NH2]',    ['CYP3A4']),            # amphetamines
+]
+
+smiles_str = cyp.get('canonical_smiles','')
+mol_query  = Chem.MolFromSmiles(smiles_str) if smiles_str else None
+
+# Map isoform → TDI structural flag
+tdi_isoforms = set()
+tdi_evidence  = []
+if mol_query:
+    for (alert_name, smarts, targets) in TDI_ALERTS:
+        pattern = Chem.MolFromSmarts(smarts)
+        if pattern and mol_query.HasSubstructMatch(pattern):
+            tdi_isoforms.update(targets)
+            tdi_evidence.append(alert_name)
+
+# CYP degradation constants (per FDA 2020 Table 3, min^-1)
+KDEG = {'CYP1A2':0.00018,'CYP2C8':0.00040,'CYP2C9':0.00018,
+        'CYP2C19':0.00023,'CYP2D6':0.00025,'CYP3A4':0.00023}
+
+def compute_r2(isoform, ic50_uM, dose_mg, dose_route, fu_p):
+    """
+    FDA static R2 for TDI.
+    R2 = 1 / (1 + kinact * [I]gu / (kdeg * (KI + [I]gu)))
+    If no structural alert → R2 = 1.0 (no TDI).
+    If structural alert: estimate kinact = 0.04 /min, KI ≈ 10 * IC50 (µM).
+    Threshold: R2 ≤ 0.79 → INVESTIGATE; R2 ≤ 0.71 → CLINICAL_STUDY.
+    """
+    if isoform not in tdi_isoforms:
+        return 1.0, 'NOT_EXPECTED', False
+    kdeg = KDEG.get(isoform, 0.00023)
+    kinact_est = 0.04   # conservative estimate (min^-1)
+    KI_est     = max(ic50_uM * 10, 0.1)  # KI ~ 10× IC50
+    if dose_mg and dose_route == 'oral':
+        I_gu = (dose_mg * 1000) / 250.0  # µM, gut concentration (250 mL volume)
+    elif dose_mg:
+        cmax_uM = dose_mg / 250.0
+        I_gu    = cmax_uM * fu_p
+    else:
+        I_gu = KI_est  # assume [I] = KI for worst-case flag
+    r2_val  = 1.0 / (1.0 + kinact_est * I_gu / (kdeg * (KI_est + I_gu)))
+    flag    = ('CLINICAL_STUDY_RECOMMENDED' if r2_val <= 0.71
+               else 'INVESTIGATE' if r2_val <= 0.79
+               else 'NOT_EXPECTED')
+    return round(r2_val, 4), flag, True
 
 # -- FDA 2020 guidance --
 # R1 = 1 + fu,p * Imax,u / Ki
@@ -635,6 +690,8 @@ for isoform, cyp_res in cyp['cyp_inhibition'].items():
             r1_flag   = 'NOT_EXPECTED'
             r1gut_flag = 'NOT_EXPECTED'
 
+    r2_value, r2_flag, r2_structural = compute_r2(isoform, ic50_uM, max_dose_mg, dose_route, fu_plasma)
+
     ddi_flags[isoform] = {
         'predicted_IC50_uM': ic50_uM,
         'classification': cyp_res['classification'],
@@ -642,7 +699,10 @@ for isoform, cyp_res in cyp['cyp_inhibition'].items():
         'R1_flag': r1_flag,
         'R1gut_value': round(r1gut_value, 3) if r1gut_value else None,
         'R1gut_flag': r1gut_flag,
-        'overall_flag': max([r1_flag, r1gut_flag],
+        'R2_TDI_value': r2_value if r2_structural else None,
+        'R2_TDI_flag': r2_flag,
+        'R2_TDI_alerts': [a for a in tdi_evidence] if isoform in tdi_isoforms else [],
+        'overall_flag': max([r1_flag, r1gut_flag, r2_flag],
                             key=lambda f: {'NOT_EXPECTED': 0, 'NOT_ASSESSED': 0,
                                            'INVESTIGATE': 1, 'CLINICAL_STUDY_RECOMMENDED': 2}[f]),
     }
@@ -654,20 +714,23 @@ most_flagged = max(flags_ranked, key=flags_ranked.get)
 n_clinical   = sum(1 for v in ddi_flags.values() if v['overall_flag'] == 'CLINICAL_STUDY_RECOMMENDED')
 n_investigate = sum(1 for v in ddi_flags.values() if v['overall_flag'] == 'INVESTIGATE')
 
+n_tdi = sum(1 for v in ddi_flags.values() if v['R2_TDI_flag'] in ('INVESTIGATE','CLINICAL_STUDY_RECOMMENDED'))
 result = {
     'compound_name': cyp['compound_name'],
     'fda_guidance': '2020 DDI Guidance',
     'dose_mg': max_dose_mg,
     'dose_route': dose_route,
     'fu_plasma': fu_plasma,
+    'tdi_structural_alerts': tdi_evidence,
     'cyp_ddi_flags': ddi_flags,
     'summary': {
         'n_clinical_study_recommended': n_clinical,
         'n_investigate': n_investigate,
+        'n_tdi_flagged': n_tdi,
         'highest_risk_isoform': most_flagged,
         'overall_recommendation': (
             'CLINICAL_STUDY_RECOMMENDED' if n_clinical > 0 else
-            'INVESTIGATE' if n_investigate > 0 else
+            'INVESTIGATE' if n_investigate > 0 or n_tdi > 0 else
             'NOT_EXPECTED'
         ),
     }

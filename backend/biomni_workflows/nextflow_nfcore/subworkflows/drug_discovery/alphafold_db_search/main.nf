@@ -48,7 +48,11 @@ process FOLDSEEK_STRUCTURAL_SEARCH {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}/foldseek", mode: params.publish_dir_mode
 
-    container 'steineggerlab/foldseek:latest'
+    // On AWS Batch use drug-discovery-nf image (has aws cli + curl).
+    // foldseek binary is auto-installed at job start if not present.
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' \
+        : 'steineggerlab/foldseek:latest'
 
     input:
     tuple val(meta), path(query)
@@ -64,6 +68,11 @@ process FOLDSEEK_STRUCTURAL_SEARCH {
 
     script:
     """
+        # Auto-install foldseek if not present (AWS Batch: binary-only container)
+        if ! command -v foldseek &>/dev/null; then
+            curl -sSfL https://mmseqs.com/foldseek/foldseek-linux-avx2.tar.gz | tar -xz -C /tmp/
+            export PATH="/tmp/foldseek/bin:\$PATH"
+        fi
         mkdir -p tmp_query foldseek_db_local
         aws s3 sync ${db_base}/foldseek_db/ foldseek_db_local/ --quiet
         foldseek createdb ${query} query_db
@@ -119,7 +128,11 @@ process MMSEQS2_SEQUENCE_SEARCH {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}/mmseqs2", mode: params.publish_dir_mode
 
-    container 'soedinglab/mmseqs2:latest'
+    // On AWS Batch use drug-discovery-nf image (has aws cli + curl).
+    // mmseqs2 binary is auto-installed at job start if not present.
+    container System.getenv('NEXTFLOW_USE_AWS') in ['true','1','yes'] \
+        ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-drug-discovery-nf:x86' \
+        : 'soedinglab/mmseqs2:latest'
 
     input:
     tuple val(meta), path(query)
@@ -136,6 +149,11 @@ process MMSEQS2_SEQUENCE_SEARCH {
 
     script:
     """
+        # Auto-install mmseqs2 if not present (AWS Batch: binary-only container)
+        if ! command -v mmseqs &>/dev/null; then
+            curl -sSfL https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz | tar -xz -C /tmp/
+            export PATH="/tmp/mmseqs/bin:\$PATH"
+        fi
         mkdir -p tmp_mmseqs mmseqs2_db_local
         aws s3 sync ${db_base}/mmseqs2_db/ mmseqs2_db_local/ --quiet
         mmseqs createdb ${query} query_db

@@ -1,4 +1,4 @@
-#\!/usr/bin/env nextflow
+#!/usr/bin/env nextflow
 /*
  * drug_discovery/amber_pmemd_md
  *
@@ -107,7 +107,7 @@ process LIGAND_PREP {
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
-        input_ext=$(echo "${ligand_file}" | rev | cut -d. -f1 | rev | tr '[:upper:]' '[:lower:]')
+        input_ext=\$(echo "${ligand_file}" | rev | cut -d. -f1 | rev | tr '[:upper:]' '[:lower:]')
         if [[ "$input_ext" == "sdf" || "$input_ext" == "sd" ]]; then
             input_fmt="sdf"
         elif [[ "$input_ext" == "mol2" ]]; then
@@ -212,7 +212,7 @@ process ENERGY_MINIMIZATION {
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
-        cat > min1.in << 'MIN1EOF'
+        cat > min1.in << MIN1EOF
 H-only minimization -- stage 1
  &cntrl
   imin=1, ntmin=1,
@@ -233,7 +233,7 @@ MIN1EOF
             -r min1.rst \
             -ref ${inpcrd}
 
-        cat > min2.in << 'MIN2EOF'
+        cat > min2.in << MIN2EOF
 All-atom minimization -- stage 2
  &cntrl
   imin=1, ntmin=1,
@@ -424,7 +424,7 @@ process TRAJECTORY_ANALYSIS {
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
-        cat > analysis.in << 'CPPEOF'
+        cat > analysis.in << CPPEOF
 trajin trajectory.nc
 reference minimized.rst parm complex.prmtop
 rmsd backbone_rmsd @CA,C,N,O ref reference out rmsd.dat
@@ -437,7 +437,7 @@ CPPEOF
 
         cpptraj -p ${prmtop} -i analysis.in 2>&1 | tee cpptraj.log
 
-        python3 - << 'PYEOF'
+        python3 - << PYEOF
 import json, sys
 rmsd_time, rmsd_vals = [], []
 try:
@@ -462,9 +462,9 @@ try:
 except Exception as e:
     print(f'Warning: rmsf.dat: {e}', file=sys.stderr)
 with open('rmsf_per_residue.csv', 'w') as fh:
-    fh.write('residue_number,rmsf_angstrom\n')
+    fh.write('residue_number,rmsf_angstrom\\n')
     for res, val in zip(rmsf_res, rmsf_vals):
-        fh.write(f'{res},{val:.3f}\n')
+        fh.write(f'{res},{val:.3f}\\n')
 try:
     import matplotlib; matplotlib.use('Agg')
     import matplotlib.pyplot as plt
@@ -531,7 +531,7 @@ process MM_GBSA {
         set -euo pipefail
         source /opt/amber24/amber.sh || true
 
-        cat > strip_receptor.in << 'STREOF'
+        cat > strip_receptor.in << STREOF
 parm complex.prmtop
 parmstrip :LIG
 parmwrite out receptor.prmtop
@@ -539,7 +539,7 @@ quit
 STREOF
         cpptraj -p ${prmtop} -i strip_receptor.in
 
-        cat > strip_ligand.in << 'STLEOF'
+        cat > strip_ligand.in << STLEOF
 parm complex.prmtop
 parmstrip !:LIG
 parmwrite out ligand_only.prmtop
@@ -547,7 +547,7 @@ quit
 STLEOF
         cpptraj -p ${prmtop} -i strip_ligand.in
 
-        cat > mmgbsa.in << 'GBSEOF'
+        cat > mmgbsa.in << GBSEOF
 Input file for MM/GBSA calculation
 &general
   startframe=${params.mmgbsa_startframe},
@@ -576,21 +576,21 @@ GBSEOF
             -y ${trajectory} \
             2>&1 | tee mmpbsa.log
 
-        python3 - << 'PYEOF'
+        python3 - << PYEOF
 import json, re, sys
 delta_g = None; std_dg = None; components = {}
 try:
     with open('mmgbsa_raw.dat') as fh:
         for line in fh:
-            m = re.search(r'VDWAALS\s*=\s*([-\d.]+)', line)
+            m = re.search(r'VDWAALS\\s*=\\s*([-\\d.]+)', line)
             if m: components['vdw_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EEL\s*=\s*([-\d.]+)', line)
+            m = re.search(r'EEL\\s*=\\s*([-\\d.]+)', line)
             if m: components['electrostatic_kcal_mol'] = float(m.group(1))
-            m = re.search(r'EGB\s*=\s*([-\d.]+)', line)
+            m = re.search(r'EGB\\s*=\\s*([-\\d.]+)', line)
             if m: components['polar_solvation_kcal_mol'] = float(m.group(1))
-            m = re.search(r'ESURF\s*=\s*([-\d.]+)', line)
+            m = re.search(r'ESURF\\s*=\\s*([-\\d.]+)', line)
             if m: components['nonpolar_solv_kcal_mol'] = float(m.group(1))
-            m = re.search(r'DELTA TOTAL\s*=\s*([-\d.]+)\s*\+/-\s*([\d.]+)', line)
+            m = re.search(r'DELTA TOTAL\\s*=\\s*([-\\d.]+)\\s*\\+/-\\s*([\\d.]+)', line)
             if m: delta_g = float(m.group(1)); std_dg = float(m.group(2))
 except Exception as e:
     print(f'Warning: mmgbsa_raw.dat: {e}', file=sys.stderr)
@@ -615,10 +615,10 @@ try:
 except Exception as e:
     print(f'Warning: mmgbsa_decomp.dat: {e}', file=sys.stderr)
 with open('mmgbsa_results.csv', 'w') as fh:
-    fh.write('residue,delta_g_gb,delta_internal,delta_electrostatic,delta_vdw,delta_polar_solv\n')
+    fh.write('residue,delta_g_gb,delta_internal,delta_electrostatic,delta_vdw,delta_polar_solv\\n')
     for row in res_data:
         fh.write(f'{row["residue"]},{row["delta_g_gb"]},{row["delta_internal"]},'
-                 f'{row["delta_electrostatic"]},{row["delta_vdw"]},{row["delta_polar_solv"]}\n')
+                 f'{row["delta_electrostatic"]},{row["delta_vdw"]},{row["delta_polar_solv"]}\\n')
 top_res = sorted(res_data, key=lambda x: x['delta_g_gb'])[:10]
 summary = {
     'pipeline': 'AMBER MM-GBSA',

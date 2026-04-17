@@ -12,6 +12,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { conversationStateManager } from './conversation-state';
 import { userPatternsService, type UserContext } from './user-patterns-service';
@@ -190,7 +191,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'claude-haiku-4-5',       // Haiku: same 94% accuracy, 2x faster, 11.5x cheaper
+  intentModel: 'gemini-3-flash-preview',  // Gemini 3 Flash: best intent classification (46.2% BiomniEval1)
   toolRankingModel: 'claude-haiku-4-5',  // Haiku: 1.4x faster for ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
@@ -996,7 +997,6 @@ Rules:
     const resp = await claude.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
-      temperature: 0,
       system: SYSTEM,
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
     }, { signal: AbortSignal.timeout(15_000) }); // 15s hard cap — prevents SSE stream stall
@@ -1046,6 +1046,7 @@ export function extractInlineData(message: string): InlineDataMap {
 
 export class GalaxyAssistant {
   private claude: Anthropic;
+  private gemini: GoogleGenerativeAI | null = null;
   private galaxyAPI: GalaxyAPIProxy;
   private modelConfig: ModelConfig;
   private sessionMemory: SessionMemoryUpdater;
@@ -1056,6 +1057,8 @@ export class GalaxyAssistant {
 
   constructor(options: GalaxyAssistantOptions) {
     this.claude = new Anthropic({ apiKey: options.anthropicApiKey });
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (geminiKey) this.gemini = new GoogleGenerativeAI(geminiKey);
     this.galaxyAPI = options.galaxyAPIProxy;
     this.modelConfig = { ...DEFAULT_MODEL_CONFIG, ...options.modelConfig };
     this.sessionMemory = new SessionMemoryUpdater(this.claude);
@@ -1414,7 +1417,6 @@ Ambiguity type → what to ask about:
       const resp = await this.claude.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 30,
-        temperature: 0,
         system: `Classify the bioinformatics domain of a query. Respond with ONLY one of these exact strings (no punctuation, no explanation):
 ${TECHNICAL_SUBDOMAINS.join(' | ')} | other | unknown
 
@@ -2011,7 +2013,6 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
       const resp = await this.claude.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 150,
-        temperature: 0,
         messages: [{ role: 'user', content: prompt }],
       });
       const text = (resp.content[0] as any)?.text || '{}';
@@ -2729,7 +2730,7 @@ Describe the user's information need with a descriptive label. You may use these
 **workflow_generation** — Execute a computational pipeline, run a tool on user data, process files or accessions.
 **research_question** — Look up or synthesize information from scientific literature and papers.
 **database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
-**genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates. Requires live GWAS Catalog / Open Targets lookup.
+**genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links, published CRISPR screen results. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates, "which gene showed the strongest effect in this CRISPR screen", "identify the gene from this published screen". Requires live GWAS Catalog / Open Targets / DepMap / GenomeCRISPR lookup. Candidate gene/SNP lists in the prompt are published data to look up — NOT user-provided files.
 **clinical_genomics** — Rare disease diagnosis (OMIM), patient gene detection (ClinVar + Monarch + HPO), phenotype-to-gene mapping. Triggered by: HPO term lists, ENSG candidate gene lists, disease name + gene + phenotype combinations.
 **result_comparison** — Compare tools, methods, or approaches with evidence.
 **tool_search** — Find or learn about available tools and their capabilities.
@@ -3337,6 +3338,34 @@ IMPORTANT: Set needsResearchAgent: true whenever the user asks:
   "chain_hint": null
 }
 
+"RESEARCH QUESTION: A published CRISPR screen was already performed for this exact condition. Your task is to recall which gene showed the strongest fitness effect in that published experiment. I hope to study the mechanisms by which HeLa cells develop increased resistance to the Vaccinia virus Western Reserve strain over a two-week exposure period at a dosage of 0.8 MOI."
+{
+  "type": "genomics_knowledge",
+  "keywords": ["CRISPR screen", "HeLa", "Vaccinia virus", "resistance", "fitness effect", "published screen", "VMP1"],
+  "inlineParameters": {"cell_line": "HeLa", "perturbation": "Vaccinia virus WR", "dosage": "0.8 MOI", "duration": "2 weeks"},
+  "needsToolSearch": false,
+  "needsDatasets": false,
+  "confidence": 0.96,
+  "actions": {
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": true,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "analysis_goal", "value": "retrieve published CRISPR screen result for specific experimental context", "confidence": 0.96},
+    {"category": "task_type", "value": "screen_gene_retrieval", "confidence": 0.96}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["genomics"],
+  "key_terms": ["published CRISPR screen", "gene fitness effect", "literature retrieval"],
+  "needs_thinking": false,
+  "chain_hint": null
+}
+
 "In the MPDL3280A Phase I study of non-small cell lung cancer, what was the objective response rate for patients with TC3 PD-L1 expression?"
 {
   "type": "research_question",
@@ -3487,30 +3516,45 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
         message_length: message.length
       });
 
-      // Intent classification - using configurable model
-      // 2500 tokens to accommodate multi-intent responses with full action objects
-      const completion = await this.claude.messages.create({
-        model: this.modelConfig.intentModel,
-        max_tokens: 2500,
-        temperature: 0,
-        system: [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: [{ role: 'user', content: message }],
-      });
+      // Intent classification - using configurable model (Anthropic or Gemini)
+      let resultText: string;
+      const isGemini = this.modelConfig.intentModel.startsWith('gemini-');
 
-      console.log('[GalaxyAssistant] Intent API response:', {
-        model: this.modelConfig.intentModel,
-        time_ms: Date.now() - intentStartTime,
-        usage: completion.usage
-      });
-
-      const content = completion.content[0];
-      let resultText = content.type === 'text' ? content.text : '{}';
+      if (isGemini && this.gemini) {
+        const geminiModel = this.gemini.getGenerativeModel({
+          model: this.modelConfig.intentModel,
+          generationConfig: { temperature: 0, maxOutputTokens: 2500, responseMimeType: 'application/json' },
+          systemInstruction: systemPrompt,
+        });
+        const geminiResult = await geminiModel.generateContent(message);
+        resultText = geminiResult.response.text();
+        console.log('[GalaxyAssistant] Intent API response (Gemini):', {
+          model: this.modelConfig.intentModel,
+          time_ms: Date.now() - intentStartTime,
+        });
+      } else {
+        // Anthropic path (default)
+        // Note: temperature is deprecated for Claude 4.x models
+        const completion = await this.claude.messages.create({
+          model: this.modelConfig.intentModel,
+          max_tokens: 2500,
+          system: [
+            {
+              type: 'text',
+              text: systemPrompt,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: [{ role: 'user', content: message }],
+        });
+        console.log('[GalaxyAssistant] Intent API response:', {
+          model: this.modelConfig.intentModel,
+          time_ms: Date.now() - intentStartTime,
+          usage: completion.usage,
+        });
+        const content = completion.content[0];
+        resultText = content.type === 'text' ? content.text : '{}';
+      }
 
       // Strip markdown code blocks if present
       resultText = resultText
@@ -3830,7 +3874,6 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       const completion = await this.claude.messages.create({
         model: this.modelConfig.toolRankingModel,
         max_tokens: 2000, // Increased to handle ranking many tools
-        temperature: 0,
         system: [
           {
             type: 'text',

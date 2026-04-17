@@ -1929,15 +1929,10 @@ def _accession_chain_thread(
     # Substitute resolved paths into the main command
     # Replace "--<key> <original_accession>" with "--<key> <resolved_path>"
     substituted_cmd = []
-    skip_next = False
     original_accession_values = {k: v["accession"] for k, v in accession_params.items()}
     i = 0
     while i < len(main_cmd):
         token = main_cmd[i]
-        if skip_next:
-            skip_next = False
-            i += 1
-            continue
         # Check if this is a --param flag whose value should be substituted
         if token.startswith("--") and i + 1 < len(main_cmd):
             param_name = token[2:]
@@ -1945,10 +1940,8 @@ def _accession_chain_thread(
             if param_name in resolved and next_val.upper() == original_accession_values.get(param_name, "").upper():
                 substituted_cmd.append(token)
                 substituted_cmd.append(resolved[param_name])
-                skip_next = True
-                i += 1
                 log.info(f"[accession chain run_id={run_id}] Substituted --{param_name}: {next_val!r} → {resolved[param_name]!r}")
-                i += 1
+                i += 2  # advance past both "--key" and old accession value
                 continue
         substituted_cmd.append(token)
         i += 1
@@ -2164,6 +2157,27 @@ def execute_nextflow(
     if not any(p.strip() in _mock_profiles for p in profile.split(",")) and "mock_mode" not in params:
         params["mock_mode"] = False
         log.info(f"[Nextflow run {run_id}] profile={profile!r} → injecting --mock_mode false")
+
+    # CryoSPARC connection params — inject from environment when running a CryoSPARC workflow.
+    # The standard AI assistant chat path never calls /api/cryosparc/execute, so host/password
+    # must be filled from env vars here; otherwise the Nextflow task defaults to localhost:30000
+    # which is unreachable inside AWS Batch containers.
+    if "cryosparc" in str(nf_path).lower():
+        _cs_host = os.environ.get("CRYOSPARC_HOST", "")
+        _cs_port = int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000"))
+        _cs_email = os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai")
+        _cs_password = os.environ.get("CRYOSPARC_PASSWORD", "")
+        _cs_license = os.environ.get("CRYOSPARC_LICENSE_ID", "")
+        for _k, _v in [
+            ("cryosparc_host", _cs_host),
+            ("cryosparc_port", _cs_port),
+            ("cryosparc_email", _cs_email),
+            ("cryosparc_password", _cs_password),
+            ("cryosparc_license", _cs_license),
+        ]:
+            if _v and _k not in params:
+                params[_k] = _v
+        log.info(f"[Nextflow run {run_id}] CryoSPARC params injected: host={_cs_host!r} port={_cs_port} email={_cs_email!r}")
 
     # Work directory — for awsbatch, the work dir must be S3 (set in executor config);
     # passing a local path via -w would override that and cause "S3 bucket required" errors.
@@ -3872,7 +3886,10 @@ def execute_cryosparc(
     nf_params = {
         # CryoSPARC connection (EC2 instance just started)
         "cryosparc_host":        cs_exec.CRYOSPARC_HOST,
-        "cryosparc_port":        int(os.environ.get("CRYOSPARC_PORT", "30000")),
+        # Use CRYOSPARC_DIRECT_PORT (or hardcode 30000) — the CRYOSPARC_PORT env var may be set
+        # to an SSH tunnel port (e.g. 31000) for local dev, but Batch containers connect directly
+        # to the EC2 instance at the real CryoSPARC base port (30000).
+        "cryosparc_port":        int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
         "cryosparc_email":       os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
         "cryosparc_password":    os.environ.get("CRYOSPARC_PASSWORD", ""),
         "cryosparc_license":     license_key,

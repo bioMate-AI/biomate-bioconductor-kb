@@ -637,6 +637,54 @@ process SPLIT_PARTICLE_BATCHES {
     """
 }
 
+process SPLIT_PARTICLE_BATCHES_R2 {
+    tag "split_particle_batches_r2"
+    publishDir "${params.outdir}/09_particle_batch_split_r2", mode: 'copy'
+
+    input:
+    path all_particles_r1_json
+
+    output:
+    path "particle_batch_manifest.csv", emit: manifest
+
+    script:
+    def mock = params.mock_mode ? 'True' : 'False'
+    def batch_size = params.particle_batch_size
+    """
+    #!/usr/bin/env python3
+    import json
+    import csv
+    import os
+    from pathlib import Path
+
+    mock_mode = ${mock}
+    batch_size = ${batch_size}
+
+    # Load merged particles
+    particles_data = json.load(open('${all_particles_r1_json}'))
+    particles = particles_data.get('particles', [])
+
+    if not particles:
+        particles = [{'particle_idx': i} for i in range(100)]  # fallback for mock
+
+    # Split into sub-batches
+    batches = []
+    for start in range(0, len(particles), batch_size):
+        batches.append(particles[start:start + batch_size])
+
+    with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
+        writer = csv.writer(manifest_f)
+        for batch_idx, batch_particles in enumerate(batches):
+            batch_id = f'pbatch_{batch_idx:04d}'
+            list_file = f'{batch_id}_particles.json'
+            with open(list_file, 'w') as lf:
+                json.dump({'particles': batch_particles, 'batch_id': batch_id}, lf)
+            writer.writerow([batch_id, os.path.abspath(list_file)])
+
+    print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
+    """
+}
+
 process CLASSIFY_2D_R1_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/09_classify_2d_round1/${batch_id}", mode: 'copy'
@@ -989,6 +1037,64 @@ process MERGE_PARTICLES {
 process MERGE_CLASSES {
     tag "merge_classes"
     publishDir "${params.outdir}/merge_classes", mode: 'copy'
+
+    input:
+    path classes_cs_files
+
+    output:
+    path "all_classes.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    all_classes = []
+    for cs_file in sorted(glob.glob('class2d_*.cs')):
+        data = json.load(open(cs_file))
+        all_classes.extend(data.get('classes', []))
+
+    with open('all_classes.cs', 'w') as f:
+        json.dump({'classes': all_classes, 'merged': True}, f, indent=2)
+
+    print(f"✓ Merged {len(all_classes)} classes from all sub-batches")
+    """
+}
+
+// Alias processes that are called more than once in the same workflow context
+// (Nextflow DSL2 forbids reusing the same process name within a workflow)
+process MERGE_PARTICLES_R1 {
+    tag "merge_particles_r1"
+    publishDir "${params.outdir}/merge_particles_r1", mode: 'copy'
+
+    input:
+    path particles_cs_files
+
+    output:
+    path "all_particles.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+    import glob
+
+    all_particles = []
+    for cs_file in sorted(glob.glob('particles_*.cs')):
+        data = json.load(open(cs_file))
+        all_particles.extend(data.get('particles', []))
+
+    with open('all_particles.cs', 'w') as f:
+        json.dump({'particles': all_particles, 'merged': True}, f, indent=2)
+
+    print(f"✓ Merged {len(all_particles)} particles from all batches")
+    """
+}
+
+process MERGE_CLASSES_R2 {
+    tag "merge_classes_r2"
+    publishDir "${params.outdir}/merge_classes_r2", mode: 'copy'
 
     input:
     path classes_cs_files
@@ -1742,7 +1848,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     // ── Phase 0: Initialise CryoSPARC project (once) ────────────────────────
 
     INIT_CRYOSPARC_PROJECT(movies_path)
-    init_json_ch = Channel.value(INIT_CRYOSPARC_PROJECT.out.init_json)
+    init_json_ch = INIT_CRYOSPARC_PROJECT.out.init_json
 
     // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
@@ -1752,12 +1858,12 @@ workflow CRYOSPARC_STANDARD_SPA {
         .map { row -> tuple(row[0], file(row[1])) }   // (batch_id, batch_list_file)
 
     // Parallel motion correction — one job per batch
-    motion_ch = PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
-    // motion_ch emits: tuple(batch_id, micrographs_cs)
+    PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
+    motion_ch = PATCH_MOTION_CORRECTION_BATCH.out.micrographs_cs
 
     // Parallel CTF estimation — one job per batch
-    ctf_ch = PATCH_CTF_ESTIMATION_BATCH(motion_ch, init_json_ch)
-    // ctf_ch emits: tuple(batch_id, micrographs_ctf_cs)
+    PATCH_CTF_ESTIMATION_BATCH(motion_ch, init_json_ch)
+    ctf_ch = PATCH_CTF_ESTIMATION_BATCH.out.ctf_cs
 
     // Collect all per-batch CTF files into a single merged dataset
     all_ctf_cs_files = ctf_ch.map { batch_id, ctf_file -> ctf_file }.collect()
@@ -1769,7 +1875,8 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase B: Blob picking — parallel per CTF batch ───────────────────────
 
-    picked_ch    = BLOB_PICKER_BATCH(ctf_ch, init_json_ch)
+    BLOB_PICKER_BATCH(ctf_ch, init_json_ch)
+    picked_ch    = BLOB_PICKER_BATCH.out.particles_cs
     all_picks_cs = picked_ch.map { batch_id, picks_file -> picks_file }.collect()
     merged_picks = MERGE_PARTICLES(all_picks_cs)
 
@@ -1780,9 +1887,10 @@ workflow CRYOSPARC_STANDARD_SPA {
     // ── Phase B-cont: R1 particle extraction — parallel per CTF batch ────────
 
     // Broadcast the global inspected set; each batch job filters to its own mics
-    extract_r1_ch    = EXTRACT_PARTICLES_R1_BATCH(ctf_ch, inspected_ch.inspected_cs)
+    EXTRACT_PARTICLES_R1_BATCH(ctf_ch, inspected_ch.inspected_cs)
+    extract_r1_ch    = EXTRACT_PARTICLES_R1_BATCH.out.extracted_cs
     all_extracted_r1 = extract_r1_ch.map { batch_id, f -> f }.collect()
-    merged_r1        = MERGE_PARTICLES(all_extracted_r1)
+    merged_r1        = MERGE_PARTICLES_R1(all_extracted_r1)
 
     // ── Phase C: 2D classification R1 — parallel particle sub-batches ────────
 
@@ -1790,7 +1898,8 @@ workflow CRYOSPARC_STANDARD_SPA {
         .splitCsv(header: false)
         .map { row -> tuple(row[0], file(row[1])) }
 
-    classes_r1_ch  = CLASSIFY_2D_R1_BATCH(particle_batches_ch, init_json_ch)
+    CLASSIFY_2D_R1_BATCH(particle_batches_ch, init_json_ch)
+    classes_r1_ch  = CLASSIFY_2D_R1_BATCH.out.classes_cs
     all_classes_r1 = classes_r1_ch.map { batch_id, f -> f }.collect()
     merged_classes_r1 = MERGE_CLASSES(all_classes_r1)
 
@@ -1804,17 +1913,18 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase C-R2: 2D classification R2 — parallel particle sub-batches ─────
 
-    particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES(EXTRACT_PARTICLES_R2.out.extracted_cs)
+    particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES_R2(EXTRACT_PARTICLES_R2.out.extracted_cs)
         .splitCsv(header: false)
         .map { row -> tuple(row[0], file(row[1])) }
 
-    classes_r2_ch  = CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch, init_json_ch)
+    CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch, init_json_ch)
+    classes_r2_ch  = CLASSIFY_2D_R2_BATCH.out.classes_cs
     all_classes_r2 = classes_r2_ch.map { batch_id, f -> f }.collect()
-    merged_classes_r2 = MERGE_CLASSES(all_classes_r2)
+    merged_classes_r2 = MERGE_CLASSES_R2(all_classes_r2)
 
     SELECT_2D_R2(merged_classes_r2.merged_cs, EXTRACT_PARTICLES_R2.out.extracted_cs)
 
-    all_selected_r2_val = Channel.value(SELECT_2D_R2.out.selected_cs)
+    all_selected_r2_val = SELECT_2D_R2.out.selected_cs
 
     // ── Phase D: Ab-initio — K parallel model reconstructions ────────────────
 
@@ -1822,13 +1932,14 @@ workflow CRYOSPARC_STANDARD_SPA {
         .combine(all_selected_r2_val)
         .map { k, particles -> tuple(k, particles) }
 
-    volumes_ch  = AB_INITIO_BATCH(ab_initio_inputs, init_json_ch)
+    AB_INITIO_BATCH(ab_initio_inputs, init_json_ch)
+    volumes_ch  = AB_INITIO_BATCH.out.volume_cs
     all_volumes = volumes_ch.map { k, vol -> vol }.collect()
     merged_vols = MERGE_VOLUMES(all_volumes)
 
     // ── Phase D-cont: Refinement — parallel per volume ────────────────────────
 
-    refined_ch = HOMO_REFINEMENT_BATCH(
+    HOMO_REFINEMENT_BATCH(
         merged_vols.volumes_cs
             .flatMap { vols_file ->
                 def data = new groovy.json.JsonSlurper().parse(vols_file)
@@ -1841,7 +1952,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     )
 
     // Pick the best refined volume (highest resolution = lowest number)
-    best_refined_ch = refined_ch
+    best_refined_ch = HOMO_REFINEMENT_BATCH.out.refined_cs
         .map { vol_name, refined_file -> refined_file }
         .collect()
         .map { files -> files[0] }  // first is fine; all go into VOLUME_TOOLS
@@ -1926,21 +2037,10 @@ workflow {
     ====================================================================
     """.stripIndent()
 
-    // Create input channel — pass movies directory (not individual files)
-    def movies_dir = params.movies_path ?
-        file(params.movies_path) :
-        file("${baseDir}/test_data")
+    // Create input channel — pass movies path as string (supports S3 URLs and local paths)
+    def movies_path_str = params.movies_path ?: "${baseDir}/test_data"
 
-    if (!movies_dir.exists()) {
-        // Create dummy movie directory for testing
-        movies_dir.mkdirs()
-        (1..20).each { i ->
-            def f = file("${movies_dir}/movie_${String.format('%05d', i)}.tif")
-            f.text = "dummy movie ${i}"
-        }
-    }
-
-    ch_movies_dir = Channel.value(movies_dir)
+    ch_movies_dir = Channel.value(movies_path_str)
 
     // Run workflow
     CRYOSPARC_STANDARD_SPA(ch_movies_dir)

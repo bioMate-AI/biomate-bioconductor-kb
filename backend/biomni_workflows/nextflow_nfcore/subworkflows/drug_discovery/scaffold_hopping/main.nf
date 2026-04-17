@@ -725,10 +725,7 @@ workflow SCAFFOLD_HOPPING {
     candidates       = SCAFFOLD_HOPPING_CANDIDATES.out.candidates
     report           = SCAFFOLD_HOPPING_CANDIDATES.out.report
     ranking_summary  = SCAFFOLD_HOPPING_CANDIDATES.out.ranking_summary
-    versions         = SCAFFOLD_INPUT_VALIDATION.out.versions
-                           .mix(RECAP_FRAGMENTATION.out.versions)
-                           .mix(MMP_ANALYSIS.out.versions)
-                           .mix(SCAFFOLD_HOPPING_CANDIDATES.out.versions)
+    versions         = SCAFFOLD_INPUT_VALIDATION.out.versions.mix(RECAP_FRAGMENTATION.out.versions).mix(MMP_ANALYSIS.out.versions).mix(SCAFFOLD_HOPPING_CANDIDATES.out.versions)
 }
 
 // ============================================================================
@@ -738,4 +735,22 @@ workflow SCAFFOLD_HOPPING {
 workflow {
     log_workflow_header()
 
-    // Default test inputs
+    // Resolve input SMILES: accept --input_smiles <file> or --smiles <SMILES string>
+    def ref_smi = params.reference_smiles ?: 'CC(=O)Nc1ccc(O)cc1'
+
+    if (params.input_smiles) {
+        ch_smiles = Channel
+            .fromPath(params.input_smiles, checkIfExists: true)
+            .splitCsv(sep: ' ', strip: true)
+            .map { row -> def (smi, cid) = [row[0], row.size() > 1 ? row[1] : 'CPND001']; tuple([id: cid], smi) }
+    } else if (params.smiles) {
+        ch_smiles = Channel.value(tuple([id: 'CPND001'], params.smiles.trim()))
+    } else {
+        error "Provide --input_smiles <path> (one 'SMILES compound_id' per line) or --smiles <SMILES>"
+    }
+
+    SCAFFOLD_HOPPING(ch_smiles, ref_smi)
+
+    SCAFFOLD_HOPPING.out.candidates.view { meta, f -> "Candidates: ${f}" }
+    SCAFFOLD_HOPPING.out.report.view     { meta, f -> "Report:     ${f}" }
+}
