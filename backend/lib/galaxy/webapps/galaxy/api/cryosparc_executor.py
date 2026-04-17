@@ -186,12 +186,48 @@ def _ec2_client():
     return boto3.client("ec2", region_name=CRYOSPARC_INSTANCE_REGION)
 
 
+def _find_existing_instance() -> Optional[Dict[str, str]]:
+    """
+    Scan EC2 for a tagged cryosparc-biomate-job instance that is running or stopped.
+    Returns dict with 'instance_id', 'state', 'ip' or None if none found.
+    Used to reuse orphaned instances instead of hitting vCPU quota with new launches.
+    """
+    try:
+        ec2 = _ec2_client()
+        resp = ec2.describe_instances(
+            Filters=[
+                {"Name": "tag:Name", "Values": ["cryosparc-biomate-job"]},
+                {"Name": "instance-state-name", "Values": ["running", "stopped", "pending"]},
+            ]
+        )
+        best: Optional[Dict[str, str]] = None
+        for res in resp.get("Reservations", []):
+            for inst in res.get("Instances", []):
+                state = inst["State"]["Name"]
+                iid = inst["InstanceId"]
+                ip = inst.get("PublicIpAddress", "")
+                if best is None or state == "running":
+                    best = {"instance_id": iid, "state": state, "ip": ip}
+        return best
+    except Exception as exc:
+        log.warning("[CryoSPARC] Could not scan for existing instances: %s", exc)
+        return None
+
+
 def get_instance_state() -> str:
     """Return 'running' | 'stopped' | 'pending' | 'stopping' | 'unknown'."""
-    # AMI mode: check the active instance launched by this process
+    global _active_instance_id
     instance_id = CRYOSPARC_INSTANCE_ID or _active_instance_id
     if not instance_id:
-        return "unknown"
+        # Auto-discover any previously launched tagged instance surviving a restart
+        existing = _find_existing_instance()
+        if existing:
+            _active_instance_id = existing["instance_id"]
+            log.info("[CryoSPARC] Auto-discovered existing instance %s (state=%s)",
+                     existing["instance_id"], existing["state"])
+            instance_id = existing["instance_id"]
+        else:
+            return "unknown"
     try:
         ec2 = _ec2_client()
         resp = ec2.describe_instances(InstanceIds=[instance_id])
@@ -223,25 +259,39 @@ def _gpu_count_for_instance(instance_type: str) -> int:
 def start_instance(wait: bool = True) -> str:
     """
     Start the stopped CryoSPARC EC2 instance and return its public IP.
-    If CRYOSPARC_INSTANCE_ID is not set but CRYOSPARC_AMI_ID is, launch a new instance.
+    Reuse any previously launched tagged instance found via EC2 scan (survives restarts).
+    If none found and CRYOSPARC_AMI_ID is set, launch a new instance.
     """
+    global _active_instance_id, CRYOSPARC_HOST
     ec2 = _ec2_client()
 
-    if CRYOSPARC_INSTANCE_ID:
+    effective_id = CRYOSPARC_INSTANCE_ID or _active_instance_id
+    if not effective_id:
+        # Auto-discover: look for existing tagged instance before launching new one
+        existing = _find_existing_instance()
+        if existing:
+            effective_id = existing["instance_id"]
+            _active_instance_id = effective_id
+            log.info("[CryoSPARC] Reusing existing instance %s (state=%s ip=%s)",
+                     effective_id, existing["state"], existing.get("ip", ""))
+
+    if effective_id:
         state = get_instance_state()
         if state == "running":
             log.info("[CryoSPARC] Instance already running")
         elif state in ("stopped", "pending", "stopping"):
-            log.info("[CryoSPARC] Starting instance %s ...", CRYOSPARC_INSTANCE_ID)
-            ec2.start_instances(InstanceIds=[CRYOSPARC_INSTANCE_ID])
+            log.info("[CryoSPARC] Starting instance %s ...", effective_id)
+            ec2.start_instances(InstanceIds=[effective_id])
         else:
             log.warning("[CryoSPARC] Unexpected instance state: %s", state)
 
         if wait:
-            _wait_for_instance_running(ec2, CRYOSPARC_INSTANCE_ID)
+            _wait_for_instance_running(ec2, effective_id)
 
-        resp = ec2.describe_instances(InstanceIds=[CRYOSPARC_INSTANCE_ID])
+        resp = ec2.describe_instances(InstanceIds=[effective_id])
         ip = resp["Reservations"][0]["Instances"][0].get("PublicIpAddress", "")
+        if ip:
+            CRYOSPARC_HOST = ip
         return ip
 
     elif CRYOSPARC_AMI_ID:

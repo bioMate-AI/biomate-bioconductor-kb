@@ -3852,13 +3852,15 @@ def execute_cryosparc(
     user_id = request.user_id or ""
     license_key = request.license_key or os.environ.get("CRYOSPARC_LICENSE", "")
 
-    # ── Step 1: provision the CryoSPARC GPU instance ─────────────────────────
+    # ── Step 1: provision the CryoSPARC GPU instance and wait for API ───────
     log.info("[CryoSPARC] Starting GPU instance for Nextflow workflow...")
     try:
-        instance_ip = cs_exec.start_instance(wait=True)
-        # Update the module-level HOST so gpu_metrics can find it later
-        cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
-        log.info("[CryoSPARC] Instance ready at %s", cs_exec.CRYOSPARC_HOST)
+        # ensure_cryosparc_running: starts EC2 if needed, then polls SSH + Python
+        # client until CryoSPARC API is ready (up to 15 min for cold AMI start).
+        cs_exec.ensure_cryosparc_running()
+        # After ensure, the module-level HOST is already up-to-date.
+        instance_ip = cs_exec.CRYOSPARC_HOST
+        log.info("[CryoSPARC] Instance ready at %s", instance_ip)
     except Exception as exc:
         raise HTTPException(status_code=503,
                             detail=f"Failed to start CryoSPARC GPU instance: {exc}")

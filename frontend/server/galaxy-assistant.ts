@@ -1598,7 +1598,15 @@ Rules:
       const _isConceptualQuestion = /\b(what\s+is|what\s+are|how\s+does|how\s+do|why\s+is|why\s+do|explain|describe|tell\s+me\s+about|definition|concept|overview|introduction|paper|review|literature|published|citation|reference)\b/i.test(message);
       const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing|search|prioritize|prioritizes|prioritization|ranking|ranked)\b/i.test(message)
         && /\b(mass\s+spec|RNA.?seq|DNA.?seq|WGS|WES|ChIP|ATAC|BCR|TCR|VDJ|FASTQ|BAM|VCF|variants?|SNPs?|indels?|pathogenicity|mzML|mzXML|proteomics|genomics|transcriptomics|metagenomics|epigenomics|immunomics|metabolomics|scaffold|SMILES|GPCR|kinase|inhibitor|DDA|DIA|iRT|ASV|OTU|amplicon|nanopore|Illumina|single.?cell|bulk.?RNA|paired.?end|protein.?search|sequence.?search|structure.?search|embedding|trimodal|UniProt|AlphaFold|PDB)\b/i.test(message);
-      if (!_isConceptualQuestion && _hasBioMethodTerms) {
+      // Only override when the intent is genuinely ambiguous — never override a correctly
+      // classified knowledge/research intent just because it uses biological terminology.
+      const _knowledgeIntentTypes = new Set([
+        'research_question', 'data_interpretation', 'experiment_design',
+        'protocol_guidance', 'methods_writing', 'comparative_methodology',
+        'troubleshooting', 'regulatory_compliance', 'parameter_optimization',
+      ]);
+      const _intentAlreadyKnowledge = _knowledgeIntentTypes.has(intent.type);
+      if (!_isConceptualQuestion && !_intentAlreadyKnowledge && _hasBioMethodTerms) {
         log('Bioinformatics method-description override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
@@ -3507,19 +3515,29 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
     };
 
     const parseActions = (raw: any, type: string): ActionCategories => {
+      const base = inferActionsFromType(type);
       if (raw && typeof raw === 'object') {
-        const base = inferActionsFromType(type);
+        // For types that require the research agent, the LLM classifier must NOT be able
+        // to disable it by returning needsResearchAgent: false — that silently falls back
+        // to raw-LLM responses which bypass all DB lookups (GWAS Catalog, Ensembl, etc.).
+        const researchAgentTypes = new Set([
+          'research_question', 'troubleshooting', 'parameter_optimization',
+          'experiment_design', 'data_interpretation', 'protocol_guidance',
+          'methods_writing', 'comparative_methodology', 'regulatory_compliance',
+        ]);
+        const mustUseResearch = researchAgentTypes.has(type);
         return {
           needsToolSearch: typeof raw.needsToolSearch === 'boolean' ? raw.needsToolSearch : base.needsToolSearch,
           needsWorkflowGeneration: typeof raw.needsWorkflowGeneration === 'boolean' ? raw.needsWorkflowGeneration : base.needsWorkflowGeneration,
           needsWorkflowModification: typeof raw.needsWorkflowModification === 'boolean' ? raw.needsWorkflowModification : base.needsWorkflowModification,
-          needsResearchAgent: typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent,
+          // If type requires research agent, always enable it regardless of what the classifier returns
+          needsResearchAgent: mustUseResearch ? true : (typeof raw.needsResearchAgent === 'boolean' ? raw.needsResearchAgent : base.needsResearchAgent),
           needsBenchmarkAgent: typeof raw.needsBenchmarkAgent === 'boolean' ? raw.needsBenchmarkAgent : base.needsBenchmarkAgent,
           needsDatasetAccess: typeof raw.needsDatasetAccess === 'boolean' ? raw.needsDatasetAccess : base.needsDatasetAccess,
           needsLLMReasoning: typeof raw.needsLLMReasoning === 'boolean' ? raw.needsLLMReasoning : base.needsLLMReasoning,
         };
       }
-      return inferActionsFromType(type);
+      return base;
     };
 
     // Extract top-level UQU fields (present in both single and multi-intent responses)
