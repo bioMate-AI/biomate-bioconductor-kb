@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
+import { AutoLoopPanel } from "./auto-loop-panel";
+import type { AutoLoopPanelState } from "./auto-loop-panel";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -593,6 +595,11 @@ export function NextflowWorkflowViewer({
   // QC gate inline panel state (SSE-triggered)
   const [showQcInline, setShowQcInline] = useState(false);
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
+  const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
+    gateResults: null,
+    remediations: [],
+    complete: null,
+  });
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   // Billing usage meter
@@ -1211,6 +1218,61 @@ export function NextflowWorkflowViewer({
       }
     });
 
+    // ── Auto-loop reactive QC events ──────────────────────────────────────
+    es.addEventListener("autoloop_gate_results", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setAutoLoopPanel(prev => ({ ...prev, gateResults: data, complete: null }));
+      } catch (err) {
+        console.error("[AutoLoop] gate_results parse error:", err);
+      }
+    });
+
+    es.addEventListener("autoloop_update", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setAutoLoopPanel(prev => ({
+          ...prev,
+          remediations: data.remediations ?? [],
+          complete: {
+            phase: data.phase,
+            domain: data.domain,
+            outcome: "escalated",
+            failed_gates: data.failed_gates ?? [],
+          },
+        }));
+      } catch (err) {
+        console.error("[AutoLoop] update parse error:", err);
+      }
+    });
+
+    es.addEventListener("autoloop_phase_complete", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setAutoLoopPanel(prev => ({ ...prev, complete: data }));
+      } catch (err) {
+        console.error("[AutoLoop] phase_complete parse error:", err);
+      }
+    });
+
+    es.addEventListener("autoloop_escalation", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        setAutoLoopPanel(prev => ({
+          ...prev,
+          complete: {
+            phase: data.phase,
+            domain: data.domain,
+            outcome: "escalated",
+            failed_gates: data.failed_gates ?? [],
+          },
+        }));
+      } catch (err) {
+        console.error("[AutoLoop] escalation parse error:", err);
+      }
+    });
+    // ─────────────────────────────────────────────────────────────────────
+
     es.onerror = () => {
       if (!stopped) es.close();
     };
@@ -1389,6 +1451,14 @@ export function NextflowWorkflowViewer({
           </div>
         </div>
       )}
+      {/* Auto-Loop QC Panel — appears when backend emits autoloop_* SSE events */}
+      {autoLoopPanel.gateResults && (
+        <AutoLoopPanel
+          state={autoLoopPanel}
+          onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">

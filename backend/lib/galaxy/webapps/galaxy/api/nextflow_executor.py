@@ -3997,12 +3997,19 @@ def execute_cryosparc(
     # files there (the instance has CryoEMBenchmarkProfile IAM role for S3 access).
     movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or
                        params.get("input_movies") or params.get("data_path") or "")
-    # Fall back to env-configured S3 bucket → stage locally; then to pre-staged local dir
+    # Fall back to env-configured defaults when params have no movies_path
     if not movies_path_raw:
-        movies_path_raw = (os.environ.get("CRYOSPARC_MOVIES_S3") or
-                           os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", ""))
+        s3_default = os.environ.get("CRYOSPARC_MOVIES_S3", "")
+        local_default = os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", "")
+        # Prefer pre-staged local dir (no SSH round-trip) if it exists on the CryoSPARC host;
+        # otherwise stage from S3.  We can't check the remote path here, so prefer local first.
+        movies_path_raw = local_default or s3_default
         if movies_path_raw:
             log.info("[CryoSPARC] movies_path not in params — using env default: %s", movies_path_raw)
+    # Ensure S3 directory URL ends with '/' so _stage_s3_movies_on_cryosparc syncs the full dir
+    if movies_path_raw.startswith("s3://") and not movies_path_raw.endswith("/") and \
+            not any(c in movies_path_raw.split("/")[-1] for c in ("*", "?", "[")):
+        movies_path_raw += "/"
     if movies_path_raw.startswith("s3://"):
         movies_path_raw = _stage_s3_movies_on_cryosparc(
             s3_url=movies_path_raw,
