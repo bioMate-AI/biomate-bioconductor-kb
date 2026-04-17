@@ -590,6 +590,18 @@ def ensure_cryosparc_running(
             # Detect a hard failure in supervisor logs
             if "FATAL" in ssh_status or "error:ssh-timeout" in ssh_status:
                 log.warning("[CryoSPARC] Detected potential startup error: %s", ssh_status)
+            # Auto-start CryoSPARC if SSH is up but no processes running
+            if ssh_status.strip() in ("0/0", "0") or ssh_status.startswith("0/"):
+                log.info("[CryoSPARC] CryoSPARC not running — triggering cryosparcm start via SSH")
+                try:
+                    subprocess.run(
+                        ["ssh", "-i", CRYOSPARC_SSH_KEY, "-o", "StrictHostKeyChecking=no",
+                         "-o", "ConnectTimeout=10", f"{CRYOSPARC_SSH_USER}@{CRYOSPARC_HOST}",
+                         "export PATH=/home/ubuntu/cryosparc_master/bin:$PATH; cryosparcm start &"],
+                        timeout=30, capture_output=True, text=True,
+                    )
+                except Exception as _se:
+                    log.warning("[CryoSPARC] cryosparcm start SSH call failed: %s", _se)
             # If 9/9 processes up but API still failing, log it prominently
             if ssh_status.startswith("9/9"):
                 log.info("[CryoSPARC] All 9 processes UP but API still connecting — port may be busy")
