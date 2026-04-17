@@ -10,7 +10,7 @@
  *   Johnson 2006); age-scaled BW/organ volumes (WHO growth data)
  * Pregnancy: plasma volume expansion (+40-50%), GFR increase (+50% T3),
  *   CYP3A4 induction (T1=1.0x, T2=1.4x, T3=1.8x), CYP2D6 up (2x T3),
- *   CYP1A2 down (50% T3) — Jeong 2012; Anger 2014
+ *   CYP1A2 down (50% T3) -- Jeong 2012; Anger 2014
  *
  * Input:  MW_Da, logP, pKa_acid/base, CLint_uL_min_mg, Vss_L_kg, dose_mg_kg,
  *         optional fup (fraction unbound plasma), cyp_substrate (3A4/2D6/2C9)
@@ -71,7 +71,7 @@ def ac(v, default=None):
     try: return float(v)
     except: return default
 
-# ── Pediatric physiology tables (WHO growth data + Bjorkman 2005) ─────────────
+# -- Pediatric physiology tables (WHO growth data + Bjorkman 2005) -------------
 # Age group: (label, age_yr, BW_kg, liver_vol_ml, kidney_vol_ml, blood_vol_L,
 #             cardiac_output_L_h)
 PEDIATRIC_AGES = [
@@ -87,8 +87,8 @@ PEDIATRIC_AGES = [
     ('adult',        25.0,   70.0,  1800, 380,  5.00,  15.0),
 ]
 
-# ── CYP maturation functions (Bjorkman 2005; Johnson 2006) ───────────────────
-# F_mat = (age_yr^Hill) / (TM50^Hill + age_yr^Hill)  — Richards sigmoid
+# -- CYP maturation functions (Bjorkman 2005; Johnson 2006) -------------------
+# F_mat = (age_yr^Hill) / (TM50^Hill + age_yr^Hill)  -- Richards sigmoid
 CYP_MATURATION = {
     '3A4': dict(tm50=0.50, hill=1.4, adult_cl_factor=1.0),   # rapid; >80% by 1yr
     '2D6': dict(tm50=0.083,hill=2.0, adult_cl_factor=1.0),   # neonates; mature by 3mo
@@ -106,7 +106,7 @@ def cyp_maturation_factor(age_yr, cyp):
     f = (age_yr ** hill) / (tm50 ** hill + age_yr ** hill)
     return min(1.0, f)
 
-# ── PBPK core: 1-compartment IV bolus for simplicity ─────────────────────────
+# -- PBPK core: 1-compartment IV bolus for simplicity -------------------------
 # For each age group: CL_h scaled by mat_factor * (BW/70)^0.75, Vd by BW
 def pk_for_age(bw_kg, liver_vol_ml, co_L_h, clint_uL_min_mg,
                vss_L_kg, fup, dose_mg_kg, age_yr, cyp, fu_gut=1.0):
@@ -116,7 +116,7 @@ def pk_for_age(bw_kg, liver_vol_ml, co_L_h, clint_uL_min_mg,
     clint_uL_min = clint_uL_min_mg * liver_mass_g / 1000
     # Well-stirred model: CL_h = Q_h * (fu * CLint) / (Q_h + fu * CLint)
     q_h_L_h = co_L_h * 0.26  # hepatic blood flow ~26% CO
-    clint_L_h = clint_uL_min * 1e-6 * 60 * 1000  # µL/min → L/h
+    clint_L_h = clint_uL_min * 1e-6 * 60 * 1000  # uL/min -> L/h
     mat = cyp_maturation_factor(age_yr, cyp)
     clint_eff = clint_L_h * mat
     cl_h = (q_h_L_h * fup * clint_eff) / (q_h_L_h + fup * clint_eff)
@@ -132,7 +132,7 @@ def pk_for_age(bw_kg, liver_vol_ml, co_L_h, clint_uL_min_mg,
     cl_per_kg = cl_total / bw_kg
     return round(cmax_ug_L, 1), round(auc_ug_L_h, 0), round(thalf_h, 2), round(cl_per_kg, 3), round(mat, 3)
 
-# ── Pregnancy physiology (Jeong 2012; Anger 2014) ────────────────────────────
+# -- Pregnancy physiology (Jeong 2012; Anger 2014) ----------------------------
 PREGNANCY_TRIMESTERS = [
     # label, BW_kg, plasma_vol_factor, GFR_factor, CYP3A4, CYP2D6, CYP2C9, CYP1A2
     ('pre_pregnancy', 65.0, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00),
@@ -144,7 +144,7 @@ PREGNANCY_TRIMESTERS = [
 
 def pk_for_trimester(bw_kg, plasma_factor, gfr_factor, cyp_factor,
                      clint_uL_min_mg, vss_L_kg, fup, dose_mg_kg):
-    """Simplified pregnancy PK — adjust CL by enzyme induction factor."""
+    """Simplified pregnancy PK -- adjust CL by enzyme induction factor."""
     # Adult liver unchanged in mass; enzyme activity scaled
     liver_mass_g = 1800 * 1.05
     clint_uL_min = clint_uL_min_mg * liver_mass_g / 1000
@@ -161,7 +161,7 @@ def pk_for_trimester(bw_kg, plasma_factor, gfr_factor, cyp_factor,
     cmax = (dose_mg * 1000) / vd_L
     return round(cmax, 1), round(auc, 0), round(thalf_h, 2), round(cl_total / bw_kg, 3)
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 mw         = ac(os.environ.get('PARAM_MW'), 300)
 logp       = ac(os.environ.get('PARAM_LOGP'), 2.5)
 pka        = ac(os.environ.get('PARAM_PKA'), 8.0)
@@ -220,7 +220,7 @@ for r in ped_recs:
         'age_group': r['age_group'],
         'standard_dose_mg_kg': dose_mg_kg,
         'recommended_dose_mg_kg': adj_dose,
-        'target_AUC_matching': f'Adjust to match adult AUC ({adult_auc_ped} µg·L⁻¹·h)',
+        'target_AUC_matching': f'Adjust to match adult AUC ({adult_auc_ped} ug*L-1*h)',
         'note': f'Maturation factor {r["maturation_factor"]:.2f} for {cyp}',
     })
 
@@ -250,13 +250,13 @@ with open('pbpk_peds_preg_results.json', 'w') as f:
     json.dump(full, f, indent=2)
 
 report = [f'=== PEDIATRIC / PREGNANCY PBPK SIMULATION ===',
-          f'Drug: MW={mw} Da | logP={logp} | fup={fup} | CLint={clint} µL/min/mg | CYP substrate: {cyp}',
+          f'Drug: MW={mw} Da | logP={logp} | fup={fup} | CLint={clint} uL/min/mg | CYP substrate: {cyp}',
           f'Reference dose: {dose_mg_kg} mg/kg', '',
           'PEDIATRIC PK (key age groups):']
 for r in ped_recs:
     report.append(
-        f"  {r['age_group']:25s}: AUC={r['AUC_ug_L_h']:7.0f} µg·L⁻¹·h | "
-        f"t½={r['t_half_h']:5.1f}h | mat={r['maturation_factor']:.2f}")
+        f"  {r['age_group']:25s}: AUC={r['AUC_ug_L_h']:7.0f} ug*L-1*h | "
+        f"t1/2={r['t_half_h']:5.1f}h | mat={r['maturation_factor']:.2f}")
 report += ['', 'PREGNANCY PK:']
 for r in preg_recs:
     report.append(

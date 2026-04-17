@@ -90,7 +90,7 @@ def parse_er_data(raw):
                          'effect': max(0, true_eff + noise)})
     return data
 
-# ── Emax model (Hill equation) ────────────────────────────────────────────────
+# -- Emax model (Hill equation) ------------------------------------------------
 def emax_model(E, emax, ec50, hill):
     """Effect = Emax * E^hill / (EC50^hill + E^hill)"""
     E = np.array(E, dtype=float)
@@ -165,7 +165,7 @@ def exposure_for_target(pct_target, popt, model):
         return round((pct_target / a)**(1/b), 2)
     return None
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_data    = os.environ.get('PARAM_ER_DATA', 'null')
 model_type  = os.environ.get('PARAM_MODEL', 'emax').lower()
 target_pct  = ac(os.environ.get('PARAM_TARGET_PCT'), 80)
@@ -179,7 +179,7 @@ effects   = [d['effect']          for d in er_data if 'effect' in d]
 doses     = [d.get('dose_mg', None) for d in er_data]
 
 if not exposures or len(exposures) < 3:
-    print("ERROR: insufficient data points for E-R fitting (need ≥3)", file=sys.stderr)
+    print("ERROR: insufficient data points for E-R fitting (need >=3)", file=sys.stderr)
     sys.exit(1)
 
 # Fit model
@@ -252,8 +252,8 @@ if safety_exp and popt is not None and model_type == 'emax':
     e_target_exp = exposure_for_target(target_pct, popt, model_type)
     if e_target_exp:
         safety_margin = round(safety_exp / e_target_exp, 2)
-        if safety_margin >= 10: safety_flag = 'ADEQUATE (≥10x margin)'
-        elif safety_margin >= 3: safety_flag = 'ACCEPTABLE (3–10x; confirm in Phase I)'
+        if safety_margin >= 10: safety_flag = 'ADEQUATE (>=10x margin)'
+        elif safety_margin >= 3: safety_flag = 'ACCEPTABLE (3-10x; confirm in Phase I)'
         else: safety_flag = 'NARROW (<3x; dose-limiting toxicity risk)'
 
 dose_rec_out = {
@@ -277,7 +277,7 @@ with open('er_results.json', 'w') as f:
     json.dump({'status': 'completed', 'parameters': params_out,
                'dose_recommendations': dose_recs, 'safety_margin': safety_margin}, f, indent=2)
 
-r2_str = f"R²={fit_stats['R2']:.3f}" if fit_stats and fit_stats.get('R2') else 'R²=N/A'
+r2_str = f"R2={fit_stats['R2']:.3f}" if fit_stats and fit_stats.get('R2') else 'R2=N/A'
 report = ['=== EXPOSURE-RESPONSE MODELLING REPORT ===', '',
           f"Model: {params_out.get('model','unknown')} | {r2_str} | n={len(exposures)} obs",
           f"Endpoint: {endpoint} | Exposure metric: {exp_metric}", '']
@@ -292,7 +292,7 @@ for dr in dose_recs:
             label_k = k.replace('_exposure','')
             report.append(f"  {label_k}: {v} {exp_metric}")
 if safety_margin:
-    report += ['', f"Safety margin (TEC/{target_pct}% dose): {safety_margin}x — {safety_flag}"]
+    report += ['', f"Safety margin (TEC/{target_pct}% dose): {safety_margin}x -- {safety_flag}"]
 
 with open('er_output.txt', 'w') as f:
     f.write('\n'.join(report))

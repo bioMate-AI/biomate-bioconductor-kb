@@ -102,11 +102,11 @@ while len(true_rates) < n_arms:
     true_rates.append(ctrl_rate)
 true_rates = true_rates[:n_arms]
 
-# ── O'Brien-Fleming efficacy boundaries (Lan-DeMets 1983) ────────────────────
+# -- O'Brien-Fleming efficacy boundaries (Lan-DeMets 1983) --------------------
 def obf_boundary(t_frac, alpha_total, n_stages):
     """
     Approximate O'Brien-Fleming alpha-spending at information fraction t.
-    Boundary (one-sided z): z* ≈ z_alpha / sqrt(t_frac)
+    Boundary (one-sided z): z* ~ z_alpha / sqrt(t_frac)
     Ensures global Type I error = alpha_total.
     """
     z_alpha = norm.ppf(1 - alpha_total)
@@ -135,7 +135,7 @@ for i, (s, t, eb, fb) in enumerate(zip(stages, stage_fracs, eff_bounds, fut_boun
     p_eff = round(1 - norm.cdf(eb), 5)
     bounds_csv.append([s, round(t,3), eb, fb, p_eff, n_total])
 
-# ── Thompson sampling (RAR) ───────────────────────────────────────────────────
+# -- Thompson sampling (RAR) ---------------------------------------------------
 def thompson_weights(successes, failures, exponent=0.5):
     """
     RAR allocation probabilities: sample beta distributions and normalise.
@@ -147,7 +147,7 @@ def thompson_weights(successes, failures, exponent=0.5):
     probs  /= (probs.sum() + 1e-10)
     return probs
 
-# ── MAMS simulation ───────────────────────────────────────────────────────────
+# -- MAMS simulation -----------------------------------------------------------
 def simulate_mams_trial(true_rates, n_per_stage, n_interim, alpha, power,
                         rar_exp, futility_b, n_sims, design):
     """
@@ -231,9 +231,9 @@ def simulate_mams_trial(true_rates, n_per_stage, n_interim, alpha, power,
                         type_I += 1
                 else:
                     if true_rates[ctrl_idx] == max(true_rates):
-                        pass  # true null accepted — good
+                        pass  # true null accepted -- good
                     else:
-                        pass  # false negative — underpowered
+                        pass  # false negative -- underpowered
 
         if stopped and stop_type == 'efficacy':
             if best_arm != ctrl_idx:
@@ -275,8 +275,8 @@ design_out = {
     'sample_size_estimate': round(oc['mean_n_enrolled'], 0),
     'notes': [
         'Operating characteristics from Monte Carlo simulation',
-        f'O\'Brien-Fleming efficacy boundary (one-sided α={alpha})',
-        f'Pocock futility boundary (β={1-power:.2f})',
+        f'O\'Brien-Fleming efficacy boundary (one-sided alpha={alpha})',
+        f'Pocock futility boundary (beta={1-power:.2f})',
         f'RAR exponent={rar_exp} (0.5=balanced exploration/exploitation)',
     ]
 }

@@ -58,35 +58,35 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Ames mutagenicity structural alert library ────────────────────────────────
+# -- Ames mutagenicity structural alert library --------------------------------
 # Category assignments follow ICH S2(R1) + Kazius 2005 + Bailey 2005
 AMES_ALERTS = [
-    # Category A — Direct DNA reactants (always flag HIGH)
-    ('nitro_aromatic',       '[c][N+](=O)[O-]',           'A', 'HIGH',  'Aromatic nitro — DNA adduct former, Ames-positive'),
-    ('nitro_aliphatic',      '[CX4][N+](=O)[O-]',         'A', 'HIGH',  'Aliphatic nitro — potent mutagen (alpha-nitro activation)'),
-    ('primary_aromatic_amine','Nc1ccccc1',                 'A', 'HIGH',  'Primary aromatic amine — CYP/acetyltransferase activation → DNA adduct'),
-    ('aromatic_amine_meta',  'Nc1cccnc1',                 'A', 'HIGH',  'Heteroaromatic amine — metabolic activation mutagenicity'),
-    ('nitroso',              '[N;!$(NC=O)]=[O]',           'A', 'HIGH',  'Nitroso compound — DNA alkylation'),
-    ('nitrosamine',          '[NH]N=O',                   'A', 'HIGH',  'N-Nitrosamine — strong mutagen / IARC Group 1'),
-    ('diazonium',            '[N+]#N',                    'A', 'HIGH',  'Diazonium ion — direct DNA alkylator'),
-    ('epoxide',              '[C@@H]1OC1',                'A', 'HIGH',  'Epoxide — DNA strand break'),
-    ('alkyl_epoxide',        'C1OC1',                     'A', 'HIGH',  'Alkyl epoxide — electrophilic DNA alkylator'),
-    ('aziridine',            'C1CN1',                     'A', 'HIGH',  'Aziridine — nitrogen mustard analogue'),
-    ('propiolactone',        'C1CC(=O)O1',                'A', 'HIGH',  'Propiolactone — reactive alkylating agent'),
-    ('n_methylol',           '[NX3][CH2]O',               'A', 'HIGH',  'N-methylol — formaldehyde releaser, DNA crosslinker'),
-    # Category B — Indirect mutagens (flag MEDIUM)
-    ('polycyclic_aromatic',  'c1ccc2ccccc2c1',            'B', 'MEDIUM','PAH scaffold — metabolic diol-epoxide activation'),
-    ('furan_oxidizable',     'c1ccoc1',                   'B', 'MEDIUM','Furan ring — CYP-mediated enedial metabolite'),
-    ('alkenyl_aldehyde',     'C=CC=O',                    'B', 'MEDIUM','α,β-unsaturated aldehyde — Michael acceptor'),
-    ('michael_acceptor',     'C=CC(=O)',                  'B', 'MEDIUM','Enone Michael acceptor — covalent DNA modification'),
-    ('halogen_alkyl',        '[F,Cl,Br,I][CX4]',          'B', 'MEDIUM','Alkyl halide — DNA alkylation potential'),
-    ('5_nitroimidazole',     '[n]c([N+](=O)[O-])cn',      'B', 'MEDIUM','5-Nitroimidazole — nitroreductase activation (metronidazole class)'),
-    ('aromatic_azo',         'c-N=N-c',                   'B', 'MEDIUM','Azo dye scaffold — azo reductase cleavage → aromatic amine'),
-    ('aromatic_hydroxylamine','Nc1ccccc1O',               'B', 'MEDIUM','N-OH amine — direct-acting mutagen in activated form'),
-    # Category C — Clastogenicity / aneugenicity
-    ('podophyllotoxin_like', 'c1cc2c(cc1OC)C3CC(=O)',    'C', 'MEDIUM','Topoisomerase II inhibitor scaffold — DNA strand breaks'),
-    ('anthraquinone',        'O=C1c2ccccc2C(=O)c2ccccc21','C', 'MEDIUM','Anthraquinone — intercalation + topo II inhibition'),
-    # Category D — Negative QSAR indicators (reduce concern if present)
+    # Category A -- Direct DNA reactants (always flag HIGH)
+    ('nitro_aromatic',       '[c][N+](=O)[O-]',           'A', 'HIGH',  'Aromatic nitro -- DNA adduct former, Ames-positive'),
+    ('nitro_aliphatic',      '[CX4][N+](=O)[O-]',         'A', 'HIGH',  'Aliphatic nitro -- potent mutagen (alpha-nitro activation)'),
+    ('primary_aromatic_amine','Nc1ccccc1',                 'A', 'HIGH',  'Primary aromatic amine -- CYP/acetyltransferase activation -> DNA adduct'),
+    ('aromatic_amine_meta',  'Nc1cccnc1',                 'A', 'HIGH',  'Heteroaromatic amine -- metabolic activation mutagenicity'),
+    ('nitroso',              '[N;!$(NC=O)]=[O]',           'A', 'HIGH',  'Nitroso compound -- DNA alkylation'),
+    ('nitrosamine',          '[NH]N=O',                   'A', 'HIGH',  'N-Nitrosamine -- strong mutagen / IARC Group 1'),
+    ('diazonium',            '[N+]#N',                    'A', 'HIGH',  'Diazonium ion -- direct DNA alkylator'),
+    ('epoxide',              '[C@@H]1OC1',                'A', 'HIGH',  'Epoxide -- DNA strand break'),
+    ('alkyl_epoxide',        'C1OC1',                     'A', 'HIGH',  'Alkyl epoxide -- electrophilic DNA alkylator'),
+    ('aziridine',            'C1CN1',                     'A', 'HIGH',  'Aziridine -- nitrogen mustard analogue'),
+    ('propiolactone',        'C1CC(=O)O1',                'A', 'HIGH',  'Propiolactone -- reactive alkylating agent'),
+    ('n_methylol',           '[NX3][CH2]O',               'A', 'HIGH',  'N-methylol -- formaldehyde releaser, DNA crosslinker'),
+    # Category B -- Indirect mutagens (flag MEDIUM)
+    ('polycyclic_aromatic',  'c1ccc2ccccc2c1',            'B', 'MEDIUM','PAH scaffold -- metabolic diol-epoxide activation'),
+    ('furan_oxidizable',     'c1ccoc1',                   'B', 'MEDIUM','Furan ring -- CYP-mediated enedial metabolite'),
+    ('alkenyl_aldehyde',     'C=CC=O',                    'B', 'MEDIUM','alpha,beta-unsaturated aldehyde -- Michael acceptor'),
+    ('michael_acceptor',     'C=CC(=O)',                  'B', 'MEDIUM','Enone Michael acceptor -- covalent DNA modification'),
+    ('halogen_alkyl',        '[F,Cl,Br,I][CX4]',          'B', 'MEDIUM','Alkyl halide -- DNA alkylation potential'),
+    ('5_nitroimidazole',     '[n]c([N+](=O)[O-])cn',      'B', 'MEDIUM','5-Nitroimidazole -- nitroreductase activation (metronidazole class)'),
+    ('aromatic_azo',         'c-N=N-c',                   'B', 'MEDIUM','Azo dye scaffold -- azo reductase cleavage -> aromatic amine'),
+    ('aromatic_hydroxylamine','Nc1ccccc1O',               'B', 'MEDIUM','N-OH amine -- direct-acting mutagen in activated form'),
+    # Category C -- Clastogenicity / aneugenicity
+    ('podophyllotoxin_like', 'c1cc2c(cc1OC)C3CC(=O)',    'C', 'MEDIUM','Topoisomerase II inhibitor scaffold -- DNA strand breaks'),
+    ('anthraquinone',        'O=C1c2ccccc2C(=O)c2ccccc21','C', 'MEDIUM','Anthraquinone -- intercalation + topo II inhibition'),
+    # Category D -- Negative QSAR indicators (reduce concern if present)
 ]
 ALERT_PATTERNS = []
 for entry in AMES_ALERTS:
@@ -95,11 +95,11 @@ for entry in AMES_ALERTS:
     if patt:
         ALERT_PATTERNS.append((name, patt, cat, severity, desc))
 
-# ── ICH S2(R1) category definitions ──────────────────────────────────────────
+# -- ICH S2(R1) category definitions ------------------------------------------
 ICH_S2_CATS = {
-    'A': 'ICH S2(R1) Cat A — Structural alert for direct DNA interaction; expect positive standard genotox battery',
-    'B': 'ICH S2(R1) Cat B — Indirect mutagen via metabolic activation; further genotox testing required',
-    'C': 'ICH S2(R1) Cat C — Clastogenic/aneugenic concern; in vitro micronucleus required',
+    'A': 'ICH S2(R1) Cat A -- Structural alert for direct DNA interaction; expect positive standard genotox battery',
+    'B': 'ICH S2(R1) Cat B -- Indirect mutagen via metabolic activation; further genotox testing required',
+    'C': 'ICH S2(R1) Cat C -- Clastogenic/aneugenic concern; in vitro micronucleus required',
 }
 
 def ames_verdict(alerts):
@@ -108,7 +108,7 @@ def ames_verdict(alerts):
         return 'POSITIVE', 'HIGH', 'Predicted Ames-positive: Cat A structural alert(s) found'
     if any(a[3] == 'MEDIUM' for a in alerts):
         return 'SUSPECT', 'MEDIUM', 'Predicted Ames-suspect: Cat B metabolic activation alert(s)'
-    return 'NEGATIVE', 'LOW', 'No structural alerts detected — predicted Ames-negative'
+    return 'NEGATIVE', 'LOW', 'No structural alerts detected -- predicted Ames-negative'
 
 def ichs2_genotox_battery(verdict, alerts):
     """
@@ -120,9 +120,9 @@ def ichs2_genotox_battery(verdict, alerts):
     has_C = any(a[2] == 'C' for a in alerts)
     battery = []
     if has_A or has_B:
-        battery.append('Ames test (TA98, TA100, TA1535, TA1537 ± S9)')
+        battery.append('Ames test (TA98, TA100, TA1535, TA1537 +/- S9)')
     if has_B or has_C:
-        battery.append('In vitro micronucleus test (human lymphocytes ± S9)')
+        battery.append('In vitro micronucleus test (human lymphocytes +/- S9)')
     if has_A:
         battery.append('In vitro chromosomal aberration (if Ames +)')
     if (has_A or has_B) and verdict == 'POSITIVE':
@@ -131,7 +131,7 @@ def ichs2_genotox_battery(verdict, alerts):
         battery.append('Standard ICH S2(R1) battery (Ames + 1 in vitro clastogenicity test)')
     return battery
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles   = os.environ.get('PARAM_SMILES_LIST', '["C"]')
 smiles_pairs = parse_smiles_input(raw_smiles)
 
@@ -181,7 +181,7 @@ for cid, smi in smiles_pairs:
         'recommended_tests': battery,
     })
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 with open('ames_prediction.json', 'w') as f:
     out = all_records[0] if len(all_records) == 1 else all_records
     json.dump(out, f, indent=2)
@@ -213,7 +213,7 @@ for r in all_records:
     ]
     if r['alerts_triggered']:
         for a in r['alerts_triggered']:
-            report.append(f"    • [{a['category']}] {a['name']}: {a['description']}")
+            report.append(f"    - [{a['category']}] {a['name']}: {a['description']}")
     report += [f"  Recommended tests: {'; '.join(r['recommended_genotox_battery'])}", '']
 
 with open('genotox_output.txt', 'w') as f:

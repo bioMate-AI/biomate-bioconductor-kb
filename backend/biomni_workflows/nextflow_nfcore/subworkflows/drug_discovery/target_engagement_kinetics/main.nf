@@ -8,7 +8,7 @@
  *
  * kon/koff estimation: descriptor-based proxy from Copeland 2016;
  * Tummino & Copeland Drug Metab Dispos 2008.
- * Occupancy ODE: classic 1:1 binding kinetics D + T ⇌ DT.
+ * Occupancy ODE: classic 1:1 binding kinetics D + T <-> DT.
  *
  * Input:  SMILES, target_name, optional IC50_nM and PK params
  * Output: kinetics_prediction.json, occupancy_profile.csv, recommendation.json
@@ -78,13 +78,13 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Physicochemical → kon/koff estimation ────────────────────────────────────
+# -- Physicochemical -> kon/koff estimation ------------------------------------
 # Reference: Copeland 2016 "Evaluation of enzyme inhibitors in drug discovery"
 # + Tummino & Copeland 2008 heuristics
 def estimate_kinetics(mol, kd_nM=None, ic50_nM=None):
     """
     Estimate kon and koff from physicochemical properties.
-    Typical range: kon 1e3-1e6 M⁻¹s⁻¹, koff 1e-5 to 1e-1 s⁻¹
+    Typical range: kon 1e3-1e6 M-1s-1, koff 1e-5 to 1e-1 s-1
     """
     mw   = Descriptors.ExactMolWt(mol)
     logp = Crippen.MolLogP(mol)
@@ -93,22 +93,22 @@ def estimate_kinetics(mol, kd_nM=None, ic50_nM=None):
     rot  = rdMolDescriptors.CalcNumRotatableBonds(mol)
 
     # Diffusion-limited association rate decreases with MW
-    # kon ~ 1e6 M⁻¹s⁻¹ for small rigid molecules; lower for large flexible ones
+    # kon ~ 1e6 M-1s-1 for small rigid molecules; lower for large flexible ones
     kon_log = 5.5 - 0.003*(mw-250) - 0.05*rot
-    kon = 10**max(3.0, min(6.5, kon_log))  # M⁻¹s⁻¹
+    kon = 10**max(3.0, min(6.5, kon_log))  # M-1s-1
 
     # If Kd provided, compute koff from koff = kon * Kd
     if kd_nM is not None:
         kd_M = kd_nM * 1e-9
         koff = kon * kd_M
     elif ic50_nM is not None:
-        # IC50 ≈ Kd for competitive inhibitors at [S] << Km
+        # IC50 ~ Kd for competitive inhibitors at [S] << Km
         kd_M = ic50_nM * 1e-9
         koff = kon * kd_M
     else:
-        # No affinity data — estimate from TPSA/HBD (more H-bonds → slower koff)
+        # No affinity data -- estimate from TPSA/HBD (more H-bonds -> slower koff)
         hbond_contrib = hbd * 0.3 + tpsa * 0.005
-        koff = 10**(-3 - hbond_contrib)  # s⁻¹, slower with more H-bonds
+        koff = 10**(-3 - hbond_contrib)  # s-1, slower with more H-bonds
 
     kd_est_nM = (koff / kon) * 1e9
     rt_min     = (1 / koff) / 60  # residence time in minutes
@@ -123,7 +123,7 @@ def estimate_kinetics(mol, kd_nM=None, ic50_nM=None):
         'input_Kd_nM': kd_nM, 'input_IC50_nM': ic50_nM
     }
 
-# ── PK model: 1-compartment oral absorption ───────────────────────────────────
+# -- PK model: 1-compartment oral absorption -----------------------------------
 def pk_profile(cmax_nM, t_half_h, tmax_h, t_eval):
     """Biexponential PK: absorption + elimination."""
     ke = math.log(2) / t_half_h   # elimination rate constant
@@ -135,9 +135,9 @@ def pk_profile(cmax_nM, t_half_h, tmax_h, t_eval):
         cp = cp / cp.max() * cmax_nM
     return np.maximum(0, cp)
 
-# ── Receptor occupancy ODE ────────────────────────────────────────────────────
+# -- Receptor occupancy ODE ----------------------------------------------------
 # d[DT]/dt = kon * [D](t) * (Rtot - [DT]) - koff * [DT]
-# Assume Rtot << [D] (excess drug — common at clinical doses)
+# Assume Rtot << [D] (excess drug -- common at clinical doses)
 def occupancy_ode(cp_interp, kon_M, koff_s, t_eval, rtot_nM=10):
     """
     Solves occupancy ODE with time-varying drug concentration from PK.
@@ -161,7 +161,7 @@ def occupancy_ode(cp_interp, kon_M, koff_s, t_eval, rtot_nM=10):
     occupancy_pct = np.array(sol.y[0]) / (rtot_nM * 1e-9) * 100
     return np.clip(occupancy_pct, 0, 100)
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles     = os.environ.get('PARAM_SMILES_LIST','["C"]')
 target_name    = os.environ.get('PARAM_TARGET','unknown')
 ic50_nM        = auto_convert(os.environ.get('PARAM_IC50'))
@@ -243,7 +243,7 @@ with open('kinetics_results.json','w') as f:
 report = [f"=== TARGET ENGAGEMENT KINETICS: {target_name} ===",""]
 for k, r in zip(all_kinetics, all_recommendations):
     report += [f"Compound {k['compound']}:",
-               f"  kon={k['kon_M_inv_s_inv']:.2e} M⁻¹s⁻¹ | koff={k['koff_s_inv']:.2e} s⁻¹ | Kd={k['Kd_nM']:.1f} nM",
+               f"  kon={k['kon_M_inv_s_inv']:.2e} M-1s-1 | koff={k['koff_s_inv']:.2e} s-1 | Kd={k['Kd_nM']:.1f} nM",
                f"  Residence time: {k['residence_time_min']:.0f} min | Confidence: {k['confidence']}",
                f"  Peak occupancy: {r['peak_occupancy_pct']}% | {r['recommendation']}", ""]
 with open('kinetics_output.txt','w') as f:

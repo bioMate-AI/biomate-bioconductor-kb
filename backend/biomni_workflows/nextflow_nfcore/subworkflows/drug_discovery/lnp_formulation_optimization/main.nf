@@ -63,7 +63,7 @@ def auto_convert(v, default=None):
     try: return float(v)
     except: return v
 
-# ── Ionizable lipid pKa proxy ──────────────────────────────────────────────────
+# -- Ionizable lipid pKa proxy --------------------------------------------------
 def estimate_pKa_proxy(mol):
     """
     Estimate apparent pKa of ionizable lipid from amine nitrogen environment.
@@ -82,18 +82,18 @@ def estimate_pKa_proxy(mol):
                 amine_N = atom
 
     if amine_N is None:
-        # No amine — estimate from SMARTS
+        # No amine -- estimate from SMARTS
         has_amide = mol.HasSubstructMatch(Chem.MolFromSmarts('C(=O)N'))
         has_tert  = mol.HasSubstructMatch(Chem.MolFromSmarts('N(CC)(CC)'))
-        if has_amide: return 5.5  # amide — low pKa
-        if has_tert:  return 6.5  # tertiary amine — target range
-        return 9.0  # primary amine — too basic
+        if has_amide: return 5.5  # amide -- low pKa
+        if has_tert:  return 6.5  # tertiary amine -- target range
+        return 9.0  # primary amine -- too basic
 
     # Estimate from electron-withdrawing groups near N
     logp = Crippen.MolLogP(mol)
     hba  = rdMolDescriptors.CalcNumHBA(mol)
-    # More electron-withdrawing groups → lower pKa
-    # More carbonyl neighbors → lower pKa (like MC3 with ester)
+    # More electron-withdrawing groups -> lower pKa
+    # More carbonyl neighbors -> lower pKa (like MC3 with ester)
     has_ester = mol.HasSubstructMatch(Chem.MolFromSmarts('OC(=O)'))
     carbonyl_n = sum(1 for n in amine_N.GetNeighbors()
                      for nn in n.GetNeighbors() if nn.GetAtomicNum()==8 and nn.GetNoImplicit())
@@ -146,8 +146,8 @@ def tissue_targeting_score(logp, mw, cargo, tissue):
 
 def predict_size_from_ratio(il_mol_pct, helper_mol_pct, chol_mol_pct, peg_mol_pct, d_nm_lipid):
     """Empirical size model from Semple et al. + Kulkarni formulation data."""
-    # Standard: 50/10/38.5/1.5 → ~80nm
-    # More IL → larger, more PEG → smaller
+    # Standard: 50/10/38.5/1.5 -> ~80nm
+    # More IL -> larger, more PEG -> smaller
     size_base = 80
     size = size_base + (il_mol_pct - 50) * 0.5 - (peg_mol_pct - 1.5) * 20
     return round(max(30, min(300, size)), 0)
@@ -157,13 +157,13 @@ def predict_encapsulation(pka, il_mol_pct, cargo):
     Encapsulation efficiency (%) based on charge interaction.
     Optimal pKa 6.2-6.8 for nucleic acid condensation at low pH prep conditions.
     """
-    pka_eff = max(0, 1 - abs(pka - 6.5) * 0.3)  # optimal pKa → higher EE
-    il_eff  = min(1.0, il_mol_pct / 50)  # more IL → better condensation
+    pka_eff = max(0, 1 - abs(pka - 6.5) * 0.3)  # optimal pKa -> higher EE
+    il_eff  = min(1.0, il_mol_pct / 50)  # more IL -> better condensation
     base_ee = {'mRNA': 80, 'siRNA': 90, 'ASO': 85, 'DNA': 70}.get(cargo, 80)
     ee = base_ee * pka_eff * il_eff * (0.7 + 0.3 * il_eff)
     return round(min(98, max(20, ee)), 1)
 
-# ── Main ───────────────────────────────────────────────────────────────────────
+# -- Main -----------------------------------------------------------------------
 il_smi  = os.environ.get('PARAM_IL_SMILES','C')
 hl_smi  = os.environ.get('PARAM_HL_SMILES','C')
 cargo   = os.environ.get('PARAM_CARGO','mRNA')
@@ -230,8 +230,8 @@ with open('formulation_predictions.csv','w',newline='') as f:
 
 best = form_rows[0]
 pka_status = 'OPTIMAL (6.2-6.8)' if 6.0 <= il_pka <= 7.0 else \
-             'SUBOPTIMAL — too basic (will not ionize in endosome)' if il_pka > 7.5 else \
-             'SUBOPTIMAL — too acidic (ionized in plasma, toxicity risk)'
+             'SUBOPTIMAL -- too basic (will not ionize in endosome)' if il_pka > 7.5 else \
+             'SUBOPTIMAL -- too acidic (ionized in plasma, toxicity risk)'
 
 recommended = {
     'IL_mol_pct': best['IL_mol_pct'], 'helper_mol_pct': best['helper_mol_pct'],
@@ -255,7 +255,7 @@ with open('lnp_results.json','w') as f:
 
 report = ["=== LNP FORMULATION OPTIMIZATION REPORT ===",
           f"Cargo: {cargo} | Target tissue: {tissue}",
-          f"Ionizable lipid pKa: {il_pka} → {pka_status}",
+          f"Ionizable lipid pKa: {il_pka} -> {pka_status}",
           f"Endosomal escape score: {il_ee_score} (0=poor, 1=excellent)",
           f"Tissue targeting score: {round(tissue_score,2)}","",
           f"Best formulation (IL:helper:Chol:PEG = {best['IL_mol_pct']}:{best['helper_mol_pct']}:{best['chol_mol_pct']}:{best['PEG_mol_pct']}%)",

@@ -64,7 +64,7 @@ def parse_smiles_input(raw):
 
 def predict_caco2_papp(mol, ph=6.8):
     """
-    Predict Caco-2 Papp A→B (×10⁻⁶ cm/s).
+    Predict Caco-2 Papp A->B (x10-6 cm/s).
     QSAR model (Hou et al. 2004 + modifications):
       logPapp = -4.36 + 0.071*logP - 0.017*TPSA - 0.22*HBD + 0.003*(MW-350)*sign
     """
@@ -77,7 +77,7 @@ def predict_caco2_papp(mol, ph=6.8):
     log_papp = -4.36 + 0.071*logp - 0.017*tpsa - 0.22*hbd - 0.003*max(0, mw-350)
     papp_ab = max(0.01, min(50, 10**log_papp * 1e6))
 
-    # B→A efflux prediction (higher for P-gp substrates)
+    # B->A efflux prediction (higher for P-gp substrates)
     pgp_factor = 1.5 + 0.5*(logp > 2) + 0.5*(hba > 5) + 0.5*(mw > 400)
     papp_ba = min(50, papp_ab * pgp_factor)
 
@@ -123,7 +123,7 @@ def bcs_permeability_class(papp_ab):
     if papp_ab >= 2:  return 'MEDIUM'
     return 'LOW'
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles  = os.environ.get('PARAM_SMILES_LIST','["C"]')
 pampa_in    = auto_convert(os.environ.get('PARAM_PAMPA'))
 ph          = auto_convert(os.environ.get('PARAM_PH')) or 6.8
@@ -177,7 +177,7 @@ with open('permeability_results.json','w') as f:
 report = ["=== MEMBRANE PERMEABILITY PREDICTION REPORT ===",
           f"pH donor: {ph} | Compounds: {len(rows)}",""]
 for r in rows:
-    flag = " ← HIGH EFFLUX" if r['efflux_ratio'] > 10 else ""
+    flag = " <- HIGH EFFLUX" if r['efflux_ratio'] > 10 else ""
     report.append(f"  [{r['compound']}] Caco-2 Papp={r['Papp_AB_1e6_cm_s']} | ER={r['efflux_ratio']} | PAMPA={r['PAMPA_Papp_1e6_cm_s']} | BCS={r['BCS_permeability_class']} | Pgp={r['Pgp_substrate']}{flag}")
 with open('permeability_output.txt','w') as f:
     f.write('\n'.join(report))

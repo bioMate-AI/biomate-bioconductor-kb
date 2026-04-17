@@ -69,23 +69,23 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── hERG QSAR model ───────────────────────────────────────────────────────────
+# -- hERG QSAR model -----------------------------------------------------------
 # Aronov 2005 + Sanguinetti & Tristani-Firouzi 2006 physicochemical model
 # Key descriptors: cationic amines, logP, MW, aromatic ring count
-# IC50 prediction uncertainty is large (~1 log unit) — use for risk tier only.
+# IC50 prediction uncertainty is large (~1 log unit) -- use for risk tier only.
 
 NAV15_SMARTS = [
     ('class_I_antiarrhythmic',  'c1ccc(cc1)NC(=O)',           'QRS-widening risk (Na+ channel block)'),
-    ('local_anesthetic_core',   'c1ccc(OCC)cc1',              'Procaine/lidocaine scaffold — Nav1.5 alert'),
+    ('local_anesthetic_core',   'c1ccc(OCC)cc1',              'Procaine/lidocaine scaffold -- Nav1.5 alert'),
     ('2_aminobenzamide',        'Nc1ccccc1C(=O)',             'Flecainide-like Nav1.5 inhibitor scaffold'),
-    ('tertiary_amine_aryl',     '[NX3;!$(NC=O)](c)([#6])[#6]','Tertiary aryl amine — hERG and Nav1.5 risk'),
+    ('tertiary_amine_aryl',     '[NX3;!$(NC=O)](c)([#6])[#6]','Tertiary aryl amine -- hERG and Nav1.5 risk'),
     ('alkylaminophenol',        'c1cc(O)ccc1CC[NH]',          'Beta-blocker-like cardiac scaffold'),
-    ('fluorinated_aryl',        'Fc1ccc(cc1)',                 'Fluorinated aromatic — metabolic stability but Nav check'),
+    ('fluorinated_aryl',        'Fc1ccc(cc1)',                 'Fluorinated aromatic -- metabolic stability but Nav check'),
 ]
 NAV15_PATTERNS = [(name, Chem.MolFromSmarts(s), desc) for name, s, desc in NAV15_SMARTS if Chem.MolFromSmarts(s)]
 
 def estimate_pka_basic(mol):
-    """Proxy pKa for basic nitrogen from descriptor — Mannhold/Cruciani approach."""
+    """Proxy pKa for basic nitrogen from descriptor -- Mannhold/Cruciani approach."""
     amines = mol.GetSubstructMatches(Chem.MolFromSmarts('[NX3;H0,H1,H2;!$(NC=O);!$(Nc)]'))
     if not amines:
         return None
@@ -98,10 +98,10 @@ def estimate_pka_basic(mol):
 
 def predict_herg_ic50(mol, logp, mw, pka):
     """
-    Physicochemical QSAR for hERG IC50 (µM).
+    Physicochemical QSAR for hERG IC50 (uM).
     Based on Aronov 2005 model: log(IC50) ~ a*logP + b*pKa + c*MW + d*rings
 
-    Range: ~0.01–1000 µM. Positive charge at physiological pH is the dominant driver.
+    Range: ~0.01-1000 uM. Positive charge at physiological pH is the dominant driver.
     """
     ring_count = rdMolDescriptors.CalcNumRings(mol)
     hbd = rdMolDescriptors.CalcNumHBD(mol)
@@ -115,14 +115,14 @@ def predict_herg_ic50(mol, logp, mw, pka):
     # Log IC50 model (lower = more potent = higher risk)
     # Calibrated to reproduce published data ranges
     log_ic50 = (
-        -1.2                    # baseline (µM)
+        -1.2                    # baseline (uM)
         - 0.35 * logp           # lipophilicity increases binding
         - 1.0 * cationic_flag   # cationic amine key pharmacophore
         + 0.003 * mw            # MW penalty (large molecules less permeable)
-        - 0.15 * ring_count     # aromatic rings contribute to π-π stacking in cavity
+        - 0.15 * ring_count     # aromatic rings contribute to pi-pi stacking in cavity
         + 0.4 * hbd             # H-bond donors reduce binding (H-bond in water)
     )
-    log_ic50 = max(-2.0, min(3.5, log_ic50))  # clamp to 0.01–3162 µM
+    log_ic50 = max(-2.0, min(3.5, log_ic50))  # clamp to 0.01-3162 uM
     ic50_uM = 10 ** log_ic50
     return round(ic50_uM, 3)
 
@@ -137,7 +137,7 @@ def qtc_risk_from_herg(ic50_uM, cmax_uM, fu_p=0.1):
       >30:     MINIMAL
     """
     if cmax_uM is None or cmax_uM <= 0:
-        cmax_uM = 1.0  # default 1 µM if not provided
+        cmax_uM = 1.0  # default 1 uM if not provided
     free_cmax = cmax_uM * fu_p
     if free_cmax <= 0:
         return None, None, None, None
@@ -162,21 +162,21 @@ def qtc_risk_from_herg(ic50_uM, cmax_uM, fu_p=0.1):
         flag = 'ACCEPTABLE'
     return safety_margin, qtc_risk, qtc_ms_estimate, flag
 
-# ── Cmax estimation from dose ─────────────────────────────────────────────────
+# -- Cmax estimation from dose -------------------------------------------------
 def estimate_cmax_uM(dose_mg, route, mw_g_mol, fu_p):
-    """Rough Cmax estimate (µM): dose/Vd with typical oral F≈0.5."""
+    """Rough Cmax estimate (uM): dose/Vd with typical oral F~0.5."""
     if not dose_mg or mw_g_mol <= 0: return 1.0
     moles = (dose_mg / 1000) / mw_g_mol  # mol
     if route == 'oral':
         f = 0.5  # typical oral F
     else:
         f = 1.0
-    # Vd ~ 0.7 L/kg * 70 kg = 49 L; Cmax ≈ F * dose / Vd
+    # Vd ~ 0.7 L/kg * 70 kg = 49 L; Cmax ~ F * dose / Vd
     vd_L = 49.0
     cmax_M = f * moles / vd_L
-    return cmax_M * 1e6  # µM
+    return cmax_M * 1e6  # uM
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles  = os.environ.get('PARAM_SMILES_LIST', '["C"]')
 meas_ic50   = auto_convert(os.environ.get('PARAM_MEASURED_IC50'))
 fu_p        = auto_convert(os.environ.get('PARAM_FU_P'), 0.1)
@@ -225,13 +225,13 @@ for cid, smi in smiles_pairs:
     # Overall cardiac liability
     nav_risk = len(nav_hits) > 0
     if qtc_risk in ('HIGH',) or (qtc_risk == 'MEDIUM' and nav_risk):
-        cardiac_liability = 'HIGH — in vitro hERG + Nav1.5 follow-up required'
+        cardiac_liability = 'HIGH -- in vitro hERG + Nav1.5 follow-up required'
     elif qtc_risk == 'MEDIUM' or nav_risk:
-        cardiac_liability = 'MEDIUM — hERG patch-clamp + APD assay recommended'
+        cardiac_liability = 'MEDIUM -- hERG patch-clamp + APD assay recommended'
     elif qtc_risk == 'LOW':
-        cardiac_liability = 'LOW — consider TQT study in Phase I protocol'
+        cardiac_liability = 'LOW -- consider TQT study in Phase I protocol'
     else:
-        cardiac_liability = 'MINIMAL — standard cardiac monitoring sufficient'
+        cardiac_liability = 'MINIMAL -- standard cardiac monitoring sufficient'
 
     rec = {
         'compound': cid,
@@ -258,7 +258,7 @@ for cid, smi in smiles_pairs:
         cardiac_liability
     ])
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 with open('herg_risk.json', 'w') as f:
     out = herg_records[0] if len(herg_records) == 1 else herg_records
     json.dump(out, f, indent=2)
@@ -283,11 +283,11 @@ report = ['=== hERG / CARDIAC SAFETY QSAR REPORT ===', '']
 for r in herg_records:
     report += [
         f"Compound {r['compound']}:",
-        f"  hERG IC50:   {r['hERG_IC50_uM']:.2f} µM ({r['IC50_source']})",
+        f"  hERG IC50:   {r['hERG_IC50_uM']:.2f} uM ({r['IC50_source']})",
         f"  Safety margin: {r['safety_margin_hERG_IC50_free_Cmax']}x | QTc risk: {r['QTc_risk']} (est. {r['estimated_QTc_prolongation_ms']} ms)",
         f"  ICH E14 flag: {r['ICH_E14_flag']}",
         f"  Nav1.5 alerts: {', '.join(r['Nav15_alerts']) if r['Nav15_alerts'] else 'none'}",
-        f"  → {r['cardiac_liability']}", ''
+        f"  -> {r['cardiac_liability']}", ''
     ]
 with open('herg_cardiac_output.txt', 'w') as f:
     f.write('\n'.join(report))

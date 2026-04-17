@@ -7,7 +7,7 @@
  * Computes selectivity entropy and Gini index.
  * Covers kinase (468 kinome), GPCR, or nuclear receptor panels.
  *
- * Approach: ChEMBL REST API similarity search → analogous compound activities →
+ * Approach: ChEMBL REST API similarity search -> analogous compound activities ->
  * weighted activity transfer (Tanimoto-weighted kNN regression).
  *
  * Input:  SMILES, target_class
@@ -75,7 +75,7 @@ def morgan_fp(mol, radius=2, n_bits=2048):
 def tanimoto(fp1, fp2):
     return DataStructs.TanimotoSimilarity(fp1, fp2)
 
-# ── ChEMBL similarity search ──────────────────────────────────────────────────
+# -- ChEMBL similarity search --------------------------------------------------
 def chembl_similarity_search(smiles, threshold=0.7, max_results=50):
     """Query ChEMBL REST API for similar compounds."""
     import urllib.parse
@@ -87,7 +87,7 @@ def chembl_similarity_search(smiles, threshold=0.7, max_results=50):
             data = json.loads(resp.read().decode())
             return data.get('molecules', [])
     except Exception as e:
-        print(f"ChEMBL API unavailable: {e} — using fingerprint-based estimation", file=sys.stderr)
+        print(f"ChEMBL API unavailable: {e} -- using fingerprint-based estimation", file=sys.stderr)
         return []
 
 def get_chembl_activities(chembl_ids, target_type='kinase'):
@@ -115,9 +115,9 @@ def get_chembl_activities(chembl_ids, target_type='kinase'):
         print(f"ChEMBL activity fetch failed: {e}", file=sys.stderr)
     return activities
 
-# ── Selectivity metrics ───────────────────────────────────────────────────────
+# -- Selectivity metrics -------------------------------------------------------
 def selectivity_entropy(ic50_values):
-    """Shannon entropy on potency distribution — lower = more selective."""
+    """Shannon entropy on potency distribution -- lower = more selective."""
     pchembl = [9 - math.log10(max(v,0.001)) for v in ic50_values]
     pchembl = [p for p in pchembl if p > 0]
     if not pchembl: return 0
@@ -133,7 +133,7 @@ def gini_index(ic50_values):
     cumsum = np.cumsum(affinities)
     return round(1 - 2*np.sum(cumsum)/(n*cumsum[-1]) + 1/n, 3)
 
-# ── Fallback: descriptor-based kinase/GPCR panel (when API unavailable) ──────
+# -- Fallback: descriptor-based kinase/GPCR panel (when API unavailable) ------
 def descriptor_based_panel(mol, target_class, panel_size):
     """
     Generate synthetic selectivity panel based on fingerprint similarity
@@ -189,7 +189,7 @@ def descriptor_based_panel(mol, target_class, panel_size):
                         'source': 'descriptor_estimate'})
     return results
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles   = os.environ.get('PARAM_SMILES_LIST','["C"]')
 target_class = os.environ.get('PARAM_TARGET_CLASS','kinase')
 panel_size   = os.environ.get('PARAM_PANEL_SIZE','focused_50')
@@ -252,7 +252,7 @@ report = ["=== PROTEOME SELECTIVITY PROFILING REPORT ===",
           f"Target class: {target_class} | Panel: {panel_size}", ""]
 for m in all_metrics:
     report += [f"Compound {m['compound']}:",
-               f"  Gini={m['Gini_index']} | Entropy={m['selectivity_entropy']} → {m['selectivity_verdict']}",
+               f"  Gini={m['Gini_index']} | Entropy={m['selectivity_entropy']} -> {m['selectivity_verdict']}",
                f"  Primary IC50: {m['primary_target_IC50_nM']} nM"]
     if m['off_target_hits']:
         report.append(f"  Off-target hits (<{ic50_thresh}nM): {', '.join(m['off_target_hits'])}")

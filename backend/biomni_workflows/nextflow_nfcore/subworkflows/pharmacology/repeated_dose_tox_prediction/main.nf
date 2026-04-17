@@ -68,18 +68,18 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Structural alert library ──────────────────────────────────────────────────
+# -- Structural alert library --------------------------------------------------
 # (name, SMARTS, organ, severity, mechanism, evidence_count)
 TOX_ALERTS = [
     # Hepatotoxicity
     ('hepatotox_quinone',     'O=C1C=CC(=O)C=C1', 'liver', 'HIGH',   'Redox cycling, GSH depletion',  47),
     ('hepatotox_quinone_imine','O=C1C=CC(=N)C=C1', 'liver', 'HIGH',   'GSH trap, protein adducts',     31),
-    ('hepatotox_nitroarom',   '[N+](=O)[O-]c1ccccc1','liver','HIGH',  'Nitroreduction → reactive amine',28),
-    ('hepatotox_aniline',     'Nc1ccccc1',           'liver','HIGH',   'N-hydroxylation → GSH trap',    52),
+    ('hepatotox_nitroarom',   '[N+](=O)[O-]c1ccccc1','liver','HIGH',  'Nitroreduction -> reactive amine',28),
+    ('hepatotox_aniline',     'Nc1ccccc1',           'liver','HIGH',   'N-hydroxylation -> GSH trap',    52),
     ('hepatotox_thiourea',    'NC(=S)N',             'liver','HIGH',   'Reactive sulfur metabolite',    19),
     ('hepatotox_hydrazine',   'NN',                  'liver','HIGH',   'Reactive electrophile',         23),
     ('hepatotox_thiol',       '[SH]',                'liver','MEDIUM', 'Metal chelation, oxidation',    15),
-    ('hepatotox_epoxide_ar',  'c1cc2c(cc1)CO2',      'liver','HIGH',   'Arene oxide → protein binding', 38),
+    ('hepatotox_epoxide_ar',  'c1cc2c(cc1)CO2',      'liver','HIGH',   'Arene oxide -> protein binding', 38),
     ('hepatotox_furan',       'c1ccoc1',             'liver','HIGH',   'Epoxide reactive metabolite',   41),
     ('hepatotox_coumarin',    'O=c1ccc2ccccc2o1',    'liver','MEDIUM', 'Reactive metabolite (rat)',     12),
     ('hepatotox_ccl4_like',   'ClC(Cl)(Cl)Cl',       'liver','HIGH',   'Free radical hepatotoxin',      9),
@@ -138,11 +138,11 @@ def estimate_noael(organ_hits, mw, logp):
     return {'rat_mg_kg': round(base_noael, 0), 'confidence': 'MEDIUM' if high_count else 'LOW',
             'basis': f'{high_count} HIGH + {med_count} MEDIUM structural alerts'}
 
-# ── Species-specific NOAEL body weight for safety margin ──────────────────────
+# -- Species-specific NOAEL body weight for safety margin ----------------------
 SPECIES_BW = {'rat':0.25,'mouse':0.02,'dog':10,'monkey':7,'human':70}
 HED_EXPONENTS = {'rat':0.33,'mouse':0.33,'dog':0.28,'monkey':0.30}
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles = os.environ.get('PARAM_SMILES_LIST','["C"]')
 species    = os.environ.get('PARAM_SPECIES','rat').lower()
 cmax_nM    = auto_convert(os.environ.get('PARAM_CMAX_NM'))
@@ -177,7 +177,7 @@ for cid, smi in smiles_pairs:
     # Safety margin (if Cmax provided)
     safety_margin = None
     if cmax_nM:
-        # Convert NOAEL mg/kg → plasma Cmax estimate (rough Vd=0.6 L/kg)
+        # Convert NOAEL mg/kg -> plasma Cmax estimate (rough Vd=0.6 L/kg)
         noael_mgkg = noael['rat_mg_kg']
         noael_Cmax_nM = (noael_mgkg * 1e6) / (mw * 0.6)  # rough Vd correction
         safety_margin = round(noael_Cmax_nM / cmax_nM, 1)
@@ -226,7 +226,7 @@ for s in summaries:
         report.append(f"  Organs affected: {', '.join(s['organs_affected'])}")
     report.append(f"  Est. NOAEL (rat): {s['NOAEL_estimate_rat_mg_kg']} mg/kg")
     if s['safety_margin']:
-        report.append(f"  Safety margin: {s['safety_margin']}×")
+        report.append(f"  Safety margin: {s['safety_margin']}x")
     report.append("")
 with open('repeated_dose_tox_output.txt','w') as f:
     f.write('\n'.join(report))

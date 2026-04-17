@@ -4,7 +4,7 @@
  *
  * Scales pharmacokinetic parameters from preclinical species to human using
  * allometric regression (power law), Rule of Exponents (Mahmood), and MLP/
- * brain-weight correction factors. Predicts human CL, Vd, t½ and generates
+ * brain-weight correction factors. Predicts human CL, Vd, t1/2 and generates
  * first-in-human (FIH) dose recommendations (MABEL / MRSD).
  *
  * Input:  JSON array of per-species PK data + optional NOEL for FIH dose
@@ -56,7 +56,7 @@ def auto_convert(val):
     try: return float(val)
     except: return val
 
-# ── Load params ──────────────────────────────────────────────────────────────
+# -- Load params --------------------------------------------------------------
 raw_species   = os.environ.get('PARAM_SPECIES_PK_DATA', '[]')
 human_bw      = float(os.environ.get('PARAM_HUMAN_BW_KG', '70') or 70)
 method        = os.environ.get('PARAM_CORRECTION_METHOD', 'simple') or 'simple'
@@ -69,7 +69,7 @@ except Exception as e:
     print(f"ERROR parsing species_pk_data: {e}", file=sys.stderr)
     species_data = []
 
-# ── Brain weights and MLP per species (Mahmood 2003) ─────────────────────────
+# -- Brain weights and MLP per species (Mahmood 2003) -------------------------
 BRAIN_WEIGHTS = {'mouse':0.0004,'rat':0.002,'dog':0.072,'monkey':0.097,'human':1.35}
 MLP_YEARS     = {'mouse':3.5,'rat':4.5,'dog':20,'monkey':40,'human':93}
 SPECIES_BW    = {'mouse':0.02,'rat':0.25,'dog':10,'monkey':7,'human':70}
@@ -79,11 +79,11 @@ def _fill_defaults(sp):
     name = sp.get('species','').lower()
     if not sp.get('BW_kg') and name in SPECIES_BW:
         sp['BW_kg'] = SPECIES_BW[name]
-    # Compute t½ if missing
+    # Compute t1/2 if missing
     cl = sp.get('CL_mL_min_kg')
     vd = sp.get('Vd_L_kg')
     if cl and vd and not sp.get('t_half_h'):
-        # t½ = 0.693 * Vd(mL/kg) / CL(mL/min/kg) / 60
+        # t1/2 = 0.693 * Vd(mL/kg) / CL(mL/min/kg) / 60
         sp['t_half_h'] = round(0.693 * vd * 1000 / cl / 60, 3)
     return sp
 
@@ -97,17 +97,17 @@ def power_law_regression(bw_list, param_list):
     log_p  = np.log(param_list)
     var_bw = np.var(log_bw)
     if var_bw == 0:
-        return None, None  # all body weights identical — regression undefined
+        return None, None  # all body weights identical -- regression undefined
     b = np.cov(log_bw, log_p)[0,1] / var_bw
     a = np.exp(np.mean(log_p) - b * np.mean(log_bw))
-    # R²
+    # R2
     pred = a * np.array(bw_list)**b
     ss_res = np.sum((np.array(param_list) - pred)**2)
     ss_tot = np.sum((np.array(param_list) - np.mean(param_list))**2)
     r2 = 1 - ss_res/ss_tot if ss_tot > 0 else 1.0
     return a, b, r2
 
-# ── Regression per PK parameter ───────────────────────────────────────────────
+# -- Regression per PK parameter -----------------------------------------------
 bw_vals = [s['BW_kg'] for s in species_data]
 cl_vals = [s['CL_mL_min_kg'] for s in species_data]
 vd_vals = [s['Vd_L_kg'] for s in species_data if s.get('Vd_L_kg')]
@@ -119,8 +119,8 @@ results_vd = power_law_regression(vd_bw, vd_vals) if len(vd_bw) >= 2 else (None,
 a_cl, b_cl, r2_cl = results_cl if len(results_cl)==3 else (results_cl[0], results_cl[1], None)
 a_vd, b_vd, r2_vd = results_vd if len(results_vd)==3 else (results_vd[0], results_vd[1], None)
 
-# ── Correction factor for CL (Rule of Exponents, Mahmood 2003) ───────────────
-# b > 0.71 → no correction; 0.55-0.70 → MLP correction; < 0.55 → brain weight
+# -- Correction factor for CL (Rule of Exponents, Mahmood 2003) ---------------
+# b > 0.71 -> no correction; 0.55-0.70 -> MLP correction; < 0.55 -> brain weight
 correction_applied = 'none'
 if b_cl is not None:
     if method == 'MLP' or (method == 'simple' and b_cl is not None and b_cl < 0.55):
@@ -135,12 +135,12 @@ if b_cl is not None:
         a_cl = a_cl * bw_correction if a_cl else a_cl
         correction_applied = f'brain_weight (factor={bw_correction:.2f})'
 
-# ── Human PK predictions ──────────────────────────────────────────────────────
+# -- Human PK predictions ------------------------------------------------------
 human_cl   = round(a_cl * human_bw**b_cl, 3) if a_cl and b_cl else None
 human_vd   = round(a_vd * human_bw**b_vd, 3) if a_vd and b_vd else None
 human_thalf = round(0.693 * human_vd * 1000 / human_cl / 60, 2) if human_cl and human_vd else None
 
-# ── FIH dose recommendation (FDA 2005 guidance) ───────────────────────────────
+# -- FIH dose recommendation (FDA 2005 guidance) -------------------------------
 # MRSD = NOEL(animal) * body_weight_factor * safety_factor(1/10)
 # HED = animal_dose_mg_kg * (BW_animal/BW_human)^0.33  (FDA Guidance 2005)
 fih = {}
@@ -150,7 +150,7 @@ if noel_raw:
     if primary:
         hed_factor = (primary['BW_kg'] / human_bw) ** 0.33
         hed_mg_kg  = noel_raw * hed_factor
-        mrsd_mg_kg = hed_mg_kg / 10  # 10× safety factor
+        mrsd_mg_kg = hed_mg_kg / 10  # 10x safety factor
         mrsd_total = round(mrsd_mg_kg * human_bw, 1)
         mabel_total = round(mrsd_total / 2, 1)  # MABEL = MRSD/2 (conservative)
         fih = {
@@ -160,11 +160,11 @@ if noel_raw:
             "MRSD_mg_kg": round(mrsd_mg_kg, 3),
             "MRSD_total_mg": mrsd_total,
             "MABEL_total_mg": mabel_total,
-            "basis": "1/10 NOEL × HED conversion (FDA 2005 Guidance)",
+            "basis": "1/10 NOEL x HED conversion (FDA 2005 Guidance)",
             "regulatory_basis": "FDA Guidance 2005: Estimating Maximum Safe Starting Dose in Initial Clinical Trials"
         }
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 # 1. allometric_regression.csv
 with open('allometric_regression.csv', 'w', newline='') as f:
     w = csv.writer(f)
@@ -218,8 +218,8 @@ lines = [
     "--- Human PK Predictions ---",
     f"  CL:   {human_cl} mL/min/kg",
     f"  Vd:   {human_vd} L/kg",
-    f"  t½:   {human_thalf} h",
-    f"  CL allometry: CL = {round(a_cl,4) if a_cl else 'N/A'} × BW^{round(b_cl,3) if b_cl else 'N/A'} (R²={round(r2_cl,3) if r2_cl else 'N/A'})",
+    f"  t1/2:   {human_thalf} h",
+    f"  CL allometry: CL = {round(a_cl,4) if a_cl else 'N/A'} x BW^{round(b_cl,3) if b_cl else 'N/A'} (R2={round(r2_cl,3) if r2_cl else 'N/A'})",
     "",
 ]
 if fih.get("MRSD_total_mg"):
@@ -227,7 +227,7 @@ if fih.get("MRSD_total_mg"):
         "--- First-in-Human Dose ---",
         f"  NOEL (animal): {noel_raw} mg/kg ({fih['primary_species']})",
         f"  HED:           {fih['HED_mg_kg']} mg/kg",
-        f"  MRSD:          {fih['MRSD_total_mg']} mg (1/10 × HED × 70 kg)",
+        f"  MRSD:          {fih['MRSD_total_mg']} mg (1/10 x HED x 70 kg)",
         f"  MABEL:         {fih['MABEL_total_mg']} mg (conservative starting dose)",
     ]
 with open('allometric_scaling_output.txt', 'w') as f:

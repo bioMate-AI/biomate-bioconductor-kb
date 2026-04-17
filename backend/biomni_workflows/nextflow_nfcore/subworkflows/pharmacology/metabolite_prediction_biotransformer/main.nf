@@ -5,7 +5,7 @@
  * Predicts phase I and phase II metabolites of small molecules using
  * SMARTS-based transformation rules (BioTransformer-style).
  *
- * Phase I:  CYP-mediated reactions — aliphatic/aromatic hydroxylation,
+ * Phase I:  CYP-mediated reactions -- aliphatic/aromatic hydroxylation,
  *           N-/O-dealkylation, N-oxidation, epoxidation, sulfoxidation,
  *           reduction (ketone/nitro), hydrolysis (ester/amide).
  * Phase II: UGT glucuronidation, SULT sulfation, NAT acetylation,
@@ -73,7 +73,7 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Reaction SMARTS library (BioTransformer 3.0 rule-derived) ───────────────
+# -- Reaction SMARTS library (BioTransformer 3.0 rule-derived) ---------------
 # Format: (reaction_name, substrate_SMARTS, product_SMARTS, CYP/enzyme, confidence, type)
 PHASE1_RXNS = [
     # Aliphatic hydroxylation
@@ -106,12 +106,12 @@ PHASE1_RXNS = [
      '[#16:1]([CX4])[CX4]',
      '[#16:1](=[O])([CX4])[CX4]',
      'CYP3A4/FMO', 0.70, 'phase1'),
-    # Ester hydrolysis — produces the alcohol/phenol fragment attached to original carbon
+    # Ester hydrolysis -- produces the alcohol/phenol fragment attached to original carbon
     ('ester_hydrolysis',
      '[CX3](=[O])[O:2][#6:3]',
      '[OH:2][#6:3]',
      'CES1/CES2', 0.90, 'phase1'),
-    # Amide hydrolysis — generates free acid
+    # Amide hydrolysis -- generates free acid
     ('amide_hydrolysis',
      '[CX3:1](=[O])[NX3H]',
      '[CX3:1](=[O])[OH]',
@@ -261,7 +261,7 @@ def compute_metabolite(smi, met_type, max_cycles, min_conf):
 
     return all_metabolites
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# -- Main ----------------------------------------------------------------------
 raw_smiles = os.environ.get('PARAM_SMILES', '["C"]')
 met_type   = os.environ.get('PARAM_MET_TYPE', 'phase1_2')
 max_cycles = int(os.environ.get('PARAM_MAX_CYCLES', '2'))
@@ -320,7 +320,7 @@ for cid, smi in smiles_pairs:
         if rt_rows:
             report.append(f"  {rtype}: {len(rt_rows)} metabolite(s)")
             for m in sorted(rt_rows, key=lambda x: -x['confidence'])[:5]:
-                report.append(f"    [{m['reaction']} via {m['enzyme']}, conf={m['confidence']:.2f}] → {m['metabolite_smiles']}")
+                report.append(f"    [{m['reaction']} via {m['enzyme']}, conf={m['confidence']:.2f}] -> {m['metabolite_smiles']}")
     report.append("")
 
 with open('metabolism_output.txt', 'w') as f:

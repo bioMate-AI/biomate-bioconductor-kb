@@ -97,9 +97,9 @@ def parse_plate_data(raw):
                      'is_neg_ctrl': False, 'concentration_uM': None})
     return data
 
-# ── Plate QC metrics ──────────────────────────────────────────────────────────
+# -- Plate QC metrics ----------------------------------------------------------
 def compute_z_factor(pos_signals, neg_signals):
-    """Zhang 1999: Z = 1 - 3*(σpos + σneg) / |µpos - µneg|"""
+    """Zhang 1999: Z = 1 - 3*(sigmapos + sigmaneg) / |upos - uneg|"""
     if len(pos_signals) < 2 or len(neg_signals) < 2:
         return None
     mu_p = np.mean(pos_signals)
@@ -113,7 +113,7 @@ def compute_z_factor(pos_signals, neg_signals):
     return round(float(z), 4)
 
 def compute_signal_window(pos_signals, neg_signals):
-    """Signal window = (µneg - µpos) / pooled SD — assay robustness."""
+    """Signal window = (uneg - upos) / pooled SD -- assay robustness."""
     mu_p = np.mean(pos_signals)
     mu_n = np.mean(neg_signals)
     sd_p = np.std(pos_signals, ddof=1)
@@ -125,8 +125,8 @@ def compute_signal_window(pos_signals, neg_signals):
 
 def normalize_to_pct(signal, mu_pos, mu_neg, direction):
     """
-    Percent inhibition = (µneg - signal) / (µneg - µpos) * 100
-    Percent activation = (signal - µneg) / (µpos - µneg) * 100
+    Percent inhibition = (uneg - signal) / (uneg - upos) * 100
+    Percent activation = (signal - uneg) / (upos - uneg) * 100
     """
     window = mu_neg - mu_pos
     if abs(window) < 1e-10:
@@ -137,7 +137,7 @@ def normalize_to_pct(signal, mu_pos, mu_neg, direction):
         pct = (signal - mu_neg) / window * 100
     return round(float(pct), 2)
 
-# ── Hill equation (4PL) ───────────────────────────────────────────────────────
+# -- Hill equation (4PL) -------------------------------------------------------
 def hill_4pl(c, bottom, top, ec50, hill_coeff):
     """4-parameter logistic: y = Bottom + (Top-Bottom)/(1 + (EC50/x)^n)"""
     return bottom + (top - bottom) / (1 + (ec50 / (c + 1e-12)) ** hill_coeff)
@@ -162,7 +162,7 @@ def fit_dose_response(concentrations, responses):
     except Exception:
         return None
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_data     = os.environ.get('PARAM_PLATE_DATA', 'null')
 hit_thresh   = ac(os.environ.get('PARAM_HIT_THRESH'), 50)
 direction    = os.environ.get('PARAM_DIRECTION', 'inhibition').lower()
@@ -175,7 +175,7 @@ pos_signals  = [r['signal'] for r in plate_data if r.get('is_pos_ctrl')]
 neg_signals  = [r['signal'] for r in plate_data if r.get('is_neg_ctrl')]
 
 if not pos_signals or not neg_signals:
-    print("WARNING: No control wells found — cannot compute Z-factor", file=sys.stderr)
+    print("WARNING: No control wells found -- cannot compute Z-factor", file=sys.stderr)
     pos_signals  = [200.0] * 4
     neg_signals  = [1000.0] * 4
 
@@ -272,7 +272,7 @@ with open('hts_results.json', 'w') as f:
 report = [
     '=== HTS PLATE QC & HIT CALLING REPORT ===', '',
     f"QC Status:       {qc_status}",
-    f"Z' factor:       {z_prime:.3f}  (≥{min_z_prime} = pass)",
+    f"Z' factor:       {z_prime:.3f}  (>={min_z_prime} = pass)",
     f"Signal window:   {signal_win}",
     f"Dynamic range:   {qc_metrics['dynamic_range']}x",
     f"Pos ctrl CV:     {cv_pos}% | Neg ctrl CV: {cv_neg}%",
@@ -287,7 +287,7 @@ report = [
 sorted_hits = sorted(hits, key=lambda h: h['pct'], reverse=True)[:10]
 for h in sorted_hits:
     fit = dr_fits.get(h['compound_id'])
-    ec50_str = f" | EC50={fit['EC50_uM']:.3f} µM" if fit else ''
+    ec50_str = f" | EC50={fit['EC50_uM']:.3f} uM" if fit else ''
     report.append(f"  {h['compound_id']:15s}: {h['pct']:.1f}% inhibition{ec50_str}")
 
 with open('hts_output.txt', 'w') as f:

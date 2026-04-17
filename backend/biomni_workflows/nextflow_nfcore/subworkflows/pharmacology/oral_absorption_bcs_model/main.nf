@@ -77,7 +77,7 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── ESOL solubility model (Delaney 2004) ─────────────────────────────────────
+# -- ESOL solubility model (Delaney 2004) -------------------------------------
 def esol_logS(mol):
     """
     Predicted log10(solubility in mol/L).
@@ -94,12 +94,12 @@ def esol_logS(mol):
 
 def logS_to_ugmL(logS, mw):
     solubility_mol_L = 10**logS
-    return solubility_mol_L * mw * 1000  # µg/mL
+    return solubility_mol_L * mw * 1000  # ug/mL
 
-# ── Caco-2 QSAR (simplified Hou et al. model) ────────────────────────────────
+# -- Caco-2 QSAR (simplified Hou et al. model) --------------------------------
 def predict_caco2(mol):
     """
-    Simplified Caco-2 Papp prediction (×10⁻⁶ cm/s).
+    Simplified Caco-2 Papp prediction (x10-6 cm/s).
     Based on: logPapp = -4.6 + 0.11*logP - 0.012*TPSA - 0.26*HBD
     Rule-based: HIGH > 10e-6, MED 2-10e-6, LOW < 2e-6
     """
@@ -109,21 +109,21 @@ def predict_caco2(mol):
     mw    = Descriptors.MolWt(mol)
 
     log_papp = -4.6 + 0.11*logp - 0.012*tpsa - 0.26*hbd - 0.003*mw
-    papp = 10**(log_papp) * 1e6  # in units of ×10⁻⁶ cm/s
+    papp = 10**(log_papp) * 1e6  # in units of x10-6 cm/s
     papp = max(0.01, min(papp, 50))  # clamp to physiological range
     return round(papp, 2)
 
 def bcs_classify(sol_ugmL, papp_cm_s, mw, dose_mg):
     """
     BCS classification:
-    - High solubility: dose/vol ≤ 250 mL @ pH 1-7.5 → need sol_mg/250 ≤ dose_mg/250
-    - High permeability: Papp > 2×10⁻⁶ cm/s (FDA Guidance 2017)
+    - High solubility: dose/vol <= 250 mL @ pH 1-7.5 -> need sol_mg/250 <= dose_mg/250
+    - High permeability: Papp > 2x10-6 cm/s (FDA Guidance 2017)
     """
-    # High solubility: sol_mg/mL × 250 mL ≥ dose_mg
+    # High solubility: sol_mg/mL x 250 mL >= dose_mg
     sol_mgmL = sol_ugmL / 1000
     high_sol = (sol_mgmL * 250) >= dose_mg
 
-    # High permeability: Papp ≥ 2 × 10⁻⁶ cm/s (FDA threshold)
+    # High permeability: Papp >= 2 x 10-6 cm/s (FDA threshold)
     high_perm = papp_cm_s >= 2.0
 
     if high_sol and high_perm:   return 'I',   'High Sol + High Perm', 'dissolution_not_limiting'
@@ -136,7 +136,7 @@ def dissolution_profile(sol_ugmL, dose_mg, perm_class, fed_fasted='both', formul
     times = list(range(0, 241, 15))  # 0-240 min in 15-min steps
 
     # Dissolution rate constant (k_d) depends on solubility and formulation
-    k_d_base = 0.005 * (sol_ugmL / 100)  # higher sol → faster dissolution
+    k_d_base = 0.005 * (sol_ugmL / 100)  # higher sol -> faster dissolution
     k_d_fasted = k_d_base * 0.8
     k_d_fed    = k_d_base * 1.3
 
@@ -170,10 +170,10 @@ def formulation_recommendation(bcs_class, sol_ugmL, logp, f_pct_fasted):
     if bcs_class == 'II' and logp > 4.5:
         form = 'lipid_based_formulation'
     if f_pct_fasted < 20 and bcs_class in ('II','IV'):
-        rationale += f'; current F estimate {f_pct_fasted}% is too low — ASD predicted to improve to ~{min(80,f_pct_fasted*3)}%'
+        rationale += f'; current F estimate {f_pct_fasted}% is too low -- ASD predicted to improve to ~{min(80,f_pct_fasted*3)}%'
     return form, rationale
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles = os.environ.get('PARAM_SMILES_LIST','["C"]')
 dose_mg    = auto_convert(os.environ.get('PARAM_DOSE_MG')) or 100.0
 sol_in     = auto_convert(os.environ.get('PARAM_SOL_UG_ML'))
@@ -255,11 +255,11 @@ report = ["=== ORAL ABSORPTION & BCS MODEL REPORT ===",""]
 for r in all_results:
     report += [f"Compound {r['compound']}:",
                f"  BCS Class {r['bcs_class']}: {r['bcs_description']}",
-               f"  Solubility: {r['solubility_ugmL']} µg/mL ({r['solubility_source']})",
-               f"  Caco-2 Papp: {r['Caco2_papp']} ×10⁻⁶ cm/s ({r['Caco2_source']})",
+               f"  Solubility: {r['solubility_ugmL']} ug/mL ({r['solubility_source']})",
+               f"  Caco-2 Papp: {r['Caco2_papp']} x10-6 cm/s ({r['Caco2_source']})",
                f"  F% fasted/fed: {r['F_pct_fasted']}% / {r['F_pct_fed']}%",
                f"  Formulation: {r['formulation_recommended']}",
-               f"  → {r['formulation_rationale']}", ""]
+               f"  -> {r['formulation_rationale']}", ""]
 with open('oral_absorption_output.txt','w') as f:
     f.write('\n'.join(report))
 print('\n'.join(report))

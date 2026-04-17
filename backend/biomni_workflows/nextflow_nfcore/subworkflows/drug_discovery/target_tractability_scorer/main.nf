@@ -75,8 +75,8 @@ def auto_int(v, default=None):
     try: return int(float(v))
     except: return default
 
-# ── Protein class tractability (Llabres 2019 + OpenTargets framework) ─────────
-# Scores 0–1 for small molecule (SM) and biologic (BIO) tractability
+# -- Protein class tractability (Llabres 2019 + OpenTargets framework) ---------
+# Scores 0-1 for small molecule (SM) and biologic (BIO) tractability
 
 SM_CLASS_SCORES = {
     'kinase':           0.95,
@@ -119,11 +119,11 @@ BIO_CLASS_SCORES = {
     'unknown':          0.50,
 }
 
-# ── Pocket druggability scoring (Edfeldt 2011 / fpocket heuristics) ───────────
+# -- Pocket druggability scoring (Edfeldt 2011 / fpocket heuristics) -----------
 def pocket_score_from_volume(vol_A3, has_crystal, has_ligand):
     """
-    Druggability score 0–1 from pocket volume.
-    Optimal pocket: 300–1000 Å³, hydrophobic, well-defined.
+    Druggability score 0-1 from pocket volume.
+    Optimal pocket: 300-1000 A3, hydrophobic, well-defined.
     Very large (>1500) or small (<100) = poor druggability.
     """
     if vol_A3 is None:
@@ -142,7 +142,7 @@ def pocket_score_from_volume(vol_A3, has_crystal, has_ligand):
     elif vol_A3 < 2500:
         base = 0.55
     else:
-        base = 0.30  # too large — flat/open binding site
+        base = 0.30  # too large -- flat/open binding site
 
     # Bonuses
     if has_crystal:
@@ -151,7 +151,7 @@ def pocket_score_from_volume(vol_A3, has_crystal, has_ligand):
         base = min(1.0, base + 0.08)
     return round(base, 3)
 
-# ── ChEMBL data density proxy ─────────────────────────────────────────────────
+# -- ChEMBL data density proxy -------------------------------------------------
 def chembl_tractability(n_compounds, has_crystal):
     """
     TDL-based tractability from compound count.
@@ -176,7 +176,7 @@ def tdl_from_chembl(n_compounds):
     if n_compounds < 100: return 'Tchem'
     return 'Tclin'
 
-# ── Overall tractability score ────────────────────────────────────────────────
+# -- Overall tractability score ------------------------------------------------
 # Weighted combination: class=0.35, pocket=0.30, chembl=0.25, disease=0.10
 def compute_tractability(class_score, pocket_score, chembl_score, disease_score):
     weights = {'class': 0.35, 'pocket': 0.30, 'chembl': 0.25, 'disease': 0.10}
@@ -189,13 +189,13 @@ def compute_tractability(class_score, pocket_score, chembl_score, disease_score)
     )
 
 def tractability_tier(score):
-    if score >= 0.80: return 'HIGH — Primary target recommendation'
-    if score >= 0.65: return 'MEDIUM-HIGH — Strong follow-up candidate'
-    if score >= 0.50: return 'MEDIUM — Consider with backup target'
-    if score >= 0.35: return 'LOW — Challenging; specialised approaches needed'
-    return 'VERY LOW — Unlikely tractable by conventional means'
+    if score >= 0.80: return 'HIGH -- Primary target recommendation'
+    if score >= 0.65: return 'MEDIUM-HIGH -- Strong follow-up candidate'
+    if score >= 0.50: return 'MEDIUM -- Consider with backup target'
+    if score >= 0.35: return 'LOW -- Challenging; specialised approaches needed'
+    return 'VERY LOW -- Unlikely tractable by conventional means'
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 target_name  = os.environ.get('PARAM_TARGET', 'unknown')
 uniprot_id   = os.environ.get('PARAM_UNIPROT', '')
 prot_class   = os.environ.get('PARAM_CLASS', 'unknown').lower().replace(' ','_').replace('-','_')
@@ -236,19 +236,19 @@ opportunities = []
 if prot_class in ('ppi', 'transcription_factor'):
     challenges.append('PPI/TF targets require fragment-based or macrocyclic approaches')
 if pocket_vol and pocket_vol > 2000:
-    challenges.append('Large pocket — consider PROTACs or degrader strategies')
+    challenges.append('Large pocket -- consider PROTACs or degrader strategies')
 if pocket_vol and pocket_vol < 200:
-    challenges.append('Small/shallow pocket — limited to covalent or allosteric approaches')
+    challenges.append('Small/shallow pocket -- limited to covalent or allosteric approaches')
 if chembl_count is not None and chembl_count == 0:
-    challenges.append('No known ligands — high chemical biology risk, phenotypic approaches may be needed')
+    challenges.append('No known ligands -- high chemical biology risk, phenotypic approaches may be needed')
 if has_crystal:
-    opportunities.append('Crystal structure available — structure-based drug design feasible')
+    opportunities.append('Crystal structure available -- structure-based drug design feasible')
 if has_ligand:
-    opportunities.append('Endogenous ligand known — template for starting point')
+    opportunities.append('Endogenous ligand known -- template for starting point')
 if prot_class in ('kinase', 'gpcr', 'nuclear_receptor'):
-    opportunities.append(f'{prot_class.upper()} target class — well-understood pharmacology, known binders')
+    opportunities.append(f'{prot_class.upper()} target class -- well-understood pharmacology, known binders')
 if tdl in ('Tchem', 'Tclin'):
-    opportunities.append(f'ChEMBL TDL {tdl} — validated binding pocket, chemical matter available')
+    opportunities.append(f'ChEMBL TDL {tdl} -- validated binding pocket, chemical matter available')
 
 score_rec = {
     'target': target_name,
@@ -292,11 +292,11 @@ score_rec = {
 evidence_rows = [
     ['dimension', 'value', 'score', 'weight_in_SM', 'note'],
     ['Protein class', prot_class, sm_class_score, 0.35, f'From {len(SM_CLASS_SCORES)}-class lookup table'],
-    ['Pocket druggability', f'{pocket_vol} Å³' if pocket_vol else 'unknown', pocket_sc, 0.30,
+    ['Pocket druggability', f'{pocket_vol} A3' if pocket_vol else 'unknown', pocket_sc, 0.30,
      'Volume heuristic (Edfeldt 2011)' if pocket_ds is None else 'User-provided score'],
     ['ChEMBL data density', f'{chembl_count} compounds' if chembl_count is not None else 'unknown', chembl_sc, 0.25,
      f'TDL: {tdl}'],
-    ['Disease association', disease_sc, disease_sc, 0.10, 'OpenTargets-scale (0–1)'],
+    ['Disease association', disease_sc, disease_sc, 0.10, 'OpenTargets-scale (0-1)'],
     ['OVERALL SM tractability', '', sm_total, 1.0, sm_tier],
     ['OVERALL biologic tractability', '', bio_total, 1.0, bio_tier],
 ]
@@ -316,19 +316,19 @@ report = [
     f'=== TARGET TRACTABILITY SCORER: {target_name} ({uniprot_id}) ===', '',
     f'Protein class:    {prot_class.upper()} | TDL: {tdl}',
     f'Crystal struct:   {"YES" if has_crystal else "NO"} | Endogenous ligand: {"YES" if has_ligand else "NO"}',
-    f'Pocket volume:    {pocket_vol} Å³' if pocket_vol else 'Pocket volume:    unknown',
+    f'Pocket volume:    {pocket_vol} A3' if pocket_vol else 'Pocket volume:    unknown',
     f'ChEMBL compounds: {chembl_count if chembl_count is not None else "unknown"}', '',
-    f'SMALL MOLECULE:   {sm_total:.2f} — {sm_tier}',
-    f'BIOLOGIC:         {bio_total:.2f} — {bio_tier}', '',
-    f'→ {modality_rec}', '',
+    f'SMALL MOLECULE:   {sm_total:.2f} -- {sm_tier}',
+    f'BIOLOGIC:         {bio_total:.2f} -- {bio_tier}', '',
+    f'-> {modality_rec}', '',
     'Opportunities:',
 ]
 for o in opportunities:
-    report.append(f'  ✓ {o}')
+    report.append(f'  OK {o}')
 if challenges:
     report.append('Challenges:')
     for c in challenges:
-        report.append(f'  ⚠ {c}')
+        report.append(f'  WARNING {c}')
 
 with open('tractability_output.txt', 'w') as f:
     f.write('\n'.join(report))

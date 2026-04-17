@@ -92,14 +92,14 @@ def auto_convert(v, default=None):
 
 def to_bool(v): return str(v).lower() in ('true','1','yes')
 
-# ── Load params ───────────────────────────────────────────────────────────────
+# -- Load params ---------------------------------------------------------------
 smi    = os.environ.get('PARAM_SMILES','C')
 mw_in  = auto_convert(os.environ.get('PARAM_MW'))
 logp_in = auto_convert(os.environ.get('PARAM_LOGP'))
 pka    = auto_convert(os.environ.get('PARAM_PKA'), 7.0)
 fu_p   = auto_convert(os.environ.get('PARAM_FU_PLASMA'), 0.1)
 fu_m   = auto_convert(os.environ.get('PARAM_FU_MIC'), 0.3)
-clint  = auto_convert(os.environ.get('PARAM_CLINT'), 20)     # µL/min/mg protein
+clint  = auto_convert(os.environ.get('PARAM_CLINT'), 20)     # uL/min/mg protein
 renal_cl = auto_convert(os.environ.get('PARAM_RENAL_CL'), 0) # mL/min
 oatp   = to_bool(os.environ.get('PARAM_OATP','false'))
 pgp    = to_bool(os.environ.get('PARAM_PGP','false'))
@@ -118,7 +118,7 @@ if RDKIT and smi:
 mw   = mw_in  or 300.0
 logp = logp_in or 2.0
 
-# ── Physiological parameters per population (Willmann 2003) ──────────────────
+# -- Physiological parameters per population (Willmann 2003) ------------------
 PHYSIOLOGY = {
     'healthy_adult': {
         'BW_kg':70, 'Vliver_L':1.69, 'Vblood_L':5.6, 'Vkidney_L':0.28,
@@ -153,7 +153,7 @@ PHYSIOLOGY = {
 
 phys = PHYSIOLOGY.get(pop, PHYSIOLOGY['healthy_adult'])
 
-# ── Tissue distribution (Rodgers & Rowland method, simplified) ───────────────
+# -- Tissue distribution (Rodgers & Rowland method, simplified) ---------------
 def Kp_tissue(tissue_type, logp, pka, fu_plasma, acid_base='neutral'):
     """
     Simplified Kp (tissue:plasma ratio) using lipophilicity correlation.
@@ -170,20 +170,20 @@ def Kp_tissue(tissue_type, logp, pka, fu_plasma, acid_base='neutral'):
     fu_t = max(0.01, fu_plasma * 1.2)  # slightly higher unbound in tissue
     return max(0.01, kp)
 
-# ── Hepatic clearance (well-stirred model) ────────────────────────────────────
+# -- Hepatic clearance (well-stirred model) ------------------------------------
 def hepatic_CL(clint_uL_min_mg, fu_mic, fu_plasma, Vliver_L, Qliver_L_h, MPPGL, cl_factor):
     """
     CL_int,u = CLint / fu_mic
     CL_hep = Q_liver * fu_plasma * CL_int,u / (Q_liver + fu_plasma * CL_int,u)
     """
-    mppg_total = MPPGL * 1000 * 0.85 / 1000  # mg microsomal protein per g liver × liver weight
+    mppg_total = MPPGL * 1000 * 0.85 / 1000  # mg microsomal protein per g liver x liver weight
     clint_scaled = clint_uL_min_mg * mppg_total * 60 / 1000  # mL/h
     fu_adj = fu_plasma / fu_mic
     ql_mL_h = Qliver_L_h * 1000
     clh = ql_mL_h * fu_adj * clint_scaled / (ql_mL_h + fu_adj * clint_scaled)
     return clh * cl_factor  # mL/h
 
-# ── 8-compartment PBPK ODE ────────────────────────────────────────────────────
+# -- 8-compartment PBPK ODE ----------------------------------------------------
 Kp_liver  = Kp_tissue('liver',   logp, pka, fu_p)
 Kp_kidney = Kp_tissue('kidney',  logp, pka, fu_p)
 Kp_lung   = Kp_tissue('lung',    logp, pka, fu_p)
@@ -198,8 +198,8 @@ CL_ren = renal_cl * 60 * phys['cl_renal_factor']  # mL/h
 oatp_factor = 3.0 if oatp else 1.0
 CL_hep *= oatp_factor
 
-# Convert dose to µg/mL assuming Vblood distribution
-dose_ug = dose * 1000  # µg
+# Convert dose to ug/mL assuming Vblood distribution
+dose_ug = dose * 1000  # ug
 ka = phys['ka_h']
 
 Vliver  = phys['Vliver_L'] * 1000   # mL
@@ -285,17 +285,17 @@ if not sol.success:
     Cliver_arr  = np.zeros(len(t_eval))
     Ckidney_arr = np.zeros(len(t_eval))
 else:
-    Cblood_arr  = sol.y[2] / Vblood    # µg/mL
+    Cblood_arr  = sol.y[2] / Vblood    # ug/mL
     Cliver_arr  = sol.y[3] / Vliver
     Ckidney_arr = sol.y[5] / Vkidney
 
-# ── NCA parameters ─────────────────────────────────────────────────────────────
+# -- NCA parameters -------------------------------------------------------------
 def nca(t, cp, dose_ug, mw):
     cp = np.maximum(0, cp)
-    auc  = float(np.trapz(cp, t))  # µg/mL·h
+    auc  = float(np.trapz(cp, t))  # ug/mL*h
     cmax = float(cp.max())
     tmax = float(t[np.argmax(cp)])
-    # t½ from terminal slope
+    # t1/2 from terminal slope
     terminal = cp[cp > 0.05*cmax]
     t_term   = t[cp > 0.05*cmax]
     if len(terminal) > 3:
@@ -305,7 +305,7 @@ def nca(t, cp, dose_ug, mw):
         thalf    = round(-math.log(2)/slope, 2) if slope < 0 else None
     else:
         thalf = None
-    cl_f = round(dose_ug / auc / 1000, 3) if auc > 0 else None  # L/h (dose in µg, AUC in µg/mL·h)
+    cl_f = round(dose_ug / auc / 1000, 3) if auc > 0 else None  # L/h (dose in ug, AUC in ug/mL*h)
     return {
         'AUCinf_ugh_mL': round(auc,1), 'Cmax_ug_mL': round(cmax,3),
         'tmax_h': round(tmax,2), 't_half_h': thalf,
@@ -314,7 +314,7 @@ def nca(t, cp, dose_ug, mw):
 
 nca_params = nca(sol.t, Cblood_arr, dose_ug, mw)
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 with open('pk_profile.csv','w',newline='') as f:
     w = csv.writer(f)
     w.writerow(['time_h','Cp_blood_ug_mL','Ct_liver_ug_g','Ct_kidney_ug_g'])
@@ -325,7 +325,7 @@ with open('pk_profile.csv','w',newline='') as f:
 with open('nca_parameters.json','w') as f:
     json.dump({**nca_params, 'population': pop, 'dose_mg': dose, 'route': route}, f, indent=2)
 
-# DDI fold change placeholder (perpetrator not specified — CYP effect on CL)
+# DDI fold change placeholder (perpetrator not specified -- CYP effect on CL)
 ddi = {'note': 'No perpetrator SMILES provided; DDI assessment requires perpetrator input',
        'CL_hep_mL_h': round(CL_hep,1), 'OATP1B1_substrate': oatp,
        'AUC_ratio': round(1/max(0.1, fu_p)*0.5, 2) if oatp else 1.0}
@@ -339,14 +339,14 @@ with open('pbpk_results.json','w') as f:
 
 report = [f"=== PBPK SIMULATION REPORT ({pop}) ===",
           f"Compound: {smi}",
-          f"MW={round(mw,1)} | logP={round(logp,2)} | fu_plasma={fu_p} | CLint={clint} µL/min/mg",
+          f"MW={round(mw,1)} | logP={round(logp,2)} | fu_plasma={fu_p} | CLint={clint} uL/min/mg",
           f"Dose: {dose} mg ({route})",
           "",
           f"PK Results:",
-          f"  Cmax:    {nca_params['Cmax_ug_mL']} µg/mL",
+          f"  Cmax:    {nca_params['Cmax_ug_mL']} ug/mL",
           f"  tmax:    {nca_params['tmax_h']} h",
-          f"  AUCinf:  {nca_params['AUCinf_ugh_mL']} µg·h/mL",
-          f"  t½:      {nca_params['t_half_h']} h",
+          f"  AUCinf:  {nca_params['AUCinf_ugh_mL']} ug*h/mL",
+          f"  t1/2:      {nca_params['t_half_h']} h",
           f"  CL/F:    {nca_params['CL_F_L_h']} L/h",
           "",
           f"Hepatic CL: {round(CL_hep,1)} mL/h | Renal CL: {round(CL_ren,1)} mL/h"]

@@ -2,14 +2,14 @@
 /*
  * drug_discovery/clinical_trial_simulation
  *
- * Simulates Phase I–II clinical trials using PopPK parameters and
+ * Simulates Phase I-II clinical trials using PopPK parameters and
  * exposure-response relationships. Supports adaptive dose escalation
  * (3+3 design and BOIN-equivalent algorithm) and Phase II population
  * simulations with virtual patient inter-individual variability.
  *
  * BOIN algorithm: Liu & Yuan (2015) BOIN design. Implemented in Python
  * to avoid R dependency for Batch execution.
- * PopPK: 1-compartment with log-normal IIV (CLi = CL * exp(ηCL)).
+ * PopPK: 1-compartment with log-normal IIV (CLi = CL * exp(etaCL)).
  *
  * Input:  dose escalation design + PK params + ER model
  * Output: dose_escalation_results.csv, BOIN_decision_table.json,
@@ -91,7 +91,7 @@ def auto_convert(v, default=None):
     try: return float(v)
     except: return default
 
-# ── Load params ───────────────────────────────────────────────────────────────
+# -- Load params ---------------------------------------------------------------
 start_dose   = auto_convert(os.environ.get('PARAM_START_DOSE'), 10)
 max_dose     = auto_convert(os.environ.get('PARAM_MAX_DOSE'), 400)
 dose_levels  = json.loads(os.environ.get('PARAM_DOSE_LEVELS','[10,20,40,80,150,300,400]'))
@@ -115,19 +115,19 @@ p2_thresh    = auto_convert(os.environ.get('PARAM_P2_THRESH'), 0.3)
 
 rng = np.random.default_rng(42)
 
-# ── PK model: 1-compartment oral ─────────────────────────────────────────────
+# -- PK model: 1-compartment oral ---------------------------------------------
 def simulate_pk(dose_mg, CL, Vd, ka, t_eval):
     """1-compartment: Cp(t) = (F*dose/Vd) * ka/(ka-ke) * (exp(-ke*t) - exp(-ka*t))"""
     ke = CL / Vd
     F  = 0.8  # bioavailability
-    dose_mg_L = dose_mg * 1e-3  # mg → g → divide by Vd in L → g/L = mg/L = µg/mL
+    dose_mg_L = dose_mg * 1e-3  # mg -> g -> divide by Vd in L -> g/L = mg/L = ug/mL
     if abs(ka - ke) < 1e-6:
         ka = ke * 1.001
     cp = (F * dose_mg_L * 1000 / Vd) * ka / (ka - ke) * (np.exp(-ke*t_eval) - np.exp(-ka*t_eval))
-    return np.maximum(0, cp)  # µg/mL
+    return np.maximum(0, cp)  # ug/mL
 
 def dose_to_AUC(dose_mg, CL, F=0.8):
-    return F * dose_mg / CL  # µg/mL·h = mg/L·h
+    return F * dose_mg / CL  # ug/mL*h = mg/L*h
 
 def AUC_to_Cmax(auc, t_half):
     return auc / t_half  # rough estimate
@@ -136,9 +136,9 @@ def pk_to_Cmax_nM(dose_mg, CL, Vd, ka, mw=300):
     t_eval = np.linspace(0, 48, 500)
     cp = simulate_pk(dose_mg, CL, Vd, ka, t_eval)
     cmax_ugmL = float(cp.max())
-    return cmax_ugmL * 1e3 / mw * 1e3  # µg/mL → µmol/L → nM (MW in Da, rough 300 for typical drug)
+    return cmax_ugmL * 1e3 / mw * 1e3  # ug/mL -> umol/L -> nM (MW in Da, rough 300 for typical drug)
 
-# ── Exposure-response model ───────────────────────────────────────────────────
+# -- Exposure-response model ---------------------------------------------------
 def predict_DLT(Cmax_nM, EC50=EC50_nM, Emax=Emax, E0=E0, model='Emax'):
     if model == 'Emax':
         effect = E0 + Emax * Cmax_nM / (EC50 + Cmax_nM)
@@ -150,7 +150,7 @@ def predict_efficacy(Cmax_nM, EC50=EC50_nM*0.5, Emax=0.8, E0=0.05):
     """Efficacy response: lower EC50 (more potent effect window)."""
     return min(0.99, E0 + Emax * Cmax_nM / (EC50 + Cmax_nM))
 
-# ── BOIN dose escalation algorithm (Liu & Yuan 2015) ─────────────────────────
+# -- BOIN dose escalation algorithm (Liu & Yuan 2015) -------------------------
 def boin_boundaries(phi, epsilon1=0.1, epsilon2=0.1):
     """Compute BOIN lambda_e (escalate) and lambda_d (de-escalate) thresholds."""
     lambda_e = phi - epsilon1 * phi
@@ -233,7 +233,7 @@ def simulate_3plus3(dose_levels, true_DLT_probs):
 
     return mtd_idx, n_per_level, dlt_per_level
 
-# ── Generate true DLT probability curve from ER model ─────────────────────────
+# -- Generate true DLT probability curve from ER model -------------------------
 true_DLT_probs = []
 for d in dose_levels:
     if d > max_dose: break
@@ -245,7 +245,7 @@ for d in dose_levels:
 
 doses_to_use = [d for d in dose_levels if d <= max_dose][:len(true_DLT_probs)]
 
-# ── Run n_sim simulations ─────────────────────────────────────────────────────
+# -- Run n_sim simulations -----------------------------------------------------
 mtd_counts    = {i:0 for i in range(len(doses_to_use))}
 mtd_counts[-1] = 0  # under-dosing
 n_sim_use = min(n_sim, 2000)  # cap for compute
@@ -257,14 +257,14 @@ for _ in range(n_sim_use):
         mtd_idx, np_l, dlt_l = simulate_3plus3(doses_to_use, true_DLT_probs)
     mtd_counts[mtd_idx] = mtd_counts.get(mtd_idx, 0) + 1
 
-# True MTD: highest dose with DLT rate ≤ target
+# True MTD: highest dose with DLT rate <= target
 true_mtd_idx = max([i for i,p in enumerate(true_DLT_probs) if p <= dlt_target], default=0)
 
 P_correct_MTD  = mtd_counts.get(true_mtd_idx, 0) / n_sim_use
 P_underdosing  = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx)) / n_sim_use
 P_overdosing   = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx+1, len(doses_to_use))) / n_sim_use
 
-# ── Dose escalation summary table ────────────────────────────────────────────
+# -- Dose escalation summary table --------------------------------------------
 esc_rows = []
 for i, (dose, true_dlt) in enumerate(zip(doses_to_use, true_DLT_probs)):
     CL_i = CL_pop; Vd_i = Vd_pop
@@ -279,11 +279,11 @@ for i, (dose, true_dlt) in enumerate(zip(doses_to_use, true_DLT_probs)):
 lambda_e, lambda_d = boin_boundaries(dlt_target)
 boin_table = {
     'target_DLT_rate': dlt_target, 'lambda_escalate': lambda_e, 'lambda_deescalate': lambda_d,
-    'rule': f'If DLT/n ≤ {lambda_e}: escalate | If DLT/n ≥ {lambda_d}: de-escalate | else: stay',
+    'rule': f'If DLT/n <= {lambda_e}: escalate | If DLT/n >= {lambda_d}: de-escalate | else: stay',
     'design': design
 }
 
-# ── Phase II simulation ────────────────────────────────────────────────────────
+# -- Phase II simulation --------------------------------------------------------
 p2_results = []
 for dose_mg in [p2_dose, p2_dose*0.5, p2_dose*2.0]:
     if dose_mg > max_dose * 1.1: continue
@@ -311,7 +311,7 @@ for dose_mg in [p2_dose, p2_dose*0.5, p2_dose*2.0]:
 best_p2 = max(p2_results, key=lambda x: x['P_success']) if p2_results else {}
 recommended_p2_dose = best_p2.get('dose_mg', p2_dose)
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 with open('dose_escalation_results.csv','w',newline='') as f:
     w = csv.DictWriter(f, fieldnames=['dose_level','dose_mg','true_DLT_rate','Cmax_nM_median',
                                        'P_dose_selected_pct','predicted_efficacy'])

@@ -65,7 +65,7 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Transporter substrate/inhibitor models ────────────────────────────────────
+# -- Transporter substrate/inhibitor models ------------------------------------
 # Based on physicochemical rules from literature meta-analyses.
 # Each model returns (substrate_prob, inhibitor_IC50_uM_predicted)
 
@@ -163,9 +163,9 @@ def charge_state(mol):
 def fda_basic_ddi(cmax_uM, inh_ic50_uM, threshold_r, clinical_threshold):
     """
     FDA Basic Model (static): R = 1 + Imax,u / IC50
-    Imax,u ≈ Cmax_u (unbound plasma at portal entry).
-    Trigger for in vitro study: R ≥ threshold.
-    Trigger for clinical study: Imax,u / IC50 ≥ clinical_threshold.
+    Imax,u ~ Cmax_u (unbound plasma at portal entry).
+    Trigger for in vitro study: R >= threshold.
+    Trigger for clinical study: Imax,u / IC50 >= clinical_threshold.
     """
     if cmax_uM is None or inh_ic50_uM is None:
         return None, 'unknown', 'insufficient_data'
@@ -182,7 +182,7 @@ def fda_basic_ddi(cmax_uM, inh_ic50_uM, threshold_r, clinical_threshold):
 
     return round(R, 3), fda_recommendation, round(ratio, 4)
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 raw_smiles  = os.environ.get('PARAM_SMILES_LIST','["C"]')
 cmax_uM     = auto_convert(os.environ.get('PARAM_CMAX_UM')) or 1.0
 transporters_param = os.environ.get('PARAM_TRANSPORTERS','all')
@@ -269,11 +269,11 @@ with open('transporter_ddi_results.json','w') as f:
     json.dump(summary, f, indent=2)
 
 report = ["=== TRANSPORTER DDI PREDICTION REPORT ===",
-          f"Compound Cmax (unbound): {cmax_uM} µM  |  Transporters assessed: {', '.join(selected_transporters)}", ""]
+          f"Compound Cmax (unbound): {cmax_uM} uM  |  Transporters assessed: {', '.join(selected_transporters)}", ""]
 for r in regulatory_compounds:
     report.append(f"Compound {r['compound']} [{r['charge_state']}]:")
     if r['requires_clinical_DDI_study']:
-        report.append(f"  ⚠ CLINICAL DDI required: {', '.join(r['requires_clinical_DDI_study'])}")
+        report.append(f"  WARNING CLINICAL DDI required: {', '.join(r['requires_clinical_DDI_study'])}")
     if r['requires_in_vitro_study']:
         report.append(f"  In vitro study required: {', '.join(r['requires_in_vitro_study'])}")
     if r['no_action_required']:

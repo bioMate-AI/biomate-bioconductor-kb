@@ -65,29 +65,29 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── DART structural alert library ────────────────────────────────────────────
+# -- DART structural alert library --------------------------------------------
 # (name, SMARTS, mechanism, severity: HIGH/MEDIUM/LOW, evidence)
 DART_ALERTS = [
     # Teratogens / embryotoxins
     ('thalidomide_glutarimide', 'O=C1CCC(=O)N1', 'thalidomide-type glutarimide ring', 'HIGH', 'ICH S5; thalidomide class'),
-    ('nitrosamine', 'N-N=O', 'DNA alkylation → embryotoxicity', 'HIGH', 'ICH M7 / DART alert'),
-    ('aromatic_amine_primary', 'c1ccccc1N', 'hydroxylamine metabolite → DNA damage', 'HIGH', 'ICH M7 adapted'),
-    ('epoxide_reactive', 'C1OC1', 'epoxide alkylating agent → embryotoxicity', 'HIGH', 'OECD QSAR DART'),
+    ('nitrosamine', 'N-N=O', 'DNA alkylation -> embryotoxicity', 'HIGH', 'ICH M7 / DART alert'),
+    ('aromatic_amine_primary', 'c1ccccc1N', 'hydroxylamine metabolite -> DNA damage', 'HIGH', 'ICH M7 adapted'),
+    ('epoxide_reactive', 'C1OC1', 'epoxide alkylating agent -> embryotoxicity', 'HIGH', 'OECD QSAR DART'),
     ('michael_acceptor', 'C=CC(=O)', 'covalent protein/DNA modification', 'HIGH', 'EPA DSSTox DART'),
-    ('azide_reactive', '[N-]=[N+]=N', 'reactive nitrogen → reproductive toxicity', 'HIGH', 'OECD QSAR DART'),
+    ('azide_reactive', '[N-]=[N+]=N', 'reactive nitrogen -> reproductive toxicity', 'HIGH', 'OECD QSAR DART'),
     # Reproductive toxins
-    ('antimetabolite_folate', 'c1cnc(N)nc1N', 'folate antagonism → neural tube defects', 'HIGH', 'methotrexate class'),
-    ('heavy_metal_chelator', 'SCC(N)C(=O)O', 'metal chelation → reproductive toxicity', 'MEDIUM', 'RepDose DB'),
-    ('peroxide_organic', 'OO', 'oxidative stress → germ cell toxicity', 'MEDIUM', 'EPA DART'),
-    ('halogenated_aromatic', 'c1ccccc1[F,Cl,Br,I]', 'halogenated aromatic → endocrine disruption', 'MEDIUM', 'EPA EDC DART'),
+    ('antimetabolite_folate', 'c1cnc(N)nc1N', 'folate antagonism -> neural tube defects', 'HIGH', 'methotrexate class'),
+    ('heavy_metal_chelator', 'SCC(N)C(=O)O', 'metal chelation -> reproductive toxicity', 'MEDIUM', 'RepDose DB'),
+    ('peroxide_organic', 'OO', 'oxidative stress -> germ cell toxicity', 'MEDIUM', 'EPA DART'),
+    ('halogenated_aromatic', 'c1ccccc1[F,Cl,Br,I]', 'halogenated aromatic -> endocrine disruption', 'MEDIUM', 'EPA EDC DART'),
     # Endocrine disruptors
-    ('bisphenol_like', 'Oc1ccc(cc1)C(c2ccc(O)cc2)', 'estrogenic bisphenol → reproductive toxicity', 'HIGH', 'REACH SVHC'),
-    ('phthalate_ester', 'C(=O)OCC', 'PPAR-α agonism → testicular toxicity', 'MEDIUM', 'DART/reproductive toxin'),
-    ('steroid_skeleton', 'C1CC2CCCC3CC1(CC23)', 'steroidal structure → hormone disruption', 'MEDIUM', 'endocrine DART'),
+    ('bisphenol_like', 'Oc1ccc(cc1)C(c2ccc(O)cc2)', 'estrogenic bisphenol -> reproductive toxicity', 'HIGH', 'REACH SVHC'),
+    ('phthalate_ester', 'C(=O)OCC', 'PPAR-alpha agonism -> testicular toxicity', 'MEDIUM', 'DART/reproductive toxin'),
+    ('steroid_skeleton', 'C1CC2CCCC3CC1(CC23)', 'steroidal structure -> hormone disruption', 'MEDIUM', 'endocrine DART'),
     # Lower concern
     ('acrylamide', 'C=CC(N)=O', 'nerve/germ cell toxicity', 'MEDIUM', 'IARC 2A; EFSA DART'),
     ('quinone', 'O=C1C=CC(=O)C=C1', 'oxidative stress', 'MEDIUM', 'OECD QSAR'),
-    ('formaldehyde_releaser', 'OCN', 'in situ formaldehyde → DNA damage', 'LOW', 'OECD QSAR adapted'),
+    ('formaldehyde_releaser', 'OCN', 'in situ formaldehyde -> DNA damage', 'LOW', 'OECD QSAR adapted'),
 ]
 
 def check_alerts(mol):
@@ -146,7 +146,7 @@ def overall_risk(alert_hits, pt_likelihood):
         return 'LOW-WATCH', "No structural alerts but high placental transfer"
     return 'LOW', "No structural alerts; low placental transfer"
 
-# ── Process compounds ─────────────────────────────────────────────────────────
+# -- Process compounds ---------------------------------------------------------
 raw_smiles = os.environ.get('PARAM_SMILES_LIST', '["C"]')
 run_pt     = os.environ.get('PARAM_PLACENTAL', 'true').lower() in ('true','1','yes')
 
@@ -182,7 +182,7 @@ for cid, smi in smiles_pairs:
         'recommendation': rec_map.get(risk, '')
     })
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 def write_csv(path, rows, fields):
     with open(path, 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
@@ -216,7 +216,7 @@ for r in risk_tiers:
     report.append(f"  [{r['compound']}] DART={r['DART_risk']} | alerts={r['alert_count']} | placental={r['placental_transfer']}")
     if r['HIGH_alerts']:
         report.append(f"    HIGH alerts: {', '.join(r['HIGH_alerts'])}")
-    report.append(f"    → {r['recommendation']}")
+    report.append(f"    -> {r['recommendation']}")
 with open('dart_output.txt', 'w') as f:
     f.write('\n'.join(report))
 print('\n'.join(report))

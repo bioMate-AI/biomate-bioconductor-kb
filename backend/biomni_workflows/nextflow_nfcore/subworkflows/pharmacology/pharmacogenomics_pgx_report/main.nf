@@ -52,7 +52,7 @@ process PHARMACOGENOMICS_PGX_REPORT {
     python3 << 'PYEOF'
 import json, os, csv, sys
 
-# ── CPIC phenotype classification tables ─────────────────────────────────────
+# -- CPIC phenotype classification tables -------------------------------------
 # Activity values per allele (0 = no function, 0.5 = decreased, 1 = normal)
 # Source: CPIC allele functionality tables (cpicpgx.org/genes)
 
@@ -96,13 +96,13 @@ ALLELE_ACTIVITY = {
         '*2':0.5,'*3':0.5,'*10':0.5,
     },
     'VKORC1': {
-        '-1639G>A': 0.5,  # reduced expression → warfarin sensitive
+        '-1639G>A': 0.5,  # reduced expression -> warfarin sensitive
         '-1639G>G': 1.0,  # normal
         '-1639A>A': 0.25, # very sensitive
     },
 }
 
-# ── CPIC Phenotype assignment (from activity score) ────────────────────────
+# -- CPIC Phenotype assignment (from activity score) ------------------------
 def get_phenotype(gene, allele1, allele2):
     """Assign CPIC metabolizer/functional phenotype from two alleles."""
     act = ALLELE_ACTIVITY.get(gene, {})
@@ -139,33 +139,33 @@ def get_phenotype(gene, allele1, allele2):
     return 'Indeterminate', total
 
 def parse_diplotype(dip):
-    """Split "*1/*4" → ("*1","*4"). Handle duplications like "*2xN"."""
+    """Split "*1/*4" -> ("*1","*4"). Handle duplications like "*2xN"."""
     if '/' not in dip:
         return dip, dip
     parts = dip.split('/')
     return parts[0].strip(), parts[1].strip()
 
-# ── CPIC Drug-Gene recommendations ──────────────────────────────────────────
+# -- CPIC Drug-Gene recommendations ------------------------------------------
 # Source: CPIC guideline PDFs + PharmGKB annotations (manually curated subset)
-# Format: gene → phenotype substring → {drug: recommendation}
+# Format: gene -> phenotype substring -> {drug: recommendation}
 CPIC_RECOMMENDATIONS = {
     'CYP2D6': {
         'Poor Metabolizer': {
             'codeine':     ('CONTRAINDICATED', 'Avoid due to lack of efficacy; use non-opioids or morphine'),
             'tramadol':    ('CONTRAINDICATED', 'Avoid; use non-opioid alternatives'),
-            'ondansetron': ('Use as directed', 'Normal dosing — PM may have higher exposure but no dose change required'),
+            'ondansetron': ('Use as directed', 'Normal dosing -- PM may have higher exposure but no dose change required'),
             'tamoxifen':   ('CONTRAINDICATED', 'Use aromatase inhibitor instead; poor endoxifen formation'),
             'amitriptyline':('Reduce dose 50%', 'Select alternative TCA or reduce dose'),
             'nortriptyline':('Reduce dose 50%', 'Select alternative or reduce dose'),
-            'metoprolol':  ('Reduce dose 50–75%', 'Increased exposure; use lowest effective dose'),
+            'metoprolol':  ('Reduce dose 50-75%', 'Increased exposure; use lowest effective dose'),
             'paroxetine':  ('Use with caution', 'PM is the target population; titrate carefully'),
             'venlafaxine': ('Use with caution', 'Reduced conversion to active metabolite'),
         },
         'Ultrarapid Metabolizer': {
             'codeine':     ('CONTRAINDICATED', 'Risk of morphine toxicity; use non-opioids'),
             'tramadol':    ('CONTRAINDICATED', 'Risk of serotonin syndrome/toxicity'),
-            'tamoxifen':   ('Use as directed', 'UM produces more endoxifen — may be beneficial but monitor'),
-            'amitriptyline':('Increase dose', 'May need 25–50% higher dose; monitor serum levels'),
+            'tamoxifen':   ('Use as directed', 'UM produces more endoxifen -- may be beneficial but monitor'),
+            'amitriptyline':('Increase dose', 'May need 25-50% higher dose; monitor serum levels'),
             'paroxetine':  ('Increase dose', 'Significantly reduced efficacy; consider alternative SSRI'),
         },
         'Intermediate Metabolizer': {
@@ -196,19 +196,19 @@ CPIC_RECOMMENDATIONS = {
     },
     'CYP2C9': {
         'Poor Metabolizer': {
-            'warfarin':     ('Reduce dose 50–75%', 'Very high bleeding risk; use < 25% usual dose'),
-            'phenytoin':    ('Reduce dose 25–50%', 'High toxicity risk; use plasma level monitoring'),
+            'warfarin':     ('Reduce dose 50-75%', 'Very high bleeding risk; use < 25% usual dose'),
+            'phenytoin':    ('Reduce dose 25-50%', 'High toxicity risk; use plasma level monitoring'),
             'celecoxib':    ('Reduce dose 25%', 'Increased exposure; use lowest effective dose'),
             'flurbiprofen': ('Reduce dose', 'Higher NSAID exposure; use caution'),
         },
         'Intermediate Metabolizer': {
-            'warfarin':     ('Reduce dose 25–50%', 'Elevated bleeding risk; INR monitoring essential'),
+            'warfarin':     ('Reduce dose 25-50%', 'Elevated bleeding risk; INR monitoring essential'),
             'phenytoin':    ('Use with caution', 'Monitor plasma levels; may need dose reduction'),
         },
     },
     'CYP3A5': {
         'Poor Function': {
-            'tacrolimus':   ('Increase dose 1.5–2×', 'CYP3A5 non-expressors need higher dose; TDM recommended'),
+            'tacrolimus':   ('Increase dose 1.5-2x', 'CYP3A5 non-expressors need higher dose; TDM recommended'),
         },
         'Normal Function': {
             'tacrolimus':   ('Reduce dose vs CYP3A5 PM', 'CYP3A5 expressors metabolize faster; usual dose'),
@@ -232,8 +232,8 @@ CPIC_RECOMMENDATIONS = {
             'thioguanine':     ('Reduce dose or avoid', 'Extreme hematologic toxicity risk'),
         },
         'Intermediate Function': {
-            'azathioprine':    ('Reduce dose 30–70%', 'Moderate toxicity risk; monitor CBC'),
-            '6-mercaptopurine':('Reduce dose 30–50%', 'Monitor CBC; adjust to tolerated dose'),
+            'azathioprine':    ('Reduce dose 30-70%', 'Moderate toxicity risk; monitor CBC'),
+            '6-mercaptopurine':('Reduce dose 30-50%', 'Monitor CBC; adjust to tolerated dose'),
         },
     },
     'NUDT15': {
@@ -264,15 +264,15 @@ CPIC_RECOMMENDATIONS = {
     },
     'VKORC1': {
         'Sensitive': {
-            'warfarin':     ('Reduce starting dose 25–50%', 'Very low warfarin dose requirement; INR monitoring critical'),
+            'warfarin':     ('Reduce starting dose 25-50%', 'Very low warfarin dose requirement; INR monitoring critical'),
         },
         'Intermediate Sensitive': {
-            'warfarin':     ('Reduce starting dose 10–25%', 'Lower warfarin dose; monitor INR closely'),
+            'warfarin':     ('Reduce starting dose 10-25%', 'Lower warfarin dose; monitor INR closely'),
         },
     },
 }
 
-# ── Main processing ───────────────────────────────────────────────────────────
+# -- Main processing -----------------------------------------------------------
 raw_dip     = os.environ.get('PARAM_DIPLOTYPES', '{}')
 drug_filter = os.environ.get('PARAM_DRUGS', 'null')
 guidelines  = os.environ.get('PARAM_GUIDELINES', 'CPIC')
@@ -361,7 +361,7 @@ lines = ["=== PHARMACOGENOMICS (PGx) REPORT ===",
          f"Guidelines: {guidelines}", ""]
 for gene, pd in phenotypes.items():
     flag = ' *** ACTIONABLE ***' if gene in gene_flags else ''
-    lines.append(f"{gene}: {pd['diplotype']} → {pd['phenotype']} (AS={pd['activity_score']}){flag}")
+    lines.append(f"{gene}: {pd['diplotype']} -> {pd['phenotype']} (AS={pd['activity_score']}){flag}")
     if gene in gene_flags:
         for f_ in gene_flags[gene]:
             lines.append(f"  ! {f_}")

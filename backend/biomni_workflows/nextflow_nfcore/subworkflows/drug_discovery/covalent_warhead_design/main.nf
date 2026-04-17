@@ -3,7 +3,7 @@
  * drug_discovery/covalent_warhead_design
  *
  * Evaluates electrophilic warhead reactivity for targeted covalent inhibitors.
- * Predicts warhead class via SMARTS, GSH half-life (t½ in h) from empirical
+ * Predicts warhead class via SMARTS, GSH half-life (t1/2 in h) from empirical
  * data, thiol selectivity, and promiscuous covalent modification risk.
  *
  * GSH half-life data from: Mah et al. JACS 2014; McAulay et al. J Med Chem 2019;
@@ -59,7 +59,7 @@ def parse_smiles_input(raw):
         except: pass
     return [('1', raw)]
 
-# ── Warhead SMARTS library ────────────────────────────────────────────────────
+# -- Warhead SMARTS library ----------------------------------------------------
 # (name, SMARTS, gsh_t_half_h_typical, reactivity_class, mechanism)
 WARHEADS = [
     ('acrylamide',          'C=CC(=O)N',     2.5,   'MODERATE',    'Michael addition to Cys-SH'),
@@ -82,9 +82,9 @@ WARHEADS = [
 
 # Non-reactive scaffold check
 NON_REACTIVE_ALERTS = [
-    ('pan_assay_electrophile', '[#6;!R]([F,Cl,Br,I])=O', 'acyl halide — pan-assay interference'),
-    ('isocyanate',             'N=C=O',                  'isocyanate — pan-assay interference'),
-    ('anhydride',              'OC(=O)OC(=O)',            'anhydride — pan-assay interference'),
+    ('pan_assay_electrophile', '[#6;!R]([F,Cl,Br,I])=O', 'acyl halide -- pan-assay interference'),
+    ('isocyanate',             'N=C=O',                  'isocyanate -- pan-assay interference'),
+    ('anhydride',              'OC(=O)OC(=O)',            'anhydride -- pan-assay interference'),
 ]
 
 def classify_warhead(mol):
@@ -109,11 +109,11 @@ def classify_warhead(mol):
 def gsh_reactivity_class(t_half):
     """Optimal warhead window: 2-5 h."""
     if t_half is None: return 'UNKNOWN (reversible or not measured)'
-    if t_half < 0.2:   return 'TOO_REACTIVE — pan-assay interference risk'
-    if t_half < 2.0:   return 'REACTIVE — border of optimal range'
-    if t_half <= 5.0:  return 'OPTIMAL — in targeted covalent inhibitor window'
-    if t_half <= 24:   return 'MILD — slow reaction; may need extended binding time'
-    return 'VERY_MILD — consider more reactive warhead'
+    if t_half < 0.2:   return 'TOO_REACTIVE -- pan-assay interference risk'
+    if t_half < 2.0:   return 'REACTIVE -- border of optimal range'
+    if t_half <= 5.0:  return 'OPTIMAL -- in targeted covalent inhibitor window'
+    if t_half <= 24:   return 'MILD -- slow reaction; may need extended binding time'
+    return 'VERY_MILD -- consider more reactive warhead'
 
 def promiscuity_risk(warhead_name, reactivity_class, mw):
     """Estimate off-target covalent modification risk."""
@@ -149,7 +149,7 @@ def cys_selectivity_estimate(mol, warhead_hits):
                      'predicted_labeling_pct': round(labeling_eff*100,0)})
     return rows
 
-# ── Process compounds ─────────────────────────────────────────────────────────
+# -- Process compounds ---------------------------------------------------------
 raw_smiles = os.environ.get('PARAM_SMILES_LIST', '["C"]')
 run_gsh    = os.environ.get('PARAM_RUN_GSH', 'true').lower() in ('true','1','yes')
 
@@ -166,8 +166,8 @@ for cid, smi in smiles_pairs:
 
     if not warhead_hits:
         profile = {'compound': cid, 'SMILES': smi, 'warhead_detected': False,
-                   'note': 'No electrophilic warhead detected — may be non-covalent or novel scaffold'}
-        rec = {'compound': cid, 'verdict': 'NO_WARHEAD', 'recommendation': 'No electrophilic warhead found — classify as non-covalent or submit for expert review'}
+                   'note': 'No electrophilic warhead detected -- may be non-covalent or novel scaffold'}
+        rec = {'compound': cid, 'verdict': 'NO_WARHEAD', 'recommendation': 'No electrophilic warhead found -- classify as non-covalent or submit for expert review'}
     else:
         wh = warhead_hits[0]  # primary warhead
         gsh_t = wh.get('GSH_t_half_h')
@@ -185,16 +185,16 @@ for cid, smi in smiles_pairs:
 
         if wh['reactivity_class'] == 'VERY_HIGH' or pan_hits:
             verdict = 'DO_NOT_PROCEED'
-            recommendation = 'Warhead too reactive or pan-assay electrophile — redesign before advancing'
+            recommendation = 'Warhead too reactive or pan-assay electrophile -- redesign before advancing'
         elif 'OPTIMAL' in reac_class and prom_risk in ('LOW','VERY_LOW'):
             verdict = 'PROCEED'
-            recommendation = f"GSH t½={gsh_t}h in optimal window (2-5h); low promiscuity risk → advance to selectivity profiling"
+            recommendation = f"GSH t1/2={gsh_t}h in optimal window (2-5h); low promiscuity risk -> advance to selectivity profiling"
         elif 'MILD' in reac_class:
             verdict = 'PROCEED_WITH_MONITORING'
-            recommendation = f"Mild warhead (GSH t½={gsh_t}h); sufficient for targeted covalent but verify on-target engagement"
+            recommendation = f"Mild warhead (GSH t1/2={gsh_t}h); sufficient for targeted covalent but verify on-target engagement"
         else:
             verdict = 'OPTIMIZE'
-            recommendation = f"Warhead reactivity borderline ({reac_class}) — consider cyanoacrylamide or modulated electrophile"
+            recommendation = f"Warhead reactivity borderline ({reac_class}) -- consider cyanoacrylamide or modulated electrophile"
 
         rec = {'compound': cid, 'verdict': verdict, 'recommendation': recommendation,
                'warhead_type': wh['warhead_type'], 'GSH_t_half_h': gsh_t}
@@ -210,7 +210,7 @@ if smiles_pairs:
         wh0, _ = classify_warhead(mol0)
         cys_rows = cys_selectivity_estimate(mol0, wh0)
 
-# ── Write outputs ──────────────────────────────────────────────────────────────
+# -- Write outputs --------------------------------------------------------------
 with open('warhead_profile.json','w') as f:
     json.dump(all_profiles if len(all_profiles)>1 else (all_profiles[0] if all_profiles else {}), f, indent=2)
 with open('recommendation.json','w') as f:
@@ -230,9 +230,9 @@ for p, r in zip(all_profiles, all_recommendations):
     report.append(f"Compound {p['compound']}:")
     if p.get('warhead_detected'):
         report.append(f"  Warhead: {p['warhead_type']} | Reactivity: {p['reactivity_class']}")
-        report.append(f"  GSH t½: {p.get('GSH_t_half_h','N/A')} h → {p.get('GSH_reactivity_class','')}")
+        report.append(f"  GSH t1/2: {p.get('GSH_t_half_h','N/A')} h -> {p.get('GSH_reactivity_class','')}")
         report.append(f"  Promiscuity risk: {p.get('promiscuity_risk','')}")
-    report.append(f"  → [{r['verdict']}] {r['recommendation']}")
+    report.append(f"  -> [{r['verdict']}] {r['recommendation']}")
     report.append("")
 with open('warhead_output.txt','w') as f:
     f.write('\n'.join(report))

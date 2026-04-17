@@ -71,8 +71,8 @@ def ac(v, default=None):
     try: return float(v)
     except: return default
 
-# ── Residue physicochemical properties ────────────────────────────────────────
-# Hydrophobicity (Kyte-Doolittle scale, normalised 0–1)
+# -- Residue physicochemical properties ----------------------------------------
+# Hydrophobicity (Kyte-Doolittle scale, normalised 0-1)
 HYDROPHOBICITY = {
     'A': 0.62, 'R': -2.53, 'N': -0.78, 'D': -0.90, 'C': 0.29,
     'Q': -0.85, 'E': -0.74, 'G': 0.48, 'H': -0.40, 'I': 1.38,
@@ -87,7 +87,7 @@ PKA_RESIDUES = {
     'N_term': 8.0, 'C_term': 3.1,
 }
 
-# ── pI calculation ─────────────────────────────────────────────────────────────
+# -- pI calculation -------------------------------------------------------------
 def compute_pI(sequence):
     """Isoelectric point via charge pH titration."""
     seq = sequence.upper()
@@ -124,7 +124,7 @@ def compute_pI(sequence):
             hi = mid
     return round((lo + hi) / 2, 2)
 
-# ── Aggregation propensity (CamSol proxy) ─────────────────────────────────────
+# -- Aggregation propensity (CamSol proxy) -------------------------------------
 def aggregation_score(cdrs_combined):
     """
     Simplified CamSol-like score: hydrophobic patches in CDR sequences.
@@ -147,20 +147,20 @@ def aggregation_score(cdrs_combined):
     # Overall score: combination of peak and mean
     agg_score = round(max_score * 0.6 + mean_score * 0.4, 3)
     if agg_score > 0.6:
-        risk = 'HIGH — likely aggregation-prone; consider sequence engineering'
+        risk = 'HIGH -- likely aggregation-prone; consider sequence engineering'
     elif agg_score > 0.3:
-        risk = 'MEDIUM — moderate hydrophobicity; monitor HIC/SEC at high concentration'
+        risk = 'MEDIUM -- moderate hydrophobicity; monitor HIC/SEC at high concentration'
     else:
-        risk = 'LOW — acceptable hydrophobicity profile'
+        risk = 'LOW -- acceptable hydrophobicity profile'
     return agg_score, risk
 
-# ── Deamidation liability (Vlasak 2009; Yan 2009) ─────────────────────────────
+# -- Deamidation liability (Vlasak 2009; Yan 2009) -----------------------------
 DEAMID_MOTIFS = [
-    ('NG', 2, 'HIGH',   'NG dipeptide — primary deamidation hotspot in CDRs (t½ ~1 day at pH 7.4)'),
-    ('NS', 1, 'MEDIUM', 'NS motif — moderate deamidation risk (t½ ~3 days)'),
-    ('DG', 1, 'MEDIUM', 'DG motif — isomerisation (aspartate → isoaspartate)'),
-    ('DD', 1, 'LOW',    'DD motif — minor deamidation in acidic conditions'),
-    ('QN', 1, 'LOW',    'QN motif — glutamine deamidation (slower than N)'),
+    ('NG', 2, 'HIGH',   'NG dipeptide -- primary deamidation hotspot in CDRs (t1/2 ~1 day at pH 7.4)'),
+    ('NS', 1, 'MEDIUM', 'NS motif -- moderate deamidation risk (t1/2 ~3 days)'),
+    ('DG', 1, 'MEDIUM', 'DG motif -- isomerisation (aspartate -> isoaspartate)'),
+    ('DD', 1, 'LOW',    'DD motif -- minor deamidation in acidic conditions'),
+    ('QN', 1, 'LOW',    'QN motif -- glutamine deamidation (slower than N)'),
 ]
 
 def scan_deamidation(cdr_seqs):
@@ -174,12 +174,12 @@ def scan_deamidation(cdr_seqs):
                              'severity': severity, 'description': desc})
     return hits
 
-# ── Oxidation liability (Houde 2011) ──────────────────────────────────────────
+# -- Oxidation liability (Houde 2011) ------------------------------------------
 OXID_RESIDUES = [
-    ('M', 'MEDIUM', 'Methionine — oxidation to Met-sulfoxide; critical in Fc (M252, M428)'),
-    ('W', 'HIGH',   'Tryptophan — photodegradation; W32/W52 in CDRs are hotspots'),
-    ('Y', 'LOW',    'Tyrosine — minor oxidation at high stress'),
-    ('H', 'LOW',    'Histidine — copper-catalysed oxidation in acidic conditions'),
+    ('M', 'MEDIUM', 'Methionine -- oxidation to Met-sulfoxide; critical in Fc (M252, M428)'),
+    ('W', 'HIGH',   'Tryptophan -- photodegradation; W32/W52 in CDRs are hotspots'),
+    ('Y', 'LOW',    'Tyrosine -- minor oxidation at high stress'),
+    ('H', 'LOW',    'Histidine -- copper-catalysed oxidation in acidic conditions'),
 ]
 
 def scan_oxidation(combined_seq):
@@ -191,14 +191,14 @@ def scan_oxidation(combined_seq):
                          'count': len(positions), 'severity': severity, 'description': desc})
     return hits
 
-# ── FcRn binding model (Deng 2012) ────────────────────────────────────────────
+# -- FcRn binding model (Deng 2012) --------------------------------------------
 def fcRn_halflife(pI, antibody_format):
     """
     Approximate serum half-life (days) from pI.
     IgG1/IgG4 optimal pI: 6-8 (FcRn binding at pH 6, release at 7.4)
-    Very high pI (>9) → non-specific binding, faster clearance
-    Very low pI (<5) → poor FcRn binding
-    scFv/bispecific: shorter baseline t½
+    Very high pI (>9) -> non-specific binding, faster clearance
+    Very low pI (<5) -> poor FcRn binding
+    scFv/bispecific: shorter baseline t1/2
     """
     if antibody_format in ('IgG1', 'IgG4', 'IgG2'):
         baseline = 21  # days
@@ -219,19 +219,19 @@ def fcRn_halflife(pI, antibody_format):
     elif pI <= 9.5:
         pI_factor = 0.85
     else:
-        pI_factor = 0.60  # highly cationic → non-specific clearance
+        pI_factor = 0.60  # highly cationic -> non-specific clearance
 
     return round(baseline * pI_factor, 1)
 
-# ── Viscosity risk ─────────────────────────────────────────────────────────────
+# -- Viscosity risk -------------------------------------------------------------
 def viscosity_risk(agg_score, pI):
     if agg_score > 0.6 and (pI < 6 or pI > 9):
-        return 'HIGH — aggregation-prone + pI near extremes; SC delivery may be challenging'
+        return 'HIGH -- aggregation-prone + pI near extremes; SC delivery may be challenging'
     if agg_score > 0.3 or pI > 8.5:
-        return 'MEDIUM — monitor viscosity at ≥100 mg/mL for SC formulation'
-    return 'LOW — acceptable for SC/IV formulation development'
+        return 'MEDIUM -- monitor viscosity at >=100 mg/mL for SC formulation'
+    return 'LOW -- acceptable for SC/IV formulation development'
 
-# ── Process ───────────────────────────────────────────────────────────────────
+# -- Process -------------------------------------------------------------------
 full_seq   = os.environ.get('PARAM_SEQ', '').strip()
 hcdr1      = os.environ.get('PARAM_HCDR1', '')
 hcdr2      = os.environ.get('PARAM_HCDR2', '')
@@ -287,11 +287,11 @@ n_high_deamid = sum(1 for h in deamid_hits if h['severity'] == 'HIGH')
 n_high_oxid   = sum(1 for h in oxid_hits   if h['severity'] == 'HIGH')
 
 if n_high_deamid > 1 or n_high_oxid > 1 or agg_score > 0.6:
-    overall_risk = 'HIGH — immediate engineering required before IND'
+    overall_risk = 'HIGH -- immediate engineering required before IND'
 elif n_high_deamid > 0 or n_high_oxid > 0 or agg_score > 0.3:
-    overall_risk = 'MEDIUM — address before Phase I; monitor stability'
+    overall_risk = 'MEDIUM -- address before Phase I; monitor stability'
 else:
-    overall_risk = 'LOW — acceptable developability profile; standard stability studies'
+    overall_risk = 'LOW -- acceptable developability profile; standard stability studies'
 
 scores = {
     'antibody_format': ab_format,
@@ -307,7 +307,7 @@ scores = {
     'oxidation_liabilities': oxid_hits,
     'overall_developability_risk': overall_risk,
     'recommended_actions': [
-        f'Confirm pI ({pI:.1f}) by IEF; target range 6.5–8.5 for optimal FcRn',
+        f'Confirm pI ({pI:.1f}) by IEF; target range 6.5-8.5 for optimal FcRn',
         f'HIC-HPLC aggregation screen at 10 mg/mL (predicted score {agg_score:.2f})',
     ] + (
         [f'Engineer {sum(1 for h in deamid_hits if h["severity"]=="HIGH")} NG/NS deamidation site(s) in CDRs'] if n_high_deamid else []
@@ -333,8 +333,8 @@ with open('ab_dev_results.json', 'w') as f:
 report = [
     f'=== ANTIBODY DEVELOPABILITY ASSESSMENT ({ab_format}) ===', '',
     f'Format: {ab_format} | Indication: {indication} | pI: {pI:.2f} ({pI_source})',
-    f'FcRn-predicted t½: {fcRn_t_half} days',
-    f'Aggregation score: {agg_score:.3f} — {agg_risk}',
+    f'FcRn-predicted t1/2: {fcRn_t_half} days',
+    f'Aggregation score: {agg_score:.3f} -- {agg_risk}',
     f'Viscosity risk: {visc_risk}', '',
     f'Deamidation: {len(deamid_hits)} liabilities ({n_high_deamid} HIGH)',
     f'Oxidation:   {len(oxid_hits)} liabilities ({n_high_oxid} HIGH)',
@@ -342,7 +342,7 @@ report = [
     'Recommended actions:',
 ]
 for action in scores['recommended_actions']:
-    report.append(f'  • {action}')
+    report.append(f'  - {action}')
 with open('ab_dev_output.txt', 'w') as f:
     f.write('\n'.join(report))
 print('\n'.join(report))
