@@ -245,7 +245,7 @@ function _isGlobalE2EBypass(req: Request): boolean {
  */
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 1000 requests per window
+  max: process.env.NODE_ENV === 'production' ? 1000 : 50000, // Dev: eval harness needs high throughput
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,

@@ -2814,6 +2814,21 @@ Examples of good inference:
         _is_cryosparc = "cryosparc" in match.filename.lower() or "cryosparc" in match.name.lower()
         _wf_type = 'cryosparc' if _is_cryosparc else 'nextflow'
         _exec_engine = 'cryosparc' if _is_cryosparc else 'nextflow'
+        # Build flat parameters dict for CryoSPARC execute endpoint.
+        # File-path params (movies_path etc.) are NOT in the schema so Haiku skips them;
+        # extract them directly from the raw user intent via regex.
+        import re as _re
+        _exec_params: dict = {}
+        if _is_cryosparc:
+            for _kw in ('movies_path', 'movie_dir', 'pixel_size', 'num_movies'):
+                _m = _re.search(rf'\b{_kw}\s*=\s*([^\s,;]+)', user_intent, _re.IGNORECASE)
+                if _m:
+                    _exec_params[_kw] = _m.group(1).rstrip('.,;')
+            for _p in req + opt:
+                _pn = _p.get('name', '')
+                _pv = _p.get('default') or _p.get('value')
+                if _pn and _pv is not None:
+                    _exec_params.setdefault(_pn, _pv)
         return {
             'success': True,
             'nextflow_path': match.filename,
@@ -2847,6 +2862,7 @@ Examples of good inference:
                 'hardware_requirements': hardware_requirements,
                 'required_params': req,
                 'optional_params': opt,
+                **({'parameters': _exec_params} if _exec_params else {}),
             },
             'datasets_assigned': False,
             'required_params': req,
