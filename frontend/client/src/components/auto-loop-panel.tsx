@@ -82,23 +82,44 @@ const DOMAIN_LABELS: Record<string, string> = {
   docking: "Molecular Docking",
   cyp_ddi: "CYP DDI Risk",
   nca_pk:  "NCA Pharmacokinetics",
+  cryo_em: "Cryo-EM Processing",
 }
 
 const GATE_LABELS: Record<string, string> = {
+  // Drug discovery — ADMET
   herg_ic50:                    "hERG IC50 (µM)",
   dili_probability:             "DILI Probability",
   dili_risk_level:              "DILI Risk Level",
   ames_mutagenicity:            "Ames Mutagenicity",
   logp:                         "logP (Lipinski)",
   molecular_weight:             "Molecular Weight (Da)",
+  // Drug discovery — Docking
   valid_poses:                  "Valid Poses",
   best_binding_score:           "Best Binding Score (kcal/mol)",
+  // Drug discovery — CYP DDI
   clinical_study_isoforms:      "CLINICAL_STUDY isoforms",
   investigate_isoforms:         "INVESTIGATE isoforms",
   tdi_concern:                  "TDI Concern",
+  // Drug discovery — NCA-PK
   auc_extrapolation:            "AUC Extrapolation (%)",
   terminal_slope_coverage:      "Terminal Slope Coverage",
   t_half_plausibility:          "t½ Plausibility",
+  // Cryo-EM — Phase A (Motion Correction + CTF)
+  motion_drift:                 "Total Motion Drift (Å)",
+  per_frame_drift:              "Per-Frame Drift (Å/frame)",
+  ctf_fit_quality:              "CTF Fit Quality (FOM)",
+  astigmatism:                  "Astigmatism (Å)",
+  // Cryo-EM — Phase B (Particle Picking)
+  junk_fraction:                "Junk Class Fraction",
+  particle_yield:               "Particles Selected",
+  orientation_anisotropy:       "Orientation Anisotropy",
+  // Cryo-EM — Phase C (2D Classification)
+  class_quality:                "Mean 2D Class Quality",
+  // Cryo-EM — Phase D (Ab-Initio)
+  abinitio_class_score:         "Ab-Initio Class Score",
+  abinitio_resolution:          "Ab-Initio Resolution (Å)",
+  // Cryo-EM — Phase E (FSC Validation)
+  fsc_resolution:               "FSC 0.143 Resolution (Å)",
 }
 
 function gateLabel(gate: string): string {

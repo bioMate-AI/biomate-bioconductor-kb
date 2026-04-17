@@ -3971,9 +3971,9 @@ def execute_cryosparc(
     Architecture:
     1. Start the CryoSPARC GPU EC2 instance and wait for it to be ready.
     2. Stage S3 movies to the instance local filesystem if needed.
-    3. Call execute_spa_pipeline() — runs in a background thread on the gunicorn
-       worker, submitting each SPA job directly to CryoSPARC via httpx REST API.
-    4. Return the run_id — the frontend monitors via /api/cryosparc/status/:runId.
+    3. Build NF params and call execute_nextflow() — launches main.nf on AWS Batch
+       with up to 20 parallel micrograph-batch tasks (5.9× speedup).
+    4. Return the run_id — the frontend monitors via /api/workflows/runs/:runId/status.
     """
     from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
 
@@ -4014,7 +4014,7 @@ def execute_cryosparc(
         )
         log.info("[CryoSPARC] movies staged to local: %s", movies_path_raw)
 
-    # ── Step 3: build params for execute_spa_pipeline ────────────────────────
+    # ── Step 3: build params for NF execute_nextflow call ───────────────────
     spa_params: Dict[str, Any] = {
         "movie_dir":              movies_path_raw,
         "s3_movies_url":          s3_movies_url or None,  # for retry in pipeline thread
