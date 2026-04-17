@@ -473,11 +473,11 @@ export default function BillingPage() {
   const [historyMonths] = useState(6)
   const { history, loading: historyLoading } = useUsageHistory(historyMonths)
 
-  // selected month for invoice filter (default = current)
-  const [invoiceMonth, setInvoiceMonth] = useState<string>("")
+  // selected month for invoice filter; "all" = show everything
+  const [invoiceMonth, setInvoiceMonth] = useState<string>("all")
   useEffect(() => {
-    if (history.length > 0 && !invoiceMonth) {
-      setInvoiceMonth(history[0]?.month ?? "")
+    if (history.length > 0 && invoiceMonth === "all") {
+      setInvoiceMonth(history[0]?.month ?? "all")
     }
   }, [history, invoiceMonth])
 
@@ -561,7 +561,7 @@ export default function BillingPage() {
     status: h.total_usd > 0 ? "paid" : "pending",
   }))
 
-  const filteredInvoice = invoiceMonth
+  const filteredInvoice = invoiceMonth && invoiceMonth !== "all"
     ? invoiceRows.filter((r) => r.month === invoiceMonth)
     : invoiceRows
 
@@ -903,7 +903,7 @@ export default function BillingPage() {
                     <SelectValue placeholder="All months" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All months</SelectItem>
+                    <SelectItem value="all">All months</SelectItem>
                     {history.map((h) => (
                       <SelectItem key={h.month} value={h.month}>
                         {monthLabel(h.month)}

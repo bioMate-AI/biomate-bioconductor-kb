@@ -680,6 +680,118 @@ def lookup_open_targets_gene(rsid_or_variant: str, phenotype: str = "") -> Dict[
     return results
 
 
+def lookup_gwas_catalog_genes(phenotype: str, candidate_genes: List[str]) -> Dict[str, Any]:
+    """
+    Given a GWAS phenotype and a list of candidate gene symbols, find which genes
+    have the most evidence for that phenotype via:
+      1. Open Targets Platform (gene-disease association scores) — primary source
+      2. GWAS Catalog Solr for EFO trait ID then study associations — fallback
+
+    Returns:
+      - top_gene: str — best-scoring candidate gene
+      - ranked: List[dict] — [{gene, score, source, traits}, ...]
+      - top_ot_genes: List[str] — top Open Targets genes for context (not filtered to candidates)
+    """
+    if not candidate_genes or not phenotype:
+        return {}
+
+    candidate_upper = {g.upper(): g for g in candidate_genes}
+    gene_scores: Dict[str, float] = {}
+    top_ot_genes: List[str] = []
+
+    # ── Step 1: Get EFO ID from GWAS Catalog Solr ────────────────────────────
+    solr_url = (
+        f"https://www.ebi.ac.uk/gwas/api/search?q={urllib.parse.quote(phenotype)}"
+        f"&facet=efo&max=5"
+    )
+    solr_data = _http_get(solr_url, timeout=12)
+    efo_ids: List[str] = []
+    if solr_data:
+        docs = (solr_data.get("response") or {}).get("docs") or []
+        for doc in docs[:3]:
+            sf = doc.get("shortForm", [])
+            if isinstance(sf, list):
+                sf = sf[0] if sf else ""
+            if sf and isinstance(sf, str) and sf.startswith("EFO"):
+                efo_ids.append(sf)
+
+    # ── Step 2: Open Targets Platform — gene-disease association scores ───────
+    for efo_id in (efo_ids[:2] or [""]):
+        if not efo_id:
+            continue
+        ot_query = (
+            'query($efo: String!) { disease(efoId: $efo) { '
+            'associatedTargets(page: {index: 0, size: 50}) { '
+            'rows { target { approvedSymbol } score } } } }'
+        )
+        payload = {"query": ot_query, "variables": {"efo": efo_id}}
+        ot_result = _http_post(
+            "https://api.platform.opentargets.org/api/v4/graphql",
+            payload, timeout=15
+        )
+        if not ot_result:
+            continue
+        rows = (
+            (ot_result.get("data") or {})
+            .get("disease", {})
+            .get("associatedTargets", {})
+            .get("rows", [])
+        )
+        for row in rows:
+            sym = row.get("target", {}).get("approvedSymbol", "")
+            score = float(row.get("score") or 0)
+            top_ot_genes.append(sym)
+            if sym.upper() in candidate_upper:
+                orig = candidate_upper[sym.upper()]
+                gene_scores[orig] = max(gene_scores.get(orig, 0.0), score)
+        if rows:
+            break   # got results; no need to try second EFO
+
+    # ── Step 3: GWAS Catalog study-level gene lookup (fallback) ─────────────
+    if not gene_scores and efo_ids:
+        study_url = (
+            f"https://www.ebi.ac.uk/gwas/rest/api/studies/search/findByDiseaseTrait"
+            f"?diseaseTrait={urllib.parse.quote(phenotype)}&size=5"
+        )
+        study_data = _http_get(study_url, timeout=12)
+        if study_data:
+            studies = (study_data.get("_embedded") or {}).get("studies") or []
+            for study in studies[:3]:
+                acc = study.get("accessionId", "")
+                if not acc:
+                    continue
+                assoc_url = (
+                    f"https://www.ebi.ac.uk/gwas/rest/api/studies/{acc}/associations?size=30"
+                )
+                assoc_data = _http_get(assoc_url, timeout=12)
+                if not assoc_data:
+                    continue
+                assocs = (assoc_data.get("_embedded") or {}).get("associations") or []
+                for assoc in assocs:
+                    p_exp = assoc.get("pvalueExponent", 0) or 0
+                    # p-value-based score: lower exponent = stronger evidence
+                    pval_score = max(0.0, (-p_exp) / 50.0)   # normalise to ~0–1
+                    for locus in (assoc.get("loci") or []):
+                        for gene in (locus.get("authorReportedGenes") or []):
+                            gname = gene.get("geneName", "").upper()
+                            if gname in candidate_upper:
+                                orig = candidate_upper[gname]
+                                gene_scores[orig] = max(gene_scores.get(orig, 0.0), pval_score)
+
+    if not gene_scores:
+        return {"top_ot_genes": top_ot_genes[:15]}
+
+    ranked = sorted(
+        [{"gene": g, "score": s, "source": "open_targets_or_gwas"} for g, s in gene_scores.items()],
+        key=lambda x: -x["score"],
+    )
+    return {
+        "top_gene": ranked[0]["gene"],
+        "ranked": ranked[:10],
+        "top_ot_genes": top_ot_genes[:15],
+    }
+
+
 def extract_biomedical_identifiers(text: str) -> Dict[str, List[str]]:
     """Pull HP codes, ENSG IDs, gene symbols, OMIM IDs from free text."""
     return {
@@ -1280,12 +1392,46 @@ class ResearchAgent:
             # Triggers when the question already has a known lead variant but asks for gene.
             if has_gwas_context and len(rs_ids_in_question) == 1:
                 try:
-                    ot_hits = lookup_open_targets_gene(rs_ids_in_question[0], phenotype_text if 'phenotype_text' in dir() else question)
+                    _pheno = phenotype_text if 'phenotype_text' in locals() else question
+                    ot_hits = lookup_open_targets_gene(rs_ids_in_question[0], _pheno)
                     if ot_hits:
                         db_facts["open_targets_gene"] = ot_hits
                         log.info(f"Open Targets gene lookup: {ot_hits.get('top_gene')}")
                 except Exception as e:
                     log.warning(f"Open Targets lookup failed (non-fatal): {e}")
+
+            # ── GWAS gene-phenotype lookup — for causal-gene questions with gene list ─
+            # Triggers when the question has gene names in curly braces like {GENE1},{GENE2}
+            # (BiomniEval1 gwas_causal_gene format).
+            gene_list_match = re.findall(r"\{([A-Za-z][A-Za-z0-9\-_]{1,20})\}", question)
+            if not gene_list_match:
+                # Also pick up comma-separated gene lists: "Genes: GENE1, GENE2, GENE3"
+                locus_match = re.search(
+                    r"(?:genes?[^:]*:|locus[^:]*:)\s*([A-Z][A-Z0-9,\- ]{5,})",
+                    question, re.IGNORECASE
+                )
+                if locus_match:
+                    gene_list_match = [
+                        g.strip() for g in locus_match.group(1).split(",") if g.strip()
+                    ]
+            if gene_list_match and has_gwas_context:
+                _pheno = phenotype_text if 'phenotype_text' in locals() else question
+                # Extract phenotype from question for gene lookup
+                pheno_for_gene = _pheno
+                if "gwas phenotype" in question.lower() or "phenotype:" in question.lower():
+                    pm = re.search(r"(?:gwas phenotype|phenotype)\s*:\s*([^\n,]{5,100})", question, re.IGNORECASE)
+                    if pm:
+                        pheno_for_gene = pm.group(1).strip()
+                try:
+                    gene_hits = lookup_gwas_catalog_genes(pheno_for_gene, gene_list_match)
+                    if gene_hits:
+                        db_facts["gwas_catalog_genes"] = gene_hits
+                        log.info(
+                            f"GWAS gene lookup: top={gene_hits.get('top_gene')}, "
+                            f"{len(gene_hits.get('ranked', []))} hits"
+                        )
+                except Exception as e:
+                    log.warning(f"GWAS gene lookup failed (non-fatal): {e}")
 
             if db_facts:
                 evidence["db_facts"] = db_facts
@@ -1464,6 +1610,30 @@ class ResearchAgent:
                     db_section.append(
                         f"- {g['symbol']}: distance={dist}bp "
                         f"({'  '.join(flags) if flags else 'intergenic'})"
+                    )
+
+            # ── GWAS gene-phenotype rankings ─────────────────────────────────────
+            if df.get('gwas_catalog_genes'):
+                gcg = df['gwas_catalog_genes']
+                db_section.append("### Open Targets / GWAS Catalog: genes associated with phenotype")
+                top_g = gcg.get('top_gene', '')
+                if top_g:
+                    db_section.append(f"**Top candidate gene (highest association score): {top_g}**")
+                for r in gcg.get('ranked', [])[:8]:
+                    db_section.append(
+                        f"- {r['gene']}: score={r.get('score', '?'):.3f} "
+                        f"(source: {r.get('source', 'unknown')})"
+                    )
+                # Top OT genes give biological context even if not in candidate list
+                ot_genes = gcg.get('top_ot_genes', [])
+                if ot_genes:
+                    db_section.append(
+                        f"Top Open Targets genes for this disease (for context): "
+                        f"{', '.join(ot_genes[:10])}"
+                    )
+                    db_section.append(
+                        "If the highest-scoring candidate gene is also in this list, "
+                        "it has strong Open Targets support — prefer it."
                     )
 
             if df.get('ensembl_genes'):

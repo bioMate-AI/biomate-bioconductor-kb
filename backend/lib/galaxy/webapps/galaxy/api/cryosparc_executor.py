@@ -103,7 +103,7 @@ CRYOSPARC_PROJECT_DIR = os.environ.get("CRYOSPARC_PROJECT_DIR", "/tmp/cryosparc_
 CRYOSPARC_INSTANCE_ID = os.environ.get("CRYOSPARC_INSTANCE_ID", "")
 CRYOSPARC_INSTANCE_REGION = os.environ.get("CRYOSPARC_INSTANCE_REGION", "us-east-1")
 CRYOSPARC_AMI_ID = os.environ.get("CRYOSPARC_AMI_ID", "")
-CRYOSPARC_INSTANCE_TYPE = os.environ.get("CRYOSPARC_INSTANCE_TYPE", "g6.2xlarge")
+CRYOSPARC_INSTANCE_TYPE = os.environ.get("CRYOSPARC_INSTANCE_TYPE", "g6.12xlarge")
 CRYOSPARC_SSH_KEY = os.environ.get("CRYOSPARC_SSH_KEY", "")
 CRYOSPARC_SSH_USER = os.environ.get("CRYOSPARC_SSH_USER", "ubuntu")
 
@@ -188,16 +188,36 @@ def _ec2_client():
 
 def get_instance_state() -> str:
     """Return 'running' | 'stopped' | 'pending' | 'stopping' | 'unknown'."""
-    if not CRYOSPARC_INSTANCE_ID:
+    # AMI mode: check the active instance launched by this process
+    instance_id = CRYOSPARC_INSTANCE_ID or _active_instance_id
+    if not instance_id:
         return "unknown"
     try:
         ec2 = _ec2_client()
-        resp = ec2.describe_instances(InstanceIds=[CRYOSPARC_INSTANCE_ID])
+        resp = ec2.describe_instances(InstanceIds=[instance_id])
         state = resp["Reservations"][0]["Instances"][0]["State"]["Name"]
         return state
     except Exception as exc:
         log.warning("[CryoSPARC] Cannot get instance state: %s", exc)
         return "unknown"
+
+
+_GPU_COUNT_MAP: Dict[str, int] = {
+    # g6 family (L4 GPU)
+    "g6.xlarge": 1, "g6.2xlarge": 1, "g6.4xlarge": 1,
+    "g6.8xlarge": 1, "g6.12xlarge": 4, "g6.24xlarge": 4, "g6.48xlarge": 8,
+    # p3 family (V100)
+    "p3.2xlarge": 1, "p3.8xlarge": 4, "p3.16xlarge": 8,
+    # p4 family (A100)
+    "p4d.24xlarge": 8,
+    # g5 family (A10G)
+    "g5.xlarge": 1, "g5.2xlarge": 1, "g5.4xlarge": 1,
+    "g5.8xlarge": 1, "g5.12xlarge": 4, "g5.24xlarge": 4, "g5.48xlarge": 8,
+}
+
+
+def _gpu_count_for_instance(instance_type: str) -> int:
+    return _GPU_COUNT_MAP.get(instance_type, 1)
 
 
 def start_instance(wait: bool = True) -> str:
@@ -226,11 +246,25 @@ def start_instance(wait: bool = True) -> str:
 
     elif CRYOSPARC_AMI_ID:
         # Launch fresh instance from AMI (terminate-on-completion pattern — no idle EBS cost)
-        log.info("[CryoSPARC] Launching new instance from AMI %s ...", CRYOSPARC_AMI_ID)
-        user_data = """#!/bin/bash
+        log.info("[CryoSPARC] Launching new instance from AMI %s type=%s ...",
+                 CRYOSPARC_AMI_ID, CRYOSPARC_INSTANCE_TYPE)
+        num_gpus = _gpu_count_for_instance(CRYOSPARC_INSTANCE_TYPE)
+        gpu_ids = ",".join(str(i) for i in range(num_gpus))
+        user_data = f"""#!/bin/bash
+set -e
 cd /home/ubuntu
 export PATH=/home/ubuntu/cryosparc_master/bin:$PATH
 cryosparcm start
+sleep 20
+# Re-register worker with ALL available GPUs on this instance ({num_gpus}x GPU)
+if [ -f /home/ubuntu/cryosparc_worker/bin/cryosparcw ]; then
+    /home/ubuntu/cryosparc_worker/bin/cryosparcw update \\
+        --master_hostname localhost \\
+        --worker_hostname localhost \\
+        --ssd False \\
+        --gpus {gpu_ids} || true
+fi
+echo "[biomate] CryoSPARC ready with {num_gpus} GPU(s): {gpu_ids}"
 """
         resp = ec2.run_instances(
             ImageId=CRYOSPARC_AMI_ID,
@@ -242,7 +276,7 @@ cryosparcm start
             # EBS: DeleteOnTermination=True so terminate() cleans up storage automatically
             BlockDeviceMappings=[{
                 "DeviceName": "/dev/sda1",
-                "Ebs": {"VolumeSize": 200, "VolumeType": "gp3", "DeleteOnTermination": True}
+                "Ebs": {"VolumeSize": 500, "VolumeType": "gp3", "DeleteOnTermination": True}
             }],
             TagSpecifications=[{"ResourceType": "instance", "Tags": [
                 {"Key": "Name", "Value": "cryosparc-biomate-job"},
@@ -291,54 +325,146 @@ def stop_instance() -> None:
         log.warning("[CryoSPARC] Failed to terminate instance: %s", exc)
 
 
-def _wait_for_instance_running(ec2, instance_id: str, timeout: int = 300) -> None:
-    """Wait until instance is running and SSH is ready."""
-    log.info("[CryoSPARC] Waiting for instance %s to be running ...", instance_id)
+def _wait_for_instance_running(ec2, instance_id: str, timeout: int = 600) -> None:
+    """Wait until EC2 instance enters 'running' state."""
+    log.info("[CryoSPARC] Waiting for instance %s to reach running state...", instance_id)
     deadline = time.time() + timeout
     while time.time() < deadline:
         resp = ec2.describe_instances(InstanceIds=[instance_id])
         state = resp["Reservations"][0]["Instances"][0]["State"]["Name"]
+        log.info("[CryoSPARC] Instance state: %s", state)
         if state == "running":
-            log.info("[CryoSPARC] Instance running. Waiting 30s for SSH/CryoSPARC startup...")
-            time.sleep(30)
+            log.info("[CryoSPARC] Instance is running — proceeding to CryoSPARC readiness check")
             return
+        if state in ("terminated", "shutting-down"):
+            raise RuntimeError(f"Instance {instance_id} terminated unexpectedly (state={state})")
         time.sleep(10)
     raise TimeoutError(f"Instance {instance_id} did not reach running state in {timeout}s")
+
+
+def _ssh_check_cryosparc(host: str) -> str:
+    """
+    SSH into the instance and return a one-line CryoSPARC status summary.
+    Returns a string like 'running:8/9' or 'stopped:0/9' or 'error:<msg>'.
+    Uses the key configured in CRYOSPARC_SSH_KEY (no-op if not set).
+    """
+    import subprocess
+    ssh_key = CRYOSPARC_SSH_KEY
+    ssh_user = CRYOSPARC_SSH_USER
+    if not ssh_key or not host or host in ("localhost", "127.0.0.1"):
+        return "no-ssh"
+    cmd = [
+        "ssh", "-i", ssh_key,
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "BatchMode=yes",
+        "-o", "ConnectTimeout=10",
+        f"{ssh_user}@{host}",
+        # Count RUNNING processes in cryosparcm status
+        "export PATH=/home/ubuntu/cryosparc_master/bin:$PATH; "
+        "TOTAL=$(cryosparcm status 2>/dev/null | grep -cE '(RUNNING|STOPPED|STARTING|FATAL)' || echo 0); "
+        "UP=$(cryosparcm status 2>/dev/null | grep -c 'RUNNING' || echo 0); "
+        "echo \"${UP}/${TOTAL}\" && "
+        # Grab last 5 lines of supervisor/CryoSPARC error log for diagnosis
+        "tail -5 /home/ubuntu/cryosparc_master/run/supervisord.log 2>/dev/null || true",
+    ]
+    try:
+        out = subprocess.check_output(cmd, timeout=20, text=True, stderr=subprocess.STDOUT)
+        return out.strip()
+    except subprocess.TimeoutExpired:
+        return "error:ssh-timeout"
+    except subprocess.CalledProcessError as exc:
+        return f"error:{exc.output.strip()[:120]}"
+    except Exception as exc:
+        return f"error:{exc}"
 
 
 def ensure_cryosparc_running(
     progress_callback: Optional[Callable[[int, str], None]] = None
 ) -> None:
     """
-    Ensure the CryoSPARC instance is running before job submission.
-    Called at the start of execute_spa_pipeline; shows a 'provisioning' progress event.
+    Ensure the CryoSPARC instance is running and its API is ready before job submission.
+
+    Strategy:
+    1. If instance not running, launch from AMI (g6.12xlarge, 4 GPUs).
+    2. Once EC2 is running, poll via SSH every 30s to check CryoSPARC process status.
+    3. Simultaneously try to connect via the CryoSPARC Python client.
+    4. Surface SSH diagnostic lines in the log so failures are immediately visible.
+    5. Total timeout: 15 minutes (cold-start of a fresh AMI can take 8-10 min).
     """
+    import subprocess
+
     state = get_instance_state()
+
+    # Fast path: instance already running — just verify the API is up
     if state == "running":
-        return  # Already up
-
-    log.info("[CryoSPARC] Instance state=%s — starting...", state)
-    if progress_callback:
-        progress_callback(0, "Provisioning CryoSPARC compute instance (GPU cold-start ~3-5 min)...")
-
-    new_ip = start_instance(wait=True)
-
-    # Update the global HOST so _connect() uses the current IP
-    global CRYOSPARC_HOST
-    if new_ip:
-        CRYOSPARC_HOST = new_ip
-        log.info("[CryoSPARC] Instance IP: %s", CRYOSPARC_HOST)
-
-    # Wait for CryoSPARC API to be ready
-    deadline = time.time() + 300
-    while time.time() < deadline:
         try:
             _connect()
-            log.info("[CryoSPARC] API ready")
+            log.info("[CryoSPARC] Instance already running and API ready")
             return
         except Exception:
-            time.sleep(15)
-    raise TimeoutError("CryoSPARC API did not become ready after instance start")
+            log.info("[CryoSPARC] Instance running but API not yet ready — waiting...")
+
+    if state not in ("running",):
+        log.info("[CryoSPARC] Instance state=%s — launching new instance...", state)
+        if progress_callback:
+            progress_callback(0, "Provisioning CryoSPARC GPU instance (4x L4, cold-start ~5-10 min)...")
+        new_ip = start_instance(wait=True)  # waits for EC2 "running" state
+        global CRYOSPARC_HOST
+        if new_ip:
+            CRYOSPARC_HOST = new_ip
+            log.info("[CryoSPARC] New instance IP: %s", CRYOSPARC_HOST)
+
+    # Wait for CryoSPARC API to become ready, polling SSH for diagnostics
+    total_timeout = 900  # 15 minutes
+    deadline = time.time() + total_timeout
+    attempt = 0
+    last_ssh_check = 0.0
+    ssh_check_interval = 30  # SSH diagnostic every 30s
+    connect_exc: Exception = Exception("not yet attempted")
+
+    log.info("[CryoSPARC] Waiting up to %ds for CryoSPARC API at %s:%d ...",
+             total_timeout, CRYOSPARC_HOST, CRYOSPARC_PORT)
+
+    while time.time() < deadline:
+        # Try the Python client first
+        try:
+            _connect()
+            log.info("[CryoSPARC] API ready after %d attempts (~%.0fs)",
+                     attempt, time.time() - (deadline - total_timeout))
+            return
+        except Exception as exc:
+            connect_exc = exc
+
+        attempt += 1
+        remaining = int(deadline - time.time())
+
+        # Periodically SSH in and show process status for diagnostics
+        if time.time() - last_ssh_check >= ssh_check_interval:
+            ssh_status = _ssh_check_cryosparc(CRYOSPARC_HOST)
+            log.info("[CryoSPARC] SSH check (attempt %d, %ds left): %s | connect_err: %s",
+                     attempt, remaining, ssh_status, connect_exc)
+            last_ssh_check = time.time()
+
+            # Detect a hard failure in supervisor logs
+            if "FATAL" in ssh_status or "error:ssh-timeout" in ssh_status:
+                log.warning("[CryoSPARC] Detected potential startup error: %s", ssh_status)
+            # If 9/9 processes up but API still failing, log it prominently
+            if ssh_status.startswith("9/9"):
+                log.info("[CryoSPARC] All 9 processes UP but API still connecting — port may be busy")
+
+            if progress_callback:
+                progress_callback(0, f"CryoSPARC starting... ({remaining}s left, ssh={ssh_status.split(chr(10))[0]})")
+        else:
+            log.info("[CryoSPARC] Waiting... attempt %d, %ds remaining", attempt, remaining)
+
+        time.sleep(15)
+
+    # Final SSH dump for diagnosis
+    final_ssh = _ssh_check_cryosparc(CRYOSPARC_HOST)
+    raise TimeoutError(
+        f"CryoSPARC API did not become ready after {total_timeout}s. "
+        f"SSH status: {final_ssh[:300]}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1218,7 +1344,8 @@ def _execute_spa_pipeline_sync(
     run.params = params  # propagate resolved params back to the run record
 
     mock_mode  = bool(params.get("mock_mode", False))
-    max_workers = int(params.get("num_gpu_workers", 1))
+    num_gpus   = _gpu_count_for_instance(CRYOSPARC_INSTANCE_TYPE)
+    max_workers = int(params.get("num_gpu_workers", num_gpus))
 
     batch_size          = int(params.get("batch_size", 200))
     particle_batch_size = int(params.get("particle_batch_size", 10_000))
@@ -1360,6 +1487,7 @@ def _execute_spa_pipeline_sync(
                 "movie_end_idx":   min((i + 1) * batch_size, num_movies),
                 "dose_per_frame_e_A2": float(params.get("dose_per_frame", 0)),
                 "use_dose_weighting":  bool(params.get("use_dose_weighting", False)),
+                "num_gpu": num_gpus,
             },
             phase_key="phase_a_motion",
         )
@@ -1552,6 +1680,7 @@ def _execute_spa_pipeline_sync(
                 "num_classes":  int(params.get("num_2d_classes", 50)),
                 "max_res":      float(params.get("max_2d_res", 8.0)),
                 "num_iterations": int(params.get("num_2d_iter", 20)),
+                "num_gpu": num_gpus,
             },
             phase_key="phase_c_class2d_r1",
         )
@@ -1649,6 +1778,7 @@ def _execute_spa_pipeline_sync(
                 "num_classes":    int(params.get("num_2d_classes_r2", 100)),
                 "max_res":        float(params.get("max_2d_res_r2", 4.0)),
                 "num_iterations": int(params.get("num_2d_iter_r2", 25)),
+                "num_gpu": num_gpus,
             },
             phase_key="phase_c_class2d_r2",
         )
@@ -1701,6 +1831,7 @@ def _execute_spa_pipeline_sync(
                 "abinit_K":       1,         # 1 class per ab initio run (diversity via multi-run)
                 "symmetry":       symmetry,
                 "num_iterations": int(params.get("abinit_iter", 200)),
+                "num_gpu": num_gpus,
             },
             phase_key="phase_d_ab_initio",
         )
@@ -1732,6 +1863,7 @@ def _execute_spa_pipeline_sync(
             extra_params={
                 "symmetry":         symmetry,
                 "fulcrum_max_res":  float(params.get("refine_max_res", 4.0)),
+                "num_gpu": num_gpus,
             },
             phase_key="phase_d_homo_refine",
         )
@@ -1964,3 +2096,61 @@ def get_run_status(run_id: str) -> Optional[Dict[str, Any]]:
 
 def list_runs() -> List[Dict[str, Any]]:
     return [get_run_status(rid) for rid in _cs_runs]
+
+
+def get_gpu_metrics() -> Dict[str, Any]:
+    """
+    SSH into the active CryoSPARC instance and query nvidia-smi for per-GPU utilization.
+    Returns a dict with 'gpus' list and 'instance_type'.
+    Falls back to empty result if SSH key not configured or instance not running.
+    """
+    import subprocess, shlex, re
+
+    ssh_key = CRYOSPARC_SSH_KEY
+    ssh_user = CRYOSPARC_SSH_USER
+    host = CRYOSPARC_HOST
+
+    if host in ("localhost", "127.0.0.1") or not ssh_key:
+        # Try local nvidia-smi if running on the same host
+        try:
+            out = subprocess.check_output(
+                ["nvidia-smi", "--query-gpu=index,name,utilization.gpu,utilization.memory,"
+                 "memory.used,memory.total,temperature.gpu",
+                 "--format=csv,noheader,nounits"],
+                timeout=10, text=True,
+            )
+        except Exception as exc:
+            return {"gpus": [], "instance_type": CRYOSPARC_INSTANCE_TYPE,
+                    "error": f"nvidia-smi unavailable: {exc}"}
+    else:
+        ssh_cmd = [
+            "ssh", "-i", ssh_key, "-o", "StrictHostKeyChecking=no",
+            "-o", "ConnectTimeout=8", f"{ssh_user}@{host}",
+            "nvidia-smi --query-gpu=index,name,utilization.gpu,utilization.memory,"
+            "memory.used,memory.total,temperature.gpu --format=csv,noheader,nounits",
+        ]
+        try:
+            out = subprocess.check_output(ssh_cmd, timeout=15, text=True)
+        except Exception as exc:
+            return {"gpus": [], "instance_type": CRYOSPARC_INSTANCE_TYPE,
+                    "error": f"SSH unavailable: {exc}"}
+
+    gpus = []
+    for line in out.strip().splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) >= 7:
+            gpus.append({
+                "index":        int(parts[0]),
+                "name":         parts[1],
+                "gpu_util_pct": int(parts[2]),
+                "mem_util_pct": int(parts[3]),
+                "mem_used_mb":  int(parts[4]),
+                "mem_total_mb": int(parts[5]),
+                "temp_c":       int(parts[6]),
+            })
+
+    return {
+        "gpus":          gpus,
+        "instance_type": CRYOSPARC_INSTANCE_TYPE,
+        "num_gpus":      len(gpus),
+    }

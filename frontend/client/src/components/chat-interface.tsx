@@ -24,6 +24,7 @@ import {
   ChevronDown,
   Loader2,
   CheckCircle,
+  Check,
   Clock,
   AlertTriangle,
   Settings
@@ -69,6 +70,244 @@ interface ChatInterfaceProps {
   focusedRunId?: string | null
   runAnchorRequestId?: number
 }
+
+// ── Onboarding welcome ────────────────────────────────────────────────────────
+// Step 1: pick domains (all 14 + free-text "Other")
+// Step 2: pick topics per selected domain (+ free-text "Other" per domain)
+// "Next" saves profile then closes welcome — user enters the platform.
+// Suggested queries are deferred until verified (see backend/experiments/verified_queries/).
+
+import { DOMAIN_TAXONOMY, DOMAIN_LABELS } from "@/components/domain-profile-selector"
+
+const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
+
+function OnboardingWelcome({
+  onComplete,
+  visible,
+}: {
+  onComplete: () => void
+  visible: boolean
+}) {
+  const [step, setStep] = useState<"domains" | "topics">("domains")
+  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set())
+  const [otherDomain, setOtherDomain] = useState("")
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set())
+  const [otherTopics, setOtherTopics] = useState<Record<string, string>>({}) // domainKey → free text
+  const [saving, setSaving] = useState(false)
+
+  if (!visible) return null
+
+  const domainKeys = Object.keys(DOMAIN_TAXONOMY)
+  const domainsArray = Array.from(selectedDomains)
+
+  const toggleDomain = (key: string) => {
+    setSelectedDomains(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+        const removed = DOMAIN_TAXONOMY[key] ?? []
+        const stillValid = new Set(Array.from(next).flatMap(d => DOMAIN_TAXONOMY[d] ?? []))
+        setSelectedTopics(prev2 => {
+          const next2 = new Set(prev2)
+          for (const t of removed) { if (!stillValid.has(t)) next2.delete(t) }
+          return next2
+        })
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  const toggleTopic = (topic: string) => {
+    setSelectedTopics(prev => {
+      const next = new Set(prev)
+      next.has(topic) ? next.delete(topic) : next.add(topic)
+      return next
+    })
+  }
+
+  const handleNext = async () => {
+    setSaving(true)
+    // Collect final domains + topics including free-text "Others"
+    const customDomains = otherDomain.trim()
+      ? otherDomain.split(',').map(s => s.trim()).filter(Boolean)
+      : []
+    const allDomains = [...domainsArray, ...customDomains]
+
+    const customTopics = Object.values(otherTopics)
+      .flatMap(v => v.split(',').map(s => s.trim()).filter(Boolean))
+    const allTopics = [...Array.from(selectedTopics), ...customTopics]
+
+    // Best-effort save — never block the user
+    try {
+      await fetch('/api/user/domain-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ domains: allDomains, topics: allTopics }),
+      })
+    } catch { /* non-fatal */ }
+
+    localStorage.setItem(ONBOARDING_DONE_KEY, '1')
+    setSaving(false)
+    onComplete()
+  }
+
+  // ── Step 1: domain selection ────────────────────────────────────────────────
+  if (step === "domains") {
+    return (
+      <div data-testid="onboarding-welcome" className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
+        <div className="w-full max-w-2xl">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold mb-1">What would you like to analyze?</h2>
+            <p className="text-sm text-muted-foreground">
+              Select your research areas — BioMate will prioritise relevant workflows.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {domainKeys.map(key => {
+              const isSelected = selectedDomains.has(key)
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  data-testid={`onboarding-domain-btn-${key}`}
+                  onClick={() => toggleDomain(key)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg border px-4 py-2.5 text-left transition-colors text-sm",
+                    "hover:border-primary/60 hover:bg-primary/5",
+                    isSelected
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border bg-background"
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded border",
+                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"
+                  )}>
+                    {isSelected && <Check className="h-3 w-3" />}
+                  </div>
+                  {DOMAIN_LABELS[key]}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Other domain free-text */}
+          <div className="mb-6">
+            <input
+              type="text"
+              placeholder="Other domain (e.g. spatial genomics, immunology) — separate with commas"
+              value={otherDomain}
+              onChange={e => setOtherDomain(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              {selectedDomains.size + (otherDomain.trim() ? 1 : 0)} selected
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => { localStorage.setItem(ONBOARDING_DONE_KEY, '1'); onComplete() }}>
+                Skip
+              </Button>
+              <Button
+                onClick={() => setStep("topics")}
+                disabled={selectedDomains.size === 0 && !otherDomain.trim()}
+                className="gap-2"
+              >
+                Continue <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 2: topic selection ─────────────────────────────────────────────────
+  return (
+    <div data-testid="onboarding-welcome" className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
+      <div className="w-full max-w-2xl">
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-semibold mb-1">Which topics interest you?</h2>
+          <p className="text-sm text-muted-foreground">
+            Optional — helps BioMate surface the most relevant workflows for your work.
+          </p>
+        </div>
+
+        <div className="space-y-5 mb-6 max-h-[50vh] overflow-y-auto pr-1">
+          {domainsArray.map(domainKey => (
+            <div key={domainKey}>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                {DOMAIN_LABELS[domainKey]}
+              </h4>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(DOMAIN_TAXONOMY[domainKey] ?? []).map(topic => {
+                  const isSel = selectedTopics.has(topic)
+                  return (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => toggleTopic(topic)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                        "hover:border-primary/60 hover:bg-primary/5",
+                        isSel
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border text-muted-foreground"
+                      )}
+                    >
+                      {isSel && <Check className="h-3 w-3 shrink-0" />}
+                      {topic}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Per-domain "Other" free-text */}
+              <input
+                type="text"
+                placeholder={`Other ${DOMAIN_LABELS[domainKey]} topics — separate with commas`}
+                value={otherTopics[domainKey] ?? ""}
+                onChange={e => setOtherTopics(prev => ({ ...prev, [domainKey]: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+          ))}
+
+          {/* Other domain section (if user typed a custom domain) */}
+          {otherDomain.trim() && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Other: {otherDomain}
+              </h4>
+              <input
+                type="text"
+                placeholder="Specific topics within this area — separate with commas"
+                value={otherTopics['__other__'] ?? ""}
+                onChange={e => setOtherTopics(prev => ({ ...prev, '__other__': e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="sm" onClick={() => setStep("domains")}>Back</Button>
+          <Button onClick={handleNext} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Next — Enter BioMate <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function ChatInterface({
   chatSession,
@@ -122,6 +361,9 @@ export function ChatInterface({
   const [isCompressing, setIsCompressing] = useState(false)
   const [currentTokenCount, setCurrentTokenCount] = useState(0)
   const [compressionDismissed, setCompressionDismissed] = useState(false)
+  const [onboardingDone, setOnboardingDone] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem(ONBOARDING_DONE_KEY) === '1'
+  )
   const { isOnline } = useNetworkStatus()
   
   // Use messages from chat session or empty array if no session
@@ -1311,6 +1553,10 @@ export function ChatInterface({
       )}
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
+        <OnboardingWelcome
+          onComplete={() => setOnboardingDone(true)}
+          visible={displayMessages.length === 0 && !isTyping && !isTypingLocal && !onboardingDone}
+        />
         <div className="space-y-4">
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))

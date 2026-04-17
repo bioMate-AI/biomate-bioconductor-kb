@@ -706,6 +706,9 @@ def _is_path_param(key: str, value: Any) -> bool:
         "publish_dir_mode", "save_merged_fastq", "publish_dir",
         "outdir_mode", "output_mode", "copy_mode", "dir_mode",
         "sample_id", "sample_name", "genome_build", "genome_name",
+        # CryoSPARC remote paths — exist on EC2 instance, not local disk
+        "cryosparc_project_dir", "cryosparc_host", "cryosparc_email",
+        "cryosparc_password", "cryosparc_license", "cryosparc_lane",
     })
     key_l = key.lower()
     if key_l in _NON_PATH_KEYS:
@@ -3827,44 +3830,105 @@ def _make_cryosparc_sse_callback(run_id: str):
     return _cb
 
 
-@router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline")
+@router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline via Nextflow on AWS Batch")
 def execute_cryosparc(
     request: CryoSPARCExecuteRequest,
 ) -> Dict[str, Any]:
     """
-    Submit a CryoSPARC SPA job on the dedicated GPU instance (us-east-1).
-    Starts the EC2 instance automatically if stopped (~3-5 min cold start).
-    Returns run_id immediately; execution continues in a background thread.
+    Launch the CryoSPARC SPA Nextflow workflow on AWS Batch.
 
-    Required parameter: movie_dir — path to EER/TIFF/MRC movies on the CryoSPARC host.
-    Optional parameters: pixel_size, voltage, cs, amplitude_contrast, particle_diameter,
-                         symmetry, num_movies, total_dose.
+    Architecture:
+    1. Start the CryoSPARC GPU EC2 instance (g6.12xlarge, 4x L4 GPUs) and get its public IP.
+    2. Submit the cryosparc_standard_spa Nextflow workflow to AWS Batch, passing the instance
+       IP as --cryosparc_host.  Each Batch container uses the cryosparc-nf ECR image to submit
+       and poll CryoSPARC jobs.  All GPU compute happens on the EC2 instance; Batch handles
+       pipeline orchestration in parallel.
+    3. Return the Nextflow run_id — the frontend monitors via the standard /api/nextflow/status
+       endpoint.
     """
+    from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
+
+    params = dict(request.parameters or {})
+    user_id = request.user_id or ""
+    license_key = request.license_key or os.environ.get("CRYOSPARC_LICENSE", "")
+
+    # ── Step 1: provision the CryoSPARC GPU instance ─────────────────────────
+    log.info("[CryoSPARC] Starting GPU instance for Nextflow workflow...")
+    try:
+        instance_ip = cs_exec.start_instance(wait=True)
+        # Update the module-level HOST so gpu_metrics can find it later
+        cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
+        log.info("[CryoSPARC] Instance ready at %s", cs_exec.CRYOSPARC_HOST)
+    except Exception as exc:
+        raise HTTPException(status_code=503,
+                            detail=f"Failed to start CryoSPARC GPU instance: {exc}")
+
+    # ── Step 2: build Nextflow params and route through execute_nextflow ──────
+    s3_bucket = os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work")
+    run_short  = str(uuid.uuid4())[:8]
+    uid_path   = user_id.replace("/", "_").replace("..", "_") or "anon"
+
+    nf_params = {
+        # CryoSPARC connection (EC2 instance just started)
+        "cryosparc_host":        cs_exec.CRYOSPARC_HOST,
+        "cryosparc_port":        int(os.environ.get("CRYOSPARC_PORT", "30000")),
+        "cryosparc_email":       os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
+        "cryosparc_password":    os.environ.get("CRYOSPARC_PASSWORD", ""),
+        "cryosparc_license":     license_key,
+        "cryosparc_project_dir": os.environ.get("CRYOSPARC_PROJECT_DIR", "/home/ubuntu/cryosparc_projects"),
+        "num_gpu":               cs_exec._gpu_count_for_instance(
+                                     os.environ.get("CRYOSPARC_INSTANCE_TYPE", "g6.12xlarge")),
+        # Acquisition / sample
+        "movies_path":           params.get("movie_dir") or params.get("movies_path", ""),
+        "pixel_size":            float(params.get("pixel_size", 1.0)),
+        "voltage":               int(params.get("voltage", 300)),
+        "spherical_aberration":  float(params.get("cs", 2.7)),
+        "total_dose":            float(params.get("total_dose", 40.0)),
+        "symmetry":              params.get("symmetry", "C1"),
+        "particle_diameter_angstroms": params.get("particle_diameter") or params.get("particle_diameter_angstroms"),
+        "num_ab_initio_classes": int(params.get("num_ab_initio_classes", 3)),
+        "micrograph_batch_size": int(params.get("batch_size", 200)),
+        "use_cryosparc":         True,
+        "mock_mode":             False,
+        # Output to S3
+        "outdir": f"s3://{s3_bucket}/nextflow/outputs/{uid_path}/{run_short}",
+    }
+    # Remove None values — Nextflow rejects null params
+    nf_params = {k: v for k, v in nf_params.items() if v is not None}
+
+    nf_request = NextflowExecuteRequest(
+        nextflow_path="nextflow_nfcore/subworkflows/cryo_em/cryosparc_standard_spa/main.nf",
+        parameters=nf_params,
+        user_id=user_id,
+        history_id=request.history_id,
+        compute_config={"executor": "awsbatch", "s3_bucket": s3_bucket},
+    )
+
+    result = execute_nextflow(nf_request)
+
+    nf_run_id = result.get("run_id", "")
+    log.info("[CryoSPARC] Nextflow run %s submitted (cryosparc_host=%s, num_gpu=%s)",
+             nf_run_id, cs_exec.CRYOSPARC_HOST, nf_params.get("num_gpu"))
+
+    return {
+        "success":      True,
+        "run_id":       nf_run_id,
+        "invocation_id": nf_run_id,
+        "executor":     "nextflow",        # frontend polls /api/nextflow/status
+        "execution_engine": "cryosparc",   # labels it as cryo-EM in the UI
+        "message":      f"CryoSPARC SPA pipeline submitted to AWS Batch "
+                        f"(instance={cs_exec.CRYOSPARC_HOST}, gpu={nf_params.get('num_gpu')}x L4)",
+    }
+
+
+@router.get("/api/cryosparc/gpu_metrics", summary="Get live GPU utilization from the CryoSPARC instance")
+def get_cryosparc_gpu_metrics() -> Dict[str, Any]:
+    """Return per-GPU utilization, memory, and temperature from the active CryoSPARC instance."""
     try:
         from galaxy.webapps.galaxy.api import cryosparc_executor as cs_exec
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=f"CryoSPARC executor not available: {exc}")
-
-    run_id = str(uuid.uuid4())
-    params = dict(request.parameters or {})
-
-    cs_exec.execute_spa_pipeline(
-        run_id=run_id,
-        params=params,
-        user_id=request.user_id or "",
-        progress_callback=_make_cryosparc_sse_callback(run_id),
-        license_key=request.license_key or "",
-    )
-
-    log.info("[CryoSPARC Route] Queued run %s with params %s", run_id, list(params.keys()))
-
-    return {
-        "success": True,
-        "run_id": run_id,
-        "invocation_id": run_id,
-        "executor": "cryosparc",
-        "message": "CryoSPARC SPA pipeline queued — GPU instance starting if stopped",
-    }
+    return cs_exec.get_gpu_metrics()
 
 
 @router.get("/api/cryosparc/status/{run_id}", summary="Get CryoSPARC run status")

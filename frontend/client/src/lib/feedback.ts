@@ -66,6 +66,7 @@ export interface FeedbackPayload {
   qc_publication_rating?: number;
   ran_without_manual_correction?: boolean;
   prior_time_hours?: number;
+  actual_time_minutes?: number;
   pricing_response?: string;
   submitted_at?: string;
   /** Download check: did user get expected file(s)? */

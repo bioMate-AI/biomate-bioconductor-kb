@@ -63,11 +63,15 @@ params.phase_plate = false                   // true = Volta Phase Plate (VPP) d
 
 // Processing mode
 params.mock_mode = false                     // Set to true only for CI unit tests
-params.use_cryosparc = false                 // Use live CryoSPARC API
-params.cryosparc_license = null              // CryoSPARC license ID (set via --cryosparc_license or env)
+params.use_cryosparc = true                  // Use live CryoSPARC API (real execution)
+params.cryosparc_license = null              // CryoSPARC license ID
 params.cryosparc_host = 'localhost'
-params.cryosparc_port = 39000
+params.cryosparc_port = 30000
+params.cryosparc_email = 'admin@biomate.ai'
+params.cryosparc_password = null            // Set via --cryosparc_password
+params.cryosparc_project_dir = '/home/ubuntu/cryosparc_projects'
 params.cryosparc_lane = 'default'
+params.num_gpu = 4                           // GPUs per CryoSPARC job (matches instance type)
 
 // Processing parameters (can be auto-tuned based on sample_type)
 params.motion_correction_dose_weighting = true
@@ -147,6 +151,114 @@ def get_sample_recommendations(sample_type) {
     return recommendations[sample_type] ?: recommendations['unknown']
 }
 
+// ECR image with cryosparc-tools + boto3 for all real-mode processes
+def CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
+
+// Shared Python helper emitted inline into every process script
+def CS_HELPER = '''
+import json, os, sys, time
+
+def cs_connect(license, host, port, email, password):
+    from cryosparc.tools import CryoSPARC
+    return CryoSPARC(license=license, host=host, base_port=int(port),
+                     email=email, password=password)
+
+def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
+                    lane="default", timeout=14400):
+    job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid,
+                        type=job_type, connections=connections, params=params)
+    job.queue(lane=lane)
+    print(f"[CS] Submitted {job_type} uid={job.uid}", flush=True)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        job = cs.find_job(proj_uid, job.uid)
+        status = job.status
+        print(f"[CS] {job_type} uid={job.uid} status={status}", flush=True)
+        if status in ("completed",):
+            return job
+        if status in ("failed", "killed", "aborted"):
+            raise RuntimeError(f"CryoSPARC job {job.uid} {status}: {getattr(job, 'error_message', '')}")
+        time.sleep(20)
+    raise TimeoutError(f"CryoSPARC job {job_type} timed out after {timeout}s")
+'''
+
+// ============================================================================
+// Process Definitions — Phase 0: CryoSPARC project initialisation (runs once)
+// ============================================================================
+
+process INIT_CRYOSPARC_PROJECT {
+    tag "cs_init"
+    publishDir "${params.outdir}/00_cs_init", mode: 'copy'
+    container CS_IMAGE
+
+    input:
+    val movies_path
+
+    output:
+    path "cs_init.json", emit: init_json
+
+    script:
+    if (params.use_cryosparc && !params.mock_mode)
+    """
+    #!/usr/bin/env python3
+    ${CS_HELPER}
+    import json, time
+
+    cs = cs_connect(
+        "${params.cryosparc_license}",
+        "${params.cryosparc_host}",
+        ${params.cryosparc_port},
+        "${params.cryosparc_email}",
+        "${params.cryosparc_password}"
+    )
+
+    # Create project + workspace
+    run_tag = "biomate-" + time.strftime("%Y%m%d-%H%M%S")
+    proj = cs.create_project(title=run_tag, parent_dir="${params.cryosparc_project_dir}")
+    ws   = cs.create_workspace(project_uid=proj.uid, title="W1")
+    print(f"[CS] Project={proj.uid}  Workspace={ws.uid}", flush=True)
+
+    # Import movies
+    import_job = submit_and_wait(cs, proj.uid, ws.uid, "import_movies",
+        connections={},
+        params={
+            "blob_paths":         "${movies_path}",
+            "psize_A":            ${params.pixel_size},
+            "accel_kv":           ${params.voltage},
+            "cs_mm":              ${params.spherical_aberration},
+            "amp_contrast":       0.1,
+            "total_dose_e_per_A2": ${params.total_dose},
+        },
+        timeout=3600,
+    )
+
+    outputs = import_job.load_output("imported_movies")
+    num_movies = len(outputs) if outputs is not None else 0
+    print(f"[CS] Imported {num_movies} movies", flush=True)
+
+    with open("cs_init.json", "w") as f:
+        json.dump({
+            "project_uid":   proj.uid,
+            "workspace_uid": ws.uid,
+            "import_job_uid": import_job.uid,
+            "num_movies":    num_movies,
+        }, f, indent=2)
+    """
+    else
+    """
+    #!/usr/bin/env python3
+    import json
+    with open("cs_init.json", "w") as f:
+        json.dump({
+            "project_uid":    "MOCK",
+            "workspace_uid":  "MOCK",
+            "import_job_uid": "MOCK",
+            "num_movies":     ${params.micrograph_batch_size},
+        }, f)
+    print("[CS] mock init done")
+    """
+}
+
 // ============================================================================
 // Process Definitions — Batch-parallel processes (Phase A / B / C)
 // ============================================================================
@@ -154,66 +266,51 @@ def get_sample_recommendations(sample_type) {
 process SPLIT_INTO_BATCHES {
     tag "split_batches"
     publishDir "${params.outdir}/00_batch_split", mode: 'copy'
+    container CS_IMAGE
 
     input:
-    path movies_dir
+    path cs_init_json      // from INIT_CRYOSPARC_PROJECT
 
     output:
     path "batch_manifest.csv", emit: manifest
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
     def batch_size = params.micrograph_batch_size
     """
     #!/usr/bin/env python3
-    import glob
-    import os
-    import csv
-    from pathlib import Path
+    import csv, json
 
-    mock_mode = ${mock}
     batch_size = ${batch_size}
-    movies_dir = '${movies_dir}'
+    init = json.load(open("${cs_init_json}"))
+    num_movies = init.get("num_movies", batch_size)
 
-    # Find all movie files
-    movie_files = []
-    for ext in ('*.tif', '*.mrc', '*.eer', '*.tiff'):
-        movie_files.extend(glob.glob(os.path.join(movies_dir, ext)))
-
-    movie_files = sorted(movie_files)
-
-    if not movie_files and mock_mode:
-        # In mock mode create dummy entries so downstream processes run
-        movie_files = [f'mock_movie_{i:05d}.tif' for i in range(min(batch_size, 20))]
-
-    # Split into batches; ensure at least one batch even for empty input
-    if not movie_files:
-        movie_files = ['placeholder.tif']
-
+    # Create index-range batches (CryoSPARC addresses movies by index in the imported set)
     batches = []
-    for start in range(0, len(movie_files), batch_size):
-        batches.append(movie_files[start:start + batch_size])
+    for start in range(0, max(num_movies, 1), batch_size):
+        end = min(start + batch_size, num_movies)
+        batches.append((start, end))
 
-    # Write one batch-list file per batch and record in the manifest CSV
-    with open('batch_manifest.csv', 'w', newline='') as manifest_f:
-        writer = csv.writer(manifest_f)
-        for batch_idx, batch_files in enumerate(batches):
-            batch_id = f'batch_{batch_idx:04d}'
-            list_file = f'{batch_id}_files.txt'
-            with open(list_file, 'w') as lf:
-                lf.write('\\n'.join(batch_files))
-            writer.writerow([batch_id, os.path.abspath(list_file)])
+    with open("batch_manifest.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        for idx, (start, end) in enumerate(batches):
+            batch_id = f"batch_{idx:04d}"
+            list_file = f"{batch_id}_range.txt"
+            with open(list_file, "w") as lf:
+                lf.write(f"{start}\\t{end}\\n")
+            writer.writerow([batch_id, list_file])
 
-    print(f"Split {len(movie_files)} movies into {len(batches)} batches of <= ${batch_size}")
+    print(f"Split {num_movies} movies into {len(batches)} batches of <={batch_size}")
     """
 }
 
 process PATCH_MOTION_CORRECTION_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/02_motion_correction/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(batch_file)
+    path cs_init_json
 
     output:
     tuple val(batch_id), path("micrographs_${batch_id}.cs"), emit: micrographs_cs
@@ -221,8 +318,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
 
     script:
     def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def dose_weight = params.motion_correction_dose_weighting ? 'True' : 'False'
-    def low_mem = (params.enable_low_memory_mode || params.gpu_memory_gb < 16) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -231,138 +328,121 @@ process PATCH_MOTION_CORRECTION_BATCH {
     from datetime import datetime
     from pathlib import Path
 
-    mock_mode = ${mock}
+    ${CS_HELPER}
+    import json, random, time
+    from datetime import datetime
+    from pathlib import Path
+
     batch_id = '${batch_id}'
+    use_real = ${real}
+    init = json.load(open("${cs_init_json}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                        ${params.cryosparc_port}, "${params.cryosparc_email}",
+                        "${params.cryosparc_password}")
+        range_line = Path("${batch_file}").read_text().strip().split()
+        movie_start, movie_end = int(range_line[0]), int(range_line[1])
+        job = submit_and_wait(cs,
+            init["project_uid"], init["workspace_uid"],
+            "patch_motion_correction_multi",
+            connections={"movies": (init["import_job_uid"], "imported_movies")},
+            params={
+                "movie_start_idx":       movie_start,
+                "movie_end_idx":         movie_end,
+                "dose_per_frame_e_A2":   0,
+                "use_dose_weighting":    ${dose_weight},
+                "num_gpu":               ${params.num_gpu},
+            },
+            timeout=14400,
+        )
+        micrographs_out = job.load_output("micrographs")
+        num_mics = len(micrographs_out) if micrographs_out is not None else (movie_end - movie_start)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "micrographs",
+                   "num_items": num_mics, "batch_id": batch_id}
+        report = {"step": "02_patch_motion_correction", "batch_id": batch_id,
+                  "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True}
+    else:
+        # Mock mode
+        num_mics = 10
+        cs_data  = {"cs_mode": "mock", "batch_id": batch_id, "num_items": num_mics,
+                    "micrographs": [{"micrograph_idx": i,
+                                     "total_motion_angstroms": round(random.uniform(8.0, 45.0), 2)}
+                                    for i in range(num_mics)]}
+        report   = {"step": "02_patch_motion_correction", "batch_id": batch_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "num_micrographs": num_mics, "mock_mode": True}
 
-    # Read batch file list
-    batch_file = Path('${batch_file}')
-    movie_paths = [l.strip() for l in batch_file.read_text().splitlines() if l.strip()]
-    num_movies = len(movie_paths) if movie_paths else 10
-
-    micrographs = []
-    for i, movie_path in enumerate(movie_paths):
-        total_motion = round(random.uniform(8.0, 45.0), 2)
-        early_motion = round(random.uniform(5.0, 25.0), 2)
-        micrographs.append({
-            'micrograph_idx': i,
-            'micrograph_path': f'micrograph_{batch_id}_{i:05d}.mrc',
-            'source_movie': movie_path,
-            'total_motion_angstroms': total_motion,
-            'early_motion_angstroms': early_motion,
-            'late_motion_angstroms': round(total_motion - early_motion, 2),
-            'dose_weighted': ${dose_weight},
-            'batch_id': batch_id
-        })
-
-    report = {
-        'step': '02_patch_motion_correction',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_micrographs': num_movies,
-        'avg_total_motion_angstroms': round(sum(m['total_motion_angstroms'] for m in micrographs) / num_movies, 2) if micrographs else 0,
-        'dose_weighting_enabled': ${dose_weight},
-        'low_memory_mode': ${low_mem},
-        'mock_mode': mock_mode
-    }
-
-    with open(f'micrographs_${batch_id}.cs', 'w') as f:
-        json.dump({'micrographs': micrographs, 'batch_id': batch_id}, f, indent=2)
-
-    with open(f'motion_report_${batch_id}.json', 'w') as f:
+    with open(f"micrographs_${batch_id}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"motion_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] Motion corrected {num_movies} micrographs")
+    print(f"✓ [{batch_id}] Motion correction done ({num_mics} mics, real={use_real})")
     """
 }
 
 process PATCH_CTF_ESTIMATION_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/03_ctf_estimation/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(micrographs_cs)
+    path cs_init_json
 
     output:
     tuple val(batch_id), path("micrographs_ctf_${batch_id}.cs"), emit: ctf_cs
     path "ctf_report_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
-    def use_phase_plate = params.phase_plate ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
     batch_id = '${batch_id}'
+    use_real  = ${real}
+    init      = json.load(open("${cs_init_json}"))
+    prev      = json.load(open("${micrographs_cs}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "patch_ctf_estimation_multi",
+            connections={"micrographs": (prev["job_uid"], "micrographs")},
+            params={"num_gpu": ${params.num_gpu}},
+            timeout=7200,
+        )
+        num_mics = prev.get("num_items", 0)
+        cs_data  = {"cs_mode": "real", "project_uid": init["project_uid"],
+                    "workspace_uid": init["workspace_uid"],
+                    "job_uid": job.uid, "output_slot": "micrographs_ctf",
+                    "num_items": num_mics, "batch_id": batch_id}
+        report   = {"step": "03_patch_ctf_estimation", "batch_id": batch_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True}
+    else:
+        mics = prev.get("micrographs", [{"micrograph_idx": i} for i in range(10)])
+        ctf  = [{"defocus_u_angstroms": round(random.uniform(10000, 35000), 1),
+                 "ctf_fit_resolution_angstroms": round(random.uniform(3.5, 8.0), 2),
+                 **m} for m in mics]
+        cs_data = {"cs_mode": "mock", "batch_id": batch_id, "micrographs": ctf}
+        report  = {"step": "03_patch_ctf_estimation", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(),
+                   "num_micrographs": len(mics), "mock_mode": True}
 
-    mics_data = json.load(open('${micrographs_cs}'))
-    micrographs = mics_data.get('micrographs', [])
-    use_phase_plate = ${use_phase_plate}
-
-    ctf_data = []
-    phase_shifts = []
-
-    for mic in micrographs:
-        if use_phase_plate:
-            defocus_u = round(random.uniform(1000, 5000), 1)
-        else:
-            defocus_u = round(random.uniform(10000, 35000), 1)
-        defocus_v = round(random.uniform(defocus_u * 0.9, defocus_u * 1.1), 1)
-        fit_resolution = round(random.uniform(3.5, 8.0), 2)
-        cross_correlation = round(random.uniform(0.05, 0.20), 4)
-
-        entry = {
-            **mic,
-            'defocus_u_angstroms': defocus_u,
-            'defocus_v_angstroms': defocus_v,
-            'astigmatism_angstroms': abs(defocus_u - defocus_v),
-            'astigmatism_angle_degrees': round(random.uniform(0, 180), 1),
-            'ctf_fit_resolution_angstroms': fit_resolution,
-            'ctf_cross_correlation': cross_correlation,
-        }
-
-        if use_phase_plate:
-            phase_shift = round(random.gauss(0.75, 0.2), 4)
-            entry['phase_shift_rad'] = phase_shift
-            phase_shifts.append(phase_shift)
-
-        ctf_data.append(entry)
-
-    report = {
-        'step': '03_patch_ctf_estimation',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_micrographs': len(micrographs),
-        'avg_defocus_angstroms': round(sum(m['defocus_u_angstroms'] for m in ctf_data) / len(ctf_data), 1) if ctf_data else 0,
-        'avg_fit_resolution_angstroms': round(sum(m['ctf_fit_resolution_angstroms'] for m in ctf_data) / len(ctf_data), 2) if ctf_data else 0,
-        'voltage_kv': ${params.voltage},
-        'spherical_aberration_mm': ${params.spherical_aberration},
-        'phase_plate': use_phase_plate,
-        'mock_mode': mock_mode
-    }
-
-    if use_phase_plate and phase_shifts:
-        report['avg_phase_shift_rad'] = round(sum(phase_shifts) / len(phase_shifts), 4)
-        report['min_phase_shift_rad'] = round(min(phase_shifts), 4)
-        report['max_phase_shift_rad'] = round(max(phase_shifts), 4)
-
-    with open(f'micrographs_ctf_${batch_id}.cs', 'w') as f:
-        json.dump({'micrographs': ctf_data, 'batch_id': batch_id}, f, indent=2)
-
-    with open(f'ctf_report_${batch_id}.json', 'w') as f:
+    with open(f"micrographs_ctf_${batch_id}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"ctf_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] CTF estimated for {len(micrographs)} micrographs")
+    print(f"✓ [{batch_id}] CTF done (real={use_real})")
     if use_phase_plate and phase_shifts:
         print(f"  Volta Phase Plate: avg phase shift = {report['avg_phase_shift_rad']:.3f} rad")
     """
@@ -371,68 +451,72 @@ process PATCH_CTF_ESTIMATION_BATCH {
 process BLOB_PICKER_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/05_blob_picker/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(ctf_cs)
+    path cs_init_json
 
     output:
     tuple val(batch_id), path("particles_blob_${batch_id}.cs"), emit: particles_cs
     path "picking_report_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def diameter = params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
     batch_id = '${batch_id}'
+    use_real  = ${real}
+    init      = json.load(open("${cs_init_json}"))
+    prev      = json.load(open("${ctf_cs}"))
 
-    if mock_mode:
-        time.sleep(0.5)
-
-    mics_data = json.load(open('${ctf_cs}'))
-    micrographs = mics_data.get('micrographs', [])
-
-    all_particles = []
-    particle_idx = 0
-
-    for mic in micrographs:
-        num_picks = random.randint(80, 350)
-        for _ in range(num_picks):
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "blob_picker_gpu",
+            connections={"micrographs": (prev["job_uid"], "micrographs_ctf")},
+            params={"diameter": ${diameter}, "num_gpu": ${params.num_gpu}},
+            timeout=7200,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else 0
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles, "batch_id": batch_id}
+        report = {"step": "05_blob_picker", "batch_id": batch_id,
+                  "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "num_particles": num_particles,
+                  "particle_diameter_angstroms": ${diameter}, "real_mode": True}
+    else:
+        num_mics = prev.get("num_items", 10)
+        all_particles = []
+        for i in range(num_mics * random.randint(80, 200)):
             all_particles.append({
-                'particle_idx': particle_idx,
-                'micrograph_idx': mic['micrograph_idx'],
-                'batch_id': batch_id,
-                'x_coord': random.randint(100, 3900),
-                'y_coord': random.randint(100, 3900),
-                'pick_score': round(random.uniform(0.3, 1.0), 3),
-                'pick_method': 'blob'
+                "particle_idx": i, "micrograph_idx": i % num_mics,
+                "batch_id": batch_id,
+                "x_coord": random.randint(100, 3900), "y_coord": random.randint(100, 3900),
+                "pick_score": round(random.uniform(0.3, 1.0), 3), "pick_method": "blob"
             })
-            particle_idx += 1
+        cs_data = {"cs_mode": "mock", "batch_id": batch_id,
+                   "num_items": len(all_particles), "particles": all_particles}
+        report  = {"step": "05_blob_picker", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(),
+                   "num_particles": len(all_particles),
+                   "particle_diameter_angstroms": ${diameter}, "mock_mode": True}
 
-    report = {
-        'step': '05_blob_picker',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(all_particles),
-        'num_micrographs': len(micrographs),
-        'avg_particles_per_micrograph': round(len(all_particles) / len(micrographs), 1) if micrographs else 0,
-        'particle_diameter_angstroms': ${diameter},
-        'mock_mode': mock_mode
-    }
-
-    with open(f'particles_blob_${batch_id}.cs', 'w') as f:
-        json.dump({'particles': all_particles, 'batch_id': batch_id}, f, indent=2)
-
-    with open(f'picking_report_${batch_id}.json', 'w') as f:
+    with open(f"particles_blob_${batch_id}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"picking_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] Picked {len(all_particles)} particles using blob picker")
+    print(f"✓ [{batch_id}] Blob picker done (real={use_real})")
     """
 }
 
@@ -556,265 +640,289 @@ process SPLIT_PARTICLE_BATCHES {
 process CLASSIFY_2D_R1_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/09_classify_2d_round1/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(particles_json)
+    path cs_init_json
 
     output:
     tuple val(batch_id), path("class2d_r1_${batch_id}.cs"), emit: classes_cs
     path "class2d_report_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def recommendations = get_sample_recommendations(params.sample_type)
     def num_classes = recommendations.num_2d_classes
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
     batch_id = '${batch_id}'
+    use_real  = ${real}
+    init      = json.load(open("${cs_init_json}"))
+    prev      = json.load(open("${particles_json}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "class_2D",
+            connections={"particles": (prev["job_uid"], "particles")},
+            params={"num_classes": 50, "num_gpu": ${params.num_gpu}},
+            timeout=14400,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else prev.get("num_items", 0)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles, "batch_id": batch_id}
+        report  = {"step": "09_classify_2d_round1", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(),
+                   "cs_job_uid": job.uid, "num_particles": num_particles,
+                   "num_classes": 50, "real_mode": True}
+    else:
+        num_particles = prev.get("num_items", 1000)
+        num_classes   = ${num_classes}
+        classes = [{"class_idx": i,
+                    "num_particles": random.randint(50, max(51, num_particles // num_classes * 2)),
+                    "resolution_angstroms": round(random.uniform(8.0, 25.0), 2),
+                    "is_good_class": random.random() > 0.5, "batch_id": batch_id}
+                   for i in range(num_classes)]
+        num_good = sum(1 for c in classes if c["is_good_class"])
+        cs_data  = {"cs_mode": "mock", "batch_id": batch_id,
+                    "num_items": num_particles, "classes": classes}
+        report   = {"step": "09_classify_2d_round1", "batch_id": batch_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "num_particles": num_particles, "num_classes": num_classes,
+                    "num_good_classes": num_good, "mock_mode": True}
 
-    particles_data = json.load(open('${particles_json}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    num_classes = ${num_classes}
-    classes = []
-
-    for class_idx in range(num_classes):
-        resolution = round(random.uniform(8.0, 25.0), 2)
-        num_particles_in_class = random.randint(50, max(51, num_particles // num_classes * 2))
-        is_good = resolution < 15.0 and num_particles_in_class > num_particles // num_classes * 0.8
-
-        classes.append({
-            'class_idx': class_idx,
-            'num_particles': num_particles_in_class,
-            'resolution_angstroms': resolution,
-            'class_distribution': round(num_particles_in_class / max(1, num_particles), 4),
-            'is_good_class': is_good,
-            'batch_id': batch_id
-        })
-
-    num_good = sum(1 for c in classes if c['is_good_class'])
-
-    report = {
-        'step': '09_classify_2d_round1',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'num_classes': num_classes,
-        'num_good_classes': num_good,
-        'avg_resolution_angstroms': round(sum(c['resolution_angstroms'] for c in classes) / num_classes, 2),
-        'sample_type': '${params.sample_type}',
-        'mock_mode': mock_mode
-    }
-
-    with open(f'class2d_r1_${batch_id}.cs', 'w') as f:
-        json.dump({'classes': classes, 'batch_id': batch_id}, f, indent=2)
-
-    with open(f'class2d_report_${batch_id}.json', 'w') as f:
+    with open(f"class2d_r1_${batch_id}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"class2d_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] 2D classified {num_particles} particles into {num_classes} classes ({num_good} good)")
+    print(f"✓ [{batch_id}] 2D classify R1 done (real={use_real})")
     """
 }
 
 process CLASSIFY_2D_R2_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/14_classify_2d_round2/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(particles_json)
+    path cs_init_json
 
     output:
     tuple val(batch_id), path("class2d_r2_${batch_id}.cs"), emit: classes_cs
     path "class2d_report_r2_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def recommendations = get_sample_recommendations(params.sample_type)
     def num_classes = recommendations.num_2d_classes
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
     batch_id = '${batch_id}'
+    use_real  = ${real}
+    init      = json.load(open("${cs_init_json}"))
+    prev      = json.load(open("${particles_json}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "class_2D",
+            connections={"particles": (prev["job_uid"], "particles")},
+            params={"num_classes": 100, "num_gpu": ${params.num_gpu}},
+            timeout=14400,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else prev.get("num_items", 0)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles, "batch_id": batch_id}
+        report  = {"step": "14_classify_2d_round2", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(),
+                   "cs_job_uid": job.uid, "num_particles": num_particles,
+                   "num_classes": 100, "real_mode": True}
+    else:
+        num_particles = prev.get("num_items", 1000)
+        num_classes   = ${num_classes}
+        classes = [{"class_idx": i,
+                    "num_particles": random.randint(100, max(101, num_particles // num_classes * 2)),
+                    "resolution_angstroms": round(random.uniform(6.0, 20.0), 2),
+                    "is_good_class": random.random() > 0.4, "batch_id": batch_id}
+                   for i in range(num_classes)]
+        num_good = sum(1 for c in classes if c["is_good_class"])
+        cs_data  = {"cs_mode": "mock", "batch_id": batch_id,
+                    "num_items": num_particles, "classes": classes}
+        report   = {"step": "14_classify_2d_round2", "batch_id": batch_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "num_particles": num_particles, "num_classes": num_classes,
+                    "num_good_classes": num_good, "mock_mode": True}
 
-    particles_data = json.load(open('${particles_json}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    num_classes = ${num_classes}
-    classes = []
-
-    for class_idx in range(num_classes):
-        resolution = round(random.uniform(6.0, 20.0), 2)
-        num_in_class = random.randint(100, max(101, num_particles // num_classes * 2))
-        is_good = resolution < 12.0
-
-        classes.append({
-            'class_idx': class_idx,
-            'num_particles': num_in_class,
-            'resolution_angstroms': resolution,
-            'is_good_class': is_good,
-            'batch_id': batch_id
-        })
-
-    num_good = sum(1 for c in classes if c['is_good_class'])
-
-    report = {
-        'step': '14_classify_2d_round2',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'num_classes': num_classes,
-        'num_good_classes': num_good,
-        'mock_mode': mock_mode
-    }
-
-    with open(f'class2d_r2_${batch_id}.cs', 'w') as f:
-        json.dump({'classes': classes, 'batch_id': batch_id}, f, indent=2)
-
-    with open(f'class2d_report_r2_${batch_id}.json', 'w') as f:
+    with open(f"class2d_r2_${batch_id}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"class2d_report_r2_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] 2D classified (R2) {num_particles} particles into {num_classes} classes ({num_good} good)")
+    print(f"✓ [{batch_id}] 2D classify R2 done (real={use_real})")
     """
 }
 
 process AB_INITIO_BATCH {
     tag "ab_initio_k${k}"
     publishDir "${params.outdir}/16_ab_initio/model_${k}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(k), path(particles_cs)
+    path cs_init_json
 
     output:
     tuple val(k), path("volume_ab_initio_k${k}.cs"), emit: volume_cs
     path "ab_initio_report_k${k}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
-    k = ${k}
+    k        = ${k}
+    use_real = ${real}
+    init     = json.load(open("${cs_init_json}"))
+    prev     = json.load(open("${particles_cs}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "homo_abinit",
+            connections={"particles": (prev["job_uid"], "particles")},
+            params={"abinit_K": 1, "symmetry": "${params.symmetry}", "num_gpu": ${params.num_gpu}},
+            timeout=14400,
+        )
+        volume_out = job.load_output("volume")
+        num_particles = prev.get("num_items", 0)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "volume",
+                   "num_items": num_particles, "batch_id": f"k{k}",
+                   "volume": {"volume_idx": k, "resolution_angstroms": None,
+                               "num_particles": num_particles}}
+        report  = {"step": f"16_ab_initio_model_{k}", "k": k,
+                   "timestamp": datetime.now().isoformat(),
+                   "cs_job_uid": job.uid, "symmetry": "${params.symmetry}",
+                   "num_particles": num_particles, "real_mode": True}
+    else:
+        num_particles = prev.get("num_items", 1000)
+        resolution    = round(random.uniform(10.0, 25.0), 2)
+        fraction      = round(random.uniform(0.2, 0.5), 3)
+        cs_data = {"cs_mode": "mock", "batch_id": f"k{k}",
+                   "volume": {"volume_idx": k, "resolution_angstroms": resolution,
+                               "num_particles": int(num_particles * fraction),
+                               "particle_fraction": fraction}}
+        report  = {"step": f"16_ab_initio_model_{k}", "k": k,
+                   "timestamp": datetime.now().isoformat(),
+                   "num_particles": num_particles, "symmetry": "${params.symmetry}",
+                   "resolution_angstroms": resolution, "mock_mode": True}
 
-    particles_data = json.load(open('${particles_cs}'))
-    num_particles = len(particles_data.get('particles', []))
-
-    resolution = round(random.uniform(10.0, 25.0), 2)
-    fraction = round(random.uniform(0.2, 0.5), 3)
-
-    volume = {
-        'volume_idx': k,
-        'resolution_angstroms': resolution,
-        'num_particles': int(num_particles * fraction),
-        'particle_fraction': fraction
-    }
-
-    report = {
-        'step': f'16_ab_initio_model_{k}',
-        'k': k,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'symmetry': '${params.symmetry}',
-        'resolution_angstroms': resolution,
-        'mock_mode': mock_mode
-    }
-
-    with open(f'volume_ab_initio_k{k}.cs', 'w') as f:
-        json.dump({'volume': volume}, f, indent=2)
-
-    with open(f'ab_initio_report_k{k}.json', 'w') as f:
+    with open(f"volume_ab_initio_k{k}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"ab_initio_report_k{k}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [Ab-initio model {k}] Resolution: {resolution} Å")
+    print(f"✓ [Ab-initio model {k}] done (real={use_real})")
     """
 }
 
 process HOMO_REFINEMENT_BATCH {
     tag "refine_${vol_name}"
     publishDir "${params.outdir}/17_homogeneous_refinement/${vol_name}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(vol_name), path(volume_cs)
     path particles_cs
+    path cs_init_json
 
     output:
     tuple val(vol_name), path("refined_${vol_name}.cs"), emit: refined_cs
     path "refinement_report_${vol_name}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    mock_mode = ${mock}
     vol_name = '${vol_name}'
+    use_real  = ${real}
+    init      = json.load(open("${cs_init_json}"))
+    vol_data  = json.load(open("${volume_cs}"))
+    par_data  = json.load(open("${particles_cs}"))
 
-    if mock_mode:
-        time.sleep(0.5)
+    if use_real:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "homo_refine_new",
+            connections={
+                "particles": (par_data["job_uid"], "particles"),
+                "volume":    (vol_data["job_uid"], "volume"),
+            },
+            params={"symmetry": "${params.symmetry}", "num_gpu": ${params.num_gpu}},
+            timeout=21600,
+        )
+        num_particles = par_data.get("num_items", 0)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "volume",
+                   "num_items": num_particles, "batch_id": vol_name,
+                   "volume": {"volume_name": vol_name, "num_particles": num_particles}}
+        report  = {"step": "17_homogeneous_refinement", "vol_name": vol_name,
+                   "timestamp": datetime.now().isoformat(),
+                   "cs_job_uid": job.uid, "num_particles": num_particles,
+                   "symmetry": "${params.symmetry}", "real_mode": True}
+    else:
+        volume        = vol_data.get("volume", {})
+        num_particles = par_data.get("num_items", 1000)
+        initial_res   = volume.get("resolution_angstroms", 15.0) or 15.0
+        final_res     = round(initial_res * random.uniform(0.4, 0.7), 2)
+        cs_data = {"cs_mode": "mock", "batch_id": vol_name,
+                   "volume": {"volume_name": vol_name, "resolution_angstroms": final_res,
+                               "num_particles": num_particles,
+                               "fsc_0143_resolution": round(final_res * 1.05, 2)}}
+        report  = {"step": "17_homogeneous_refinement", "vol_name": vol_name,
+                   "timestamp": datetime.now().isoformat(),
+                   "num_particles": num_particles,
+                   "initial_resolution_angstroms": initial_res,
+                   "final_resolution_angstroms": final_res,
+                   "resolution_improvement": round((initial_res - final_res) / initial_res * 100, 1),
+                   "symmetry": "${params.symmetry}", "mock_mode": True}
 
-    volume_data = json.load(open('${volume_cs}'))
-    particles_data = json.load(open('${particles_cs}'))
-
-    volume = volume_data.get('volume', {})
-    num_particles = len(particles_data.get('particles', []))
-
-    initial_res = volume.get('resolution_angstroms', 15.0)
-    final_res = round(initial_res * random.uniform(0.4, 0.7), 2)
-
-    refined = {
-        'volume_name': vol_name,
-        'resolution_angstroms': final_res,
-        'num_particles': num_particles,
-        'fsc_0143_resolution': round(final_res * 1.05, 2)
-    }
-
-    report = {
-        'step': '17_homogeneous_refinement',
-        'vol_name': vol_name,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'initial_resolution_angstroms': initial_res,
-        'final_resolution_angstroms': final_res,
-        'resolution_improvement': round((initial_res - final_res) / initial_res * 100, 1),
-        'symmetry': '${params.symmetry}',
-        'mock_mode': mock_mode
-    }
-
-    with open(f'refined_${vol_name}.cs', 'w') as f:
-        json.dump({'volume': refined}, f, indent=2)
-
-    with open(f'refinement_report_${vol_name}.json', 'w') as f:
+    with open(f"refined_${vol_name}.cs", "w") as f:
+        json.dump(cs_data, f, indent=2)
+    with open(f"refinement_report_${vol_name}.json", "w") as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [Refinement {vol_name}] {initial_res} Å → {final_res} Å")
+    print(f"✓ [Refinement {vol_name}] done (real={use_real})")
     """
 }
 
@@ -1631,19 +1739,24 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     main:
 
+    // ── Phase 0: Initialise CryoSPARC project (once) ────────────────────────
+
+    INIT_CRYOSPARC_PROJECT(movies_path)
+    init_json_ch = Channel.value(INIT_CRYOSPARC_PROJECT.out.init_json)
+
     // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
     // Split movie directory into batches; emit one CSV row per batch
-    batches_ch = SPLIT_INTO_BATCHES(movies_path)
+    batches_ch = SPLIT_INTO_BATCHES(init_json_ch)
         .splitCsv(header: false)
         .map { row -> tuple(row[0], file(row[1])) }   // (batch_id, batch_list_file)
 
     // Parallel motion correction — one job per batch
-    motion_ch = PATCH_MOTION_CORRECTION_BATCH(batches_ch)
+    motion_ch = PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
     // motion_ch emits: tuple(batch_id, micrographs_cs)
 
     // Parallel CTF estimation — one job per batch
-    ctf_ch = PATCH_CTF_ESTIMATION_BATCH(motion_ch)
+    ctf_ch = PATCH_CTF_ESTIMATION_BATCH(motion_ch, init_json_ch)
     // ctf_ch emits: tuple(batch_id, micrographs_ctf_cs)
 
     // Collect all per-batch CTF files into a single merged dataset
@@ -1656,7 +1769,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase B: Blob picking — parallel per CTF batch ───────────────────────
 
-    picked_ch    = BLOB_PICKER_BATCH(ctf_ch)
+    picked_ch    = BLOB_PICKER_BATCH(ctf_ch, init_json_ch)
     all_picks_cs = picked_ch.map { batch_id, picks_file -> picks_file }.collect()
     merged_picks = MERGE_PARTICLES(all_picks_cs)
 
@@ -1677,7 +1790,7 @@ workflow CRYOSPARC_STANDARD_SPA {
         .splitCsv(header: false)
         .map { row -> tuple(row[0], file(row[1])) }
 
-    classes_r1_ch  = CLASSIFY_2D_R1_BATCH(particle_batches_ch)
+    classes_r1_ch  = CLASSIFY_2D_R1_BATCH(particle_batches_ch, init_json_ch)
     all_classes_r1 = classes_r1_ch.map { batch_id, f -> f }.collect()
     merged_classes_r1 = MERGE_CLASSES(all_classes_r1)
 
@@ -1695,7 +1808,7 @@ workflow CRYOSPARC_STANDARD_SPA {
         .splitCsv(header: false)
         .map { row -> tuple(row[0], file(row[1])) }
 
-    classes_r2_ch  = CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch)
+    classes_r2_ch  = CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch, init_json_ch)
     all_classes_r2 = classes_r2_ch.map { batch_id, f -> f }.collect()
     merged_classes_r2 = MERGE_CLASSES(all_classes_r2)
 
@@ -1709,7 +1822,7 @@ workflow CRYOSPARC_STANDARD_SPA {
         .combine(all_selected_r2_val)
         .map { k, particles -> tuple(k, particles) }
 
-    volumes_ch  = AB_INITIO_BATCH(ab_initio_inputs)
+    volumes_ch  = AB_INITIO_BATCH(ab_initio_inputs, init_json_ch)
     all_volumes = volumes_ch.map { k, vol -> vol }.collect()
     merged_vols = MERGE_VOLUMES(all_volumes)
 
@@ -1723,7 +1836,8 @@ workflow CRYOSPARC_STANDARD_SPA {
                     tuple("vol_${v.volume_idx}", vols_file)
                 }
             },
-        SELECT_2D_R2.out.selected_cs
+        SELECT_2D_R2.out.selected_cs,
+        init_json_ch
     )
 
     // Pick the best refined volume (highest resolution = lowest number)

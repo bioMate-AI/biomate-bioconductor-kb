@@ -3465,6 +3465,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Proxy for CryoSPARC status endpoint — frontend can poll run status directly
+  app.get("/api/cryosparc/gpu_metrics", async (_req: any, res: any) => {
+    try {
+      const response = await fetch(
+        `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/gpu_metrics`,
+        { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+      );
+      const data = await response.json();
+      return res.status(response.status).json(data);
+    } catch (err: any) {
+      return res.status(502).json({ error: 'GPU metrics proxy error', gpus: [] });
+    }
+  });
+
   app.get("/api/cryosparc/status/:runId", async (req: any, res: any) => {
     try {
       const response = await fetch(
@@ -3953,7 +3966,8 @@ Be specific. If output data is available above, extract real numbers. If binary 
         workflowPayload?.success &&
         !workflowPayload?.error &&
         (workflowPayload?.workflow_ga || workflowPayload?.nextflow_path ||
-         workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name)
+         workflowPayload?.workflow_type === "chain" || workflowPayload?.chain_name ||
+         workflowPayload?.workflow_type === "cryosparc")
       );
       const workflowGenerationFailed = !!workflowPayload && !runnableWorkflow;
 

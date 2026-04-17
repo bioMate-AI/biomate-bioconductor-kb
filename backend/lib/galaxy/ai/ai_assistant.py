@@ -2042,6 +2042,15 @@ Respond with a single JSON object — no other text:
         'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
         'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
+        # CryoSPARC infra — passed via backend env vars, never shown to users
+        'cryosparc_password', 'cryosparc_email', 'cryosparc_host', 'cryosparc_port',
+        'cryosparc_project_dir', 'cryosparc_lane',
+        # Parallelism controls — internal pipeline tuning
+        'micrograph_batch_size', 'particle_batch_size', 'num_gpu_workers', 'max_parallel_jobs',
+        'num_gpu', 'num_gpu_workers',
+        # Processing internals
+        'motion_correction_dose_weighting', 'ctf_fitting_resolution_min', 'ctf_fitting_resolution_max',
+        'enable_low_memory_mode', 'gpu_memory_gb', 'max_resolution_refinement',
     }
 
     # Params that are `= null` in .nf files but are auto-calculated or truly optional.
@@ -2143,8 +2152,11 @@ Respond with a single JSON object — no other text:
         except Exception:
             return {"required": [], "optional": []}
         required, optional = [], []
+        seen_names: set = set()
         for m in _re.finditer(r"^\s*params\.(\w+)\s*=\s*(.+)$", text, _re.MULTILINE):
             name = m.group(1)
+            if name in seen_names:
+                continue  # first declaration wins (top-level params block)
             # Strip inline comment (// ...) from value
             raw = _re.sub(r'\s*//.*$', '', m.group(2)).strip()
             val_raw = raw
@@ -2155,7 +2167,8 @@ Respond with a single JSON object — no other text:
             # A param is truly required only if it's null AND not in the known-optional set.
             # Optional-null params auto-calculate or have workflow-level fallbacks.
             is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
-            default_str = None if is_required else val_raw.strip("'\"")
+            # null-default params get Python None (renders as empty in UI), not the string "null"
+            default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
             param_type = self._detect_param_type(name, default_str or "")
             # Convert boolean string defaults to actual Python bools so the JSON
             # serialisation sends true/false (not the strings "true"/"false"),
@@ -2171,6 +2184,7 @@ Respond with a single JSON object — no other text:
                 "type": param_type,
                 "default": default_str,
             }
+            seen_names.add(name)
             if is_required:
                 required.append(entry)
             else:

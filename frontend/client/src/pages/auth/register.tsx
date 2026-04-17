@@ -369,7 +369,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="inviteCode">
                 Invite Code
-                <span className="ml-1 text-xs text-muted-foreground">(required during closed beta)</span>
+                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
               </Label>
               <Input
                 id="inviteCode"

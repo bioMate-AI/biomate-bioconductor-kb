@@ -4098,7 +4098,8 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       !generatedWorkflow?.error &&
       (generatedWorkflow?.workflow_ga ||
        generatedWorkflow?.nextflow_path ||
-       generatedWorkflow?.workflow_type === 'chain')
+       generatedWorkflow?.workflow_type === 'chain' ||
+       generatedWorkflow?.workflow_type === 'cryosparc')
     );
     const workflowGenerationFailed = !!generatedWorkflow && !runnableWorkflow;
     const workflowFailureSignals = workflowGenerationFailed
