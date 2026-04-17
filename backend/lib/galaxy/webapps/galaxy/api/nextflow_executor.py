@@ -3089,6 +3089,59 @@ def download_invocation_qc_audit(
         raise HTTPException(status_code=500, detail=f"Failed to download QC audit: {e}")
 
 
+@router.get("/api/invocations/{invocation_id}/autoloop-suggestions",
+            summary="Return auto-loop remediation suggestions for a workflow invocation")
+def get_autoloop_suggestions(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+):
+    """
+    Return the latest auto-loop remediation suggestions computed during QC monitoring.
+
+    These are produced when a drug-discovery phase (ADMET, docking, CYP DDI, NCA-PK)
+    fails its auto-loop gates.  Each suggestion contains:
+    - domain: which auto-loop package flagged the failure
+    - phase: which phase failed
+    - failed_gates: list of gate names that triggered HALT
+    - remediations: list of EnrichedRemediation dicts (param_changes + rationale + citations)
+
+    Returns 404 when no suggestions are available (phase passed or not yet evaluated).
+    """
+    try:
+        from experiments.autoloop_bridge import get_suggestions
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Auto-loop bridge not available")
+
+    suggestions = get_suggestions(invocation_id)
+    if suggestions is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No auto-loop suggestions for invocation {invocation_id!r} — phase passed or not yet evaluated",
+        )
+    return {"invocation_id": invocation_id, **suggestions}
+
+
+@router.post("/api/invocations/{invocation_id}/autoloop-dismiss",
+             summary="Dismiss (clear) auto-loop suggestions for an invocation")
+def dismiss_autoloop_suggestions(
+    invocation_id: str,
+    trans: ProvidesUserContext = DependsOnTrans,
+):
+    """
+    Clear stored auto-loop suggestions for an invocation.
+
+    Call this after the user has acknowledged or applied the suggestions so they
+    don't reappear on the next page load.
+    """
+    try:
+        from experiments.autoloop_bridge import pop_suggestions
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Auto-loop bridge not available")
+
+    popped = pop_suggestions(invocation_id)
+    return {"invocation_id": invocation_id, "cleared": popped is not None}
+
+
 @router.get("/api/invocations/{invocation_id}/methods-report",
             summary="Download methods report as plain text")
 def download_invocation_methods_report(

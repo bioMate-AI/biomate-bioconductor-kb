@@ -913,6 +913,24 @@ class NextflowQCGateHandler:
                 log.info(f"[QC Gate] Near-threshold/advisory warnings for {process_name}: {len(all_warnings)}")
                 self._emit_qc_warning_event(process_name, qc_metrics, all_warnings)
 
+        # ── Auto-loop enriched evaluation (drug discovery domains) ─────────────
+        # Runs in addition to the existing QC gate system.  Produces autoloop_*
+        # SSE events with per-gate rationale and literature citations.
+        # Failures are non-blocking here — the bridge calls fail-open.
+        try:
+            from experiments.autoloop_bridge import evaluate_and_emit
+            evaluate_and_emit(
+                process_name=process_name,
+                raw_metrics=qc_metrics,
+                invocation_id=self.invocation_id,
+                sse_callback=self.sse_callback,
+                qc_profile=self.active_profile,
+            )
+        except ImportError:
+            pass  # bridge not installed — skip silently
+        except Exception as _al_exc:
+            log.debug(f"[AutoLoop] Non-fatal evaluation error for {process_name}: {_al_exc}")
+
     def _calculate_qc_metrics(
         self,
         process_name: str,
@@ -1036,7 +1054,13 @@ class NextflowQCGateHandler:
                                                "PREDICT_ADMET", "ADMET_SAFETY")):
             return self._parse_admet_toxicity_metrics(task_work_dir)
 
-        # --- Pharmacogenomics CYP gene coverage ---
+        # --- CYP DDI risk assessment (R1/R2 inhibition flags) ---
+        elif any(k in process_upper for k in ("CYP_INHIBITION", "DDI_RISK_ASSESSMENT",
+                                               "CYP_PANEL", "DDI_RISK", "DDI_ASSESSMENT",
+                                               "CYP_DDI", "DDI_REPORT")):
+            return self._parse_cyp_ddi_results(task_work_dir)
+
+        # --- Pharmacogenomics CYP gene coverage (sequencing depth, not DDI) ---
         elif any(k in process_upper for k in ("PGX_COVERAGE", "CYP_COVERAGE",
                                                "PHARMACOGENOMICS_QC", "PGX_QC")):
             return self._parse_pgx_coverage_metrics(task_work_dir)
@@ -2957,6 +2981,81 @@ class NextflowQCGateHandler:
                         return metrics
                 except (OSError, json.JSONDecodeError, KeyError):
                     continue
+        return None
+
+    def _parse_cyp_ddi_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
+        """
+        Parse CYP DDI risk assessment output from the cyp_ddi_panel workflow.
+
+        Reads (in priority order):
+          1. ``ddi_risk_assessment.json`` — structured DDI risk per isoform with R1/R2 flags
+          2. ``cyp_panel_summary.json``   — merged summary from DDI_REPORT process
+
+        Returns a dict matching the CYPDDIQCEvaluator input schema:
+          {
+            "summary": {
+              "n_clinical": int,        # isoforms flagged CLINICAL_STUDY_RECOMMENDED
+              "n_investigate": int,     # isoforms flagged INVESTIGATE
+              "n_tdi": int,             # isoforms with TDI structural alerts
+              "overall_recommendation": str
+            }
+          }
+        """
+        for fname in ("ddi_risk_assessment.json", "cyp_panel_summary.json"):
+            for p in (list(task_work_dir.glob(fname))
+                      + list(task_work_dir.glob(f"**/{fname}"))):
+                try:
+                    data = json.loads(p.read_text(errors="replace"))
+
+                    # ddi_risk_assessment.json has a top-level "summary" dict
+                    if "summary" in data:
+                        s = data["summary"]
+                        metrics = {
+                            "summary": {
+                                "n_clinical": int(
+                                    s.get("n_clinical_study_recommended",
+                                          s.get("n_clinical", 0)) or 0
+                                ),
+                                "n_investigate": int(s.get("n_investigate", 0) or 0),
+                                "n_tdi": int(
+                                    s.get("n_tdi_flagged", s.get("n_tdi", 0)) or 0
+                                ),
+                                "overall_recommendation": str(
+                                    s.get("overall_recommendation", "NOT_EXPECTED")
+                                ),
+                            }
+                        }
+                        log.debug(
+                            f"[QC] CYP DDI: {metrics['summary']}"
+                        )
+                        return metrics
+
+                    # cyp_panel_summary.json nests DDI risk under "ddi_risk"
+                    if "ddi_risk" in data and "summary" in data["ddi_risk"]:
+                        s = data["ddi_risk"]["summary"]
+                        metrics = {
+                            "summary": {
+                                "n_clinical": int(
+                                    s.get("n_clinical_study_recommended",
+                                          s.get("n_clinical", 0)) or 0
+                                ),
+                                "n_investigate": int(s.get("n_investigate", 0) or 0),
+                                "n_tdi": int(
+                                    s.get("n_tdi_flagged", s.get("n_tdi", 0)) or 0
+                                ),
+                                "overall_recommendation": str(
+                                    data.get("overall_recommendation",
+                                             s.get("overall_recommendation", "NOT_EXPECTED"))
+                                ),
+                            }
+                        }
+                        log.debug(f"[QC] CYP DDI (panel summary): {metrics['summary']}")
+                        return metrics
+
+                except (OSError, json.JSONDecodeError, KeyError, TypeError):
+                    continue
+
+        log.debug(f"[QC] No CYP DDI results found in {task_work_dir}")
         return None
 
     def _parse_qsar_results(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:

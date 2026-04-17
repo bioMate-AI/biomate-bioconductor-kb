@@ -11,6 +11,13 @@ Endpoints:
   GET  /api/drug-discovery/{campaign_id}/export/cro-order
        Export current proposal as WuXi / Pharmaron / Enamine CSV.
 
+  POST /api/drug-discovery/{campaign_id}/propose
+       Run BayesianOptimizer.propose_next_round() against a virtual library.
+       Body: {virtual_library_smiles: [...], n_propose: 10, diversity_weight: 0.2}
+
+  GET  /api/drug-discovery/{campaign_id}/lims/poll
+       Poll Benchling LIMS for new assay data and ingest any new results.
+
   POST /api/drug-discovery/{campaign_id}/models/register
        Register a custom predictive model (Python function, Docker, or REST).
 
@@ -342,6 +349,182 @@ async def run_model(
         "model_name": model_name,
         "scores": scores,
         "run_record": run_record.__dict__ if hasattr(run_record, "__dict__") else str(run_record),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Track F — Bayesian Optimizer propose (G7 gap closure)
+# ---------------------------------------------------------------------------
+
+class ProposeRequest(BaseModel):
+    virtual_library_smiles: list[str]
+    n_propose: int = 10
+    diversity_weight: float = 0.2
+
+
+@router.post("/{campaign_id}/propose")
+async def propose_next_round(campaign_id: str, body: ProposeRequest):
+    """
+    Run BayesianOptimizer.propose_next_round() to select the next batch of
+    compounds from a virtual library.
+
+    Requires at least `n_initial` assay observations (from /ingest-assay) to
+    have been ingested first so the surrogate GP model can be fitted.
+
+    Body:
+        virtual_library_smiles: list of SMILES to score under the surrogate.
+        n_propose: how many compounds to select (default 10).
+        diversity_weight: 0–1 weight for Tanimoto diversity penalty (default 0.2).
+
+    Returns:
+        proposed_smiles: selected SMILES,
+        proposed_scores: surrogate predicted scores per objective,
+        round_metadata: acquisition details.
+    """
+    try:
+        from .bayesian_optimizer import BayesianOptimizer
+        from .assay_ingestion import AssayIngestionService
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    if not body.virtual_library_smiles:
+        raise HTTPException(status_code=400, detail="virtual_library_smiles must not be empty")
+    if body.n_propose < 1 or body.n_propose > len(body.virtual_library_smiles):
+        raise HTTPException(
+            status_code=400,
+            detail=f"n_propose must be 1–{len(body.virtual_library_smiles)}"
+        )
+
+    try:
+        svc = AssayIngestionService(_campaign_db(campaign_id))
+        ranked = svc.get_ranked_compounds(campaign_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to load campaign data: {exc}")
+
+    if not ranked:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No assay data for campaign '{campaign_id}'. "
+                   "Upload results first via POST /{campaign_id}/ingest-assay."
+        )
+
+    try:
+        # Reconstruct training dataset from current ranked compounds
+        smiles_list  = [r["smiles"] for r in ranked if r.get("smiles")]
+        # Use composite score as surrogate training signal (normalised 0–1)
+        scores_list  = [min(1.0, max(0.0, r.get("composite_score", 0.5))) for r in ranked]
+        objectives   = ["composite_score"]
+
+        opt = BayesianOptimizer(objectives=objectives)
+        opt.fit(
+            compound_ids=[r.get("compound_id", f"c{i}") for i, r in enumerate(ranked)],
+            smiles_list=smiles_list,
+            objective_scores={objectives[0]: scores_list},
+        )
+        proposal = opt.propose_next_round(
+            virtual_library_smiles=body.virtual_library_smiles,
+            n_propose=body.n_propose,
+            diversity_weight=body.diversity_weight,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        log.exception("BayesianOptimizer.propose_next_round failed for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "campaign_id": campaign_id,
+        "n_proposed": len(proposal.selected_smiles),
+        "proposed_smiles": proposal.selected_smiles,
+        "predicted_scores": proposal.predicted_scores if hasattr(proposal, "predicted_scores") else [],
+        "round_metadata": proposal.metadata if hasattr(proposal, "metadata") else {},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Track G — Benchling LIMS polling (G3 gap closure)
+# ---------------------------------------------------------------------------
+
+@router.get("/{campaign_id}/lims/poll")
+async def poll_lims(
+    campaign_id: str,
+    benchling_api_key: str = Query(None, description="Benchling API key (overrides env BENCHLING_API_KEY)"),
+    assay_schema_id: str   = Query(None, description="Benchling assay schema ID to poll"),
+    since_hours: float     = Query(24.0, description="Look back N hours for new results"),
+):
+    """
+    Poll Benchling LIMS for new assay results and ingest them into the
+    campaign compound ranking.
+
+    The Benchling API key can be supplied via query param (for dev) or the
+    BENCHLING_API_KEY environment variable (for production).
+
+    Returns a summary of ingested records and updated compound ranks.
+    """
+    try:
+        from .benchling_connector import BenchlingConnector
+        from .assay_ingestion import AssayIngestionService
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    api_key = benchling_api_key or os.environ.get("BENCHLING_API_KEY", "")
+    if not api_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Benchling API key required. Pass benchling_api_key query param "
+                   "or set BENCHLING_API_KEY env var."
+        )
+
+    try:
+        connector = BenchlingConnector(api_key=api_key)
+        new_results = connector.list_assay_results(
+            schema_id=assay_schema_id,
+            since_hours=since_hours,
+        )
+    except Exception as exc:
+        log.exception("Benchling LIMS poll failed for campaign %s", campaign_id)
+        raise HTTPException(status_code=502, detail=f"Benchling API error: {exc}")
+
+    if not new_results:
+        return {
+            "campaign_id": campaign_id,
+            "status": "no_new_data",
+            "records_ingested": 0,
+            "message": f"No new Benchling results in the last {since_hours}h",
+        }
+
+    # Convert Benchling results to AssayIngestionService-compatible CSV rows
+    import io, csv as csv_module, tempfile
+
+    fieldnames = list(new_results[0].keys()) if new_results else ["compound_id", "smiles"]
+    buf = io.StringIO()
+    writer = csv_module.DictWriter(buf, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(new_results)
+    csv_bytes = buf.getvalue().encode()
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
+            tmp.write(csv_bytes)
+            tmp_path = tmp.name
+
+        svc = AssayIngestionService(_campaign_db(campaign_id))
+        result = svc.ingest(campaign_id, tmp_path)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Ingestion error: {exc}")
+    finally:
+        import os as _os
+        try: _os.unlink(tmp_path)
+        except: pass
+
+    return {
+        "campaign_id": campaign_id,
+        "status": "ingested",
+        "records_ingested": len(new_results),
+        "ingestion_result": {
+            "compounds_updated": result.compounds_updated if hasattr(result, "compounds_updated") else len(new_results),
+            "new_compounds": result.new_compounds if hasattr(result, "new_compounds") else 0,
+        },
     }
 
 

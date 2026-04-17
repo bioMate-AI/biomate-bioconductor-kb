@@ -41,6 +41,8 @@ import { WorkflowReportViewer } from "./workflow-report-viewer"
 import { InteractiveLauncher } from "./interactive-launcher"
 import { SubworkflowExtractor } from "./subworkflow-extractor"
 import { QCGateModal } from "./qc-gate-modal"
+import { AutoLoopPanel } from "./auto-loop-panel"
+import type { AutoLoopPanelState } from "./auto-loop-panel"
 import type { Citation, MethodsSection, TuningConfig, ParameterRecommendation, ExecutionRun, ExecutionConfig } from "@shared/schema"
 
 interface WorkflowStep {
@@ -238,6 +240,12 @@ export function WorkflowArtifact({
   // Gap 6 — progress milestone timeline
   const [milestones, setMilestones] = useState<Array<{label: string; ts: string}>>([])
   const [longRunAdvisory, setLongRunAdvisory] = useState<{message: string; suggestion: string; phases: Array<{name: string; label: string; pct_start: number; pct_end: number}>} | null>(null)
+  // Auto-loop enriched QC panel (drug discovery: ADMET, docking, CYP-DDI, NCA-PK)
+  const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
+    gateResults: null,
+    remediations: [],
+    complete: null,
+  })
   // Gap 3 — AI realtime status (polled every 5s while running)
   const [aiRealtimeStatus, setAiRealtimeStatus] = useState<any>(null)
 
@@ -415,6 +423,50 @@ export function WorkflowArtifact({
           console.log(`[CryoSPARC] ${data.percent}% — ${data.message}`)
         } catch {}
       })
+
+      // ── Auto-loop enriched QC (ADMET / docking / CYP-DDI / NCA-PK) ──────────
+      es.addEventListener("autoloop_gate_results", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          setAutoLoopPanel(prev => ({ ...prev, gateResults: data, complete: null }))
+        } catch (err) {
+          console.error("[AutoLoop] gate_results parse error:", err)
+        }
+      })
+
+      es.addEventListener("autoloop_update", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          setAutoLoopPanel(prev => ({
+            ...prev,
+            remediations: data.remediations ?? [],
+          }))
+        } catch (err) {
+          console.error("[AutoLoop] update parse error:", err)
+        }
+      })
+
+      es.addEventListener("autoloop_phase_complete", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          setAutoLoopPanel(prev => ({ ...prev, complete: data }))
+        } catch (err) {
+          console.error("[AutoLoop] phase_complete parse error:", err)
+        }
+      })
+
+      es.addEventListener("autoloop_escalation", (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          setAutoLoopPanel(prev => ({
+            ...prev,
+            complete: { ...data, outcome: "escalated" },
+          }))
+        } catch (err) {
+          console.error("[AutoLoop] escalation parse error:", err)
+        }
+      })
+      // ────────────────────────────────────────────────────────────────────────
 
       es.onerror = () => {
         es.close()
