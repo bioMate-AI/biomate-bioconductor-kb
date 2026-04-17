@@ -709,6 +709,7 @@ def _is_path_param(key: str, value: Any) -> bool:
         # CryoSPARC remote paths — exist on EC2 instance, not local disk
         "cryosparc_project_dir", "cryosparc_host", "cryosparc_email",
         "cryosparc_password", "cryosparc_license", "cryosparc_lane",
+        "movies_path",  # staged to remote CryoSPARC EC2 instance via SSH; not on head node
     })
     key_l = key.lower()
     if key_l in _NON_PATH_KEYS:
@@ -4030,23 +4031,60 @@ def execute_cryosparc(
     }
     spa_params = {k: v for k, v in spa_params.items() if v is not None}
 
-    run_id = str(uuid.uuid4())
-    cs_exec.execute_spa_pipeline(
-        run_id=run_id,
-        params=spa_params,
+    # ── Step 4: launch via Nextflow for parallel batch speedup (5.9×) ──────────
+    # Each micrograph batch becomes a separate AWS Batch task; up to max_parallel_jobs
+    # run concurrently.  This is the "Nextflow on top of CryoSPARC" design documented
+    # in docs/sessions/20260212_1530_PARALLELISM_ANALYSIS.md.
+    max_parallel = int(params.get("max_parallel_jobs", 20))
+    batch_size   = int(params.get("micrograph_batch_size", 200))
+
+    nf_params: Dict[str, Any] = {
+        "movies_path":                 movies_path_raw,
+        "pixel_size":                  spa_params["pixel_size"],
+        "voltage":                     spa_params["voltage"],
+        "spherical_aberration":        spa_params["cs"],
+        "particle_diameter_angstroms": spa_params["particle_diameter"],
+        "symmetry":                    spa_params["symmetry"],
+        "num_ab_initio_classes":       spa_params["num_ab_initio_classes"],
+        # CryoSPARC connection — live instance IP provisioned above
+        "cryosparc_host":     cs_exec.CRYOSPARC_HOST,
+        "cryosparc_port":     int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
+        "cryosparc_email":    os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
+        "cryosparc_password": os.environ.get("CRYOSPARC_PASSWORD", ""),
+        "cryosparc_license":  license_key or os.environ.get("CRYOSPARC_LICENSE_ID", ""),
+        # Parallelism
+        "max_parallel_jobs":      max_parallel,
+        "micrograph_batch_size":  batch_size,
+        "mock_mode":              False,
+    }
+    if spa_params.get("molecular_weight_kda"):
+        nf_params["molecular_weight_kda"] = spa_params["molecular_weight_kda"]
+    nf_params = {k: v for k, v in nf_params.items() if v is not None and v != ""}
+
+    nf_request = NextflowExecuteRequest(
+        nextflow_path="cryo_em/cryosparc_standard_spa/main.nf",
+        parameters=nf_params,
+        compute_config={"executor": "awsbatch"},
+        workflow_domain="cryo_em",
         user_id=user_id,
-        license_key=license_key,
+        qc_profile="cryo_em",
     )
-    log.info("[CryoSPARC] Direct run %s started (instance=%s, movies=%s)",
-             run_id, cs_exec.CRYOSPARC_HOST, movies_path_raw)
+    nf_result = execute_nextflow(nf_request)
+    run_id = nf_result["run_id"]
+    log.info("[CryoSPARC] Nextflow SPA run %s started (instance=%s, movies=%s, "
+             "parallel_jobs=%s, batch_size=%s)",
+             run_id, cs_exec.CRYOSPARC_HOST, movies_path_raw, max_parallel, batch_size)
 
     return {
         "success":          True,
         "run_id":           run_id,
-        "invocation_id":    run_id,
-        "executor":         "cryosparc",   # frontend polls /api/cryosparc/status/:runId
-        "execution_engine": "cryosparc",
-        "message":          f"CryoSPARC SPA pipeline started directly on {cs_exec.CRYOSPARC_HOST}",
+        "invocation_id":    nf_result.get("invocation_id", run_id),
+        "executor":         "nextflow",
+        "execution_engine": "nextflow_cryosparc",
+        "message": (
+            f"CryoSPARC SPA launched via Nextflow (≤{max_parallel} parallel Batch jobs, "
+            f"5.9× speedup) on {cs_exec.CRYOSPARC_HOST}"
+        ),
     }
 
 
