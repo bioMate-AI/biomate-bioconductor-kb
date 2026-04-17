@@ -6905,34 +6905,43 @@ Extract every real number from the output data. A reviewer should be able to ver
             status: 'ok',
           });
 
-          // Background poller: sync CryoSPARC run status → Node executionRun every 8s
+          // Background poller: sync Nextflow run status → Node executionRun every 15s
+          // Uses /api/nextflow/status since the CryoSPARC pipeline runs via Nextflow on AWS Batch
           const csPollerTimer = setInterval(async () => {
             try {
               const statusResp = await fetch(
-                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${csRunId}`,
+                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${csRunId}`,
                 { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
               );
-              if (!statusResp.ok) return;
+              if (!statusResp.ok) {
+                console.log(`[CryoSPARC Poller] status ${statusResp.status} for ${csRunId}`);
+                return;
+              }
               const s = await statusResp.json();
-              const terminal = ['completed', 'failed', 'qc_halt'].includes(s.status);
+              console.log(`[CryoSPARC Poller] run=${csRunId} status=${s.status} steps=${s.completedSteps}/${s.totalSteps}`);
+              const nfStatus = s.status as string;
+              const mappedStatus = nfStatus === 'succeeded' ? 'completed'
+                : nfStatus === 'failed' ? 'failed'
+                : nfStatus === 'running' ? 'running'
+                : 'running';
+              const terminal = ['completed', 'failed'].includes(mappedStatus);
               await storage.updateExecutionRun(executionRun.id, {
                 execution: {
                   ...executionRun.execution,
                   galaxyInvocationId: csRunId,
-                  status: s.status === 'completed' ? 'completed'
-                        : s.status === 'failed' ? 'failed'
-                        : s.status === 'qc_halt' ? 'failed'
-                        : 'running',
+                  status: mappedStatus,
                 },
                 progress: {
                   ...executionRun.progress,
-                  completedSteps: Math.round((s.progress_percent || 0) / 25),
-                  totalSteps: 4,
+                  completedSteps: s.completedSteps || 0,
+                  totalSteps: Math.max(s.totalSteps || 4, 4),
                 },
               });
               if (terminal) clearInterval(csPollerTimer);
-            } catch { /* non-fatal */ }
-          }, 8000);
+            } catch (e) {
+              console.log(`[CryoSPARC Poller] error: ${e}`);
+            }
+          }, 15000);
 
           return res.json({
             runId: executionRun.id,
@@ -9617,31 +9626,25 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
   // ---------------------------------------------------------------------------
   // Chat sessions proxy: forward /api/sessions* to the Galaxy backend so
   // browser clients can call same-origin endpoints without CORS issues.
-  // Galaxy uses its own JWT secret, so we must re-sign the app JWT.
+  // Galaxy authenticates via per-user API key (not JWT), so we inject
+  // req.user.galaxyApiKey when the user is authenticated.
   // ---------------------------------------------------------------------------
   app.all(/^\/api\/sessions(\/.*)?$/, optionalAuth, async (req: any, res) => {
     try {
       const _sessionsGalaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const _sessionsGalaxySecret = process.env.GALAXY_JWT_SECRET || process.env.JWT_SECRET || 'dev-only-insecure-secret-do-not-use-in-production';
       const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       const target = `${_sessionsGalaxyUrl}${req.path}${query}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
 
-      // Re-sign the JWT using Galaxy's secret so Galaxy recognises the user.
-      if (req.user) {
-        const import_jwt = (await import('jsonwebtoken')).default;
-        const galaxyToken = import_jwt.sign(
-          { user_id: req.user.id, email: req.user.email },
-          _sessionsGalaxySecret,
-          { expiresIn: '1h' }
-        );
-        headers["Authorization"] = `Bearer ${galaxyToken}`;
+      // Galaxy uses its own per-user API key for auth (not our app JWT).
+      // Inject it from the authenticated user record.
+      if (req.user?.galaxyApiKey) {
+        headers["x-api-key"] = req.user.galaxyApiKey;
       } else {
-        const auth = req.headers["authorization"];
-        if (auth) headers["Authorization"] = auth as string;
+        // Fallback: pass through whatever the client sent
+        const apiKey = req.headers["x-api-key"];
+        if (apiKey) headers["x-api-key"] = apiKey as string;
       }
-      const apiKey = req.headers["x-api-key"];
-      if (apiKey) headers["x-api-key"] = apiKey as string;
 
       const fetchInit: RequestInit = { method: req.method, headers };
       if (req.method !== "GET" && req.method !== "HEAD") {
