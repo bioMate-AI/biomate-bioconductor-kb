@@ -6856,6 +6856,28 @@ Extract every real number from the output data. A reviewer should be able to ver
         }
 
         try {
+          // Build CryoSPARC params — also extract movies_path/pixel_size/num_movies from
+          // the raw user message so S3-staged data flows through even when workflow schema
+          // doesn't define a movies_path parameter.
+          const csParams: Record<string, any> = { ...(request.workflowDefinition.parameters || {}) };
+          const userCtx: string = request.userContext || '';
+          if (!csParams.movies_path && !csParams.movie_dir) {
+            const m = userCtx.match(/movies_path\s*=\s*(\S+)/);
+            if (m) {
+              csParams.movies_path = m[1].replace(/,$/, '');
+              console.log('[CryoSPARC Direct] Extracted movies_path from userContext:', csParams.movies_path);
+            }
+          }
+          // Also extract pixel_size and num_movies if not already set
+          if (!csParams.pixel_size) {
+            const m = userCtx.match(/pixel_size\s*=\s*([\d.]+)/);
+            if (m) csParams.pixel_size = parseFloat(m[1]);
+          }
+          if (!csParams.num_movies) {
+            const m = userCtx.match(/num_movies\s*=\s*(\d+)/);
+            if (m) csParams.num_movies = parseInt(m[1], 10);
+          }
+
           const cryosparcResponse = await fetch(
             `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/execute`,
             {
@@ -6865,7 +6887,7 @@ Extract every real number from the output data. A reviewer should be able to ver
                 'X-API-Key': process.env.GALAXY_API_KEY || '',
               },
               body: JSON.stringify({
-                parameters: request.workflowDefinition.parameters || {},
+                parameters: csParams,
                 user_id: req.user ? String(req.user.id) : undefined,
                 history_id: galaxyHistoryId,
                 license_key: userLicenseKey,
