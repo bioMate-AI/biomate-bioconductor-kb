@@ -3949,8 +3949,15 @@ def _stage_s3_movies_on_cryosparc(s3_url: str, instance_ip: str, ssh_key: str, s
     except Exception as exc:
         log.error("[CryoSPARC] S3 staging exception: %s", exc)
 
-    # Return local path, preserving the glob pattern if one was present
-    return f"{local_dir}/{filename_pattern}" if filename_pattern else f"{local_dir}/"
+    # Always return the directory: CryoSPARC doesn't support [n-m] glob syntax.
+    # Files were already filtered during staging, so *.mrcs will match them all.
+    # Detect extension from filename_pattern to avoid hardcoding *.mrcs.
+    if filename_pattern:
+        import re as _re_ext
+        _ext_m = _re_ext.search(r'\.(mrcs?|tif|tiff|eer|mrc)$', filename_pattern, _re_ext.IGNORECASE)
+        _ext = _ext_m.group(0) if _ext_m else ".mrcs"
+        return f"{local_dir}/*{_ext}"
+    return f"{local_dir}/"
 
 
 @router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline directly on the GPU EC2 instance")
