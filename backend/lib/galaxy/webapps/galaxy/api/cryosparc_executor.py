@@ -151,7 +151,9 @@ _tunnel_pid: int = 0
 
 
 def _ensure_tunnel(remote_ip: str) -> None:
-    """Start SSH tunnel remote_ip:30000 -> localhost:_TUNNEL_LOCAL_PORT if not already up."""
+    """Start SSH tunnel remote_ip:30000+30002 -> localhost:_TUNNEL_LOCAL_PORT+2 if not already up.
+    cryosparc-tools v5 uses base_port+2 for the REST API, so we must tunnel both ports.
+    """
     global _tunnel_pid
     import subprocess, socket
 
@@ -159,14 +161,16 @@ def _ensure_tunnel(remote_ip: str) -> None:
     if not ssh_key or not remote_ip or remote_ip in ("localhost", "127.0.0.1"):
         return  # no tunnel needed
 
-    # Check if tunnel is already listening
+    # Check if primary tunnel port is already listening
     try:
         with socket.create_connection(("127.0.0.1", _TUNNEL_LOCAL_PORT), timeout=1):
             return  # already up
     except OSError:
         pass
 
-    log.info("[CryoSPARC] Starting SSH tunnel %s:30000 -> localhost:%d", remote_ip, _TUNNEL_LOCAL_PORT)
+    _api_local_port = _TUNNEL_LOCAL_PORT + 2  # cryosparc-tools uses base_port+2 for REST API
+    log.info("[CryoSPARC] Starting SSH tunnel %s:30000+30002 -> localhost:%d+%d",
+             remote_ip, _TUNNEL_LOCAL_PORT, _api_local_port)
     proc = subprocess.Popen(
         [
             "ssh", "-i", ssh_key,
@@ -175,6 +179,7 @@ def _ensure_tunnel(remote_ip: str) -> None:
             "-o", "ServerAliveCountMax=3",
             "-o", "ExitOnForwardFailure=yes",
             "-L", f"{_TUNNEL_LOCAL_PORT}:localhost:30000",
+            "-L", f"{_api_local_port}:localhost:30002",
             "-N", f"{CRYOSPARC_SSH_USER}@{remote_ip}",
         ],
         stdout=subprocess.DEVNULL,
