@@ -351,8 +351,8 @@ report = [f"=== CLINICAL TRIAL SIMULATION REPORT ===",
           "", f"Recommended Phase II dose: {recommendation}",
           *[f"  {r['dose_mg']} mg: RR={r['response_rate_pct']}% | P(success)={r['P_success']*100:.0f}%" for r in p2_results]]
 with open('clinical_trial_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

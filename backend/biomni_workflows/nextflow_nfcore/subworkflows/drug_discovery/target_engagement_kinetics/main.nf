@@ -247,8 +247,8 @@ for k, r in zip(all_kinetics, all_recommendations):
                f"  Residence time: {k['residence_time_min']:.0f} min | Confidence: {k['confidence']}",
                f"  Peak occupancy: {r['peak_occupancy_pct']}% | {r['recommendation']}", ""]
 with open('kinetics_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

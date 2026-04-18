@@ -262,8 +262,8 @@ report = ["=== LNP FORMULATION OPTIMIZATION REPORT ===",
           f"  Predicted size: {best['predicted_size_nm']} nm",
           f"  Predicted EE: {best['predicted_EE_pct']}%"]
 with open('lnp_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

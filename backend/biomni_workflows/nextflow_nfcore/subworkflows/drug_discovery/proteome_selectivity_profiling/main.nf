@@ -258,8 +258,8 @@ for m in all_metrics:
         report.append(f"  Off-target hits (<{ic50_thresh}nM): {', '.join(m['off_target_hits'])}")
     report.append("")
 with open('selectivity_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

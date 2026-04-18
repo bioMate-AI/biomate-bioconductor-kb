@@ -235,8 +235,8 @@ for p, r in zip(all_profiles, all_recommendations):
     report.append(f"  -> [{r['verdict']}] {r['recommendation']}")
     report.append("")
 with open('warhead_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

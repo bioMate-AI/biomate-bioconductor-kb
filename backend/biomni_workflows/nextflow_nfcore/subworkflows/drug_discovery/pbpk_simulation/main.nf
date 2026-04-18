@@ -351,8 +351,8 @@ report = [f"=== PBPK SIMULATION REPORT ({pop}) ===",
           "",
           f"Hepatic CL: {round(CL_hep,1)} mL/h | Renal CL: {round(CL_ren,1)} mL/h"]
 with open('pbpk_output.txt','w') as f:
-    f.write('\n'.join(report))
-print('\n'.join(report))
+    f.write('\\n'.join(report))
+print('\\n'.join(report))
 PYEOF
 
     cat << 'EOF' > versions.yml

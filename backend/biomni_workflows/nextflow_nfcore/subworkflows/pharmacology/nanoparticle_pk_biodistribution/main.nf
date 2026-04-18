@@ -178,7 +178,7 @@ tumor_peak_val  = round(tumor_arr[tumor_peak_idx], 2)
 tumor_peak_time = round(sol.t[tumor_peak_idx], 1)
 liver_24h       = round(float(np.interp(24, sol.t, liver_arr)), 1) if t_end >= 24 else round(liver_arr[-1], 1)
 spleen_24h      = round(float(np.interp(24, sol.t, spleen_arr)), 1) if t_end >= 24 else round(spleen_arr[-1], 1)
-auc_blood       = round(float(np.trapz(blood_arr, sol.t)), 1)
+auc_blood       = round(float(np.trapezoid(blood_arr, sol.t) if hasattr(np, 'trapezoid') else np.trapz(blood_arr, sol.t)), 1)
 
 # -- Stealth rating ------------------------------------------------------------
 if t_half >= 12: stealth_rating = 'EXCELLENT (>12h circulation)'
