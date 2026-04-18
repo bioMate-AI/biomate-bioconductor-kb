@@ -155,100 +155,89 @@ def get_sample_recommendations(sample_type) {
 def CS_IMAGE = "399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryosparc-nf:latest"
 
 // Shared Python helper emitted inline into every process script.
-// Uses httpx (bundled with cryosparc-tools) directly — version-independent,
-// no cryosparc-tools API method dependency.  Port auto-discovery: tries
-// base_port then base_port+2 (CryoSPARC v5 REST API offset).
+// Uses cryosparc-tools library (same as cryosparc_executor.py) for v5-compatible
+// job creation: create_job() with no params body, then set_param() individually,
+// then queue().  IO alias fallbacks handle v4→v5 renamed group names.
 def CS_HELPER = '''
-    import hashlib, json, os, sys, time
-    import httpx
+    import json, os, sys, time, warnings
+    from cryosparc.tools import CryoSPARC
 
-    _CS_CLIENT = None   # module-level singleton
+    # CryoSPARC v5 renamed many I/O group names — try all aliases on connect
+    _IO_ALIASES = {
+        "micrographs":     ["exposures"],
+        "micrographs_ctf": ["exposures_ctf", "exposures"],
+        "exposures":       ["micrographs"],
+        "exposures_ctf":   ["micrographs_ctf", "exposures"],
+        "imported_movies": ["movies"],
+        "movies":          ["imported_movies"],
+    }
 
     def cs_connect(license, host, port, email, password):
-        """Return authenticated httpx.Client with cs_host/cs_base attributes."""
-        global _CS_CLIENT
-        base_port = int(port)
-        api_port = None
-        for try_port in [base_port, base_port + 2]:
-            try:
-                r = httpx.get(f"http://{host}:{try_port}/openapi.json", timeout=10)
-                if r.status_code == 200 and "openapi" in r.text.lower():
-                    api_port = try_port
-                    break
-            except Exception:
-                continue
-        if api_port is None:
-            raise RuntimeError(
-                f"CryoSPARC REST API not found at {host}:{base_port} or {host}:{base_port+2}. "
-                "Ensure the CryoSPARC instance is running."
-            )
-        api_base = f"http://{host}:{api_port}"
-        pw_hash = hashlib.sha256(password.encode()).hexdigest()
-        token_resp = httpx.post(
-            f"{api_base}/token",
-            data={"username": email, "password": pw_hash, "grant_type": "password"},
-            timeout=30,
-        )
-        token_resp.raise_for_status()
-        token = token_resp.json()["access_token"]
-        client = httpx.Client(
-            base_url=api_base,
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=300,
-            follow_redirects=True,
-        )
-        client.cs_host = host
-        client.cs_api_port = api_port
-        _CS_CLIENT = client
-        print(f"[CS] Connected to CryoSPARC REST API at {api_base}", flush=True)
-        return client
+        """Return authenticated CryoSPARC client (cryosparc-tools)."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            if license:
+                cs = CryoSPARC(license=license, host=host, base_port=int(port), email=email)
+            else:
+                cs = CryoSPARC(host=host, base_port=int(port), email=email, password=password)
+        if not cs.test_connection():
+            raise RuntimeError(f"Cannot connect to CryoSPARC at {host}:{port}")
+        print(f"[CS] Connected to CryoSPARC at {host}:{port}", flush=True)
+        return cs
 
     def cs_create_project(cs, title, parent_dir):
-        r = cs.post("/projects/", params={"title": title, "parent_dir": parent_dir})
-        r.raise_for_status()
-        uid = r.json()["uid"]
-        print(f"[CS] Created project {uid}", flush=True)
-        return uid
+        proj = cs.api.projects.create(title=title, parent_dir=parent_dir)
+        print(f"[CS] Created project {proj.uid}", flush=True)
+        return proj.uid
 
     def cs_create_workspace(cs, project_uid, title="W1"):
-        r = cs.post(f"/projects/{project_uid}/workspaces", params={"title": title})
-        r.raise_for_status()
-        uid = r.json()["uid"]
-        print(f"[CS] Created workspace {uid} in {project_uid}", flush=True)
-        return uid
+        ws = cs.create_workspace(project_uid=project_uid, title=title)
+        print(f"[CS] Created workspace {ws.uid} in {project_uid}", flush=True)
+        return ws.uid
+
+    def _connect_with_aliases(job, proj_uid, target_input, src_job_uid, src_output):
+        """Try all v4/v5 IO name aliases until a connection succeeds."""
+        inputs  = [target_input] + _IO_ALIASES.get(target_input, [])
+        outputs = [src_output]   + _IO_ALIASES.get(src_output, [])
+        for t_in in inputs:
+            for s_out in outputs:
+                try:
+                    job.connect(t_in, src_job_uid, s_out)
+                    print(f"[CS] Connected {job.uid}.{t_in} <- {src_job_uid}.{s_out}", flush=True)
+                    return
+                except Exception:
+                    pass
+        print(f"[CS] Warning: all connect attempts failed for {job.uid}.{target_input} <- {src_job_uid}.{src_output}", flush=True)
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
                         lane="default", timeout=14400):
-        # Create job (params passed as JSON body)
-        r = cs.post(
-            f"/projects/{proj_uid}/workspaces/{ws_uid}/jobs",
-            params={"type": job_type},
-            json=params,
-        )
-        r.raise_for_status()
-        job_uid = r.json()["uid"]
+        # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
+        # are passed to the create endpoint; set them individually via set_param().
+        job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid, type=job_type)
+        job_uid = job.uid
         print(f"[CS] Created {job_type} uid={job_uid}", flush=True)
 
-        # Set connections (input slots wired to outputs from other jobs)
-        for conn_name, conn_list in (connections or {}).items():
-            for idx, src in enumerate(conn_list if isinstance(conn_list, list) else [conn_list]):
-                cs.put(
-                    f"/projects/{proj_uid}/jobs/{job_uid}/inputs/{conn_name}/{idx}",
-                    json=src,
-                )
+        # Set params individually (v5-compatible)
+        for k, v in (params or {}).items():
+            try:
+                job.set_param(k, v)
+            except Exception as e:
+                print(f"[CS] Warning: set_param({k}={v!r}) failed: {e}", flush=True)
 
-        # Enqueue the job
-        r = cs.post(f"/projects/{proj_uid}/jobs/{job_uid}:enqueue", params={"lane": lane})
-        r.raise_for_status()
+        # Apply connections with v4/v5 alias fallbacks
+        for conn_name, conn_src in (connections or {}).items():
+            if isinstance(conn_src, (list, tuple)) and len(conn_src) == 2:
+                src_job_uid, src_output = conn_src
+                _connect_with_aliases(job, proj_uid, conn_name, src_job_uid, src_output)
+
+        job.queue(lane=lane)
         print(f"[CS] Enqueued {job_type} uid={job_uid}", flush=True)
 
         # Poll until terminal
-        terminal = {"completed", "failed", "killed"}
         deadline = time.time() + timeout
         while time.time() < deadline:
-            r = cs.get(f"/projects/{proj_uid}/jobs/{job_uid}/status")
-            r.raise_for_status()
-            status = r.json()
+            job = cs.find_job(proj_uid, job_uid)
+            status = job.status
             print(f"[CS] {job_type} uid={job_uid} status={status}", flush=True)
             if status == "completed":
                 return job_uid
@@ -308,10 +297,17 @@ process INIT_CRYOSPARC_PROJECT {
         timeout=3600,
     )
 
-    # Get movie count from job outputs via API
-    r = cs.get(f"/projects/{proj_uid}/jobs/{import_job_uid}")
-    r.raise_for_status()
-    num_movies = r.json().get("output_results", {}).get("imported_movies", {}).get("num_items", 0) or 0
+    # Get movie count from completed import job outputs
+    import_job_obj = cs.find_job(proj_uid, import_job_uid)
+    num_movies = 0
+    for out_name in ("imported_movies", "movies"):
+        try:
+            imported = import_job_obj.load_output(out_name)
+            if imported is not None:
+                num_movies = len(imported)
+                break
+        except Exception:
+            pass
     print(f"[CS] Imported {num_movies} movies", flush=True)
 
     with open("cs_init.json", "w") as f:
