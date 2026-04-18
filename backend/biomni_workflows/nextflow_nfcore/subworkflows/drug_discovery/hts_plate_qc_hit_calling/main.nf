@@ -188,7 +188,7 @@ cv_pos      = round(100 * np.std(pos_signals) / mu_pos, 2) if mu_pos > 0 else No
 cv_neg      = round(100 * np.std(neg_signals) / mu_neg, 2) if mu_neg > 0 else None
 
 qc_pass = z_prime is not None and z_prime >= min_z_prime
-qc_status = 'PASS' if qc_pass else f'FAIL (Z\' = {z_prime:.3f} < {min_z_prime})'
+qc_status = 'PASS' if qc_pass else f"FAIL (Z' = {z_prime:.3f} < {min_z_prime})"
 
 qc_metrics = {
     'z_prime': z_prime,

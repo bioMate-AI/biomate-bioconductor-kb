@@ -275,7 +275,7 @@ design_out = {
     'sample_size_estimate': round(oc['mean_n_enrolled'], 0),
     'notes': [
         'Operating characteristics from Monte Carlo simulation',
-        f'O\'Brien-Fleming efficacy boundary (one-sided alpha={alpha})',
+        f"O'Brien-Fleming efficacy boundary (one-sided alpha={alpha})",
         f'Pocock futility boundary (beta={1-power:.2f})',
         f'RAR exponent={rar_exp} (0.5=balanced exploration/exploitation)',
     ]
