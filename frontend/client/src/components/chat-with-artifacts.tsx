@@ -1307,7 +1307,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
         {/* Right: Workflow Panel — auto-opens when AI returns a workflow */}
         {panelOpen && (
           <div
-            className="w-[420px] flex-shrink-0 border-l bg-background flex flex-col overflow-hidden"
+            className="w-[500px] flex-shrink-0 border-l bg-background flex flex-col overflow-hidden"
             data-testid="workflow-right-panel"
           >
             {/* Panel header */}
