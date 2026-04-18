@@ -292,7 +292,7 @@ else:
 # -- NCA parameters -------------------------------------------------------------
 def nca(t, cp, dose_ug, mw):
     cp = np.maximum(0, cp)
-    auc  = float(np.trapz(cp, t))  # ug/mL*h
+    auc  = float(np.trapezoid(cp, t) if hasattr(np, 'trapezoid') else np.trapz(cp, t))  # ug/mL*h
     cmax = float(cp.max())
     tmax = float(t[np.argmax(cp)])
     # t1/2 from terminal slope
