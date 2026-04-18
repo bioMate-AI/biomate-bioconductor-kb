@@ -1740,6 +1740,7 @@ export function ChatInterface({
         pendingCount={pendingMessages.length}
         isStreaming={displayTyping}
         onStop={stopStreaming}
+        onRegisterSetDraft={onRegisterSetDraft}
       />
       {displayTyping && (
         <div

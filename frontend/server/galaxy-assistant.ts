@@ -1888,7 +1888,7 @@ Rules:
     originalMessage: string,
     sessionDatasets?: Array<{ id: string; name: string; type: string }>
   ): string {
-    if (!wf?.success) return '';
+    if (!wf) return '';
 
     const lines: string[] = [];
 

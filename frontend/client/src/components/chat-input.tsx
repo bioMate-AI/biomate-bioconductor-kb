@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from "react"
+import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -23,6 +23,8 @@ interface ChatInputProps {
   onFilesSelected?: (files: File[]) => void
   isStreaming?: boolean
   onStop?: () => void
+  /** Register a setter function that can externally pre-fill the draft */
+  onRegisterSetDraft?: (setter: (draft: string) => void) => void
 }
 
 export function ChatInput({
@@ -33,12 +35,24 @@ export function ChatInput({
   onFilesSelected,
   isStreaming = false,
   onStop,
+  onRegisterSetDraft,
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Register an external draft setter so parent can pre-fill the textarea
+  useEffect(() => {
+    if (onRegisterSetDraft) {
+      onRegisterSetDraft((draft: string) => {
+        setMessage(draft)
+        // Focus the textarea so the user can see the pre-fill
+        setTimeout(() => textareaRef.current?.focus(), 0)
+      })
+    }
+  }, [onRegisterSetDraft])
 
   const handleSend = () => {
     if (message.trim() || attachedFiles.length > 0) {
