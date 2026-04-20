@@ -606,7 +606,7 @@ async def get_model_validation(
         log.exception("Model validation failed for %s", model_type)
         raise HTTPException(status_code=500, detail=str(exc))
 
-    return report.dict()
+    return report.model_dump()
 
 
 # ---------------------------------------------------------------------------

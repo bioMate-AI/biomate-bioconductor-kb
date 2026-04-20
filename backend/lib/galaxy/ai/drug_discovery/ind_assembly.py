@@ -173,7 +173,7 @@ class INDSectionAssembler:
             from .model_validation import ModelValidationService
             svc = ModelValidationService()
             report = svc.run_pbpk_validation()
-            return report.dict()
+            return report.model_dump()
         except Exception as exc:
             warnings.append(f"PBPK validation report unavailable: {exc}")
             return None

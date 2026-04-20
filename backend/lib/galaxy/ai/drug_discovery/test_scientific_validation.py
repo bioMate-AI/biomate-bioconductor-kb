@@ -347,8 +347,13 @@ class TestApplicabilityDomain:
         self.np = np
         self.ADC = ApplicabilityDomainChecker
 
-    def _make_fp(self, bits: list[int], n_bits: int = 2048) -> "np.ndarray":
-        fp = self.np.zeros(n_bits, dtype=int)
+    # Use 128-bit fingerprints in tests for fast pinv computation.
+    # The mathematical properties under test are independent of fingerprint length.
+    _N_BITS = 128
+
+    def _make_fp(self, bits: list[int], n_bits: int = None) -> "np.ndarray":
+        n = n_bits if n_bits is not None else self._N_BITS
+        fp = self.np.zeros(n, dtype=int)
         for b in bits:
             fp[b] = 1
         return fp
@@ -388,8 +393,8 @@ class TestApplicabilityDomain:
         chemical classes outside the training set feature space.
         """
         train_fps = [self._make_fp([0, 1, 2]) for _ in range(6)]
-        # Compound lives entirely in unobserved dimensions (bits 1000–1003)
-        ood_fp = self._make_fp([1000, 1001, 1002, 1003])
+        # Compound lives entirely in unobserved dimensions (bits 40–43)
+        ood_fp = self._make_fp([40, 41, 42, 43])
         checker = self._make_checker(train_fps)
         result = self._check(checker, ood_fp)
         assert result.ad_status == "out_of_domain", (
@@ -441,7 +446,7 @@ class TestApplicabilityDomain:
         The division guard must prevent ZeroDivisionError.
         """
         train_fps = [self._make_fp([0, 1, 2]) for _ in range(5)]
-        zero_fp = self.np.zeros(2048, dtype=int)
+        zero_fp = self.np.zeros(self._N_BITS, dtype=int)
         checker = self._make_checker(train_fps)
         result = self._check(checker, zero_fp)
         assert result.max_tanimoto_similarity == 0.0
@@ -452,7 +457,8 @@ class TestApplicabilityDomain:
         The leverage h_ii for an exact copy of a training compound must be ≤ h*.
         (By definition, training points have leverage ≤ 1 and mean leverage = p/n.)
         """
-        fps = [self._make_fp([i, i + 10]) for i in range(8)]
+        # Use distinct bits per compound so matrix is not rank-deficient
+        fps = [self._make_fp([i * 2, i * 2 + 1]) for i in range(8)]
         checker = self._make_checker(fps)
         result = self._check(checker, fps[3])
         assert result.leverage <= result.leverage_threshold + 1e-9
@@ -555,20 +561,21 @@ class TestAuditChainIntegrity:
 
     def test_verify_chain_detects_record_insertion(self):
         """
-        Inserting a forged record mid-chain corrupts previous_hash linkage.
+        Inserting a forged record with a broken previous_hash linkage must be
+        detected by verify_chain().
         """
         _r1 = self.store.append(self._event(user_id="alice"))
-        r2 = self.store.append(self._event(user_id="bob"))
+        _r2 = self.store.append(self._event(user_id="bob"))
 
-        # Insert a forged record with wrong previous_hash between r1 and r2
+        # Insert a forged record that points to a non-existent previous hash.
+        # This breaks the chain regardless of its position in the sequence.
         conn = sqlite3.connect(self.db_path)
         conn.execute(
             """INSERT INTO audit_log
-               (id, timestamp_utc, user_id, action, resource_type, resource_id,
+               (timestamp_utc, user_id, action, resource_type, resource_id,
                 payload_hash, details, previous_hash, record_hash)
-               VALUES (?, '2099-01-01T00:00:00+00:00', 'mallory', 'FORGED',
-                       'campaign', 'cmp-forged', 'aabbcc', '', 'deadbeef', 'cafebabe')""",
-            (r2.id - 1,),  # try to insert between r1 and r2
+               VALUES ('2099-01-01T00:00:00+00:00', 'mallory', 'FORGED',
+                       'campaign', 'cmp-forged', 'aabbcc', '', 'deadbeef000000000000000000000000000000000000000000000000000000000', 'cafebabe0000000000000000000000000000000000000000000000000000000000')""",
         )
         conn.commit()
         conn.close()
