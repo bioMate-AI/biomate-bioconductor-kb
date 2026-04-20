@@ -1392,15 +1392,20 @@ def search_nextflow_workflow(
         )
         if _llm_extracted:
             def _apply_llm_fill(params: list) -> list:
-                return [
-                    {**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True}
-                    if p['name'] in _llm_extracted and not p.get('default')
-                    else p
-                    for p in params
-                ]
+                result = []
+                for p in params:
+                    if p['name'] in _llm_extracted:
+                        # Apply LLM extraction regardless of existing defaults —
+                        # the user explicitly stated this value in their query so it
+                        # should override the workflow schema default (e.g. pdb_id,
+                        # ligand_smiles, exhaustiveness, etc.)
+                        result.append({**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True})
+                    else:
+                        result.append(p)
+                return result
             _req_params = _apply_llm_fill(_req_params)
             _opt_params = _apply_llm_fill(_opt_params)
-            log.info("LLM param extraction for %s: filled %s", best.name, list(_llm_extracted.keys()))
+            log.info("LLM param extraction for %s: filled/overrode %s", best.name, list(_llm_extracted.keys()))
 
         # Only treat params as "missing" if they have no pre-filled default (e.g. SRR accession injected)
         _truly_missing = [p for p in _req_params if not p.get('default')]

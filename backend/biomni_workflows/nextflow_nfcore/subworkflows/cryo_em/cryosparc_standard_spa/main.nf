@@ -206,43 +206,34 @@ def CS_HELPER = '''
                     pass
         print(f"[CS] Warning: all connect attempts failed for {job.uid}.{target_input} <- {src_job_uid}.{src_output}", flush=True)
 
-    _cs_gpu_count_cache: dict = {}
-
-    def _get_lane_gpu_count(cs, lane="default"):
-        """Return total GPUs available in the CryoSPARC lane (cached per cs instance)."""
-        cache_key = (id(cs), lane)
-        if cache_key in _cs_gpu_count_cache:
-            return _cs_gpu_count_cache[cache_key]
-        count = 1  # safe default: g6.2xlarge has 1x L4
-        try:
-            # cryosparc-tools v5: workers are accessed via cs.get_workers() or
-            # the lanes API — try both and pick whichever works.
-            # cryosparc-tools v5 exposes cs.get_targets() → list of target dicts
-            targets = cs.get_targets() if hasattr(cs, "get_targets") else []
-            total = sum(int(t.get("gpu_count", 0) or len(t.get("gpus", []) or [])) if isinstance(t, dict)
-                        else int(getattr(t, "gpu_count", 0) or len(getattr(t, "gpus", []) or []))
-                        for t in targets)
-            if total > 0:
-                count = total
-        except Exception as e:
-            print(f"[CS] Warning: GPU count query failed ({e}), using {count}", flush=True)
-        _cs_gpu_count_cache[cache_key] = count
-        print(f"[CS] Lane '{lane}' GPU count: {count}", flush=True)
-        return count
+    # Job types that actually use GPUs in CryoSPARC.
+    # CPU-only jobs (import, CTF, blob picker, extract, template picker, etc.)
+    # do not accept compute_num_gpus and should not have it set.
+    _GPU_JOB_TYPES = frozenset({
+        "class_2D", "class_3D",
+        "homo_abinit", "hetero_abinit",
+        "homo_refine", "homo_refine_new",
+        "heterogeneous_refinement",
+        "non_uniform_refinement", "non_uniform_refinement_new",
+        "local_refinement", "local_ctf_refinement",
+        "flex_refine",
+        "refine_3D", "refine_3D_new",
+    })
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
-                        lane="default", timeout=14400):
+                        lane="default", timeout=14400, num_gpu=1):
         # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
         # are passed to the create endpoint; set them individually via set_param().
         job = cs.create_job(project_uid=proj_uid, workspace_uid=ws_uid, type=job_type)
         job_uid = job.uid
         print(f"[CS] Created {job_type} uid={job_uid}", flush=True)
 
-        # Auto-set compute_num_gpus from actual CryoSPARC worker topology
-        # if caller did not explicitly specify it.
+        # Only set compute_num_gpus for GPU job types.
+        # CPU-only jobs (import, CTF, blob picker, extract, template_picker, etc.)
+        # reject this parameter with 404, so we skip them entirely.
         params = dict(params or {})
-        if "compute_num_gpus" not in params:
-            params["compute_num_gpus"] = _get_lane_gpu_count(cs, lane)
+        if job_type in _GPU_JOB_TYPES and "compute_num_gpus" not in params:
+            params["compute_num_gpus"] = num_gpu
 
         # Set params individually (v5-compatible)
         for k, v in params.items():

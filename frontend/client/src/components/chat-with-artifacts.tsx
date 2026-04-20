@@ -439,13 +439,19 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
 
       if (isNextflow) {
         console.log('[ChatWithArtifacts] Preparing Nextflow/CryoSPARC workflow for unified execution');
+        // Merge inline_parameters (user edits from the viewer panel) over the original
+        // AI-suggested parameters so that values the user typed/changed are actually sent.
+        const mergedParams = {
+          ...(workflow.parameters || {}),
+          ...(workflow.inline_parameters || {}),
+        };
         workflowDefinition = {
           ...workflow,
           name: workflow.name || workflow.workflow_name || 'bioMate Nextflow Workflow',
           // Preserve the original workflow_type (e.g. 'cryosparc') — do not force 'nextflow'
           workflow_type: workflow.workflow_type || 'nextflow',
           format: workflow.format || 'nextflow',
-          parameters: workflow.parameters || {},
+          parameters: mergedParams,
         };
       } else if (workflow.a_galaxy_workflow) {
         console.log('[ChatWithArtifacts] Using AI-generated .ga workflow format');
