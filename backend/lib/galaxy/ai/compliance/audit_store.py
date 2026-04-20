@@ -204,20 +204,31 @@ class AuditStore:
 
     def append(self, event: AuditEvent) -> AuditRecord:
         """
-        Append a new audit record to the chain.  Thread-safe via SQLite WAL.
+        Append a new audit record to the chain.
+
+        Uses BEGIN IMMEDIATE so that the read of the previous hash and the
+        INSERT are serialised — no two concurrent writers can race and produce
+        two records with the same previous_hash, which would silently break
+        chain integrity.  21 CFR Part 11 §11.10(a) requires system validation
+        that precludes exactly this class of corruption.
         """
         timestamp_utc = datetime.now(timezone.utc).isoformat()
-        previous_hash = self._get_latest_hash()
-        record_hash = _derive_record_hash(
-            timestamp_utc,
-            event.user_id,
-            event.action,
-            event.resource_type,
-            event.resource_id,
-            event.payload_hash,
-            previous_hash,
-        )
-        with self._connect() as conn:
+        conn = self._connect()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute(
+                "SELECT record_hash FROM audit_log ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            previous_hash = row["record_hash"] if row else _GENESIS_HASH
+            record_hash = _derive_record_hash(
+                timestamp_utc,
+                event.user_id,
+                event.action,
+                event.resource_type,
+                event.resource_id,
+                event.payload_hash,
+                previous_hash,
+            )
             cur = conn.execute(
                 """
                 INSERT INTO audit_log
@@ -238,6 +249,13 @@ class AuditStore:
                 ),
             )
             record_id = cur.lastrowid
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            conn.close()
+            raise
+        finally:
+            conn.close()
 
         return AuditRecord(
             id=record_id,

@@ -140,10 +140,15 @@ def _encrypt_secret(plaintext: str) -> str:
     AESGCM = _try_import_cryptography()
     key = _get_encryption_key()
     if AESGCM is None or key is None:
-        log.warning(
-            "TOTP secrets stored as plaintext — set BIOMATE_ESIG_KEY (32-byte hex) "
-            "and install `cryptography` for encrypted storage"
+        msg = (
+            "TOTP secrets will be stored as PLAINTEXT in the database. "
+            "This does NOT meet 21 CFR Part 11 security requirements. "
+            "Set BIOMATE_ESIG_KEY (32-byte hex) and install `cryptography` "
+            "to enable AES-256-GCM encryption."
         )
+        if os.environ.get("BIOMATE_REQUIRE_ENCRYPTED_ESIG", "").lower() in ("1", "true", "yes"):
+            raise RuntimeError(f"BIOMATE_REQUIRE_ENCRYPTED_ESIG is set: {msg}")
+        log.error(msg)
         return plaintext
     nonce = os.urandom(12)
     ct = AESGCM(key).encrypt(nonce, plaintext.encode(), None)
@@ -319,6 +324,14 @@ class ESignatureService:
             conn.execute(
                 "INSERT INTO esig_used_tokens (user_id, time_step, used_at) VALUES (?, ?, ?)",
                 (user_id, verified_step, ts_now),
+            )
+            # Prune tokens older than 10 time windows (5 minutes) to bound table growth.
+            # RFC 6238 §5.2: tokens outside the ±1 window are always invalid, so
+            # retaining only ~10 windows gives a generous safety margin.
+            cutoff_step = verified_step - 10
+            conn.execute(
+                "DELETE FROM esig_used_tokens WHERE time_step < ?",
+                (cutoff_step,),
             )
 
         # Build signature manifest

@@ -307,6 +307,10 @@ class ModelValidationService:
         with open(_PK_REFERENCE_FILE) as f:
             data = json.load(f)
         drugs = data.get("drugs", [])
+        # Always exclude prodrugs and entries flagged as unsuitable for
+        # 1-compartment model validation (e.g. Clopidogrel — CYP2C19 prodrug
+        # with CL_true > 46× hepatic blood flow; Davies & Morris 1993).
+        drugs = [d for d in drugs if not d.get("exclude_from_validation", False)]
         if names:
             name_set = {n.lower() for n in names}
             drugs = [d for d in drugs if d["name"].lower() in name_set]

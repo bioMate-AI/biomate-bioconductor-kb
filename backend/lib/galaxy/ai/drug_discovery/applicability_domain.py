@@ -50,6 +50,7 @@ class ADResult(BaseModel):
     ad_status: str                    # "in_domain" | "out_of_domain" | "unknown"
     leverage: Optional[float]         # hat matrix h_i
     leverage_threshold: Optional[float]  # h* = 3p/n
+    max_tanimoto_similarity: Optional[float]  # nearest-neighbour Tanimoto to training set
     confidence_interval_95: Optional[tuple[float, float]]  # (lower, upper) from GP
     predicted_mean: Optional[float]
     warnings: list[str]
@@ -225,6 +226,7 @@ class ApplicabilityDomainChecker:
             ad_status=ad_status,
             leverage=round(h, 6),
             leverage_threshold=round(self._h_threshold, 6),
+            max_tanimoto_similarity=round(max_sim, 6),
             confidence_interval_95=ci,
             predicted_mean=round(gp_mean, 4) if gp_mean is not None else None,
             warnings=warnings,

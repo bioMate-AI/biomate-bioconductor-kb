@@ -434,7 +434,9 @@
       "logP": 2.8,
       "pKa": 4.55,
       "primary_metabolism": "CYP2C19 prodrug activation",
-      "reference": "DrugBank DB00758"
+      "reference": "DrugBank DB00758",
+      "exclude_from_validation": true,
+      "exclusion_reason": "Prodrug: parent compound undergoes rapid CYP2C19-mediated ester hydrolysis and thiol activation. Measured CL_apparent=8333 L/h (CL_true=4167 L/h) reflects metabolic conversion flux, not distributional clearance. Hepatic blood flow ~90 L/h (Davies & Morris, Pharm Res 1993); a 46-fold excess is physiologically impossible for a 1-compartment model. Validated by: Sanofi-Aventis USPI 2011; Kazui et al. Drug Metab Dispos 2010."
     },
     {
       "name": "Verapamil",
