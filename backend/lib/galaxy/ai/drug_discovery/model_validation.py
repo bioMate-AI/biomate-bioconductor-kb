@@ -128,12 +128,20 @@ class _AnalyticalPKPredictor:
             return {"predicted_Cmax": None, "predicted_AUC": None,
                     "notes": "Missing CL_L_h or Vd_L in reference data"}
 
-        # AUC (µg·h/mL) = F × dose(µg) / CL(L/h) / 1000 (L→mL conversion)
+        # AUC (µg·h/mL) = dose_absorbed / CL_apparent
+        # For oral drugs: CL in reference datasets is often the apparent oral clearance
+        # (CL_apparent = CL_true/F), so AUC = F*dose / CL_true = dose / CL_apparent — correct.
         dose_absorbed_ug = dose_ug * (1.0 if route == "iv" else F)
         AUC_ug_h_mL = dose_absorbed_ug / (CL_L_h * 1000.0)
 
-        # Cmax via 1-compartment model
-        ke = CL_L_h / Vd_L   # elimination rate constant (1/h)
+        # Cmax via 1-compartment model.
+        # ke must use CL_true/Vd_true.  For oral drugs where the reference CL is the apparent
+        # oral clearance (CL/F), the true systemic CL = CL_apparent × F, giving:
+        #   ke = CL_apparent × F / Vd_ref
+        # For IV drugs (F=1), this reduces to ke = CL/Vd as expected.
+        # This correction is critical for high-extraction drugs (low F) where using
+        # ke = CL_apparent/Vd overstates ke by 1/F, collapsing the Cmax peak.
+        ke = CL_L_h * (1.0 if route == "iv" else F) / Vd_L
 
         if route == "iv":
             Cmax_ug_mL = dose_ug / (Vd_L * 1000.0)

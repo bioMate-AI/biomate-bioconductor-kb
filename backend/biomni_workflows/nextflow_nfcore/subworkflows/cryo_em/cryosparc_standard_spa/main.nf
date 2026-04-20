@@ -172,14 +172,11 @@ def CS_HELPER = '''
         "movies":          ["imported_movies"],
     }
 
-    def cs_connect(license, host, port, email, password):
-        """Return authenticated CryoSPARC client (cryosparc-tools)."""
+    def cs_connect(license, host, port, email, password=None):
+        """Return authenticated CryoSPARC client using license key (cryosparc-tools v5)."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
-            if license:
-                cs = CryoSPARC(license=license, host=host, base_port=int(port), email=email)
-            else:
-                cs = CryoSPARC(host=host, base_port=int(port), email=email, password=password)
+            cs = CryoSPARC(license=license, host=host, base_port=int(port), email=email)
         if not cs.test_connection():
             raise RuntimeError(f"Cannot connect to CryoSPARC at {host}:{port}")
         print(f"[CS] Connected to CryoSPARC at {host}:{port}", flush=True)
