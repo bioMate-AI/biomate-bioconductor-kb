@@ -502,7 +502,7 @@
       "Cmax_ug_mL": 0.002,
       "AUC_ugh_mL": 0.012,
       "CL_L_h": 8.3,
-      "Vd_L": 13.0,
+      "Vd_L": 335.0,
       "t_half_h": 3.7,
       "F_oral": 1.0,
       "fu": 0.20,
@@ -510,8 +510,8 @@
       "logP": 4.05,
       "pKa": 8.43,
       "primary_metabolism": "CYP3A4",
-      "reference": "DrugBank DB00813; Vc ~13L from Mather 1983 Anesthesiology",
-      "cmax_note": "IV bolus Cmax governed by central compartment volume Vc=13L (not terminal Vd_ss=335L); Vd_L set to Vc for Cmax calculation"
+      "reference": "DrugBank DB00813",
+      "cmax_note": "IV bolus Cmax is injection-rate-dependent; 1-compartment model with terminal Vd underestimates Cmax (Vc ~13L vs Vd_ss=335L); known structural model limitation for bolus IV drugs"
     },
     {
       "name": "Dexamethasone",

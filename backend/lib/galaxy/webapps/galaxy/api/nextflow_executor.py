@@ -1575,6 +1575,47 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
         except Exception as _ltm_err:
             log.warning("[ltm] record_outcome failed for run %s: %s", run_id, _ltm_err)
 
+        # C2c — Direct compute billing record (bypasses Lambda/EventBridge).
+        # Calls POST /internal/billing/job_completed on the local Galaxy billing API.
+        # Only emits for real AWS Batch runs; skips pilot/anonymous users.
+        try:
+            if (run_meta.get("is_batch")
+                    and not run_meta.get("is_pilot")
+                    and run_meta.get("user_id") not in (None, "", "anonymous")):
+                import urllib.request as _urllib_req
+                import json as _billing_json
+                _billing_key = (
+                    os.environ.get("BILLING_INTERNAL_KEY")
+                    or os.environ.get("BILLING_API_KEY")
+                    or "dev-insecure-key"
+                )
+                _billing_port = int(os.environ.get("GALAXY_PORT", "8081"))
+                _billing_url = f"http://localhost:{_billing_port}/internal/billing/job_completed"
+                _started = run_meta.get("started_at") or _completed_at_now
+                _duration = max(_completed_at_now - _started, 1.0)
+                _bill_payload = _billing_json.dumps({
+                    "user_id": run_meta["user_id"],
+                    "job_id": run_id,
+                    "workflow_id": run_meta.get("nextflow_path", run_id),
+                    "status": "SUCCEEDED" if returncode == 0 else "FAILED",
+                    "instance_type": "optimal",
+                    "vcpus": 4.0,
+                    "memory_mb": 8192,
+                    "gpu_count": 0,
+                    "duration_seconds": _duration,
+                }).encode()
+                _bill_req = _urllib_req.Request(
+                    _billing_url,
+                    data=_bill_payload,
+                    headers={"Content-Type": "application/json", "X-Internal-Key": _billing_key},
+                    method="POST",
+                )
+                with _urllib_req.urlopen(_bill_req, timeout=5) as _bill_resp:
+                    _bill_resp.read()
+                log.info("[billing] job_completed emitted for run %s (%.1fs)", run_id, _duration)
+        except Exception as _bill_err:
+            log.warning("[billing] job_completed emit failed for run %s: %s", run_id, _bill_err)
+
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] log streaming error: {exc}")
         with _runs_lock:
