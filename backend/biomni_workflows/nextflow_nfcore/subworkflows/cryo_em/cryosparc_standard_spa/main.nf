@@ -215,8 +215,22 @@ def CS_HELPER = '''
             return _cs_gpu_count_cache[cache_key]
         count = 1  # safe default: g6.2xlarge has 1x L4
         try:
-            targets = cs.api.targets.get_all()
-            total = sum(getattr(t, "gpu_count", 0) or len(getattr(t, "gpus", []) or []) for t in targets)
+            # cryosparc-tools v5: workers are accessed via cs.get_workers() or
+            # the lanes API — try both and pick whichever works.
+            workers = None
+            for method in ("get_workers", "get_lane_workers"):
+                fn = getattr(cs, method, None)
+                if fn:
+                    try:
+                        workers = fn()
+                        break
+                    except Exception:
+                        pass
+            if workers is None:
+                # Fallback: query via lanes dict
+                lanes = cs.api.lanes.get_all() if hasattr(cs.api, "lanes") else []
+                workers = [w for lane_obj in lanes for w in getattr(lane_obj, "workers", [])]
+            total = sum(int(getattr(w, "gpu_count", 0) or len(getattr(w, "gpus", []) or [])) for w in (workers or []))
             if total > 0:
                 count = total
         except Exception as e:
@@ -609,6 +623,7 @@ process BLOB_PICKER_BATCH {
 process EXTRACT_PARTICLES_R1_BATCH {
     tag "${batch_id}"
     publishDir "${params.outdir}/08_extract_round1/${batch_id}", mode: 'copy'
+    container CS_IMAGE
 
     input:
     tuple val(batch_id), path(ctf_cs)
@@ -619,59 +634,65 @@ process EXTRACT_PARTICLES_R1_BATCH {
     path "extract_report_${batch_id}.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def box_size = params.particle_box_size ?: estimate_box_size(
         params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
         params.pixel_size
     )
     """
     #!/usr/bin/env python3
+    ${CS_HELPER}
     import json
-    import time
     from datetime import datetime
 
-    mock_mode = ${mock}
-    batch_id = '${batch_id}'
+    batch_id    = '${batch_id}'
+    use_real    = ${real}
+    box_size    = ${box_size}
 
-    if mock_mode:
-        time.sleep(0.5)
-
-    # Load picks from inspected (global) + filter to this batch's micrographs
-    mics_data = json.load(open('${ctf_cs}'))
-    batch_mic_indices = {m['micrograph_idx'] for m in mics_data.get('micrographs', [])}
-
+    ctf_data       = json.load(open('${ctf_cs}'))
     inspected_data = json.load(open('${inspected_cs}'))
-    all_particles = inspected_data.get('particles', [])
+    init_proj      = ctf_data.get('project_uid', '')
+    init_ws        = ctf_data.get('workspace_uid', '')
+    ctf_job_uid    = ctf_data.get('job_uid', '')
+    picks_job_uid  = inspected_data.get('job_uid', '')
 
-    # Keep particles belonging to this batch's micrographs
-    batch_particles = [p for p in all_particles if p.get('micrograph_idx') in batch_mic_indices]
-
-    # Fall back to all particles if micrograph_idx tracking isn't available
-    if not batch_particles:
-        batch_particles = all_particles
-
-    extracted = [
-        {**p, 'box_size_pixels': ${box_size}, 'extracted': True, 'batch_id': batch_id}
-        for p in batch_particles
-    ]
-
-    report = {
-        'step': '08_extract_particles_round1',
-        'batch_id': batch_id,
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(extracted),
-        'box_size_pixels': ${box_size},
-        'pixel_size_angstroms': ${params.pixel_size},
-        'mock_mode': mock_mode
-    }
+    if use_real and ctf_job_uid and picks_job_uid:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init_proj, init_ws,
+            "extract_micrographs_cpu_parallel",
+            connections={
+                "micrographs": (ctf_job_uid, "micrographs_ctf"),
+                "particles":   (picks_job_uid, "particles"),
+            },
+            params={"box_size_pix": box_size},
+            timeout=7200,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else 0
+        cs_data = {"cs_mode": "real", "project_uid": init_proj, "workspace_uid": init_ws,
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles, "batch_id": batch_id}
+        report  = {"step": "08_extract_particles_round1", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(), "real_mode": True,
+                   "num_particles": num_particles, "box_size_pix": box_size}
+    else:
+        # Mock / fallback — preserve job_uid chain if available
+        num_particles = inspected_data.get('num_items', 0)
+        cs_data = {"cs_mode": "mock", "batch_id": batch_id,
+                   "particles": [], "num_items": num_particles}
+        if picks_job_uid:
+            cs_data["job_uid"] = picks_job_uid   # pass through for downstream
+        report  = {"step": "08_extract_particles_round1", "batch_id": batch_id,
+                   "timestamp": datetime.now().isoformat(), "mock_mode": True,
+                   "num_particles": num_particles}
 
     with open(f'particles_extracted_r1_${batch_id}.cs', 'w') as f:
-        json.dump({'particles': extracted, 'batch_id': batch_id}, f, indent=2)
-
+        json.dump(cs_data, f, indent=2)
     with open(f'extract_report_${batch_id}.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ [{batch_id}] Extracted {len(extracted)} particles (box size: ${box_size} px)")
+    print(f"✓ [{batch_id}] Extracted {num_particles} particles (box size: {box_size} px, real={use_real})")
     """
 }
 
@@ -1117,14 +1138,25 @@ process MERGE_PARTICLES {
     import glob
 
     all_particles = []
+    last_job_uid  = None
+    last_num_items = 0
     for cs_file in sorted(glob.glob('particles_*.cs')):
         data = json.load(open(cs_file))
+        # Real-mode: preserve CryoSPARC job UID for downstream extraction
+        if data.get('cs_mode') == 'real' and data.get('job_uid'):
+            last_job_uid   = data['job_uid']
+            last_num_items = data.get('num_items', last_num_items)
         all_particles.extend(data.get('particles', []))
 
-    with open('all_particles.cs', 'w') as f:
-        json.dump({'particles': all_particles, 'merged': True}, f, indent=2)
+    merged = {'particles': all_particles, 'merged': True}
+    if last_job_uid:
+        merged['job_uid']   = last_job_uid
+        merged['num_items'] = last_num_items
 
-    print(f"✓ Merged {len(all_particles)} particles from all batches")
+    with open('all_particles.cs', 'w') as f:
+        json.dump(merged, f, indent=2)
+
+    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}) from all batches")
     """
 }
 
@@ -1175,14 +1207,24 @@ process MERGE_PARTICLES_R1 {
     import glob
 
     all_particles = []
+    last_job_uid  = None
+    last_num_items = 0
     for cs_file in sorted(glob.glob('particles_*.cs')):
         data = json.load(open(cs_file))
+        if data.get('cs_mode') == 'real' and data.get('job_uid'):
+            last_job_uid   = data['job_uid']
+            last_num_items = data.get('num_items', last_num_items)
         all_particles.extend(data.get('particles', []))
 
-    with open('all_particles.cs', 'w') as f:
-        json.dump({'particles': all_particles, 'merged': True}, f, indent=2)
+    merged = {'particles': all_particles, 'merged': True}
+    if last_job_uid:
+        merged['job_uid']   = last_job_uid
+        merged['num_items'] = last_num_items
 
-    print(f"✓ Merged {len(all_particles)} particles from all batches")
+    with open('all_particles.cs', 'w') as f:
+        json.dump(merged, f, indent=2)
+
+    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}) from all batches")
     """
 }
 
@@ -1330,8 +1372,14 @@ process JUNK_2D_DETECTOR {
         'mock_mode': ${mock}
     }
 
+    # Preserve CryoSPARC job_uid from real-mode inputs
+    out = {'particles': filtered}
+    if particles_data.get('job_uid'):
+        out['job_uid']   = particles_data['job_uid']
+        out['num_items'] = particles_data.get('num_items', len(filtered))
+
     with open('particles_filtered.cs', 'w') as f:
-        json.dump({'particles': filtered}, f, indent=2)
+        json.dump(out, f, indent=2)
 
     with open('junk_report.json', 'w') as f:
         json.dump(report, f, indent=2)
@@ -1370,14 +1418,14 @@ process INSPECT_PICKS {
         'mock_mode': True
     }
 
-    # Pass through
+    # Pass through (preserve all fields including job_uid from real-mode inputs)
     with open('particles_inspected.cs', 'w') as f:
         json.dump(particles_data, f, indent=2)
 
     with open('inspect_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Inspection complete: {report['num_particles']} particles")
+    print(f"✓ Inspection complete: {report['num_particles']} particles (job_uid={particles_data.get('job_uid','none')})")
     """
 }
 
