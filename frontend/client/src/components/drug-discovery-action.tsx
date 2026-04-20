@@ -1,10 +1,17 @@
 /**
  * DrugDiscoveryAction — renders context-sensitive action widgets in the chat.
  *
- * Three modes:
- *  assay_upload     — file picker + POST to /api/drug-discovery/{id}/ingest-assay
- *  cro_export       — format selector + download link from /api/drug-discovery/{id}/export/cro-order
- *  campaign_dashboard — inline compound-ranking panel fetched from /api/drug-discovery/{id}/compounds
+ * Modes (original):
+ *  assay_upload       — file picker + POST /api/drug-discovery/{id}/ingest-assay
+ *  cro_export         — format selector + download /api/drug-discovery/{id}/export/cro-order
+ *  campaign_dashboard — inline compound-ranking panel
+ *
+ * Modes (new, tabbed — shown when campaign_id is set):
+ *  validation         — PBPK/ADMET validation panel (Surface 2)
+ *  audit              — 21 CFR Part 11 hash-chain audit trail (Surface 3)
+ *  auto_retrain       — DMTA Bayesian-optimizer retrain loop (Surface 4)
+ *  ind_assembly       — IND section assembly (Surface 6)
+ *  new_campaign       — Campaign creation wizard (Surface 7)
  */
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -26,20 +33,38 @@ import {
   Loader2,
   BarChart3,
   FileText,
+  Shield,
+  RefreshCw,
+  Beaker,
+  Target,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
+import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type DrugDiscoveryMode =
+  | "assay_upload"
+  | "cro_export"
+  | "campaign_dashboard"
+  | "validation"
+  | "audit"
+  | "auto_retrain"
+  | "ind_assembly"
+  | "new_campaign"
+
 export interface DrugDiscoveryActionData {
-  type: "assay_upload" | "cro_export" | "campaign_dashboard"
+  type: DrugDiscoveryMode
   campaign_id: string | null
   endpoint: string | null
   description?: string
   csv_template?: string
   formats?: string[]
+  /** Initial tab to show when type triggers the tabbed view */
+  initial_mode?: DrugDiscoveryMode
 }
 
 interface DrugDiscoveryActionProps {
@@ -372,20 +397,136 @@ function CampaignDashboardWidget({ action }: { action: DrugDiscoveryActionData }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tabbed campaign view (shown when campaign_id is set + type is a tab mode)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TABBED_MODES: DrugDiscoveryMode[] = [
+  "campaign_dashboard",
+  "validation",
+  "audit",
+  "auto_retrain",
+  "ind_assembly",
+]
+
+interface TabDef {
+  key: DrugDiscoveryMode
+  label: string
+  icon: React.ReactNode
+}
+
+const TABS: TabDef[] = [
+  { key: "campaign_dashboard", label: "Dashboard",    icon: <Target     className="h-3.5 w-3.5" /> },
+  { key: "validation",         label: "Validation",   icon: <Beaker     className="h-3.5 w-3.5" /> },
+  { key: "audit",              label: "Audit",        icon: <Shield     className="h-3.5 w-3.5" /> },
+  { key: "auto_retrain",       label: "Auto-Retrain", icon: <RefreshCw  className="h-3.5 w-3.5" /> },
+  { key: "ind_assembly",       label: "IND",          icon: <FileText   className="h-3.5 w-3.5" /> },
+]
+
+function CampaignTabs({
+  action,
+  initialMode,
+}: {
+  action: DrugDiscoveryActionData
+  initialMode: DrugDiscoveryMode
+}) {
+  const [activeTab, setActiveTab] = useState<DrugDiscoveryMode>(initialMode)
+  const campaignId = action.campaign_id!
+
+  return (
+    <div className="space-y-0">
+      {/* Tab bar */}
+      <div className="flex items-center gap-0.5 border-b border-border px-1 pt-1 overflow-x-auto">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-t-md border border-b-0 -mb-px transition-colors whitespace-nowrap",
+              activeTab === tab.key
+                ? "border-border bg-background text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40",
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="p-4">
+        {activeTab === "campaign_dashboard" && <CampaignDashboardWidget action={action} />}
+        {activeTab === "audit" && (
+          <DrugDiscoveryAuditViewer campaignId={campaignId} />
+        )}
+        {activeTab === "auto_retrain" && (
+          <DrugDiscoveryAutoRetrain campaignId={campaignId} />
+        )}
+        {activeTab === "validation" && (
+          <ValidationPlaceholder campaignId={campaignId} />
+        )}
+        {activeTab === "ind_assembly" && (
+          <IndAssemblyPlaceholder campaignId={campaignId} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Placeholder until Surface 2 (Validation) is ported */
+function ValidationPlaceholder({ campaignId }: { campaignId: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+      <Beaker className="h-8 w-8 text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">Validation panel coming in P1</p>
+      <p className="text-xs text-muted-foreground">Campaign: {campaignId}</p>
+    </div>
+  )
+}
+
+/** Placeholder until Surface 6 (IND Assembly) is ported */
+function IndAssemblyPlaceholder({ campaignId }: { campaignId: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
+      <FileText className="h-8 w-8 text-muted-foreground/40" />
+      <p className="text-sm text-muted-foreground">IND assembly panel coming in P1</p>
+      <p className="text-xs text-muted-foreground">Campaign: {campaignId}</p>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main export
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function DrugDiscoveryAction({ action, className }: DrugDiscoveryActionProps) {
-  const iconMap = {
-    assay_upload: <Upload className="h-4 w-4" />,
-    cro_export: <Download className="h-4 w-4" />,
+  const iconMap: Partial<Record<DrugDiscoveryMode, React.ReactNode>> = {
+    assay_upload:       <Upload    className="h-4 w-4" />,
+    cro_export:         <Download  className="h-4 w-4" />,
     campaign_dashboard: <BarChart3 className="h-4 w-4" />,
+    validation:         <Beaker    className="h-4 w-4" />,
+    audit:              <Shield    className="h-4 w-4" />,
+    auto_retrain:       <RefreshCw className="h-4 w-4" />,
+    ind_assembly:       <FileText  className="h-4 w-4" />,
   }
-  const titleMap = {
-    assay_upload: "Assay Data Upload",
-    cro_export: "CRO Compound Export",
+  const titleMap: Partial<Record<DrugDiscoveryMode, string>> = {
+    assay_upload:       "Assay Data Upload",
+    cro_export:         "CRO Compound Export",
     campaign_dashboard: "Campaign Dashboard",
+    validation:         "Model Validation",
+    audit:              "Audit Trail",
+    auto_retrain:       "Auto-Retrain Loop",
+    ind_assembly:       "IND Assembly",
+    new_campaign:       "New Campaign",
   }
+
+  // When campaign_id is set and the type is a tab-capable mode, render the
+  // full tabbed view. Otherwise render the original single-widget layout.
+  const useTabs =
+    !!action.campaign_id && TABBED_MODES.includes(action.type)
+
+  const initialMode =
+    action.initial_mode ?? action.type
 
   return (
     <Card className={cn("border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 mt-3", className)}>
@@ -393,7 +534,7 @@ export function DrugDiscoveryAction({ action, className }: DrugDiscoveryActionPr
         <CardTitle className="text-sm flex items-center gap-2 text-blue-800 dark:text-blue-300">
           <FlaskConical className="h-4 w-4" />
           {iconMap[action.type]}
-          {titleMap[action.type]}
+          {useTabs ? "Drug Discovery" : (titleMap[action.type] ?? action.type)}
           {action.campaign_id && (
             <Badge variant="secondary" className="text-xs font-mono ml-1">
               {action.campaign_id}
@@ -401,10 +542,16 @@ export function DrugDiscoveryAction({ action, className }: DrugDiscoveryActionPr
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="pb-4 px-4">
-        {action.type === "assay_upload" && <AssayUploadWidget action={action} />}
-        {action.type === "cro_export" && <CROExportWidget action={action} />}
-        {action.type === "campaign_dashboard" && <CampaignDashboardWidget action={action} />}
+      <CardContent className={cn("pb-4", useTabs ? "px-0 pt-0" : "px-4")}>
+        {useTabs ? (
+          <CampaignTabs action={action} initialMode={initialMode} />
+        ) : (
+          <>
+            {action.type === "assay_upload"       && <AssayUploadWidget    action={action} />}
+            {action.type === "cro_export"          && <CROExportWidget       action={action} />}
+            {action.type === "campaign_dashboard"  && <CampaignDashboardWidget action={action} />}
+          </>
+        )}
       </CardContent>
     </Card>
   )

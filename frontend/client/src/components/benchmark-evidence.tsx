@@ -501,17 +501,21 @@ export function ResearchResponseDisplay({
         </div>
       )}
 
-      {/* Confidence indicator */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Zap className="h-3 w-3" />
-        Confidence: {Math.round(response.confidence * 100)}%
-        {response.methods_used && response.methods_used.length > 0 && (
-          <>
-            <span className="mx-1">|</span>
-            Methods: {response.methods_used.join(", ")}
-          </>
-        )}
-      </div>
+      {/* Confidence indicator — only shown when confidence is meaningful */}
+      {(response.confidence > 0 || (response.methods_used && response.methods_used.length > 0)) && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Zap className="h-3 w-3" />
+          {response.confidence > 0 && (
+            <span>Confidence: {Math.round(response.confidence * 100)}%</span>
+          )}
+          {response.methods_used && response.methods_used.length > 0 && (
+            <>
+              {response.confidence > 0 && <span className="mx-1">|</span>}
+              Methods: {response.methods_used.join(", ")}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

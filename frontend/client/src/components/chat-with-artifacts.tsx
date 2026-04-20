@@ -301,6 +301,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     if (!runId || !status) return
     if (!surveyedRunIds.current.has(runId)) {
       surveyedRunIds.current.add(runId)
+      // Check suppression before firing — avoids a flash-of-survey on the first render
+      try {
+        const suppressedUntil = localStorage.getItem('biomate_survey_suppressed_until')
+        if (suppressedUntil && Date.now() < Number(suppressedUntil)) return
+      } catch { /* localStorage unavailable */ }
       setPostRunSurveyContext({
         runId,
         runStatus: status,
