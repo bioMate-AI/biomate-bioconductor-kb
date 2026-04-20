@@ -71,7 +71,7 @@ params.cryosparc_email = 'admin@biomate.ai'
 params.cryosparc_password = null            // Set via --cryosparc_password
 params.cryosparc_project_dir = '/home/ubuntu/cryosparc_projects'
 params.cryosparc_lane = 'default'
-params.num_gpu = 4                           // GPUs per CryoSPARC job (matches instance type)
+params.num_gpu = 1                           // GPUs per CryoSPARC job (g6.2xlarge has 1x L4)
 
 // Processing parameters (can be auto-tuned based on sample_type)
 params.motion_correction_dose_weighting = true

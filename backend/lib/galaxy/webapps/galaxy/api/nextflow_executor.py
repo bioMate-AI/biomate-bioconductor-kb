@@ -4100,6 +4100,7 @@ def execute_cryosparc(
         "symmetry":                    spa_params["symmetry"],
         "num_ab_initio_classes":       spa_params["num_ab_initio_classes"],
         "use_cryosparc":               True,
+        "num_gpu":                     int(params.get("num_gpu", 1)),  # g6.2xlarge = 1x L4
         # CryoSPARC connection — live instance IP provisioned above
         "cryosparc_host":     cs_exec.CRYOSPARC_HOST,
         "cryosparc_port":     int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
