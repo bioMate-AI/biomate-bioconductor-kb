@@ -81,21 +81,31 @@ class ApplicabilityDomainChecker:
         result = checker.check(query_smiles, query_fp)
     """
 
+    # Tanimoto similarity below this is flagged as out-of-domain (no similar training compound)
+    TANIMOTO_OOD_THRESHOLD = 0.20   # <20% similarity to nearest neighbour → OOD
+
     def __init__(
         self,
         training_fps: "np.ndarray",
         leverage_factor: float = 3.0,
+        tanimoto_threshold: float = None,
     ):
         """
         Args:
             training_fps: shape (N, F) — Morgan fingerprint matrix for training set.
             leverage_factor: multiplier for mean leverage threshold (default 3).
                              Compound is out-of-domain if h_i > leverage_factor × h̄.
+            tanimoto_threshold: minimum Tanimoto similarity to nearest training compound
+                                to be considered in-domain (default 0.20).
+                                Hat matrix leverage cannot detect compounds in entirely
+                                unobserved feature dimensions; the Tanimoto guard handles
+                                these cases for sparse binary fingerprints.
         """
         if not _NUMPY_AVAILABLE:
             raise ImportError("numpy is required for ApplicabilityDomainChecker")
 
         self.leverage_factor = leverage_factor
+        self.tanimoto_threshold = tanimoto_threshold if tanimoto_threshold is not None else self.TANIMOTO_OOD_THRESHOLD
         self._n, self._p = training_fps.shape
         self._X_train = training_fps.astype(float)
 
@@ -127,6 +137,29 @@ class ApplicabilityDomainChecker:
         x = query_fp.astype(float)
         return float(x @ self._XtX_pinv @ x)
 
+    def _max_tanimoto_similarity(self, query_fp: "np.ndarray") -> float:
+        """
+        Return the maximum Tanimoto similarity between query_fp and any training compound.
+
+        Tanimoto(a, b) = |a ∩ b| / |a ∪ b| = dot(a,b) / (‖a‖² + ‖b‖² - dot(a,b))
+
+        For all-zero fingerprints (empty compounds) similarity is defined as 0.
+        """
+        x = query_fp.astype(float)
+        x_sum = float(x @ x)  # ‖x‖² for bit vectors = number of set bits
+
+        if x_sum == 0:
+            return 0.0
+
+        # dot(x, X_train[i]) for all i at once
+        dots = self._X_train @ x                     # shape (N,)
+        train_sums = (self._X_train * self._X_train).sum(axis=1)  # ‖x_i‖² per row
+        denominators = train_sums + x_sum - dots
+        # Avoid division by zero (both vectors all-zero)
+        denominators = np.where(denominators == 0, 1.0, denominators)
+        similarities = dots / denominators
+        return float(similarities.max())
+
     def check(
         self,
         smiles: str,
@@ -157,6 +190,20 @@ class ApplicabilityDomainChecker:
                 f"— compound may be structurally outside the training domain"
             )
 
+        # Tanimoto nearest-neighbour guard
+        # Hat-matrix leverage cannot detect compounds that lie entirely in unobserved
+        # feature dimensions (null space of X^T X → leverage = 0).  A Tanimoto check
+        # handles these cases for sparse binary fingerprints.
+        max_sim = self._max_tanimoto_similarity(query_fp)
+        in_domain_tanimoto = max_sim >= self.tanimoto_threshold
+
+        if not in_domain_tanimoto:
+            warnings.append(
+                f"Max Tanimoto similarity to training set {max_sim:.4f} < threshold "
+                f"{self.tanimoto_threshold:.2f} — compound has no structurally similar "
+                f"training analogue"
+            )
+
         # 95% confidence interval from GP posterior std
         ci: Optional[tuple[float, float]] = None
         if gp_mean is not None and gp_std is not None and gp_std >= 0:
@@ -170,7 +217,8 @@ class ApplicabilityDomainChecker:
                     f"High GP uncertainty (σ={gp_std:.3f}) — prediction confidence is low"
                 )
 
-        ad_status = "in_domain" if in_domain_leverage else "out_of_domain"
+        # Out-of-domain if EITHER leverage criterion OR Tanimoto criterion fails
+        ad_status = "in_domain" if (in_domain_leverage and in_domain_tanimoto) else "out_of_domain"
 
         return ADResult(
             smiles=smiles,

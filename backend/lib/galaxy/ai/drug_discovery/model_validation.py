@@ -128,11 +128,18 @@ class _AnalyticalPKPredictor:
             return {"predicted_Cmax": None, "predicted_AUC": None,
                     "notes": "Missing CL_L_h or Vd_L in reference data"}
 
-        # AUC (µg·h/mL) = dose_absorbed / CL_apparent
-        # For oral drugs: CL in reference datasets is often the apparent oral clearance
-        # (CL_apparent = CL_true/F), so AUC = F*dose / CL_true = dose / CL_apparent — correct.
+        # AUC (µg·h/mL).
+        # Reference PK databases (DrugBank, FDA labels) report CL_apparent for oral routes
+        # (CL_apparent = CL_true / F), so AUC_oral = dose_oral / CL_apparent.
+        # For IV drugs, CL in the reference is the true clearance, AUC_iv = dose / CL_true.
+        # Both formulae reduce to: AUC = dose / CL_reference — F is already embedded in
+        # CL_apparent and must NOT be applied again.
+        # Empirical verification: before this fix, AUC fold_error ≈ F for each drug, confirming
+        # that the double-application of F caused systematic underprediction by factor F.
+        AUC_ug_h_mL = dose_ug / (CL_L_h * 1000.0)
+
+        # dose_absorbed used for Cmax only (oral 1-compartment Bateman equation)
         dose_absorbed_ug = dose_ug * (1.0 if route == "iv" else F)
-        AUC_ug_h_mL = dose_absorbed_ug / (CL_L_h * 1000.0)
 
         # Cmax via 1-compartment model.
         # ke must use CL_true/Vd_true.  For oral drugs where the reference CL is the apparent
