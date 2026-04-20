@@ -170,6 +170,7 @@ class AuditStore:
         with self._connect() as conn:
             conn.executescript("""
                 PRAGMA journal_mode = WAL;
+                PRAGMA synchronous = FULL;
                 PRAGMA foreign_keys = ON;
 
                 CREATE TABLE IF NOT EXISTS audit_log (

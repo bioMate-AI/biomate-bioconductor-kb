@@ -126,16 +126,16 @@ class INDSectionAssembler:
             auto_proposal=auto_proposal,
         )
 
-        sections = []
-        parts = [
-            self._title_page(ctx),
-            self._section_overview(ctx),           sections.append("2.6.1.1") or "",
-            self._section_pbpk(ctx),               sections.append("2.6.1.2") or "",
-            self._section_admet(ctx),              sections.append("2.6.1.3") or "",
-            self._section_prioritization(ctx),     sections.append("2.6.1.4") or "",
-            self._section_applicability_domain(ctx), sections.append("2.6.1.5") or "",
-            self._section_audit_trail(ctx),        sections.append("2.6.1.6") or "",
-        ]
+        title = self._title_page(ctx)
+        s_overview     = self._section_overview(ctx)
+        s_pbpk         = self._section_pbpk(ctx)
+        s_admet        = self._section_admet(ctx)
+        s_priority     = self._section_prioritization(ctx)
+        s_ad           = self._section_applicability_domain(ctx)
+        s_audit        = self._section_audit_trail(ctx)
+
+        sections = ["2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6"]
+        parts = [title, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit]
         markdown = "\n\n".join(p for p in parts if p)
 
         # Write Markdown
@@ -285,8 +285,8 @@ obtained from assay data ingested via the BioMate platform Benchling LIMS connec
         table_rows = []
         for row in per_cpd[:15]:
             name = row.get("name", "?")
-            obs_cmax = row.get("observed_Cmax_ug_mL", "?")
-            pred_cmax = row.get("predicted_Cmax_ug_mL", "?")
+            obs_cmax = row.get("observed_Cmax", "?")
+            pred_cmax = row.get("predicted_Cmax", "?")
             fold = row.get("fold_error_Cmax", "?")
             in_d = "✓" if row.get("in_domain", True) else "✗"
             table_rows.append(
