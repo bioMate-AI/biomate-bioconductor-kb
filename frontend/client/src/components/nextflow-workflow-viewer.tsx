@@ -94,6 +94,10 @@ type ViewerPhase = {
   phase_group?: string;
   /** Human-readable phase group label (e.g. 'Phase A — Motion Correction & CTF') */
   phase_label?: string;
+  /** Phase-level summary text returned by the backend (from phases.summary) */
+  summary?: string;
+  /** Whether auto-loop QC is enabled for this phase (from phases.autoloop) */
+  autoloop?: boolean;
 };
 
 type StepExecutionState = {
@@ -471,6 +475,7 @@ function PhaseGroupSection({
   autoloopEnabled,
   onToggleAutoloop,
   onDismissAutoloop,
+  onAcceptAutoloop,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -489,6 +494,7 @@ function PhaseGroupSection({
   autoloopEnabled: boolean;
   onToggleAutoloop: () => void;
   onDismissAutoloop: () => void;
+  onAcceptAutoloop?: (paramChanges: Record<string, unknown>) => void;
 }) {
   const [paramsOpen, setParamsOpen] = useState(false);
   const { steps, label, phaseParams } = group;
@@ -641,6 +647,7 @@ function PhaseGroupSection({
           <AutoLoopPanel
             state={autoLoopPanelState}
             onDismiss={onDismissAutoloop}
+            onAccept={onAcceptAutoloop}
           />
         </div>
       )}
@@ -854,6 +861,8 @@ export function NextflowWorkflowViewer({
           toolId: typeof step.tool_id === "string" ? step.tool_id : undefined,
           parameters: step.parameters && typeof step.parameters === "object" ? (step.parameters as Record<string, unknown>) : {},
           inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
+          summary: typeof step.summary === "string" ? step.summary : undefined,
+          autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
         };
       });
     }
@@ -2519,6 +2528,11 @@ export function NextflowWorkflowViewer({
                     onDismissAutoloop={() =>
                       setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
                     }
+                    onAcceptAutoloop={(paramChanges) => {
+                      setParams(prev => ({ ...prev, ...paramChanges }));
+                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
+                      handleExecute();
+                    }}
                   />
                 ))}
                 <button

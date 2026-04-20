@@ -251,9 +251,11 @@ function RemediationCard({ rem }: { rem: AutoLoopRemediation }) {
 interface AutoLoopPanelProps {
   state: AutoLoopPanelState
   onDismiss: () => void
+  /** Called when user clicks "Apply & Re-run". Receives merged param_changes from all remediations. */
+  onAccept?: (paramChanges: Record<string, unknown>) => void
 }
 
-export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
+export function AutoLoopPanel({ state, onDismiss, onAccept }: AutoLoopPanelProps) {
   const { gateResults, remediations, complete } = state
 
   if (!gateResults) return null
@@ -352,6 +354,25 @@ export function AutoLoopPanel({ state, onDismiss }: AutoLoopPanelProps) {
             {remediations.map((rem, i) => (
               <RemediationCard key={`${rem.phase ?? ""}-${rem.gate}-${i}`} rem={rem} />
             ))}
+            {onAccept && (() => {
+              // Merge param_changes from all remediations (later entries win on conflict)
+              const merged: Record<string, unknown> = {}
+              for (const rem of remediations) {
+                Object.assign(merged, rem.param_changes)
+              }
+              if (Object.keys(merged).length === 0) return null
+              return (
+                <Button
+                  size="sm"
+                  className="mt-1 w-full bg-amber-600 hover:bg-amber-700 text-white text-xs"
+                  data-testid="autoloop-accept-btn"
+                  onClick={() => onAccept(merged)}
+                >
+                  <Beaker className="h-3.5 w-3.5 mr-1.5" />
+                  Apply {Object.keys(merged).length} change{Object.keys(merged).length !== 1 ? "s" : ""} &amp; Re-run
+                </Button>
+              )
+            })()}
           </div>
         )}
       </CardContent>

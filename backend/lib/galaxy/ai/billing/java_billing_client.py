@@ -26,6 +26,7 @@ import os
 import time
 import uuid
 import logging
+import threading
 from datetime import date
 from typing import Optional
 
@@ -40,8 +41,8 @@ log = logging.getLogger(__name__)
 JAVA_BILLING_URL: str = os.environ.get("JAVA_BILLING_SERVICE_URL", "").rstrip("/")
 JAVA_BILLING_ENABLED: bool = os.environ.get("JAVA_BILLING_ENABLED", "false").lower() == "true"
 
-_TIMEOUT = 5.0          # seconds — generous but bounded
-_RETRY_DELAYS = (1.0, 2.0, 4.0)   # exponential backoff on transient errors
+_TIMEOUT = 2.0          # seconds — short timeout for fire-and-forget billing
+_RETRY_DELAYS = (1.0,)  # single retry; emit methods run in daemon threads so no blocking concern
 
 
 # ---------------------------------------------------------------------------
@@ -162,31 +163,36 @@ class JavaBillingClient:
     ) -> bool:
         """Report an LLM call: sends two events (input + output) with separate codes.
 
+        Runs in a daemon thread — never blocks the caller.
+
         Remote Lago metrics required:
           llm_input_tokens  — sum_agg on 'tokens' field
           llm_output_tokens — sum_agg on 'tokens' field
         """
         ts = time.time()
         uid = transaction_id or f"llm-{user_id}-{uuid.uuid4().hex[:12]}"
-        ok_in = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "llm_input_tokens",
-            "transactionId": f"{uid}-in",
-            "timestamp": ts,
-            "properties": {"tokens": input_tokens, "model": model},
-        })
-        ok_out = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "llm_output_tokens",
-            "transactionId": f"{uid}-out",
-            "timestamp": ts,
-            "properties": {"tokens": output_tokens, "model": model},
-        })
-        ok = ok_in and ok_out
-        if ok:
-            log.info("[java_billing] llm events sent: user=%s model=%s in=%d out=%d",
-                     user_id, model, input_tokens, output_tokens)
-        return ok
+
+        def _run():
+            ok_in = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "llm_input_tokens",
+                "transactionId": f"{uid}-in",
+                "timestamp": ts,
+                "properties": {"tokens": input_tokens, "model": model},
+            })
+            ok_out = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "llm_output_tokens",
+                "transactionId": f"{uid}-out",
+                "timestamp": ts,
+                "properties": {"tokens": output_tokens, "model": model},
+            })
+            if ok_in and ok_out:
+                log.info("[java_billing] llm events sent: user=%s model=%s in=%d out=%d",
+                         user_id, model, input_tokens, output_tokens)
+
+        threading.Thread(target=_run, daemon=True, name="java-billing-llm").start()
+        return True
 
     def emit_batch_job(
         self,
@@ -200,6 +206,8 @@ class JavaBillingClient:
     ) -> bool:
         """Report a completed AWS Batch job: sends vCPU-sec, mem-sec, GPU-sec events.
 
+        Runs in a daemon thread — never blocks the caller.
+
         Remote Lago metrics required:
           batch_vcpu_seconds   — sum_agg on 'seconds' field
           batch_memory_gb_sec  — sum_agg on 'gb_seconds' field
@@ -210,36 +218,37 @@ class JavaBillingClient:
         vcpu_seconds = round(vcpus * duration_seconds, 3)
         mem_gb_sec = round(memory_gb * duration_seconds, 3)
 
-        ok_vcpu = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "batch_vcpu_seconds",
-            "transactionId": f"batch-vcpu-{job_id}",
-            "timestamp": ts,
-            "properties": {"seconds": vcpu_seconds, "instanceType": instance_type},
-        })
-        ok_mem = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "batch_memory_gb_sec",
-            "transactionId": f"batch-mem-{job_id}",
-            "timestamp": ts,
-            "properties": {"gb_seconds": mem_gb_sec, "instanceType": instance_type},
-        })
-        ok_gpu = True
-        if gpu_count > 0:
-            gpu_seconds = round(gpu_count * duration_seconds, 3)
-            ok_gpu = self._post("/api/billing/usage/events", {
+        def _run():
+            ok_vcpu = self._post("/api/billing/usage/events", {
                 "externalCustomerId": external_id(user_id),
-                "code": "batch_gpu_seconds",
-                "transactionId": f"batch-gpu-{job_id}",
+                "code": "batch_vcpu_seconds",
+                "transactionId": f"batch-vcpu-{job_id}",
                 "timestamp": ts,
-                "properties": {"seconds": gpu_seconds, "instanceType": instance_type},
+                "properties": {"seconds": vcpu_seconds, "instanceType": instance_type},
             })
+            ok_mem = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "batch_memory_gb_sec",
+                "transactionId": f"batch-mem-{job_id}",
+                "timestamp": ts,
+                "properties": {"gb_seconds": mem_gb_sec, "instanceType": instance_type},
+            })
+            ok_gpu = True
+            if gpu_count > 0:
+                gpu_seconds = round(gpu_count * duration_seconds, 3)
+                ok_gpu = self._post("/api/billing/usage/events", {
+                    "externalCustomerId": external_id(user_id),
+                    "code": "batch_gpu_seconds",
+                    "transactionId": f"batch-gpu-{job_id}",
+                    "timestamp": ts,
+                    "properties": {"seconds": gpu_seconds, "instanceType": instance_type},
+                })
+            if ok_vcpu and ok_mem and ok_gpu:
+                log.info("[java_billing] batch events sent: user=%s job=%s vcpu_sec=%.1f mem_gb_sec=%.1f gpu=%d",
+                         user_id, job_id, vcpu_seconds, mem_gb_sec, gpu_count)
 
-        ok = ok_vcpu and ok_mem and ok_gpu
-        if ok:
-            log.info("[java_billing] batch events sent: user=%s job=%s vcpu_sec=%.1f mem_gb_sec=%.1f gpu=%d",
-                     user_id, job_id, vcpu_seconds, mem_gb_sec, gpu_count)
-        return ok
+        threading.Thread(target=_run, daemon=True, name="java-billing-batch").start()
+        return True
 
     def emit_s3_put(
         self,
@@ -250,6 +259,8 @@ class JavaBillingClient:
     ) -> bool:
         """Report an S3 upload: sends PUT request count + storage GB-hours events.
 
+        Runs in a daemon thread — never blocks the caller.
+
         Remote Lago metrics required:
           s3_put_requests    — sum_agg on 'count' field
           s3_storage_gb_hours — sum_agg on 'gb_hours' field
@@ -259,25 +270,27 @@ class JavaBillingClient:
         gb = size_bytes / (1024 ** 3)
         gb_hours = round(gb * 24 * 30, 6)   # 30-day retention projection
 
-        ok_put = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "s3_put_requests",
-            "transactionId": f"s3-put-{uid}",
-            "timestamp": ts,
-            "properties": {"count": 1, "key": key},
-        })
-        ok_store = self._post("/api/billing/usage/events", {
-            "externalCustomerId": external_id(user_id),
-            "code": "s3_storage_gb_hours",
-            "transactionId": f"s3-store-{uid}",
-            "timestamp": ts,
-            "properties": {"gb_hours": gb_hours},
-        })
-        ok = ok_put and ok_store
-        if ok:
-            log.info("[java_billing] s3_put events sent: user=%s bytes=%d gb_hours=%.6f",
-                     user_id, size_bytes, gb_hours)
-        return ok
+        def _run():
+            ok_put = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "s3_put_requests",
+                "transactionId": f"s3-put-{uid}",
+                "timestamp": ts,
+                "properties": {"count": 1, "key": key},
+            })
+            ok_store = self._post("/api/billing/usage/events", {
+                "externalCustomerId": external_id(user_id),
+                "code": "s3_storage_gb_hours",
+                "transactionId": f"s3-store-{uid}",
+                "timestamp": ts,
+                "properties": {"gb_hours": gb_hours},
+            })
+            if ok_put and ok_store:
+                log.info("[java_billing] s3_put events sent: user=%s bytes=%d gb_hours=%.6f",
+                         user_id, size_bytes, gb_hours)
+
+        threading.Thread(target=_run, daemon=True, name="java-billing-s3").start()
+        return True
 
     # Keep old emit_ec2 / emit_ebs as thin aliases so existing callers in
     # billing_router.py still compile — they will be migrated to emit_batch_job
