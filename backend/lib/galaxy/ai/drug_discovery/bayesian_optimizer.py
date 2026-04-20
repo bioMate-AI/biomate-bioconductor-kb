@@ -62,6 +62,11 @@ class RoundProposal:
     pareto_front_smiles: list[str]
     diversity_score: float
     timestamp: str
+    # Confidence intervals from GP posterior std — Phase 1 CRO readiness
+    confidence_intervals: dict[str, list[tuple[float, float]]] = field(default_factory=dict)
+    # Applicability domain status per proposed compound
+    ad_statuses: list[str] = field(default_factory=list)
+    gp_stds: dict[str, list[float]] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -361,11 +366,13 @@ class BayesianOptimizer:
         # Featurise virtual library
         X_lib = self._featurise(virtual_library_smiles)
 
-        # GP mean predictions for each objective over the virtual library
+        # GP mean predictions + posterior std (for confidence intervals) over the virtual library
         pred_scores = np.zeros((len(virtual_library_smiles), n_obj))
+        pred_stds   = np.zeros((len(virtual_library_smiles), n_obj))
         for j, obj_name in enumerate(obj_names):
-            mu, _ = self._gp_models[obj_name].predict(X_lib, return_std=True)
+            mu, sigma = self._gp_models[obj_name].predict(X_lib, return_std=True)
             pred_scores[:, j] = mu
+            pred_stds[:, j]   = sigma
         pred_scores = np.clip(pred_scores, 0.0, 1.0)
 
         # Current Pareto front from training observations
@@ -415,6 +422,38 @@ class BayesianOptimizer:
             for j, obj_name in enumerate(obj_names)
         }
 
+        # 95% confidence intervals: mean ± 1.96 × posterior_std
+        ci_dict: dict[str, list[tuple[float, float]]] = {}
+        std_dict: dict[str, list[float]] = {}
+        for j, obj_name in enumerate(obj_names):
+            cis = []
+            stds = []
+            for i in selected_indices:
+                mu_i = float(pred_scores[i, j])
+                s_i  = float(pred_stds[i, j])
+                half = 1.96 * s_i
+                cis.append((round(max(0.0, mu_i - half), 4), round(min(1.0, mu_i + half), 4)))
+                stds.append(round(s_i, 6))
+            ci_dict[obj_name] = cis
+            std_dict[obj_name] = stds
+
+        # Applicability domain check using hat-matrix leverage on training fingerprints
+        ad_statuses: list[str] = []
+        try:
+            from .applicability_domain import ApplicabilityDomainChecker
+            ad_checker = ApplicabilityDomainChecker(self._dataset.features)
+            for i in selected_indices:
+                result = ad_checker.check(
+                    proposed_smiles[len(ad_statuses)],
+                    X_lib[i],
+                    gp_mean=float(pred_scores[i, 0]),
+                    gp_std=float(pred_stds[i, 0]),
+                )
+                ad_statuses.append(result.ad_status)
+        except Exception as exc:
+            log.warning("AD check failed (non-fatal): %s", exc)
+            ad_statuses = ["unknown"] * len(selected_indices)
+
         pareto_smiles = [
             self._dataset.smiles_list[i]
             for i, flag in enumerate(pareto_mask_train)
@@ -442,6 +481,9 @@ class BayesianOptimizer:
             pareto_front_smiles=pareto_smiles,
             diversity_score=diversity_score,
             timestamp=datetime.now(timezone.utc).isoformat(),
+            confidence_intervals=ci_dict,
+            ad_statuses=ad_statuses,
+            gp_stds=std_dict,
         )
 
     # ------------------------------------------------------------------

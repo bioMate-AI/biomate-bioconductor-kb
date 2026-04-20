@@ -434,10 +434,19 @@ async def propose_next_round(campaign_id: str, body: ProposeRequest):
 
     return {
         "campaign_id": campaign_id,
-        "n_proposed": len(proposal.selected_smiles),
-        "proposed_smiles": proposal.selected_smiles,
-        "predicted_scores": proposal.predicted_scores if hasattr(proposal, "predicted_scores") else [],
-        "round_metadata": proposal.metadata if hasattr(proposal, "metadata") else {},
+        "n_proposed": len(proposal.proposed_compounds),
+        "proposed_smiles": proposal.proposed_compounds,
+        "predicted_scores": proposal.scores,
+        "confidence_intervals": proposal.confidence_intervals,
+        "ad_statuses": proposal.ad_statuses,
+        "gp_stds": proposal.gp_stds,
+        "round_metadata": {
+            "round_number": proposal.round_number,
+            "diversity_score": proposal.diversity_score,
+            "acquisition_values": proposal.acquisition_values,
+            "pareto_front_smiles": proposal.pareto_front_smiles,
+            "timestamp": proposal.timestamp,
+        },
     }
 
 
@@ -526,6 +535,54 @@ async def poll_lims(
             "new_compounds": result.new_compounds if hasattr(result, "new_compounds") else 0,
         },
     }
+
+
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Phase 1 CRO — Model Validation (P1)
+# ---------------------------------------------------------------------------
+
+@router.get("/model-validation/{model_type}")
+async def get_model_validation(
+    model_type: str,
+    drug_names: list[str] = Query(None, description="Optional drug name filter"),
+):
+    """
+    Return a regulatory-credible validation report for a BioMate predictive model.
+
+    model_type: "pbpk" (more types planned: herg, ames, cyp_inhibition)
+
+    Returns a ValidationReport containing:
+      - per-compound: observed vs predicted Cmax/AUC, %PE, fold error
+      - aggregate: AFE, AAFE, RMSE, R², within-2fold fraction
+      - regulatory_summary: plain-English EMA PBPK guideline compliance statement
+      - ema_criterion_met: true if ≥67% of predictions within 2-fold for both Cmax and AUC
+
+    This report is suitable for attachment to computational study reports
+    cited in IND pharmacology sections.
+    """
+    if model_type not in ("pbpk",):
+        raise HTTPException(
+            status_code=400,
+            detail=f"model_type '{model_type}' not supported. Available: pbpk",
+        )
+
+    try:
+        from .model_validation import ModelValidationService
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"Model validation module unavailable: {exc}")
+
+    try:
+        svc = ModelValidationService()
+        if model_type == "pbpk":
+            report = svc.run_pbpk_validation(drug_names=drug_names)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        log.exception("Model validation failed for %s", model_type)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return report.dict()
 
 
 # ---------------------------------------------------------------------------
