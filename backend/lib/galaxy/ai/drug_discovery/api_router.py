@@ -37,8 +37,14 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from pydantic import BaseModel
+
+try:
+    from ..compliance.audit_middleware import audit_regulated_action as _audit_fn
+except ImportError:
+    async def _audit_fn(*args, **kwargs):  # type: ignore[misc]
+        pass  # no-op when compliance module not installed
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +84,7 @@ class IngestAssayResponse(BaseModel):
 async def ingest_assay(
     campaign_id: str,
     file: UploadFile = File(..., description="Assay CSV file"),
+    _audit: None = Depends(_audit_fn),
 ):
     """
     Upload a CRO or wet-lab assay results CSV.
@@ -144,6 +151,7 @@ async def get_compounds(campaign_id: str, limit: int = Query(50, ge=1, le=500)):
 async def export_cro_order(
     campaign_id: str,
     fmt: str = Query("generic", regex="^(wuxi|pharmaron|enamine|generic)$"),
+    _audit: None = Depends(_audit_fn),
 ):
     """
     Export the current compound proposal as a CRO-ready CSV.
@@ -230,7 +238,11 @@ class RegisterModelRequest(BaseModel):
 
 
 @router.post("/{campaign_id}/models/register")
-async def register_model(campaign_id: str, body: RegisterModelRequest):
+async def register_model(
+    campaign_id: str,
+    body: RegisterModelRequest,
+    _audit: None = Depends(_audit_fn),
+):
     """
     Register a custom predictive model for this campaign.
 
@@ -311,6 +323,7 @@ async def run_model(
     campaign_id: str,
     model_name: str,
     smiles_list: list[str] = None,
+    _audit: None = Depends(_audit_fn),
 ):
     """
     Run a registered model against a list of SMILES.
@@ -363,7 +376,11 @@ class ProposeRequest(BaseModel):
 
 
 @router.post("/{campaign_id}/propose")
-async def propose_next_round(campaign_id: str, body: ProposeRequest):
+async def propose_next_round(
+    campaign_id: str,
+    body: ProposeRequest,
+    _audit: None = Depends(_audit_fn),
+):
     """
     Run BayesianOptimizer.propose_next_round() to select the next batch of
     compounds from a virtual library.
@@ -460,6 +477,7 @@ async def poll_lims(
     benchling_api_key: str = Query(None, description="Benchling API key (overrides env BENCHLING_API_KEY)"),
     assay_schema_id: str   = Query(None, description="Benchling assay schema ID to poll"),
     since_hours: float     = Query(24.0, description="Look back N hours for new results"),
+    _audit: None = Depends(_audit_fn),
 ):
     """
     Poll Benchling LIMS for new assay results and ingest them into the
@@ -546,6 +564,7 @@ async def poll_lims(
 async def get_model_validation(
     model_type: str,
     drug_names: list[str] = Query(None, description="Optional drug name filter"),
+    _audit: None = Depends(_audit_fn),
 ):
     """
     Return a regulatory-credible validation report for a BioMate predictive model.

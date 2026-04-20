@@ -237,7 +237,7 @@ def CS_HELPER = '''
             status = job.status
             print(f"[CS] {job_type} uid={job_uid} status={status}", flush=True)
             if status == "completed":
-                return job_uid
+                return job  # Return job object (not uid string) so callers can use .uid and .load_output()
             if status in ("failed", "killed"):
                 raise RuntimeError(f"CryoSPARC job {job_uid} ({job_type}) {status}")
             time.sleep(20)
@@ -280,26 +280,40 @@ process INIT_CRYOSPARC_PROJECT {
     ws_uid   = cs_create_workspace(cs, proj_uid, "W1")
     print(f"[CS] Project={proj_uid}  Workspace={ws_uid}", flush=True)
 
+    # Resolve movies_path to a glob pattern (CryoSPARC requires explicit glob)
+    import os as _os, glob as _glob
+    movies_path_raw = "${movies_path}".rstrip("/")
+    if _os.path.isdir(movies_path_raw):
+        # Directory — find the predominant extension and make a glob
+        exts = {}
+        for f in _os.listdir(movies_path_raw):
+            e = _os.path.splitext(f)[1].lower()
+            if e in (".mrcs", ".mrc", ".tiff", ".tif", ".eer"):
+                exts[e] = exts.get(e, 0) + 1
+        best_ext = max(exts, key=exts.get) if exts else ".mrcs"
+        blob_paths = movies_path_raw + "/*" + best_ext
+    else:
+        blob_paths = movies_path_raw  # already a glob or single file
+
     # Import movies
-    import_job_uid = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
+    import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
         connections={},
         params={
-            "blob_paths":         "${movies_path}",
+            "blob_paths":         blob_paths,
             "psize_A":            ${params.pixel_size},
             "accel_kv":           ${params.voltage},
             "cs_mm":              ${params.spherical_aberration},
-            "amp_contrast":       0.1,
             "total_dose_e_per_A2": ${params.total_dose},
         },
         timeout=3600,
     )
+    import_job_uid = import_job.uid
 
     # Get movie count from completed import job outputs
-    import_job_obj = cs.find_job(proj_uid, import_job_uid)
     num_movies = 0
     for out_name in ("imported_movies", "movies"):
         try:
-            imported = import_job_obj.load_output(out_name)
+            imported = import_job.load_output(out_name)
             if imported is not None:
                 num_movies = len(imported)
                 break
