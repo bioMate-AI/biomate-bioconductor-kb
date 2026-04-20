@@ -255,13 +255,15 @@ def pbpk_ode(t, y):
     # Peripheral
     dAperiph = max(0,Qperiph)/1000 * Cblood - max(0,Qperiph)/1000 * Cperiph/Kp_periph
 
-    # Blood (receives venous return from all tissues; drains to lung for pulmonary circulation)
+    # Blood (venous mixing pool: receives returns from all tissues, drains to lung)
+    # Must subtract Qlung*Cblood: venous blood flows to lung (lung ODE gains this term)
     dAblood = Qlung/1000 * Clung/Kp_lung \
-              - Qliver/1000 * Cblood - Qkidney/1000 * Cblood \
-              - Qgut/1000 * Cblood - max(0,Qperiph)/1000 * Cblood \
+              - Qlung/1000 * Cblood \
               + (Qliver+Qgut)/1000 * Cliver/Kp_liver \
               + Qkidney/1000 * Ckidney/Kp_kidney \
-              + max(0,Qperiph)/1000 * Cperiph/Kp_periph
+              + max(0,Qperiph)/1000 * Cperiph/Kp_periph \
+              - Qliver/1000 * Cblood - Qkidney/1000 * Cblood \
+              - Qgut/1000 * Cblood - max(0,Qperiph)/1000 * Cblood
 
     # IV: inject directly into blood at t=0
     dAabs = ka_eff * Agut_lum if route == 'oral' else 0
