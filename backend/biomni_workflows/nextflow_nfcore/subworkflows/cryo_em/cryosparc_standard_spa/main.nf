@@ -755,37 +755,33 @@ process SPLIT_PARTICLE_BATCHES_R2 {
     #!/usr/bin/env python3
     import json
     import csv
-    import os
-    from pathlib import Path
 
-    mock_mode = ${mock}
     batch_size = ${batch_size}
 
-    # Load merged particles
     particles_data = json.load(open('${all_particles_r1_json}'))
     particles = particles_data.get('particles', [])
+    job_uid   = particles_data.get("job_uid", "MOCK")
+    num_items = particles_data.get("num_items", len(particles))
+
+    # For real-mode data without an inline particles list, use num_items for batch sizing
+    if not particles and num_items > 0:
+        particles = [{'particle_idx': i} for i in range(min(num_items, batch_size * 10))]
 
     if not particles:
-        particles = [{'particle_idx': i} for i in range(100)]  # fallback for mock
+        particles = [{'particle_idx': i} for i in range(100)]  # final fallback
 
-    # Split into sub-batches
     batches = []
     for start in range(0, len(particles), batch_size):
         batches.append(particles[start:start + batch_size])
 
     # Embed job_uid + num_items directly in CSV (batch_id, job_uid, num_items).
-    # Do NOT write separate JSON files — Nextflow can only stage declared outputs.
-    job_uid   = particles_data.get("job_uid", "MOCK")
-    num_items = particles_data.get("num_items", len(particles))
-
     with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
         writer = csv.writer(manifest_f)
         for batch_idx, batch_particles in enumerate(batches):
             batch_id = f'pbatch_{batch_idx:04d}'
-            batch_num = len(batch_particles)
-            writer.writerow([batch_id, job_uid, batch_num])
+            writer.writerow([batch_id, job_uid, len(batch_particles)])
 
-    print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
+    print(f"Split {num_items} particles (job={job_uid}) into {len(batches)} sub-batches of <= ${batch_size}")
     """
 }
 
@@ -1101,14 +1097,20 @@ process MERGE_MICROGRAPHS {
     import glob
 
     all_micrographs = []
+    last_job_uid = None
     for cs_file in sorted(glob.glob('micrographs_ctf_batch_*.cs')):
         data = json.load(open(cs_file))
+        if data.get('cs_mode') == 'real' and data.get('job_uid'):
+            last_job_uid = data['job_uid']
         all_micrographs.extend(data.get('micrographs', []))
 
+    merged = {'micrographs': all_micrographs, 'merged': True}
+    if last_job_uid:
+        merged['job_uid'] = last_job_uid
     with open('all_micrographs_ctf.cs', 'w') as f:
-        json.dump({'micrographs': all_micrographs, 'merged': True}, f, indent=2)
+        json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_micrographs)} micrographs from all batches")
+    print(f"✓ Merged {len(all_micrographs)} micrographs (job_uid={last_job_uid}) from all batches")
     """
 }
 
@@ -1168,14 +1170,20 @@ process MERGE_CLASSES {
     import glob
 
     all_classes = []
+    last_job_uid = None
     for cs_file in sorted(glob.glob('class2d_*.cs')):
         data = json.load(open(cs_file))
+        if data.get('cs_mode') == 'real' and data.get('job_uid'):
+            last_job_uid = data['job_uid']
         all_classes.extend(data.get('classes', []))
 
+    merged = {'classes': all_classes, 'merged': True}
+    if last_job_uid:
+        merged['job_uid'] = last_job_uid
     with open('all_classes.cs', 'w') as f:
-        json.dump({'classes': all_classes, 'merged': True}, f, indent=2)
+        json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_classes)} classes from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}) from all sub-batches")
     """
 }
 
@@ -1236,14 +1244,20 @@ process MERGE_CLASSES_R2 {
     import glob
 
     all_classes = []
+    last_job_uid = None
     for cs_file in sorted(glob.glob('class2d_*.cs')):
         data = json.load(open(cs_file))
+        if data.get('cs_mode') == 'real' and data.get('job_uid'):
+            last_job_uid = data['job_uid']
         all_classes.extend(data.get('classes', []))
 
+    merged = {'classes': all_classes, 'merged': True}
+    if last_job_uid:
+        merged['job_uid'] = last_job_uid
     with open('all_classes.cs', 'w') as f:
-        json.dump({'classes': all_classes, 'merged': True}, f, indent=2)
+        json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_classes)} classes from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}) from all sub-batches")
     """
 }
 
@@ -1461,8 +1475,16 @@ process SELECT_2D_R1 {
         'num_good_classes': len(good_class_indices)
     }
 
+    # Preserve job_uid chain for downstream real-mode processes
+    out = {'particles': selected}
+    for key in ('job_uid', 'project_uid', 'workspace_uid', 'num_items', 'cs_mode'):
+        if particles_data.get(key):
+            out[key] = particles_data[key]
+    if out.get('num_items'):
+        out['num_items'] = len(selected)
+
     with open('particles_selected_r1.cs', 'w') as f:
-        json.dump({'particles': selected}, f, indent=2)
+        json.dump(out, f, indent=2)
 
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
@@ -1474,60 +1496,74 @@ process SELECT_2D_R1 {
 process TEMPLATE_PICKER {
     tag "template_pick"
     publishDir "${params.outdir}/11_template_picker", mode: 'copy'
+    container CS_IMAGE
 
     input:
-    path selected_cs
-    path denoised_mics_cs
+    path classes_cs
+    path merged_mics_cs
+    path cs_init_json
 
     output:
     path "particles_template.cs", emit: template_particles_cs
     path "template_pick_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
-    selected_data = json.load(open('${selected_cs}'))
-    mics_data = json.load(open('${denoised_mics_cs}'))
+    use_real    = ${real}
+    classes_data = json.load(open('${classes_cs}'))
+    mics_data    = json.load(open('${merged_mics_cs}'))
+    init         = json.load(open('${cs_init_json}'))
 
-    selected_particles = selected_data.get('particles', [])
-    micrographs = mics_data.get('micrographs', [])
+    class2d_job_uid = classes_data.get('job_uid', '')
+    ctf_job_uid     = mics_data.get('job_uid', '')
 
-    new_particles = []
-    particle_idx = len(selected_particles)
-
-    for mic in micrographs:
-        num_new = random.randint(200, 500)
-        for _ in range(num_new):
-            new_particles.append({
-                'particle_idx': particle_idx,
-                'micrograph_idx': mic['micrograph_idx'],
-                'x_coord': random.randint(100, 3900),
-                'y_coord': random.randint(100, 3900),
-                'pick_score': round(random.uniform(0.5, 1.0), 3),
-                'pick_method': 'template'
-            })
-            particle_idx += 1
-
-    report = {
-        'step': '11_template_picker',
-        'timestamp': datetime.now().isoformat(),
-        'num_new_particles': len(new_particles),
-        'num_micrographs': len(micrographs),
-        'avg_new_particles_per_micrograph': round(len(new_particles) / max(1, len(micrographs)), 1),
-        'num_templates_used': len(selected_particles)
-    }
+    if use_real and class2d_job_uid and ctf_job_uid:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "template_picker",
+            connections={
+                "templates":   (class2d_job_uid, "class_averages"),
+                "micrographs": (ctf_job_uid,     "micrographs_ctf"),
+            },
+            params={},
+            timeout=7200,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else 0
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles}
+        report = {"step": "11_template_picker", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "num_particles": num_particles, "real_mode": True}
+    else:
+        micrographs = mics_data.get('micrographs', [{"micrograph_idx": i} for i in range(10)])
+        new_particles = []
+        for i, mic in enumerate(micrographs):
+            for _ in range(random.randint(200, 500)):
+                new_particles.append({'particle_idx': len(new_particles),
+                                      'micrograph_idx': mic.get('micrograph_idx', i),
+                                      'pick_method': 'template'})
+        cs_data = {"cs_mode": "mock", "particles": new_particles,
+                   "num_items": len(new_particles)}
+        if ctf_job_uid:
+            cs_data["job_uid"] = ctf_job_uid  # pass through for fallback
+        report = {"step": "11_template_picker", "timestamp": datetime.now().isoformat(),
+                  "num_new_particles": len(new_particles), "mock_mode": True}
 
     with open('particles_template.cs', 'w') as f:
-        json.dump({'particles': new_particles}, f, indent=2)
-
+        json.dump(cs_data, f, indent=2)
     with open('template_pick_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ Template picking found {len(new_particles)} new particles")
+    print(f"✓ Template picking done (real={use_real})")
     """
 }
 
@@ -1570,46 +1606,72 @@ process INSPECT_PICKS_R2 {
 process EXTRACT_PARTICLES_R2 {
     tag "extract_r2"
     publishDir "${params.outdir}/13_extract_round2", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path inspected_r2_cs
+    path merged_mics_cs
+    path cs_init_json
 
     output:
     path "particles_extracted_r2.cs", emit: extracted_cs
     path "extract_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     def box_size = params.particle_box_size ?: estimate_box_size(
         params.particle_diameter_angstroms ?: estimate_particle_diameter(params.molecular_weight_kda) ?: 150,
         params.pixel_size
     )
     """
     #!/usr/bin/env python3
+    ${CS_HELPER}
     import json
     from datetime import datetime
 
-    particles_data = json.load(open('${inspected_r2_cs}'))
-    particles = particles_data.get('particles', [])
+    use_real       = ${real}
+    box_size       = ${box_size}
+    inspected_data = json.load(open('${inspected_r2_cs}'))
+    mics_data      = json.load(open('${merged_mics_cs}'))
+    init           = json.load(open('${cs_init_json}'))
 
-    extracted = [
-        {**p, 'box_size_pixels': ${box_size}, 'extracted': True}
-        for p in particles
-    ]
+    template_job_uid = inspected_data.get('job_uid', '')
+    ctf_job_uid      = mics_data.get('job_uid', '')
 
-    report = {
-        'step': '13_extract_particles_round2',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(extracted),
-        'box_size_pixels': ${box_size}
-    }
+    if use_real and template_job_uid and ctf_job_uid:
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "extract_micrographs_cpu_parallel",
+            connections={
+                "micrographs": (ctf_job_uid,      "micrographs_ctf"),
+                "particles":   (template_job_uid,  "particles"),
+            },
+            params={"box_size_pix": box_size},
+            timeout=7200,
+        )
+        particles_out = job.load_output("particles")
+        num_particles = len(particles_out) if particles_out is not None else 0
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "output_slot": "particles",
+                   "num_items": num_particles}
+        report = {"step": "13_extract_particles_round2", "timestamp": datetime.now().isoformat(),
+                  "real_mode": True, "num_particles": num_particles, "box_size_pix": box_size}
+    else:
+        num_particles = inspected_data.get('num_items', 0)
+        cs_data = {"cs_mode": "mock", "particles": [], "num_items": num_particles}
+        if template_job_uid:
+            cs_data["job_uid"] = template_job_uid
+        report = {"step": "13_extract_particles_round2", "timestamp": datetime.now().isoformat(),
+                  "mock_mode": True, "num_particles": num_particles, "box_size_pixels": box_size}
 
     with open('particles_extracted_r2.cs', 'w') as f:
-        json.dump({'particles': extracted}, f, indent=2)
-
+        json.dump(cs_data, f, indent=2)
     with open('extract_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ Extracted {len(extracted)} particles (round 2)")
+    print(f"✓ Extracted {num_particles} particles round2 (box={box_size}px, real={use_real})")
     """
 }
 
@@ -1648,8 +1710,16 @@ process SELECT_2D_R2 {
         'selection_ratio': round(len(selected) / max(1, len(all_particles)), 3)
     }
 
+    # Preserve job_uid chain for downstream real-mode processes (AB_INITIO, HOMO_REFINE)
+    out = {'particles': selected}
+    for key in ('job_uid', 'project_uid', 'workspace_uid', 'num_items', 'cs_mode'):
+        if particles_data.get(key):
+            out[key] = particles_data[key]
+    if out.get('num_items'):
+        out['num_items'] = len(selected)
+
     with open('particles_selected_r2.cs', 'w') as f:
-        json.dump({'particles': selected}, f, indent=2)
+        json.dump(out, f, indent=2)
 
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
@@ -2040,9 +2110,9 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Template picker (single — needs global 2D class templates) ───────────
 
-    TEMPLATE_PICKER(SELECT_2D_R1.out.selected_cs, denoised_ch.denoised_cs)
+    TEMPLATE_PICKER(merged_classes_r1.merged_cs, merged_mics_ch.merged_cs, init_json_ch)
     INSPECT_PICKS_R2(TEMPLATE_PICKER.out.template_particles_cs)
-    EXTRACT_PARTICLES_R2(INSPECT_PICKS_R2.out.inspected_cs)
+    EXTRACT_PARTICLES_R2(INSPECT_PICKS_R2.out.inspected_cs, merged_mics_ch.merged_cs, init_json_ch)
 
     // ── Phase C-R2: 2D classification R2 — parallel particle sub-batches ─────
 
