@@ -444,6 +444,15 @@ interface PhaseGroup {
   phaseParams: string[];
 }
 
+/** Returns true when an autoloop phase key (e.g. "phase_A", "phase_1_docking") matches a group key (e.g. "A", "1"). */
+function autoloopPhaseMatches(groupKey: string, autoloopPhase: string | undefined): boolean {
+  if (!autoloopPhase) return false;
+  if (groupKey === 'all') return true; // single-group workflow: always show
+  const norm = autoloopPhase.toLowerCase().replace(/^phase_/, '');
+  const key = groupKey.toLowerCase();
+  return norm === key || norm.startsWith(key + '_') || key.startsWith(norm + '_');
+}
+
 function PhaseGroupSection({
   group,
   renderedParameters,
@@ -458,6 +467,10 @@ function PhaseGroupSection({
   isPrereqBlocked,
   isAutofixActive,
   isGlobalExecutionActive,
+  autoLoopPanelState,
+  autoloopEnabled,
+  onToggleAutoloop,
+  onDismissAutoloop,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -472,6 +485,10 @@ function PhaseGroupSection({
   isPrereqBlocked: boolean;
   isAutofixActive: boolean;
   isGlobalExecutionActive: boolean;
+  autoLoopPanelState?: AutoLoopPanelState;
+  autoloopEnabled: boolean;
+  onToggleAutoloop: () => void;
+  onDismissAutoloop: () => void;
 }) {
   const [paramsOpen, setParamsOpen] = useState(false);
   const { steps, label, phaseParams } = group;
@@ -597,6 +614,34 @@ function PhaseGroupSection({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Per-phase auto-loop toggle */}
+      <div className="border-t border-border/30 px-3 py-1.5 flex items-center gap-2">
+        <Switch
+          id={`autoloop-toggle-${group.key}`}
+          checked={autoloopEnabled}
+          onCheckedChange={onToggleAutoloop}
+          className="scale-75 origin-left"
+          data-testid={`autoloop-toggle-${group.key}`}
+        />
+        <Label
+          htmlFor={`autoloop-toggle-${group.key}`}
+          className="text-[11px] text-muted-foreground cursor-pointer select-none"
+        >
+          Auto-loop QC
+        </Label>
+      </div>
+
+      {/* Inline AutoLoopPanel — rendered when this phase's QC results arrive */}
+      {autoloopEnabled && autoLoopPanelState?.gateResults &&
+        autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase) && (
+        <div className="border-t border-border/30 p-2">
+          <AutoLoopPanel
+            state={autoLoopPanelState}
+            onDismiss={onDismissAutoloop}
+          />
         </div>
       )}
     </div>
@@ -778,6 +823,8 @@ export function NextflowWorkflowViewer({
     remediations: [],
     complete: null,
   });
+  // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
+  const [autoloopMap, setAutoloopMap] = useState<Record<string, boolean>>({});
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   // Billing usage meter
@@ -1677,15 +1724,7 @@ export function NextflowWorkflowViewer({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Auto-Loop QC Panel — appears inline within the workflow card when backend emits autoloop_* SSE events */}
-          {autoLoopPanel.gateResults && (
-            <div className="mb-4">
-              <AutoLoopPanel
-                state={autoLoopPanel}
-                onDismiss={() => setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })}
-              />
-            </div>
-          )}
+          {/* Auto-Loop QC panels are now rendered inline under each phase — see PhaseGroupSection below */}
 
           {/* Completion banner — shown when workflow reaches terminal success state */}
           {status === 'completed' && (
@@ -2467,6 +2506,19 @@ export function NextflowWorkflowViewer({
                     isPrereqBlocked={isPrereqBlocked}
                     isAutofixActive={isAutofixActive}
                     isGlobalExecutionActive={isGlobalExecutionActive}
+                    autoLoopPanelState={
+                      autoLoopPanel.gateResults &&
+                      autoloopPhaseMatches(group.key, autoLoopPanel.gateResults.phase)
+                        ? autoLoopPanel
+                        : undefined
+                    }
+                    autoloopEnabled={autoloopMap[group.key] !== false}
+                    onToggleAutoloop={() =>
+                      setAutoloopMap(prev => ({ ...prev, [group.key]: prev[group.key] === false ? true : false }))
+                    }
+                    onDismissAutoloop={() =>
+                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
+                    }
                   />
                 ))}
                 <button
