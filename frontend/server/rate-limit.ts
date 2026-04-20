@@ -21,7 +21,7 @@ function isE2EBypass(req: Request): boolean {
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per window
-  skip: isE2EBypass,
+  skip: (req) => isE2EBypass(req) || process.env.NODE_ENV !== 'production',
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
