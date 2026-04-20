@@ -710,14 +710,17 @@ process SPLIT_PARTICLE_BATCHES {
     for start in range(0, len(particles), batch_size):
         batches.append(particles[start:start + batch_size])
 
+    # Embed job_uid + num_items directly in CSV (batch_id, job_uid, num_items).
+    # Do NOT write separate JSON files — Nextflow can only stage declared outputs.
+    job_uid   = particles_data.get("job_uid", "MOCK")
+    num_items = particles_data.get("num_items", len(particles))
+
     with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
         writer = csv.writer(manifest_f)
         for batch_idx, batch_particles in enumerate(batches):
             batch_id = f'pbatch_{batch_idx:04d}'
-            list_file = f'{batch_id}_particles.json'
-            with open(list_file, 'w') as lf:
-                json.dump({'particles': batch_particles, 'batch_id': batch_id}, lf)
-            writer.writerow([batch_id, os.path.abspath(list_file)])
+            batch_num = len(batch_particles)
+            writer.writerow([batch_id, job_uid, batch_num])
 
     print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
     """
@@ -758,14 +761,17 @@ process SPLIT_PARTICLE_BATCHES_R2 {
     for start in range(0, len(particles), batch_size):
         batches.append(particles[start:start + batch_size])
 
+    # Embed job_uid + num_items directly in CSV (batch_id, job_uid, num_items).
+    # Do NOT write separate JSON files — Nextflow can only stage declared outputs.
+    job_uid   = particles_data.get("job_uid", "MOCK")
+    num_items = particles_data.get("num_items", len(particles))
+
     with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
         writer = csv.writer(manifest_f)
         for batch_idx, batch_particles in enumerate(batches):
             batch_id = f'pbatch_{batch_idx:04d}'
-            list_file = f'{batch_id}_particles.json'
-            with open(list_file, 'w') as lf:
-                json.dump({'particles': batch_particles, 'batch_id': batch_id}, lf)
-            writer.writerow([batch_id, os.path.abspath(list_file)])
+            batch_num = len(batch_particles)
+            writer.writerow([batch_id, job_uid, batch_num])
 
     print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
     """
@@ -777,7 +783,7 @@ process CLASSIFY_2D_R1_BATCH {
     container CS_IMAGE
 
     input:
-    tuple val(batch_id), path(particles_json)
+    tuple val(batch_id), val(src_job_uid), val(src_num_items)
     path cs_init_json
 
     output:
@@ -794,10 +800,11 @@ process CLASSIFY_2D_R1_BATCH {
     import json, random
     from datetime import datetime
 
-    batch_id = '${batch_id}'
+    batch_id    = '${batch_id}'
+    src_job_uid = '${src_job_uid}'
+    src_n       = int('${src_num_items}')
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
-    prev      = json.load(open("${particles_json}"))
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -805,12 +812,12 @@ process CLASSIFY_2D_R1_BATCH {
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
-            connections={"particles": (prev["job_uid"], "particles")},
+            connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 50},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
-        num_particles = len(particles_out) if particles_out is not None else prev.get("num_items", 0)
+        num_particles = len(particles_out) if particles_out is not None else src_n
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "particles",
@@ -820,7 +827,7 @@ process CLASSIFY_2D_R1_BATCH {
                    "cs_job_uid": job.uid, "num_particles": num_particles,
                    "num_classes": 50, "real_mode": True}
     else:
-        num_particles = prev.get("num_items", 1000)
+        num_particles = src_n or 1000
         num_classes   = ${num_classes}
         classes = [{"class_idx": i,
                     "num_particles": random.randint(50, max(51, num_particles // num_classes * 2)),
@@ -849,7 +856,7 @@ process CLASSIFY_2D_R2_BATCH {
     container CS_IMAGE
 
     input:
-    tuple val(batch_id), path(particles_json)
+    tuple val(batch_id), val(src_job_uid), val(src_num_items)
     path cs_init_json
 
     output:
@@ -866,10 +873,11 @@ process CLASSIFY_2D_R2_BATCH {
     import json, random
     from datetime import datetime
 
-    batch_id = '${batch_id}'
+    batch_id    = '${batch_id}'
+    src_job_uid = '${src_job_uid}'
+    src_n       = int('${src_num_items}')
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
-    prev      = json.load(open("${particles_json}"))
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -877,12 +885,12 @@ process CLASSIFY_2D_R2_BATCH {
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
-            connections={"particles": (prev["job_uid"], "particles")},
+            connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 100},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
-        num_particles = len(particles_out) if particles_out is not None else prev.get("num_items", 0)
+        num_particles = len(particles_out) if particles_out is not None else src_n
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "particles",
@@ -892,7 +900,7 @@ process CLASSIFY_2D_R2_BATCH {
                    "cs_job_uid": job.uid, "num_particles": num_particles,
                    "num_classes": 100, "real_mode": True}
     else:
-        num_particles = prev.get("num_items", 1000)
+        num_particles = src_n or 1000
         num_classes   = ${num_classes}
         classes = [{"class_idx": i,
                     "num_particles": random.randint(100, max(101, num_particles // num_classes * 2)),
@@ -1982,7 +1990,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     particle_batches_ch = SPLIT_PARTICLE_BATCHES(merged_r1.merged_cs)
         .splitCsv(header: false)
-        .map { row -> tuple(row[0], file(row[1])) }
+        .map { row -> tuple(row[0], row[1], row[2].toInteger()) }
 
     CLASSIFY_2D_R1_BATCH(particle_batches_ch, init_json_ch)
     classes_r1_ch  = CLASSIFY_2D_R1_BATCH.out.classes_cs
@@ -2001,7 +2009,7 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     particle_batches_r2_ch = SPLIT_PARTICLE_BATCHES_R2(EXTRACT_PARTICLES_R2.out.extracted_cs)
         .splitCsv(header: false)
-        .map { row -> tuple(row[0], file(row[1])) }
+        .map { row -> tuple(row[0], row[1], row[2].toInteger()) }
 
     CLASSIFY_2D_R2_BATCH(particle_batches_r2_ch, init_json_ch)
     classes_r2_ch  = CLASSIFY_2D_R2_BATCH.out.classes_cs
