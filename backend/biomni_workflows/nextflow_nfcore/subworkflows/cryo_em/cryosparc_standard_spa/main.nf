@@ -358,7 +358,8 @@ process SPLIT_INTO_BATCHES {
     init = json.load(open("${cs_init_json}"))
     num_movies = init.get("num_movies", batch_size)
 
-    # Create index-range batches (CryoSPARC addresses movies by index in the imported set)
+    # Embed start/end directly in CSV (columns: batch_id, start, end).
+    # Do NOT write separate range files — Nextflow can only stage declared outputs.
     batches = []
     for start in range(0, max(num_movies, 1), batch_size):
         end = min(start + batch_size, num_movies)
@@ -368,10 +369,7 @@ process SPLIT_INTO_BATCHES {
         writer = csv.writer(f)
         for idx, (start, end) in enumerate(batches):
             batch_id = f"batch_{idx:04d}"
-            list_file = f"{batch_id}_range.txt"
-            with open(list_file, "w") as lf:
-                lf.write(f"{start}\\t{end}\\n")
-            writer.writerow([batch_id, list_file])
+            writer.writerow([batch_id, start, end])
 
     print(f"Split {num_movies} movies into {len(batches)} batches of <={batch_size}")
     """
@@ -383,7 +381,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
     container CS_IMAGE
 
     input:
-    tuple val(batch_id), path(batch_file)
+    tuple val(batch_id), val(batch_start), val(batch_end)
     path cs_init_json
 
     output:
@@ -1915,10 +1913,10 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
-    // Split movie directory into batches; emit one CSV row per batch
+    // Split movie directory into batches; emit one CSV row per batch (batch_id, start, end)
     batches_ch = SPLIT_INTO_BATCHES(init_json_ch)
         .splitCsv(header: false)
-        .map { row -> tuple(row[0], file(row[1])) }   // (batch_id, batch_list_file)
+        .map { row -> tuple(row[0], row[1].toInteger(), row[2].toInteger()) }
 
     // Parallel motion correction — one job per batch
     PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
