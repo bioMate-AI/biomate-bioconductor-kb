@@ -217,20 +217,11 @@ def CS_HELPER = '''
         try:
             # cryosparc-tools v5: workers are accessed via cs.get_workers() or
             # the lanes API — try both and pick whichever works.
-            workers = None
-            for method in ("get_workers", "get_lane_workers"):
-                fn = getattr(cs, method, None)
-                if fn:
-                    try:
-                        workers = fn()
-                        break
-                    except Exception:
-                        pass
-            if workers is None:
-                # Fallback: query via lanes dict
-                lanes = cs.api.lanes.get_all() if hasattr(cs.api, "lanes") else []
-                workers = [w for lane_obj in lanes for w in getattr(lane_obj, "workers", [])]
-            total = sum(int(getattr(w, "gpu_count", 0) or len(getattr(w, "gpus", []) or [])) for w in (workers or []))
+            # cryosparc-tools v5 exposes cs.get_targets() → list of target dicts
+            targets = cs.get_targets() if hasattr(cs, "get_targets") else []
+            total = sum(int(t.get("gpu_count", 0) or len(t.get("gpus", []) or [])) if isinstance(t, dict)
+                        else int(getattr(t, "gpu_count", 0) or len(getattr(t, "gpus", []) or []))
+                        for t in targets)
             if total > 0:
                 count = total
         except Exception as e:
