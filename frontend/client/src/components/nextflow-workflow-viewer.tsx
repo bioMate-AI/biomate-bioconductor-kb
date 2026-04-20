@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
+import { stripAnsi } from "@/lib/utils";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -2030,7 +2031,7 @@ export function NextflowWorkflowViewer({
                         </button>
                         {validateLogOpen && (
                           <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
-                            {validateLog.join('\n')}
+                            {validateLog.map(stripAnsi).join('\n')}
                           </pre>
                         )}
                       </div>
@@ -2574,7 +2575,7 @@ export function NextflowWorkflowViewer({
                     ? <span className="text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />Waiting for logs...</span>
                     : <span className="text-muted-foreground">No logs available.</span>
                 ) : logs.map((log, i) => (
-                  <div key={i}>{log}</div>
+                  <div key={i}>{stripAnsi(log)}</div>
                 ))}
               </div>
               {status === 'running' && logs.length === 0 && (

@@ -23,7 +23,7 @@ import {
   AlertTriangle,
   CheckCircle,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, stripAnsi } from "@/lib/utils"
 
 interface LogEntry {
   timestamp: string;
@@ -77,7 +77,7 @@ export function JobLogViewer({
     return {
       timestamp: new Date().toISOString(),
       level,
-      message: rawLog,
+      message: stripAnsi(rawLog),
       source,
     };
   };

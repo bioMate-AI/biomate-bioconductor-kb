@@ -204,6 +204,13 @@ _ACCESSION_REGISTRY: list[dict] = [
 ]
 
 
+_ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences (colors, cursor movement) from terminal output."""
+    return _ANSI_ESCAPE_RE.sub('', text)
+
+
 def _classify_accession(value: str) -> Optional[Dict[str, str]]:
     """
     Return accession metadata if *value* is a recognised public-database accession,
@@ -2645,7 +2652,7 @@ def get_nextflow_status(
                 with open(log_path_fallback) as fh:
                     log_full_text = fh.read()
                 lines = log_full_text.splitlines()
-                log_tail_fallback = [l.rstrip() for l in lines[-20:]]
+                log_tail_fallback = [_strip_ansi(l).rstrip() for l in lines[-20:]]
             except Exception:
                 pass
         if output_dir.exists():
@@ -2816,7 +2823,7 @@ def get_nextflow_status(
         try:
             with open(log_path) as fh:
                 lines = fh.readlines()
-            log_tail = [l.rstrip() for l in lines[-20:]]
+            log_tail = [_strip_ansi(l).rstrip() for l in lines[-20:]]
         except Exception:
             pass
 
@@ -4646,7 +4653,7 @@ def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]
         )
         duration = round(_time.time() - start, 1)
         combined_output = (proc.stdout or "") + (proc.stderr or "")
-        log_lines = combined_output.splitlines()[-20:]
+        log_lines = [_strip_ansi(l) for l in combined_output.splitlines()[-20:]]
 
         if proc.returncode == 0:
             status = "pass"

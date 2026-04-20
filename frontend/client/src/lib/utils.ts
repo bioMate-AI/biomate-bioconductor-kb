@@ -6,6 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Strip ANSI escape sequences from terminal output before displaying in the UI.
+ * Handles cursor movement, color codes, and erase sequences emitted by tools
+ * like Nextflow, AutoDock Vina, and progress bars.
+ */
+export function stripAnsi(str: string): string {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+}
+
+/**
  * Extract a simple, user-friendly name from a Galaxy tool_id
  *
  * Handles multiple tool ID formats:

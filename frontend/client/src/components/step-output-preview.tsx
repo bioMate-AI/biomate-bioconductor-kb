@@ -19,7 +19,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
 
 // ---------------------------------------------------------------------------
@@ -309,9 +309,10 @@ function InlineAnnotationViewer({ text, ext }: { text: string; ext: string }) {
 // ---------------------------------------------------------------------------
 
 function InlineTextViewer({ text }: { text: string }) {
-  const lines = text.split('\n');
+  const cleanText = stripAnsi(text);
+  const lines = cleanText.split('\n');
   const [showTail, setShowTail] = useState(lines.length > 50);
-  const displayed = showTail ? lines.slice(-80).join('\n') : text;
+  const displayed = showTail ? lines.slice(-80).join('\n') : cleanText;
   return (
     <div>
       {lines.length > 50 && (
@@ -478,13 +479,15 @@ function ViewerContent({
     case 'annotation':
       return content.text != null ? <InlineAnnotationViewer text={content.text} ext={ext} /> : null;
 
-    case 'structure':
+    case 'structure': {
       // PDB/mmCIF: text fallback — full 3D viewer (NGL) is future work
-      return content.text != null ? (
+      const cleanStructure = content.text != null ? stripAnsi(content.text) : null;
+      return cleanStructure != null ? (
         <pre className="text-xs font-mono bg-muted p-2 rounded max-h-64 overflow-auto whitespace-pre-wrap">
-          {content.text.slice(0, 4000)}{content.text.length > 4000 ? '\n…' : ''}
+          {cleanStructure.slice(0, 4000)}{cleanStructure.length > 4000 ? '\n…' : ''}
         </pre>
       ) : null;
+    }
 
     case 'text':
       return content.text != null ? <InlineTextViewer text={content.text} /> : null;
