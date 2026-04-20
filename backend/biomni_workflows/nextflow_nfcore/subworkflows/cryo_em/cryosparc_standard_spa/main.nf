@@ -280,20 +280,9 @@ process INIT_CRYOSPARC_PROJECT {
     ws_uid   = cs_create_workspace(cs, proj_uid, "W1")
     print(f"[CS] Project={proj_uid}  Workspace={ws_uid}", flush=True)
 
-    # Resolve movies_path to a glob pattern (CryoSPARC requires explicit glob)
-    import os as _os, glob as _glob
-    movies_path_raw = "${movies_path}".rstrip("/")
-    if _os.path.isdir(movies_path_raw):
-        # Directory — find the predominant extension and make a glob
-        exts = {}
-        for f in _os.listdir(movies_path_raw):
-            e = _os.path.splitext(f)[1].lower()
-            if e in (".mrcs", ".mrc", ".tiff", ".tif", ".eer"):
-                exts[e] = exts.get(e, 0) + 1
-        best_ext = max(exts, key=exts.get) if exts else ".mrcs"
-        blob_paths = movies_path_raw + "/*" + best_ext
-    else:
-        blob_paths = movies_path_raw  # already a glob or single file
+    # blob_paths is already a glob — executor appends /*.mrcs for local paths,
+    # _stage_s3_movies_on_cryosparc() appends /*.<ext> for S3 paths.
+    blob_paths = "${movies_path}"
 
     # Import movies
     import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
@@ -794,7 +783,7 @@ process CLASSIFY_2D_R1_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"num_classes": 50, "num_gpu": ${params.num_gpu}},
+            params={"class2D_K": 50, "compute_num_gpus": ${params.num_gpu}},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
@@ -866,7 +855,7 @@ process CLASSIFY_2D_R2_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"num_classes": 100, "num_gpu": ${params.num_gpu}},
+            params={"class2D_K": 100, "compute_num_gpus": ${params.num_gpu}},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
@@ -936,7 +925,7 @@ process AB_INITIO_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "homo_abinit",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"abinit_K": 1, "symmetry": "${params.symmetry}", "num_gpu": ${params.num_gpu}},
+            params={"abinit_K": 1, "abinit_symmetry": "${params.symmetry}"},
             timeout=14400,
         )
         volume_out = job.load_output("volume")
@@ -1010,7 +999,7 @@ process HOMO_REFINEMENT_BATCH {
                 "particles": (par_data["job_uid"], "particles"),
                 "volume":    (vol_data["job_uid"], "volume"),
             },
-            params={"symmetry": "${params.symmetry}", "num_gpu": ${params.num_gpu}},
+            params={"refine_symmetry": "${params.symmetry}"},
             timeout=21600,
         )
         num_particles = par_data.get("num_items", 0)

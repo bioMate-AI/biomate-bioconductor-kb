@@ -4058,6 +4058,14 @@ def execute_cryosparc(
         )
         log.info("[CryoSPARC] movies staged to local: %s", movies_path_raw)
 
+    # For local paths (on CryoSPARC EC2): append glob if not already present.
+    # Batch containers in us-west-2 cannot check isdir on the CryoSPARC EC2
+    # filesystem (us-east-1), so glob must be resolved here on the backend server.
+    if movies_path_raw and not movies_path_raw.startswith("s3://") and \
+            not any(c in movies_path_raw for c in ("*", "?", "[")):
+        movies_path_raw = movies_path_raw.rstrip("/") + "/*.mrcs"
+        log.info("[CryoSPARC] Appended glob pattern to local movies path: %s", movies_path_raw)
+
     # ── Step 3: build params for NF execute_nextflow call ───────────────────
     spa_params: Dict[str, Any] = {
         "movie_dir":              movies_path_raw,
@@ -4087,15 +4095,16 @@ def execute_cryosparc(
         "pixel_size":                  spa_params["pixel_size"],
         "voltage":                     spa_params["voltage"],
         "spherical_aberration":        spa_params["cs"],
+        "total_dose":                  float(params.get("total_dose", params.get("total_dose_e_per_A2", 50.0))),
         "particle_diameter_angstroms": spa_params["particle_diameter"],
         "symmetry":                    spa_params["symmetry"],
         "num_ab_initio_classes":       spa_params["num_ab_initio_classes"],
+        "use_cryosparc":               True,
         # CryoSPARC connection — live instance IP provisioned above
         "cryosparc_host":     cs_exec.CRYOSPARC_HOST,
         "cryosparc_port":     int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
         "cryosparc_email":    os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
-        "cryosparc_password": os.environ.get("CRYOSPARC_PASSWORD", ""),
-        "cryosparc_license":  license_key or os.environ.get("CRYOSPARC_LICENSE_ID", ""),
+        "cryosparc_license":  license_key,
         # Parallelism
         "max_parallel_jobs":      max_parallel,
         "micrograph_batch_size":  batch_size,
