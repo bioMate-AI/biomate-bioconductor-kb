@@ -407,14 +407,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
     def dose_weight = params.motion_correction_dose_weighting ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import time
-    from datetime import datetime
-    from pathlib import Path
-
     ${CS_HELPER}
-    import json, random, time
+    import json, random
     from datetime import datetime
     from pathlib import Path
 
@@ -426,23 +420,17 @@ process PATCH_MOTION_CORRECTION_BATCH {
         cs = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
                         ${params.cryosparc_port}, "${params.cryosparc_email}",
                         "${params.cryosparc_password}")
-        range_line = Path("${batch_file}").read_text().strip().split()
-        movie_start, movie_end = int(range_line[0]), int(range_line[1])
         job = submit_and_wait(cs,
             init["project_uid"], init["workspace_uid"],
             "patch_motion_correction_multi",
             connections={"movies": (init["import_job_uid"], "imported_movies")},
             params={
-                "movie_start_idx":       movie_start,
-                "movie_end_idx":         movie_end,
-                "dose_per_frame_e_A2":   0,
-                "use_dose_weighting":    ${dose_weight},
-                "num_gpu":               ${params.num_gpu},
+                "compute_num_gpus": ${params.num_gpu},
             },
             timeout=14400,
         )
         micrographs_out = job.load_output("micrographs")
-        num_mics = len(micrographs_out) if micrographs_out is not None else (movie_end - movie_start)
+        num_mics = len(micrographs_out) if micrographs_out is not None else init.get("num_movies", 0)
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "micrographs",
@@ -502,7 +490,10 @@ process PATCH_CTF_ESTIMATION_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "patch_ctf_estimation_multi",
             connections={"micrographs": (prev["job_uid"], "micrographs")},
-            params={"num_gpu": ${params.num_gpu}},
+            params={
+                "amp_contrast":     0.1,
+                "compute_num_gpus": ${params.num_gpu},
+            },
             timeout=7200,
         )
         num_mics = prev.get("num_items", 0)
@@ -528,8 +519,6 @@ process PATCH_CTF_ESTIMATION_BATCH {
     with open(f"ctf_report_${batch_id}.json", "w") as f:
         json.dump(report, f, indent=2)
     print(f"✓ [{batch_id}] CTF done (real={use_real})")
-    if use_phase_plate and phase_shifts:
-        print(f"  Volta Phase Plate: avg phase shift = {report['avg_phase_shift_rad']:.3f} rad")
     """
 }
 
@@ -567,7 +556,7 @@ process BLOB_PICKER_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "blob_picker_gpu",
             connections={"micrographs": (prev["job_uid"], "micrographs_ctf")},
-            params={"diameter": ${diameter}, "num_gpu": ${params.num_gpu}},
+            params={"diameter": ${diameter}, "compute_num_gpus": ${params.num_gpu}},
             timeout=7200,
         )
         particles_out = job.load_output("particles")

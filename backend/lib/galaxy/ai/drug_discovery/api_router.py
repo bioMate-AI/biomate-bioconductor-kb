@@ -426,18 +426,23 @@ async def propose_next_round(
         )
 
     try:
-        # Reconstruct training dataset from current ranked compounds
-        smiles_list  = [r["smiles"] for r in ranked if r.get("smiles")]
-        # Use composite score as surrogate training signal (normalised 0–1)
-        scores_list  = [min(1.0, max(0.0, r.get("composite_score", 0.5))) for r in ranked]
-        objectives   = ["composite_score"]
+        import numpy as np
+        from .bayesian_optimizer import CampaignDataset
 
-        opt = BayesianOptimizer(objectives=objectives)
-        opt.fit(
-            compound_ids=[r.get("compound_id", f"c{i}") for i, r in enumerate(ranked)],
+        smiles_list = [r["smiles"] for r in ranked if r.get("smiles")]
+        scores_list = [min(1.0, max(0.0, r.get("composite_score", 0.5))) for r in ranked]
+        compound_ids = [r.get("compound_id", f"c{i}") for i, r in enumerate(ranked)]
+
+        opt = BayesianOptimizer(campaign_id=campaign_id, db_path=_campaign_db(campaign_id))
+        features = opt._featurise(smiles_list)
+        dataset = CampaignDataset(
+            compound_ids=compound_ids,
             smiles_list=smiles_list,
-            objective_scores={objectives[0]: scores_list},
+            features=features,
+            objectives={"composite_score": np.array(scores_list)},
+            objective_directions={"composite_score": "maximize"},
         )
+        opt.fit(dataset)
         proposal = opt.propose_next_round(
             virtual_library_smiles=body.virtual_library_smiles,
             n_propose=body.n_propose,
@@ -602,6 +607,268 @@ async def get_model_validation(
         raise HTTPException(status_code=500, detail=str(exc))
 
     return report.dict()
+
+
+# ---------------------------------------------------------------------------
+# Phase 3a — Auto-retrain: virtual library cache + latest proposal
+# ---------------------------------------------------------------------------
+
+@router.post("/{campaign_id}/virtual-library")
+async def save_virtual_library(
+    campaign_id: str,
+    body: ProposeRequest,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Cache a virtual library for the auto-retrain loop.
+
+    The background auto-retrain daemon will re-score this library whenever
+    new assay data is ingested, without requiring a manual /propose call.
+
+    Body: same as /propose (virtual_library_smiles, n_propose, diversity_weight)
+    """
+    try:
+        from .auto_retrain import save_virtual_library as _save_vl
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    if not body.virtual_library_smiles:
+        raise HTTPException(status_code=400, detail="virtual_library_smiles must not be empty")
+
+    try:
+        _save_vl(
+            _campaign_db(campaign_id),
+            campaign_id,
+            body.virtual_library_smiles,
+            body.n_propose,
+            body.diversity_weight,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "campaign_id": campaign_id,
+        "status": "cached",
+        "n_smiles": len(body.virtual_library_smiles),
+        "n_propose": body.n_propose,
+    }
+
+
+@router.get("/{campaign_id}/auto-proposal")
+async def get_auto_proposal(campaign_id: str, limit: int = Query(1, ge=1, le=50)):
+    """
+    Return the latest auto-retrain proposal(s) for a campaign.
+
+    The auto-retrain background loop generates proposals automatically when
+    new assay data is detected.  This endpoint retrieves the most recent result.
+    """
+    try:
+        from .auto_retrain import list_auto_proposals, is_loop_running
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        proposals = list_auto_proposals(_campaign_db(campaign_id), campaign_id, limit=limit)
+        running = is_loop_running(campaign_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "campaign_id": campaign_id,
+        "loop_running": running,
+        "proposals": [
+            {
+                "id": p.id,
+                "round_number": p.round_number,
+                "n_proposed": len(p.proposed_smiles),
+                "proposed_smiles": p.proposed_smiles,
+                "scores": p.scores,
+                "confidence_intervals": p.confidence_intervals,
+                "ad_statuses": p.ad_statuses,
+                "triggered_by": p.triggered_by,
+                "created_at": p.created_at,
+            }
+            for p in proposals
+        ],
+    }
+
+
+@router.post("/{campaign_id}/retrain")
+async def trigger_retrain(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Manually trigger a GP refit + proposal round for the campaign.
+
+    Uses the cached virtual library.  Returns the new proposal immediately.
+    Also starts the background auto-retrain loop for this campaign if not
+    already running.
+    """
+    try:
+        from .auto_retrain import refit_and_propose, start_background_loop
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    db_path = _campaign_db(campaign_id)
+
+    try:
+        proposal = refit_and_propose(db_path, campaign_id, triggered_by="manual")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if proposal is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Retrain failed: ensure assay data and a cached virtual library exist. "
+                   "Call POST /{campaign_id}/virtual-library first.",
+        )
+
+    # Start background loop (idempotent)
+    start_background_loop(db_path, campaign_id)
+
+    return {
+        "campaign_id": campaign_id,
+        "proposal_id": proposal.id,
+        "round_number": proposal.round_number,
+        "n_proposed": len(proposal.proposed_smiles),
+        "proposed_smiles": proposal.proposed_smiles,
+        "scores": proposal.scores,
+        "confidence_intervals": proposal.confidence_intervals,
+        "ad_statuses": proposal.ad_statuses,
+        "created_at": proposal.created_at,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Phase 3b — IND section assembly
+# ---------------------------------------------------------------------------
+
+class INDAssemblyRequest(BaseModel):
+    molecule_name: str = "Investigational Compound"
+    sponsor: str = "Sponsor"
+    indication: str = "Investigational indication"
+    target_name: str = "Investigational target"
+
+
+@router.post("/{campaign_id}/ind-assembly")
+async def assemble_ind_section(
+    campaign_id: str,
+    body: INDAssemblyRequest,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Generate ICH M4 CTD Section 2.6.1 (Nonclinical Overview — Pharmacology).
+
+    Combines:
+      - PBPK model validation metrics (EMA-citable)
+      - ADMET screening results from campaign data
+      - Bayesian optimizer compound prioritization
+      - Applicability domain assessment
+      - 21 CFR Part 11 audit trail summary
+
+    Returns paths to the generated Markdown and (if pandoc is installed) DOCX.
+    """
+    try:
+        from .ind_assembly import INDSectionAssembler
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    import tempfile
+    output_dir = tempfile.mkdtemp(prefix=f"biomate_ind_{campaign_id}_")
+
+    try:
+        assembler = INDSectionAssembler(_campaign_db(campaign_id))
+        result = assembler.assemble(
+            campaign_id=campaign_id,
+            output_dir=output_dir,
+            molecule_name=body.molecule_name,
+            sponsor=body.sponsor,
+            indication=body.indication,
+            target_name=body.target_name,
+        )
+    except Exception as exc:
+        log.exception("IND assembly failed for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    # Read Markdown content to return inline
+    markdown_content = Path(result.markdown_path).read_text(encoding="utf-8")
+
+    return {
+        "campaign_id": campaign_id,
+        "sections": result.sections,
+        "pandoc_available": result.pandoc_available,
+        "docx_generated": result.docx_path is not None,
+        "generated_at": result.generated_at,
+        "warnings": result.warnings,
+        "markdown_preview": markdown_content[:2000],
+        "markdown_path": result.markdown_path,
+        "docx_path": result.docx_path,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 — Audit log query endpoint
+# ---------------------------------------------------------------------------
+
+@router.get("/audit")
+async def query_audit_log(
+    campaign_id: Optional[str] = Query(None),
+    user_id: Optional[str] = Query(None),
+    action: Optional[str] = Query(None),
+    since_utc: Optional[str] = Query(None, description="ISO 8601 UTC datetime"),
+    limit: int = Query(100, ge=1, le=1000),
+    verify: bool = Query(False, description="Run chain integrity verification"),
+):
+    """
+    Query the 21 CFR Part 11 audit log.
+
+    All parameters are optional filters.  Returns matching records oldest-first.
+    Set verify=true to include hash chain integrity status (slower for large logs).
+    """
+    try:
+        from ..compliance.audit_store import AuditStore
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        store = AuditStore()
+        records = store.get_records(
+            resource_id=campaign_id,
+            user_id=user_id,
+            action=action,
+            since_utc=since_utc,
+            limit=limit,
+        )
+        chain_result = store.verify_chain() if verify else None
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    response = {
+        "total_returned": len(records),
+        "records": [
+            {
+                "id": r.id,
+                "timestamp_utc": r.timestamp_utc,
+                "user_id": r.user_id,
+                "action": r.action,
+                "resource_type": r.resource_type,
+                "resource_id": r.resource_id,
+                "payload_hash": r.payload_hash,
+                "details": r.details,
+                "record_hash": r.record_hash,
+            }
+            for r in records
+        ],
+    }
+    if chain_result is not None:
+        response["chain_verification"] = {
+            "valid": chain_result.valid,
+            "total_records": chain_result.total_records,
+            "first_tampered_id": chain_result.first_tampered_id,
+            "error": chain_result.error,
+        }
+    return response
 
 
 # ---------------------------------------------------------------------------
