@@ -3816,9 +3816,11 @@ Extract every real number from the output data. A reviewer should be able to ver
 
         const Anthropic = (await import('@anthropic-ai/sdk')).default;
         const client = new Anthropic({ apiKey });
+        // Use Haiku for fast generation (Sonnet exceeds E2E test timeouts).
+        // Haiku produces a concise but complete methods section in ~10s vs Sonnet's 60-90s.
         const completion = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2048,
           system: SYSTEM,
           messages: [{ role: 'user', content: USER }],
         });
