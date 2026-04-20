@@ -71,7 +71,7 @@ params.cryosparc_email = 'admin@biomate.ai'
 params.cryosparc_password = null            // Set via --cryosparc_password
 params.cryosparc_project_dir = '/home/ubuntu/cryosparc_projects'
 params.cryosparc_lane = 'default'
-params.num_gpu = 1                           // GPUs per CryoSPARC job (g6.2xlarge has 1x L4)
+params.num_gpu = 0                           // 0 = auto-detect from CryoSPARC lane topology
 
 // Processing parameters (can be auto-tuned based on sample_type)
 params.motion_correction_dose_weighting = true
@@ -206,6 +206,25 @@ def CS_HELPER = '''
                     pass
         print(f"[CS] Warning: all connect attempts failed for {job.uid}.{target_input} <- {src_job_uid}.{src_output}", flush=True)
 
+    _cs_gpu_count_cache: dict = {}
+
+    def _get_lane_gpu_count(cs, lane="default"):
+        """Return total GPUs available in the CryoSPARC lane (cached per cs instance)."""
+        cache_key = (id(cs), lane)
+        if cache_key in _cs_gpu_count_cache:
+            return _cs_gpu_count_cache[cache_key]
+        count = 1  # safe default: g6.2xlarge has 1x L4
+        try:
+            targets = cs.api.targets.get_all()
+            total = sum(getattr(t, "gpu_count", 0) or len(getattr(t, "gpus", []) or []) for t in targets)
+            if total > 0:
+                count = total
+        except Exception as e:
+            print(f"[CS] Warning: GPU count query failed ({e}), using {count}", flush=True)
+        _cs_gpu_count_cache[cache_key] = count
+        print(f"[CS] Lane '{lane}' GPU count: {count}", flush=True)
+        return count
+
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
                         lane="default", timeout=14400):
         # Create job WITHOUT params in body — CryoSPARC v5 returns 500 if params
@@ -214,8 +233,14 @@ def CS_HELPER = '''
         job_uid = job.uid
         print(f"[CS] Created {job_type} uid={job_uid}", flush=True)
 
+        # Auto-set compute_num_gpus from actual CryoSPARC worker topology
+        # if caller did not explicitly specify it.
+        params = dict(params or {})
+        if "compute_num_gpus" not in params:
+            params["compute_num_gpus"] = _get_lane_gpu_count(cs, lane)
+
         # Set params individually (v5-compatible)
-        for k, v in (params or {}).items():
+        for k, v in params.items():
             try:
                 job.set_param(k, v)
             except Exception as e:
@@ -412,7 +437,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
             "patch_motion_correction_multi",
             connections={"movies": (init["import_job_uid"], "imported_movies")},
             params={
-                "compute_num_gpus": ${params.num_gpu},
+                
             },
             timeout=14400,
         )
@@ -479,7 +504,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
             connections={"micrographs": (prev["job_uid"], "micrographs")},
             params={
                 "amp_contrast":     0.1,
-                "compute_num_gpus": ${params.num_gpu},
+                
             },
             timeout=7200,
         )
@@ -543,7 +568,7 @@ process BLOB_PICKER_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "blob_picker_gpu",
             connections={"micrographs": (prev["job_uid"], "micrographs_ctf")},
-            params={"diameter": ${diameter}, "compute_num_gpus": ${params.num_gpu}},
+            params={"diameter": ${diameter}},
             timeout=7200,
         )
         particles_out = job.load_output("particles")
@@ -781,7 +806,7 @@ process CLASSIFY_2D_R1_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"class2D_K": 50, "compute_num_gpus": ${params.num_gpu}},
+            params={"class2D_K": 50},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
@@ -853,7 +878,7 @@ process CLASSIFY_2D_R2_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"class2D_K": 100, "compute_num_gpus": ${params.num_gpu}},
+            params={"class2D_K": 100},
             timeout=14400,
         )
         particles_out = job.load_output("particles")
