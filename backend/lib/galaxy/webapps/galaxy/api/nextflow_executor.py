@@ -1589,8 +1589,11 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     or os.environ.get("BILLING_API_KEY")
                     or "dev-insecure-key"
                 )
-                _billing_port = int(os.environ.get("GALAXY_PORT", "8081"))
-                _billing_url = f"http://localhost:{_billing_port}/internal/billing/job_completed"
+                _galaxy_base = (
+                    os.environ.get("GALAXY_URL", "").rstrip("/")
+                    or "http://localhost:8081"
+                )
+                _billing_url = f"{_galaxy_base}/internal/billing/job_completed"
                 _started = run_meta.get("started_at") or _completed_at_now
                 _duration = max(_completed_at_now - _started, 1.0)
                 _bill_payload = _billing_json.dumps({
