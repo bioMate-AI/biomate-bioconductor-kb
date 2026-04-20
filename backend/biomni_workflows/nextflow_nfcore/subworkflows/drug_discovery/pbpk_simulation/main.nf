@@ -36,7 +36,7 @@ params.Pgp_substrate  = 'false'
 params.population     = 'healthy_adult'  // healthy_adult | child | elderly | hepatic_impairment
 params.dose_mg        = '500'
 params.dose_route     = 'oral'
-params.simulation_hours = '24'
+params.simulation_hours = '96'
 
 process PBPK_SIMULATION {
     tag "$meta.id"
@@ -176,8 +176,8 @@ def hepatic_CL(clint_uL_min_mg, fu_mic, fu_plasma, Vliver_L, Qliver_L_h, MPPGL, 
     CL_int,u = CLint / fu_mic
     CL_hep = Q_liver * fu_plasma * CL_int,u / (Q_liver + fu_plasma * CL_int,u)
     '''
-    mppg_total = MPPGL * 1000 * 0.85 / 1000  # mg microsomal protein per g liver x liver weight
-    clint_scaled = clint_uL_min_mg * mppg_total * 60 / 1000  # mL/h
+    mppg_total = MPPGL * Vliver_L * 1000  # mg protein: (mg/g liver) * (L * ~1000 g/L)
+    clint_scaled = clint_uL_min_mg * mppg_total * 60 / 1000  # uL/min/mg * mg * 60 min/h / 1000 uL/mL = mL/h
     fu_adj = fu_plasma / fu_mic
     ql_mL_h = Qliver_L_h * 1000
     clh = ql_mL_h * fu_adj * clint_scaled / (ql_mL_h + fu_adj * clint_scaled)
@@ -255,11 +255,13 @@ def pbpk_ode(t, y):
     # Peripheral
     dAperiph = max(0,Qperiph)/1000 * Cblood - max(0,Qperiph)/1000 * Cperiph/Kp_periph
 
-    # Blood (receives from lung, distributes to liver/kidney/gut/periph)
+    # Blood (receives venous return from all tissues; drains to lung for pulmonary circulation)
     dAblood = Qlung/1000 * Clung/Kp_lung \
               - Qliver/1000 * Cblood - Qkidney/1000 * Cblood \
               - Qgut/1000 * Cblood - max(0,Qperiph)/1000 * Cblood \
-              + (Qliver+Qgut)/1000 * Cliver/Kp_liver
+              + (Qliver+Qgut)/1000 * Cliver/Kp_liver \
+              + Qkidney/1000 * Ckidney/Kp_kidney \
+              + max(0,Qperiph)/1000 * Cperiph/Kp_periph
 
     # IV: inject directly into blood at t=0
     dAabs = ka_eff * Agut_lum if route == 'oral' else 0

@@ -31,9 +31,9 @@ params.pk_ka_h          = '1.5'
 params.pk_IIV_CL_pct    = '30'    // inter-individual variability on CL
 params.pk_IIV_Vd_pct    = '20'
 params.ER_model         = 'Emax'  // Emax | linear
-params.ER_Emax          = '1.0'
-params.ER_EC50_nM       = '500'
-params.ER_E0            = '0.05'   // baseline response (DLT rate at dose 0)
+params.ER_Emax          = '0.9'
+params.ER_EC50_nM       = '2000'
+params.ER_E0            = '0.02'   // baseline response (DLT rate at dose 0)
 params.n_patients_phase2 = '100'
 params.dose_regimen_mg  = '150'
 params.dose_interval_h  = '24'
@@ -258,11 +258,19 @@ for _ in range(n_sim_use):
     mtd_counts[mtd_idx] = mtd_counts.get(mtd_idx, 0) + 1
 
 # True MTD: highest dose with DLT rate <= target
-true_mtd_idx = max([i for i,p in enumerate(true_DLT_probs) if p <= dlt_target], default=0)
+_safe_doses = [i for i,p in enumerate(true_DLT_probs) if p <= dlt_target]
+no_safe_dose = len(_safe_doses) == 0
+true_mtd_idx = max(_safe_doses) if _safe_doses else None
 
-P_correct_MTD  = mtd_counts.get(true_mtd_idx, 0) / n_sim_use
-P_underdosing  = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx)) / n_sim_use
-P_overdosing   = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx+1, len(doses_to_use))) / n_sim_use
+if true_mtd_idx is not None:
+    P_correct_MTD = mtd_counts.get(true_mtd_idx, 0) / n_sim_use
+    P_underdosing = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx)) / n_sim_use
+    P_overdosing  = sum(mtd_counts.get(i,0) for i in range(true_mtd_idx+1, len(doses_to_use))) / n_sim_use
+else:
+    # All doses exceed DLT target — no safe starting dose in this range
+    P_correct_MTD = 0.0
+    P_underdosing = 0.0
+    P_overdosing  = 1.0  # all selections are overdoses by definition
 
 # -- Dose escalation summary table --------------------------------------------
 esc_rows = []
@@ -284,8 +292,15 @@ boin_table = {
 }
 
 # -- Phase II simulation --------------------------------------------------------
+# Base Phase 2 candidates on the BOIN-identified MTD when available
+if true_mtd_idx is not None:
+    p2_base = doses_to_use[true_mtd_idx]
+elif doses_to_use:
+    p2_base = doses_to_use[0]  # fallback: lowest dose (starting dose only)
+else:
+    p2_base = p2_dose
 p2_results = []
-for dose_mg in [p2_dose, p2_dose*0.5, p2_dose*2.0]:
+for dose_mg in [p2_base, p2_base*0.5, p2_base*2.0]:
     if dose_mg > max_dose * 1.1: continue
     response_rates = []
     for _ in range(n_sim_use // 10):
@@ -309,7 +324,7 @@ for dose_mg in [p2_dose, p2_dose*0.5, p2_dose*2.0]:
 
 # Recommended Phase II dose
 best_p2 = max(p2_results, key=lambda x: x['P_success']) if p2_results else {}
-recommended_p2_dose = best_p2.get('dose_mg', p2_dose)
+recommended_p2_dose = best_p2.get('dose_mg', p2_base)
 
 # -- Write outputs --------------------------------------------------------------
 with open('dose_escalation_results.csv','w',newline='') as f:
@@ -328,12 +343,16 @@ with open('phase2_simulation.csv','w',newline='') as f:
 oc = {'P_correct_MTD_selection': round(P_correct_MTD,3),
       'P_underdosing': round(P_underdosing,3),
       'P_overdosing': round(P_overdosing,3),
-      'true_MTD_dose_mg': doses_to_use[true_mtd_idx] if true_mtd_idx < len(doses_to_use) else None,
+      'true_MTD_dose_mg': doses_to_use[true_mtd_idx] if true_mtd_idx is not None and true_mtd_idx < len(doses_to_use) else None,
+      'no_safe_dose_in_range': no_safe_dose,
       'n_simulations': n_sim_use, 'design': design}
 with open('operating_characteristics.json','w') as f:
     json.dump(oc, f, indent=2)
 
-recommendation = f"{round(recommended_p2_dose)} mg {'QD' if dose_int_h >= 20 else 'BID'}"
+if no_safe_dose:
+    recommendation = f"NO SAFE DOSE IDENTIFIED — all {len(doses_to_use)} dose levels exceed DLT target {dlt_target*100:.0f}%; escalation should not proceed without dose range revision"
+else:
+    recommendation = f"{round(recommended_p2_dose)} mg {'QD' if dose_int_h >= 20 else 'BID'}"
 summary = {'status':'completed','design':design,'n_sim':n_sim_use,
            'operating_characteristics':oc,'recommended_Phase2_dose':recommendation,
            'phase2_results':p2_results}
