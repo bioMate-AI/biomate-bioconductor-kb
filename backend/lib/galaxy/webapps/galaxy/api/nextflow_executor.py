@@ -206,9 +206,30 @@ _ACCESSION_REGISTRY: list[dict] = [
 
 _ANSI_ESCAPE_RE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 
+# Nextflow startup noise patterns — lines matching any of these are dropped
+# from log_tail to keep execution logs focused on actual process output.
+_NF_NOISE_RE = re.compile(
+    r'(?:'
+    r'N\s+E\s+X\s+T\s+F\s+L\s+O\s+W'          # ASCII banner "N E X T F L O W"
+    r'|Nextflow\s+\d+\.\d+\.\d+\s+is available'  # version-update notice
+    r'|Please consider updating'                  # update recommendation
+    r'|Downloading nextflow dependencies'          # initial dep download
+    r'|nf-core/tools version'                     # nf-core tooling header
+    r')',
+    re.IGNORECASE,
+)
+
 def _strip_ansi(text: str) -> str:
     """Remove ANSI escape sequences (colors, cursor movement) from terminal output."""
     return _ANSI_ESCAPE_RE.sub('', text)
+
+
+def _clean_log_line(line: str) -> str:
+    """Strip ANSI codes and return the cleaned line, or empty string if it is noise."""
+    cleaned = _strip_ansi(line).rstrip()
+    if _NF_NOISE_RE.search(cleaned):
+        return ''
+    return cleaned
 
 
 def _classify_accession(value: str) -> Optional[Dict[str, str]]:
@@ -2652,7 +2673,7 @@ def get_nextflow_status(
                 with open(log_path_fallback) as fh:
                     log_full_text = fh.read()
                 lines = log_full_text.splitlines()
-                log_tail_fallback = [_strip_ansi(l).rstrip() for l in lines[-20:]]
+                log_tail_fallback = [c for l in lines[-40:] if (c := _clean_log_line(l))][-20:]
             except Exception:
                 pass
         if output_dir.exists():
@@ -2823,7 +2844,7 @@ def get_nextflow_status(
         try:
             with open(log_path) as fh:
                 lines = fh.readlines()
-            log_tail = [_strip_ansi(l).rstrip() for l in lines[-20:]]
+            log_tail = [c for l in lines[-40:] if (c := _clean_log_line(l))][-20:]
         except Exception:
             pass
 
@@ -4653,7 +4674,7 @@ def validate_workflow_profile(request: ValidateProfileRequest) -> Dict[str, Any]
         )
         duration = round(_time.time() - start, 1)
         combined_output = (proc.stdout or "") + (proc.stderr or "")
-        log_lines = [_strip_ansi(l) for l in combined_output.splitlines()[-20:]]
+        log_lines = [c for l in combined_output.splitlines()[-40:] if (c := _clean_log_line(l))][-20:]
 
         if proc.returncode == 0:
             status = "pass"

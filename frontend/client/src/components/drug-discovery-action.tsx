@@ -41,6 +41,8 @@ import {
 import { cn } from "@/lib/utils"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
 import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
+import { DrugDiscoveryValidationPanel } from "@/components/drug-discovery-validation-panel"
+import { DrugDiscoveryIndAssembly } from "@/components/drug-discovery-ind-assembly"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -463,34 +465,12 @@ function CampaignTabs({
           <DrugDiscoveryAutoRetrain campaignId={campaignId} />
         )}
         {activeTab === "validation" && (
-          <ValidationPlaceholder campaignId={campaignId} />
+          <DrugDiscoveryValidationPanel campaignId={campaignId} />
         )}
         {activeTab === "ind_assembly" && (
-          <IndAssemblyPlaceholder campaignId={campaignId} />
+          <DrugDiscoveryIndAssembly campaignId={campaignId} />
         )}
       </div>
-    </div>
-  )
-}
-
-/** Placeholder until Surface 2 (Validation) is ported */
-function ValidationPlaceholder({ campaignId }: { campaignId: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-      <Beaker className="h-8 w-8 text-muted-foreground/40" />
-      <p className="text-sm text-muted-foreground">Validation panel coming in P1</p>
-      <p className="text-xs text-muted-foreground">Campaign: {campaignId}</p>
-    </div>
-  )
-}
-
-/** Placeholder until Surface 6 (IND Assembly) is ported */
-function IndAssemblyPlaceholder({ campaignId }: { campaignId: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-8 text-center gap-2">
-      <FileText className="h-8 w-8 text-muted-foreground/40" />
-      <p className="text-sm text-muted-foreground">IND assembly panel coming in P1</p>
-      <p className="text-xs text-muted-foreground">Campaign: {campaignId}</p>
     </div>
   )
 }

@@ -1399,7 +1399,7 @@ def search_nextflow_workflow(
                         # the user explicitly stated this value in their query so it
                         # should override the workflow schema default (e.g. pdb_id,
                         # ligand_smiles, exhaustiveness, etc.)
-                        result.append({**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True})
+                        result.append({**p, 'default': str(_llm_extracted[p['name']]), 'llm_extracted': True, 'autoFilled': True})
                     else:
                         result.append(p)
                 return result

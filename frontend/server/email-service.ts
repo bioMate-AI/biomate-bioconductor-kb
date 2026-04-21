@@ -575,19 +575,6 @@ class EmailService {
     });
   }
 
-  async sendAdminAlert(opts: {
-    subject: string;
-    body: string;
-  }): Promise<boolean> {
-    const adminEmail = process.env.ADMIN_ALERT_EMAIL || 'yaoyun.zhang@biomate.ai';
-    return this.sendEmail({
-      to: adminEmail,
-      subject: `[BioMate Alert] ${opts.subject}`,
-      html: `<pre style="font-family:monospace;font-size:12px;white-space:pre-wrap;">${opts.body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
-      text: opts.body,
-    });
-  }
-
   async testConnection(): Promise<boolean> {
     if (!this.transporter) {
       return false;

@@ -808,23 +808,65 @@ async def assemble_ind_section(
 
 
 # ---------------------------------------------------------------------------
-# Phase 2 — Audit log query endpoint
+# Audit — Surface 3 endpoints
 # ---------------------------------------------------------------------------
+
+def _format_audit_record(r) -> dict:
+    """
+    Shape an AuditRecord into the frontend AuditRecord contract.
+
+    Frontend expects: id, ts, who, kind, action, resource,
+    payload_sha256, record_hash, prev_hash, detail?, meaning?, sig_id?
+    """
+    # Derive kind from action / user_id
+    if r.action == "ESIG":
+        kind = "esig"
+    elif r.user_id.startswith("system:"):
+        kind = "system"
+    else:
+        kind = "user"
+
+    # Parse optional details fields: meaning=<...>, sig_id=<...>
+    meaning: Optional[str] = None
+    sig_id: Optional[str] = None
+    if r.details:
+        for part in r.details.split("|"):
+            part = part.strip()
+            if part.startswith("meaning="):
+                meaning = part[len("meaning="):]
+            elif part.startswith("sig_id="):
+                sig_id = part[len("sig_id="):]
+
+    return {
+        "id":            r.id,
+        "ts":            r.timestamp_utc,
+        "who":           r.user_id,
+        "kind":          kind,
+        "action":        r.action,
+        "resource":      f"{r.resource_type}/{r.resource_id}",
+        "payload_sha256": r.payload_hash,
+        "record_hash":   r.record_hash,
+        "prev_hash":     r.previous_hash,
+        "detail":        r.details or None,
+        "meaning":       meaning,
+        "sig_id":        sig_id,
+    }
+
 
 @router.get("/audit")
 async def query_audit_log(
-    campaign_id: Optional[str] = Query(None),
-    user_id: Optional[str] = Query(None),
+    resource_id: Optional[str] = Query(None, description="campaign_id to filter by"),
+    user: Optional[str] = Query(None),
     action: Optional[str] = Query(None),
-    since_utc: Optional[str] = Query(None, description="ISO 8601 UTC datetime"),
-    limit: int = Query(100, ge=1, le=1000),
-    verify: bool = Query(False, description="Run chain integrity verification"),
+    from_: Optional[str] = Query(None, alias="from", description="ISO 8601 UTC datetime"),
+    limit: int = Query(PAGE_SIZE := 10, ge=1, le=200),
+    offset: int = Query(0, ge=0),
 ):
     """
-    Query the 21 CFR Part 11 audit log.
+    Query the 21 CFR Part 11 audit log (Surface 3).
 
-    All parameters are optional filters.  Returns matching records oldest-first.
-    Set verify=true to include hash chain integrity status (slower for large logs).
+    Returns paginated records in the shape expected by DrugDiscoveryAuditViewer:
+      { records: AuditRecord[], total: number }
     """
     try:
         from ..compliance.audit_store import AuditStore
@@ -833,42 +875,433 @@ async def query_audit_log(
 
     try:
         store = AuditStore()
-        records = store.get_records(
-            resource_id=campaign_id,
-            user_id=user_id,
+        # Get one extra to count total without a separate COUNT query
+        all_matching = store.get_records(
+            resource_id=resource_id,
+            user_id=user,
             action=action,
-            since_utc=since_utc,
-            limit=limit,
+            since_utc=from_,
+            limit=10_000,   # practical cap; real deployments stay well below this
         )
-        chain_result = store.verify_chain() if verify else None
+        total = len(all_matching)
+        page = all_matching[offset: offset + limit]
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    response = {
-        "total_returned": len(records),
-        "records": [
-            {
-                "id": r.id,
-                "timestamp_utc": r.timestamp_utc,
-                "user_id": r.user_id,
-                "action": r.action,
-                "resource_type": r.resource_type,
-                "resource_id": r.resource_id,
-                "payload_hash": r.payload_hash,
-                "details": r.details,
-                "record_hash": r.record_hash,
-            }
-            for r in records
-        ],
+    return {
+        "records": [_format_audit_record(r) for r in page],
+        "total": total,
     }
-    if chain_result is not None:
-        response["chain_verification"] = {
-            "valid": chain_result.valid,
-            "total_records": chain_result.total_records,
-            "first_tampered_id": chain_result.first_tampered_id,
-            "error": chain_result.error,
-        }
-    return response
+
+
+@router.get("/audit/verify")
+async def verify_audit_chain(
+    resource_id: Optional[str] = Query(None),
+):
+    """
+    Run full hash-chain verification.
+
+    Returns { valid, verified_at, broken_at?, total_records }.
+    """
+    try:
+        from ..compliance.audit_store import AuditStore
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        store = AuditStore()
+        result = store.verify_chain()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    from datetime import datetime, timezone
+    return {
+        "valid":          result.valid,
+        "verified_at":    datetime.now(timezone.utc).isoformat(),
+        "broken_at":      result.first_tampered_id,
+        "total_records":  result.total_records,
+    }
+
+
+@router.get("/audit/export")
+async def export_audit_log(
+    campaign_id: Optional[str] = Query(None),
+    format: str = Query("csv", regex="^(csv|json)$"),
+):
+    """
+    Download the full audit log for a campaign as CSV or JSON.
+    """
+    import csv as _csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    try:
+        from ..compliance.audit_store import AuditStore
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        store = AuditStore()
+        records = store.get_records(resource_id=campaign_id, limit=100_000)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    formatted = [_format_audit_record(r) for r in records]
+
+    if format == "json":
+        import json
+        content = json.dumps(formatted, indent=2)
+        media_type = "application/json"
+        filename = f"audit_{campaign_id or 'all'}.json"
+    else:
+        buf = io.StringIO()
+        if formatted:
+            writer = _csv.DictWriter(buf, fieldnames=list(formatted[0].keys()),
+                                     extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(formatted)
+        content = buf.getvalue()
+        media_type = "text/csv"
+        filename = f"audit_{campaign_id or 'all'}.csv"
+
+    return StreamingResponse(
+        io.BytesIO(content.encode("utf-8")),
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Auto-Retrain — Surface 4 endpoints
+# ---------------------------------------------------------------------------
+
+@router.get("/{campaign_id}/retrain/status")
+async def get_retrain_status(campaign_id: str):
+    """
+    Return loop status for polling by DrugDiscoveryAutoRetrain (every 5s).
+
+    Response: { running, check_interval_s, last_retrain_at, next_check_in_s,
+                last_trigger }
+    """
+    try:
+        from .auto_retrain import is_loop_running, get_latest_auto_proposal, _loop_stop_events
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    running = is_loop_running(campaign_id)
+    db_path = _campaign_db(campaign_id)
+
+    last_proposal = None
+    try:
+        last_proposal = get_latest_auto_proposal(db_path, campaign_id)
+    except Exception:
+        pass
+
+    check_interval_s = 60
+    return {
+        "running":          running,
+        "check_interval_s": check_interval_s,
+        "last_retrain_at":  last_proposal.created_at if last_proposal else None,
+        "next_check_in_s":  check_interval_s,  # client reconciles against its own countdown
+        "last_trigger":     last_proposal.triggered_by if last_proposal else None,
+    }
+
+
+@router.post("/{campaign_id}/retrain/start")
+async def start_retrain_loop(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """Start the background auto-retrain loop (idempotent)."""
+    try:
+        from .auto_retrain import start_background_loop
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    start_background_loop(_campaign_db(campaign_id), campaign_id)
+    return {"running": True}
+
+
+@router.post("/{campaign_id}/retrain/stop")
+async def stop_retrain_loop(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """Signal the background auto-retrain loop to stop."""
+    try:
+        from .auto_retrain import stop_background_loop
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    stop_background_loop(campaign_id)
+    return {"running": False}
+
+
+@router.post("/{campaign_id}/retrain/trigger")
+async def trigger_retrain_now(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Force an immediate GP refit + proposal round.
+
+    Returns the new Proposal in the shape expected by DrugDiscoveryAutoRetrain:
+      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+    """
+    try:
+        from .auto_retrain import refit_and_propose, start_background_loop
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    db_path = _campaign_db(campaign_id)
+    proposal = refit_and_propose(db_path, campaign_id, triggered_by="manual")
+
+    if proposal is None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Retrain requires assay data and a cached virtual library. "
+                "Call POST /{campaign_id}/virtual-library first."
+            ),
+        )
+
+    start_background_loop(db_path, campaign_id)
+    return _format_proposal(proposal)
+
+
+@router.get("/{campaign_id}/retrain")
+async def trigger_retrain_legacy(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Deprecated: use POST /{campaign_id}/retrain/trigger instead.
+    Kept for backwards compatibility with earlier frontend code.
+    """
+    return await trigger_retrain_now(campaign_id, _audit)
+
+
+@router.post("/{campaign_id}/retrain")
+async def trigger_retrain_post_legacy(
+    campaign_id: str,
+    _audit: None = Depends(_audit_fn),
+):
+    """Deprecated legacy path — delegates to /retrain/trigger."""
+    return await trigger_retrain_now(campaign_id, _audit)
+
+
+def _format_proposal(proposal) -> dict:
+    """
+    Shape an AutoProposal into the Proposal contract expected by the frontend:
+      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+    """
+    smiles = proposal.proposed_smiles
+    scores = proposal.scores  # dict keyed by smiles or list
+    ci = proposal.confidence_intervals
+    ad = proposal.ad_statuses  # list parallel to smiles
+
+    # Normalise scores to a list aligned with smiles
+    if isinstance(scores, dict):
+        score_list = [float(scores.get(s, 0.0)) for s in smiles]
+    elif isinstance(scores, list):
+        score_list = [float(v) for v in scores]
+    else:
+        score_list = [0.0] * len(smiles)
+
+    # Normalise CI: may be dict-of-lists {"lo": [...], "hi": [...]} or list-of-dicts
+    ci_lo_list: list[float] = []
+    ci_hi_list: list[float] = []
+    if isinstance(ci, dict):
+        ci_lo_list = [float(v) for v in ci.get("lo", ci.get("lower", [0.0] * len(smiles)))]
+        ci_hi_list = [float(v) for v in ci.get("hi", ci.get("upper", [1.0] * len(smiles)))]
+    elif isinstance(ci, list):
+        for entry in ci:
+            if isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                ci_lo_list.append(float(entry[0]))
+                ci_hi_list.append(float(entry[1]))
+            else:
+                ci_lo_list.append(0.0)
+                ci_hi_list.append(1.0)
+    if not ci_lo_list:
+        ci_lo_list = [0.0] * len(smiles)
+        ci_hi_list = [1.0] * len(smiles)
+
+    ad_list = list(ad) if ad else ["in_domain"] * len(smiles)
+
+    items = []
+    for i, smi in enumerate(smiles):
+        items.append({
+            "rank":    i + 1,
+            "smiles":  smi,
+            "score":   score_list[i] if i < len(score_list) else 0.0,
+            "ci_lo":   ci_lo_list[i] if i < len(ci_lo_list) else 0.0,
+            "ci_hi":   ci_hi_list[i] if i < len(ci_hi_list) else 1.0,
+            "ad":      ad_list[i] if i < len(ad_list) else "in_domain",
+        })
+
+    return {
+        "round":        proposal.round_number,
+        "generated_at": proposal.created_at,
+        "trigger":      proposal.triggered_by,
+        "items":        items,
+    }
+
+
+# Rewrite get_auto_proposal to return the frontend Proposal shape
+@router.get("/{campaign_id}/auto-proposal")
+async def get_auto_proposal_v2(
+    campaign_id: str,
+    format: str = Query("json", regex="^(json|csv)$"),
+):
+    """
+    Return the latest auto-retrain proposal for a campaign.
+
+    format=json  → Proposal object (items array)
+    format=csv   → downloadable CSV file
+    """
+    try:
+        from .auto_retrain import get_latest_auto_proposal
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        proposal = get_latest_auto_proposal(_campaign_db(campaign_id), campaign_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="No proposals yet for this campaign.")
+
+    if format == "csv":
+        import csv as _csv
+        import io
+        from fastapi.responses import StreamingResponse
+
+        shaped = _format_proposal(proposal)
+        buf = io.StringIO()
+        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "ci_lo", "ci_hi", "ad"])
+        writer.writeheader()
+        writer.writerows(shaped["items"])
+        filename = f"{campaign_id}_round{shaped['round']}_proposals.csv"
+        return StreamingResponse(
+            io.BytesIO(buf.getvalue().encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    return _format_proposal(proposal)
+
+
+@router.get("/{campaign_id}/proposals")
+async def list_proposals(
+    campaign_id: str,
+    limit: int = Query(20, ge=1, le=100),
+):
+    """
+    Return proposal history: { history: [{round, ts, n, trigger}] }
+    """
+    try:
+        from .auto_retrain import list_auto_proposals
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        proposals = list_auto_proposals(_campaign_db(campaign_id), campaign_id, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "history": [
+            {
+                "round":   p.round_number,
+                "ts":      p.created_at,
+                "n":       len(p.proposed_smiles),
+                "trigger": p.triggered_by,
+            }
+            for p in proposals
+        ]
+    }
+
+
+@router.get("/{campaign_id}/virtual-library")
+async def get_virtual_library(campaign_id: str):
+    """
+    Return cached virtual library metadata.
+
+    Response: { n, saved_at, hash, n_propose, diversity_weight }
+    404 if no library cached yet.
+    """
+    try:
+        from .auto_retrain import load_virtual_library
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        vl = load_virtual_library(_campaign_db(campaign_id), campaign_id)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    if vl is None:
+        raise HTTPException(status_code=404, detail="No virtual library cached for this campaign.")
+
+    # Compute a stable hash of the library for the frontend to display
+    import hashlib, json
+    lib_hash = hashlib.sha256(json.dumps(vl["smiles_list"], sort_keys=True).encode()).hexdigest()
+
+    return {
+        "n":                len(vl["smiles_list"]),
+        "saved_at":         vl["saved_at"],
+        "hash":             lib_hash,
+        "n_propose":        vl["n_propose"],
+        "diversity_weight": vl["diversity_weight"],
+    }
+
+
+class VirtualLibraryBody(BaseModel):
+    smiles: list[str]
+    n_propose: int = 10
+    diversity_weight: float = 0.2
+
+
+@router.post("/{campaign_id}/virtual-library")
+async def save_virtual_library_endpoint(
+    campaign_id: str,
+    body: VirtualLibraryBody,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Cache a virtual library for the auto-retrain loop.
+
+    Response: { n_valid, n_invalid, hash }
+    """
+    try:
+        from .auto_retrain import save_virtual_library as _save_vl
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    if not body.smiles:
+        raise HTTPException(status_code=400, detail="smiles must not be empty")
+
+    # Validate SMILES with RDKit if available; otherwise accept all
+    valid, invalid = [], []
+    try:
+        from rdkit import Chem
+        for smi in body.smiles:
+            (valid if Chem.MolFromSmiles(smi) is not None else invalid).append(smi)
+    except ImportError:
+        valid = list(body.smiles)
+
+    if not valid:
+        raise HTTPException(status_code=422, detail="No valid SMILES provided.")
+
+    try:
+        _save_vl(_campaign_db(campaign_id), campaign_id, valid, body.n_propose, body.diversity_weight)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    import hashlib, json
+    lib_hash = hashlib.sha256(json.dumps(valid, sort_keys=True).encode()).hexdigest()
+    return {"n_valid": len(valid), "n_invalid": len(invalid), "hash": lib_hash}
 
 
 # ---------------------------------------------------------------------------
