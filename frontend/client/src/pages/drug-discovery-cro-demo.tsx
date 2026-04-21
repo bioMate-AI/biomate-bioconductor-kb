@@ -22,7 +22,7 @@ import { DrugDiscoveryIndAssembly } from "@/components/drug-discovery-ind-assemb
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
-  Loader2, Check, AlertTriangle, Dna,
+  Loader2, Check, AlertTriangle,
   ChevronRight, RefreshCw, Upload, ExternalLink, Plus, PenLine,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -338,12 +338,24 @@ function CampaignDashboard() {
 
 // ── Tabs config ───────────────────────────────────────────────────────────────
 
+// Inline SVG icons matching CroIcon definitions from the reference
+const CroTabIcon = ({ name, size = 13 }: { name: string; size?: number }) => {
+  const s = { width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+    stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const }
+  if (name === "target") return <svg {...s}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+  if (name === "beaker") return <svg {...s}><path d="M9 3v7L4 20a2 2 0 0 0 1.7 3h12.6A2 2 0 0 0 20 20l-5-10V3"/><line x1="8" y1="3" x2="16" y2="3"/><line x1="6.5" y1="15" x2="17.5" y2="15"/></svg>
+  if (name === "shield") return <svg {...s}><path d="M12 3l8 3v6c0 5-4 9-8 9s-8-4-8-9V6z"/></svg>
+  if (name === "refresh") return <svg {...s}><polyline points="3 12 3 6 9 6"/><path d="M3 12a9 9 0 1 0 3-6.7"/></svg>
+  if (name === "file") return <svg {...s}><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/></svg>
+  return null
+}
+
 const TABS = [
-  { key: "dashboard",    label: "Dashboard",    count: null,  pulse: false },
-  { key: "validation",   label: "Validation",   count: null,  pulse: false },
-  { key: "audit",        label: "Audit",        count: 47,    pulse: false },
-  { key: "auto-retrain", label: "Auto-Retrain", count: null,  pulse: true  },
-  { key: "ind-assembly", label: "IND",          count: null,  pulse: false },
+  { key: "dashboard",    label: "Dashboard",    icon: "target",  count: null,  pulse: false },
+  { key: "validation",   label: "Validation",   icon: "beaker",  count: null,  pulse: false },
+  { key: "audit",        label: "Audit",        icon: "shield",  count: 47,    pulse: false },
+  { key: "auto-retrain", label: "Auto-Retrain", icon: "refresh", count: null,  pulse: true  },
+  { key: "ind-assembly", label: "IND",          icon: "file",    count: null,  pulse: false },
 ] as const
 
 type TabKey = typeof TABS[number]["key"]
@@ -507,7 +519,12 @@ export default function DrugDiscoveryCroDemo() {
                   className="w-8 h-8 rounded-[6px] grid place-items-center shrink-0"
                   style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.38 0.12 245)" }}
                 >
-                  <Dna className="h-[17px] w-[17px]" />
+                  {/* CroIcon "dna" — two crossing S-curves */}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4c4 0 4 16 8 16s4-16 8-16"/>
+                    <path d="M4 20c4 0 4-16 8-16s4 16 8 16"/>
+                  </svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div
@@ -582,6 +599,7 @@ export default function DrugDiscoveryCroDemo() {
                         (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.48 0.012 260)"
                     }}
                   >
+                    <CroTabIcon name={tab.icon} size={13} />
                     {tab.label}
                     {tab.count != null && (
                       <span
