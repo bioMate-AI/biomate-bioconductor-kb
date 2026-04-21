@@ -209,15 +209,20 @@ def CS_HELPER = '''
     # Job types that actually use GPUs in CryoSPARC.
     # CPU-only jobs (import, CTF, blob picker, extract, template picker, etc.)
     # do not accept compute_num_gpus and should not have it set.
+    # CryoSPARC v5 job type names (confirmed from spec.py on the instance).
+    # Note several renames from v4: non_uniform_refinement_new → nonuniform_refine_new,
+    # local_ctf_refinement → ctf_refine_local, template_picker → template_picker_gpu, etc.
     _GPU_JOB_TYPES = frozenset({
-        "class_2D", "class_3D",
-        "homo_abinit", "hetero_abinit",
+        "class_2D", "class_2D_new",
+        "homo_abinit", "gshr_abinit",
         "homo_refine", "homo_refine_new",
-        "heterogeneous_refinement",
-        "non_uniform_refinement", "non_uniform_refinement_new",
-        "local_refinement", "local_ctf_refinement",
-        "flex_refine",
-        "refine_3D", "refine_3D_new",
+        "nonuniform_refine", "nonuniform_refine_new",  # v5 spelling
+        "new_local_refine",                            # v5: was local_refinement
+        "ctf_refine_local", "ctf_refine_global",       # v5: was local_ctf_refinement
+        "template_picker_gpu",                         # v5: was template_picker
+        "filament_tracer_gpu",
+        "simulator_gpu",
+        "var_3D", "var_3D_disp",
     })
 
     def submit_and_wait(cs, proj_uid, ws_uid, job_type, connections, params,
@@ -1618,7 +1623,7 @@ process TEMPLATE_PICKER {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "template_picker",
+            "template_picker_gpu",
             connections={
                 "templates":   (class2d_job_uid, "class_averages"),
                 "micrographs": (ctf_job_uid,     "micrographs_ctf"),
@@ -1913,7 +1918,7 @@ process VALIDATION_FSC {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "fsc_validation",
+            "validation",
             connections={"volume": (vol_uid, "volume")},
             params={},
             timeout=3600,
@@ -1991,7 +1996,7 @@ process LOCAL_CTF_REFINEMENT {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "local_ctf_refinement",
+            "ctf_refine_local",
             connections={
                 "particles": (particles_uid, "particles"),
                 "volume":    (volume_uid,    "volume"),
@@ -2064,7 +2069,7 @@ process NON_UNIFORM_REFINEMENT {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "non_uniform_refinement_new",
+            "nonuniform_refine_new",
             connections={
                 "particles": (particles_uid, "particles"),
                 "volume":    (volume_uid,    "volume"),
@@ -2162,7 +2167,7 @@ process LOCAL_RESOLUTION {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "local_resolution_estimation",
+            "local_resolution",
             connections={"volume": (nu_uid, "volume")},
             params={},
             timeout=7200,
@@ -2225,7 +2230,7 @@ process SHARPEN {
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
-            "sharpening_tools",
+            "sharpen",
             connections={"volume": (nu_uid, "volume")},
             params={},
             timeout=3600,

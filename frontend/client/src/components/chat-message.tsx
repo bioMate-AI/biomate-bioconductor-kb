@@ -287,7 +287,10 @@ export function ChatMessage({
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
-          {isWorkflowMessage && (
+          {/* When the workflow is open in the right panel (isInPanel=true), render nothing
+              here — all workflow UI lives exclusively in the panel. The AI text response
+              above already tells the user to look at the panel. */}
+          {isWorkflowMessage && !isInPanel && (
             (() => {
               const invocationId = effectiveInvocationId;
               const executionStatus = currentExecutionRun?.execution?.status || (isWorkflowRunning ? 'running' : 'idle');
@@ -327,17 +330,10 @@ export function ChatMessage({
               );
               const effectiveBlockedReason = executionBlockedReason;
 
-              // When this workflow is open in the right panel, show a compact pill instead
+              // When this workflow is open in the right panel, render only an invisible
+              // anchor div so scroll/invocation tracking still works. No visible card
+              // in the chat — all workflow UI lives exclusively in the right panel.
               if (isInPanel) {
-                const workflowName = message.metadata?.workflow?.name || 'Generated Workflow';
-                const effectiveStatus: string = currentExecutionRun ? viewerStatus : (message.metadata?.workflowViewerStatus || viewerStatus)
-                const statusLabel =
-                  effectiveStatus === 'running' ? 'Running' :
-                  effectiveStatus === 'completed' ? 'Completed' :
-                  effectiveStatus === 'failed' ? 'Failed' :
-                  effectiveStatus === 'paused' ? 'Paused' :
-                  effectiveStatus === 'pending_review' ? 'Awaiting Review' :
-                  'Ready';
                 return (
                   <div
                     id={`workflow-artifact-anchor-${message.id}`}
@@ -345,20 +341,7 @@ export function ChatMessage({
                     data-invocation-id={effectiveInvocationId || undefined}
                     data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
                     data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
-                    className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm"
-                  >
-                    <FlaskConical className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    <span className="font-medium truncate flex-1">{workflowName}</span>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{statusLabel}</span>
-                    <button
-                      className="ml-auto flex items-center gap-1 text-xs text-primary hover:text-primary/80 flex-shrink-0"
-                      onClick={onOpenInPanel}
-                      title="View workflow in panel"
-                    >
-                      <PanelRight className="h-3 w-3" />
-                      View
-                    </button>
-                  </div>
+                  />
                 );
               }
 
