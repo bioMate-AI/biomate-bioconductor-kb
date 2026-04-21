@@ -71,7 +71,7 @@ export default function DrugDiscoveryCroDemo() {
 
   if (phase === "loading") {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center" style={{ height: 'calc(100vh - 64px)' }}>
         <div className="flex flex-col items-center gap-4 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin" />
           <p className="text-sm">Setting up demo campaign…</p>
@@ -102,15 +102,15 @@ export default function DrugDiscoveryCroDemo() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-col bg-background" style={{ height: 'calc(100vh - 64px)' }}>
       {/* Header bar */}
-      <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur">
+      <div className="shrink-0 border-b bg-background/95 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/")}
               data-testid="cro-demo-back-btn"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
@@ -136,22 +136,25 @@ export default function DrugDiscoveryCroDemo() {
       </div>
 
       {/* Context banner */}
-      <div className="bg-blue-50 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900">
+      <div className="shrink-0 bg-blue-50 dark:bg-blue-950/30 border-b border-blue-100 dark:border-blue-900">
         <div className="max-w-5xl mx-auto px-4 py-2 text-xs text-blue-700 dark:text-blue-300">
           <strong>Campaign:</strong> ERB-001 · EGFR T790M · NSCLC 2nd-line ·
           5 EGFR inhibitor scaffolds loaded (erlotinib, gefitinib, osimertinib, afatinib, lapatinib analogs)
         </div>
       </div>
 
-      {/* Main widget — full tabbed CRO view */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        <DrugDiscoveryAction
-          action={{
-            type: "validation",
-            campaign_id: CAMPAIGN_ID,
-            initial_mode: "validation",
-          }}
-        />
+      {/* Main widget — scrollable content area */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-4 py-6">
+          <DrugDiscoveryAction
+            action={{
+              type: "validation",
+              endpoint: null,
+              campaign_id: CAMPAIGN_ID,
+              initial_mode: "validation",
+            }}
+          />
+        </div>
       </div>
     </div>
   )

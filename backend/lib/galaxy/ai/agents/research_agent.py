@@ -1720,28 +1720,37 @@ class ResearchAgent:
         """
         Query the AI tool DB for molecular biology tools relevant to the question.
         Returns a formatted context block for synthesis prompt injection, or '' if
-        the question is not molecular-biology related.
+        the question is not molecular-biology protocol-related.
+
+        Gate: LLM intent type is the primary signal. Keywords from
+        _MOL_BIO_QUESTION_KEYWORDS are used only as selection hints to surface
+        the most relevant tool subset — not as hard activation gates.
         """
         q_lower = question.lower()
 
-        # Only activate for molecular biology / wet-lab protocol questions
-        if not any(kw in q_lower for kw in self._MOL_BIO_QUESTION_KEYWORDS):
-            return ""
-
-        # Also check information_need from context
+        # Primary gate: LLM-classified intent type
         info_need = analysis.get("intent", "")
         mol_bio_intents = {"protocol_guidance", "experiment_design", "research_question",
                            "general_question", "teaching_explanation", "methods_writing"}
         if info_need not in mol_bio_intents:
             return ""
 
-        # Determine which tools are most relevant to this specific question
+        # Secondary signal: keyword hints to select which tools to surface.
+        # If no keywords match, still try the category-wide fetch (let the LLM judge relevance).
+        has_any_mol_bio_hint = any(kw in q_lower for kw in self._MOL_BIO_QUESTION_KEYWORDS)
+
+        # Use keyword map as hints to prioritise specific tools; keywords are advisory only.
         relevant_tool_names: List[str] = []
         for kw, tools in self._MOL_BIO_TOOL_KEYWORD_MAP.items():
             if kw in q_lower:
                 for t in tools:
                     if t not in relevant_tool_names:
                         relevant_tool_names.append(t)
+
+        # If no keyword hints matched AND this doesn't look like a wet-lab question,
+        # skip to avoid noise (genomics/bioinformatics questions don't need mol-bio tools).
+        if not relevant_tool_names and not has_any_mol_bio_hint:
+            return ""
 
         if not relevant_tool_names:
             # Fallback: fetch all mol-bio tools
@@ -2076,15 +2085,15 @@ class ResearchAgent:
 - Key Terms: {', '.join(analysis.get('key_terms', []))}
 
 ## Instructions
-Please provide a comprehensive, evidence-based answer to the research question.
+Provide a concise, evidence-based answer to the research question.
 
-1. Ground your answer in the benchmark evidence and scientific principles provided
-2. Be specific about tool recommendations if applicable
-3. Cite evidence sources when making claims
-4. Acknowledge limitations and uncertainties
-5. Suggest follow-up questions if relevant
+1. Be direct — lead with the answer, not preamble
+2. Keep it brief: 2–4 sentences for simple factual questions; 1–3 short paragraphs for complex ones
+3. Ground claims in the benchmark evidence and database facts above (use them preferentially over training knowledge)
+4. If tool recommendations are relevant, name them specifically (1–2 max)
+5. Cite sources inline with [N] notation only when a specific paper supports the claim
 
-Format your response as a clear, well-structured answer that a scientist would find useful.
+Format: plain prose or a short bulleted list. No lengthy introductions, no "In summary" footers.
 """)
 
         return "\n\n".join(prompt_parts)
