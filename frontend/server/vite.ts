@@ -95,6 +95,12 @@ export function serveStatic(app: Express) {
   // Serve static assets
   app.use(express.static(distPath));
 
+  // Serve reference design prototypes as static files (demo / design-review use)
+  const referencePath = path.resolve(__dirname, "..", "..", "reference");
+  if (fs.existsSync(referencePath)) {
+    app.use("/reference", express.static(referencePath));
+  }
+
   // Serve index.html for all non-API routes (SPA fallback)
   app.get("*", (req, res) => {
     if (req.path.startsWith("/api")) {

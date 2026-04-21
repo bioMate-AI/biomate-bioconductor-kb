@@ -382,9 +382,16 @@ process INIT_CRYOSPARC_PROJECT {
     ws_uid   = cs_create_workspace(cs, proj_uid, "W1")
     print(f"[CS] Project={proj_uid}  Workspace={ws_uid}", flush=True)
 
-    # blob_paths is already a glob — executor appends /*.mrcs for local paths,
-    # _stage_s3_movies_on_cryosparc() appends /*.<ext> for S3 paths.
-    blob_paths = "${movies_path}"
+    # Build glob pattern from movies_path (directory → auto-detect extension)
+    import glob as _glob, os as _os
+    _movies_path = "${movies_path}"
+    if _os.path.isdir(_movies_path):
+        _ext_files = sorted(_glob.glob(_os.path.join(_movies_path, "*.*")))
+        _ext = _os.path.splitext(_ext_files[0])[1] if _ext_files else ".mrcs"
+        blob_paths = _os.path.join(_movies_path, f"*{_ext}")
+    else:
+        blob_paths = _movies_path
+    print(f"[CS] blob_paths={blob_paths}", flush=True)
 
     # Import movies
     import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
