@@ -1204,8 +1204,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
               </button>
             </div>
 
-            {/* Panel body — scrollable */}
-            <div className="flex-1 overflow-y-auto p-3">
+            {/* Panel body — viewer manages its own scroll via panel-body flex */}
+            <div className="flex-1 overflow-hidden flex flex-col">
               {panelWorkflow ? (
                 (() => {
                   const execStatusStr = (

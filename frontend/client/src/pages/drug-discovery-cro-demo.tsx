@@ -1,18 +1,17 @@
 /**
  * /drug-discovery-cro  — BioMate CRO Compliance Suite standalone page.
  *
- * Creates a real demo campaign on mount, seeds the virtual library,
- * and triggers an initial Bayesian retrain so every tab has live content.
+ * Visual design follows /reference/claude_design/cro/ exactly:
+ *   - Breadcrumb sub-nav: Drug Discovery / ERB-001 / [tab]
+ *   - Reg-chips in top-right: 21 CFR Part 11  ICH M4
+ *   - Near-black active tab indicator (var(--text) / foreground)
+ *   - DMTA stepper on Dashboard tab (Design → Make → Test → Analyse)
+ *   - section-hd / meta-line / RegChip / Chip patterns throughout
  *
- * Tabs:
- *   Overview     — campaign summary + EGFR inhibitor scaffold table
- *   Validation   — PBPK qualification report (EMA 2-fold criterion)
- *   Audit Trail  — 21 CFR Part 11 SHA-256 hash-chain log
- *   Auto-Retrain — DMTA Bayesian-optimizer loop + proposals
- *   IND Assembly — ICH M4 CTD §2.6.1 Nonclinical Overview generation
+ * Tabs: Dashboard · Validation · Audit Trail · Auto-Retrain · IND Assembly
  */
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Fragment } from "react"
 import { useLocation } from "wouter"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
@@ -20,38 +19,37 @@ import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retra
 import { DrugDiscoveryValidationPanel } from "@/components/drug-discovery-validation-panel"
 import { DrugDiscoveryIndAssembly } from "@/components/drug-discovery-ind-assembly"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import {
-  Loader2, FlaskConical, ArrowLeft, Target, Shield,
-  BarChart3, FileText, RefreshCw, Library, CheckCircle2,
-  Beaker, AlertTriangle, Dna, Layers,
+  Loader2, FlaskConical, Check, AlertTriangle,
+  ChevronRight, RefreshCw, Upload, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-// ── Demo compound library: 5 EGFR inhibitors ──────────────────────────────────
+// ── Demo compound library: 5 EGFR inhibitors ────────────────────────────────
 
 const DEMO_COMPOUNDS = [
-  { name: "Erlotinib",   generation: "1st-gen TKI",  mw: 393.4, hba: 6,  psa: 74.4, smiles: "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1" },
-  { name: "Gefitinib",   generation: "1st-gen TKI",  mw: 446.9, hba: 6,  psa: 68.7, smiles: "Nc1ccc(F)c(Nc2ncnc3cc4c(cc23)OCCO4)c1" },
-  { name: "Osimertinib", generation: "3rd-gen TKI",  mw: 499.6, hba: 6,  psa: 100.0, smiles: "CC(=O)Nc1ccc(Oc2ncnc3cc(NC4CCOCC4)ccc23)cc1" },
-  { name: "Afatinib",    generation: "2nd-gen TKI",  mw: 485.9, hba: 7,  psa: 78.5, smiles: "C=CC(=O)Nc1ccc(Nc2ncnc3ccc(OC)c(OC)c23)cc1OC" },
-  { name: "Lapatinib",   generation: "Dual EGFR/HER2", mw: 581.1, hba: 8, psa: 112.5, smiles: "CS(=O)(=O)CCNCc1ccc(-c2ccc3ncnc(Nc4ccc(OC)c(Cl)c4)c3c2)o1" },
+  { name: "Erlotinib",   rank: 1, score: 0.87, ad: "in_domain",     round: 1, smiles: "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1" },
+  { name: "Osimertinib", rank: 2, score: 0.82, ad: "in_domain",     round: 1, smiles: "CC(=O)Nc1ccc(Oc2ncnc3cc(NC4CCOCC4)ccc23)cc1" },
+  { name: "Afatinib",    rank: 3, score: 0.76, ad: "in_domain",     round: 2, smiles: "C=CC(=O)Nc1ccc(Nc2ncnc3ccc(OC)c(OC)c23)cc1OC" },
+  { name: "Gefitinib",   rank: 4, score: 0.71, ad: "in_domain",     round: 1, smiles: "Nc1ccc(F)c(Nc2ncnc3cc4c(cc23)OCCO4)c1" },
+  { name: "Lapatinib",   rank: 5, score: 0.54, ad: "out_of_domain", round: 2, smiles: "CS(=O)(=O)CCNCc1ccc(-c2ccc3ncnc(Nc4ccc(OC)c(Cl)c4)c3c2)o1" },
 ]
 
 const CAMPAIGN_META = {
-  molecule:    "ERB-001",
-  target:      "EGFR T790M",
-  indication:  "NSCLC — 2nd line after erlotinib failure",
-  sponsor:     "BioMate Technologies",
-  objective:   "balance",
+  molecule:   "ERB-001",
+  target:     "EGFR T790M",
+  indication: "NSCLC — 2nd line after erlotinib failure",
+  sponsor:    "BioMate Technologies",
+  objective:  "balance",
+  round:      3,
+  updated:    "2026-04-21 08:14 UTC",
 }
 
+// Stable ID for the demo session (changes each page load intentionally)
 const CAMPAIGN_ID = `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
 
-// ── Setup functions ────────────────────────────────────────────────────────────
+// ── Setup functions ──────────────────────────────────────────────────────────
 
 async function createCampaign(): Promise<{ ok: boolean; error?: string }> {
   try {
@@ -70,7 +68,7 @@ async function createCampaign(): Promise<{ ok: boolean; error?: string }> {
     })
     if (!res.ok && res.status !== 409) {
       const body = await res.json().catch(() => ({}))
-      return { ok: false, error: `HTTP ${res.status}: ${body.detail ?? "unknown error"}` }
+      return { ok: false, error: `HTTP ${res.status}: ${(body as any).detail ?? "unknown error"}` }
     }
     return { ok: true }
   } catch (e: any) {
@@ -78,175 +76,335 @@ async function createCampaign(): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
-/** Seed virtual library + trigger initial proposal so Auto-Retrain tab has content. */
 async function seedLibraryAndProposals(): Promise<void> {
-  // POST the demo SMILES as the virtual library
   try {
     await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/virtual-library`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        smiles: DEMO_COMPOUNDS.map((c) => c.smiles),
-        n_propose: 5,
-        diversity_weight: 0.3,
-      }),
+      body: JSON.stringify({ smiles: DEMO_COMPOUNDS.map((c) => c.smiles), n_propose: 5, diversity_weight: 0.3 }),
     })
   } catch { /* non-blocking */ }
-
-  // Trigger an initial Bayesian retrain so proposals are visible immediately
   try {
     await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/retrain/trigger`, {
-      method: "POST",
-      credentials: "include",
+      method: "POST", credentials: "include",
     })
   } catch { /* non-blocking */ }
 }
 
-// ── Overview tab: compound scaffold table ─────────────────────────────────────
+// ── Atoms matching reference primitives ─────────────────────────────────────
 
-function CompoundOverview() {
+/** RegChip — monospace citation badge from reference tokens-cro.css */
+function RegChip({ variant = "default", children }: { variant?: "default" | "indigo"; children: React.ReactNode }) {
   return (
-    <div className="space-y-6">
-      {/* Campaign summary */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {[
-          { label: "Molecule",    value: CAMPAIGN_META.molecule,    icon: <FlaskConical className="h-4 w-4 text-blue-600" /> },
-          { label: "Target",      value: CAMPAIGN_META.target,       icon: <Target        className="h-4 w-4 text-violet-600" /> },
-          { label: "Indication",  value: "NSCLC 2nd-line",           icon: <Dna           className="h-4 w-4 text-rose-600" /> },
-          { label: "Scaffolds",   value: "5 EGFR inhibitors",        icon: <Library       className="h-4 w-4 text-emerald-600" /> },
-        ].map(({ label, value, icon }) => (
-          <Card key={label} className="border shadow-none">
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-center gap-2 mb-1.5">
-                {icon}
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  {label}
-                </span>
-              </div>
-              <p className="text-sm font-semibold leading-tight">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
+    <span className={cn(
+      "inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-mono text-[10.5px] font-medium whitespace-nowrap",
+      variant === "indigo"
+        ? "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300"
+        : "border-border bg-white dark:bg-background text-muted-foreground",
+    )}>
+      {children}
+    </span>
+  )
+}
+
+/** Status chip with optional pulse dot */
+function Chip({
+  tone = "default",
+  pulse = false,
+  children,
+}: {
+  tone?: "ok" | "run" | "warn" | "err" | "default"
+  pulse?: boolean
+  children: React.ReactNode
+}) {
+  const toneClass = {
+    ok:      "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-400",
+    run:     "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400",
+    warn:    "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-500",
+    err:     "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400",
+    default: "bg-muted/60 text-muted-foreground",
+  }[tone]
+
+  const dotClass = {
+    ok: "bg-green-500", run: "bg-blue-500", warn: "bg-amber-500", err: "bg-red-500", default: "bg-muted-foreground",
+  }[tone]
+
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11.5px] font-medium",
+      toneClass,
+    )}>
+      <span className={cn("w-1.5 h-1.5 rounded-full", dotClass, pulse && "animate-pulse")} />
+      {children}
+    </span>
+  )
+}
+
+/** Section header: title + status chip + reg-chips right-aligned */
+function SectionHd({
+  title,
+  mono,
+  chip,
+  regChips,
+}: {
+  title: string
+  mono?: string
+  chip?: React.ReactNode
+  regChips?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-2.5 mb-3.5 flex-wrap" style={{ letterSpacing: "-0.005em" }}>
+      <h2 className="text-[14px] font-semibold m-0 leading-none">
+        {title}
+        {mono && (
+          <span className="font-mono font-medium ml-2 text-[13px]">{mono}</span>
+        )}
+      </h2>
+      {chip}
+      {regChips && <div className="flex gap-1.5 ml-auto">{regChips}</div>}
+    </div>
+  )
+}
+
+/** Meta line: small dim text row with · separators */
+function MetaLine({ items }: { items: (string | React.ReactNode)[] }) {
+  return (
+    <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground flex-wrap mb-4">
+      {items.map((item, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="text-muted-foreground/60">·</span>}
+          <span>{item}</span>
+        </Fragment>
+      ))}
+    </div>
+  )
+}
+
+// ── DMTA Stepper ─────────────────────────────────────────────────────────────
+
+const DMTA_NODES: { key: string; label: string; status: "done" | "active" | "pending" }[] = [
+  { key: "design",  label: "Design",  status: "done" },
+  { key: "make",    label: "Make",    status: "done" },
+  { key: "test",    label: "Test",    status: "active" },
+  { key: "analyse", label: "Analyse", status: "pending" },
+]
+
+function DmtaStepper() {
+  return (
+    <div className="flex items-start">
+      {DMTA_NODES.map((n, i) => (
+        <Fragment key={n.key}>
+          {/* Node */}
+          <div className="flex flex-col items-center gap-1" style={{ minWidth: 72 }}>
+            {/* Dot */}
+            <div className={cn(
+              "w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0",
+              n.status === "done"    && "bg-foreground border-foreground text-background",
+              n.status === "active"  && "bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-950/30",
+              n.status === "pending" && "bg-background border-border text-muted-foreground",
+            )}>
+              {n.status === "done" && <Check className="h-3.5 w-3.5" />}
+              {n.status === "active" && (
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+              )}
+              {n.status === "pending" && (
+                <span className="w-2 h-2 rounded-full border-[1.5px] border-current" />
+              )}
+            </div>
+            {/* Label */}
+            <span className={cn(
+              "text-[12px] font-medium",
+              n.status === "done"    && "text-foreground",
+              n.status === "active"  && "text-blue-600 dark:text-blue-400",
+              n.status === "pending" && "text-muted-foreground",
+            )}>
+              {n.label}
+            </span>
+            {/* Sublabel */}
+            <span className="text-[10.5px] text-muted-foreground/70">
+              {n.status === "done" ? "completed" : n.status === "active" ? "running" : "pending"}
+            </span>
+          </div>
+          {/* Connector line */}
+          {i < DMTA_NODES.length - 1 && (
+            <div className={cn(
+              "flex-1 h-0.5 mt-3.5",
+              n.status === "done" ? "bg-foreground/60" : "bg-border",
+            )} />
+          )}
+        </Fragment>
+      ))}
+    </div>
+  )
+}
+
+// ── Score bar ────────────────────────────────────────────────────────────────
+
+function ScoreBar({ score }: { score: number }) {
+  const pct = Math.round(Math.max(0, Math.min(1, score)) * 100)
+  const color = pct >= 70 ? "bg-green-500" : pct >= 40 ? "bg-amber-500" : "bg-red-400"
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden" style={{ minWidth: 80 }}>
+        <div className={cn("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
       </div>
+      <span className="font-mono text-xs text-muted-foreground w-9 text-right shrink-0">
+        {score.toFixed(2)}
+      </span>
+    </div>
+  )
+}
 
-      {/* Regulatory frameworks */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-medium text-muted-foreground">Regulatory frameworks:</span>
-        {[
-          "21 CFR Part 11 — Electronic Records",
-          "EMA/CHMP/EWP/37498/2011 — PBPK Qualification",
-          "ICH M4 — CTD §2.6.1 Nonclinical Overview",
-        ].map((f) => (
-          <Badge key={f} variant="outline" className="text-xs font-mono">
-            {f}
-          </Badge>
-        ))}
-      </div>
+// ── Dashboard tab ────────────────────────────────────────────────────────────
 
-      <Separator />
+function CampaignDashboard() {
+  const [showAll, setShowAll] = useState(false)
+  const visible = showAll ? DEMO_COMPOUNDS : DEMO_COMPOUNDS.slice(0, 10)
 
-      {/* Compound scaffold table */}
-      <div>
-        <h3 className="text-sm font-semibold mb-3">Virtual Library — EGFR Inhibitor Scaffolds</h3>
-        <div className="rounded-lg border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/40">
-                <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground">#</th>
-                <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground">Compound</th>
-                <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground">Generation</th>
-                <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">MW (g/mol)</th>
-                <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">HBA</th>
-                <th className="py-2.5 px-4 text-right text-xs font-semibold text-muted-foreground">PSA (Å²)</th>
-                <th className="py-2.5 px-4 text-left text-xs font-semibold text-muted-foreground">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {DEMO_COMPOUNDS.map((c, i) => (
-                <tr key={c.name} className="hover:bg-muted/20 transition-colors">
-                  <td className="py-2.5 px-4 text-xs text-muted-foreground font-mono">{i + 1}</td>
-                  <td className="py-2.5 px-4">
-                    <span className="text-sm font-medium">{c.name}</span>
-                  </td>
-                  <td className="py-2.5 px-4">
-                    <Badge variant="secondary" className="text-xs font-normal">
-                      {c.generation}
-                    </Badge>
-                  </td>
-                  <td className="py-2.5 px-4 text-right font-mono text-xs">{c.mw}</td>
-                  <td className="py-2.5 px-4 text-right font-mono text-xs">{c.hba}</td>
-                  <td className="py-2.5 px-4 text-right font-mono text-xs">{c.psa}</td>
-                  <td className="py-2.5 px-4">
-                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                      In library
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  return (
+    <div>
+      <SectionHd
+        title={`Campaign:`}
+        mono={CAMPAIGN_META.molecule}
+        chip={<Chip tone="ok" pulse>ACTIVE</Chip>}
+        regChips={
+          <>
+            <RegChip>{CAMPAIGN_META.target}</RegChip>
+            <RegChip>NSCLC 2nd-line</RegChip>
+          </>
+        }
+      />
+
+      <MetaLine items={[
+        `Round ${CAMPAIGN_META.round}`,
+        `${DEMO_COMPOUNDS.length} compounds ranked`,
+        `Last update: ${CAMPAIGN_META.updated}`,
+        <Button key="refresh" variant="outline" size="sm" className="h-6 text-xs px-2 gap-1 font-normal">
+          <RefreshCw className="h-3 w-3" /> Refresh
+        </Button>,
+      ]} />
+
+      {/* DMTA stepper */}
+      <div className="border border-border rounded-lg bg-muted/20 px-4 pt-3 pb-4 mb-5">
+        <div className="text-[11px] uppercase tracking-[0.05em] text-muted-foreground font-semibold mb-3">
+          DMTA Loop Progress
         </div>
-        <p className="text-xs text-muted-foreground mt-2">
-          SMILES loaded into Bayesian virtual library. Run the Auto-Retrain loop to score and rank them.
-        </p>
+        <DmtaStepper />
+      </div>
+
+      {/* Top compounds */}
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <span className="text-[13.5px] font-semibold">Top Compounds</span>
+        <span className="text-xs text-muted-foreground">
+          Showing {visible.length} of {DEMO_COMPOUNDS.length}
+        </span>
+        <div className="flex-1" />
+        <button
+          className="text-xs text-muted-foreground border-b border-dotted border-border hover:text-blue-600 hover:border-blue-500 bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer"
+          onClick={() => setShowAll(!showAll)}
+        >
+          {showAll ? "Show top 10" : `See all ${DEMO_COMPOUNDS.length} →`}
+        </button>
+      </div>
+
+      <div className="border border-border rounded-md overflow-hidden bg-white dark:bg-background">
+        <table className="w-full text-[13px] border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="py-2 px-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground w-8">#</th>
+              <th className="py-2 px-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Compound ID</th>
+              <th className="py-2 px-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground" style={{ width: 200 }}>Score</th>
+              <th className="py-2 px-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground" style={{ width: 130 }}>AD Status</th>
+              <th className="py-2 px-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground" style={{ width: 130 }}>Round</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((c) => (
+              <tr
+                key={c.name}
+                className={cn(
+                  "border-b border-border last:border-0 hover:bg-muted/20 transition-colors",
+                  c.ad === "out_of_domain" && "opacity-50",
+                )}
+              >
+                <td className="py-2.5 px-2.5 font-mono text-[12px] text-muted-foreground">{c.rank}</td>
+                <td className="py-2.5 px-2.5 font-mono text-[12.5px]">{c.name}</td>
+                <td className="py-2.5 px-2.5"><ScoreBar score={c.score} /></td>
+                <td className="py-2.5 px-2.5">
+                  {c.ad === "in_domain"
+                    ? <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400 text-xs font-medium"><Check className="h-3 w-3" /> in domain</span>
+                    : <span className="text-amber-600 dark:text-amber-400 text-xs font-medium">⚠ OOD</span>
+                  }
+                </td>
+                <td className="py-2.5 px-2.5 font-mono text-[12px] text-muted-foreground">
+                  Round {c.round}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex gap-2 mt-3.5">
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+          <Upload className="h-3.5 w-3.5" /> Ingest New Assay Results
+        </Button>
+        <Button size="sm" className="gap-1.5 text-xs h-8 bg-foreground text-background hover:bg-foreground/90">
+          <ExternalLink className="h-3.5 w-3.5" /> Export CRO Order
+        </Button>
       </div>
     </div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page tabs config ─────────────────────────────────────────────────────────
 
 const TABS = [
-  { key: "overview",     label: "Overview",      icon: <Layers     className="h-4 w-4" /> },
-  { key: "validation",   label: "Validation",    icon: <Beaker     className="h-4 w-4" /> },
-  { key: "audit",        label: "Audit Trail",   icon: <Shield     className="h-4 w-4" /> },
-  { key: "auto_retrain", label: "Auto-Retrain",  icon: <RefreshCw  className="h-4 w-4" /> },
-  { key: "ind",          label: "IND Assembly",  icon: <FileText   className="h-4 w-4" /> },
+  { key: "dashboard",   label: "Dashboard" },
+  { key: "validation",  label: "Validation" },
+  { key: "audit",       label: "Audit Trail" },
+  { key: "auto_retrain",label: "Auto-Retrain" },
+  { key: "ind",         label: "IND Assembly" },
 ] as const
+
+type TabKey = typeof TABS[number]["key"]
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DrugDiscoveryCroDemo() {
   const [, navigate] = useLocation()
-  const [phase, setPhase] = useState<"loading" | "seeding" | "ready" | "error">("loading")
+  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading")
   const [error, setError] = useState<string>("")
+  const [activeTab, setActiveTab] = useState<TabKey>("dashboard")
 
   useEffect(() => {
     async function setup() {
-      // Step 1: create campaign
       const result = await createCampaign()
       if (!result.ok) {
         setError(result.error ?? "Campaign setup failed")
         setPhase("error")
         return
       }
-
-      setPhase("seeding")
-
-      // Step 2: seed library + initial proposals (non-blocking, fire and forget)
-      // Don't await — let tabs render and load independently
-      seedLibraryAndProposals()
-
+      seedLibraryAndProposals()   // fire-and-forget
       setPhase("ready")
     }
     setup()
   }, [])
 
-  // ── Loading ──────────────────────────────────────────────────────────────────
-  if (phase === "loading" || phase === "seeding") {
+  // ── Loading ────────────────────────────────────────────────────────────────
+  if (phase === "loading") {
     return (
       <div className="flex items-center justify-center" style={{ height: "calc(100vh - 64px)" }}>
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm">
-            {phase === "loading" ? "Setting up demo campaign…" : "Seeding compound library…"}
-          </p>
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-7 w-7 animate-spin" />
+          <p className="text-sm">Initialising CRO campaign…</p>
         </div>
       </div>
     )
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────
+  // ── Error ──────────────────────────────────────────────────────────────────
   if (phase === "error") {
     return (
       <div className="flex items-center justify-center min-h-screen p-8">
@@ -264,111 +422,115 @@ export default function DrugDiscoveryCroDemo() {
     )
   }
 
-  // ── Ready ────────────────────────────────────────────────────────────────────
-  return (
-    <div className="flex flex-col bg-background" style={{ height: "calc(100vh - 64px)" }}>
+  // ── Ready ──────────────────────────────────────────────────────────────────
+  const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? "Dashboard"
 
-      {/* ── Page header ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
+  return (
+    <div
+      className="flex flex-col bg-background"
+      style={{ height: "calc(100vh - 64px)", fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: "-0.005em" }}
+    >
+      {/* ── Sub-nav: breadcrumb + reg-chips ────────────────────────────────── */}
+      <div
+        className="shrink-0 border-b bg-white dark:bg-background"
+        style={{ height: 52 }}
+      >
+        <div className="h-full max-w-5xl mx-auto px-5 flex items-center gap-3">
+          {/* Brand mark */}
+          <button
             onClick={() => navigate("/")}
-            className="gap-1.5 text-muted-foreground hover:text-foreground"
+            className="w-7 h-7 rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-[13px] font-bold shrink-0 hover:bg-foreground/90 transition-colors border-0 cursor-pointer"
+            aria-label="Back to BioMate"
             data-testid="cro-demo-back-btn"
           >
-            <ArrowLeft className="h-4 w-4" />
-            BioMate
-          </Button>
+            B
+          </button>
 
-          <Separator orientation="vertical" className="h-5" />
-
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-              <FlaskConical className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold leading-none">Drug Discovery CRO Suite</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Regulatory-grade computational drug discovery</p>
-            </div>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <button
+              onClick={() => navigate("/")}
+              className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-0 p-0 cursor-pointer text-[13px]"
+            >
+              Drug Discovery
+            </button>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <span className="text-muted-foreground">{CAMPAIGN_META.molecule}</span>
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
+            <span className="text-foreground font-medium">{tabLabel}</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="font-mono text-xs"
+          <div className="flex-1" />
+
+          {/* Campaign ID + Reg chips */}
+          <div className="flex items-center gap-2">
+            <span
+              className="font-mono text-[11px] text-muted-foreground"
               data-testid="demo-campaign-id"
               data-campaign-id={CAMPAIGN_ID}
             >
-              {CAMPAIGN_ID}
-            </Badge>
-            <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-xs gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-white inline-block animate-pulse" />
-              LIVE
-            </Badge>
+              {CAMPAIGN_ID.slice(0, 24)}…
+            </span>
+            <RegChip variant="indigo">21 CFR Part 11</RegChip>
+            <RegChip>ICH M4</RegChip>
           </div>
         </div>
       </div>
 
-      {/* ── Scrollable content ───────────────────────────────────────────────── */}
+      {/* ── Scrollable content ─────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="max-w-5xl mx-auto px-5 py-5">
 
-          {/* Campaign context strip */}
-          <div className="flex items-center gap-2 flex-wrap mb-6 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900">
-            <FlaskConical className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-            <span className="text-xs text-blue-800 dark:text-blue-300">
-              <strong>Campaign:</strong> {CAMPAIGN_META.molecule} &nbsp;·&nbsp;
-              <strong>Target:</strong> {CAMPAIGN_META.target} &nbsp;·&nbsp;
-              <strong>Indication:</strong> {CAMPAIGN_META.indication}
-            </span>
-          </div>
+          {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as TabKey)}
+            className="space-y-5"
+          >
+            {/* Tab bar — near-black active indicator matching reference .dd-tab.active */}
+            <div className="border-b border-border">
+              <TabsList className="h-auto bg-transparent p-0 rounded-none w-full justify-start gap-0">
+                {TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.key}
+                    value={tab.key}
+                    className={cn(
+                      "rounded-none border-b-2 border-transparent px-3.5 py-2.5",
+                      "text-[13px] font-medium text-muted-foreground",
+                      "hover:text-foreground transition-colors",
+                      "data-[state=active]:border-foreground data-[state=active]:text-foreground",
+                      "data-[state=active]:bg-transparent data-[state=active]:shadow-none",
+                      "-mb-px",
+                    )}
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
-          {/* ── Main tabs ────────────────────────────────────────────────────── */}
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="h-auto bg-transparent border-b rounded-none p-0 w-full justify-start gap-0">
-              {TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.key}
-                  value={tab.key}
-                  className={cn(
-                    "rounded-none border-b-2 border-transparent px-4 py-2.5 text-sm font-medium gap-2",
-                    "text-muted-foreground hover:text-foreground transition-colors",
-                    "data-[state=active]:border-blue-600 data-[state=active]:text-blue-700",
-                    "dark:data-[state=active]:border-blue-400 dark:data-[state=active]:text-blue-400",
-                    "data-[state=active]:bg-transparent data-[state=active]:shadow-none",
-                    "-mb-px",
-                  )}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {/* Overview */}
-            <TabsContent value="overview" className="mt-0 pt-2 focus-visible:ring-0 focus-visible:outline-none">
-              <CompoundOverview />
+            {/* Dashboard */}
+            <TabsContent value="dashboard" className="mt-0 focus-visible:ring-0 focus-visible:outline-none">
+              <CampaignDashboard />
             </TabsContent>
 
             {/* Validation */}
-            <TabsContent value="validation" className="mt-0 pt-2 focus-visible:ring-0 focus-visible:outline-none">
+            <TabsContent value="validation" className="mt-0 focus-visible:ring-0 focus-visible:outline-none">
               <DrugDiscoveryValidationPanel campaignId={CAMPAIGN_ID} />
             </TabsContent>
 
             {/* Audit Trail */}
-            <TabsContent value="audit" className="mt-0 pt-2 focus-visible:ring-0 focus-visible:outline-none">
+            <TabsContent value="audit" className="mt-0 focus-visible:ring-0 focus-visible:outline-none">
               <DrugDiscoveryAuditViewer campaignId={CAMPAIGN_ID} />
             </TabsContent>
 
             {/* Auto-Retrain */}
-            <TabsContent value="auto_retrain" className="mt-0 pt-2 focus-visible:ring-0 focus-visible:outline-none">
+            <TabsContent value="auto_retrain" className="mt-0 focus-visible:ring-0 focus-visible:outline-none">
               <DrugDiscoveryAutoRetrain campaignId={CAMPAIGN_ID} />
             </TabsContent>
 
             {/* IND Assembly — pre-filled from campaign metadata */}
-            <TabsContent value="ind" className="mt-0 pt-2 focus-visible:ring-0 focus-visible:outline-none">
+            <TabsContent value="ind" className="mt-0 focus-visible:ring-0 focus-visible:outline-none">
               <DrugDiscoveryIndAssembly
                 campaignId={CAMPAIGN_ID}
                 initialValues={{

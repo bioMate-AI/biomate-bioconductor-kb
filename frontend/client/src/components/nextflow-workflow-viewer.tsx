@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '@/styles/workflow-panel.css';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { emitUxEvent } from "@/lib/ux-telemetry";
 import { Badge } from "@/components/ui/badge";
@@ -440,9 +441,7 @@ function ReproducibilityExportButton({ runId }: { runId: string }) {
 // }
 
 // ── PhaseGroupSection ─────────────────────────────────────────────────────────
-// Spec (§7.2 / §7.3): collapsible phase rows.
-// • Pending/completed phases: collapsed — single header row only (▸)
-// • Running/failed phases: expanded — show numbered steps + QC + Run Phase (▾)
+// Reference design (PhaseCard.jsx + Step): uses .phase / .phase-head / .phase-body / .step CSS classes
 
 interface PhaseGroup {
   key: string;
@@ -505,223 +504,173 @@ function PhaseGroupSection({
   const { steps, label, phaseParams } = group;
 
   const completedCount = steps.filter(s =>
-    ['completed', 'COMPLETED'].includes(String(s.status))
+    ['completed', 'ok', 'COMPLETED'].includes(String(s.status))
   ).length;
   const anyRunning = steps.some(s =>
-    ['running', 'RUNNING', 'SUBMITTED'].includes(String(s.status))
+    ['running', 'RUNNING', 'SUBMITTED', 'submitted'].includes(String(s.status))
   );
   const anyFailed = steps.some(s =>
-    ['failed', 'FAILED'].includes(String(s.status))
+    ['failed', 'FAILED', 'error', 'cancelled'].includes(String(s.status))
   );
   const allDone = completedCount === steps.length && steps.length > 0;
 
-  // Auto-expand when running or failed; collapse otherwise (spec §7.2)
+  // Auto-expand when running or failed (spec §7.2)
   const [open, setOpen] = useState(() => anyRunning || anyFailed);
-  // Keep open state in sync when execution state changes
   React.useEffect(() => {
     if (anyRunning || anyFailed) setOpen(true);
   }, [anyRunning, anyFailed]);
 
   const groupRenderedParams = renderedParameters.filter(p => phaseParams.includes(p.id));
 
-  // Status label shown on the right of the header
-  const statusLabel = anyFailed
-    ? 'FAILED'
-    : anyRunning
-    ? `RUNNING  ${completedCount}/${steps.length} done`
-    : allDone
-    ? 'COMPLETED'
-    : 'pending';
+  // Phase status and letter badge
+  const phaseStatus = anyFailed ? 'failed' : anyRunning ? 'running' : allDone ? 'completed' : 'pending';
+  const letter = group.key === 'all' ? String(Math.min(steps.length, 9)) : group.key.toUpperCase().charAt(0);
+  const dashIdx = label.indexOf('—');
+  const phaseTitle = dashIdx > -1 ? label.slice(0, dashIdx).trim() : label;
+  const phaseSub   = dashIdx > -1 ? label.slice(dashIdx + 1).trim() : '';
 
-  const statusColor = anyFailed
-    ? 'text-red-500'
-    : anyRunning
-    ? 'text-blue-500'
-    : allDone
-    ? 'text-green-600'
-    : 'text-muted-foreground';
-
-  const borderColor = anyFailed
-    ? 'border-red-200 dark:border-red-800'
-    : anyRunning
-    ? 'border-blue-200 dark:border-blue-800'
-    : allDone
-    ? 'border-green-200 dark:border-green-800'
-    : 'border-border';
+  const canRunPhase = !!activeRunId && !isGlobalExecutionActive && !isAutofixActive && !isPrereqBlocked && !executionBlockedReason;
 
   return (
-    <div className={`rounded-md border ${borderColor} overflow-hidden`} data-testid={`phase-group-${group.key}`}>
-      {/* ── Phase header row (always visible, click to toggle) ── */}
-      <button
-        type="button"
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        {open
-          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-        {anyRunning && <Loader2 className="h-3 w-3 text-blue-500 animate-spin shrink-0" />}
-        {anyFailed  && <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
-        {allDone && !anyRunning && !anyFailed && <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />}
-        {!anyRunning && !anyFailed && !allDone && (
-          <div className="h-3 w-3 rounded-full border border-muted-foreground/40 shrink-0" />
+    <div className={`phase ${phaseStatus}${open ? ' open' : ''}`} data-testid={`phase-group-${group.key}`}>
+      {/* Phase header — always visible, click to toggle */}
+      <div className="phase-head" onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
+        <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+        <div className="letter">{letter}</div>
+        <div className="titles">
+          <div className="title">{phaseTitle}</div>
+          {phaseSub && <div className="sub">{phaseSub}</div>}
+        </div>
+        {phaseStatus === 'running' && (
+          <span className="chip run">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>
+            RUNNING
+          </span>
         )}
-        <span className="text-xs font-semibold flex-1 truncate">{label}</span>
-        <span className={`text-[10px] font-medium shrink-0 ${statusColor}`}>{statusLabel}</span>
-      </button>
+        {phaseStatus === 'completed' && <span className="chip ok">DONE</span>}
+        {phaseStatus === 'failed'    && <span className="chip err">FAILED</span>}
+        {phaseStatus === 'pending' && (
+          <span className="progress-chip">{steps.length} step{steps.length !== 1 ? 's' : ''}</span>
+        )}
+        {(phaseStatus === 'running' || phaseStatus === 'completed') && (
+          <span className="progress-chip">{completedCount}/{steps.length}</span>
+        )}
+      </div>
 
-      {/* ── Expanded body ── */}
+      {/* Phase body — visible when expanded */}
       {open && (
-        <div className="border-t border-border/40">
-          {/* Numbered step rows */}
-          <div className="divide-y divide-border/20">
-            {steps.map((step: any, idx: number) => {
-              const s = String(step.status || '').toLowerCase();
-              const isRunning  = ['running','submitted'].includes(s);
-              const isDone     = ['completed','ok'].includes(s);
-              const isFailed   = ['failed','error','cancelled'].includes(s);
-              const isPending  = !isRunning && !isDone && !isFailed;
+        <div className="phase-body">
+          {/* Step rows */}
+          {steps.map((step: any, idx: number) => {
+            const s = String(step.status || '').toLowerCase();
+            const isRunning = ['running','submitted'].includes(s);
+            const isDone    = ['completed','ok'].includes(s);
+            const isFailed  = ['failed','error','cancelled'].includes(s);
+            const stepStatus = isDone ? 'completed' : isRunning ? 'running' : isFailed ? 'failed' : 'pending';
+            const hasOutputs = (step.outputFiles?.length ?? 0) > 0;
 
-              const stepIcon = isRunning
-                ? <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin shrink-0" />
-                : isDone
-                ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                : isFailed
-                ? <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                : <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0" />;
-
-              const stepStatusText = isRunning ? '↻ running…'
-                : isDone    ? '✓ done'
-                : isFailed  ? '✗ failed'
-                : '○ pending';
-
-              const stepStatusColor = isRunning ? 'text-blue-500'
-                : isDone    ? 'text-green-600'
-                : isFailed  ? 'text-red-500'
-                : 'text-muted-foreground';
-
-              const hasOutputs = (step.outputFiles?.length ?? 0) > 0;
-              const canRun = !!activeRunId && !isRunning && !isGlobalExecutionActive && !isAutofixActive && !isPrereqBlocked && !executionBlockedReason;
-
-              return (
-                <div key={step.id} className="px-3 py-2 space-y-1.5" data-testid={`phase-card-${step.id}`} data-status={s}>
-                  {/* Step row */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground w-4 shrink-0 select-none">
-                      {STEP_NUMBERS[idx] ?? `${idx + 1}.`}
-                    </span>
-                    {stepIcon}
-                    <span className={`text-xs font-medium flex-1 truncate ${isFailed ? 'text-red-600 dark:text-red-400' : ''}`} title={step.name}>
-                      {step.name}
-                    </span>
-                    <span className={`text-[10px] shrink-0 ${stepStatusColor}`}>{stepStatusText}</span>
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      {(isDone || isFailed) && (
-                        <button
-                          type="button"
-                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border/60 hover:border-border transition-colors"
-                          onClick={() => onRun(step)}
-                          disabled={!canRun}
-                          data-testid={`button-run-step-${step.id}`}
-                        >
-                          {(step.runCount ?? 0) > 0 ? 'Rerun' : 'Run'}
-                        </button>
-                      )}
-                      {isPending && step.parameters && Object.keys(step.parameters).length > 0 && (
-                        <button
-                          type="button"
-                          className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border/60 hover:border-border transition-colors flex items-center gap-0.5"
-                          onClick={() => onAdjustAndRerun(step)}
-                          data-testid={`button-adjust-step-${step.id}`}
-                        >
-                          <Settings2 className="h-2.5 w-2.5" /> Params
-                        </button>
-                      )}
-                      {isPending && (
-                        <button
-                          type="button"
-                          className="text-[10px] text-muted-foreground hover:text-destructive px-1 py-0.5 rounded"
-                          onClick={() => onSkip(step.id)}
-                          title="Skip this step"
-                          data-testid={`button-skip-step-${step.id}`}
-                        >
-                          <SkipForward className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
+            return (
+              <div
+                key={step.id}
+                className={`step ${stepStatus}`}
+                data-testid={`phase-card-${step.id}`}
+                data-status={s}
+              >
+                <div className="step-head">
+                  <div className={`name${isFailed ? ' dim' : ''}`}>
+                    {STEP_NUMBERS[idx] ?? `${idx + 1}.`}&nbsp;{step.name}
                   </div>
-
-                  {/* Output files (when available) */}
-                  {hasOutputs && (
-                    <div className="pl-8 flex flex-wrap gap-x-3 gap-y-0.5">
-                      {step.outputFiles.slice(0, 4).map((f: any, fi: number) => (
-                        <span key={fi} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <span className="font-mono truncate max-w-[120px]" title={f.name}>{f.name}</span>
-                          <button
-                            className="hover:text-foreground hover:underline underline-offset-2"
-                            onClick={() => onPreviewFile(f)}
-                          >View</button>
-                          {activeRunId && (
-                            <a
-                              href={`/api/workflows/runs/${encodeURIComponent(activeRunId)}/step-file?path=${encodeURIComponent(f.path)}&download=1`}
-                              className="hover:text-foreground hover:underline underline-offset-2"
-                            >Download</a>
-                          )}
-                        </span>
-                      ))}
-                      {step.outputFiles.length > 4 && (
-                        <span className="text-[10px] text-muted-foreground">+{step.outputFiles.length - 4} more</span>
-                      )}
-                    </div>
-                  )}
+                  {isRunning && <span className="chip run" style={{marginLeft:'auto'}}><Loader2 className="h-2.5 w-2.5 animate-spin" style={{display:'inline-block'}}/>RUNNING</span>}
+                  {isDone    && <span className="chip ok"  style={{marginLeft:'auto'}}>DONE</span>}
+                  {isFailed  && <span className="chip err" style={{marginLeft:'auto'}}>FAILED</span>}
+                  <div className="actions">
+                    {(isDone || isFailed) && (
+                      <button
+                        className="btn ghost sm"
+                        onClick={(e) => { e.stopPropagation(); onRun(step); }}
+                        data-testid={`button-run-step-${step.id}`}
+                      >Rerun</button>
+                    )}
+                    {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
+                      <button
+                        className="btn ghost sm"
+                        onClick={(e) => { e.stopPropagation(); onAdjustAndRerun(step); }}
+                        data-testid={`button-adjust-step-${step.id}`}
+                      >Params</button>
+                    )}
+                    {!isRunning && !isDone && (
+                      <button
+                        className="btn ghost sm danger"
+                        onClick={(e) => { e.stopPropagation(); onSkip(step.id); }}
+                        title="Skip step"
+                        data-testid={`button-skip-step-${step.id}`}
+                      >Skip</button>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* ── QC gates section ── */}
+                {/* Param meta (first 3 params inline, non-running non-done) */}
+                {!isRunning && !isDone && step.parameters && Object.keys(step.parameters).length > 0 && (
+                  <div className="step-meta">
+                    {Object.entries(step.parameters as Record<string,unknown>).slice(0,3).map(([k,v]) => `${k}: ${v}`).join(' · ')}
+                  </div>
+                )}
+
+                {/* Output files */}
+                {hasOutputs && (
+                  <div className="step-outputs">
+                    {(step.outputFiles as any[]).slice(0,4).map((f: any, fi: number) => (
+                      <span className="output-file" key={fi}>
+                        <span className="fn" title={f.name}>{f.name}</span>
+                        <span className="act" onClick={() => onPreviewFile(f)}>view</span>
+                        {activeRunId && (
+                          <a
+                            className="act"
+                            href={`/api/workflows/runs/${encodeURIComponent(activeRunId)}/step-file?path=${encodeURIComponent(f.path)}&download=1`}
+                          >dl</a>
+                        )}
+                      </span>
+                    ))}
+                    {step.outputFiles.length > 4 && (
+                      <span className="output-file">
+                        <span className="fn">+{step.outputFiles.length - 4} more</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* QC Gates block */}
           {groupRenderedParams.length > 0 && (
-            <div className="border-t border-border/30 px-3 py-2 space-y-1">
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                QC Gates (evaluated after step {steps.length})
-              </p>
+            <div className="qc-block">
+              <div className="qc-head">QC Gates — evaluated after step {steps.length}</div>
               {groupRenderedParams.map(p => (
-                <div key={p.id} className="flex items-center gap-2 text-[11px]">
-                  <span className="font-mono text-foreground/80 flex-1 truncate">{p.label}</span>
-                  {p.type === 'boolean' ? (
-                    <Switch checked={!!params[p.id]} onCheckedChange={v => onParamChange(p.id, v)} className="scale-75 origin-right" />
-                  ) : (
-                    <Input
-                      value={params[p.id] ?? p.value ?? ''}
-                      onChange={e => onParamChange(p.id, e.target.value)}
-                      className="h-5 w-20 text-[11px] px-1.5 py-0 text-right font-mono shrink-0"
-                    />
-                  )}
+                <div className="qc-gate" key={p.id}>
+                  <span className="metric">{p.label}</span>
+                  <span className="op">{p.type === 'number' ? '≥' : '='}</span>
+                  <span className="thr">{String(params[p.id] ?? p.value ?? '')}</span>
+                  <button className="linkish edit" onClick={() => onParamChange(p.id, params[p.id])}>edit</button>
                 </div>
               ))}
+              <div className="qc-autoloop">
+                <span
+                  className={`switch${autoloopEnabled ? ' on' : ''}`}
+                  onClick={onToggleAutoloop}
+                  role="switch"
+                  aria-checked={autoloopEnabled}
+                  data-testid={`autoloop-toggle-${group.key}`}
+                />
+                <span>Auto-loop this phase on fail <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
+              </div>
             </div>
           )}
 
-          {/* ── Auto-loop toggle ── */}
-          <div className="border-t border-border/30 px-3 py-1.5 flex items-center gap-2">
-            <Switch
-              id={`autoloop-toggle-${group.key}`}
-              checked={autoloopEnabled}
-              onCheckedChange={onToggleAutoloop}
-              className="scale-75 origin-left"
-              data-testid={`autoloop-toggle-${group.key}`}
-            />
-            <Label htmlFor={`autoloop-toggle-${group.key}`} className="text-[10px] text-muted-foreground cursor-pointer select-none">
-              Auto-loop this phase on fail (max 3×)
-            </Label>
-          </div>
-
-          {/* ── AutoLoopPanel (QC gate results) ── */}
+          {/* AutoLoopPanel when gate results match this phase */}
           {autoloopEnabled && autoLoopPanelState?.gateResults &&
             autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase) && (
-            <div className="border-t border-border/30 p-2">
+            <div style={{padding:'8px 14px 0 40px'}}>
               <AutoLoopPanel
                 state={autoLoopPanelState}
                 onDismiss={onDismissAutoloop}
@@ -730,17 +679,30 @@ function PhaseGroupSection({
             </div>
           )}
 
-          {/* ── Run Phase button (spec §7.3) ── */}
-          <div className="border-t border-border/30 px-3 py-2">
-            <button
-              type="button"
-              className="w-full text-xs font-medium rounded border border-border/60 px-3 py-1.5 hover:bg-muted/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-              disabled={!activeRunId || isGlobalExecutionActive || isAutofixActive || isPrereqBlocked || !!executionBlockedReason}
-              onClick={() => steps.forEach((s: any) => onRun(s))}
-              data-testid={`button-run-phase-${group.key}`}
-            >
-              Run {label.split('—')[0].trim() || `Phase ${group.key}`}
-            </button>
+          {/* Phase actions */}
+          <div className="phase-actions">
+            {!allDone && (
+              <button
+                className="btn sm"
+                disabled={!canRunPhase}
+                onClick={() => steps.forEach((s: any) => onRun(s))}
+                data-testid={`button-run-phase-${group.key}`}
+              >
+                Run {phaseTitle}
+              </button>
+            )}
+            {!allDone && (
+              <button
+                className="btn ghost sm danger"
+                onClick={() => onSkip(group.key)}
+              >
+                Skip phase
+              </button>
+            )}
+            <span style={{flex:1}}/>
+            {allDone && (
+              <button className="linkish" style={{fontSize:12}}>View phase outputs</button>
+            )}
           </div>
         </div>
       )}
@@ -1739,7 +1701,7 @@ export function NextflowWorkflowViewer({
           : "Use View Results to check generated outputs as they arrive.";
 
   return (
-    <div className="space-y-6 p-4" data-testid="workflow-artifact-panel">
+    <div className="wf-panel" data-testid="workflow-artifact-panel">
       <DownloadOutcomePrompt
         open={downloadAllPromptOpen}
         onOpenChange={setDownloadAllPromptOpen}
@@ -1812,49 +1774,47 @@ export function NextflowWorkflowViewer({
           </div>
         </div>
       )}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-sm font-semibold leading-tight">
-              {workflowDefinition?.name || 'Untitled'}
-            </CardTitle>
-            <div className="flex items-center gap-1.5 shrink-0">
-              {workflowDefinition?.qc_profile && (
-                <Badge variant="outline" className="text-xs font-normal text-emerald-700 border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20">
-                  QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
-                </Badge>
-              )}
-              <Badge variant={status === 'running' ? 'secondary' : 'outline'} data-testid="workflow-overall-status-badge" data-status={status} className="text-xs">
-                {status.toUpperCase()}
-              </Badge>
-              {(status === 'running' || status === 'paused') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  data-testid="button-cancel-workflow-panel"
-                  onClick={onCancel}
-                >
-                  <Square className="h-3 w-3 mr-1" />
-                  Cancel
-                </Button>
-              )}
-              {(status === 'completed' || status === 'failed') && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  data-testid="button-restart-workflow-panel"
-                  onClick={() => onExecute?.(params)}
-                >
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Restart
-                </Button>
-              )}
-            </div>
+      {/* ── Panel header ─────────────────────────────────────────────────────── */}
+      <div className="panel-head">
+        <div className="top-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="kicker">Workflow</div>
+            <div className="panel-name">{workflowDefinition?.name || 'Untitled'}</div>
           </div>
-        </CardHeader>
-        <CardContent>
+          <div className="flex items-center gap-1 shrink-0">
+            {workflowDefinition?.qc_profile && (
+              <span className="chip ok" style={{ fontSize: '10px' }}>
+                QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
+              </span>
+            )}
+            <span
+              className={`chip${status === 'running' ? ' run' : status === 'completed' ? ' ok' : status === 'failed' ? ' err' : ''}`}
+              data-testid="workflow-overall-status-badge"
+              data-status={status}
+            >
+              {status.toUpperCase()}
+            </span>
+            {(status === 'running' || status === 'paused') && (
+              <button className="iconbtn" data-testid="button-cancel-workflow-panel" onClick={onCancel} title="Cancel">
+                <Square className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {(status === 'completed' || status === 'failed') && (
+              <button className="iconbtn" data-testid="button-restart-workflow-panel" onClick={() => onExecute?.(params)} title="Restart">
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        {status === 'running' && effectiveProgress > 0 && (
+          <div className="run-bar">
+            <div className="run-bar-fill" style={{ width: `${effectiveProgress}%` }} />
+          </div>
+        )}
+      </div>
+
+      {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
+      <div className="panel-body">
           {/* Auto-Loop QC panels are now rendered inline under each phase — see PhaseGroupSection below */}
 
           {/* Completion banner — shown when workflow reaches terminal success state */}
