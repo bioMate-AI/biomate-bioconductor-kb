@@ -13,7 +13,7 @@
  *           └── .dd-body  (surface content)
  */
 
-import { useState, useEffect, useRef, Fragment } from "react"
+import { useState, useEffect, useRef, useCallback, Fragment } from "react"
 import { useLocation } from "wouter"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
 import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
@@ -260,7 +260,7 @@ function CampaignDashboard() {
       </div>
 
       {/* DMTA Loop Progress */}
-      <div className="border border-border rounded-lg bg-muted/20 px-4 pt-3 pb-4 mb-5">
+      <div data-tour="dmta-stepper" className="border border-border rounded-lg bg-muted/20 px-4 pt-3 pb-4 mb-5">
         <div className="text-[11px] uppercase tracking-[0.05em] text-muted-foreground font-semibold mb-3">
           DMTA Loop Progress
         </div>
@@ -324,7 +324,7 @@ function CampaignDashboard() {
         </table>
       </div>
 
-      <div className="flex gap-2 mt-3.5">
+      <div data-tour="dashboard-actions" className="flex gap-2 mt-3.5">
         <button className="h-8 px-3 text-[13px] font-medium border border-border rounded-[6px] bg-white dark:bg-background hover:bg-muted/50 flex items-center gap-1.5 cursor-pointer">
           <Upload className="h-3.5 w-3.5" /> Ingest New Assay Results
         </button>
@@ -748,6 +748,280 @@ function CampaignWizard({ onDone, onToast }: { onDone: () => void; onToast: (msg
   )
 }
 
+// ── Tutorial Tour ─────────────────────────────────────────────────────────────
+
+interface TourStep {
+  id: string
+  target: string | null
+  placement: "top" | "bottom" | "left" | "right" | "center"
+  title: string
+  body: React.ReactNode
+  setup?: (setTab: (t: TabKey) => void) => void
+  cta?: string
+}
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    id: "welcome", target: null, placement: "center",
+    title: "Welcome to the BioMate CRO tour",
+    body: <>I'll walk you through the compliance workspace in about 90 seconds. You'll see how the <b>DMTA loop</b>, <b>model validation</b>, <b>audit chain</b>, and <b>electronic signatures</b> work together to keep a campaign regulator-ready.<br/><span style={{ fontSize: 11.5, color: "oklch(0.62 0.010 260)", marginTop: 6, display: "block" }}>Use → / ← to step, Esc to skip.</span></>,
+    setup: (setTab) => setTab("dashboard"),
+  },
+  {
+    id: "tabs", target: '[data-tour="tabs-bar"]', placement: "bottom",
+    title: "Five surfaces, one campaign",
+    body: <>Each tab is a regulated view into the same campaign — Dashboard, Validation, Audit, Auto-Retrain, and IND assembly. I'll visit each one.</>,
+  },
+  {
+    id: "dmta", target: '[data-tour="dmta-stepper"]', placement: "bottom",
+    title: "The DMTA loop",
+    body: <>Design → Make → Test → Analyse. This campaign is in Round 3 and currently <b>Making</b>. Auto-retrain advances the loop every time new assay data lands.</>,
+    setup: (setTab) => setTab("dashboard"),
+  },
+  {
+    id: "dashboard-actions", target: '[data-tour="dashboard-actions"]', placement: "top",
+    title: "Regulated actions live here",
+    body: <><b>Ingest Assay</b> and <b>Export CRO Order</b> are 21 CFR Part 11 actions — they require an electronic signature and they write to the audit chain.</>,
+  },
+  {
+    id: "validation", target: '[data-tour="validation-callout"]', placement: "bottom",
+    title: "EMA 2-fold qualification",
+    body: <>We qualify the PBPK model against a 31-drug reference set. Regulators need Cmax and AUC within 2× for ≥67% of drugs. The model passes — evidence you can cite directly in §2.6.1.2.</>,
+    setup: (setTab) => setTab("validation"),
+  },
+  {
+    id: "audit", target: '[data-tour="audit-list"]', placement: "top",
+    title: "Tamper-evident audit chain",
+    body: <>Every regulated action is a record. Each record carries the previous record's SHA-256 hash, so any change anywhere breaks the chain — and we show you exactly where.</>,
+    setup: (setTab) => setTab("audit"),
+  },
+  {
+    id: "retrain", target: '[data-tour="loop-strip"]', placement: "bottom",
+    title: "Auto-retrain loop",
+    body: <>The loop polls for new assay data. When it finds any, it retrains and proposes a new round of compounds. You can pause it, trigger it manually, or let it run.</>,
+    setup: (setTab) => setTab("auto-retrain"),
+  },
+  {
+    id: "ind-generate", target: '[data-tour="ind-generate"]', placement: "top",
+    title: "One-click IND §2.6.1",
+    body: <>Fill the campaign details, click <b>Generate IND Package</b>, and we assemble the full §2.6.1 Nonclinical Overview — pulling numbers from the validation report, audit chain, and compound rankings — into a signed Markdown + DOCX bundle.</>,
+    setup: (setTab) => setTab("ind-assembly"),
+  },
+  {
+    id: "esig", target: '[data-tour="esig-btn"]', placement: "bottom",
+    title: "Electronic signatures",
+    body: <>Any regulated action opens a Part 11-compliant e-signature modal: TOTP code, meaning-of-signature, and a permanent audit record. Try clicking <b>Export CRO Order</b> on the dashboard to see the full flow.</>,
+    setup: (setTab) => setTab("dashboard"),
+  },
+  {
+    id: "done", target: null, placement: "center",
+    title: "You're ready",
+    body: <>
+      <ul style={{ paddingLeft: 18, margin: "8px 0 0", lineHeight: 1.7, color: "oklch(0.48 0.012 260)", fontSize: 12.5 }}>
+        <li>Replay this tour anytime from the <b style={{ color: "oklch(0.22 0.01 260)" }}>Tutorial</b> button in the top bar.</li>
+        <li>Click a regulated action (Ingest Assay, Export CRO Order) to trigger the e-signature flow.</li>
+        <li>Switch between tabs to explore Validation, Audit, Auto-Retrain, and IND Assembly.</li>
+      </ul>
+    </>,
+    cta: "Start exploring",
+  },
+]
+
+function TourSpotlight({ rect }: { rect: DOMRect | null }) {
+  if (!rect) {
+    return (
+      <svg className="cro-tour-overlay" aria-hidden="true">
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(12,14,20,0.55)" />
+      </svg>
+    )
+  }
+  const pad = 8
+  const r = 8
+  const x = rect.left - pad
+  const y = rect.top - pad
+  const w = rect.width + pad * 2
+  const h = rect.height + pad * 2
+  return (
+    <svg className="cro-tour-overlay" aria-hidden="true">
+      <defs>
+        <mask id="cro-tour-mask">
+          <rect x="0" y="0" width="100%" height="100%" fill="white" />
+          <rect x={x} y={y} width={w} height={h} rx={r} ry={r} fill="black" />
+        </mask>
+      </defs>
+      <rect x="0" y="0" width="100%" height="100%" fill="rgba(12,14,20,0.55)" mask="url(#cro-tour-mask)" />
+      <rect x={x} y={y} width={w} height={h} rx={r} ry={r}
+        fill="none" stroke="rgba(99,140,255,0.9)" strokeWidth="2" className="cro-tour-ring" />
+    </svg>
+  )
+}
+
+function TourCallout({
+  step, total, stepData, targetRect,
+  onNext, onPrev, onSkip,
+}: {
+  step: number; total: number; stepData: TourStep; targetRect: DOMRect | null
+  onNext: () => void; onPrev: () => void; onSkip: () => void
+}) {
+  const calloutRef = useRef<HTMLDivElement>(null)
+  const [calloutH, setCalloutH] = useState(200)
+  useEffect(() => {
+    if (calloutRef.current) setCalloutH(calloutRef.current.offsetHeight)
+  })
+
+  const CW = stepData.placement === "center" ? 420 : 360
+  const OFFSET = 14; const MARGIN = 16
+  const vw = window.innerWidth; const vh = window.innerHeight
+
+  let calloutStyle: React.CSSProperties = {}
+  if (stepData.placement === "center" || !targetRect) {
+    calloutStyle = { left: "50%", top: "50%", transform: "translate(-50%, -50%)" }
+  } else {
+    let effectivePlacement = stepData.placement
+    const spaceBelow = vh - targetRect.bottom
+    const spaceAbove = targetRect.top
+    const needed = calloutH + OFFSET + MARGIN
+    if (effectivePlacement === "bottom" && spaceBelow < needed && spaceAbove > needed) effectivePlacement = "top"
+    if (effectivePlacement === "top" && spaceAbove < needed && spaceBelow > needed) effectivePlacement = "bottom"
+
+    const cx = targetRect.left + targetRect.width / 2
+    let left = 0, top = 0
+    if (effectivePlacement === "bottom") { left = cx - CW / 2; top = targetRect.bottom + OFFSET }
+    else if (effectivePlacement === "top") { left = cx - CW / 2; top = targetRect.top - OFFSET - calloutH }
+    else if (effectivePlacement === "left") { left = targetRect.left - OFFSET - CW; top = targetRect.top + targetRect.height / 2 - calloutH / 2 }
+    else { left = targetRect.right + OFFSET; top = targetRect.top + targetRect.height / 2 - calloutH / 2 }
+
+    left = Math.max(MARGIN, Math.min(vw - CW - MARGIN, left))
+    top = Math.max(MARGIN, Math.min(vh - calloutH - MARGIN, top))
+    calloutStyle = { left, top }
+  }
+
+  const isFirst = step === 0
+  const isLast = step === total - 1
+
+  return (
+    <div
+      ref={calloutRef}
+      className={`cro-tour-callout${stepData.placement === "center" ? " center" : ""}`}
+      style={calloutStyle}
+    >
+      {/* Meta row */}
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[10.5px] uppercase tracking-[0.06em] font-semibold" style={{ color: "oklch(0.55 0.14 245)" }}>
+          Step {step + 1} of {total}
+        </span>
+        <button onClick={onSkip} className="text-[11.5px] cursor-pointer bg-transparent border-0 p-1" style={{ color: "oklch(0.62 0.010 260)" }}>
+          Skip tour ×
+        </button>
+      </div>
+      {/* Title */}
+      <div className="text-[14.5px] font-semibold mb-1.5" style={{ letterSpacing: "-0.01em", color: "oklch(0.22 0.01 260)" }}>
+        {stepData.title}
+      </div>
+      {/* Body */}
+      <div className="text-[12.5px] leading-relaxed" style={{ color: "oklch(0.48 0.012 260)" }}>
+        {stepData.body}
+      </div>
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-3 pt-2.5" style={{ borderTop: "1px solid oklch(0.915 0.006 240)" }}>
+        {/* Dots */}
+        <div className="flex gap-1">
+          {Array.from({ length: total }).map((_, i) => (
+            <span key={i} className="rounded-full transition-all" style={{
+              width: i === step ? 14 : 5, height: 5, borderRadius: 999,
+              background: i === step ? "oklch(0.55 0.14 245)" : i < step ? "oklch(0.62 0.010 260)" : "oklch(0.915 0.006 240)",
+            }} />
+          ))}
+        </div>
+        {/* Actions */}
+        <div className="flex gap-1.5">
+          {!isFirst && (
+            <button onClick={onPrev} className="h-7 px-2.5 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
+              ← Back
+            </button>
+          )}
+          <button onClick={onNext} className="h-7 px-3 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}>
+            {isLast ? (stepData.cta ?? "Done") : "Next →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function useTour(setActiveTab: (t: TabKey) => void) {
+  const [active, setActive] = useState(false)
+  const [step, setStep] = useState(0)
+  const [rect, setRect] = useState<DOMRect | null>(null)
+
+  const measure = useCallback(() => {
+    const s = TOUR_STEPS[step]
+    if (!s.target) { setRect(null); return }
+    const el = document.querySelector(s.target) as HTMLElement | null
+    if (!el) { setRect(null); return }
+    const r = el.getBoundingClientRect()
+    const vh = window.innerHeight
+    // Clip very tall targets
+    const top = Math.max(8, r.top)
+    const bottom = Math.min(vh - 8, r.bottom)
+    setRect(new DOMRect(r.left, top, r.width, Math.max(40, bottom - top)))
+  }, [step])
+
+  // Apply setup + measure on step change
+  useEffect(() => {
+    if (!active) return
+    const s = TOUR_STEPS[step]
+    if (s.setup) s.setup(setActiveTab)
+    // Two animation frames to let React commit + layout
+    let id1 = requestAnimationFrame(() => {
+      id1 = requestAnimationFrame(measure)
+    })
+    const t = setTimeout(measure, 300)
+    return () => { cancelAnimationFrame(id1); clearTimeout(t) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step])
+
+  // Re-measure on resize/scroll
+  useEffect(() => {
+    if (!active) return
+    const onR = () => measure()
+    window.addEventListener("resize", onR)
+    window.addEventListener("scroll", onR, true)
+    return () => { window.removeEventListener("resize", onR); window.removeEventListener("scroll", onR, true) }
+  }, [active, measure])
+
+  // Keyboard nav
+  useEffect(() => {
+    if (!active) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(false)
+      else if (e.key === "ArrowRight") next()
+      else if (e.key === "ArrowLeft") prev()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, step])
+
+  const start = () => { setStep(0); setActive(true) }
+  const stop = () => setActive(false)
+  const next = () => { if (step >= TOUR_STEPS.length - 1) stop(); else setStep(s => s + 1) }
+  const prev = () => setStep(s => Math.max(0, s - 1))
+
+  const node = active ? (
+    <>
+      <TourSpotlight rect={rect} />
+      <TourCallout
+        step={step} total={TOUR_STEPS.length}
+        stepData={TOUR_STEPS[step]} targetRect={rect}
+        onNext={next} onPrev={prev} onSkip={stop}
+      />
+    </>
+  ) : null
+
+  return { active, start, node }
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DrugDiscoveryCroDemo() {
@@ -760,6 +1034,7 @@ export default function DrugDiscoveryCroDemo() {
   const [esigOpen, setEsigOpen] = useState(false)
   const [esigAction, setEsigAction] = useState<EsigAction>("EXPORT_CRO_ORDER")
   const [toast, setToast] = useState<string | null>(null)
+  const tour = useTour(setActiveTab)
 
   useEffect(() => {
     async function setup() {
@@ -843,6 +1118,17 @@ export default function DrugDiscoveryCroDemo() {
         </div>
 
         <div className="flex-1" />
+
+        {/* Tutorial button */}
+        <button
+          data-tour="tut-btn"
+          onClick={tour.start}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold cursor-pointer transition-colors"
+          style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.55 0.14 245)", border: "1px solid oklch(0.55 0.14 245)" }}
+          title="Replay the tutorial"
+        >
+          <span style={{ fontSize: 10 }}>▶</span> Tutorial
+        </button>
 
         {/* Reg chips + user badge */}
         <div className="flex items-center gap-2.5">
@@ -957,6 +1243,7 @@ export default function DrugDiscoveryCroDemo() {
 
                 {/* .btn.sm.ghost — Sign action */}
                 <button
+                  data-tour="esig-btn"
                   onClick={() => { setEsigAction("EXPORT_CRO_ORDER"); setEsigOpen(true) }}
                   className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
                   style={{
@@ -970,7 +1257,7 @@ export default function DrugDiscoveryCroDemo() {
               </div>
 
               {/* .dd-tabs — hidden when wizard is open */}
-              <div className="flex overflow-x-auto mt-3.5" style={{ scrollbarWidth: "none", display: showWizard ? "none" : "flex" }}>
+              <div data-tour="tabs-bar" className="flex overflow-x-auto mt-3.5" style={{ scrollbarWidth: "none", display: showWizard ? "none" : "flex" }}>
                 {TABS.map((tab) => (
                   <button
                     key={tab.key}
@@ -1064,6 +1351,9 @@ export default function DrugDiscoveryCroDemo() {
       {toast && (
         <ToastMsg text={toast} onDone={() => setToast(null)} />
       )}
+
+      {/* Tour overlay */}
+      {tour.node}
     </div>
   )
 }

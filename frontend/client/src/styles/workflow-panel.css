@@ -511,3 +511,158 @@
   background: var(--warn-soft); color: var(--warn);
   display: grid; place-items: center; margin-bottom: 10px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Tutorial Tour  (global — position:fixed, outside .wf-panel)
+   Ported from reference/claude_design/cro/src/tour.css
+   Token fallbacks for when rendered outside .wf-panel scope.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Shared token fallbacks on :root so tour works outside .wf-panel */
+:root {
+  --tour-bg-elev:    oklch(1.0  0     0);
+  --tour-border:     oklch(0.915 0.006 240);
+  --tour-text:       oklch(0.22  0.01  260);
+  --tour-text-muted: oklch(0.48  0.012 260);
+  --tour-text-dim:   oklch(0.62  0.010 260);
+  --tour-accent:     oklch(0.55  0.14  245);
+  --tour-accent-soft:oklch(0.96  0.03  245);
+  --tour-surface:    oklch(0.985 0.003 240);
+  --tour-font-ui:    'Inter', system-ui, sans-serif;
+  --tour-font-mono:  'JetBrains Mono', Consolas, monospace;
+}
+.dark {
+  --tour-bg-elev:    oklch(0.14  0.007 260);
+  --tour-border:     oklch(0.255 0.010 260);
+  --tour-text:       oklch(0.92  0.005 250);
+  --tour-text-muted: oklch(0.65  0.010 255);
+  --tour-text-dim:   oklch(0.50  0.008 255);
+  --tour-accent:     oklch(0.65  0.14  245);
+  --tour-accent-soft:oklch(0.20  0.04  245);
+  --tour-surface:    oklch(0.155 0.008 260);
+}
+
+.tour-overlay {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  pointer-events: none;
+  z-index: 9100;
+}
+.tour-ring {
+  animation: tourPulse 1.8s ease-in-out infinite;
+}
+@keyframes tourPulse {
+  0%, 100% { opacity: .9; }
+  50%       { opacity: .45; }
+}
+
+.tour-callout {
+  position: fixed;
+  width: 360px;
+  background: var(--tour-bg-elev);
+  border: 1px solid var(--tour-border);
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 16px 40px rgba(10,14,28,.35), 0 2px 6px rgba(10,14,28,.18);
+  z-index: 9101;
+  font-size: 13px;
+  font-family: var(--tour-font-ui);
+  color: var(--tour-text);
+  animation: tourIn .18s ease-out;
+}
+.tour-callout.center { width: 420px; }
+@keyframes tourIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tour-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.tour-step-n {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  font-weight: 600; color: var(--tour-accent);
+}
+.tour-skip {
+  background: none; border: none; cursor: pointer;
+  font-size: 11.5px; color: var(--tour-text-dim);
+  padding: 2px 4px; font-family: var(--tour-font-ui);
+}
+.tour-skip:hover { color: var(--tour-text); }
+
+.tour-title {
+  font-size: 14.5px; font-weight: 600; color: var(--tour-text);
+  margin-bottom: 6px; line-height: 1.35;
+}
+.tour-body {
+  font-size: 12.5px; color: var(--tour-text-muted);
+  line-height: 1.55;
+}
+.tour-body b { color: var(--tour-text); font-weight: 600; }
+.tour-hint {
+  margin-top: 8px; font-size: 11.5px; color: var(--tour-text-dim);
+}
+.tour-body kbd {
+  display: inline-block;
+  font-family: var(--tour-font-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--tour-border);
+  border-radius: 3px;
+  background: var(--tour-surface);
+  color: var(--tour-text);
+  margin: 0 1px;
+}
+
+.tour-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tour-border);
+}
+.tour-dots { display: flex; gap: 4px; }
+.tour-dot {
+  width: 5px; height: 5px; border-radius: 999px;
+  background: var(--tour-border);
+  transition: background .2s;
+}
+.tour-dot.done   { background: var(--tour-text-dim); }
+.tour-dot.active { background: var(--tour-accent); width: 14px; border-radius: 3px; }
+
+.tour-actions { display: flex; gap: 6px; }
+.tour-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 26px; padding: 0 10px;
+  border: 1px solid var(--tour-border);
+  border-radius: 5px;
+  background: var(--tour-bg-elev);
+  color: var(--tour-text);
+  font-size: 12px; font-weight: 500;
+  font-family: var(--tour-font-ui);
+  cursor: pointer;
+  transition: background .12s;
+}
+.tour-btn.primary {
+  background: var(--tour-text); color: var(--tour-bg-elev);
+  border-color: var(--tour-text);
+}
+.tour-btn.primary:hover { opacity: .88; }
+.tour-btn.ghost { border-color: transparent; background: transparent; }
+.tour-btn.ghost:hover { background: var(--tour-surface); }
+
+/* ── Tutorial launcher button in top nav ───────────────────── */
+.tut-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--tour-accent-soft);
+  color: var(--tour-accent);
+  border: 1px solid var(--tour-accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--tour-font-ui);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tut-btn:hover { background: var(--tour-accent); color: #fff; }

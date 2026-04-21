@@ -299,6 +299,7 @@ export function DrugDiscoveryValidationPanel({ campaignId }: { campaignId: strin
       {/* EMA criterion callout */}
       {report && (
         <Alert
+          data-tour="validation-callout"
           className={cn(
             "border",
             overallOk

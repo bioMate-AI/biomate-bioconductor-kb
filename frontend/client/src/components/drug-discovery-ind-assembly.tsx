@@ -286,7 +286,7 @@ export function DrugDiscoveryIndAssembly({
       )}
 
       {/* Generate button */}
-      <div className="flex items-center justify-center gap-3">
+      <div data-tour="ind-generate" className="flex items-center justify-center gap-3">
         <Button
           className="h-9 px-5 text-sm font-semibold gap-1.5"
           disabled={!canGenerate}

@@ -377,7 +377,7 @@ export function DrugDiscoveryAuditViewer({ campaignId, className }: AuditViewerP
       )}
 
       {/* Records list */}
-      <div className="rounded-md border border-border overflow-hidden">
+      <div data-tour="audit-list" className="rounded-md border border-border overflow-hidden">
         {records.map((rec) => (
           <AuditRow key={rec.id} rec={rec} tampered={rec.id === tamperedId} />
         ))}

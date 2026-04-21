@@ -1712,7 +1712,7 @@ export function NextflowWorkflowViewer({
       />
 
       {/* ── Panel header ─────────────────────────────────────────────────────── */}
-      <div className="panel-head">
+      <div className="panel-head" data-tour="panel-header">
         <div className="top-row">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="kicker">Workflow</div>
@@ -1754,7 +1754,7 @@ export function NextflowWorkflowViewer({
       </div>
 
       {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
-      <div className="panel-body">
+      <div className="panel-body" data-tour="panel-body">
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
           {showQcInline && qcGateData && (
             <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
@@ -1814,7 +1814,7 @@ export function NextflowWorkflowViewer({
 
             {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
-              <div className="phase-list">
+              <div className="phase-list" data-tour="phase-list">
                 {groupedPhases.map(group => (
                   <PhaseGroupSection
                     key={group.key}
@@ -2721,7 +2721,7 @@ export function NextflowWorkflowViewer({
       </div>{/* end panel-body */}
 
       {/* ── Sticky footer with primary run action ─────────────────────────────── */}
-      <div className="panel-foot">
+      <div className="panel-foot" data-tour="run-footer">
         {executionBlockedReason && (
           <div className="alert warn" style={{ margin: 0, marginBottom: 6 }}>
             <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -2760,7 +2760,7 @@ export function NextflowWorkflowViewer({
           )}
         </div>
         <div className="run-foot-meta">
-          <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`}>
+          <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
             <span className="dot" />
             {status === 'running' ? 'Watcher attached · live' : status === 'paused' ? 'Watcher detached' : ''}
           </span>

@@ -428,7 +428,7 @@ export function DrugDiscoveryAutoRetrain({ campaignId, className }: AutoRetrainP
       )}
 
       {/* Loop control strip */}
-      <div className="flex items-center gap-3 flex-wrap rounded-md border border-border bg-muted/20 px-3 py-2">
+      <div data-tour="loop-strip" className="flex items-center gap-3 flex-wrap rounded-md border border-border bg-muted/20 px-3 py-2">
         <Badge
           variant="outline"
           className={cn(
