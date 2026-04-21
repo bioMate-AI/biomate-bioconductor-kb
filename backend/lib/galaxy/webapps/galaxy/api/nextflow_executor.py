@@ -263,8 +263,18 @@ def _is_public_accession(value: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def _default_nf_profile() -> str:
-    """Return the deployment-level Nextflow profile from env, defaulting to 'docker'."""
-    return os.environ.get("BIOMATE_NF_PROFILE", "docker")
+    """Return the deployment-level Nextflow profile from env.
+
+    Precedence:
+    1. BIOMATE_NF_PROFILE env var (explicit override)
+    2. 'aws' when NEXTFLOW_USE_AWS=true (all production workflows use AWS Batch)
+    3. 'docker' (local development fallback)
+    """
+    if os.environ.get("BIOMATE_NF_PROFILE"):
+        return os.environ["BIOMATE_NF_PROFILE"]
+    if os.environ.get("NEXTFLOW_USE_AWS", "false").lower() in ("true", "1", "yes"):
+        return "aws"
+    return "docker"
 
 
 class NextflowExecuteRequest(BaseModel):
@@ -887,51 +897,68 @@ def _validate_s3_url(s3_url: str, check_object: bool = False) -> None:
             detail={"error": f"Invalid S3 URL '{s3_url}': no bucket name"},
         )
 
-    s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
-    try:
-        s3.head_bucket(Bucket=bucket)
-    except NoCredentialsError:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "error": "AWS credentials not configured",
-                "bucket": bucket,
-                "suggestion": (
-                    "Run 'aws configure' or set the AWS_ACCESS_KEY_ID / "
-                    "AWS_SECRET_ACCESS_KEY environment variables."
-                ),
-            },
-        )
-    except ClientError as exc:
-        code = exc.response.get("Error", {}).get("Code", "")
-        if code in ("403", "AccessDenied"):
+    # Well-known public reference buckets — always accessible, skip pre-flight check
+    # to avoid cross-region head_bucket 400 errors.
+    _PUBLIC_REF_BUCKETS = frozenset({
+        "ngi-igenomes",       # nf-core iGenomes (eu-west-1, requester-pays)
+        "broad-references",   # Broad GATK bundle
+        "gatk-sv-resources-public",
+        "aws-genomics-datasets",
+    })
+    if bucket in _PUBLIC_REF_BUCKETS:
+        # Trust known-good public buckets; validate object existence below if needed.
+        pass
+    else:
+        s3 = boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+        try:
+            s3.head_bucket(Bucket=bucket)
+        except NoCredentialsError:
             raise HTTPException(
                 status_code=422,
                 detail={
-                    "error": f"Access denied to S3 bucket '{bucket}'",
+                    "error": "AWS credentials not configured",
                     "bucket": bucket,
                     "suggestion": (
-                        "Ensure the IAM role/user has s3:GetObject, "
-                        "s3:PutObject, and s3:ListBucket on this bucket."
+                        "Run 'aws configure' or set the AWS_ACCESS_KEY_ID / "
+                        "AWS_SECRET_ACCESS_KEY environment variables."
                     ),
                 },
             )
-        if code in ("404", "NoSuchBucket"):
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "error": f"S3 bucket '{bucket}' does not exist",
-                    "bucket": bucket,
-                    "suggestion": f"Create it with: aws s3 mb s3://{bucket} --region <region>",
-                },
-            )
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "error": f"Cannot access S3 bucket '{bucket}': {exc}",
-                "bucket": bucket,
-            },
-        )
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code", "")
+            if code in ("403", "AccessDenied"):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": f"Access denied to S3 bucket '{bucket}'",
+                        "bucket": bucket,
+                        "suggestion": (
+                            "Ensure the IAM role/user has s3:GetObject, "
+                            "s3:PutObject, and s3:ListBucket on this bucket."
+                        ),
+                    },
+                )
+            if code in ("404", "NoSuchBucket"):
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": f"S3 bucket '{bucket}' does not exist",
+                        "bucket": bucket,
+                        "suggestion": f"Create it with: aws s3 mb s3://{bucket} --region <region>",
+                    },
+                )
+            # 301/400 = cross-region redirect — bucket exists in another region, treat as OK.
+            http_status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode", 0)
+            if http_status in (301, 400):
+                log.info("[S3Validate] Bucket '%s' in different region (HTTP %s) — skipping validation", bucket, http_status)
+            else:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": f"Cannot access S3 bucket '{bucket}': {exc}",
+                        "bucket": bucket,
+                    },
+                )
 
     # Optional: verify the specific object exists (for input file paths).
     # Skip for directory-style prefixes (key ends with '/') or bucket-only URLs.

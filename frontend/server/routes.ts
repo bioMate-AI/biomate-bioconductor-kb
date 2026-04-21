@@ -7117,7 +7117,10 @@ Extract every real number from the output data. A reviewer should be able to ver
               history_id: galaxyHistoryId,
               nextflow_path: request.workflowDefinition.nextflow_path,
               parameters: stagedParams,
-              profile: request.executionConfig?.nextflow_profile || 'standard',
+              // Use 'aws' profile when NEXTFLOW_USE_AWS=true (all workflows run on AWS Batch).
+              // Fall back to the caller's requested profile, then 'standard' (local) as last resort.
+              profile: request.executionConfig?.nextflow_profile ||
+                (process.env.NEXTFLOW_USE_AWS === 'true' ? 'aws' : 'standard'),
               compute_config:
                 Object.keys(nextflowComputeConfig).length > 0
                   ? nextflowComputeConfig
