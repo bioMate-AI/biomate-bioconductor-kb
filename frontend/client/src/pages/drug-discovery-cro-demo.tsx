@@ -1225,7 +1225,7 @@ export default function DrugDiscoveryCroDemo() {
   const [toast, setToast] = useState<string | null>(null)
   const tour = useTour(setActiveTab)
 
-  const userId = user?.id ? String(user.id) : (user?.email ?? "demo-user")
+  const userId = user?.email ?? "demo-user"
 
   // Load the user's campaign list on mount
   useEffect(() => {
@@ -1383,6 +1383,7 @@ export default function DrugDiscoveryCroDemo() {
                 {campaigns.map(c => (
                   <button
                     key={c.campaign_id}
+                    data-testid="campaign-row"
                     onClick={() => openCampaign(c)}
                     className="w-full text-left rounded-xl border bg-white hover:bg-muted/20 transition-colors px-4 py-3.5 flex items-center gap-3"
                     style={{ borderColor: "oklch(0.915 0.006 240)" }}

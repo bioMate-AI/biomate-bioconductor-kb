@@ -1,31 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '@/styles/workflow-panel.css';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { emitUxEvent } from "@/lib/ux-telemetry";
-import { Badge } from "@/components/ui/badge";
 import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
-import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChatOutputAttachments } from "./chat-output-attachments";
 import { FindingsCard } from "./findings-card";
 import type { PrereqChecklist } from "@/lib/prereq-normalizer";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser";
 import { useToast } from "@/hooks/use-toast";
 import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { stripAnsi } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -322,86 +313,17 @@ function DownloadCommandsPanel({ runId }: { runId: string }) {
   if (downloadableFiles.length === 0) return null;
 
   return (
-    <div data-testid="download-commands-panel" className="rounded-md border border-muted p-4 space-y-3">
-      <h4 className="text-sm font-semibold flex items-center gap-2">
-        <Download className="h-4 w-4" />
-        Output Files
-      </h4>
-      <div className="space-y-1">
-        {downloadableFiles.map((f) => (
-          <a
-            key={f.name}
-            href={f.download_url!}
-            download={f.name}
-            className="flex items-center justify-between gap-2 text-xs bg-muted rounded px-2 py-1 hover:bg-muted/80 group"
-          >
-            <span className="font-mono truncate max-w-[260px]">{f.name}</span>
-            <span className="text-muted-foreground shrink-0 flex items-center gap-1">
-              {formatFileSize(f.size)}
-              <Download className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </span>
-          </a>
-        ))}
-      </div>
+    <div data-testid="download-commands-panel">
+      {downloadableFiles.map((f) => (
+        <div key={f.name} className="output-file">
+          <a href={f.download_url!} download={f.name}>{f.name}</a>
+          <span className="size">{formatFileSize(f.size)}</span>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Track 3C: Reproducibility export button
-// ---------------------------------------------------------------------------
-function ReproducibilityExportButton({ runId }: { runId: string }) {
-  const [loading, setLoading] = React.useState(false);
-  const [exported, setExported] = React.useState(false);
-
-  const handleExport = async () => {
-    setLoading(true);
-    try {
-      const resp = await fetch(`/api/workflows/runs/${runId}/reproducibility`);
-      if (!resp.ok) {
-        console.error('[Reproducibility] fetch failed:', resp.status);
-        return;
-      }
-      const data = await resp.json();
-
-      // Concatenate all files into a single downloadable text bundle
-      const bundle = Object.entries(data.files as Record<string, string>)
-        .map(([name, content]) => `${'='.repeat(60)}\n${name}\n${'='.repeat(60)}\n${content}\n`)
-        .join('\n');
-
-      const blob = new Blob([bundle], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `biomate_reproducibility_${runId.slice(-8)}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setExported(true);
-    } catch (err) {
-      console.error('[Reproducibility]', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <button
-      onClick={handleExport}
-      disabled={loading}
-      data-testid="reproducibility-export-button"
-      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-2 underline-offset-2 hover:underline"
-    >
-      {loading ? (
-        <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent inline-block" />
-      ) : exported ? (
-        <span>&#10003;</span>
-      ) : (
-        <span>&#8595;</span>
-      )}
-      {exported ? 'Downloaded' : 'Export for reproducibility'}
-    </button>
-  );
-}
 
 
 // ---------------------------------------------------------------------------
@@ -1649,7 +1571,7 @@ export function NextflowWorkflowViewer({
             <div className="kicker">Workflow</div>
             <div className="panel-name">{workflowDefinition?.name || 'Untitled'}</div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             {workflowDefinition?.qc_profile && (
               <span className="chip ok" style={{ fontSize: '10px' }}>
                 QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
@@ -1840,14 +1762,14 @@ export function NextflowWorkflowViewer({
                 const mismatch = allParams.find((p: any) => p?.format_mismatch_warning);
                 if (!mismatch) return null;
                 return (
-                  <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-2.5 text-xs text-amber-800 dark:text-amber-300" data-testid="format-mismatch-warning">
-                    <span className="mt-0.5">⚠️</span>
+                  <div className="alert warn" data-testid="format-mismatch-warning">
+                    <span>⚠️</span>
                     <span>{mismatch.format_mismatch_warning}</span>
                   </div>
                 );
               })()}
               {renderedParameters.length === 0 ? (
-                <p className="text-xs text-muted-foreground px-1">No editable parameters detected for this workflow.</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>No editable parameters detected for this workflow.</p>
               ) : (() => {
                 // Group params by their schema group label; fall back to a single group.
                 const groups = new Map<string, typeof renderedParameters>();
@@ -1888,7 +1810,7 @@ export function NextflowWorkflowViewer({
                 });
               })()}
               {hasUnfilledRequired && (
-                <p className="text-xs text-amber-700 dark:text-amber-400">
+                <p style={{ fontSize: 12, color: 'var(--warn)' }}>
                   Fill in all required fields (*) before running.
                 </p>
               )}
@@ -1900,79 +1822,89 @@ export function NextflowWorkflowViewer({
           </div>{/* end flex-column wrapper */}
 
             {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
-              <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 18px 0' }}>Batch job continues running after detach.</p>
             )}
 
               {/* QC Settings — only shown when QC profiles are available or a QC gate event fired */}
               {(availableQcProfiles.length > 0 || qcGateData !== null) && (
-                <div className="rounded-md border border-border" data-testid="qc-settings-section">
+                <div data-testid="qc-settings-section" style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between p-3 text-sm font-medium"
+                    className={`strip${qcSettingsOpen ? ' open' : ''}`}
                     onClick={() => setQcSettingsOpen(prev => !prev)}
                     aria-expanded={qcSettingsOpen}
+                    style={{ borderTop: 'none' }}
                   >
-                    <span className="flex items-center gap-1.5">
-                      <Settings2 className="h-3.5 w-3.5" />
+                    <span className="label">
+                      <Settings2 style={{ width: 14, height: 14, flexShrink: 0 }} />
                       QC Settings
                       {Object.keys(qcOverrides).length > 0 && (
-                        <Badge variant="secondary" className="ml-1 text-xs px-1 py-0">
+                        <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 4 }}>
                           {Object.keys(qcOverrides).length} edited
-                        </Badge>
+                        </span>
                       )}
                     </span>
-                    {qcSettingsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    <span className="caret">▶</span>
                   </button>
                   {qcSettingsOpen && (
-                    <div className="border-t border-border p-3 space-y-4 text-sm">
+                    <div className="strip-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {/* Pause toggle */}
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="pause-qc-switch" className="text-xs">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <label style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} htmlFor="pause-qc-switch">
                           Pause workflow when a QC gate fails
-                        </Label>
-                        <Switch
+                        </label>
+                        <button
                           id="pause-qc-switch"
-                          checked={pauseAtQcFailures}
-                          onCheckedChange={setPauseAtQcFailures}
+                          type="button"
+                          className={`switch${pauseAtQcFailures ? ' on' : ''}`}
+                          onClick={() => setPauseAtQcFailures(prev => !prev)}
                           aria-label="Pause at QC failures"
+                          aria-pressed={pauseAtQcFailures}
                         />
                       </div>
 
                       {/* Threshold parameters — labeled, editable */}
                       {displayedQcThresholds.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs text-muted-foreground">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
                               Quality thresholds
                               {activeQcProfile && (
-                                <span className="ml-1.5 text-[10px] bg-muted px-1.5 py-0.5 rounded font-normal">
+                                <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 6 }}>
                                   {activeQcProfile.id.replace(/_/g, ' ')}
                                 </span>
                               )}
-                            </Label>
+                            </span>
                             {Object.keys(qcOverrides).length > 0 && (
                               <button
                                 type="button"
-                                className="text-[10px] text-muted-foreground hover:text-foreground"
+                                className="btn ghost sm"
                                 onClick={() => setQcOverrides({})}
                               >
                                 Reset all
                               </button>
                             )}
                           </div>
-                          <div className="space-y-1.5">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {displayedQcThresholds.map(t => (
-                              <div key={t.key} className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-2">
-                                  <span className="flex-1 text-xs truncate">
+                              <div key={t.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <div className="param-row">
+                                  <span className="k">
                                     {t.label}
-                                    <span className="ml-1 text-[10px] text-muted-foreground">
+                                    <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--text-dim)' }}>
                                       ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
                                     </span>
                                   </span>
-                                  <Input
+                                  <input
                                     type="number"
-                                    className={`h-6 w-20 text-xs px-1.5 py-0 text-right ${t.modified ? 'border-blue-400 bg-blue-50/30 dark:bg-blue-950/10' : ''}`}
+                                    className="v"
+                                    style={{
+                                      width: 72, textAlign: 'right', fontSize: 12,
+                                      background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
+                                      border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
+                                      borderRadius: 4, padding: '1px 6px', color: 'var(--text)',
+                                      fontFamily: 'var(--font-mono)',
+                                    }}
                                     value={t.value}
                                     step="any"
                                     onChange={e => {
@@ -1986,19 +1918,19 @@ export function NextflowWorkflowViewer({
                                       }
                                     }}
                                   />
-                                  {t.modified && (
+                                  {t.modified ? (
                                     <button
                                       type="button"
-                                      className="text-[10px] text-muted-foreground hover:text-destructive shrink-0"
+                                      className="btn ghost sm danger"
                                       title="Reset to default"
                                       onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}
                                     >
                                       ×
                                     </button>
-                                  )}
+                                  ) : <span />}
                                 </div>
                                 {t.rationale && (
-                                  <p className="text-[10px] text-muted-foreground leading-snug pl-0.5 pr-20">
+                                  <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.4, margin: '0 0 2px 0' }}>
                                     {t.rationale}
                                   </p>
                                 )}
@@ -2413,21 +2345,26 @@ export function NextflowWorkflowViewer({
         </div>
       </div>
 
-      {/* Skip step confirmation dialog (P5) */}
+      {/* Skip step confirmation dialog */}
       {confirmSkipPhaseId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmSkipPhaseId(null)}>
-          <div className="bg-background border border-border rounded-lg p-5 shadow-xl max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="font-semibold text-sm mb-2">Skip this step?</h3>
-            <p className="text-xs text-muted-foreground mb-4">
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => setConfirmSkipPhaseId(null)}
+        >
+          <div
+            style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxWidth: 360, margin: '0 16px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Skip this step?</div>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
               Skipping this phase removes it from the execution plan. Its output files will not be generated and downstream steps that depend on them may fail.
             </p>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setConfirmSkipPhaseId(null)}>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn ghost sm" onClick={() => setConfirmSkipPhaseId(null)}>
                 Keep step
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
+              </button>
+              <button
+                className="btn sm danger"
                 data-testid="button-confirm-skip-step"
                 onClick={() => {
                   handleSkipPhase(confirmSkipPhaseId);
@@ -2435,7 +2372,7 @@ export function NextflowWorkflowViewer({
                 }}
               >
                 Skip anyway
-              </Button>
+              </button>
             </div>
           </div>
         </div>
