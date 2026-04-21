@@ -4067,8 +4067,16 @@ def execute_cryosparc(
     movies_path_raw = (params.get("movie_dir") or params.get("movies_path") or
                        params.get("input_movies") or params.get("data_path") or "")
     if not movies_path_raw:
-        s3_default = os.environ.get("CRYOSPARC_MOVIES_S3", "")
-        local_default = os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", "")
+        # Re-read .env at request time so movies path changes take effect without
+        # restarting gunicorn (load_dotenv at import time doesn't help if the parent
+        # process env was set before the .env change).
+        try:
+            from dotenv import dotenv_values as _dotenv_values
+            _live_env = _dotenv_values(_backend_root / ".env") if "_backend_root" in dir() else {}
+        except Exception:
+            _live_env = {}
+        s3_default    = _live_env.get("CRYOSPARC_MOVIES_S3") or os.environ.get("CRYOSPARC_MOVIES_S3", "")
+        local_default = _live_env.get("CRYOSPARC_DEFAULT_MOVIE_DIR") or os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", "")
         movies_path_raw = local_default or s3_default
         if movies_path_raw:
             log.info("[CryoSPARC] movies_path not in params — using env default: %s", movies_path_raw)
