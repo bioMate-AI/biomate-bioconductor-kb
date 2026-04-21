@@ -1897,6 +1897,7 @@ export function NextflowWorkflowViewer({
               </div>
               )}
             </div>
+          </div>{/* end flex-column wrapper */}
 
             {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
               <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
