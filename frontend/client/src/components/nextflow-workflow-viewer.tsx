@@ -24,6 +24,7 @@ import { LicenseGate } from "./license-gate";
 import { AutoLoopPanel } from "./auto-loop-panel";
 import type { AutoLoopPanelState } from "./auto-loop-panel";
 import { stripAnsi } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NextflowWorkflowViewerProps {
   workflowId?: string;
@@ -1764,26 +1765,33 @@ export function NextflowWorkflowViewer({
 
             {/* ── Parameters (collapsible) ─────────────────────────────────────── */}
             <div className="rounded-lg border border-border overflow-hidden">
-              <button
-                type="button"
-                className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold hover:bg-muted/20 transition-colors"
-                onClick={() => setGlobalParamsOpen(p => !p)}
-              >
-                <span className="flex items-center gap-1.5">
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Parameters
-                  {renderedParameters.length > 0 && (
-                    <span className="text-xs text-muted-foreground font-normal">({renderedParameters.length})</span>
-                  )}
-                  {hasUnfilledRequired && (
-                    <Badge variant="destructive" className="text-[10px] px-1 py-0 ml-1">Required</Badge>
-                  )}
-                </span>
-                {globalParamsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold hover:bg-muted/20 transition-colors"
+                    onClick={() => setGlobalParamsOpen(p => !p)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      Parameters
+                      {renderedParameters.length > 0 && (
+                        <span className="text-xs text-muted-foreground font-normal">({renderedParameters.length})</span>
+                      )}
+                      {hasUnfilledRequired && (
+                        <Badge variant="destructive" className="text-[10px] px-1 py-0 ml-1">Required</Badge>
+                      )}
+                    </span>
+                    {globalParamsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Workflow input parameters. Required fields (*) must be filled before running.</p>
+                </TooltipContent>
+              </Tooltip>
               {globalParamsOpen && (
               <div className="border-t border-border p-3 space-y-4">
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
               {/* Format mismatch warning — shown when uploaded file type doesn't match workflow input */}
               {(() => {
                 const allParams: any[] = [
@@ -2038,14 +2046,21 @@ export function NextflowWorkflowViewer({
                     )}
                   </div>
                 )}
-                <Button
-                  className="w-full"
-                  data-testid="button-run-workflow-panel"
-                  onClick={handleExecute}
-                  disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
-                >
-                  {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className="w-full"
+                      data-testid="button-run-workflow-panel"
+                      onClick={handleExecute}
+                      disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+                    >
+                      {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Launches the workflow on AWS Batch. Results stream back in real-time.</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 {/* Cost estimate badge commented out — not accurate enough to show users yet.
                     Actual cost goes on the per-user billing page.
@@ -2311,80 +2326,115 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
               <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowResults((prev) => !prev)}
-                  disabled={!invocationId || status === 'failed'}
-                  title={!invocationId ? "Run workflow to view results" : status === 'failed' ? "No results — workflow failed" : "View output results"}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  {showResults ? 'Hide Results' : 'View Results'}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowResults((prev) => !prev)}
+                      disabled={!invocationId || status === 'failed'}
+                      title={!invocationId ? "Run workflow to view results" : status === 'failed' ? "No results — workflow failed" : "View output results"}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      {showResults ? 'Hide Results' : 'View Results'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Browse output files generated by each workflow step</p>
+                  </TooltipContent>
+                </Tooltip>
                 {/* AI Analysis button — enabled only on completed runs with a runId */}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-analyze-results"
-                  disabled={status !== 'completed' || !runId || analysisState === 'loading'}
-                  title={status !== 'completed' ? "Available after workflow completes" : "AI analysis of findings with citations"}
-                  onClick={handleAnalyzeResults}
-                >
-                  {analysisState === 'loading' ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Activity className="mr-2 h-4 w-4" />
-                  )}
-                  {analysisState === 'loading' ? 'Analyzing…' : analysisState === 'done' ? 'Re-analyze Results' : 'Analyze Results'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-download-all-workflow-panel"
-                  disabled={!invocationId || status === 'failed'}
-                  title={!invocationId ? "Run workflow to enable download" : status === 'failed' ? "No outputs — workflow failed" : "Download all outputs"}
-                  onClick={() => {
-                    if (!invocationId || status === 'failed') return;
-                    emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
-                    window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
-                    setDownloadAllPromptOpen(true);
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download All
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-analyze-results"
+                      disabled={status !== 'completed' || !runId || analysisState === 'loading'}
+                      title={status !== 'completed' ? "Available after workflow completes" : "AI analysis of findings with citations"}
+                      onClick={handleAnalyzeResults}
+                    >
+                      {analysisState === 'loading' ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Activity className="mr-2 h-4 w-4" />
+                      )}
+                      {analysisState === 'loading' ? 'Analyzing…' : analysisState === 'done' ? 'Re-analyze Results' : 'Analyze Results'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>AI-powered scientific interpretation with literature citations</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-download-all-workflow-panel"
+                      disabled={!invocationId || status === 'failed'}
+                      title={!invocationId ? "Run workflow to enable download" : status === 'failed' ? "No outputs — workflow failed" : "Download all outputs"}
+                      onClick={() => {
+                        if (!invocationId || status === 'failed') return;
+                        emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
+                        window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
+                        setDownloadAllPromptOpen(true);
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download All
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Download all output files as a ZIP archive</p>
+                  </TooltipContent>
+                </Tooltip>
                 {/* Download QC Audit Log — only shown when QC profiles are available or a QC gate fired */}
                 {(availableQcProfiles.length > 0 || qcGateData !== null) && (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    data-testid="button-download-qc-audit"
-                    disabled={!invocationId || status === 'failed'}
-                    title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No QC data — workflow failed" : "Download QC audit log"}
-                    onClick={() => {
-                      if (!invocationId || status === 'failed') return;
-                      window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
-                    }}
-                  >
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    Download QC Audit Log
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        data-testid="button-download-qc-audit"
+                        disabled={!invocationId || status === 'failed'}
+                        title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No QC data — workflow failed" : "Download QC audit log"}
+                        onClick={() => {
+                          if (!invocationId || status === 'failed') return;
+                          window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
+                        }}
+                      >
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Download QC Audit Log
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Full audit trail — timestamps, gate verdicts, remediation decisions</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-download-methods-report"
-                  data-invocation-id={invocationId || ''}
-                  disabled={!invocationId || status === 'failed'}
-                  title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No report — workflow failed" : "Download methods report"}
-                  onClick={() => {
-                    if (!invocationId || status === 'failed') return;
-                    window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
-                  }}
-                >
-                  <FlaskConical className="mr-2 h-4 w-4" />
-                  Download Methods Report
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-download-methods-report"
+                      data-invocation-id={invocationId || ''}
+                      disabled={!invocationId || status === 'failed'}
+                      title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No report — workflow failed" : "Download methods report"}
+                      onClick={() => {
+                        if (!invocationId || status === 'failed') return;
+                        window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
+                      }}
+                    >
+                      <FlaskConical className="mr-2 h-4 w-4" />
+                      Download Methods Report
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Auto-generated Methods section ready to paste into a publication</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
             {/* ── Run metrics strip ─────────────────────────────────────────── */}

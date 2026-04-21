@@ -44,6 +44,7 @@ import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
 import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { TutorialTipOverlay } from "@/components/tutorial-tip-overlay";
 
 interface ToolItem {
   id: string
@@ -495,6 +496,7 @@ function App() {
   );
 }
 
+
 function AppWithAuthSync() {
   const { isAuthenticated } = useAuth()
 
@@ -513,6 +515,7 @@ export default function RootApp() {
           <AppWithAuthSync />
         </AuthProvider>
       </ThemeProvider>
+      <TutorialTipOverlay />
     </QueryClientProvider>
   )
 }
