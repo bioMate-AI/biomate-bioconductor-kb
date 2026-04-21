@@ -219,7 +219,7 @@ def CS_HELPER = '''
         "nonuniform_refine", "nonuniform_refine_new",  # v5 spelling
         "new_local_refine",                            # v5: was local_refinement
         "ctf_refine_local", "ctf_refine_global",       # v5: was local_ctf_refinement
-        "template_picker_gpu",                         # v5: was template_picker
+        # "template_picker_gpu" excluded: does not accept compute_num_gpus (404)
         "filament_tracer_gpu",
         "simulator_gpu",
         "var_3D", "var_3D_disp",
@@ -1637,7 +1637,7 @@ process TEMPLATE_PICKER {
                 "templates":   (class2d_job_uid, "class_averages"),
                 "micrographs": (ctf_job_uid,     "micrographs_ctf"),
             },
-            params={"particle_diameter_angstroms": ${params.particle_diameter_angstroms ?: 150}},
+            params={"diameter": ${params.particle_diameter_angstroms ?: 150}},
             timeout=7200,
         )
         particles_out = job.load_output("particles")
