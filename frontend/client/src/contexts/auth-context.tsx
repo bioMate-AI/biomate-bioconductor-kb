@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(mappedUser)
     analytics.identify(mappedUser.id, { plan: mappedUser.role, email: mappedUser.email, name: mappedUser.name })
     analytics.track('user_logged_in', { plan: mappedUser.role })
-    setLocation('/dashboard')
+    setLocation('/')
   }
 
   const register = async (name: string, email: string, password: string) => {
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     analytics.identify(newUser.id, { plan: newUser.role, email: newUser.email, name: newUser.name })
     analytics.track('user_registered', { plan: newUser.role })
 
-    setLocation('/dashboard')
+    setLocation('/')
   }
 
   const logout = async () => {

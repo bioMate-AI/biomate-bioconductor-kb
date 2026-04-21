@@ -1633,6 +1633,19 @@ class ResearchAgent:
         except Exception as e:
             log.warning(f"Biomedical DB lookup failed (non-fatal): {e}")
 
+        # ── Molecular biology tool context injection ─────────────────────────
+        # For protocol/cloning/wet-lab questions, inject relevant tool knowledge
+        # from the AI tool DB so answers use BioMate's actual capabilities.
+        try:
+            mol_bio_context = self._fetch_mol_bio_tool_context(question, analysis)
+            if mol_bio_context:
+                if not evidence.get("db_facts"):
+                    evidence["db_facts"] = {}
+                evidence["db_facts"]["mol_bio_tools"] = mol_bio_context
+                log.info(f"Molecular biology tool context injected: {len(mol_bio_context)} chars")
+        except Exception as e:
+            log.warning(f"Mol-bio tool context injection failed (non-fatal): {e}")
+
         # Query benchmarks for tool comparisons
         if include_benchmark_evidence and self.benchmark_db:
             if analysis.get('is_tool_comparison'):
@@ -1666,6 +1679,129 @@ class ResearchAgent:
             log.warning(f"Benchmark query failed: {e}")
 
         return None
+
+    # ── Molecular biology tool DB keywords ────────────────────────────────────
+    _MOL_BIO_QUESTION_KEYWORDS = frozenset([
+        "restriction", "enzyme", "digest", "cloning", "clone", "plasmid", "vector",
+        "primer", "pcr", "amplif", "annealing", "tm", "melting", "gc content",
+        "golden gate", "gibson", "assembly", "ligation", "restriction site",
+        "cut site", "recognition sequence", "ecori", "bamhi", "hindiii", "xhoi",
+        "xbai", "sali", "blunt end", "sticky end", "overhang", "cohesive",
+        "transformation", "transfection", "competent", "electroporation",
+        "mutagenesis", "site-directed", "site directed", "orf", "open reading frame",
+        "codon", "crispr", "sgrna", "guide rna", "knockout", "knock-in", "nickase",
+        "cas9", "cpf1", "base edit", "prime edit", "homology arm", "hdr",
+        "molecular cloning", "expression vector", "insert", "backbone",
+        "sequencing primer", "reverse complement", "complement strand",
+        "gel electrophoresis", "agarose gel", "band size", "fragment size",
+        "restriction map", "cloning strategy", "subcloning",
+    ])
+
+    _MOL_BIO_TOOL_KEYWORD_MAP: Dict[str, List[str]] = {
+        "restriction enzyme": ["Find Restriction Enzymes", "Find Restriction Sites", "Digest Sequence"],
+        "restriction site": ["Find Restriction Sites", "Digest Sequence", "Find Restriction Enzymes"],
+        "cloning": ["Molecular Cloning Design Pipeline", "Annotate Plasmid", "Golden Gate Assembly"],
+        "golden gate": ["Golden Gate Assembly", "Design Golden Gate Oligos", "Get Golden Gate Assembly Protocol"],
+        "primer": ["Design Primer", "Design Verification Primers", "Align Sequences"],
+        "pcr": ["Pcr Simple", "Design Primer", "Perform Pcr And Gel Electrophoresis"],
+        "sgrna": ["Design Knockout Sgrna", "Crispr Gene Editing Design Pipeline"],
+        "crispr": ["Design Knockout Sgrna", "Crispr Gene Editing Design Pipeline"],
+        "orf": ["Annotate Open Reading Frames", "Find Orfs In Frame", "Get Coding Sequences"],
+        "reverse complement": ["Reverse Complement"],
+        "transformation": ["Get Bacterial Transformation Protocol"],
+        "plasmid": ["Annotate Plasmid", "Get Plasmid Sequence", "Molecular Cloning Design Pipeline"],
+        "annealing": ["Get Oligo Annealing Protocol", "Design Primer"],
+        "sequence": ["Align Sequences", "Find Sequence Mutations", "Search Gene"],
+    }
+
+    def _fetch_mol_bio_tool_context(
+        self, question: str, analysis: Dict[str, Any]
+    ) -> str:
+        """
+        Query the AI tool DB for molecular biology tools relevant to the question.
+        Returns a formatted context block for synthesis prompt injection, or '' if
+        the question is not molecular-biology related.
+        """
+        q_lower = question.lower()
+
+        # Only activate for molecular biology / wet-lab protocol questions
+        if not any(kw in q_lower for kw in self._MOL_BIO_QUESTION_KEYWORDS):
+            return ""
+
+        # Also check information_need from context
+        info_need = analysis.get("intent", "")
+        mol_bio_intents = {"protocol_guidance", "experiment_design", "research_question",
+                           "general_question", "teaching_explanation", "methods_writing"}
+        if info_need not in mol_bio_intents:
+            return ""
+
+        # Determine which tools are most relevant to this specific question
+        relevant_tool_names: List[str] = []
+        for kw, tools in self._MOL_BIO_TOOL_KEYWORD_MAP.items():
+            if kw in q_lower:
+                for t in tools:
+                    if t not in relevant_tool_names:
+                        relevant_tool_names.append(t)
+
+        if not relevant_tool_names:
+            # Fallback: fetch all mol-bio tools
+            relevant_tool_names = []  # will do category query below
+
+        # Query DB
+        db_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "database", "galaxy_ai_tools.db"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "galaxy_ai_tools.db"),
+            "/home/yzhang/biomate/backend/database/galaxy_ai_tools.db",
+        ]
+        db_path = None
+        for p in db_paths:
+            p = os.path.normpath(p)
+            if os.path.exists(p):
+                db_path = p
+                break
+
+        if not db_path:
+            log.debug("galaxy_ai_tools.db not found for mol-bio context injection")
+            return ""
+
+        import sqlite3 as _sqlite3
+        try:
+            conn = _sqlite3.connect(db_path, timeout=3)
+            cur = conn.cursor()
+
+            if relevant_tool_names:
+                placeholders = ",".join("?" * len(relevant_tool_names[:8]))
+                cur.execute(
+                    f"SELECT tool_name, use_cases, recommended_parameters FROM tool_knowledge "
+                    f"WHERE tool_name IN ({placeholders}) LIMIT 8",
+                    relevant_tool_names[:8]
+                )
+            else:
+                cur.execute(
+                    "SELECT tool_name, use_cases, recommended_parameters FROM tool_knowledge "
+                    "WHERE category='molecular_biology' LIMIT 10"
+                )
+            rows = cur.fetchall()
+            conn.close()
+        except Exception as e:
+            log.warning(f"mol_bio_tool_context DB query failed: {e}")
+            return ""
+
+        if not rows:
+            return ""
+
+        import json as _json
+        lines = ["BioMate has these molecular biology tools available for this analysis:"]
+        for tool_name, use_cases_raw, params_raw in rows:
+            try:
+                use_cases = _json.loads(use_cases_raw or "[]") if use_cases_raw else []
+            except Exception:
+                use_cases = [use_cases_raw] if use_cases_raw else []
+            # Show first use case as a one-liner
+            use_case_str = use_cases[0] if use_cases else ""
+            lines.append(f"- **{tool_name}**: {use_case_str}")
+
+        return "\n".join(lines)
 
     async def _synthesize_response(
         self,
@@ -1852,6 +1988,12 @@ class ResearchAgent:
                 db_section.append("### ClinVar: pathogenic variants")
                 for v in df['clinvar_variants'][:5]:
                     db_section.append(f"- {v.get('title','')} | {v.get('clinical_significance','')} | {v.get('condition','')}")
+
+            # ── Molecular biology tool context ────────────────────────────────
+            if df.get('mol_bio_tools'):
+                db_section.append("### BioMate Molecular Biology Tools")
+                db_section.append("These tools are available in BioMate for molecular biology tasks:")
+                db_section.append(df['mol_bio_tools'])
 
             # ── Improvement A: HPO phenotype scoring ─────────────────────────
             if df.get('hpo_ensg_scores'):

@@ -2496,12 +2496,18 @@ Rules:
 - For select parameters, the value MUST be one of the listed enum values.
 - For boolean parameters, value must be true or false (unquoted).
 - Do NOT guess file paths — never suggest a value for file-type parameters.
-- Do NOT repeat the workflow's existing default value unless the user explicitly confirms it.
+- Each parameter shows its [current: X] default. ONLY suggest a value when the user provides something DIFFERENT from the current default.
+- If the user explicitly states a value (e.g. "PDB: 1M17", "erlotinib SMILES: C#Cc1..."), always include it even if a default exists — the user is overriding the default.
+- Do NOT include a parameter if the value the user mentions equals the [current: X] default.
 - Limit to at most 5 suggestions. Prefer scientifically impactful parameters.
 - Return JSON array of objects: [{"name": "param_name", "value": <value>, "rationale": "one-sentence why"}]
 - Return [] if nothing can be confidently inferred.
 
 Examples of good inference:
+- User says "PDB: 1M17" and current default is [current: 7RFS] → pdb_id = "1M17" (user override)
+- User says erlotinib SMILES and current default is nirmatrelvir → ligand_smiles = "erlotinib-smiles" (user override)
+- User says "box center: [22.0, 2.5, 17.0]" and current default is [-10.2, 17.5, 50.1] → box_center = [22.0, 2.5, 17.0]
+- User says "exhaustiveness=4" and current default is 16 → exhaustiveness = 4
 - User says "37°C" → temperature = 310 (Kelvin conversion, with rationale)
 - User says "XP precision" or "lead optimisation docking" → docking_precision = "XP"
 - User says "scaffold decoration of coumarin" → mode = "scaffold_decoration", seed_smiles = "c1ccc2c(c1)ccc(=O)o2"
@@ -2509,10 +2515,6 @@ Examples of good inference:
 - User says "SARS-CoV-2 Mpro" → reactive_residue = "CYS:145" for covalent docking
 - User says "oral drug" → route = "oral"
 - User says "GPU available" or "use GPU" → gpu = true
-- User says "search for serine threonine kinases involved in DNA damage response" → query = "serine threonine kinase DNA damage response", query_type = "text"
-- User says "find proteins that function as RNA helicases" → query = "RNA helicase", query_type = "text"
-- User says "predict TP53 knockout response" → perturbation = "TP53", perturbation_type = "genetic"
-- User says "optimize synthesizability of CC(C)Oc1ccc(cc1)C(C)N" → input_smiles = "CC(C)Oc1ccc(cc1)C(C)N"
 - User says "screen against KRAS G12C (PDB: 6OIM)" → receptor_pdb = "6OIM\""""
 
     def _infer_params_from_intent_llm(
@@ -2553,10 +2555,13 @@ Examples of good inference:
             ptype = p.get("type", "string")
             desc = p.get("description", "")[:120]
             enum_vals = [str(o["value"]) for o in p.get("options", [])] if p.get("options") else None
+            # Show current default so the LLM knows what would need to be overridden
+            current_default = p.get("default") or p.get("value")
+            default_note = f' [current: {current_default}]' if current_default is not None else ' [required]'
             if enum_vals:
-                param_lines.append(f'- {name} (select: {"|".join(enum_vals)}): {desc}')
+                param_lines.append(f'- {name} (select: {"|".join(enum_vals)}){default_note}: {desc}')
             else:
-                param_lines.append(f'- {name} ({ptype}): {desc}')
+                param_lines.append(f'- {name} ({ptype}){default_note}: {desc}')
 
         params_text = "\n".join(param_lines)
         user_msg = (

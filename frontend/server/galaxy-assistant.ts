@@ -4351,9 +4351,27 @@ ${workflowGenerationFailed && !hasInlineData ? '- Workflow generation failed (no
 ${(generatedWorkflow as any)?.license_notice ? `- LICENSE REROUTING ACTIVE: ${(generatedWorkflow as any).license_notice} The response MUST explicitly tell the user that the originally requested tool is not available under their current license configuration and explain that the fallback alternative was automatically selected instead. Include the phrase "not available" or "requires a license" in the explanation.` : ''}`;
 
 
-    // Build research/benchmark context sections
+    // Build research/benchmark context sections.
+    // Prioritise the synthesized `answer` field (which already contains db_facts, tool context,
+    // and figure data from the Python research agent) rather than truncating the raw JSON.
     const researchSection = researchResponse
-      ? `\nResearch Results:\n${JSON.stringify(researchResponse, null, 2).slice(0, 2000)}`
+      ? (() => {
+          const rr = researchResponse as any;
+          const parts: string[] = [];
+          if (rr.answer) {
+            parts.push(`Research Agent Answer:\n${rr.answer.slice(0, 4000)}`);
+          }
+          if (rr.citations && Array.isArray(rr.citations) && rr.citations.length > 0) {
+            const citLines = (rr.citations as any[]).slice(0, 8).map((c: any, i: number) =>
+              `[${i+1}] ${c.title || ''} (${c.year || ''}) ${c.journal || ''} ${c.doi ? 'doi:'+c.doi : ''} ${c.pmid ? 'PMID:'+c.pmid : ''}`.trim()
+            );
+            parts.push(`\nCitations:\n${citLines.join('\n')}`);
+          }
+          if (rr.benchmark_evidence) {
+            parts.push(`\nBenchmark evidence: ${JSON.stringify(rr.benchmark_evidence).slice(0, 500)}`);
+          }
+          return `\n${parts.join('\n')}`;
+        })()
       : '';
     const benchmarkSection = benchmarkEvidence
       ? `\nBenchmark Evidence:\n${JSON.stringify(benchmarkEvidence, null, 2).slice(0, 2000)}`
