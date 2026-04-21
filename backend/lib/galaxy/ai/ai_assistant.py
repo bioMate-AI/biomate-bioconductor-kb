@@ -2875,6 +2875,7 @@ Examples of good inference:
                 'description': match.description,
                 'annotation': match.description,
                 'tags': match.tags,
+                'domain': match.domain,
                 'format': 'nextflow',
                 'nextflow_path': match.filename,
                 'workflow_type': _wf_type,
