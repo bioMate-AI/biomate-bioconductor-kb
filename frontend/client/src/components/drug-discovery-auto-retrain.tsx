@@ -509,7 +509,7 @@ export function DrugDiscoveryAutoRetrain({ campaignId, className }: AutoRetrainP
       </div>
 
       {/* Current proposal */}
-      {proposal ? (
+      {proposal && Array.isArray(proposal.items) ? (
         <div className="space-y-2">
           <div className="flex items-baseline gap-3">
             <span className="font-semibold text-sm">

@@ -655,42 +655,49 @@ async def save_virtual_library(
 
 
 @router.get("/{campaign_id}/auto-proposal")
-async def get_auto_proposal(campaign_id: str, limit: int = Query(1, ge=1, le=50)):
+async def get_auto_proposal(
+    campaign_id: str,
+    format: str = Query("json", regex="^(json|csv)$"),
+):
     """
-    Return the latest auto-retrain proposal(s) for a campaign.
+    Return the latest auto-retrain proposal for a campaign.
 
-    The auto-retrain background loop generates proposals automatically when
-    new assay data is detected.  This endpoint retrieves the most recent result.
+    Returns the Proposal shape expected by DrugDiscoveryAutoRetrain:
+      { round, generated_at, trigger, items: [{rank, smiles, score, ci_lo, ci_hi, ad}] }
+
+    format=csv → downloadable CSV file
     """
     try:
-        from .auto_retrain import list_auto_proposals, is_loop_running
+        from .auto_retrain import get_latest_auto_proposal
     except ImportError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        proposals = list_auto_proposals(_campaign_db(campaign_id), campaign_id, limit=limit)
-        running = is_loop_running(campaign_id)
+        proposal = get_latest_auto_proposal(_campaign_db(campaign_id), campaign_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-    return {
-        "campaign_id": campaign_id,
-        "loop_running": running,
-        "proposals": [
-            {
-                "id": p.id,
-                "round_number": p.round_number,
-                "n_proposed": len(p.proposed_smiles),
-                "proposed_smiles": p.proposed_smiles,
-                "scores": p.scores,
-                "confidence_intervals": p.confidence_intervals,
-                "ad_statuses": p.ad_statuses,
-                "triggered_by": p.triggered_by,
-                "created_at": p.created_at,
-            }
-            for p in proposals
-        ],
-    }
+    if proposal is None:
+        raise HTTPException(status_code=404, detail="No proposals yet for this campaign.")
+
+    if format == "csv":
+        import csv as _csv
+        import io
+        from fastapi.responses import StreamingResponse
+
+        shaped = _format_proposal(proposal)
+        buf = io.StringIO()
+        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "ci_lo", "ci_hi", "ad"])
+        writer.writeheader()
+        writer.writerows(shaped["items"])
+        filename = f"{campaign_id}_round{shaped['round']}_proposals.csv"
+        return StreamingResponse(
+            io.BytesIO(buf.getvalue().encode("utf-8")),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    return _format_proposal(proposal)
 
 
 @router.post("/{campaign_id}/retrain")
@@ -1145,51 +1152,6 @@ def _format_proposal(proposal) -> dict:
         "trigger":      proposal.triggered_by,
         "items":        items,
     }
-
-
-# Rewrite get_auto_proposal to return the frontend Proposal shape
-@router.get("/{campaign_id}/auto-proposal")
-async def get_auto_proposal_v2(
-    campaign_id: str,
-    format: str = Query("json", regex="^(json|csv)$"),
-):
-    """
-    Return the latest auto-retrain proposal for a campaign.
-
-    format=json  → Proposal object (items array)
-    format=csv   → downloadable CSV file
-    """
-    try:
-        from .auto_retrain import get_latest_auto_proposal
-    except ImportError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-
-    try:
-        proposal = get_latest_auto_proposal(_campaign_db(campaign_id), campaign_id)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
-
-    if proposal is None:
-        raise HTTPException(status_code=404, detail="No proposals yet for this campaign.")
-
-    if format == "csv":
-        import csv as _csv
-        import io
-        from fastapi.responses import StreamingResponse
-
-        shaped = _format_proposal(proposal)
-        buf = io.StringIO()
-        writer = _csv.DictWriter(buf, fieldnames=["rank", "smiles", "score", "ci_lo", "ci_hi", "ad"])
-        writer.writeheader()
-        writer.writerows(shaped["items"])
-        filename = f"{campaign_id}_round{shaped['round']}_proposals.csv"
-        return StreamingResponse(
-            io.BytesIO(buf.getvalue().encode("utf-8")),
-            media_type="text/csv",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-        )
-
-    return _format_proposal(proposal)
 
 
 @router.get("/{campaign_id}/proposals")

@@ -4033,6 +4033,49 @@ def _stage_s3_movies_on_cryosparc(s3_url: str, instance_ip: str, ssh_key: str, s
     return f"{local_dir}/"
 
 
+def _count_movies_on_cryosparc(movies_path: str, instance_ip: str, ssh_key: str, ssh_user: str) -> int:
+    """SSH to CryoSPARC instance and count movie files matching the glob path.
+    Returns 0 on failure (caller falls back to default instance type).
+    """
+    import subprocess
+    if not ssh_key or not instance_ip or instance_ip in ("localhost", "127.0.0.1"):
+        return 0
+    try:
+        result = subprocess.run(
+            ["ssh", "-i", ssh_key, "-o", "StrictHostKeyChecking=no",
+             "-o", "ConnectTimeout=15", f"{ssh_user}@{instance_ip}",
+             f"ls {movies_path} 2>/dev/null | wc -l"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0:
+            n = int(result.stdout.strip())
+            log.info("[CryoSPARC] Counted %d movie files at %s", n, movies_path)
+            return n
+    except Exception as exc:
+        log.warning("[CryoSPARC] Could not count movies (%s) — using default instance type", exc)
+    return 0
+
+
+# Dataset-size → instance type table.
+# Rule: use the smallest instance that comfortably fits the dataset.
+# L4 GPU (Ada Lovelace, 31.2 TFLOPS FP32) outperforms V100 for compute-bound cryo-EM.
+# V100 (Volta, 900 GB/s HBM2) only wins for massive particle stacks (>1M particles, box>512px).
+_CRYOSPARC_FLEET: List[Dict[str, Any]] = [
+    {"max_movies": 50,   "instance_type": "g6.2xlarge",  "num_gpu": 1, "label": "dev/test (1× L4)"},
+    {"max_movies": 500,  "instance_type": "g6.12xlarge", "num_gpu": 4, "label": "standard (4× L4)"},
+    {"max_movies": 2000, "instance_type": "g6.48xlarge", "num_gpu": 8, "label": "large campaign (8× L4)"},
+    {"max_movies": 9999, "instance_type": "p3.16xlarge",  "num_gpu": 8, "label": "bandwidth-bound (8× V100 HBM2)"},
+]
+
+
+def _select_cryosparc_instance(num_movies: int) -> Dict[str, Any]:
+    """Return fleet entry (instance_type, num_gpu, label) for the given movie count."""
+    for entry in _CRYOSPARC_FLEET:
+        if num_movies <= entry["max_movies"]:
+            return entry
+    return _CRYOSPARC_FLEET[-1]
+
+
 @router.post("/api/cryosparc/execute", summary="Launch a real CryoSPARC SPA pipeline directly on the GPU EC2 instance")
 def execute_cryosparc(
     request: CryoSPARCExecuteRequest,
@@ -4053,8 +4096,49 @@ def execute_cryosparc(
     user_id = request.user_id or ""
     license_key = request.license_key or os.environ.get("CRYOSPARC_LICENSE", "")
 
-    # ── Step 1: provision the CryoSPARC GPU instance ─────────────────────────
-    log.info("[CryoSPARC] Provisioning GPU instance for direct execution...")
+    # ── Step 1: resolve movies_path early so we can count movies before provisioning ──
+    # We duplicate the resolution logic here (Step 2 repeats for S3 staging) so
+    # the movie count is available before start_instance() selects instance type.
+    _early_movies_path = (params.get("movie_dir") or params.get("movies_path") or
+                          params.get("input_movies") or params.get("data_path") or "")
+    if not _early_movies_path:
+        try:
+            from dotenv import dotenv_values as _dotenv_values
+            _live_env0 = _dotenv_values(_backend_root / ".env") if "_backend_root" in dir() else {}
+        except Exception:
+            _live_env0 = {}
+        _early_movies_path = (_live_env0.get("CRYOSPARC_DEFAULT_MOVIE_DIR") or
+                              os.environ.get("CRYOSPARC_DEFAULT_MOVIE_DIR", ""))
+
+    # ── Step 1b: dataset sizing — count movies → select instance type ─────────
+    _num_movies_param = int(params.get("num_movies", 0))
+    if _num_movies_param > 0:
+        _num_movies = _num_movies_param
+    elif _early_movies_path and not _early_movies_path.startswith("s3://"):
+        # Count local files on CryoSPARC instance
+        _glob_path = (_early_movies_path.rstrip("/") + "/*.mrcs"
+                      if not any(c in _early_movies_path for c in ("*", "?", "["))
+                      else _early_movies_path)
+        _num_movies = _count_movies_on_cryosparc(
+            _glob_path,
+            instance_ip=cs_exec.CRYOSPARC_HOST,
+            ssh_key=os.environ.get("CRYOSPARC_SSH_KEY", ""),
+            ssh_user=os.environ.get("CRYOSPARC_SSH_USER", "ubuntu"),
+        )
+    else:
+        _num_movies = 0
+
+    _fleet_entry = _select_cryosparc_instance(_num_movies)
+    _selected_instance_type = params.get("instance_type") or _fleet_entry["instance_type"]
+    _selected_num_gpu       = int(params.get("num_gpu", 0)) or _fleet_entry["num_gpu"]
+    log.info("[CryoSPARC] Dataset sizing: %d movies → instance=%s (%d GPU, %s)",
+             _num_movies, _selected_instance_type, _selected_num_gpu, _fleet_entry["label"])
+
+    # Override the module-level instance type so start_instance() launches the right size
+    cs_exec.CRYOSPARC_INSTANCE_TYPE = _selected_instance_type
+
+    # ── Step 1c: provision the CryoSPARC GPU instance ────────────────────────
+    log.info("[CryoSPARC] Provisioning %s GPU instance for direct execution...", _selected_instance_type)
     try:
         instance_ip = cs_exec.start_instance(wait=True)
         cs_exec.CRYOSPARC_HOST = instance_ip or cs_exec.CRYOSPARC_HOST
@@ -4136,7 +4220,7 @@ def execute_cryosparc(
         "symmetry":                    spa_params["symmetry"],
         "num_ab_initio_classes":       spa_params["num_ab_initio_classes"],
         "use_cryosparc":               True,
-        "num_gpu":                     int(params.get("num_gpu", 1)),  # g6.2xlarge = 1x L4
+        "num_gpu":                     _selected_num_gpu,  # auto-sized from dataset movie count
         # CryoSPARC connection — live instance IP provisioned above
         "cryosparc_host":     cs_exec.CRYOSPARC_HOST,
         "cryosparc_port":     int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
@@ -4161,9 +4245,10 @@ def execute_cryosparc(
     )
     nf_result = execute_nextflow(nf_request)
     run_id = nf_result["run_id"]
-    log.info("[CryoSPARC] Nextflow SPA run %s started (instance=%s, movies=%s, "
+    log.info("[CryoSPARC] Nextflow SPA run %s started (instance=%s [%s, %d GPU], movies=%s, "
              "parallel_jobs=%s, batch_size=%s)",
-             run_id, cs_exec.CRYOSPARC_HOST, movies_path_raw, max_parallel, batch_size)
+             run_id, cs_exec.CRYOSPARC_HOST, _selected_instance_type, _selected_num_gpu,
+             movies_path_raw, max_parallel, batch_size)
 
     return {
         "success":          True,

@@ -233,7 +233,8 @@ def CS_HELPER = '''
         # reject this parameter with 404, so we skip them entirely.
         params = dict(params or {})
         if job_type in _GPU_JOB_TYPES and "compute_num_gpus" not in params:
-            params["compute_num_gpus"] = num_gpu
+            effective_gpu = num_gpu if num_gpu > 0 else _get_lane_gpu_count(cs, lane)
+            params["compute_num_gpus"] = effective_gpu
 
         # Set params individually (v5-compatible)
         for k, v in params.items():
@@ -263,6 +264,25 @@ def CS_HELPER = '''
                 raise RuntimeError(f"CryoSPARC job {job_uid} ({job_type}) {status}")
             time.sleep(20)
         raise TimeoutError(f"CryoSPARC job {job_type} uid={job_uid} timed out after {timeout}s")
+
+    # Cache GPU count per CryoSPARC lane so we only query targets() once per process.
+    _gpu_count_cache = {}
+
+    def _get_lane_gpu_count(cs, lane="default"):
+        """Query CryoSPARC worker targets for total GPU count on the given lane."""
+        if lane in _gpu_count_cache:
+            return _gpu_count_cache[lane]
+        count = 1  # safe default
+        try:
+            targets = cs.get_targets() if hasattr(cs, "get_targets") else []
+            total = sum(int(t.get("gpu_count", 0)) for t in (targets or []))
+            if total > 0:
+                count = total
+        except Exception as _e:
+            print(f"[CS] Warning: get_targets() failed ({_e}) — defaulting to 1 GPU", flush=True)
+        _gpu_count_cache[lane] = count
+        print(f"[CS] Lane '{lane}' GPU count = {count}", flush=True)
+        return count
 
     def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
         """Download output MRC files and thumbnails from a completed CryoSPARC job.
@@ -872,6 +892,7 @@ process CLASSIFY_2D_R1_BATCH {
             connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 50},
             timeout=14400,
+            num_gpu=${params.num_gpu},
         )
         particles_out = job.load_output("particles")
         num_particles = len(particles_out) if particles_out is not None else src_n
@@ -951,6 +972,7 @@ process CLASSIFY_2D_R2_BATCH {
             connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 100},
             timeout=14400,
+            num_gpu=${params.num_gpu},
         )
         particles_out = job.load_output("particles")
         num_particles = len(particles_out) if particles_out is not None else src_n
@@ -1025,6 +1047,7 @@ process AB_INITIO_BATCH {
             connections={"particles": (prev["job_uid"], "particles")},
             params={"abinit_K": 1, "abinit_symmetry": "${params.symmetry}"},
             timeout=14400,
+            num_gpu=${params.num_gpu},
         )
         volume_out = job.load_output("volume")
         num_particles = prev.get("num_items", 0)
@@ -1101,6 +1124,7 @@ process HOMO_REFINEMENT_BATCH {
             },
             params={"refine_symmetry": "${params.symmetry}"},
             timeout=21600,
+            num_gpu=${params.num_gpu},
         )
         num_particles = par_data.get("num_items", 0)
         # Download refined volume MRC for visualization in BioMate DensityMapViewer
@@ -1974,6 +1998,7 @@ process LOCAL_CTF_REFINEMENT {
             },
             params={},
             timeout=14400,
+            num_gpu=${params.num_gpu},
         )
         num_particles = particles_data.get('num_items', 0)
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
@@ -2046,6 +2071,7 @@ process NON_UNIFORM_REFINEMENT {
             },
             params={"refine_symmetry": "${params.symmetry}"},
             timeout=21600,
+            num_gpu=${params.num_gpu},
         )
         num_particles = particles_data.get('num_items', 0)
         # Download refined volume MRC for DensityMapViewer
