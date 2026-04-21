@@ -101,6 +101,7 @@ export function configureSecurityHeaders(app: Express) {
                 "'self'",
                 ...(config.env !== 'production' ? ["'unsafe-inline'", "'unsafe-eval'"] : []),
                 'https://cdn.jsdelivr.net',
+                'https://unpkg.com',
               ],
               styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
               fontSrc: ["'self'", 'https://fonts.gstatic.com'],
