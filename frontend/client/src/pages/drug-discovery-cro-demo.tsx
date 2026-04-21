@@ -59,16 +59,6 @@ const BASE_DMTA: { key: string; label: string; status: "done" | "active" | "pend
   { key: "analyse", label: "Analyse", status: "pending" },
 ]
 
-const CAMPAIGN_META = {
-  molecule:   "BMT-4451",
-  target:     "EGFR L858R",
-  indication: "NSCLC",
-  sponsor:    "BioMate Technologies",
-  round:      3,
-  total:      42,
-  updated:    "2h ago",
-  objective:  "balance",
-}
 
 // Campaign list entry from GET /api/drug-discovery/campaigns
 interface CampaignEntry {
@@ -707,14 +697,26 @@ function EsigModal({
 
 // ── Campaign Wizard ───────────────────────────────────────────────────────────
 
-function CampaignWizard({ onDone, onToast }: { onDone: () => void; onToast: (msg: string) => void }) {
+function CampaignWizard({
+  onDone,
+  onToast,
+  onCreated,
+  userId,
+}: {
+  onDone: () => void
+  onToast: (msg: string) => void
+  onCreated?: (entry: CampaignEntry) => void
+  userId?: string
+}) {
   const [step, setStep] = useState(1)
   const [mol, setMol] = useState("")
   const [target, setTarget] = useState("")
   const [indication, setIndication] = useState("")
+  const [sponsor, setSponsor] = useState("")
   const [objective, setObjective] = useState("balance")
   const [parsed, setParsed] = useState<{ n: number; invalid: number } | null>(null)
   const [validationProgress, setValidationProgress] = useState(0)
+  const [launching, setLaunching] = useState(false)
 
   useEffect(() => {
     if (step !== 3) return
@@ -759,6 +761,10 @@ function CampaignWizard({ onDone, onToast }: { onDone: () => void; onToast: (msg
             <div style={fieldStyle}>
               <label style={labelStyle}>Therapeutic indication</label>
               <input style={inputStyle} value={indication} onChange={e => setIndication(e.target.value)} placeholder="e.g. NSCLC" />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Sponsor organization</label>
+              <input style={inputStyle} value={sponsor} onChange={e => setSponsor(e.target.value)} placeholder="e.g. BioMate Technologies" />
             </div>
           </div>
 
@@ -889,11 +895,23 @@ function CampaignWizard({ onDone, onToast }: { onDone: () => void; onToast: (msg
               <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Back
             </button>
             <button
-              onClick={() => { onToast("Campaign launched"); onDone() }}
-              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              disabled={launching}
+              onClick={async () => {
+                setLaunching(true)
+                const newId = `cmp-${mol.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8)}-${Math.floor(Date.now() / 1000).toString(16)}`
+                const entry: CampaignEntry = {
+                  campaign_id: newId, user_id: userId ?? "",
+                  molecule_name: mol, target, indication, sponsor, objective,
+                  created_at: new Date().toISOString(),
+                }
+                if (onCreated) { await onCreated(entry) }
+                else { onToast("Campaign launched"); onDone() }
+                setLaunching(false)
+              }}
+              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1 disabled:opacity-50"
               style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}
             >
-              Launch Campaign <ChevronRight className="h-3.5 w-3.5" />
+              {launching ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Launching…</> : <>Launch Campaign <ChevronRight className="h-3.5 w-3.5" /></>}
             </button>
           </div>
         </div>
@@ -1397,7 +1415,7 @@ export default function DrugDiscoveryCroDemo() {
         {showWizard && (
           <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6" style={{ border: "1px solid oklch(0.915 0.006 240)" }}>
-              <NewCampaignWizard
+              <CampaignWizard
                 onDone={() => setShowWizard(false)}
                 onToast={setToast}
                 onCreated={handleNewCampaignCreated}
@@ -1406,7 +1424,7 @@ export default function DrugDiscoveryCroDemo() {
             </div>
           </div>
         )}
-        {toast && <ToastBanner msg={toast} onDone={() => setToast(null)} />}
+        {toast && <ToastMsg text={toast} onDone={() => setToast(null)} />}
       </div>
     )
   }
@@ -1505,9 +1523,9 @@ export default function DrugDiscoveryCroDemo() {
               className="w-[22px] h-[22px] rounded-full grid place-items-center text-[10px] font-semibold shrink-0"
               style={{ background: "oklch(0.85 0.05 60)", color: "oklch(0.35 0.08 60)" }}
             >
-              U
+              {(user?.name ?? user?.email ?? "U")[0].toUpperCase()}
             </div>
-            <span className="hidden sm:inline">user@biotech.com</span>
+            <span className="hidden sm:inline">{user?.email ?? "user@biotech.com"}</span>
           </div>
         </div>
       </div>
@@ -1533,7 +1551,7 @@ export default function DrugDiscoveryCroDemo() {
                 className="font-mono text-[12.5px] rounded-[3px] px-1.5 py-0.5"
                 style={{ background: "oklch(0.965 0.004 240)" }}
               >
-                {CAMPAIGN_ID.slice(0, 14)}…
+                {campaignId!.slice(0, 16)}…
               </code>
               . Every action you take here—ingest assay data, validate the model, propose new rounds,
               export to a CRO—is recorded in the audit trail. Use the tabs below to review the model
@@ -1575,7 +1593,7 @@ export default function DrugDiscoveryCroDemo() {
                     className="text-[15px] font-semibold leading-none"
                     style={{ letterSpacing: "-0.01em" }}
                   >
-                    Drug Discovery · {CAMPAIGN_META.molecule}
+                    Drug Discovery · {campaignMeta?.molecule_name || "Campaign"}
                   </div>
                   <div
                     className="text-[12px] mt-px"
@@ -1584,28 +1602,27 @@ export default function DrugDiscoveryCroDemo() {
                     <span
                       className="font-mono"
                       data-testid="demo-campaign-id"
-                      data-campaign-id={CAMPAIGN_ID}
+                      data-campaign-id={campaignId}
                     >
-                      {CAMPAIGN_ID.slice(0, 14)}…
+                      {campaignId!.slice(0, 16)}…
                     </span>
-                    {" · "}{CAMPAIGN_META.target}{" · "}{CAMPAIGN_META.indication}
+                    {campaignMeta?.target     && ` · ${campaignMeta.target}`}
+                    {campaignMeta?.indication && ` · ${campaignMeta.indication}`}
                   </div>
                 </div>
 
-                {/* .btn.sm — New campaign */}
-                {!showWizard && (
-                  <button
-                    onClick={() => setShowWizard(true)}
-                    className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
-                    style={{
-                      border: "1px solid oklch(0.915 0.006 240)",
-                      background: "#ffffff",
-                      color: "oklch(0.22 0.01 260)",
-                    }}
-                  >
-                    <Plus className="h-3 w-3" /> New campaign
-                  </button>
-                )}
+                {/* .btn.sm — All campaigns */}
+                <button
+                  onClick={() => { setCampaignId(null); setPhase("idle") }}
+                  className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
+                  style={{
+                    border: "1px solid oklch(0.915 0.006 240)",
+                    background: "#ffffff",
+                    color: "oklch(0.22 0.01 260)",
+                  }}
+                >
+                  ← All campaigns
+                </button>
 
                 {/* .btn.sm.ghost — Sign action */}
                 <button
@@ -1674,41 +1691,35 @@ export default function DrugDiscoveryCroDemo() {
 
             {/* .dd-body */}
             <div className="p-5">
-              {showWizard ? (
-                <CampaignWizard
-                  onDone={() => setShowWizard(false)}
-                  onToast={(msg) => setToast(msg)}
-                />
-              ) : (
-                <>
-                  {activeTab === "dashboard"    && <CampaignDashboard loopRunning={loopRunning} onIngestAssay={handleIngestAssay} onExportCroOrder={handleExportCroOrder} />}
-                  {activeTab === "validation"   && <DrugDiscoveryValidationPanel campaignId={CAMPAIGN_ID} />}
-                  {activeTab === "audit"        && <DrugDiscoveryAuditViewer campaignId={CAMPAIGN_ID} />}
-                  {activeTab === "auto-retrain" && <DrugDiscoveryAutoRetrain campaignId={CAMPAIGN_ID} />}
-                  {activeTab === "ind-assembly" && (
-                    <DrugDiscoveryIndAssembly
-                      campaignId={CAMPAIGN_ID}
-                      initialValues={{
-                        mol:        CAMPAIGN_META.molecule,
-                        target:     CAMPAIGN_META.target,
-                        indication: `${CAMPAIGN_META.indication} — 2nd line after erlotinib failure`,
-                        sponsor:    CAMPAIGN_META.sponsor,
-                      }}
-                    />
-                  )}
-                </>
-              )}
+              <>
+                {activeTab === "dashboard"    && <CampaignDashboard campaignId={campaignId!} campaignMeta={campaignMeta} loopRunning={loopRunning} onIngestAssay={handleIngestAssay} onExportCroOrder={handleExportCroOrder} />}
+                {activeTab === "validation"   && <DrugDiscoveryValidationPanel campaignId={campaignId!} />}
+                {activeTab === "audit"        && <DrugDiscoveryAuditViewer campaignId={campaignId!} />}
+                {activeTab === "auto-retrain" && <DrugDiscoveryAutoRetrain campaignId={campaignId!} />}
+                {activeTab === "ind-assembly" && (
+                  <DrugDiscoveryIndAssembly
+                    campaignId={campaignId!}
+                    initialValues={{
+                      mol:        campaignMeta?.molecule_name ?? "",
+                      target:     campaignMeta?.target ?? "",
+                      indication: campaignMeta?.indication ?? "",
+                      sponsor:    campaignMeta?.sponsor ?? "",
+                    }}
+                  />
+                )}
+              </>
             </div>
           </div>
         </div>
       </div>
 
       {/* eSig Modal */}
-      {esigOpen && (
+      {esigOpen && campaignId && (
         <EsigModal
           action={esigAction}
           target={esigTarget}
           userId={userId}
+          campaignId={campaignId}
           onClose={() => { setEsigOpen(false); setEsigOnSigned(undefined) }}
           onSigned={esigOnSigned}
           onToast={(msg) => setToast(msg)}
