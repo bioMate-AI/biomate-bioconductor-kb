@@ -3504,6 +3504,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Drug Discovery API — wildcard proxy to Galaxy/FastAPI backend
+  // Covers all routes from lib/galaxy/ai/drug_discovery/api_router.py:
+  //   POST   /api/drug-discovery/campaigns
+  //   GET    /api/drug-discovery/model-validation/:model_type
+  //   GET    /api/drug-discovery/audit
+  //   GET    /api/drug-discovery/audit/verify
+  //   GET    /api/drug-discovery/audit/export
+  //   GET    /api/drug-discovery/esig/status
+  //   POST   /api/drug-discovery/esig/enroll
+  //   POST   /api/drug-discovery/esig/enroll/verify
+  //   POST   /api/drug-discovery/:id/esig/sign
+  //   GET    /api/drug-discovery/:id/retrain/status
+  //   POST   /api/drug-discovery/:id/retrain/start|stop|trigger
+  //   GET    /api/drug-discovery/:id/virtual-library
+  //   POST   /api/drug-discovery/:id/virtual-library (new body)
+  //   POST   /api/drug-discovery/:id/ind-assembly
+  //   GET    /api/drug-discovery/:id/compounds
+  //   GET    /api/drug-discovery/:id/export/cro-order
+  //   POST   /api/drug-discovery/:id/ingest-assay  (multipart handled below)
+  //   GET    /api/drug-discovery/availability
+  // ─────────────────────────────────────────────────────────────────────────
+  app.all("/api/drug-discovery/*", optionalAuth, async (req: any, res: any) => {
+    try {
+      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+      const targetPath = req.path; // already /api/drug-discovery/...
+      const method = req.method.toUpperCase();
+
+      // Build query string
+      const queryStr = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      const fullPath = `${targetPath}${queryStr}`;
+
+      // Forward with user's Galaxy API key if available
+      const apiKey = (req as any).user?.galaxyApiKey || process.env.GALAXY_API_KEY || '';
+      const headers: Record<string, string> = {
+        'Content-Type': req.headers['content-type'] || 'application/json',
+        'X-API-Key': apiKey,
+      };
+
+      const fetchOpts: RequestInit = {
+        method,
+        headers,
+        signal: AbortSignal.timeout(120000),
+      };
+
+      if (method !== 'GET' && method !== 'HEAD' && method !== 'DELETE') {
+        // For multipart (file upload), stream the raw body
+        if (req.headers['content-type']?.includes('multipart/form-data')) {
+          // Can't easily re-stream multipart here — skip body forwarding
+          // (ingest-assay uses its own dedicated handler above this wildcard)
+        } else {
+          fetchOpts.body = JSON.stringify(req.body);
+        }
+      }
+
+      const resp = await fetch(`${galaxyUrl}${fullPath}`, fetchOpts);
+
+      // Stream response back
+      const contentType = resp.headers.get('content-type') || 'application/json';
+      res.setHeader('Content-Type', contentType);
+      res.status(resp.status);
+
+      if (contentType.includes('application/json')) {
+        const data = await resp.json().catch(() => ({}));
+        return res.json(data);
+      } else {
+        // Stream binary/text
+        const buf = Buffer.from(await resp.arrayBuffer());
+        return res.send(buf);
+      }
+    } catch (err: any) {
+      const status = err.response?.status || 502;
+      const detail = err.response?.data || { error: 'Drug discovery proxy error', detail: err.message };
+      return res.status(status).json(detail);
+    }
+  });
+
   app.all("/api/qc-gates/*", async (req: any, res: any) => {
     try {
       const path = req.path;

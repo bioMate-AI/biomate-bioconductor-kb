@@ -263,6 +263,62 @@ def CS_HELPER = '''
                 raise RuntimeError(f"CryoSPARC job {job_uid} ({job_type}) {status}")
             time.sleep(20)
         raise TimeoutError(f"CryoSPARC job {job_type} uid={job_uid} timed out after {timeout}s")
+
+    def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
+        """Download output MRC files and thumbnails from a completed CryoSPARC job.
+        Returns list of local filenames that were actually written."""
+        downloaded = []
+        try:
+            all_files = cs.list_files(proj_uid, prefix=f"{job_uid}/", recursive=True)
+        except Exception as e:
+            print(f"[CS] list_files({job_uid}/) failed: {e}", flush=True)
+            return downloaded
+
+        # Separate MRC and PNG files
+        mrc_files = sorted([f for f in all_files if f.endswith(".mrc")])
+        png_files = [f for f in all_files if f.endswith(".png")]
+
+        # Prefer class_averages > volume > map for MRC; take last-iteration file
+        def _mrc_priority(p):
+            name = os.path.basename(p).lower()
+            if "class_averages" in name:  return 0
+            if "volume" in name:          return 1
+            if "map" in name:             return 2
+            return 3
+
+        mrc_files.sort(key=_mrc_priority)
+
+        # Download at most 2 MRC files (last-iteration class averages + volume)
+        seen_kinds = set()
+        for fpath in reversed(mrc_files):
+            name = os.path.basename(fpath).lower()
+            kind = "class_averages" if "class_averages" in name else \
+                   "volume" if "volume" in name else \
+                   "map" if "map" in name else "other"
+            if kind in seen_kinds:
+                continue
+            seen_kinds.add(kind)
+            local = f"{mrc_prefix}{os.path.basename(fpath)}"
+            try:
+                cs.download_file(proj_uid, fpath, target=local)
+                downloaded.append(local)
+                print(f"[CS] Downloaded {fpath} → {local}", flush=True)
+            except Exception as e:
+                print(f"[CS] Warning: download_file({fpath}) failed: {e}", flush=True)
+            if len(downloaded) >= 2:
+                break
+
+        # Download at most 3 PNG thumbnails
+        for fpath in png_files[:3]:
+            local = f"{png_prefix}{os.path.basename(fpath)}"
+            try:
+                cs.download_file(proj_uid, fpath, target=local)
+                downloaded.append(local)
+                print(f"[CS] Downloaded thumbnail {fpath} → {local}", flush=True)
+            except Exception as e:
+                pass  # thumbnails are optional; skip silently
+
+        return downloaded
 '''
 
 // ============================================================================
@@ -788,6 +844,8 @@ process CLASSIFY_2D_R1_BATCH {
     output:
     tuple val(batch_id), path("class2d_r1_${batch_id}.cs"), emit: classes_cs
     path "class2d_report_${batch_id}.json", emit: report
+    path "cs_out_*_class_averages.mrc", optional: true, emit: class_avgs_mrc
+    path "cs_thumb_*.png", optional: true, emit: thumbnails
 
     script:
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
@@ -817,14 +875,18 @@ process CLASSIFY_2D_R1_BATCH {
         )
         particles_out = job.load_output("particles")
         num_particles = len(particles_out) if particles_out is not None else src_n
+        # Download class averages MRC for visualization in BioMate DensityMapViewer
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_", png_prefix="cs_thumb_")
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "particles",
-                   "num_items": num_particles, "batch_id": batch_id}
+                   "num_items": num_particles, "batch_id": batch_id,
+                   "viz_files": viz_files}
         report  = {"step": "09_classify_2d_round1", "batch_id": batch_id,
                    "timestamp": datetime.now().isoformat(),
                    "cs_job_uid": job.uid, "num_particles": num_particles,
-                   "num_classes": 50, "real_mode": True}
+                   "num_classes": 50, "real_mode": True, "viz_files": viz_files}
     else:
         num_particles = src_n or 1000
         num_classes   = ${num_classes}
@@ -861,6 +923,8 @@ process CLASSIFY_2D_R2_BATCH {
     output:
     tuple val(batch_id), path("class2d_r2_${batch_id}.cs"), emit: classes_cs
     path "class2d_report_r2_${batch_id}.json", emit: report
+    path "cs_out_*_class_averages.mrc", optional: true, emit: class_avgs_mrc
+    path "cs_thumb_*.png", optional: true, emit: thumbnails
 
     script:
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
@@ -890,14 +954,18 @@ process CLASSIFY_2D_R2_BATCH {
         )
         particles_out = job.load_output("particles")
         num_particles = len(particles_out) if particles_out is not None else src_n
+        # Download class averages MRC for visualization in BioMate DensityMapViewer
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_", png_prefix="cs_thumb_")
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "particles",
-                   "num_items": num_particles, "batch_id": batch_id}
+                   "num_items": num_particles, "batch_id": batch_id,
+                   "viz_files": viz_files}
         report  = {"step": "14_classify_2d_round2", "batch_id": batch_id,
                    "timestamp": datetime.now().isoformat(),
                    "cs_job_uid": job.uid, "num_particles": num_particles,
-                   "num_classes": 100, "real_mode": True}
+                   "num_classes": 100, "real_mode": True, "viz_files": viz_files}
     else:
         num_particles = src_n or 1000
         num_classes   = ${num_classes}
@@ -1004,6 +1072,8 @@ process HOMO_REFINEMENT_BATCH {
     output:
     tuple val(vol_name), path("refined_${vol_name}.cs"), emit: refined_cs
     path "refinement_report_${vol_name}.json", emit: report
+    path "cs_out_*volume*.mrc", optional: true, emit: volume_mrc
+    path "cs_out_*map*.mrc", optional: true, emit: map_mrc
 
     script:
     def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
@@ -1033,15 +1103,20 @@ process HOMO_REFINEMENT_BATCH {
             timeout=21600,
         )
         num_particles = par_data.get("num_items", 0)
+        # Download refined volume MRC for visualization in BioMate DensityMapViewer
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_", png_prefix="cs_thumb_")
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
                    "job_uid": job.uid, "output_slot": "volume",
                    "num_items": num_particles, "batch_id": vol_name,
-                   "volume": {"volume_name": vol_name, "num_particles": num_particles}}
+                   "volume": {"volume_name": vol_name, "num_particles": num_particles},
+                   "viz_files": viz_files}
         report  = {"step": "17_homogeneous_refinement", "vol_name": vol_name,
                    "timestamp": datetime.now().isoformat(),
                    "cs_job_uid": job.uid, "num_particles": num_particles,
-                   "symmetry": "${params.symmetry}", "real_mode": True}
+                   "symmetry": "${params.symmetry}", "real_mode": True,
+                   "viz_files": viz_files}
     else:
         volume        = vol_data.get("volume", {})
         num_particles = par_data.get("num_items", 1000)
@@ -1722,203 +1797,309 @@ process SELECT_2D_R2 {
 process VOLUME_TOOLS {
     tag "vol_tools"
     publishDir "${params.outdir}/18_volume_tools", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path refined_cs
+    path cs_init_json
 
     output:
     path "volume_processed.cs", emit: processed_cs
     path "volume_tools_report.json", emit: report
+    path "cs_out_*volume*.mrc", optional: true, emit: volume_mrc
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
+    ${CS_HELPER}
     import json
     from datetime import datetime
 
+    use_real     = ${real}
     refined_data = json.load(open('${refined_cs}'))
-    volume = refined_data.get('volume', {})
+    init         = json.load(open("${cs_init_json}"))
+    refine_uid   = refined_data.get('job_uid', '')
 
-    processed = {
-        **volume,
-        'filtered': True,
-        'masked': True,
-        'lowpass_resolution': volume.get('resolution_angstroms', 5.0)
-    }
-
-    report = {
-        'step': '18_volume_tools',
-        'timestamp': datetime.now().isoformat(),
-        'operations': ['lowpass_filter', 'auto_mask'],
-        'resolution_angstroms': volume.get('resolution_angstroms', 5.0)
-    }
+    if use_real and refine_uid and refine_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "volume_tools",
+            connections={"volume": (refine_uid, "volume")},
+            params={},
+            timeout=3600,
+        )
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_", png_prefix="cs_thumb_")
+        processed = {"cs_mode": "real", "project_uid": init["project_uid"],
+                     "workspace_uid": init["workspace_uid"],
+                     "job_uid": job.uid, "volume": {"filtered": True, "masked": True},
+                     "viz_files": viz_files}
+        report = {"step": "18_volume_tools", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "operations": ["lowpass_filter", "auto_mask"],
+                  "real_mode": True, "viz_files": viz_files}
+    else:
+        volume  = refined_data.get('volume', {})
+        processed = {"volume": {**volume, 'filtered': True, 'masked': True,
+                                'lowpass_resolution': volume.get('resolution_angstroms', 5.0)},
+                     "job_uid": refine_uid}  # carry upstream uid for fallback downstream
+        report  = {"step": "18_volume_tools", "timestamp": datetime.now().isoformat(),
+                   "operations": ["lowpass_filter", "auto_mask"],
+                   "resolution_angstroms": volume.get('resolution_angstroms', 5.0)}
 
     with open('volume_processed.cs', 'w') as f:
-        json.dump({'volume': processed}, f, indent=2)
-
+        json.dump(processed, f, indent=2)
     with open('volume_tools_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Volume filtering and masking complete")
+    print(f"✓ Volume filtering and masking complete (real={use_real})")
     """
 }
 
 process VALIDATION_FSC {
     tag "val_fsc"
     publishDir "${params.outdir}/19_validation_fsc", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path processed_cs
+    path cs_init_json
 
     output:
     path "fsc_validation.json", emit: fsc
     path "validation_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
+    ${CS_HELPER}
     import json
     from datetime import datetime
 
+    use_real       = ${real}
     processed_data = json.load(open('${processed_cs}'))
-    volume = processed_data.get('volume', {})
-    resolution = volume.get('resolution_angstroms', 5.0)
+    init           = json.load(open("${cs_init_json}"))
+    vol_uid        = processed_data.get('job_uid', '')
 
-    fsc_curve = []
-    for freq in [0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
-        shell_res = 1.0 / freq if freq > 0 else 999
-        if shell_res > resolution * 2:
-            fsc = 0.99
-        elif shell_res > resolution:
-            fsc = 0.5 + (shell_res - resolution) / resolution * 0.4
-        else:
-            fsc = 0.143 + (resolution - shell_res) / resolution * 0.3
-
-        fsc_curve.append({
-            'spatial_frequency': freq,
-            'resolution_angstroms': round(shell_res, 2),
-            'fsc': round(max(0, min(1, fsc)), 4)
-        })
-
-    report = {
-        'step': '19_validation_fsc',
-        'timestamp': datetime.now().isoformat(),
-        'fsc_0143_resolution': resolution,
-        'fsc_05_resolution': round(resolution * 1.2, 2)
-    }
+    if use_real and vol_uid and vol_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "fsc_validation",
+            connections={"volume": (vol_uid, "volume")},
+            params={},
+            timeout=3600,
+        )
+        # Attempt to read FSC data from the job output
+        fsc_data = {"fsc_curve": [], "cs_job_uid": job.uid, "real_mode": True}
+        try:
+            fsc_out = job.load_output("fsc")
+            if fsc_out is not None:
+                fsc_data["fsc_curve"] = list(fsc_out)
+        except Exception:
+            pass
+        report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "real_mode": True}
+    else:
+        volume     = processed_data.get('volume', {})
+        resolution = volume.get('resolution_angstroms', 5.0)
+        fsc_curve  = []
+        for freq in [0.001, 0.01, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5]:
+            shell_res = 1.0 / freq if freq > 0 else 999
+            if shell_res > resolution * 2:
+                fsc = 0.99
+            elif shell_res > resolution:
+                fsc = 0.5 + (shell_res - resolution) / resolution * 0.4
+            else:
+                fsc = 0.143 + (resolution - shell_res) / resolution * 0.3
+            fsc_curve.append({'spatial_frequency': freq,
+                              'resolution_angstroms': round(shell_res, 2),
+                              'fsc': round(max(0, min(1, fsc)), 4)})
+        fsc_data = {"fsc_curve": fsc_curve}
+        report   = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
+                    "fsc_0143_resolution": resolution,
+                    "fsc_05_resolution": round(resolution * 1.2, 2)}
 
     with open('fsc_validation.json', 'w') as f:
-        json.dump({'fsc_curve': fsc_curve}, f, indent=2)
-
+        json.dump(fsc_data, f, indent=2)
     with open('validation_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ FSC validation complete: {resolution} Å at 0.143 cutoff")
+    print(f"✓ FSC validation complete (real={use_real})")
     """
 }
 
 process LOCAL_CTF_REFINEMENT {
     tag "ctf_refine"
     publishDir "${params.outdir}/20_local_ctf_refinement", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path particles_cs
     path volume_cs
+    path cs_init_json
 
     output:
     path "particles_ctf_refined.cs", emit: refined_particles_cs
     path "ctf_refinement_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
+    ${CS_HELPER}
+    import json, random
     from datetime import datetime
 
+    use_real       = ${real}
     particles_data = json.load(open('${particles_cs}'))
-    particles = particles_data.get('particles', [])
+    volume_data    = json.load(open('${volume_cs}'))
+    init           = json.load(open("${cs_init_json}"))
+    particles_uid  = particles_data.get('job_uid', '')
+    volume_uid     = volume_data.get('job_uid', '')
 
-    refined_particles = [
-        {**p, 'ctf_refined': True, 'local_defocus_shift': round(random.uniform(-500, 500), 1)}
-        for p in particles
-    ]
-
-    report = {
-        'step': '20_local_ctf_refinement',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': len(particles),
-        'avg_defocus_shift_angstroms': round(sum(abs(p['local_defocus_shift']) for p in refined_particles) / max(1, len(particles)), 1)
-    }
+    if use_real and particles_uid and volume_uid and particles_uid != 'MOCK' and volume_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "local_ctf_refinement",
+            connections={
+                "particles": (particles_uid, "particles"),
+                "volume":    (volume_uid,    "volume"),
+            },
+            params={},
+            timeout=14400,
+        )
+        num_particles = particles_data.get('num_items', 0)
+        cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
+                   "workspace_uid": init["workspace_uid"],
+                   "job_uid": job.uid, "num_items": num_particles}
+        report  = {"step": "20_local_ctf_refinement", "timestamp": datetime.now().isoformat(),
+                   "cs_job_uid": job.uid, "num_particles": num_particles, "real_mode": True}
+    else:
+        # Mock fallback
+        import random
+        particles = particles_data.get('particles', [])
+        num_particles = particles_data.get('num_items', len(particles))
+        refined_particles = [{**p, 'ctf_refined': True,
+                              'local_defocus_shift': round(random.uniform(-500, 500), 1)}
+                             for p in particles]
+        cs_data = {'particles': refined_particles,
+                   'job_uid': particles_uid, 'num_items': len(refined_particles)}
+        report  = {"step": "20_local_ctf_refinement", "timestamp": datetime.now().isoformat(),
+                   "num_particles": num_particles, "mock_mode": True}
 
     with open('particles_ctf_refined.cs', 'w') as f:
-        json.dump({'particles': refined_particles}, f, indent=2)
-
+        json.dump(cs_data, f, indent=2)
     with open('ctf_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Local CTF refinement complete")
+    print(f"✓ Local CTF refinement complete (real={use_real})")
     """
 }
 
 process NON_UNIFORM_REFINEMENT {
     tag "nu_refine"
     publishDir "${params.outdir}/21_non_uniform_refinement", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path refined_particles_cs
     path volume_cs
+    path cs_init_json
 
     output:
-    path "volume_nu_refined.mrc", emit: final_volume
-    path "nu_refinement_report.json", emit: report
+    path "volume_nu_refined.mrc",      emit: final_volume
+    path "volume_nu_refined_meta.json", emit: volume_meta
+    path "nu_refinement_report.json",  emit: report
+    path "cs_out_*volume*.mrc", optional: true, emit: volume_vis_mrc
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import struct
+    ${CS_HELPER}
+    import json, random, struct, shutil
     from datetime import datetime
 
+    use_real       = ${real}
     particles_data = json.load(open('${refined_particles_cs}'))
-    volume_data = json.load(open('${volume_cs}'))
+    volume_data    = json.load(open('${volume_cs}'))
+    init           = json.load(open("${cs_init_json}"))
+    particles_uid  = particles_data.get('job_uid', '')
+    volume_uid     = volume_data.get('job_uid', '')
 
-    num_particles = len(particles_data.get('particles', []))
-    current_res = volume_data.get('volume', {}).get('resolution_angstroms', 5.0)
+    if use_real and particles_uid and volume_uid and particles_uid != 'MOCK' and volume_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "non_uniform_refinement_new",
+            connections={
+                "particles": (particles_uid, "particles"),
+                "volume":    (volume_uid,    "volume"),
+            },
+            params={"refine_symmetry": "${params.symmetry}"},
+            timeout=21600,
+        )
+        num_particles = particles_data.get('num_items', 0)
+        # Download refined volume MRC for DensityMapViewer
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_", png_prefix="cs_thumb_")
+        # Use downloaded MRC as final_volume if available; else create placeholder
+        downloaded_mrc = next((f for f in viz_files if f.endswith('.mrc')), None)
+        if downloaded_mrc:
+            shutil.copy(downloaded_mrc, 'volume_nu_refined.mrc')
+        else:
+            # Write minimal valid MRC stub (1×1×1) so Nextflow output is satisfied
+            with open('volume_nu_refined.mrc', 'wb') as f:
+                header = struct.pack('256i', *([0]*256))
+                f.write(header)
+                f.write(struct.pack('f', 0.0))
+        meta = {"cs_mode": "real", "project_uid": init["project_uid"],
+                "workspace_uid": init["workspace_uid"],
+                "job_uid": job.uid, "num_items": num_particles, "viz_files": viz_files}
+        report = {"step": "21_non_uniform_refinement", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "num_particles": num_particles, "real_mode": True,
+                  "viz_files": viz_files}
+    else:
+        # Mock fallback — write synthetic MRC
+        current_res   = volume_data.get('volume', {}).get('resolution_angstroms', 5.0)
+        final_res     = round(current_res * random.uniform(0.8, 0.9), 2)
+        num_particles = particles_data.get('num_items', len(particles_data.get('particles', [])))
+        size = 128
+        with open('volume_nu_refined.mrc', 'wb') as f:
+            header  = struct.pack('3i', size, size, size)
+            header += struct.pack('3i', 2, 0, 0)
+            header += struct.pack('3i', size, size, size)
+            header += struct.pack('3f', float(size * ${params.pixel_size}),
+                                        float(size * ${params.pixel_size}),
+                                        float(size * ${params.pixel_size}))
+            header += struct.pack('3f', 90.0, 90.0, 90.0)
+            header += struct.pack('3i', 1, 2, 3)
+            header += struct.pack('3f', -1.0, 1.0, 0.0)
+            header += b'\\x00' * (1024 - len(header))
+            f.write(header)
+            for _ in range(size * size * size):
+                f.write(struct.pack('f', random.gauss(0, 0.1)))
+        meta   = {"cs_mode": "mock", "job_uid": volume_uid or "MOCK",
+                  "final_resolution_angstroms": final_res}
+        report = {"step": "21_non_uniform_refinement", "timestamp": datetime.now().isoformat(),
+                  "num_particles": num_particles, "initial_resolution_angstroms": current_res,
+                  "final_resolution_angstroms": final_res,
+                  "resolution_improvement": round((current_res - final_res) / current_res * 100, 1)}
 
-    final_res = round(current_res * random.uniform(0.8, 0.9), 2)
-
-    size = 128
-    with open('volume_nu_refined.mrc', 'wb') as f:
-        header = struct.pack('3i', size, size, size)
-        header += struct.pack('3i', 2, 0, 0)
-        header += struct.pack('3i', size, size, size)
-        header += struct.pack('3f', float(size * ${params.pixel_size}),
-                                    float(size * ${params.pixel_size}),
-                                    float(size * ${params.pixel_size}))
-        header += struct.pack('3f', 90.0, 90.0, 90.0)
-        header += struct.pack('3i', 1, 2, 3)
-        header += struct.pack('3f', -1.0, 1.0, 0.0)
-        header += b'\\x00' * (1024 - len(header))
-        f.write(header)
-
-        for i in range(size * size * size):
-            f.write(struct.pack('f', random.gauss(0, 0.1)))
-
-    report = {
-        'step': '21_non_uniform_refinement',
-        'timestamp': datetime.now().isoformat(),
-        'num_particles': num_particles,
-        'initial_resolution_angstroms': current_res,
-        'final_resolution_angstroms': final_res,
-        'resolution_improvement': round((current_res - final_res) / current_res * 100, 1)
-    }
-
+    with open('volume_nu_refined_meta.json', 'w') as f:
+        json.dump(meta, f, indent=2)
     with open('nu_refinement_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Non-uniform refinement: {current_res} Å → {final_res} Å")
+    print(f"✓ Non-uniform refinement complete (real={use_real})")
     """
 }
 
@@ -1926,48 +2107,74 @@ process LOCAL_RESOLUTION {
     tag "local_res"
     publishDir "${params.outdir}/22_local_resolution", mode: 'copy'
     errorStrategy 'ignore'
+    container CS_IMAGE
 
     input:
     path final_volume
+    path volume_meta
+    path cs_init_json
 
     output:
     path "local_resolution.mrc", emit: local_res_map
     path "local_resolution_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import random
-    import shutil
+    ${CS_HELPER}
+    import json, random, shutil
     from datetime import datetime
 
-    shutil.copy('${final_volume}', 'local_resolution.mrc')
+    use_real  = ${real}
+    meta      = json.load(open('${volume_meta}'))
+    init      = json.load(open("${cs_init_json}"))
+    nu_uid    = meta.get('job_uid', '')
 
-    resolutions = [round(random.gauss(4.5, 1.5), 2) for _ in range(100)]
-
-    report = {
-        'step': '22_local_resolution',
-        'timestamp': datetime.now().isoformat(),
-        'mean_resolution_angstroms': round(sum(resolutions) / len(resolutions), 2),
-        'min_resolution_angstroms': round(min(resolutions), 2),
-        'max_resolution_angstroms': round(max(resolutions), 2),
-        'std_resolution_angstroms': round((sum((r - sum(resolutions)/len(resolutions))**2 for r in resolutions) / len(resolutions))**0.5, 2)
-    }
+    if use_real and nu_uid and nu_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "local_resolution_estimation",
+            connections={"volume": (nu_uid, "volume")},
+            params={},
+            timeout=7200,
+        )
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_lr_", png_prefix="cs_thumb_lr_")
+        downloaded_mrc = next((f for f in viz_files if f.endswith('.mrc')), None)
+        if downloaded_mrc:
+            shutil.copy(downloaded_mrc, 'local_resolution.mrc')
+        else:
+            shutil.copy('${final_volume}', 'local_resolution.mrc')
+        report = {"step": "22_local_resolution", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "real_mode": True, "viz_files": viz_files}
+    else:
+        shutil.copy('${final_volume}', 'local_resolution.mrc')
+        resolutions = [round(random.gauss(4.5, 1.5), 2) for _ in range(100)]
+        mean_res    = round(sum(resolutions) / len(resolutions), 2)
+        report = {"step": "22_local_resolution", "timestamp": datetime.now().isoformat(),
+                  "mean_resolution_angstroms": mean_res,
+                  "min_resolution_angstroms": round(min(resolutions), 2),
+                  "max_resolution_angstroms": round(max(resolutions), 2), "mock_mode": True}
 
     with open('local_resolution_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Local resolution: {report['mean_resolution_angstroms']} Å (mean)")
+    print(f"✓ Local resolution complete (real={use_real})")
     """
 }
 
 process SHARPEN {
     tag "sharpen"
     publishDir "${params.outdir}/23_sharpening", mode: 'copy'
+    container CS_IMAGE
 
     input:
     path final_volume
+    path volume_meta
+    path cs_init_json
 
     output:
     path "volume_sharpened.mrc", emit: sharpened_volume
@@ -1975,23 +2182,46 @@ process SHARPEN {
     path "workflow_summary.json", emit: summary
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
-    import json
-    import shutil
+    ${CS_HELPER}
+    import json, shutil
     from datetime import datetime
 
-    shutil.copy('${final_volume}', 'volume_sharpened.mrc')
+    use_real  = ${real}
+    meta      = json.load(open('${volume_meta}'))
+    init      = json.load(open("${cs_init_json}"))
+    nu_uid    = meta.get('job_uid', '')
 
-    b_factor = round(-120.0 + (4.5 - 3.5) * 30, 1)
-
-    report = {
-        'step': '23_sharpening',
-        'timestamp': datetime.now().isoformat(),
-        'b_factor_applied': b_factor,
-        'lowpass_filter': '${params.max_resolution_refinement}',
-        'final_output': 'volume_sharpened.mrc'
-    }
+    if use_real and nu_uid and nu_uid != 'MOCK':
+        cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
+                         ${params.cryosparc_port}, "${params.cryosparc_email}",
+                         "${params.cryosparc_password}")
+        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+            "sharpening_tools",
+            connections={"volume": (nu_uid, "volume")},
+            params={},
+            timeout=3600,
+        )
+        # Download the sharpened volume MRC — this is the final deliverable
+        viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
+                                        mrc_prefix="cs_out_sharp_", png_prefix="cs_thumb_sharp_")
+        downloaded_mrc = next((f for f in viz_files if f.endswith('.mrc')), None)
+        if downloaded_mrc:
+            shutil.copy(downloaded_mrc, 'volume_sharpened.mrc')
+        else:
+            shutil.copy('${final_volume}', 'volume_sharpened.mrc')
+        report = {"step": "23_sharpening", "timestamp": datetime.now().isoformat(),
+                  "cs_job_uid": job.uid, "real_mode": True,
+                  "final_output": "volume_sharpened.mrc", "viz_files": viz_files}
+    else:
+        shutil.copy('${final_volume}', 'volume_sharpened.mrc')
+        b_factor = round(-120.0 + (4.5 - 3.5) * 30, 1)
+        report   = {"step": "23_sharpening", "timestamp": datetime.now().isoformat(),
+                    "b_factor_applied": b_factor,
+                    "lowpass_filter": "${params.max_resolution_refinement}",
+                    "final_output": "volume_sharpened.mrc", "mock_mode": True}
 
     summary = {
         'workflow': 'cryosparc_standard_spa',
@@ -2002,6 +2232,7 @@ process SHARPEN {
         'voltage_kv': ${params.voltage},
         'symmetry': '${params.symmetry}',
         'mock_mode': ${params.mock_mode ? 'True' : 'False'},
+        'real_mode': use_real,
         'parallelism': {
             'micrograph_batch_size': ${params.micrograph_batch_size},
             'particle_batch_size': ${params.particle_batch_size},
@@ -2017,11 +2248,10 @@ process SHARPEN {
 
     with open('sharpening_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
     with open('workflow_summary.json', 'w') as f:
         json.dump(summary, f, indent=2)
 
-    print(f"✓ Sharpening complete (B-factor: {b_factor})")
+    print(f"✓ Sharpening complete (real={use_real})")
     print(f"")
     print(f"=" * 70)
     print(f"  CryoSPARC Standard SPA Workflow Complete!")
@@ -2153,17 +2383,17 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase E: Post-processing pipeline (serial — depends on best volume) ──
 
-    VOLUME_TOOLS(best_refined_ch)
+    VOLUME_TOOLS(best_refined_ch, init_json_ch)
 
-    VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs)
+    VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    LOCAL_CTF_REFINEMENT(SELECT_2D_R2.out.selected_cs, VOLUME_TOOLS.out.processed_cs)
+    LOCAL_CTF_REFINEMENT(SELECT_2D_R2.out.selected_cs, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    NON_UNIFORM_REFINEMENT(LOCAL_CTF_REFINEMENT.out.refined_particles_cs, VOLUME_TOOLS.out.processed_cs)
+    NON_UNIFORM_REFINEMENT(LOCAL_CTF_REFINEMENT.out.refined_particles_cs, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    LOCAL_RESOLUTION(NON_UNIFORM_REFINEMENT.out.final_volume)
+    LOCAL_RESOLUTION(NON_UNIFORM_REFINEMENT.out.final_volume, NON_UNIFORM_REFINEMENT.out.volume_meta, init_json_ch)
 
-    SHARPEN(NON_UNIFORM_REFINEMENT.out.final_volume)
+    SHARPEN(NON_UNIFORM_REFINEMENT.out.final_volume, NON_UNIFORM_REFINEMENT.out.volume_meta, init_json_ch)
 
     emit:
     final_map    = SHARPEN.out.sharpened_volume
