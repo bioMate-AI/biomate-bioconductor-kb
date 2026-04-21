@@ -1063,11 +1063,24 @@ process AB_INITIO_BATCH {
             timeout=14400,
             num_gpu=${params.num_gpu},
         )
-        volume_out = job.load_output("volume")
+        # CryoSPARC v5 homo_abinit renames output slot: try in order
+        volume_out = None
+        _vol_slot = None
+        for _s in ("volume_class_0", "volume_0", "volume", "volumes"):
+            try:
+                _o = job.load_output(_s)
+                if _o is not None:
+                    volume_out = _o
+                    _vol_slot = _s
+                    break
+            except Exception:
+                pass
+        if volume_out is None:
+            raise RuntimeError(f"homo_abinit {job.uid}: no volume output found; tried volume_class_0/volume_0/volume/volumes")
         num_particles = prev.get("num_items", 0)
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
-                   "job_uid": job.uid, "output_slot": "volume",
+                   "job_uid": job.uid, "output_slot": _vol_slot,
                    "num_items": num_particles, "batch_id": f"k{k}",
                    "volume": {"volume_idx": k, "resolution_angstroms": None,
                                "num_particles": num_particles}}
@@ -1134,7 +1147,7 @@ process HOMO_REFINEMENT_BATCH {
             "homo_refine_new",
             connections={
                 "particles": (par_data["job_uid"], "particles"),
-                "volume":    (vol_data["job_uid"], "volume"),
+                "volume":    (vol_data["job_uid"], vol_data.get("output_slot", "volume_class_0")),
             },
             params={"refine_symmetry": "${params.symmetry}"},
             timeout=21600,
