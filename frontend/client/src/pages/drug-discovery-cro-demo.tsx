@@ -828,31 +828,41 @@ const TOUR_STEPS: TourStep[] = [
 ]
 
 function TourSpotlight({ rect }: { rect: DOMRect | null }) {
+  // Use CSS box-shadow spotlight — avoids SVG mask rendering bugs at high DPR
   if (!rect) {
+    // No target: full dark overlay
     return (
-      <svg className="cro-tour-overlay" aria-hidden="true">
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(12,14,20,0.55)" />
-      </svg>
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed", inset: 0, background: "rgba(12,14,20,0.55)",
+          pointerEvents: "none", zIndex: 9000,
+        }}
+      />
     )
   }
   const pad = 8
-  const r = 8
   const x = rect.left - pad
   const y = rect.top - pad
   const w = rect.width + pad * 2
   const h = rect.height + pad * 2
   return (
-    <svg className="cro-tour-overlay" aria-hidden="true">
-      <defs>
-        <mask id="cro-tour-mask">
-          <rect x="0" y="0" width="100%" height="100%" fill="white" />
-          <rect x={x} y={y} width={w} height={h} rx={r} ry={r} fill="black" />
-        </mask>
-      </defs>
-      <rect x="0" y="0" width="100%" height="100%" fill="rgba(12,14,20,0.55)" mask="url(#cro-tour-mask)" />
-      <rect x={x} y={y} width={w} height={h} rx={r} ry={r}
-        fill="none" stroke="rgba(99,140,255,0.9)" strokeWidth="2" className="cro-tour-ring" />
-    </svg>
+    <>
+      {/* Dark overlay via CSS box-shadow on the spotlight cutout */}
+      <div
+        aria-hidden="true"
+        className="cro-tour-ring"
+        style={{
+          position: "fixed",
+          left: x, top: y, width: w, height: h,
+          borderRadius: 8,
+          boxShadow: "0 0 0 9999px rgba(12,14,20,0.55)",
+          outline: "2px solid rgba(99,140,255,0.9)",
+          pointerEvents: "none",
+          zIndex: 9000,
+        }}
+      />
+    </>
   )
 }
 
@@ -866,8 +876,11 @@ function TourCallout({
   const calloutRef = useRef<HTMLDivElement>(null)
   const [calloutH, setCalloutH] = useState(200)
   useEffect(() => {
-    if (calloutRef.current) setCalloutH(calloutRef.current.offsetHeight)
-  })
+    if (calloutRef.current) {
+      const h = calloutRef.current.offsetHeight
+      setCalloutH(prev => prev !== h ? h : prev)
+    }
+  }, [step])
 
   const CW = stepData.placement === "center" ? 420 : 360
   const OFFSET = 14; const MARGIN = 16
@@ -910,7 +923,7 @@ function TourCallout({
         <span className="text-[10.5px] uppercase tracking-[0.06em] font-semibold" style={{ color: "oklch(0.55 0.14 245)" }}>
           Step {step + 1} of {total}
         </span>
-        <button onClick={onSkip} className="text-[11.5px] cursor-pointer bg-transparent border-0 p-1" style={{ color: "oklch(0.62 0.010 260)" }}>
+        <button type="button" onClick={onSkip} className="text-[11.5px] cursor-pointer bg-transparent border-0 p-1" style={{ color: "oklch(0.62 0.010 260)" }}>
           Skip tour ×
         </button>
       </div>
@@ -936,11 +949,11 @@ function TourCallout({
         {/* Actions */}
         <div className="flex gap-1.5">
           {!isFirst && (
-            <button onClick={onPrev} className="h-7 px-2.5 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
+            <button type="button" onClick={onPrev} className="h-7 px-2.5 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
               ← Back
             </button>
           )}
-          <button onClick={onNext} className="h-7 px-3 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}>
+          <button type="button" onClick={onNext} className="h-7 px-3 text-[12px] font-medium rounded-[4px] cursor-pointer" style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}>
             {isLast ? (stepData.cta ?? "Done") : "Next →"}
           </button>
         </div>
