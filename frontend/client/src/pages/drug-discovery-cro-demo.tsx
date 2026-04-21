@@ -360,6 +360,23 @@ const TABS = [
 
 type TabKey = typeof TABS[number]["key"]
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function ToastMsg({ text, onDone }: { text: string; onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 2200)
+    return () => clearTimeout(t)
+  }, [onDone])
+  return (
+    <div
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-[8px] text-[13px] font-medium text-white z-50 pointer-events-none"
+      style={{ background: "oklch(0.22 0.01 260)", boxShadow: "0 4px 12px rgba(15,23,42,0.2)" }}
+    >
+      {text}
+    </div>
+  )
+}
+
 // ── eSig Modal ────────────────────────────────────────────────────────────────
 
 function OtpInput({
@@ -782,7 +799,7 @@ export default function DrugDiscoveryCroDemo() {
     )
   }
 
-  const tabLabel = TABS.find((t) => t.key === activeTab)?.label ?? "Dashboard"
+  const tabLabel = showWizard ? "New Campaign" : (TABS.find((t) => t.key === activeTab)?.label ?? "Dashboard")
 
   return (
     // .page
@@ -952,8 +969,8 @@ export default function DrugDiscoveryCroDemo() {
                 </button>
               </div>
 
-              {/* .dd-tabs */}
-              <div className="flex overflow-x-auto mt-3.5" style={{ scrollbarWidth: "none" }}>
+              {/* .dd-tabs — hidden when wizard is open */}
+              <div className="flex overflow-x-auto mt-3.5" style={{ scrollbarWidth: "none", display: showWizard ? "none" : "flex" }}>
                 {TABS.map((tab) => (
                   <button
                     key={tab.key}
@@ -1004,25 +1021,49 @@ export default function DrugDiscoveryCroDemo() {
 
             {/* .dd-body */}
             <div className="p-5">
-              {activeTab === "dashboard"    && <CampaignDashboard />}
-              {activeTab === "validation"   && <DrugDiscoveryValidationPanel campaignId={CAMPAIGN_ID} />}
-              {activeTab === "audit"        && <DrugDiscoveryAuditViewer campaignId={CAMPAIGN_ID} />}
-              {activeTab === "auto-retrain" && <DrugDiscoveryAutoRetrain campaignId={CAMPAIGN_ID} />}
-              {activeTab === "ind-assembly" && (
-                <DrugDiscoveryIndAssembly
-                  campaignId={CAMPAIGN_ID}
-                  initialValues={{
-                    mol:        CAMPAIGN_META.molecule,
-                    target:     CAMPAIGN_META.target,
-                    indication: `${CAMPAIGN_META.indication} — 2nd line after erlotinib failure`,
-                    sponsor:    CAMPAIGN_META.sponsor,
-                  }}
+              {showWizard ? (
+                <CampaignWizard
+                  onDone={() => setShowWizard(false)}
+                  onToast={(msg) => setToast(msg)}
                 />
+              ) : (
+                <>
+                  {activeTab === "dashboard"    && <CampaignDashboard />}
+                  {activeTab === "validation"   && <DrugDiscoveryValidationPanel campaignId={CAMPAIGN_ID} />}
+                  {activeTab === "audit"        && <DrugDiscoveryAuditViewer campaignId={CAMPAIGN_ID} />}
+                  {activeTab === "auto-retrain" && <DrugDiscoveryAutoRetrain campaignId={CAMPAIGN_ID} />}
+                  {activeTab === "ind-assembly" && (
+                    <DrugDiscoveryIndAssembly
+                      campaignId={CAMPAIGN_ID}
+                      initialValues={{
+                        mol:        CAMPAIGN_META.molecule,
+                        target:     CAMPAIGN_META.target,
+                        indication: `${CAMPAIGN_META.indication} — 2nd line after erlotinib failure`,
+                        sponsor:    CAMPAIGN_META.sponsor,
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* eSig Modal */}
+      {esigOpen && (
+        <EsigModal
+          action={esigAction}
+          target="WuXi AppTec · 10 compounds"
+          onClose={() => setEsigOpen(false)}
+          onToast={(msg) => setToast(msg)}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <ToastMsg text={toast} onDone={() => setToast(null)} />
+      )}
     </div>
   )
 }
