@@ -13,7 +13,7 @@
  *  ind_assembly       — IND section assembly (Surface 6)
  *  new_campaign       — Campaign creation wizard (Surface 7)
  */
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -308,6 +308,11 @@ function CampaignDashboardWidget({ action }: { action: DrugDiscoveryActionData }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [campaignId, setCampaignId] = useState(action.campaign_id || "")
+
+  // Auto-load when campaign_id is pre-set (e.g. from the CRO demo page)
+  useEffect(() => {
+    if (action.campaign_id) load(action.campaign_id)
+  }, [action.campaign_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async (id: string) => {
     if (!id.trim()) return

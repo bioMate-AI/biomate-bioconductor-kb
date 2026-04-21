@@ -61,14 +61,27 @@ const SECTION_TITLES: Record<string, string> = {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function DrugDiscoveryIndAssembly({ campaignId }: { campaignId: string }) {
+interface InitialValues {
+  mol?: string
+  target?: string
+  indication?: string
+  sponsor?: string
+}
+
+export function DrugDiscoveryIndAssembly({
+  campaignId,
+  initialValues,
+}: {
+  campaignId: string
+  initialValues?: InitialValues
+}) {
   const { toast } = useToast()
 
-  // Form state
-  const [mol, setMol] = useState("")
-  const [target, setTarget] = useState("")
-  const [indication, setIndication] = useState("")
-  const [sponsor, setSponsor] = useState("")
+  // Form state — pre-filled from initialValues when provided
+  const [mol, setMol] = useState(initialValues?.mol ?? "")
+  const [target, setTarget] = useState(initialValues?.target ?? "")
+  const [indication, setIndication] = useState(initialValues?.indication ?? "")
+  const [sponsor, setSponsor] = useState(initialValues?.sponsor ?? "")
 
   // Request state
   const [generating, setGenerating] = useState(false)

@@ -690,10 +690,8 @@ export function NextflowWorkflowViewer({
   const userOverriddenParams = useRef<Set<string>>(new Set());
   const [logs, setLogs] = useState<string[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<Date>(new Date());
-  // Global parameters collapsible — open by default when idle so users can fill required params
-  const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(
-    () => status === 'idle' || status === 'pending_review'
-  );
+  // Global parameters collapsible — collapsed by default (phases shown first per design spec)
+  const [globalParamsOpen, setGlobalParamsOpen] = useState<boolean>(false);
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [adjustStep, setAdjustStep] = useState<{ id: string; name: string; processName?: string; parameters?: Record<string, any> } | null>(null);
   // When user reruns from a step, track the new runId so the viewer polls the right run
@@ -1330,6 +1328,11 @@ export function NextflowWorkflowViewer({
     }
   }, [status]);
 
+  // Auto-expand workflow settings when required params are still empty
+  useEffect(() => {
+    if (hasUnfilledRequired) setGlobalParamsOpen(true);
+  }, [hasUnfilledRequired]);
+
   // D4: Auto-fetch error explanation when workflow fails
   useEffect(() => {
     if (status === 'failed' && !errorExplanation && !errorExplaining) {
@@ -1763,7 +1766,64 @@ export function NextflowWorkflowViewer({
               </div>
             )}
 
-            {/* ── Parameters (collapsible) ─────────────────────────────────────── */}
+            {/* ── Phase cards (design spec: phases first) ──────────────────────── */}
+            {groupedPhases.length > 0 && (
+              <div className="space-y-2">
+                {groupedPhases.map(group => (
+                  <PhaseGroupSection
+                    key={group.key}
+                    group={group}
+                    renderedParameters={renderedParameters}
+                    params={params}
+                    onParamChange={handleParamChange}
+                    onRun={handleRunStep}
+                    onSkip={handleSkipPhase}
+                    onPreviewFile={(file) => setPreviewFile(file)}
+                    onAdjustAndRerun={(phase) => setAdjustStep({
+                      id: phase.id,
+                      name: phase.name,
+                      processName: phase.processName,
+                      parameters: phase.parameters as Record<string, any> | undefined,
+                    })}
+                    activeRunId={activeRunId}
+                    executionBlockedReason={executionBlockedReason}
+                    isPrereqBlocked={isPrereqBlocked}
+                    isAutofixActive={isAutofixActive}
+                    isGlobalExecutionActive={isGlobalExecutionActive}
+                    autoLoopPanelState={
+                      autoLoopPanel.gateResults &&
+                      autoloopPhaseMatches(group.key, autoLoopPanel.gateResults.phase)
+                        ? autoLoopPanel
+                        : undefined
+                    }
+                    autoloopEnabled={autoloopMap[group.key] !== false}
+                    onToggleAutoloop={() =>
+                      setAutoloopMap(prev => ({ ...prev, [group.key]: prev[group.key] === false ? true : false }))
+                    }
+                    onDismissAutoloop={() =>
+                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
+                    }
+                    onAcceptAutoloop={(paramChanges) => {
+                      setParams(prev => ({ ...prev, ...paramChanges }));
+                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
+                      handleExecute();
+                    }}
+                  />
+                ))}
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline mt-1"
+                  data-testid="button-suggest-step"
+                  onClick={() => {
+                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
+                    onAdjustViaChat?.(`Add a step after "${lastStep}" that `);
+                  }}
+                >
+                  + Suggest a new step via chat
+                </button>
+              </div>
+            )}
+
+            {/* ── Parameters (collapsible, below phases per design spec) ────────── */}
             <div className="rounded-lg border border-border overflow-hidden">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -2325,117 +2385,72 @@ export function NextflowWorkflowViewer({
                   </Button>
                 </div>
               )}
-              <div className="space-y-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowResults((prev) => !prev)}
-                      disabled={!invocationId || status === 'failed'}
-                      title={!invocationId ? "Run workflow to view results" : status === 'failed' ? "No results — workflow failed" : "View output results"}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      {showResults ? 'Hide Results' : 'View Results'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>Browse output files generated by each workflow step</p>
-                  </TooltipContent>
-                </Tooltip>
-                {/* AI Analysis button — enabled only on completed runs with a runId */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-analyze-results"
-                      disabled={status !== 'completed' || !runId || analysisState === 'loading'}
-                      title={status !== 'completed' ? "Available after workflow completes" : "AI analysis of findings with citations"}
-                      onClick={handleAnalyzeResults}
-                    >
-                      {analysisState === 'loading' ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Activity className="mr-2 h-4 w-4" />
-                      )}
-                      {analysisState === 'loading' ? 'Analyzing…' : analysisState === 'done' ? 'Re-analyze Results' : 'Analyze Results'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>AI-powered scientific interpretation with literature citations</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-download-all-workflow-panel"
-                      disabled={!invocationId || status === 'failed'}
-                      title={!invocationId ? "Run workflow to enable download" : status === 'failed' ? "No outputs — workflow failed" : "Download all outputs"}
-                      onClick={() => {
-                        if (!invocationId || status === 'failed') return;
-                        emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
-                        window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
-                        setDownloadAllPromptOpen(true);
-                      }}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download All
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>Download all output files as a ZIP archive</p>
-                  </TooltipContent>
-                </Tooltip>
-                {/* Download QC Audit Log — only shown when QC profiles are available or a QC gate fired */}
-                {(availableQcProfiles.length > 0 || qcGateData !== null) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        data-testid="button-download-qc-audit"
+              {/* ── Post-run text links (design spec: inline links, not full-width buttons) */}
+              {(invocationId || status === 'completed') && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground px-0.5 py-1 border-t border-border/40 pt-2">
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => setShowResults((prev) => !prev)}
+                    disabled={!invocationId || status === 'failed'}
+                    data-testid="button-view-results-link"
+                  >
+                    {showResults ? 'Hide results' : 'View results'}
+                  </button>
+                  <span className="text-border/60">·</span>
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    onClick={() => {
+                      if (!invocationId || status === 'failed') return;
+                      emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
+                      window.open(`/api/invocations/${invocationId}/download-all`, '_blank');
+                      setDownloadAllPromptOpen(true);
+                    }}
+                    disabled={!invocationId || status === 'failed'}
+                    data-testid="button-download-all-workflow-panel"
+                  >
+                    Download all
+                  </button>
+                  <span className="text-border/60">·</span>
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-0.5"
+                    disabled={status !== 'completed' || !runId || analysisState === 'loading'}
+                    onClick={handleAnalyzeResults}
+                    data-testid="button-analyze-results"
+                  >
+                    {analysisState === 'loading' && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                    {analysisState === 'loading' ? 'Analyzing…' : 'AI analysis'}
+                  </button>
+                  <span className="text-border/60">·</span>
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={!invocationId || status === 'failed'}
+                    onClick={() => {
+                      if (!invocationId || status === 'failed') return;
+                      window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
+                    }}
+                    data-testid="button-download-methods-report"
+                    data-invocation-id={invocationId || ''}
+                  >
+                    Methods report
+                  </button>
+                  {(availableQcProfiles.length > 0 || qcGateData !== null) && (
+                    <>
+                      <span className="text-border/60">·</span>
+                      <button
+                        className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
                         disabled={!invocationId || status === 'failed'}
-                        title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No QC data — workflow failed" : "Download QC audit log"}
                         onClick={() => {
                           if (!invocationId || status === 'failed') return;
                           window.open(`/api/invocations/${invocationId}/qc-audit-download`, '_blank');
                         }}
+                        data-testid="button-download-qc-audit"
                       >
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        Download QC Audit Log
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <p>Full audit trail — timestamps, gate verdicts, remediation decisions</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-download-methods-report"
-                      data-invocation-id={invocationId || ''}
-                      disabled={!invocationId || status === 'failed'}
-                      title={!invocationId ? "Run workflow to enable" : status === 'failed' ? "No report — workflow failed" : "Download methods report"}
-                      onClick={() => {
-                        if (!invocationId || status === 'failed') return;
-                        window.open(`/api/invocations/${invocationId}/methods-report`, '_blank');
-                      }}
-                    >
-                      <FlaskConical className="mr-2 h-4 w-4" />
-                      Download Methods Report
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>Auto-generated Methods section ready to paste into a publication</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+                        QC audit log
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
             {/* ── Run metrics strip ─────────────────────────────────────────── */}
               {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
@@ -2527,76 +2542,7 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
 
-              <p className="text-xs text-muted-foreground mb-3 px-1" data-testid="workflow-capability-hint">
-                You can{" "}
-                <button className="underline hover:text-foreground" onClick={() => {}}>edit parameters</button>
-                {" · "}
-                <button className="underline hover:text-foreground" onClick={() => {}}>adjust QC thresholds</button>
-                {" · "}
-                <span>skip steps</span>
-                {" · "}
-                <span>preview outputs</span>
-                {" · "}
-                <span>continue in chat →</span>
-              </p>
-
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground" data-testid="workflow-step-controls-hint">
-                  Run single steps for targeted checks. Finished or errored steps can be rerun repeatedly.
-                </p>
-                {/* Phase-grouped step cards — groups use semantic labels (Phase A–E for cryo-EM) */}
-                {groupedPhases.map(group => (
-                  <PhaseGroupSection
-                    key={group.key}
-                    group={group}
-                    renderedParameters={renderedParameters}
-                    params={params}
-                    onParamChange={handleParamChange}
-                    onRun={handleRunStep}
-                    onSkip={handleSkipPhase}
-                    onPreviewFile={(file) => setPreviewFile(file)}
-                    onAdjustAndRerun={(phase) => setAdjustStep({
-                      id: phase.id,
-                      name: phase.name,
-                      processName: phase.processName,
-                      parameters: phase.parameters as Record<string, any> | undefined,
-                    })}
-                    activeRunId={activeRunId}
-                    executionBlockedReason={executionBlockedReason}
-                    isPrereqBlocked={isPrereqBlocked}
-                    isAutofixActive={isAutofixActive}
-                    isGlobalExecutionActive={isGlobalExecutionActive}
-                    autoLoopPanelState={
-                      autoLoopPanel.gateResults &&
-                      autoloopPhaseMatches(group.key, autoLoopPanel.gateResults.phase)
-                        ? autoLoopPanel
-                        : undefined
-                    }
-                    autoloopEnabled={autoloopMap[group.key] !== false}
-                    onToggleAutoloop={() =>
-                      setAutoloopMap(prev => ({ ...prev, [group.key]: prev[group.key] === false ? true : false }))
-                    }
-                    onDismissAutoloop={() =>
-                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
-                    }
-                    onAcceptAutoloop={(paramChanges) => {
-                      setParams(prev => ({ ...prev, ...paramChanges }));
-                      setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
-                      handleExecute();
-                    }}
-                  />
-                ))}
-                <button
-                  className="mt-2 w-full text-xs text-muted-foreground border border-dashed rounded-md py-2 hover:text-foreground hover:border-foreground transition-colors"
-                  data-testid="button-suggest-step"
-                  onClick={() => {
-                    const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
-                    onAdjustViaChat?.(`Add a step after "${lastStep}" that `);
-                  }}
-                >
-                  + Suggest step
-                </button>
-              </div>
+              {/* Phase cards are now rendered at the top of the panel — see above */}
               
               {previewFile && activeRunId && (
                 <StepOutputPreview
