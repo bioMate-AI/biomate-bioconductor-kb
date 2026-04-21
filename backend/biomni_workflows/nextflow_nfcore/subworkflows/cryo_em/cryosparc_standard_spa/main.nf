@@ -382,15 +382,17 @@ process INIT_CRYOSPARC_PROJECT {
     ws_uid   = cs_create_workspace(cs, proj_uid, "W1")
     print(f"[CS] Project={proj_uid}  Workspace={ws_uid}", flush=True)
 
-    # Build glob pattern from movies_path (directory → auto-detect extension)
-    import glob as _glob, os as _os
-    _movies_path = "${movies_path}"
-    if _os.path.isdir(_movies_path):
-        _ext_files = sorted(_glob.glob(_os.path.join(_movies_path, "*.*")))
-        _ext = _os.path.splitext(_ext_files[0])[1] if _ext_files else ".mrcs"
-        blob_paths = _os.path.join(_movies_path, f"*{_ext}")
+    # Build glob pattern: if movies_path has no wildcard and no file extension,
+    # treat it as a directory and append /*.mrcs (Batch container can't isdir the CS server).
+    import os as _os
+    _movies_path = "${movies_path}".rstrip('/')
+    _basename = _os.path.basename(_movies_path)
+    if '*' in _movies_path:
+        blob_paths = _movies_path          # already a glob
+    elif '.' in _basename:
+        blob_paths = _movies_path          # has extension — single file or glob with ext
     else:
-        blob_paths = _movies_path
+        blob_paths = _movies_path + "/*.mrcs"  # bare directory → append default glob
     print(f"[CS] blob_paths={blob_paths}", flush=True)
 
     # Import movies
