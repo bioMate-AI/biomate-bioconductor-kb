@@ -38,6 +38,9 @@ function normalizeSurveyStatus(status?: string): 'completed' | 'failed' | 'cance
 interface ChatWithArtifactsProps {
   currentChatSession: ChatSession | null
   onChatUpdated: (session: ChatSession) => void
+  /** Called when the workflow panel opens (true) or closes (false).
+   *  Parent uses this to auto-collapse the sidebar for more screen space. */
+  onWorkflowPanelOpenChange?: (open: boolean) => void
 }
 type RunManagerScope = 'current_chat' | 'all_chats'
 type RunManagerSort = 'updated_desc' | 'running_first' | 'failed_first'
@@ -72,7 +75,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * Chat-first layout: Full-width chat with workflows displayed inline as artifacts.
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
-export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWithArtifactsProps) {
+export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
   const { toast } = useToast()
   // Track run statuses to detect transitions (running→completed, running→failed).
   // We only fire a toast on the transition, not on every poll.
@@ -761,11 +764,13 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
     setPanelWorkflowMessageId(messageId)
     setPanelWorkflow(workflow)
     setPanelOpen(true)
-  }, [])
+    onWorkflowPanelOpenChange?.(true)
+  }, [onWorkflowPanelOpenChange])
 
   const handleClosePanelWorkflow = useCallback(() => {
     setPanelOpen(false)
     setPanelWorkflowMessageId(null)
+    onWorkflowPanelOpenChange?.(false)
     setPanelWorkflow(null)
   }, [])
 
@@ -792,8 +797,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
       setPanelWorkflowMessageId(lastWorkflowMsgId)
       setPanelWorkflow(wf.metadata.workflow)
       setPanelOpen(true)
+      onWorkflowPanelOpenChange?.(true)
     }
-  }, [lastWorkflowMsgId, currentChatSession?.messages])
+  }, [lastWorkflowMsgId, currentChatSession?.messages, onWorkflowPanelOpenChange])
 
   const executionGuidance = getExecutionAsyncGuidance(executionError, { isOnline })
   const autofixState = currentRun?.execution?.nextflowStatus?.autofix?.state as string | undefined
@@ -1171,6 +1177,7 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated }: ChatWit
             }}
             onOpenWorkflowInPanel={handleOpenWorkflowInPanel}
             panelWorkflowMessageId={panelWorkflowMessageId}
+            isPanelOpen={panelOpen}
             onRegisterSetDraft={(setter) => { setChatDraftRef.current = setter }}
           />
         </div>

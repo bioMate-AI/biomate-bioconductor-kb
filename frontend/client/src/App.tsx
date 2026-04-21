@@ -340,6 +340,7 @@ function Router({
           <ChatWithArtifacts
             currentChatSession={currentChatSession}
             onChatUpdated={onChatUpdated}
+            onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
           />
         </PlatformLayout>
       </Route>

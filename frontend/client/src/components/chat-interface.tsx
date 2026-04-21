@@ -72,6 +72,10 @@ interface ChatInterfaceProps {
   // Right panel
   onOpenWorkflowInPanel?: (messageId: string, workflow: any) => void
   panelWorkflowMessageId?: string | null
+  /** Whether the workflow panel is currently open. When true, all inline
+   *  workflow cards (viewer, pipeline, chain) are suppressed in chat messages
+   *  so workflow UI lives exclusively in the panel. */
+  isPanelOpen?: boolean
   onRegisterSetDraft?: (setter: (draft: string) => void) => void
 }
 
@@ -338,6 +342,7 @@ export function ChatInterface({
   runAnchorRequestId = 0,
   onOpenWorkflowInPanel,
   panelWorkflowMessageId,
+  isPanelOpen = false,
   onRegisterSetDraft,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
@@ -1592,8 +1597,10 @@ export function ChatInterface({
               isLatestAssistantMessage={message.id === latestAssistantMessageId}
               isRunAnchorFocused={focusedAnchorMessageId === message.id}
               isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-              // Right panel: show compact pill when this workflow is open in the panel
-              isInPanel={!!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+              // Right panel: suppress all inline workflow UI when the panel is open.
+              // isInPanel=true hides the workflow widget for the exact matched message;
+              // isPanelOpen=true suppresses pipeline/chain views for other messages too.
+              isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
               onOpenInPanel={
                 message.metadata?.type === 'workflow' && message.metadata?.workflow
                   ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
