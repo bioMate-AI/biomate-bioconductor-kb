@@ -10,7 +10,7 @@ import { StarredWorkflowsDialog } from "./starred-workflows-dialog"
 import { RecentToolsDialog } from "./recent-tools-dialog"
 import { projectService } from "@/lib/projects"
 import type { Project } from "@shared/schema"
-import { 
+import {
   MessageCircle,
   Plus,
   Dna,
@@ -37,7 +37,8 @@ import {
   PanelLeft,
   DollarSign,
   AlertCircle,
-  Loader2
+  Loader2,
+  FlaskConical,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
@@ -594,6 +595,15 @@ export function AppSidebar({
             >
               <Clock className="w-4 h-4 mr-2" />
               <span>Recent Tools</span>
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              data-testid="button-cro-compliance"
+              onClick={() => setLocation("/drug-discovery-cro")}
+            >
+              <FlaskConical className="w-4 h-4 mr-2" />
+              <span>CRO Compliance</span>
             </Button>
             <Button
               variant="ghost"

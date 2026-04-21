@@ -56,6 +56,33 @@ _CAMPAIGN_DB_DIR = os.environ.get(
     str(Path(__file__).parent.parent.parent.parent.parent / "database" / "campaigns"),
 )
 
+# Global registry of all campaigns (user_id → campaign metadata)
+_CAMPAIGN_REGISTRY_DB = str(
+    Path(__file__).parent.parent.parent.parent.parent / "database" / "campaigns_registry.db"
+)
+
+
+def _registry_conn():
+    """Return a connection to the global campaign registry SQLite."""
+    import sqlite3
+    Path(_CAMPAIGN_REGISTRY_DB).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(_CAMPAIGN_REGISTRY_DB)
+    conn.row_factory = sqlite3.Row
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS campaigns (
+            campaign_id   TEXT PRIMARY KEY,
+            user_id       TEXT NOT NULL DEFAULT '',
+            molecule_name TEXT NOT NULL DEFAULT '',
+            target        TEXT NOT NULL DEFAULT '',
+            indication    TEXT NOT NULL DEFAULT '',
+            sponsor       TEXT NOT NULL DEFAULT '',
+            objective     TEXT NOT NULL DEFAULT 'balance',
+            created_at    TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    return conn
+
 
 def _campaign_db(campaign_id: str) -> str:
     """Return the SQLite path for a campaign, creating the parent dir if needed."""
@@ -1073,7 +1100,36 @@ async def trigger_retrain_now(
         )
 
     start_background_loop(db_path, campaign_id)
-    return _format_proposal(proposal)
+
+    # Submit ADMET screening Nextflow workflow for the proposed SMILES
+    nf_run_id: Optional[str] = None
+    try:
+        import json as _json
+        import urllib.request as _urllib
+        proposed_smiles = [item.get("smiles", "") for item in (proposal.items or []) if item.get("smiles")]
+        if proposed_smiles:
+            _nf_port = int(os.environ.get("NEXTFLOW_EXECUTOR_PORT", "8082"))
+            _nf_url = f"http://localhost:{_nf_port}/api/nextflow/run"
+            _payload = _json.dumps({
+                "workflow_id": "admet_screening",
+                "params": {
+                    "smiles_list": ",".join(proposed_smiles[:20]),
+                    "campaign_id": campaign_id,
+                    "n_compounds": len(proposed_smiles[:20]),
+                },
+                "tags": {"campaign_id": campaign_id, "trigger": "auto_retrain"},
+            }).encode()
+            _req = _urllib.Request(_nf_url, data=_payload, headers={"Content-Type": "application/json"}, method="POST")
+            with _urllib.urlopen(_req, timeout=5) as _resp:
+                _resp_data = _json.loads(_resp.read())
+                nf_run_id = _resp_data.get("run_id")
+    except Exception as _exc:
+        log.info("ADMET Nextflow submit skipped (executor not reachable): %s", _exc)
+
+    result = _format_proposal(proposal)
+    if nf_run_id:
+        result["nf_run_id"] = nf_run_id
+    return result
 
 
 @router.get("/{campaign_id}/retrain")
@@ -1319,7 +1375,9 @@ class CampaignCreateRequest(BaseModel):
     molecule_name: str = ""
     target: str = ""
     indication: str = ""
+    sponsor: str = ""
     objective: str = "balance"   # "potency" | "admet" | "balance"
+    user_id: str = ""
     virtual_library_smiles: list[str] = []
 
 
@@ -1371,15 +1429,68 @@ async def create_campaign(body: CampaignCreateRequest):
             log.warning("Could not seed virtual library for campaign %s: %s", campaign_id, exc)
 
     created_at = datetime.now(timezone.utc).isoformat()
+
+    # Register in global registry so GET /campaigns can list by user
+    try:
+        conn = _registry_conn()
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO campaigns
+                (campaign_id, user_id, molecule_name, target, indication, sponsor, objective, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                campaign_id,
+                body.user_id or "",
+                body.molecule_name,
+                body.target,
+                body.indication,
+                body.sponsor,
+                body.objective,
+                created_at,
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as exc:
+        log.warning("Could not register campaign %s in registry: %s", campaign_id, exc)
+
     return {
         "campaign_id": campaign_id,
         "created_at": created_at,
         "molecule_name": body.molecule_name,
         "target": body.target,
         "indication": body.indication,
+        "sponsor": body.sponsor,
         "objective": body.objective,
         "n_library": n_library,
     }
+
+
+@router.get("/campaigns")
+async def list_campaigns(user_id: str = Query("", description="Filter campaigns by user ID")):
+    """
+    List drug discovery campaigns.
+
+    Optionally filtered to a specific user via ?user_id=...
+    Returns campaigns in reverse-chronological order (newest first).
+    """
+    try:
+        conn = _registry_conn()
+        if user_id:
+            rows = conn.execute(
+                "SELECT * FROM campaigns WHERE user_id = ? ORDER BY created_at DESC",
+                (user_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM campaigns ORDER BY created_at DESC LIMIT 100"
+            ).fetchall()
+        conn.close()
+        return {"campaigns": [dict(r) for r in rows]}
+    except Exception as exc:
+        log.warning("Could not list campaigns from registry: %s", exc)
+        return {"campaigns": []}
 
 
 # ---------------------------------------------------------------------------
