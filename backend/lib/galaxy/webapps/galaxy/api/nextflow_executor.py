@@ -35,7 +35,7 @@ try:
     _dotenv_path = _backend_root / ".env"
     if _dotenv_path.exists():
         from dotenv import load_dotenv
-        load_dotenv(_dotenv_path, override=False)  # override=False: real env vars win
+        load_dotenv(_dotenv_path, override=True)   # override=True: .env changes take effect on SIGHUP reload
         log.info(f"[Nextflow] Loaded environment from {_dotenv_path}")
 except Exception as _e:
     log.warning(f"[Nextflow] Could not load .env: {_e}")

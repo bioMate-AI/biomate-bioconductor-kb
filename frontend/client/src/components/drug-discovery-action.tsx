@@ -43,6 +43,7 @@ import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-view
 import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
 import { DrugDiscoveryValidationPanel } from "@/components/drug-discovery-validation-panel"
 import { DrugDiscoveryIndAssembly } from "@/components/drug-discovery-ind-assembly"
+import { DrugDiscoveryCampaignWizard } from "@/components/drug-discovery-campaign-wizard"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -480,6 +481,8 @@ function CampaignTabs({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function DrugDiscoveryAction({ action, className }: DrugDiscoveryActionProps) {
+  const [launchedCampaignId, setLaunchedCampaignId] = useState<string | null>(null)
+
   const iconMap: Partial<Record<DrugDiscoveryMode, React.ReactNode>> = {
     assay_upload:       <Upload    className="h-4 w-4" />,
     cro_export:         <Download  className="h-4 w-4" />,
@@ -500,31 +503,45 @@ export function DrugDiscoveryAction({ action, className }: DrugDiscoveryActionPr
     new_campaign:       "New Campaign",
   }
 
+  // After wizard launches a campaign, switch to tabbed view for it
+  const effectiveCampaignId = launchedCampaignId ?? action.campaign_id
+
   // When campaign_id is set and the type is a tab-capable mode, render the
   // full tabbed view. Otherwise render the original single-widget layout.
   const useTabs =
-    !!action.campaign_id && TABBED_MODES.includes(action.type)
+    !!effectiveCampaignId && (TABBED_MODES.includes(action.type) || !!launchedCampaignId)
 
-  const initialMode =
-    action.initial_mode ?? action.type
+  const isWizard = action.type === "new_campaign" && !launchedCampaignId
+
+  const initialMode: DrugDiscoveryMode =
+    launchedCampaignId ? "campaign_dashboard"
+    : action.initial_mode ?? action.type
 
   return (
     <Card className={cn("border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 mt-3", className)}>
       <CardHeader className="pb-2 pt-3 px-4">
         <CardTitle className="text-sm flex items-center gap-2 text-blue-800 dark:text-blue-300">
           <FlaskConical className="h-4 w-4" />
-          {iconMap[action.type]}
+          {isWizard ? null : iconMap[action.type]}
           {useTabs ? "Drug Discovery" : (titleMap[action.type] ?? action.type)}
-          {action.campaign_id && (
+          {effectiveCampaignId && (
             <Badge variant="secondary" className="text-xs font-mono ml-1">
-              {action.campaign_id}
+              {effectiveCampaignId}
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent className={cn("pb-4", useTabs ? "px-0 pt-0" : "px-4")}>
-        {useTabs ? (
-          <CampaignTabs action={action} initialMode={initialMode} />
+        {isWizard ? (
+          <DrugDiscoveryCampaignWizard
+            onDone={(cid) => setLaunchedCampaignId(cid)}
+            onCancel={() => {}}
+          />
+        ) : useTabs ? (
+          <CampaignTabs
+            action={{ ...action, campaign_id: effectiveCampaignId }}
+            initialMode={initialMode}
+          />
         ) : (
           <>
             {action.type === "assay_upload"       && <AssayUploadWidget    action={action} />}

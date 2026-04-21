@@ -1346,3 +1346,197 @@ async def check_availability(
             for r in results
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# Campaign creation (Surface 7 — Campaign Wizard)
+# ---------------------------------------------------------------------------
+
+class CampaignCreateRequest(BaseModel):
+    campaign_id: Optional[str] = None
+    molecule_name: str = ""
+    target: str = ""
+    indication: str = ""
+    objective: str = "balance"   # "potency" | "admet" | "balance"
+    virtual_library_smiles: list[str] = []
+
+
+@router.post("/campaigns")
+async def create_campaign(body: CampaignCreateRequest):
+    """
+    Create a new drug discovery campaign.
+
+    Provisions the per-campaign SQLite database, optionally seeds the
+    virtual library, and activates the auto-retrain loop skeleton.
+
+    Returns: { campaign_id, created_at, n_library }
+    """
+    import random, string
+    from datetime import datetime, timezone
+
+    # Generate ID if not provided
+    if body.campaign_id and body.campaign_id.strip():
+        campaign_id = body.campaign_id.strip()
+    else:
+        rand = "".join(random.choices(string.hexdigits[:16], k=8))
+        campaign_id = f"cmp-{rand}"
+
+    # Touch the campaign DB (creates the SQLite file + tables on first access)
+    db_path = _campaign_db(campaign_id)
+
+    try:
+        from .assay_ingestion import AssayIngestionService
+        svc = AssayIngestionService(db_path)
+        svc._ensure_schema()
+    except Exception:
+        pass  # Schema init is best-effort; DB file is already created
+
+    # Seed virtual library if provided
+    n_library = 0
+    if body.virtual_library_smiles:
+        try:
+            from .auto_retrain import save_virtual_library as _save_vl
+            valid = body.virtual_library_smiles
+            try:
+                from rdkit import Chem
+                valid = [s for s in body.virtual_library_smiles if Chem.MolFromSmiles(s) is not None]
+            except ImportError:
+                pass
+            if valid:
+                _save_vl(db_path, campaign_id, valid, n_propose=10, diversity_weight=0.2)
+                n_library = len(valid)
+        except Exception as exc:
+            log.warning("Could not seed virtual library for campaign %s: %s", campaign_id, exc)
+
+    created_at = datetime.now(timezone.utc).isoformat()
+    return {
+        "campaign_id": campaign_id,
+        "created_at": created_at,
+        "molecule_name": body.molecule_name,
+        "target": body.target,
+        "indication": body.indication,
+        "objective": body.objective,
+        "n_library": n_library,
+    }
+
+
+# ---------------------------------------------------------------------------
+# eSig endpoints (Surface 5 — Electronic Signature Modal)
+# ---------------------------------------------------------------------------
+
+# Global audit DB for user-level eSig secrets (not per-campaign)
+_ESIG_DB_PATH = os.environ.get(
+    "BIOMATE_ESIG_DB",
+    str(Path(__file__).parent.parent.parent.parent.parent / "database" / "esig_global.db"),
+)
+
+
+def _esig_service():
+    """Return a singleton ESignatureService backed by the global eSig DB."""
+    try:
+        from ..compliance.audit_store import AuditStore
+        from ..compliance.esig import ESignatureService
+        store = AuditStore(_ESIG_DB_PATH)
+        return ESignatureService(store)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"eSig service unavailable: {exc}")
+
+
+@router.get("/esig/status")
+async def esig_status(user_id: str = Query(..., description="User ID to check enrollment")):
+    """Return whether a user is enrolled for TOTP eSig."""
+    svc = _esig_service()
+    return {"user_id": user_id, "enrolled": svc.is_registered(user_id)}
+
+
+@router.post("/esig/enroll")
+async def esig_enroll(user_id: str = Query(...)):
+    """
+    Begin TOTP enrollment: generate a fresh secret and return the otpauth URI.
+
+    The frontend renders this as a QR code (qrcode.react).
+    The user must then call POST /esig/enroll/verify with a valid token to confirm.
+    """
+    svc = _esig_service()
+    secret = svc.register_user(user_id)  # stores encrypted secret in DB
+    # Build otpauth URI (RFC 6238)
+    import urllib.parse
+    label = urllib.parse.quote(f"BioMate:{user_id}")
+    issuer = urllib.parse.quote("BioMate")
+    qr_uri = f"otpauth://totp/{label}?secret={secret}&issuer={issuer}&algorithm=SHA1&digits=6&period=30"
+    return {"user_id": user_id, "qr_uri": qr_uri, "secret": secret}
+
+
+class EsigVerifyRequest(BaseModel):
+    user_id: str
+    totp_token: str
+
+
+@router.post("/esig/enroll/verify")
+async def esig_enroll_verify(body: EsigVerifyRequest):
+    """
+    Verify the first TOTP token after enrollment — confirms the user scanned
+    the QR code correctly.  Returns {success: true} or raises 422.
+    """
+    try:
+        from ..compliance.esig import TOTPService, ESignatureService
+        from ..compliance.audit_store import AuditStore
+        store = AuditStore(_ESIG_DB_PATH)
+        svc = ESignatureService(store)
+        secret = svc._load_secret(body.user_id)
+        if not secret:
+            raise HTTPException(status_code=404, detail="User not enrolled — call POST /esig/enroll first")
+        ok = TOTPService.verify(secret, body.totp_token)
+        if not ok:
+            raise HTTPException(status_code=422, detail="Invalid TOTP token")
+        return {"success": True, "user_id": body.user_id}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+class EsigSignRequest(BaseModel):
+    user_id: str
+    action: str          # e.g. "EXPORT_CRO_ORDER"
+    meaning: str         # "I approve…" — permanently recorded
+    totp_token: str
+
+
+@router.post("/{campaign_id}/esig/sign")
+async def esig_sign(campaign_id: str, body: EsigSignRequest):
+    """
+    Apply a 21 CFR Part 11 electronic signature to a regulatory action.
+
+    The signature record is written to the campaign audit trail.
+    Returns { sig_id, signed_at, action, meaning }.
+    """
+    try:
+        from ..compliance.audit_store import AuditStore
+        from ..compliance.esig import ESignatureService
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    # Signing uses the campaign audit DB so the ESIG record is co-located
+    # with the campaign's audit trail.
+    try:
+        store = AuditStore(_campaign_db(campaign_id))
+        svc = ESignatureService(store)
+        sig = svc.sign(
+            user_id=body.user_id,
+            action=body.action,
+            meaning=body.meaning,
+            totp_token=body.totp_token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        log.exception("eSig signing failed for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    return {
+        "sig_id": sig.sig_id,
+        "signed_at": sig.signed_at,
+        "action": sig.action,
+        "meaning": sig.meaning,
+    }

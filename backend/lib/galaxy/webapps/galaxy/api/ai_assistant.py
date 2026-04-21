@@ -1013,21 +1013,24 @@ def _infer_params_from_intent_llm(
     if not api_key or not all_params:
         return {}
 
-    # Only ask about params that could plausibly appear in natural language
-    # (skip file paths, boolean flags, pure numeric tuning params)
+    # Skip params that cannot come from natural language
     _SKIP_TYPES = {"file", "boolean"}
     _SKIP_SUFFIXES = ("_path", "_file", "_dir", "_bam", "_fastq", "_fasta", "_vcf", "_gtf", "_bed")
+    # Skip purely technical/infra params the user never sets in prose
+    _SKIP_NAMES = {"outdir", "publish_dir_mode", "randomSeed", "random_seed", "max_memory", "max_cpus", "max_time"}
     extractable = [
         p for p in all_params
-        if not p.get("default")  # only unfilled params
-        and not str(p.get("type", "")).lower() in _SKIP_TYPES
+        if not str(p.get("type", "")).lower() in _SKIP_TYPES
         and not any(p["name"].endswith(s) for s in _SKIP_SUFFIXES)
+        and p["name"] not in _SKIP_NAMES
     ]
     if not extractable:
         return {}
 
+    # Show current defaults so the LLM knows what to replace
     param_descriptions = "\n".join(
         f'  - "{p["name"]}": {p.get("description") or p.get("label") or p["name"]}'
+        + (f' (current default: {p["default"]})' if p.get("default") is not None else ' (required)')
         for p in extractable
     )
 
@@ -1036,21 +1039,25 @@ def _infer_params_from_intent_llm(
 Workflow: {workflow_name}
 User message: {user_intent}
 
-Parameters to extract (only extract if clearly present in the message):
+Parameters to check (ONLY extract if the user explicitly provides a different value than the current default):
 {param_descriptions}
 
-Return a JSON object with only the parameters whose values you can confidently extract.
-For text search queries, extract the search string the user wants to use.
-For gene names, extract the gene symbol (e.g. "TP53").
-For SMILES strings, extract the full SMILES.
-For PDB IDs, extract the 4-character code (e.g. "6OIM").
-For protein sequences, extract the full sequence string.
-For numeric params, extract the number.
-For enum/select params, extract the most appropriate option.
+Rules:
+- Return ONLY parameters explicitly stated by the user. Never infer or guess.
+- For text search queries, extract the search string.
+- For gene names, extract the gene symbol (e.g. "TP53").
+- For SMILES strings, extract the full SMILES.
+- For PDB IDs, extract the 4-character code (e.g. "1M17", "6OIM").
+- For protein sequences, extract the full sequence string.
+- For numeric params (exhaustiveness, max_spots, n_iter, etc.), extract the number.
+- For coordinate arrays like box_center, extract as a JSON array (e.g. [22.0, 2.5, 17.0]).
+- For box_size when given as a single number N, return [N, N, N].
+- For enum/select params, extract the most appropriate option.
+- If a value equals the current default, do NOT include it.
+- If a value is not clearly present in the message, do NOT include that parameter.
 
-If a value is not clearly present in the message, do NOT include that parameter.
 Return ONLY a JSON object, no markdown, no explanation.
-Example: {{"query": "serine threonine kinase DNA damage", "query_type": "text", "top_k": 50}}"""
+Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""
 
     try:
         import anthropic as _anthropic
@@ -1065,8 +1072,17 @@ Example: {{"query": "serine threonine kinase DNA damage", "query_type": "text", 
         raw = raw.replace("```json", "").replace("```", "").strip()
         extracted = json.loads(raw)
         if isinstance(extracted, dict):
-            return {str(k): str(v) if not isinstance(v, (int, float, bool)) else v
-                    for k, v in extracted.items()}
+            result = {}
+            for k, v in extracted.items():
+                if isinstance(v, (int, float, bool)):
+                    result[str(k)] = v
+                elif isinstance(v, list):
+                    # Keep lists as strings using JSON-style repr so Nextflow
+                    # receives "--param '[x, y, z]'" on the CLI.
+                    result[str(k)] = json.dumps(v)
+                else:
+                    result[str(k)] = str(v)
+            return result
     except Exception as exc:
         log.debug("_infer_params_from_intent_llm failed (%s) — no pre-fill", exc)
     return {}
