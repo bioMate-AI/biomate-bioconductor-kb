@@ -150,7 +150,7 @@ const Spotlight: React.FC<SpotlightProps> = ({ rect, padding = 8 }) => {
   if (!rect) {
     return (
       <svg className="tour-overlay" aria-hidden="true">
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(12, 14, 20, 0.58)" />
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(12, 14, 20, 0.45)" />
       </svg>
     );
   }
@@ -169,7 +169,7 @@ const Spotlight: React.FC<SpotlightProps> = ({ rect, padding = 8 }) => {
       </defs>
       <rect
         x="0" y="0" width="100%" height="100%"
-        fill="rgba(12, 14, 20, 0.58)"
+        fill="rgba(12, 14, 20, 0.45)"
         mask="url(#wf-tour-mask)"
       />
       <rect

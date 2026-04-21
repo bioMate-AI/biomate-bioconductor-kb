@@ -237,6 +237,10 @@
     @apply border-border;
   }
 
+  html {
+    font-size: 15px; /* Bump base — all rem sizes scale up proportionally */
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
@@ -534,10 +538,5 @@
   z-index: 9001;
   font-size: 13px;
   font-family: 'Inter', system-ui, sans-serif;
-  animation: croTourIn .18s ease-out;
 }
 .cro-tour-callout.center { width: 420px; }
-@keyframes croTourIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}

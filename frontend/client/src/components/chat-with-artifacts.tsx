@@ -108,6 +108,11 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelWorkflowMessageId, setPanelWorkflowMessageId] = useState<string | null>(null)
   const [panelWorkflow, setPanelWorkflow] = useState<any | null>(null)
+  // Resizable panel width (px)
+  const [panelWidth, setPanelWidth] = useState(520)
+  const panelResizingRef = useRef(false)
+  const panelResizeStartX = useRef(0)
+  const panelResizeStartW = useRef(0)
   // Ref to ChatInterface's setChatDraft — set when ChatInterface registers it
   const setChatDraftRef = useRef<((draft: string) => void) | undefined>(undefined)
   const [postRunSurveyContext, setPostRunSurveyContext] = useState<{
@@ -776,6 +781,28 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
     setPanelWorkflow(null)
   }, [])
 
+  // Drag-to-resize the workflow panel
+  const handlePanelResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    panelResizingRef.current = true
+    panelResizeStartX.current = e.clientX
+    panelResizeStartW.current = panelWidth
+
+    const onMove = (ev: MouseEvent) => {
+      if (!panelResizingRef.current) return
+      const delta = panelResizeStartX.current - ev.clientX // dragging left = wider panel
+      const next = Math.min(900, Math.max(320, panelResizeStartW.current + delta))
+      setPanelWidth(next)
+    }
+    const onUp = () => {
+      panelResizingRef.current = false
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [panelWidth])
+
   // Auto-open right panel whenever a new workflow message arrives
   const autoOpenedWorkflowMsgIdRef = useRef<string | null>(null)
   const lastWorkflowMsgId = useMemo(() => {
@@ -1190,9 +1217,17 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         {/* Right: Workflow Panel — auto-opens when AI returns a workflow */}
         {panelOpen && (
           <div
-            className="w-[500px] flex-shrink-0 border-l bg-background flex flex-col overflow-hidden"
+            className="flex-shrink-0 border-l bg-background flex flex-col overflow-hidden relative"
+            style={{ width: panelWidth, minWidth: 320, maxWidth: 900 }}
             data-testid="workflow-right-panel"
           >
+            {/* Drag handle — grab to resize panel width */}
+            <div
+              className="absolute top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-10 select-none"
+              style={{ left: -3 }}
+              onMouseDown={handlePanelResizeStart}
+              title="Drag to resize panel"
+            />
             {/* Slim chrome bar — Tutorial + Close only; panel-head owns the workflow title */}
             <div className="flex items-center justify-end gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
               <button

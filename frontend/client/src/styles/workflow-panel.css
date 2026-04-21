@@ -44,8 +44,8 @@
   font-family: var(--font-ui);
   color: var(--text);
   background: var(--bg-elev);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 /* ── Dark mode overrides ───────────────────────────────────── */
@@ -644,11 +644,12 @@
   z-index: 9100;
 }
 .tour-ring {
-  animation: tourPulse 1.8s ease-in-out infinite;
+  /* Subtle glow pulse — no full opacity flicker */
+  animation: tourPulse 2.6s ease-in-out infinite;
 }
 @keyframes tourPulse {
-  0%, 100% { opacity: .9; }
-  50%       { opacity: .45; }
+  0%, 100% { opacity: .85; filter: drop-shadow(0 0 6px rgba(99,140,255,.55)); }
+  50%       { opacity: .70; filter: drop-shadow(0 0 10px rgba(99,140,255,.80)); }
 }
 
 .tour-callout {
@@ -657,13 +658,13 @@
   background: var(--tour-bg-elev);
   border: 1px solid var(--tour-border);
   border-radius: 10px;
-  padding: 14px 16px 12px;
+  padding: 16px 18px 14px;
   box-shadow: 0 16px 40px rgba(10,14,28,.35), 0 2px 6px rgba(10,14,28,.18);
   z-index: 9101;
-  font-size: 13px;
+  font-size: 14px;
   font-family: var(--tour-font-ui);
   color: var(--tour-text);
-  animation: tourIn .18s ease-out;
+  animation: tourIn .25s ease-out;
 }
 .tour-callout.center { width: 420px; }
 @keyframes tourIn {

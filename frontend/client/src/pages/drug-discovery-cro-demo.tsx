@@ -779,9 +779,11 @@ const TOUR_STEPS: TourStep[] = [
     setup: (setTab) => setTab("dashboard"),
   },
   {
-    id: "dashboard-actions", target: '[data-tour="dashboard-actions"]', placement: "top",
+    // Spotlight the campaign card header (always fully visible) rather than the
+    // action buttons at the very bottom which can be off-screen at some heights.
+    id: "dashboard-actions", target: '[data-tour="campaign-header"]', placement: "bottom",
     title: "Regulated actions live here",
-    body: <><b>Ingest Assay</b> and <b>Export CRO Order</b> are 21 CFR Part 11 actions — they require an electronic signature and they write to the audit chain.</>,
+    body: <><b>Ingest Assay</b> and <b>Export CRO Order</b> (below ↓) are 21 CFR Part 11 actions — they require an electronic signature and they write to the audit chain.</>,
   },
   {
     id: "validation", target: '[data-tour="validation-callout"]', placement: "bottom",
@@ -828,35 +830,27 @@ const TOUR_STEPS: TourStep[] = [
 ]
 
 function TourSpotlight({ rect }: { rect: DOMRect | null }) {
-  // CSS box-shadow spotlight — no SVG masks, no pulsing animation, smooth transitions
-  if (!rect) {
-    // Center step (Welcome / Done): soft overlay, no spotlight cutout
-    return (
-      <div
-        aria-hidden="true"
-        style={{
-          position: "fixed", inset: 0, background: "rgba(12,14,20,0.45)",
-          pointerEvents: "none", zIndex: 9000,
-          transition: "opacity 0.25s ease",
-        }}
-      />
-    )
-  }
-  const pad = 8
-  const x = rect.left - pad
-  const y = rect.top - pad
-  const w = rect.width + pad * 2
-  const h = rect.height + pad * 2
+  // Single persistent element — no unmount/remount flash between steps.
+  // When rect is null (center steps): full-screen overlay from origin with huge spread.
+  // When rect is set: box-shadow punches a spotlight; smooth CSS transitions glide it.
+  const pad  = 8
+  const x    = rect ? rect.left  - pad      : 0
+  const y    = rect ? rect.top   - pad      : 0
+  const w    = rect ? rect.width + pad * 2  : 0
+  const h    = rect ? rect.height + pad * 2 : 0
+  // 200 000 px spread from (0,0) covers any conceivable viewport as a plain overlay.
+  const shadow = rect
+    ? "0 0 0 9999px rgba(12,14,20,0.45)"
+    : "0 0 0 200000px rgba(12,14,20,0.45)"
   return (
     <div
       aria-hidden="true"
       style={{
         position: "fixed",
         left: x, top: y, width: w, height: h,
-        borderRadius: 8,
-        // Box-shadow creates the dark surround; transition glides it between targets
-        boxShadow: "0 0 0 9999px rgba(12,14,20,0.45)",
-        outline: "2px solid rgba(99,140,255,0.75)",
+        borderRadius: rect ? 8 : 0,
+        boxShadow: shadow,
+        outline: rect ? "2px solid rgba(99,140,255,0.75)" : "none",
         pointerEvents: "none",
         zIndex: 9000,
         transition: "left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease",
@@ -1200,6 +1194,7 @@ export default function DrugDiscoveryCroDemo() {
           >
             {/* .dd-card-head */}
             <div
+              data-tour="campaign-header"
               className="pt-3.5 pb-0 px-5"
               style={{ borderBottom: "1px solid oklch(0.915 0.006 240)", background: "#ffffff" }}
             >
