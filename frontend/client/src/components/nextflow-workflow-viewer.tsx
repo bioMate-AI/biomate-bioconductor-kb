@@ -2169,90 +2169,93 @@ export function NextflowWorkflowViewer({
                   }}
                 />
               )}
-<div className="mt-4 bg-muted p-4 rounded-md h-48 overflow-y-auto font-mono text-xs">
-                {logs.length === 0 ? (
-                  status === 'running'
-                    ? <span className="text-muted-foreground flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />Waiting for logs...</span>
-                    : <span className="text-muted-foreground">No logs available.</span>
-                ) : logs.map((log, i) => (
-                  <div key={i}>{stripAnsi(log)}</div>
-                ))}
-              </div>
-              {status === 'running' && logs.length === 0 && (
-                <p className="text-xs text-blue-700 dark:text-blue-300" data-testid="workflow-running-hint">
-                  Workflow is running. Logs can take a short time to appear.
-                </p>
-              )}
-              <div className="mt-2 flex justify-end">
-                <ReportConfusionButton
-                  runId={runId}
-                  sessionId={sessionId}
-                  workflowId={workflowId}
-                  invocationId={invocationId}
-                  context={{
-                    executionStatus: status,
-                    errorMessage,
-                    workflowName: workflowDefinition?.name,
-                    progress,
-                    showResults,
-                  }}
-                  variant="ghost"
-                  size="sm"
-                />
-              </div>
+          {/* ── Logs panel — collapsible, auto-expands on failure ─────────────── */}
+          {(() => {
+            const [logsOpen, setLogsOpen] = React.useState(status === 'failed');
+            React.useEffect(() => { if (status === 'failed') setLogsOpen(true); }, [status]);
+            return (
+              <>
+                <button
+                  type="button"
+                  className={`strip${logsOpen ? ' open' : ''}`}
+                  onClick={() => setLogsOpen(o => !o)}
+                >
+                  <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+                  <span className="label">
+                    {status === 'running'
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Execution logs</>
+                      : 'Execution logs'}
+                    {status === 'running' && logs.length === 0 && (
+                      <span className="hint" data-testid="workflow-running-hint">starting…</span>
+                    )}
+                  </span>
+                  {logs.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>{logs.length} lines</span>}
+                </button>
+                {logsOpen && (
+                  <div className="strip-body" style={{ padding: 0 }}>
+                    <pre className="log-pre">
+                      {logs.length === 0
+                        ? (status === 'running' ? 'Waiting for logs…' : 'No logs available.')
+                        : logs.map(stripAnsi).join('\n')}
+                    </pre>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 18px 0' }}>
+            <ReportConfusionButton
+              runId={runId}
+              sessionId={sessionId}
+              workflowId={workflowId}
+              invocationId={invocationId}
+              context={{ executionStatus: status, errorMessage, workflowName: workflowDefinition?.name, progress, showResults }}
+              variant="ghost"
+              size="sm"
+            />
           </div>
 
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
-            <div className="mt-4">
-              <DownloadCommandsPanel runId={runId} />
-            </div>
+            <DownloadCommandsPanel runId={runId} />
           )}
 
-          {/* D4: Error recovery card — shown when workflow has failed */}
+          {/* ── Error recovery card ───────────────────────────────────────────── */}
           {status === 'failed' && (
-            <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/5 p-4 space-y-3">
-              <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
-                <span>⚠ Workflow Failed</span>
-                {errorExplaining && <span className="text-muted-foreground font-normal text-xs">Analyzing error…</span>}
+            <div className="alert err" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
+                Workflow Failed
+                {errorExplaining && <span style={{ fontWeight: 400, fontSize: 11, opacity: 0.7 }}>Analyzing error…</span>}
               </div>
               {errorExplanation ? (
-                <>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">What went wrong</p>
-                    <p className="text-sm text-muted-foreground">{errorExplanation.human_summary}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Suggested fix</p>
-                    <p className="text-sm text-muted-foreground">{errorExplanation.suggested_fix}</p>
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+                  <div><span style={{ fontWeight: 600 }}>What went wrong: </span>{errorExplanation.human_summary}</div>
+                  <div><span style={{ fontWeight: 600 }}>Suggested fix: </span>{errorExplanation.suggested_fix}</div>
                   {errorExplanation.chat_prompt && (
                     <button
-                      className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                      onClick={() => {
-                        setErrorExplanation(null);
-                        onAdjustViaChat?.(errorExplanation.chat_prompt);
-                      }}
+                      className="btn sm"
+                      onClick={() => { setErrorExplanation(null); onAdjustViaChat?.(errorExplanation.chat_prompt); }}
                       data-testid="button-error-fix-chat"
                     >
                       Fix &amp; Retry via Chat
                     </button>
                   )}
-                  <p className="text-[10px] text-muted-foreground/60">
-                    Error type: {errorExplanation.error_type}
-                    {errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
-                  </p>
-                </>
+                  <div style={{ fontSize: 10, opacity: 0.55 }}>
+                    {errorExplanation.error_type}{errorExplanation.llm_used ? ' · AI-analyzed' : ' · pattern-matched'}
+                  </div>
+                </div>
               ) : errorExplaining ? (
-                <p className="text-xs text-muted-foreground">Analyzing error log…</p>
+                <span>Analyzing error log…</span>
               ) : errorMessage ? (
-                <p className="text-sm text-muted-foreground">{errorMessage}</p>
+                <span>{errorMessage}</span>
               ) : null}
             </div>
           )}
 
           {invocationId && showResults && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-3">Output Results</h3>
+            <div style={{ padding: '8px 0 0' }}>
+              <div style={{ padding: '0 18px 6px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text-dim)' }}>Output Results</div>
               <ChatOutputAttachments
                 invocationId={invocationId}
                 sessionId={sessionId}
