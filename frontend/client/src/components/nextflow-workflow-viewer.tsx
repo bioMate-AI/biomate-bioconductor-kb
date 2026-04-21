@@ -1920,62 +1920,12 @@ export function NextflowWorkflowViewer({
               </div>
             )}
 
-            {/* ── Primary run action (between phases and settings, per design spec) ── */}
+            {/* ── License gate (informational, stays in body) ─────────────────── */}
             {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
               <LicenseGate
                 nextflowPath={workflowDefinition.nextflow_path || workflowDefinition.nextflowPath}
                 onBlockedChange={setIsLicenseBlocked}
               />
-            )}
-            {executionBlockedReason ? (
-              <div className="space-y-2">
-                <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-xs">
-                    {executionBlockedReason}
-                  </AlertDescription>
-                </Alert>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-confirm-low-confidence-run"
-                  onClick={() => {
-                    emitUxEvent('workflow.low_confidence_override_clicked', { workflowId, invocationId, runId });
-                    onExecute?.({
-                      ...params,
-                      __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason },
-                    });
-                  }}
-                  disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
-                >
-                  Confirm and Run Anyway
-                </Button>
-              </div>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className="w-full"
-                    data-testid="button-run-workflow-panel"
-                    onClick={handleExecute}
-                    disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
-                  >
-                    {status === 'running' ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Running…</>
-                    ) : (
-                      'Confirm and Run Workflow'
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p>Launches the workflow on AWS Batch. Results stream back in real-time.</p>
-                </TooltipContent>
-              </Tooltip>
-            )}
-            {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
-              <span data-testid="usage-meter" className="text-xs text-muted-foreground">
-                {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
-              </span>
             )}
 
             {/* ── Parameters (collapsible, below phases per design spec) ────────── */}
@@ -2825,8 +2775,67 @@ export function NextflowWorkflowViewer({
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>{/* end panel-body */}
+
+      {/* ── Sticky footer with primary run action ─────────────────────────────── */}
+      <div className="panel-foot">
+        {executionBlockedReason ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="alert warn" style={{ fontSize: 12 }}>
+              <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
+              <span>{executionBlockedReason}</span>
+            </div>
+            <button
+              className="btn primary"
+              data-testid="button-confirm-low-confidence-run"
+              onClick={() => {
+                emitUxEvent('workflow.low_confidence_override_clicked', { workflowId, invocationId, runId });
+                onExecute?.({
+                  ...params,
+                  __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason },
+                });
+              }}
+              disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
+            >
+              Confirm and Run Anyway
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn primary"
+            data-testid="button-run-workflow-panel"
+            onClick={handleExecute}
+            disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+          >
+            {status === 'running' ? (
+              <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
+            ) : (
+              'Confirm and Run Workflow'
+            )}
+          </button>
+        )}
+        <div className="run-foot-meta">
+          <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`}>
+            <span className="dot" />
+            {status === 'running' ? 'Watcher attached · live' : status === 'paused' ? 'Watcher detached' : ''}
+          </span>
+          {status === 'running' && onPause && (
+            <button className="linkish" data-testid="button-pause-workflow-panel" onClick={onPause}>
+              Detach
+            </button>
+          )}
+          {status === 'paused' && onResume && (
+            <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
+              Reconnect
+            </button>
+          )}
+          {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
+            <span data-testid="usage-meter" style={{ fontSize: 11 }}>
+              {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Skip step confirmation dialog (P5) */}
       {confirmSkipPhaseId && (
