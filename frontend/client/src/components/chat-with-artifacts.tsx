@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useWorkflowTour } from "./workflow-tour"
 import { ChatInterface } from "./chat-interface"
 import { NextflowWorkflowViewer } from "./nextflow-workflow-viewer"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
@@ -76,6 +77,7 @@ function shortenId(raw?: string, prefix = "", maxLen = 8): string {
  * No split panel - workflows appear as collapsible cards within chat messages.
  */
 export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflowPanelOpenChange }: ChatWithArtifactsProps) {
+  const { tourNode, startTour } = useWorkflowTour()
   const { toast } = useToast()
   // Track run statuses to detect transitions (running→completed, running→failed).
   // We only fire a toast on the transition, not on every poll.
@@ -1149,6 +1151,9 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         invocationId={currentRun?.execution?.galaxyInvocationId}
       />
 
+      {/* Tour overlay portal */}
+      {tourNode}
+
       {/* Split layout: Chat (left, flexible) + Workflow Panel (right, fixed 420px) */}
       <div className={`flex-1 overflow-hidden flex ${panelOpen ? "gap-0" : ""}`}>
         {/* Center: Chat */}
@@ -1188,12 +1193,16 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
             className="w-[500px] flex-shrink-0 border-l bg-background flex flex-col overflow-hidden"
             data-testid="workflow-right-panel"
           >
-            {/* Panel header */}
-            <div className="flex items-center justify-between border-b px-4 py-2 flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <FlaskConical className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Workflow Panel</span>
-              </div>
+            {/* Slim chrome bar — Tutorial + Close only; panel-head owns the workflow title */}
+            <div className="flex items-center justify-end gap-2 px-3 py-1 border-b flex-shrink-0" style={{ minHeight: 36 }}>
+              <button
+                className="tut-btn"
+                onClick={startTour}
+                title="Start the workflow panel tutorial"
+                data-testid="button-start-tour"
+              >
+                <span style={{ fontSize: 9 }}>▶</span> Tutorial
+              </button>
               <button
                 onClick={handleClosePanelWorkflow}
                 className="rounded-sm p-1 hover:bg-muted"

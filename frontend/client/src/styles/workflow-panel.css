@@ -39,6 +39,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   font-family: var(--font-ui);
   color: var(--text);
@@ -169,7 +170,7 @@
 
 /* ── Panel body (scrollable) ─────────────────────────────────── */
 .wf-panel .panel-body {
-  flex: 1; overflow-y: auto;
+  flex: 1; min-height: 0; overflow-y: auto;
   padding: 8px 0 24px;
 }
 
@@ -347,11 +348,13 @@
 /* ── Settings strip ──────────────────────────────────────────── */
 .wf-panel .strip {
   display: flex; align-items: center;
+  width: 100%; text-align: left;
   padding: 9px 18px;
   border-top: 1px solid var(--border);
   cursor: pointer; user-select: none;
   gap: 8px; color: var(--text-muted); font-size: 12.5px;
   transition: background .12s;
+  background: none;
 }
 .wf-panel .strip:hover { background: var(--surface); }
 .wf-panel .strip .caret { transition: transform .15s; color: var(--text-dim); flex-shrink: 0; }
@@ -504,6 +507,98 @@
   background: var(--ok); flex-shrink: 0;
 }
 .wf-panel .watcher-bar.detached .dot { background: var(--text-dim); }
+
+/* ── Post-run links row ──────────────────────────────────────── */
+.wf-panel .results-links {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+  padding: 8px 18px;
+  font-size: 12px; color: var(--text-dim);
+  border-top: 1px solid var(--border);
+}
+.wf-panel .results-links .sep { color: var(--border-strong); }
+
+/* ── Run metrics strip ───────────────────────────────────────── */
+.wf-panel .metrics-strip {
+  display: flex; flex-wrap: wrap; gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  margin: 6px 18px;
+  overflow: hidden;
+}
+.wf-panel .metrics-strip .cell {
+  flex: 1 1 120px;
+  padding: 7px 12px;
+  border-right: 1px solid var(--border);
+}
+.wf-panel .metrics-strip .cell:last-child { border-right: none; }
+.wf-panel .metrics-strip .lbl {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text-dim); font-weight: 600; margin-bottom: 2px;
+}
+.wf-panel .metrics-strip .val {
+  font-family: var(--font-mono); font-size: 12px; color: var(--text);
+}
+
+/* ── Log panel ───────────────────────────────────────────────── */
+.wf-panel .log-pre {
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.5;
+  color: var(--text-muted); background: var(--surface);
+  padding: 10px 14px; margin: 0;
+  max-height: 200px; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-all;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Output file download link ───────────────────────────────── */
+.wf-panel .output-file {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 18px; font-size: 12px;
+}
+.wf-panel .output-file a {
+  color: var(--accent); text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.wf-panel .output-file a:hover { color: var(--accent-ink); }
+.wf-panel .output-file .size {
+  font-size: 11px; color: var(--text-dim); flex-shrink: 0;
+}
+
+/* ── Findings card (AI analysis) ─────────────────────────────── */
+.wf-panel .findings-card {
+  margin: 8px 18px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  overflow: hidden;
+}
+.wf-panel .findings-card .f-h {
+  padding: 10px 14px 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+.wf-panel .findings-card .f-body {
+  padding: 10px 14px; font-size: 12.5px;
+  color: var(--text-muted); line-height: 1.55;
+}
+.wf-panel .findings-card .f-section {
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+}
+.wf-panel .findings-card .f-section-lbl {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-dim); margin-bottom: 5px;
+}
+.wf-panel .findings-card .f-row {
+  display: flex; gap: 8px; padding: 3px 0;
+  font-size: 12px; color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.wf-panel .findings-card .f-row:last-child { border-bottom: none; }
+.wf-panel .findings-card .f-row b { color: var(--text); font-weight: 600; }
+.wf-panel .findings-card .f-cite {
+  font-size: 11px; color: var(--text-dim); font-style: italic;
+}
 
 /* ── Confirm icon ────────────────────────────────────────────── */
 .wf-panel .confirm-icon {

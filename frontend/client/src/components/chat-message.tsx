@@ -341,6 +341,7 @@ export function ChatMessage({
                     data-invocation-id={effectiveInvocationId || undefined}
                     data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
                     data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
+                    data-tour="chat-handoff"
                   />
                 );
               }

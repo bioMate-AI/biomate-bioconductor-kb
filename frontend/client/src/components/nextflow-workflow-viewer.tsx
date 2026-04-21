@@ -760,9 +760,6 @@ export function NextflowWorkflowViewer({
   const [qcOverrides, setQcOverrides] = useState<Record<string, number>>({});
 
   // C3: validate environment state
-  const [validateStatus, setValidateStatus] = useState<'idle' | 'running' | 'pass' | 'fail' | 'timeout' | 'skipped'>('idle');
-  const [validateLog, setValidateLog] = useState<string[]>([]);
-  const [validateLogOpen, setValidateLogOpen] = useState(false);
 
   const [browsingForParam, setBrowsingForParam] = useState<{ id: string; label: string } | null>(null);
   const [sessionDatasets, setSessionDatasets] = useState<Array<{ id: string; name: string; file_type?: string; file_path?: string | null; source_url?: string | null; galaxy_dataset_id?: string }>>([]);
@@ -800,76 +797,6 @@ export function NextflowWorkflowViewer({
   } | null>(null);
   const [errorExplaining, setErrorExplaining] = useState(false);
 
-  // Input data analysis state
-  type InputRecommendation = {
-    parameter: string;
-    fix_type: string;
-    current_value: any;
-    recommended_value: any;
-    reason: string;
-    risk_level: 'low' | 'medium' | 'high';
-    auto_apply: boolean;
-  };
-  const [inputAnalysis, setInputAnalysis] = useState<{
-    recommendations: InputRecommendation[];
-    critical_count: number;
-    auto_apply_count: number;
-  } | null>(null);
-  const [inputAnalysisLoading, setInputAnalysisLoading] = useState(false);
-  const [inputAnalysisOpen, setInputAnalysisOpen] = useState(false);
-
-  const handleAnalyzeInputs = async () => {
-    setInputAnalysisLoading(true);
-    setInputAnalysisOpen(true);
-    try {
-      const resp = await fetch('/api/workflows/analyze-inputs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workflow_id: workflowId,
-          workflow_name: workflowDefinition?.name || workflowDefinition?.workflow_name,
-          parameters: params,
-        }),
-      });
-      const data = await resp.json();
-      setInputAnalysis(data);
-      // Auto-apply low-risk recommendations silently
-      if (data.recommendations) {
-        for (const rec of data.recommendations as InputRecommendation[]) {
-          if (rec.auto_apply && rec.risk_level === 'low' && rec.recommended_value != null) {
-            setParams((prev: any) => ({ ...prev, [rec.parameter]: rec.recommended_value }));
-          }
-        }
-      }
-    } catch {
-      setInputAnalysis({ recommendations: [], critical_count: 0, auto_apply_count: 0 });
-    } finally {
-      setInputAnalysisLoading(false);
-    }
-  };
-
-  const handleValidateEnvironment = async () => {
-    const nfPath = workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath || '';
-    if (!nfPath) return;
-    setValidateStatus('running');
-    setValidateLog([]);
-    setValidateLogOpen(false);
-    try {
-      const resp = await fetch('/api/workflows/validate_profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nextflow_path: nfPath, profile: 'test', timeout_seconds: 120 }),
-      });
-      const data = await resp.json();
-      setValidateStatus(data.status ?? 'fail');
-      setValidateLog(data.log_tail ?? []);
-      if (data.status === 'fail' || data.status === 'timeout') setValidateLogOpen(true);
-    } catch {
-      setValidateStatus('fail');
-      setValidateLog(['Network error — could not reach backend']);
-      setValidateLogOpen(true);
-    }
-  };
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
   const [skippedPhaseIds, setSkippedPhaseIds] = useState<Set<string>>(new Set());
@@ -1962,189 +1889,11 @@ export function NextflowWorkflowViewer({
                 </p>
               )}
 
-              {/* Input Data Analysis panel */}
-              {(status === 'idle' || status === 'pending_review') && renderedParameters.length > 0 && (
-                <div className="rounded-md border border-border" data-testid="input-analysis-section">
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-between p-3 text-sm font-medium"
-                    onClick={() => {
-                      if (!inputAnalysis && !inputAnalysisLoading) {
-                        handleAnalyzeInputs();
-                      } else {
-                        setInputAnalysisOpen(prev => !prev);
-                      }
-                    }}
-                    aria-expanded={inputAnalysisOpen}
-                    data-testid="button-analyze-inputs"
-                  >
-                    <span className="flex items-center gap-1.5 text-xs">
-                      {inputAnalysisLoading ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : inputAnalysis ? (
-                        inputAnalysis.recommendations.length === 0 ? (
-                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                        ) : (
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-                        )
-                      ) : (
-                        <Activity className="h-3.5 w-3.5" />
-                      )}
-                      {inputAnalysisLoading
-                        ? 'Analyzing inputs…'
-                        : inputAnalysis
-                        ? inputAnalysis.recommendations.length === 0
-                          ? 'All inputs look good'
-                          : `Input analysis — ${inputAnalysis.recommendations.length} suggestion${inputAnalysis.recommendations.length !== 1 ? 's' : ''}`
-                        : 'Analyze inputs'}
-                    </span>
-                    {inputAnalysis && (
-                      inputAnalysisOpen
-                        ? <ChevronDown className="h-3.5 w-3.5" />
-                        : <ChevronRight className="h-3.5 w-3.5" />
-                    )}
-                  </button>
-
-                  {inputAnalysisOpen && inputAnalysis && inputAnalysis.recommendations.length > 0 && (
-                    <div className="border-t border-border p-3 space-y-2">
-                      {inputAnalysis.recommendations.map((rec, idx) => {
-                        const riskColor =
-                          rec.risk_level === 'high'
-                            ? 'text-destructive'
-                            : rec.risk_level === 'medium'
-                            ? 'text-amber-600'
-                            : 'text-green-700 dark:text-green-400';
-                        const applied = rec.auto_apply && rec.risk_level === 'low';
-                        return (
-                          <div
-                            key={idx}
-                            className="flex flex-col gap-1 rounded border border-border/60 bg-muted/30 p-2 text-xs"
-                            data-testid={`input-analysis-rec-${idx}`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono font-medium truncate">{rec.parameter}</span>
-                              <span className={`shrink-0 text-[10px] font-semibold uppercase ${riskColor}`}>
-                                {rec.risk_level}
-                              </span>
-                            </div>
-                            <p className="text-muted-foreground">{rec.reason}</p>
-                            {rec.recommended_value != null && (
-                              <div className="flex items-center justify-between gap-2 mt-0.5">
-                                <span className="text-muted-foreground truncate">
-                                  Recommended: <span className="font-mono text-foreground">{String(rec.recommended_value)}</span>
-                                </span>
-                                {!applied && (
-                                  <button
-                                    type="button"
-                                    className="shrink-0 rounded border border-primary/40 px-2 py-0.5 text-[10px] text-primary hover:bg-primary/10"
-                                    onClick={() => {
-                                      setParams((prev: any) => ({ ...prev, [rec.parameter]: rec.recommended_value }));
-                                    }}
-                                  >
-                                    Apply
-                                  </button>
-                                )}
-                                {applied && (
-                                  <span className="shrink-0 text-[10px] text-green-600">auto-applied</span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Uploaded dataset selection — shown when session has files */}
-              {sessionDatasets.length > 0 && (
-                <div className="rounded-md border border-border p-3 space-y-2" data-testid="session-dataset-panel">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Uploaded files</p>
-                  {sessionDatasets.map(ds => {
-                    // Find the first file-type param that has no value yet
-                    const fileParam = renderedParameters.find(p =>
-                      (p.type === 'file' || p.type === 'text') && (!p.value || p.value === '')
-                    );
-                    return (
-                      <div key={ds.id} className="flex items-center justify-between gap-2 text-xs">
-                        <span className="truncate text-foreground/80" title={ds.name}>{ds.name}</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-6 text-[10px] px-2 shrink-0"
-                          onClick={() => {
-                            const path = ds.file_path || ds.source_url || ds.id;
-                            if (fileParam) {
-                              handleParamChange(fileParam.id, path);
-                            } else if (renderedParameters.length > 0) {
-                              handleParamChange(renderedParameters[0].id, path);
-                            }
-                          }}
-                        >
-                          Use
-                        </Button>
-                      </div>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => {
-                      const fileParam = renderedParameters.find(p => p.type === 'file' || p.type === 'text');
-                      if (fileParam) setBrowsingForParam({ id: fileParam.id, label: fileParam.label });
-                    }}
-                  >
-                    Browse all datasets…
-                  </button>
-                </div>
-              )}
               </div>
               </div>
               )}
             </div>
 
-            {/* ── Validate environment (pre-run utility) ── */}
-            {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-xs text-muted-foreground"
-                  data-testid="button-validate-environment"
-                  onClick={handleValidateEnvironment}
-                  disabled={validateStatus === 'running'}
-                >
-                  {validateStatus === 'running' ? (
-                    <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Validating environment…</>
-                  ) : validateStatus === 'pass' ? (
-                    <><CheckCircle2 className="mr-1.5 h-3 w-3 text-green-600" />Environment validated</>
-                  ) : validateStatus === 'fail' ? (
-                    <><XCircle className="mr-1.5 h-3 w-3 text-destructive" />Validation failed — see log</>
-                  ) : validateStatus === 'timeout' ? (
-                    <><AlertTriangle className="mr-1.5 h-3 w-3 text-amber-500" />Validation timed out</>
-                  ) : (
-                    <><ShieldCheck className="mr-1.5 h-3 w-3" />Validate environment</>
-                  )}
-                </Button>
-                {validateLog.length > 0 && (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setValidateLogOpen(v => !v)}
-                      className="text-xs text-muted-foreground underline underline-offset-2"
-                    >
-                      {validateLogOpen ? 'Hide' : 'Show'} log ({validateLog.length} lines)
-                    </button>
-                    {validateLogOpen && (
-                      <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
-                        {validateLog.map(stripAnsi).join('\n')}
-                      </pre>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
             {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
               <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
             )}
@@ -2258,55 +2007,26 @@ export function NextflowWorkflowViewer({
                 </div>
               )}
 
-              {autofix && (
-                <div
-                  className="rounded-md border border-blue-300/50 bg-blue-50/40 p-3 text-xs dark:border-blue-900/60 dark:bg-blue-950/20"
-                  data-testid="autofix-status-panel"
-                >
-                  <p className="font-semibold text-blue-800 dark:text-blue-200">Auto-fix status</p>
-                  <p className="mt-1">
-                    State: <span className="font-medium">{autofix.state || "unknown"}</span>
-                  </p>
-                  {autofix.totalAttempts !== undefined && (
-                    <p>Attempts: {autofix.totalAttempts}</p>
-                  )}
-                  {autofix.source && <p>Source: {autofix.source}</p>}
-                  {autofix.message && (
-                    <p className="mt-1 text-blue-700 dark:text-blue-300">{autofix.message}</p>
-                  )}
-                </div>
-              )}
               {isAutofixActive && (
-                <Alert className="border-blue-400/40 bg-blue-50/40 dark:bg-blue-950/20" data-testid="autofix-active-banner">
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                  <AlertDescription className="text-xs">
-                    Auto-fix is in progress ({autofix?.state || "fixing"}). Manual retry is temporarily disabled to avoid duplicate reruns.
-                  </AlertDescription>
-                </Alert>
+                <div className="alert info" data-testid="autofix-active-banner" style={{ marginBottom: 8 }}>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ flexShrink: 0 }} />
+                  <span>Auto-fix in progress ({autofix?.state || "fixing"}) — manual retry disabled to prevent duplicate runs.</span>
+                </div>
               )}
               {/* Execution checklist — only shown when hard blockers exist (e.g. domain guard, license gate) */}
               {prereqChecklist && !prereqChecklist.canRun && prereqChecklist.items.some(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters') && (
-                <div
-                  className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3"
-                  data-testid="workflow-prereq-checklist"
-                >
-                  <p className="text-xs font-semibold text-destructive">
-                    Cannot run — missing prerequisites:
-                  </p>
-                  <div className="space-y-1.5">
+                <div className="alert err" data-testid="workflow-prereq-checklist" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 6, marginBottom: 8 }}>
+                  <div style={{ fontWeight: 600 }}>Cannot run — missing prerequisites:</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%' }}>
                     {prereqChecklist.items.filter(i => i.status === 'missing' && i.id !== 'input_data' && i.id !== 'required_parameters').map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded border border-border/70 bg-background/70 px-2 py-1.5"
-                        data-testid={`workflow-prereq-item-${item.id}`}
-                      >
-                        <span className="text-xs font-medium">{item.label}</span>
-                        {item.reason && <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>}
+                      <div key={item.id} data-testid={`workflow-prereq-item-${item.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <span style={{ fontWeight: 500 }}>{item.label}</span>
+                        {item.reason && <span style={{ opacity: 0.8 }}>{item.reason}</span>}
                         {item.chatPrompt && onAdjustViaChat && (
                           <button
                             type="button"
+                            className="linkish"
                             data-testid={`prereq-chat-link-${item.id}`}
-                            className="mt-1.5 text-xs text-primary hover:underline"
                             onClick={() => onAdjustViaChat(item.chatPrompt!)}
                           >
                             Continue in chat →
@@ -2317,20 +2037,20 @@ export function NextflowWorkflowViewer({
                   </div>
                 </div>
               )}
-              {/* ── Post-run text links (design spec: inline links, not full-width buttons) */}
+              {/* ── Post-run links row ─────────────────────────────────────────── */}
               {(invocationId || status === 'completed') && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground px-0.5 py-1 border-t border-border/40 pt-2">
+                <div className="results-links">
                   <button
-                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="linkish"
                     onClick={() => setShowResults((prev) => !prev)}
                     disabled={!invocationId || status === 'failed'}
                     data-testid="button-view-results-link"
                   >
                     {showResults ? 'Hide results' : 'View results'}
                   </button>
-                  <span className="text-border/60">·</span>
+                  <span className="sep">·</span>
                   <button
-                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="linkish"
                     onClick={() => {
                       if (!invocationId || status === 'failed') return;
                       emitUxEvent('output.download_clicked', { invocationId, scope: 'all' });
@@ -2342,9 +2062,10 @@ export function NextflowWorkflowViewer({
                   >
                     Download all
                   </button>
-                  <span className="text-border/60">·</span>
+                  <span className="sep">·</span>
                   <button
-                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-0.5"
+                    className="linkish"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
                     disabled={status !== 'completed' || !runId || analysisState === 'loading'}
                     onClick={handleAnalyzeResults}
                     data-testid="button-analyze-results"
@@ -2352,9 +2073,9 @@ export function NextflowWorkflowViewer({
                     {analysisState === 'loading' && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
                     {analysisState === 'loading' ? 'Analyzing…' : 'AI analysis'}
                   </button>
-                  <span className="text-border/60">·</span>
+                  <span className="sep">·</span>
                   <button
-                    className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="linkish"
                     disabled={!invocationId || status === 'failed'}
                     onClick={() => {
                       if (!invocationId || status === 'failed') return;
@@ -2367,9 +2088,9 @@ export function NextflowWorkflowViewer({
                   </button>
                   {(availableQcProfiles.length > 0 || qcGateData !== null) && (
                     <>
-                      <span className="text-border/60">·</span>
+                      <span className="sep">·</span>
                       <button
-                        className="hover:text-foreground hover:underline underline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="linkish"
                         disabled={!invocationId || status === 'failed'}
                         onClick={() => {
                           if (!invocationId || status === 'failed') return;
@@ -2386,91 +2107,42 @@ export function NextflowWorkflowViewer({
 
             {/* ── Run metrics strip ─────────────────────────────────────────── */}
               {(nextflowStatus?.duration_s != null || nextflowStatus?.started_at != null) && (
-                <div
-                  className="rounded-md border border-muted p-3 text-xs space-y-1"
-                  data-testid="run-metrics-strip"
-                >
-                  <div className="font-medium text-muted-foreground uppercase tracking-wide text-[10px]">Run metrics</div>
+                <div className="metrics-strip" data-testid="run-metrics-strip">
                   {nextflowStatus?.duration_s != null && (
-                    <div data-testid="run-metric-duration">
-                      <span className="text-muted-foreground">Wall time:</span>{" "}
-                      <span className="font-mono" data-testid="run-metric-duration-value">
+                    <div className="cell" data-testid="run-metric-duration">
+                      <div className="lbl">Wall time</div>
+                      <div className="val" data-testid="run-metric-duration-value">
                         {nextflowStatus.duration_s < 60
                           ? `${nextflowStatus.duration_s}s`
                           : `${Math.floor(nextflowStatus.duration_s / 60)}m ${nextflowStatus.duration_s % 60}s`}
-                      </span>
+                      </div>
                     </div>
                   )}
                   {nextflowStatus?.started_at != null && (
-                    <div data-testid="run-metric-started-at">
-                      <span className="text-muted-foreground">Started:</span>{" "}
-                      <span className="font-mono">
-                        {new Date(nextflowStatus.started_at * 1000).toLocaleTimeString()}
-                      </span>
+                    <div className="cell" data-testid="run-metric-started-at">
+                      <div className="lbl">Started</div>
+                      <div className="val">{new Date(nextflowStatus.started_at * 1000).toLocaleTimeString()}</div>
                     </div>
                   )}
                   {nextflowStatus?.completed_at != null && (
-                    <div data-testid="run-metric-completed-at">
-                      <span className="text-muted-foreground">Ended:</span>{" "}
-                      <span className="font-mono">
-                        {new Date(nextflowStatus.completed_at * 1000).toLocaleTimeString()}
-                      </span>
+                    <div className="cell" data-testid="run-metric-completed-at">
+                      <div className="lbl">Ended</div>
+                      <div className="val">{new Date(nextflowStatus.completed_at * 1000).toLocaleTimeString()}</div>
                     </div>
                   )}
                   {executionMetrics?.perStepLlmCost != null && (
-                    <div data-testid="run-metric-per-step-costs">
-                      <span className="text-muted-foreground">Step LLM costs:</span>{" "}
-                      <span className="font-mono">
+                    <div className="cell" data-testid="run-metric-per-step-costs">
+                      <div className="lbl">LLM cost</div>
+                      <div className="val">
                         {Object.values(executionMetrics.perStepLlmCost).every(v => v === null)
-                          ? "none"
+                          ? "—"
                           : `$${Object.values(executionMetrics.perStepLlmCost)
                               .filter((v): v is number => v !== null)
                               .reduce((a, b) => a + b, 0)
                               .toFixed(4)}`}
-                      </span>
+                      </div>
                     </div>
                   )}
-                </div>
-              )}
-              {/* Execution triage — internal debugging panel, hidden from users */}
-              {/* <div className="rounded-md border border-muted p-3 text-xs space-y-2" data-testid="execution-triage-summary">...</div> */}
-              {/* Live Nextflow process status — shown when trace data is available */}
-              {Array.isArray(nextflowStatus?.processes) && nextflowStatus.processes.length > 0 && (
-                <div className="mb-3 rounded-md border border-muted bg-muted/30 p-3" data-testid="nf-process-list">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Activity className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Pipeline steps
-                    </span>
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {nextflowStatus.processes.filter((p: any) => p.status === 'COMPLETED').length}
-                      /{nextflowStatus.processes.length} completed
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {nextflowStatus.processes.map((proc: any, i: number) => {
-                      const procStatus = String(proc.status || '').toUpperCase();
-                      const label = String(proc.name || proc.process || proc.id || `Step ${i + 1}`)
-                        .replace(/.*:/, '').replace(/\s*\(.*\)/, '').replace(/_/g, ' ');
-                      return (
-                        <div key={proc.id || i} className="flex items-center gap-2 text-xs">
-                          {procStatus === 'COMPLETED' && <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />}
-                          {procStatus === 'RUNNING' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin shrink-0" />}
-                          {procStatus === 'FAILED' && <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
-                          {(procStatus === 'SUBMITTED' || procStatus === 'CACHED') && <Clock className="h-3 w-3 text-amber-500 shrink-0" />}
-                          {!['COMPLETED','RUNNING','FAILED','SUBMITTED','CACHED'].includes(procStatus) && (
-                            <div className="h-3 w-3 rounded-full border border-muted-foreground/40 shrink-0" />
-                          )}
-                          <span className={procStatus === 'RUNNING' ? 'text-foreground font-medium' : 'text-muted-foreground'}>
-                            {label}
-                          </span>
-                          {procStatus === 'CACHED' && (
-                            <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-1 rounded">cached</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
 
@@ -2533,7 +2205,6 @@ export function NextflowWorkflowViewer({
           {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
             <div className="mt-4">
               <DownloadCommandsPanel runId={runId} />
-              <ReproducibilityExportButton runId={runId} />
             </div>
           )}
 
@@ -2582,26 +2253,6 @@ export function NextflowWorkflowViewer({
           {invocationId && showResults && (
             <div className="mt-6">
               <h3 className="text-lg font-semibold mb-3">Output Results</h3>
-              {runtimeArtifacts.length > 0 && (
-                <div
-                  className="mb-3 rounded-md border border-blue-200/70 bg-blue-50/40 p-3 text-xs text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-200"
-                  data-testid="nextflow-runtime-artifacts"
-                >
-                  <div className="font-medium mb-1">
-                    Runtime artifacts detected ({runtimeArtifacts.length})
-                  </div>
-                  <div className="space-y-0.5">
-                    {runtimeArtifacts.slice(0, 6).map((artifactPath, idx) => (
-                      <div key={`${artifactPath}-${idx}`} className="truncate font-mono">
-                        {artifactPath}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-2 text-[11px] text-blue-700 dark:text-blue-300">
-                    If the output cards are still empty, output processing may still be in progress.
-                  </div>
-                </div>
-              )}
               <ChatOutputAttachments
                 invocationId={invocationId}
                 sessionId={sessionId}
