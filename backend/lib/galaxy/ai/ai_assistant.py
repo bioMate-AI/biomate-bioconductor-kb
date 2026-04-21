@@ -2659,9 +2659,10 @@ Examples of good inference:
                     p = dict(p)
                     p["autoFilled"] = True
                     p["rationale"] = s.get("rationale", "AI-recommended based on your query.")
-                    # Pre-fill default so the Run button is not blocked for required params
-                    if p.get("default") is None:
-                        p["default"] = s["value"]
+                    # Always override default with LLM suggestion — the user explicitly
+                    # stated this value so it must override the schema default (pdb_id,
+                    # ligand_smiles, box_center, exhaustiveness, etc.)
+                    p["default"] = s["value"]
                     # Also set as the working value
                     p["value"] = s["value"]
                 out.append(p)

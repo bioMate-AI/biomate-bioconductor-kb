@@ -151,7 +151,6 @@ export default function DrugDiscoveryCroDemo() {
             campaign_id: CAMPAIGN_ID,
             initial_mode: "validation",
           }}
-          data-testid="cro-demo-action"
         />
       </div>
     </div>
