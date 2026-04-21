@@ -2302,7 +2302,14 @@ def execute_nextflow(
             prev = _runs.get(request.resume_from_run_id, {})
         prev_work = prev.get("work_dir")
         if prev_work:
-            cmd += ["-resume", "-w", str(prev_work)]
+            # Replace the already-added -w with the previous run's work dir so
+            # Nextflow can find cached task results.  Do NOT append a second -w.
+            try:
+                w_idx = cmd.index("-w")
+                cmd[w_idx + 1] = str(prev_work)
+            except ValueError:
+                cmd += ["-w", str(prev_work)]
+            cmd.append("-resume")
             log.info(f"[Nextflow run {run_id}] Resuming from {request.resume_from_run_id}, work_dir={prev_work}")
 
     if _has_multiline:

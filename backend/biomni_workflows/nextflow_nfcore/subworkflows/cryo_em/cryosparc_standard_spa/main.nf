@@ -1637,7 +1637,7 @@ process TEMPLATE_PICKER {
                 "templates":   (class2d_job_uid, "class_averages"),
                 "micrographs": (ctf_job_uid,     "micrographs_ctf"),
             },
-            params={},
+            params={"particle_diameter_angstroms": ${params.particle_diameter_angstroms ?: 150}},
             timeout=7200,
         )
         particles_out = job.load_output("particles")
