@@ -170,7 +170,7 @@
 /* ── Panel body (scrollable) ─────────────────────────────────── */
 .wf-panel .panel-body {
   flex: 1; overflow-y: auto;
-  padding: 0 0 16px;
+  padding: 8px 0 24px;
 }
 
 /* ── Phase list ──────────────────────────────────────────────── */
@@ -426,9 +426,11 @@
 }
 .wf-panel .alert .body { flex: 1; }
 .wf-panel .alert .act  { margin-top: 6px; display: flex; gap: 8px; }
+.wf-panel .alert.ok    { border-color: var(--ok);   background: var(--ok-soft);   color: oklch(0.40 0.13 150); }
 .wf-panel .alert.warn  { border-color: var(--warn); background: var(--warn-soft); color: oklch(0.42 0.14 75); }
 .wf-panel .alert.err   { border-color: var(--err);  background: var(--err-soft);  color: oklch(0.38 0.14 25); }
 .wf-panel .alert.info  { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+.dark .wf-panel .alert.ok   { color: oklch(0.80 0.13 150); }
 .dark .wf-panel .alert.warn { color: oklch(0.82 0.12 75); }
 .dark .wf-panel .alert.err  { color: oklch(0.82 0.14 25); }
 .dark .wf-panel .alert.info { color: oklch(0.78 0.10 245); }

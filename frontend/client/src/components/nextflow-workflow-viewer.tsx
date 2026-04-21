@@ -1711,69 +1711,6 @@ export function NextflowWorkflowViewer({
         isDownloadAll={true}
       />
 
-      {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
-      {showQcInline && qcGateData && (
-        <div
-          data-testid="qc-gate-inline"
-          className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3"
-        >
-          <div className="flex items-start gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <div>
-              <p className="font-semibold text-sm text-amber-800 dark:text-amber-300">
-                QC Gate — {
-                  qcGateData.processName.includes(":")
-                    ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
-                    : qcGateData.processName.replace(/_/g, " ")
-                } — Review Required
-              </p>
-              {qcGateData.failures.length > 0 && (
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                  {typeof qcGateData.failures[0] === 'string'
-                    ? qcGateData.failures[0]
-                    : (qcGateData.failures[0] as QCGateFailure).message}
-                </p>
-              )}
-            </div>
-          </div>
-          {qcGateData.suggestions.length > 0 && (
-            <div className="mb-2 space-y-1">
-              {qcGateData.suggestions.map((s, i) => (
-                <div key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                  <span>•</span>
-                  <span>{s.parameter}: {JSON.stringify(s.currentValue)} → {JSON.stringify(s.suggestedValue)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 flex-wrap">
-            {qcGateData.suggestions.length > 0 && (
-              <button
-                data-testid="qc-gate-apply"
-                className="rounded bg-amber-600 text-white px-3 py-1.5 text-xs hover:bg-amber-700 disabled:opacity-50"
-                onClick={() => { void handleRetryWithSuggestions(); }}
-                disabled={isApplyingSuggestions}
-              >
-                {isApplyingSuggestions ? "Applying…" : "Apply suggestions"}
-              </button>
-            )}
-            <button
-              data-testid="qc-gate-keep"
-              className="rounded border border-amber-300 dark:border-amber-700 px-3 py-1.5 text-xs hover:bg-amber-100 dark:hover:bg-amber-900/30"
-              onClick={handleProceedAnyway}
-            >
-              Keep current
-            </button>
-            <button
-              data-testid="qc-gate-cancel-run"
-              className="rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 px-3 py-1.5 text-xs hover:bg-red-50 dark:hover:bg-red-950/30"
-              onClick={handleCancelWorkflow}
-            >
-              Cancel run
-            </button>
-          </div>
-        </div>
-      )}
       {/* ── Panel header ─────────────────────────────────────────────────────── */}
       <div className="panel-head">
         <div className="top-row">
@@ -1808,64 +1745,76 @@ export function NextflowWorkflowViewer({
         </div>
         {status === 'running' && effectiveProgress > 0 && (
           <div className="run-bar">
-            <div className="run-bar-fill" style={{ width: `${effectiveProgress}%` }} />
+            <div className="progress">
+              <div className="fill" style={{ width: `${effectiveProgress}%` }} />
+            </div>
+            <span className="pct">{effectiveProgress}%</span>
           </div>
         )}
       </div>
 
       {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
       <div className="panel-body">
-          {/* Auto-Loop QC panels are now rendered inline under each phase — see PhaseGroupSection below */}
+          {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
+          {showQcInline && qcGateData && (
+            <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                    QC Gate — {qcGateData.processName.includes(":")
+                      ? qcGateData.processName.split(":").pop()?.replace(/_/g, " ")
+                      : qcGateData.processName.replace(/_/g, " ")} — Review Required
+                  </div>
+                  {qcGateData.failures.length > 0 && (
+                    <div style={{ opacity: 0.85 }}>
+                      {typeof qcGateData.failures[0] === 'string'
+                        ? qcGateData.failures[0]
+                        : (qcGateData.failures[0] as QCGateFailure).message}
+                    </div>
+                  )}
+                  {qcGateData.suggestions.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      {qcGateData.suggestions.map((s, i) => (
+                        <div key={i}>• {s.parameter}: {JSON.stringify(s.currentValue)} → {JSON.stringify(s.suggestedValue)}</div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {qcGateData.suggestions.length > 0 && (
+                      <button className="btn sm" data-testid="qc-gate-apply" onClick={() => { void handleRetryWithSuggestions(); }} disabled={isApplyingSuggestions}>
+                        {isApplyingSuggestions ? "Applying…" : "Apply suggestions"}
+                      </button>
+                    )}
+                    <button className="btn ghost sm" data-testid="qc-gate-keep" onClick={handleProceedAnyway}>Keep current</button>
+                    <button className="btn ghost sm danger" data-testid="qc-gate-cancel-run" onClick={handleCancelWorkflow}>Cancel run</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Completion banner — shown when workflow reaches terminal success state */}
           {status === 'completed' && (
-            <div
-              data-testid="workflow-completion-banner"
-              className="mb-4 flex items-center gap-2 rounded-md border border-green-400/50 bg-green-50/60 px-3 py-2 text-sm text-green-800 dark:border-green-700/50 dark:bg-green-950/30 dark:text-green-300"
-            >
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
-              <span>Workflow completed successfully. View Results and Download All are now available.</span>
+            <div className="alert ok" data-testid="workflow-completion-banner" style={{ marginBottom: 10 }}>
+              <CheckCircle2 className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
+              <span>Workflow completed. View Results and Download All are available.</span>
             </div>
           )}
 
 
-          <div className="space-y-4">
-            {/* ── Status strip ─────────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+            {/* ── Timestamp strip ──────────────────────────────────────────────── */}
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: 11, color: 'var(--text-dim)', padding: '6px 18px 2px' }}>
               <span data-testid="workflow-last-update">Updated {lastUpdateAt.toLocaleTimeString()}</span>
-              <div className="flex items-center gap-2">
-                {status === 'running' && onPause && (
-                  <button
-                    className="hover:text-foreground hover:underline underline-offset-2"
-                    data-testid="button-pause-workflow-panel"
-                    onClick={onPause}
-                  >
-                    Detach watcher
-                  </button>
-                )}
-                {status === 'paused' && onResume && (
-                  <button
-                    className="hover:text-foreground hover:underline underline-offset-2"
-                    data-testid="button-resume-workflow-panel"
-                    onClick={onResume}
-                  >
-                    Reconnect watcher
-                  </button>
-                )}
-                {status === 'running' && effectiveProgress > 0 && (
-                  <span className="font-medium text-foreground">{effectiveProgress}%</span>
-                )}
-              </div>
+              {status === 'running' && effectiveProgress > 0 && (
+                <span style={{ marginLeft: 'auto', fontWeight: 500, color: 'var(--accent)' }}>{effectiveProgress}%</span>
+              )}
             </div>
-            {status === 'running' && effectiveProgress > 0 && (
-              <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
-                <div className="h-full rounded-full bg-blue-500 transition-all duration-700" style={{ width: `${effectiveProgress}%` }} />
-              </div>
-            )}
 
-            {/* ── Phase cards (design spec: phases first) ──────────────────────── */}
+            {/* ── Phase cards ─────────────────────────────────────────────────── */}
             {groupedPhases.length > 0 && (
-              <div className="space-y-2">
+              <div className="phase-list">
                 {groupedPhases.map(group => (
                   <PhaseGroupSection
                     key={group.key}
@@ -1908,7 +1857,7 @@ export function NextflowWorkflowViewer({
                   />
                 ))}
                 <button
-                  className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline mt-1"
+                  className="suggest-step-row linkish"
                   data-testid="button-suggest-step"
                   onClick={() => {
                     const lastStep = updatedPhases[updatedPhases.length - 1]?.name || "last step";
@@ -1928,35 +1877,29 @@ export function NextflowWorkflowViewer({
               />
             )}
 
-            {/* ── Parameters (collapsible, below phases per design spec) ────────── */}
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold hover:bg-muted/20 transition-colors"
-                    onClick={() => setGlobalParamsOpen(p => !p)}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Settings2 className="h-3.5 w-3.5" />
-                      Workflow settings
-                      {renderedParameters.length > 0 && (
-                        <span className="text-xs text-muted-foreground font-normal">({renderedParameters.length})</span>
-                      )}
-                      {hasUnfilledRequired && (
-                        <Badge variant="destructive" className="text-[10px] px-1 py-0 ml-1">Required</Badge>
-                      )}
-                    </span>
-                    {globalParamsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p>Workflow input parameters. Required fields (*) must be filled before running.</p>
-                </TooltipContent>
-              </Tooltip>
+            {/* ── Parameters (collapsible settings strip) ─────────────────────── */}
+            <div>
+              <button
+                type="button"
+                className={`strip${globalParamsOpen ? ' open' : ''}`}
+                onClick={() => setGlobalParamsOpen(p => !p)}
+                title="Workflow input parameters. Required fields (*) must be filled before running."
+              >
+                <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+                <span className="label">
+                  <Settings2 className="h-3.5 w-3.5" />
+                  Workflow settings
+                  {renderedParameters.length > 0 && (
+                    <span className="hint">({renderedParameters.length})</span>
+                  )}
+                  {hasUnfilledRequired && (
+                    <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
+                  )}
+                </span>
+              </button>
               {globalParamsOpen && (
-              <div className="border-t border-border p-3 space-y-4">
-              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1">
+              <div className="strip-body">
+              <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Format mismatch warning — shown when uploaded file type doesn't match workflow input */}
               {(() => {
                 const allParams: any[] = [
@@ -2779,12 +2722,14 @@ export function NextflowWorkflowViewer({
 
       {/* ── Sticky footer with primary run action ─────────────────────────────── */}
       <div className="panel-foot">
-        {executionBlockedReason ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="alert warn" style={{ fontSize: 12 }}>
-              <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
-              <span>{executionBlockedReason}</span>
-            </div>
+        {executionBlockedReason && (
+          <div className="alert warn" style={{ margin: 0, marginBottom: 6 }}>
+            <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>{executionBlockedReason}</span>
+          </div>
+        )}
+        <div className="run-primary">
+          {executionBlockedReason ? (
             <button
               className="btn primary"
               data-testid="button-confirm-low-confidence-run"
@@ -2799,21 +2744,21 @@ export function NextflowWorkflowViewer({
             >
               Confirm and Run Anyway
             </button>
-          </div>
-        ) : (
-          <button
-            className="btn primary"
-            data-testid="button-run-workflow-panel"
-            onClick={handleExecute}
-            disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
-          >
-            {status === 'running' ? (
-              <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
-            ) : (
-              'Confirm and Run Workflow'
-            )}
-          </button>
-        )}
+          ) : (
+            <button
+              className="btn primary"
+              data-testid="button-run-workflow-panel"
+              onClick={handleExecute}
+              disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+            >
+              {status === 'running' ? (
+                <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
+              ) : (
+                'Confirm and Run Workflow'
+              )}
+            </button>
+          )}
+        </div>
         <div className="run-foot-meta">
           <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`}>
             <span className="dot" />
