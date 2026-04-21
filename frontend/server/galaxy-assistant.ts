@@ -1821,6 +1821,16 @@ Rules:
       }
     }
 
+    // CRO compliance workspace routing: if the message is about CRO/compliance/IND/DMTA,
+    // append a direct link to the CRO workspace so users can open it immediately.
+    const _msgLower = message.toLowerCase();
+    const _isCroQuery = ['cro', 'compliance', 'ind assembly', 'ind §', '21 cfr', 'cfr part 11',
+      'audit trail', 'esig', 'electronic signature', 'auto-retrain', 'dmta loop',
+      'drug discovery campaign', 'ingest assay', 'cro order'].some(kw => _msgLower.includes(kw));
+    if (_isCroQuery && !finalMessage.includes('/drug-discovery-cro')) {
+      finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
+    }
+
     const finalResult: GalaxyAssistantResponse = {
       message: finalMessage,
       intentType: intent.type,

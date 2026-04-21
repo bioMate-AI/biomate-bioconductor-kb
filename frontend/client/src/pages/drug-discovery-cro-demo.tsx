@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useCallback, Fragment } from "react"
 import { useLocation } from "wouter"
+import { useAuth } from "@/contexts/auth-context"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
 import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
 import { DrugDiscoveryValidationPanel } from "@/components/drug-discovery-validation-panel"
@@ -69,33 +70,44 @@ const CAMPAIGN_META = {
   objective:  "balance",
 }
 
-// Persist CAMPAIGN_ID across page reloads via localStorage (UC-CRO-01)
-const CAMPAIGN_ID_KEY = "biomate_cro_campaign_id"
-function getOrCreateCampaignId(): string {
-  if (typeof window === "undefined") return `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
-  const stored = localStorage.getItem(CAMPAIGN_ID_KEY)
-  if (stored) return stored
-  const id = `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
-  localStorage.setItem(CAMPAIGN_ID_KEY, id)
-  return id
+// Campaign list entry from GET /api/drug-discovery/campaigns
+interface CampaignEntry {
+  campaign_id: string
+  user_id: string
+  molecule_name: string
+  target: string
+  indication: string
+  sponsor: string
+  objective: string
+  created_at: string
 }
-const CAMPAIGN_ID = getOrCreateCampaignId()
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
-async function createCampaign(): Promise<{ ok: boolean; error?: string }> {
+async function createCampaignApi(opts: {
+  campaignId: string
+  userId: string
+  molecule: string
+  target: string
+  indication: string
+  sponsor: string
+  objective: string
+  smiles?: string[]
+}): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch("/api/drug-discovery/campaigns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
-        campaign_id:            CAMPAIGN_ID,
-        molecule_name:          CAMPAIGN_META.molecule,
-        target:                 CAMPAIGN_META.target,
-        indication:             CAMPAIGN_META.indication,
-        objective:              CAMPAIGN_META.objective,
-        virtual_library_smiles: DEMO_SMILES,
+        campaign_id:            opts.campaignId,
+        user_id:                opts.userId,
+        molecule_name:          opts.molecule,
+        target:                 opts.target,
+        indication:             opts.indication,
+        sponsor:                opts.sponsor,
+        objective:              opts.objective,
+        virtual_library_smiles: opts.smiles ?? DEMO_SMILES,
       }),
     })
     if (!res.ok && res.status !== 409) {
@@ -108,16 +120,29 @@ async function createCampaign(): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
-async function seedLibrary(): Promise<void> {
+async function fetchCampaigns(userId: string): Promise<CampaignEntry[]> {
   try {
-    await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/virtual-library`, {
+    const res = await fetch(`/api/drug-discovery/campaigns?user_id=${encodeURIComponent(userId)}`, {
+      credentials: "include",
+    })
+    if (res.ok) {
+      const data = await res.json() as { campaigns: CampaignEntry[] }
+      return data.campaigns ?? []
+    }
+  } catch { /* ignore */ }
+  return []
+}
+
+async function seedLibrary(campaignId: string): Promise<void> {
+  try {
+    await fetch(`/api/drug-discovery/${campaignId}/virtual-library`, {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ smiles: DEMO_SMILES, n_propose: 5, diversity_weight: 0.3 }),
     })
   } catch { /* non-blocking */ }
   try {
-    await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/retrain/trigger`, {
+    await fetch(`/api/drug-discovery/${campaignId}/retrain/trigger`, {
       method: "POST", credentials: "include",
     })
   } catch { /* non-blocking */ }
@@ -243,10 +268,14 @@ interface Compound {
 }
 
 function CampaignDashboard({
+  campaignId,
+  campaignMeta,
   loopRunning,
   onIngestAssay,
   onExportCroOrder,
 }: {
+  campaignId: string
+  campaignMeta: CampaignEntry | null
   loopRunning: boolean
   onIngestAssay: () => void
   onExportCroOrder: () => void
@@ -254,13 +283,13 @@ function CampaignDashboard({
   const [showAll, setShowAll] = useState(false)
   const [compounds, setCompounds] = useState<Compound[]>(DEMO_COMPOUNDS)
   const [refreshing, setRefreshing] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState(CAMPAIGN_META.updated)
+  const [lastUpdated, setLastUpdated] = useState("just now")
 
   // UC-CRO-03: fetch real compounds, fall back to demo data if empty
   const fetchCompounds = useCallback(async () => {
     setRefreshing(true)
     try {
-      const res = await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/compounds`, { credentials: "include" })
+      const res = await fetch(`/api/drug-discovery/${campaignId}/compounds`, { credentials: "include" })
       if (res.ok) {
         const data = await res.json() as { compounds: any[]; count: number }
         if (data.compounds && data.compounds.length > 0) {
@@ -288,18 +317,18 @@ function CampaignDashboard({
       {/* Section header */}
       <div className="flex items-center gap-2.5 mb-3 flex-wrap" style={{ letterSpacing: "-0.005em" }}>
         <h2 className="text-sm font-semibold m-0 leading-none">
-          Campaign: <span className="font-mono font-medium">{CAMPAIGN_ID.slice(0, 14)}…</span>
+          Campaign: <span className="font-mono font-medium">{campaignId.slice(0, 16)}…</span>
         </h2>
         <Chip tone="ok" pulse>ACTIVE</Chip>
         <div className="flex gap-1.5 ml-auto">
-          <RegChip>{CAMPAIGN_META.target}</RegChip>
-          <RegChip>{CAMPAIGN_META.indication}</RegChip>
+          {campaignMeta?.target     && <RegChip>{campaignMeta.target}</RegChip>}
+          {campaignMeta?.indication && <RegChip>{campaignMeta.indication}</RegChip>}
         </div>
       </div>
 
       {/* Meta line */}
       <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground flex-wrap mb-4">
-        <span>Round {CAMPAIGN_META.round}</span>
+        <span>Round 1</span>
         <span className="text-muted-foreground/40">·</span>
         <span>{compounds.length} compounds ranked</span>
         <span className="text-muted-foreground/40">·</span>
@@ -526,6 +555,7 @@ function EsigModal({
   action,
   target,
   userId,
+  campaignId,
   onClose,
   onSigned,
   onToast,
@@ -533,6 +563,7 @@ function EsigModal({
   action: EsigAction
   target: string
   userId: string
+  campaignId: string
   onClose: () => void
   onSigned?: () => void
   onToast: (msg: string) => void
@@ -552,7 +583,7 @@ function EsigModal({
     setErrorMsg("Invalid code. Try again.")
     try {
       // Try real backend sign — works if user is enrolled and TOTP is correct
-      const res = await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/esig/sign`, {
+      const res = await fetch(`/api/drug-discovery/${campaignId}/esig/sign`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -619,7 +650,7 @@ function EsigModal({
           {/* Action details */}
           <div className="rounded-[6px] text-[13px] mb-3.5" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)", padding: "10px 12px" }}>
             <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Action:</span> <span className="font-mono">{action}</span></div>
-            <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Campaign:</span> <span className="font-mono">{CAMPAIGN_ID.slice(0, 14)}…</span></div>
+            <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Campaign:</span> <span className="font-mono">{campaignId.slice(0, 16)}…</span></div>
             <div className="flex gap-2"><span style={{ color: "oklch(0.48 0.012 260)" }}>Target:</span> {target}</div>
           </div>
 
@@ -1155,7 +1186,16 @@ function useTour(setActiveTab: (t: TabKey) => void) {
 
 export default function DrugDiscoveryCroDemo() {
   const [, navigate] = useLocation()
-  const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading")
+  const { user } = useAuth()
+
+  // Campaign selection state — null = show campaign list
+  const [campaignId, setCampaignId] = useState<string | null>(null)
+  const [campaignMeta, setCampaignMeta] = useState<CampaignEntry | null>(null)
+  const [campaigns, setCampaigns] = useState<CampaignEntry[]>([])
+  const [listPhase, setListPhase] = useState<"loading" | "ready">("loading")
+
+  // Per-campaign state
+  const [phase, setPhase] = useState<"idle" | "loading" | "ready" | "error">("idle")
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard")
   const [loopRunning, setLoopRunning] = useState(false)
@@ -1165,53 +1205,81 @@ export default function DrugDiscoveryCroDemo() {
   const [esigTarget, setEsigTarget] = useState("WuXi AppTec · 10 compounds")
   const [esigOnSigned, setEsigOnSigned] = useState<(() => void) | undefined>(undefined)
   const [toast, setToast] = useState<string | null>(null)
-  // userId derived from the logged-in user (fallback to "demo-user" for demo)
-  const [userId, setUserId] = useState("demo-user")
   const tour = useTour(setActiveTab)
+
+  const userId = user?.id ? String(user.id) : (user?.email ?? "demo-user")
+
+  // Load the user's campaign list on mount
+  useEffect(() => {
+    if (!userId) return
+    setListPhase("loading")
+    fetchCampaigns(userId).then(list => {
+      setCampaigns(list)
+      setListPhase("ready")
+    })
+  }, [userId])
+
+  // Open a campaign by ID
+  const openCampaign = useCallback(async (entry: CampaignEntry) => {
+    setCampaignId(entry.campaign_id)
+    setCampaignMeta(entry)
+    setPhase("loading")
+    setActiveTab("dashboard")
+    ensureEsigEnrolled(userId)
+    setPhase("ready")
+    // fire-and-forget: seed library + initial retrain if empty
+    seedLibrary(entry.campaign_id)
+  }, [userId])
+
+  // Create a new campaign from the wizard and open it
+  const handleNewCampaignCreated = useCallback(async (entry: CampaignEntry) => {
+    const result = await createCampaignApi({
+      campaignId:  entry.campaign_id,
+      userId,
+      molecule:    entry.molecule_name,
+      target:      entry.target,
+      indication:  entry.indication,
+      sponsor:     entry.sponsor,
+      objective:   entry.objective,
+    })
+    if (!result.ok && !result.error?.includes("409")) {
+      setError(result.error ?? "Campaign creation failed")
+      return
+    }
+    const updated = await fetchCampaigns(userId)
+    setCampaigns(updated)
+    const created = updated.find(c => c.campaign_id === entry.campaign_id) ?? entry
+    openCampaign(created)
+    setShowWizard(false)
+  }, [userId, openCampaign])
 
   // UC-CRO-02: poll retrain status every 10s to sync DMTA stepper
   const pollRetrainStatus = useCallback(async () => {
+    if (!campaignId) return
     try {
-      const res = await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/retrain/status`, { credentials: "include" })
+      const res = await fetch(`/api/drug-discovery/${campaignId}/retrain/status`, { credentials: "include" })
       if (res.ok) {
         const data = await res.json() as { running: boolean }
         setLoopRunning(data.running)
       }
     } catch { /* ignore */ }
-  }, [])
+  }, [campaignId])
 
-  useEffect(() => {
-    async function setup() {
-      // UC-CRO-01: campaign ID already persisted in localStorage
-      const result = await createCampaign()
-      if (!result.ok && !result.error?.includes("409")) {
-        setError(result.error ?? "Campaign setup failed"); setPhase("error"); return
-      }
-      seedLibrary()   // fire-and-forget
-      // UC-CRO-10: ensure user is enrolled for eSig
-      ensureEsigEnrolled(userId)
-      setPhase("ready")
-      pollRetrainStatus()
-    }
-    setup()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Poll retrain status every 10s
   useEffect(() => {
     if (phase !== "ready") return
+    pollRetrainStatus()
     const t = setInterval(pollRetrainStatus, 10_000)
     return () => clearInterval(t)
   }, [phase, pollRetrainStatus])
 
   // UC-CRO-04: Ingest assay — opens eSig modal, after sign calls ingest API
   const handleIngestAssay = useCallback(() => {
+    if (!campaignId) return
     setEsigAction("INGEST_ASSAY")
     setEsigTarget("BioMate CRO · assay batch")
     setEsigOnSigned(() => async () => {
-      // After signing, call ingest endpoint (demo: no file, just trigger)
       try {
-        await fetch(`/api/drug-discovery/${CAMPAIGN_ID}/ingest-assay`, {
+        await fetch(`/api/drug-discovery/${campaignId}/ingest-assay`, {
           method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: userId, meaning: ESIG_MEANINGS.INGEST_ASSAY, totp_token: "demo" }),
@@ -1219,24 +1287,129 @@ export default function DrugDiscoveryCroDemo() {
       } catch { /* best-effort */ }
     })
     setEsigOpen(true)
-  }, [userId])
+  }, [campaignId, userId])
 
   // UC-CRO-05: Export CRO Order — opens eSig modal, after sign downloads file
   const handleExportCroOrder = useCallback(() => {
+    if (!campaignId) return
     setEsigAction("EXPORT_CRO_ORDER")
     setEsigTarget("WuXi AppTec · 10 compounds")
     setEsigOnSigned(() => () => {
-      // Download CRO order after signing
       const a = document.createElement("a")
-      a.href = `/api/drug-discovery/${CAMPAIGN_ID}/export/cro-order?fmt=generic`
-      a.download = `cro-order-${CAMPAIGN_ID}.csv`
+      a.href = `/api/drug-discovery/${campaignId}/export/cro-order?fmt=generic`
+      a.download = `cro-order-${campaignId}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       setToast("CRO order exported")
     })
     setEsigOpen(true)
-  }, [])
+  }, [campaignId])
+
+  // ── Campaign list view (no campaign selected) ────────────────────────────────
+  if (!campaignId) {
+    return (
+      <div
+        className="flex flex-col overflow-hidden"
+        style={{ height: "calc(100vh - 64px)", fontFamily: "'Inter', system-ui, sans-serif", background: "oklch(0.99 0.003 240)" }}
+      >
+        {/* Top nav */}
+        <div className="shrink-0 border-b flex items-center gap-3 px-5" style={{ height: 52, background: "#ffffff", borderColor: "oklch(0.915 0.006 240)" }}>
+          <button onClick={() => navigate("/")} className="w-[26px] h-[26px] rounded-[7px] bg-foreground text-background grid place-items-center font-mono text-[13px] font-bold shrink-0 hover:bg-foreground/90 border-0 cursor-pointer" aria-label="Back">B</button>
+          <span className="text-[14.5px] font-semibold tracking-[-0.01em]">BioMate</span>
+          <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+            <span style={{ color: "oklch(0.22 0.01 260)" }}>Drug Discovery · CRO Compliance</span>
+          </div>
+          <div className="flex-1" />
+          <RegChip variant="indigo">21 CFR Part 11</RegChip>
+          <RegChip>ICH M4</RegChip>
+        </div>
+
+        {/* Campaign list */}
+        <div className="flex-1 overflow-y-auto" style={{ padding: "32px clamp(16px, 4%, 48px)" }}>
+          <div className="max-w-[760px] mx-auto">
+            <div className="flex items-center gap-3 mb-6">
+              <div>
+                <h1 className="text-[18px] font-semibold tracking-[-0.01em]">CRO Compliance Campaigns</h1>
+                <p className="text-[13px] text-muted-foreground mt-0.5">Select a campaign to open its compliance workspace, or create a new one.</p>
+              </div>
+              <div className="flex-1" />
+              <button
+                onClick={() => setShowWizard(true)}
+                className="h-8 px-3 text-[13px] font-medium flex items-center gap-1.5 rounded-[6px] cursor-pointer"
+                style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}
+              >
+                <Plus className="h-3.5 w-3.5" /> New Campaign
+              </button>
+            </div>
+
+            {listPhase === "loading" ? (
+              <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" /> Loading campaigns…
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div
+                className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center py-16 text-center cursor-pointer hover:bg-muted/20 transition-colors"
+                style={{ borderColor: "oklch(0.915 0.006 240)" }}
+                onClick={() => setShowWizard(true)}
+              >
+                <div className="w-10 h-10 rounded-[10px] mb-3 grid place-items-center" style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.38 0.12 245)" }}>
+                  <Plus className="h-5 w-5" />
+                </div>
+                <div className="text-[14px] font-semibold mb-1">No campaigns yet</div>
+                <div className="text-[13px] text-muted-foreground">Create your first drug discovery campaign to get started.</div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {campaigns.map(c => (
+                  <button
+                    key={c.campaign_id}
+                    onClick={() => openCampaign(c)}
+                    className="w-full text-left rounded-xl border bg-white hover:bg-muted/20 transition-colors px-4 py-3.5 flex items-center gap-3"
+                    style={{ borderColor: "oklch(0.915 0.006 240)" }}
+                  >
+                    <div className="w-8 h-8 rounded-[6px] grid place-items-center shrink-0" style={{ background: "oklch(0.96 0.03 245)", color: "oklch(0.38 0.12 245)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 4c4 0 4 16 8 16s4-16 8-16"/><path d="M4 20c4 0 4-16 8-16s4 16 8 16"/>
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-semibold truncate">{c.molecule_name || c.campaign_id}</div>
+                      <div className="text-[12px] text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                        <span className="font-mono">{c.campaign_id.slice(0, 16)}…</span>
+                        {c.target && <><span className="text-muted-foreground/40">·</span><span>{c.target}</span></>}
+                        {c.indication && <><span className="text-muted-foreground/40">·</span><span>{c.indication}</span></>}
+                      </div>
+                    </div>
+                    <div className="text-[11.5px] text-muted-foreground shrink-0">
+                      {new Date(c.created_at).toLocaleDateString()}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* New campaign wizard modal */}
+        {showWizard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6" style={{ border: "1px solid oklch(0.915 0.006 240)" }}>
+              <NewCampaignWizard
+                onDone={() => setShowWizard(false)}
+                onToast={setToast}
+                onCreated={handleNewCampaignCreated}
+                userId={userId}
+              />
+            </div>
+          </div>
+        )}
+        {toast && <ToastBanner msg={toast} onDone={() => setToast(null)} />}
+      </div>
+    )
+  }
 
   if (phase === "loading") {
     return (
@@ -1257,8 +1430,8 @@ export default function DrugDiscoveryCroDemo() {
           <AlertDescription>
             <strong>Setup failed:</strong> {error}
             <br />
-            <Button size="sm" variant="outline" className="mt-3" onClick={() => navigate("/home")}>
-              Back to BioMate
+            <Button size="sm" variant="outline" className="mt-3" onClick={() => { setCampaignId(null); setPhase("idle") }}>
+              Back to campaigns
             </Button>
           </AlertDescription>
         </Alert>
@@ -1298,13 +1471,13 @@ export default function DrugDiscoveryCroDemo() {
         {/* Breadcrumb */}
         <div className="flex items-center gap-1 text-[13px] text-muted-foreground">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => { setCampaignId(null); setPhase("idle") }}
             className="text-muted-foreground hover:text-foreground transition-colors bg-transparent border-0 p-0 cursor-pointer text-[13px]"
           >
             Drug Discovery
           </button>
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-          <span>{CAMPAIGN_META.molecule}</span>
+          <span>{campaignMeta?.molecule_name || campaignId?.slice(0, 12) || "Campaign"}</span>
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
           <span style={{ color: "oklch(0.22 0.01 260)" }}>{tabLabel}</span>
         </div>
