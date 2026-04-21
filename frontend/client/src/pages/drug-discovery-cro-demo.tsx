@@ -828,15 +828,16 @@ const TOUR_STEPS: TourStep[] = [
 ]
 
 function TourSpotlight({ rect }: { rect: DOMRect | null }) {
-  // Use CSS box-shadow spotlight — avoids SVG mask rendering bugs at high DPR
+  // CSS box-shadow spotlight — no SVG masks, no pulsing animation, smooth transitions
   if (!rect) {
-    // No target: full dark overlay
+    // Center step (Welcome / Done): soft overlay, no spotlight cutout
     return (
       <div
         aria-hidden="true"
         style={{
-          position: "fixed", inset: 0, background: "rgba(12,14,20,0.55)",
+          position: "fixed", inset: 0, background: "rgba(12,14,20,0.45)",
           pointerEvents: "none", zIndex: 9000,
+          transition: "opacity 0.25s ease",
         }}
       />
     )
@@ -847,22 +848,20 @@ function TourSpotlight({ rect }: { rect: DOMRect | null }) {
   const w = rect.width + pad * 2
   const h = rect.height + pad * 2
   return (
-    <>
-      {/* Dark overlay via CSS box-shadow on the spotlight cutout */}
-      <div
-        aria-hidden="true"
-        className="cro-tour-ring"
-        style={{
-          position: "fixed",
-          left: x, top: y, width: w, height: h,
-          borderRadius: 8,
-          boxShadow: "0 0 0 9999px rgba(12,14,20,0.55)",
-          outline: "2px solid rgba(99,140,255,0.9)",
-          pointerEvents: "none",
-          zIndex: 9000,
-        }}
-      />
-    </>
+    <div
+      aria-hidden="true"
+      style={{
+        position: "fixed",
+        left: x, top: y, width: w, height: h,
+        borderRadius: 8,
+        // Box-shadow creates the dark surround; transition glides it between targets
+        boxShadow: "0 0 0 9999px rgba(12,14,20,0.45)",
+        outline: "2px solid rgba(99,140,255,0.75)",
+        pointerEvents: "none",
+        zIndex: 9000,
+        transition: "left 0.35s ease, top 0.35s ease, width 0.35s ease, height 0.35s ease",
+      }}
+    />
   )
 }
 
@@ -971,10 +970,11 @@ function useTour(setActiveTab: (t: TabKey) => void) {
     const s = TOUR_STEPS[step]
     if (!s.target) { setRect(null); return }
     const el = document.querySelector(s.target) as HTMLElement | null
-    if (!el) { setRect(null); return }
+    // If target not found yet (tab still mounting), keep the old rect to avoid
+    // a full-dark flash. The retry timeout below will find it shortly.
+    if (!el) { return }
     const r = el.getBoundingClientRect()
     const vh = window.innerHeight
-    // Clip very tall targets
     const top = Math.max(8, r.top)
     const bottom = Math.min(vh - 8, r.bottom)
     setRect(new DOMRect(r.left, top, r.width, Math.max(40, bottom - top)))
@@ -985,11 +985,10 @@ function useTour(setActiveTab: (t: TabKey) => void) {
     if (!active) return
     const s = TOUR_STEPS[step]
     if (s.setup) s.setup(setActiveTab)
-    // Two animation frames to let React commit + layout
-    let id1 = requestAnimationFrame(() => {
-      id1 = requestAnimationFrame(measure)
-    })
-    const t = setTimeout(measure, 300)
+    // Tab-switching steps need extra time for the new panel to mount
+    const delay = s.setup ? 700 : 150
+    let id1 = requestAnimationFrame(() => { id1 = requestAnimationFrame(measure) })
+    const t = setTimeout(measure, delay)
     return () => { cancelAnimationFrame(id1); clearTimeout(t) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, step])

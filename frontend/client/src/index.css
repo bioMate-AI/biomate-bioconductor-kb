@@ -523,19 +523,6 @@
 }
 
 /* ── CRO Tutorial Tour ─────────────────────────────────────────────────────── */
-.cro-tour-overlay {
-  position: fixed; inset: 0;
-  width: 100vw; height: 100vh;
-  pointer-events: none;
-  z-index: 9000;
-}
-.cro-tour-ring {
-  animation: croTourPulse 1.8s ease-in-out infinite;
-}
-@keyframes croTourPulse {
-  0%, 100% { opacity: .9; }
-  50%       { opacity: .4; }
-}
 .cro-tour-callout {
   position: fixed;
   width: 360px;
