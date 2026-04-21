@@ -2301,6 +2301,13 @@ def execute_nextflow(
         with _runs_lock:
             prev = _runs.get(request.resume_from_run_id, {})
         prev_work = prev.get("work_dir")
+        # Fallback: reconstruct S3 work dir from the known naming pattern.
+        # This works even after gunicorn restarts when _runs is empty.
+        if not prev_work and is_s3:
+            s3_bucket_resume = compute.get("s3_bucket", os.environ.get("AWS_S3_BUCKET", "biomate-nextflow-work"))
+            prev_uid = (_uid_for_path)  # same user
+            prev_work = f"s3://{s3_bucket_resume}/nextflow/work/{prev_uid}/{request.resume_from_run_id}"
+            log.info(f"[Nextflow run {run_id}] Reconstructed prev work_dir={prev_work}")
         if prev_work:
             # Replace the already-added -w with the previous run's work dir so
             # Nextflow can find cached task results.  Do NOT append a second -w.
