@@ -4071,7 +4071,9 @@ Extract every real number from the output data. A reviewer should be able to ver
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
             safeMessage,
-            enrichedContext as unknown as MemoryEnhancedContext
+            enrichedContext as unknown as MemoryEnhancedContext,
+            (chunk) => safeSend("delta", { text: chunk }),
+            (event) => safeSend("tool_event", event)
           )
         : await galaxyAssistant.processMessage(
             safeMessage,

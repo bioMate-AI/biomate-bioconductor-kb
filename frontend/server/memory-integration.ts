@@ -102,7 +102,9 @@ export class MemoryIntegration {
    */
   async processWithMemory(
     message: string,
-    context: MemoryEnhancedContext
+    context: MemoryEnhancedContext,
+    onChunk?: (chunk: string) => void,
+    onToolEvent?: (event: unknown) => void
   ): Promise<MemoryEnhancedResponse> {
     const startTime = Date.now();
     const log = (step: string) => console.log(`[MemoryIntegration] [${Date.now() - startTime}ms] ${step}`);
@@ -134,9 +136,9 @@ export class MemoryIntegration {
     );
     log('Step 4 complete');
 
-    // Step 5: Process with the assistant
+    // Step 5: Process with the assistant (pass streaming callbacks through)
     log('Step 5: Processing with assistant');
-    const response = await this.assistant.processMessage(message, enhancedContext);
+    const response = await this.assistant.processMessage(message, enhancedContext, onChunk, onToolEvent);
     log('Step 5 complete');
 
     // Step 6: Record the episode
