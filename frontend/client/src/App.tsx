@@ -41,6 +41,7 @@ import DashboardPage from "@/pages/dashboard";
 import BillingPage from "@/pages/billing";
 import AdminFeedbackDashboardPage from "@/pages/admin/feedback-dashboard";
 import PilotExitSurveyPage from "@/pages/pilot-exit-survey";
+import DrugDiscoveryCroDemoPage from "@/pages/drug-discovery-cro-demo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -312,6 +313,12 @@ function Router({
       <Route path="/pilot-exit-survey">
         <AuthenticatedPageLayout>
           <PilotExitSurveyPage />
+        </AuthenticatedPageLayout>
+      </Route>
+
+      <Route path="/drug-discovery-cro">
+        <AuthenticatedPageLayout>
+          <DrugDiscoveryCroDemoPage />
         </AuthenticatedPageLayout>
       </Route>
 
