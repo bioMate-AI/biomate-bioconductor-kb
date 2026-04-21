@@ -50,7 +50,8 @@ const DEMO_SMILES = [
   "CS(=O)(=O)CCNCc1ccc(-c2ccc3ncnc(Nc4ccc(OC)c(Cl)c4)c3c2)o1",
 ]
 
-const DMTA_NODES: { key: string; label: string; status: "done" | "active" | "pending" }[] = [
+// DMTA nodes — statically anchored at Design=done, Make=active (syncs to retrain)
+const BASE_DMTA: { key: string; label: string; status: "done" | "active" | "pending" }[] = [
   { key: "design",  label: "Design",  status: "done"    },
   { key: "make",    label: "Make",    status: "active"  },
   { key: "test",    label: "Test",    status: "pending" },
@@ -68,7 +69,17 @@ const CAMPAIGN_META = {
   objective:  "balance",
 }
 
-const CAMPAIGN_ID = `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
+// Persist CAMPAIGN_ID across page reloads via localStorage (UC-CRO-01)
+const CAMPAIGN_ID_KEY = "biomate_cro_campaign_id"
+function getOrCreateCampaignId(): string {
+  if (typeof window === "undefined") return `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
+  const stored = localStorage.getItem(CAMPAIGN_ID_KEY)
+  if (stored) return stored
+  const id = `cmp-demo-egfr-${Math.floor(Date.now() / 1000).toString(16)}`
+  localStorage.setItem(CAMPAIGN_ID_KEY, id)
+  return id
+}
+const CAMPAIGN_ID = getOrCreateCampaignId()
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -184,10 +195,12 @@ function ScoreBar({ score }: { score: number }) {
 
 // ── DMTA Stepper ──────────────────────────────────────────────────────────────
 
-function DmtaStepper() {
+function DmtaStepper({ loopRunning }: { loopRunning: boolean }) {
+  // When loop is running, Make pulses; when stopped it stays "active" (UC-CRO-02)
+  const nodes = BASE_DMTA
   return (
     <div className="flex items-start">
-      {DMTA_NODES.map((n, i) => (
+      {nodes.map((n, i) => (
         <Fragment key={n.key}>
           <div className="flex flex-col items-center gap-1" style={{ minWidth: 80 }}>
             <div className={cn(
@@ -197,7 +210,7 @@ function DmtaStepper() {
               n.status === "pending" && "bg-background border-border text-muted-foreground",
             )}>
               {n.status === "done"    && <Check className="h-3.5 w-3.5" />}
-              {n.status === "active"  && <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />}
+              {n.status === "active"  && <span className={cn("w-2.5 h-2.5 rounded-full bg-blue-500", loopRunning && "animate-pulse")} />}
               {n.status === "pending" && <span className="w-2 h-2 rounded-full border-[1.5px] border-current" />}
             </div>
             <span className={cn(
@@ -209,7 +222,7 @@ function DmtaStepper() {
               {n.label}
             </span>
             <span className="text-[10.5px] text-muted-foreground/70 capitalize">
-              {n.status === "active" ? "running" : n.status === "done" ? "completed" : "pending"}
+              {n.status === "active" ? (loopRunning ? "running" : "waiting") : n.status === "done" ? "completed" : "pending"}
             </span>
           </div>
           {i < DMTA_NODES.length - 1 && (

@@ -17,6 +17,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Setup Vite dev server middleware for development
  */
 export async function setupVite(app: Express, server: any) {
+  // Serve reference design prototypes as static files (before Vite catch-all)
+  const referencePath = path.resolve(__dirname, "..", "..", "reference");
+  if (fs.existsSync(referencePath)) {
+    app.use("/reference", express.static(referencePath));
+  }
+
   const vite = await import("vite");
 
   const viteDevServer = await vite.createServer({
