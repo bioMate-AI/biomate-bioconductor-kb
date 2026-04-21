@@ -7,7 +7,7 @@ import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, Download, Eye, Pause, Play, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronDown, ChevronRight, Settings2, ShieldCheck, Activity, Clock } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -820,6 +820,7 @@ export function NextflowWorkflowViewer({
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
   const [skippedPhaseIds, setSkippedPhaseIds] = useState<Set<string>>(new Set());
+  const [confirmSkipPhaseId, setConfirmSkipPhaseId] = useState<string | null>(null);
   const stepPollersRef = React.useRef<Record<string, ReturnType<typeof setInterval>>>({});
 
   // QC gate inline panel state (SSE-triggered)
@@ -1721,21 +1722,46 @@ export function NextflowWorkflowViewer({
         </div>
       )}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>{workflowDefinition?.name || 'Untitled'}</span>
-            <div className="flex items-center gap-2">
-                {workflowDefinition?.qc_profile && (
-                  <Badge variant="outline" className="text-xs font-normal text-emerald-700 border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20">
-                    QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
-                  </Badge>
-                )}
-                {effectiveProgress > 0 && <span className="text-sm text-muted-foreground">{effectiveProgress}%</span>}
-                <Badge variant={status === 'running' ? 'secondary' : 'outline'} data-testid="workflow-overall-status-badge" data-status={status}>
-                {status.toUpperCase()}
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-sm font-semibold leading-tight">
+              {workflowDefinition?.name || 'Untitled'}
+            </CardTitle>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {workflowDefinition?.qc_profile && (
+                <Badge variant="outline" className="text-xs font-normal text-emerald-700 border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20">
+                  QC: {workflowDefinition.qc_profile.replace(/_/g, '\u00A0')}
                 </Badge>
+              )}
+              <Badge variant={status === 'running' ? 'secondary' : 'outline'} data-testid="workflow-overall-status-badge" data-status={status} className="text-xs">
+                {status.toUpperCase()}
+              </Badge>
+              {(status === 'running' || status === 'paused') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  data-testid="button-cancel-workflow-panel"
+                  onClick={onCancel}
+                >
+                  <Square className="h-3 w-3 mr-1" />
+                  Cancel
+                </Button>
+              )}
+              {(status === 'completed' || status === 'failed') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  data-testid="button-restart-workflow-panel"
+                  onClick={() => onExecute?.(params)}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Restart
+                </Button>
+              )}
             </div>
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {/* Auto-Loop QC panels are now rendered inline under each phase — see PhaseGroupSection below */}
@@ -1756,9 +1782,29 @@ export function NextflowWorkflowViewer({
             {/* ── Status strip ─────────────────────────────────────────────────── */}
             <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
               <span data-testid="workflow-last-update">Updated {lastUpdateAt.toLocaleTimeString()}</span>
-              {status === 'running' && effectiveProgress > 0 && (
-                <span className="font-medium text-foreground">{effectiveProgress}%</span>
-              )}
+              <div className="flex items-center gap-2">
+                {status === 'running' && onPause && (
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2"
+                    data-testid="button-pause-workflow-panel"
+                    onClick={onPause}
+                  >
+                    Detach watcher
+                  </button>
+                )}
+                {status === 'paused' && onResume && (
+                  <button
+                    className="hover:text-foreground hover:underline underline-offset-2"
+                    data-testid="button-resume-workflow-panel"
+                    onClick={onResume}
+                  >
+                    Reconnect watcher
+                  </button>
+                )}
+                {status === 'running' && effectiveProgress > 0 && (
+                  <span className="font-medium text-foreground">{effectiveProgress}%</span>
+                )}
+              </div>
             </div>
             {status === 'running' && effectiveProgress > 0 && (
               <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
@@ -1777,7 +1823,7 @@ export function NextflowWorkflowViewer({
                     params={params}
                     onParamChange={handleParamChange}
                     onRun={handleRunStep}
-                    onSkip={handleSkipPhase}
+                    onSkip={(id) => setConfirmSkipPhaseId(id)}
                     onPreviewFile={(file) => setPreviewFile(file)}
                     onAdjustAndRerun={(phase) => setAdjustStep({
                       id: phase.id,
@@ -1823,6 +1869,64 @@ export function NextflowWorkflowViewer({
               </div>
             )}
 
+            {/* ── Primary run action (between phases and settings, per design spec) ── */}
+            {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
+              <LicenseGate
+                nextflowPath={workflowDefinition.nextflow_path || workflowDefinition.nextflowPath}
+                onBlockedChange={setIsLicenseBlocked}
+              />
+            )}
+            {executionBlockedReason ? (
+              <div className="space-y-2">
+                <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-xs">
+                    {executionBlockedReason}
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  data-testid="button-confirm-low-confidence-run"
+                  onClick={() => {
+                    emitUxEvent('workflow.low_confidence_override_clicked', { workflowId, invocationId, runId });
+                    onExecute?.({
+                      ...params,
+                      __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason },
+                    });
+                  }}
+                  disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
+                >
+                  Confirm and Run Anyway
+                </Button>
+              </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    className="w-full"
+                    data-testid="button-run-workflow-panel"
+                    onClick={handleExecute}
+                    disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+                  >
+                    {status === 'running' ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Running…</>
+                    ) : (
+                      'Confirm and Run Workflow'
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Launches the workflow on AWS Batch. Results stream back in real-time.</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
+              <span data-testid="usage-meter" className="text-xs text-muted-foreground">
+                {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
+              </span>
+            )}
+
             {/* ── Parameters (collapsible, below phases per design spec) ────────── */}
             <div className="rounded-lg border border-border overflow-hidden">
               <Tooltip>
@@ -1834,7 +1938,7 @@ export function NextflowWorkflowViewer({
                   >
                     <span className="flex items-center gap-1.5">
                       <Settings2 className="h-3.5 w-3.5" />
-                      Parameters
+                      Workflow settings
                       {renderedParameters.length > 0 && (
                         <span className="text-xs text-muted-foreground font-normal">({renderedParameters.length})</span>
                       )}
@@ -2056,128 +2160,50 @@ export function NextflowWorkflowViewer({
               )}
             </div>
 
-            {/* ── Run controls ─────────────────────────────────────────────────── */}
-              <div className="space-y-2" data-testid="workflow-run-controls">
-                {/* License gate — shown for any workflow that requires per-user credentials */}
-                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
-                  <LicenseGate
-                    nextflowPath={workflowDefinition.nextflow_path || workflowDefinition.nextflowPath}
-                    onBlockedChange={setIsLicenseBlocked}
-                  />
-                )}
-                {/* C3: Validate environment button — only show for Nextflow workflows */}
-                {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
-                  <div className="space-y-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs"
-                      data-testid="button-validate-environment"
-                      onClick={handleValidateEnvironment}
-                      disabled={validateStatus === 'running'}
+            {/* ── Validate environment (pre-run utility) ── */}
+            {(workflowDefinition?.nextflow_path || workflowDefinition?.nextflowPath) && (status === 'idle' || status === 'pending_review') && (
+              <div className="space-y-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs text-muted-foreground"
+                  data-testid="button-validate-environment"
+                  onClick={handleValidateEnvironment}
+                  disabled={validateStatus === 'running'}
+                >
+                  {validateStatus === 'running' ? (
+                    <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Validating environment…</>
+                  ) : validateStatus === 'pass' ? (
+                    <><CheckCircle2 className="mr-1.5 h-3 w-3 text-green-600" />Environment validated</>
+                  ) : validateStatus === 'fail' ? (
+                    <><XCircle className="mr-1.5 h-3 w-3 text-destructive" />Validation failed — see log</>
+                  ) : validateStatus === 'timeout' ? (
+                    <><AlertTriangle className="mr-1.5 h-3 w-3 text-amber-500" />Validation timed out</>
+                  ) : (
+                    <><ShieldCheck className="mr-1.5 h-3 w-3" />Validate environment</>
+                  )}
+                </Button>
+                {validateLog.length > 0 && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setValidateLogOpen(v => !v)}
+                      className="text-xs text-muted-foreground underline underline-offset-2"
                     >
-                      {validateStatus === 'running' ? (
-                        <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Validating environment…</>
-                      ) : validateStatus === 'pass' ? (
-                        <><CheckCircle2 className="mr-1.5 h-3 w-3 text-green-600" />Environment validated</>
-                      ) : validateStatus === 'fail' ? (
-                        <><XCircle className="mr-1.5 h-3 w-3 text-destructive" />Validation failed — see log</>
-                      ) : validateStatus === 'timeout' ? (
-                        <><AlertTriangle className="mr-1.5 h-3 w-3 text-amber-500" />Validation timed out</>
-                      ) : (
-                        <><ShieldCheck className="mr-1.5 h-3 w-3" />Validate Environment</>
-                      )}
-                    </Button>
-                    {validateLog.length > 0 && (
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => setValidateLogOpen(v => !v)}
-                          className="text-xs text-muted-foreground underline underline-offset-2"
-                        >
-                          {validateLogOpen ? 'Hide' : 'Show'} log ({validateLog.length} lines)
-                        </button>
-                        {validateLogOpen && (
-                          <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
-                            {validateLog.map(stripAnsi).join('\n')}
-                          </pre>
-                        )}
-                      </div>
+                      {validateLogOpen ? 'Hide' : 'Show'} log ({validateLog.length} lines)
+                    </button>
+                    {validateLogOpen && (
+                      <pre className="mt-1 max-h-32 overflow-auto rounded bg-muted/50 p-2 text-[10px] leading-snug text-foreground/80">
+                        {validateLog.map(stripAnsi).join('\n')}
+                      </pre>
                     )}
                   </div>
                 )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      className="w-full"
-                      data-testid="button-run-workflow-panel"
-                      onClick={handleExecute}
-                      disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
-                    >
-                      {status === 'running' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm and Run Workflow'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">
-                    <p>Launches the workflow on AWS Batch. Results stream back in real-time.</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                {/* Cost estimate badge commented out — not accurate enough to show users yet.
-                    Actual cost goes on the per-user billing page.
-                {workflowDefinition?.nextflow_path && (status === 'idle' || status === 'failed') && (
-                  <CostEstimateBadge
-                    nextflowPath={workflowDefinition.nextflow_path}
-                  />
-                )} */}
-                {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
-                  <span data-testid="usage-meter" className="text-xs text-muted-foreground">
-                    {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
-                  </span>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    data-testid="button-pause-workflow-panel"
-                    onClick={onPause}
-                    disabled={status !== 'running' || !onPause}
-                  >
-                    <Pause className="mr-2 h-4 w-4" />
-                    {executionEngine === 'nextflow' ? 'Detach' : 'Pause'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    data-testid="button-resume-workflow-panel"
-                    onClick={onResume}
-                    disabled={status !== 'paused' || !onResume}
-                  >
-                    <Play className="mr-2 h-4 w-4" />
-                    {executionEngine === 'nextflow' ? 'Reconnect' : 'Resume'}
-                  </Button>
-                </div>
-                {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
-                  <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    data-testid="button-restart-workflow-panel"
-                    onClick={() => onExecute?.(params)}
-                    disabled={status !== 'completed' && status !== 'failed'}
-                  >
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Restart
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    data-testid="button-cancel-workflow-panel"
-                    onClick={onCancel}
-                    disabled={status !== 'running' && status !== 'paused'}
-                  >
-                    <Square className="mr-2 h-4 w-4" />
-                    Cancel
-                  </Button>
-                </div>
               </div>
+            )}
+            {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
+              <p className="text-xs text-muted-foreground">Batch job continues running after detach.</p>
+            )}
 
               {/* QC Settings — only shown when QC profiles are available or a QC gate event fired */}
               {(availableQcProfiles.length > 0 || qcGateData !== null) && (
@@ -2345,44 +2371,6 @@ export function NextflowWorkflowViewer({
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-              {executionBlockedReason && (
-                <div className="space-y-2">
-                  <Alert className="border-amber-400/40 bg-amber-50/50 dark:bg-amber-950/20">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-xs">
-                      {executionBlockedReason}
-                    </AlertDescription>
-                  </Alert>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    data-testid="button-confirm-low-confidence-run"
-                    onClick={() => {
-                      emitUxEvent('workflow.low_confidence_override_clicked', {
-                        workflowId,
-                        invocationId,
-                        runId,
-                      });
-                      onExecute?.({
-                        ...params,
-                        __executionOverrides: {
-                          allowLowConfidence: true,
-                          overrideReason: executionBlockedReason,
-                        },
-                      });
-                    }}
-                    disabled={
-                      status === 'running' ||
-                      status === 'completed' ||
-                      (isPrereqBlocked && !prereqChecklist?.overrideAllowed) ||
-                      isAutofixActive ||
-                      isLicenseBlocked
-                    }
-                  >
-                    Confirm and Run Anyway
-                  </Button>
                 </div>
               )}
               {/* ── Post-run text links (design spec: inline links, not full-width buttons) */}
@@ -2788,6 +2776,35 @@ export function NextflowWorkflowViewer({
           )}
         </CardContent>
       </Card>
+
+      {/* Skip step confirmation dialog (P5) */}
+      {confirmSkipPhaseId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setConfirmSkipPhaseId(null)}>
+          <div className="bg-background border border-border rounded-lg p-5 shadow-xl max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-sm mb-2">Skip this step?</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Skipping this phase removes it from the execution plan. Its output files will not be generated and downstream steps that depend on them may fail.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setConfirmSkipPhaseId(null)}>
+                Keep step
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                data-testid="button-confirm-skip-step"
+                onClick={() => {
+                  handleSkipPhase(confirmSkipPhaseId);
+                  setConfirmSkipPhaseId(null);
+                }}
+              >
+                Skip anyway
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <GalaxyDatasetBrowser
         open={!!browsingForParam}
         onClose={() => setBrowsingForParam(null)}
