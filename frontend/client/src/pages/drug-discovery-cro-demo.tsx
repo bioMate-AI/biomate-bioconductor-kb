@@ -13,7 +13,7 @@
  *           └── .dd-body  (surface content)
  */
 
-import { useState, useEffect, Fragment } from "react"
+import { useState, useEffect, useRef, Fragment } from "react"
 import { useLocation } from "wouter"
 import { DrugDiscoveryAuditViewer } from "@/components/drug-discovery-audit-viewer"
 import { DrugDiscoveryAutoRetrain } from "@/components/drug-discovery-auto-retrain"
@@ -360,6 +360,377 @@ const TABS = [
 
 type TabKey = typeof TABS[number]["key"]
 
+// ── eSig Modal ────────────────────────────────────────────────────────────────
+
+function OtpInput({
+  state,
+  onComplete,
+}: {
+  state: "idle" | "checking" | "error" | "success"
+  onComplete: (code: string) => void
+}) {
+  const [vals, setVals] = useState(["", "", "", "", "", ""])
+  const refs = useRef<(HTMLInputElement | null)[]>([])
+
+  const onChange = (i: number, v: string) => {
+    if (!/^\d?$/.test(v)) return
+    const next = [...vals]; next[i] = v; setVals(next)
+    if (v && i < 5) refs.current[i + 1]?.focus()
+    if (next.every(x => x !== "")) onComplete(next.join(""))
+  }
+  const onKey = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !vals[i] && i > 0) refs.current[i - 1]?.focus()
+  }
+  useEffect(() => { refs.current[0]?.focus() }, [])
+
+  const isError = state === "error"
+  const isSuccess = state === "success"
+  const isDisabled = state === "checking" || state === "success"
+
+  return (
+    <div className="flex gap-2 justify-center my-4">
+      {vals.map((v, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el }}
+          value={v}
+          onChange={e => onChange(i, e.target.value)}
+          onKeyDown={e => onKey(i, e)}
+          disabled={isDisabled}
+          maxLength={1}
+          className={cn(
+            "w-10 h-12 text-center text-[18px] font-mono font-semibold rounded-[6px] border-2 outline-none transition-colors",
+            isError ? "border-red-400 bg-red-50 text-red-700" :
+            isSuccess ? "border-green-400 bg-green-50 text-green-700" :
+            v ? "border-blue-400 bg-blue-50" : "border-border bg-white",
+            "focus:border-blue-500",
+          )}
+        />
+      ))}
+    </div>
+  )
+}
+
+type EsigAction = "EXPORT_CRO_ORDER" | "INGEST_ASSAY" | "GENERATE_IND"
+
+const ESIG_MEANINGS: Record<EsigAction, string> = {
+  EXPORT_CRO_ORDER: "I approve the synthesis order for this campaign and confirm I have reviewed the compound selection.",
+  INGEST_ASSAY: "I confirm this assay data is accurate and authorize it to update the PBPK model for this campaign.",
+  GENERATE_IND: "I approve the IND §2.6.1 package for this campaign and confirm the content is accurate for regulatory submission.",
+}
+
+function EsigModal({
+  action,
+  target,
+  onClose,
+  onSigned,
+  onToast,
+}: {
+  action: EsigAction
+  target: string
+  onClose: () => void
+  onSigned?: () => void
+  onToast: (msg: string) => void
+}) {
+  const [state, setState] = useState<"idle" | "checking" | "error" | "success">("idle")
+  const [countdown, setCountdown] = useState(23)
+  const [attempts, setAttempts] = useState(0)
+
+  useEffect(() => {
+    if (state === "success") return
+    const t = setInterval(() => setCountdown(c => c <= 0 ? 30 : c - 1), 1000)
+    return () => clearInterval(t)
+  }, [state])
+
+  const onComplete = (code: string) => {
+    setState("checking")
+    setTimeout(() => {
+      if (code === "123456" || attempts > 0) {
+        setState("success")
+        setTimeout(() => {
+          onToast(`Signed · ${action} recorded to audit trail`)
+          onClose()
+          onSigned?.()
+        }, 700)
+      } else {
+        setState("error")
+        setAttempts(a => a + 1)
+        setTimeout(() => setState("idle"), 1500)
+      }
+    }, 700)
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(15,23,42,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[440px] mx-4 rounded-[12px] overflow-hidden"
+        style={{ background: "#ffffff", boxShadow: "0 4px 12px rgba(15,23,42,0.08), 0 16px 40px rgba(15,23,42,0.06)" }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Head */}
+        <div className="px-5 pt-5 pb-3.5" style={{ borderBottom: "1px solid oklch(0.915 0.006 240)" }}>
+          <div className="text-[15px] font-semibold" style={{ letterSpacing: "-0.01em" }}>Electronic Signature Required</div>
+          <div className="text-[12px] mt-0.5 font-mono" style={{ color: "oklch(0.48 0.012 260)" }}>21 CFR Part 11 §11.200(a)(1)</div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 pt-4 pb-5">
+          {/* Action details */}
+          <div className="rounded-[6px] text-[13px] mb-3.5" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)", padding: "10px 12px" }}>
+            <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Action:</span> <span className="font-mono">{action}</span></div>
+            <div className="flex gap-2 mb-1"><span style={{ color: "oklch(0.48 0.012 260)" }}>Campaign:</span> <span className="font-mono">{CAMPAIGN_ID.slice(0, 14)}…</span></div>
+            <div className="flex gap-2"><span style={{ color: "oklch(0.48 0.012 260)" }}>Target:</span> {target}</div>
+          </div>
+
+          {/* Meaning */}
+          <div className="text-[12px] font-semibold mb-1" style={{ color: "oklch(0.48 0.012 260)" }}>Meaning of signature</div>
+          <div className="rounded-[6px] text-[12.5px] leading-relaxed mb-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.96 0.03 280)", color: "oklch(0.32 0.14 280)", padding: "10px 12px" }}>
+            {ESIG_MEANINGS[action]}
+          </div>
+          <div className="text-[11px] italic mb-3" style={{ color: "oklch(0.62 0.010 260)" }}>
+            This meaning is permanently recorded in the audit trail.
+          </div>
+
+          {/* OTP */}
+          <div className="text-[12.5px] text-center" style={{ color: "oklch(0.48 0.012 260)" }}>
+            Enter your 6-digit authenticator code
+          </div>
+          <OtpInput state={state} onComplete={onComplete} />
+          <div className={cn("text-[11.5px] text-center mb-3", state === "error" ? "text-red-600" : "")}>
+            {state === "error" ? "Invalid code. Try again." : `Code refreshes in ${countdown}s`}
+          </div>
+
+          <div className="text-[11px] leading-relaxed" style={{ color: "oklch(0.62 0.010 260)" }}>
+            🛡 This signature is uniquely linked to your identity and cannot be reused. The audit record will include your user ID, the meaning above, and a SHA-256 hash of this action's payload.
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 px-5 py-3" style={{ borderTop: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)" }}>
+          <button
+            onClick={onClose}
+            className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer"
+            style={{ border: "1px solid transparent", background: "transparent", color: "oklch(0.48 0.012 260)" }}
+          >
+            Cancel
+          </button>
+          <div className="flex-1" />
+          <button
+            className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1.5"
+            style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: state !== "idle" && state !== "error" ? 0.5 : 1 }}
+            disabled={state !== "idle" && state !== "error"}
+          >
+            {state === "checking" ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying…</>
+              : state === "success" ? <><Check className="h-3.5 w-3.5" /> Signed</>
+              : <>Sign and Continue <ChevronRight className="h-3.5 w-3.5" /></>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Campaign Wizard ───────────────────────────────────────────────────────────
+
+function CampaignWizard({ onDone, onToast }: { onDone: () => void; onToast: (msg: string) => void }) {
+  const [step, setStep] = useState(1)
+  const [mol, setMol] = useState("")
+  const [target, setTarget] = useState("")
+  const [indication, setIndication] = useState("")
+  const [objective, setObjective] = useState("balance")
+  const [parsed, setParsed] = useState<{ n: number; invalid: number } | null>(null)
+  const [validationProgress, setValidationProgress] = useState(0)
+
+  useEffect(() => {
+    if (step !== 3) return
+    const t = setInterval(() => setValidationProgress(p => Math.min(100, p + 10)), 300)
+    return () => clearInterval(t)
+  }, [step])
+
+  const step1Ok = mol.trim() && target.trim() && indication.trim()
+
+  const fieldStyle = {
+    display: "flex" as const, flexDirection: "column" as const, gap: 4,
+  }
+  const labelStyle = { fontSize: 12, fontWeight: 500 as const, color: "oklch(0.48 0.012 260)" }
+  const inputStyle = {
+    height: 34, padding: "0 10px", borderRadius: 6, fontSize: 13,
+    border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff",
+    outline: "none", width: "100%",
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <h2 className="text-[15px] font-semibold m-0" style={{ letterSpacing: "-0.01em" }}>New Drug Discovery Campaign</h2>
+        <div className="flex-1" />
+        <span className="text-[12px] font-mono px-2 py-0.5 rounded-[4px]" style={{ background: "oklch(0.965 0.004 240)", color: "oklch(0.48 0.012 260)" }}>
+          Step {step}/3
+        </span>
+      </div>
+
+      {step === 1 && (
+        <div>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Compound name</label>
+              <input style={inputStyle} value={mol} onChange={e => setMol(e.target.value)} placeholder="e.g. BMT-4451" />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Biological target</label>
+              <input style={inputStyle} value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. EGFR L858R" />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Therapeutic indication</label>
+              <input style={inputStyle} value={indication} onChange={e => setIndication(e.target.value)} placeholder="e.g. NSCLC" />
+            </div>
+          </div>
+
+          <div className="mt-3" style={fieldStyle}>
+            <label style={labelStyle}>Optimization objective</label>
+            <div className="flex flex-col gap-2 mt-1">
+              {([
+                { k: "potency",  l: "Maximize potency",        d: "Weight IC50 ~0.6; ADMET ~0.2; novelty ~0.2" },
+                { k: "admet",    l: "Optimize ADMET profile",   d: "Weight IC50 ~0.3; ADMET ~0.5; novelty ~0.2" },
+                { k: "balance",  l: "Balance potency + ADMET",  d: "Even weighting across all three objectives" },
+              ] as const).map(o => (
+                <label
+                  key={o.k}
+                  className="flex items-start gap-3 rounded-[6px] cursor-pointer"
+                  style={{ padding: "8px 10px", border: `1px solid ${objective === o.k ? "oklch(0.55 0.14 245)" : "oklch(0.915 0.006 240)"}`, background: objective === o.k ? "oklch(0.96 0.03 245)" : "#ffffff" }}
+                >
+                  <input type="radio" checked={objective === o.k} onChange={() => setObjective(o.k)} className="mt-0.5" />
+                  <span className="flex-1">
+                    <div className="text-[13px] font-medium">{o.l}</div>
+                    <div className="text-[11.5px] mt-0.5" style={{ color: "oklch(0.62 0.010 260)" }}>{o.d}</div>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between mt-5">
+            <button onClick={onDone} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer" style={{ border: "1px solid transparent", background: "transparent", color: "oklch(0.48 0.012 260)" }}>
+              Cancel
+            </button>
+            <button
+              disabled={!step1Ok}
+              onClick={() => setStep(2)}
+              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: step1Ok ? 1 : 0.4 }}
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div>
+          <p className="text-[13.5px] mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
+            Upload your initial compound set (SMILES format). This library will be used as the virtual library for auto-retrain proposals.
+          </p>
+
+          <div
+            className="rounded-[8px] flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
+            style={{ border: `2px dashed ${parsed ? "oklch(0.62 0.13 150)" : "oklch(0.915 0.006 240)"}`, padding: "32px 24px", background: parsed ? "oklch(0.96 0.04 150)" : "oklch(0.985 0.003 240)", minHeight: 140 }}
+            onClick={() => setParsed({ n: 282, invalid: 0 })}
+          >
+            {parsed ? (
+              <>
+                <Check className="h-6 w-6 mb-2" style={{ color: "oklch(0.62 0.13 150)" }} />
+                <div className="text-[14px] font-semibold">library-seed.csv parsed</div>
+                <div className="text-[12.5px] mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>{parsed.n} compounds · {parsed.invalid} invalid SMILES</div>
+              </>
+            ) : (
+              <>
+                <Upload className="h-6 w-6 mb-2" style={{ color: "oklch(0.62 0.010 260)" }} />
+                <div className="text-[14px] font-semibold">Drag and drop .csv, .smi, or .txt</div>
+                <div className="text-[13px] mt-1" style={{ color: "oklch(0.48 0.012 260)" }}>or <span className="underline cursor-pointer">browse files</span></div>
+                <div className="text-[11.5px] mt-2" style={{ color: "oklch(0.62 0.010 260)" }}>Format: one SMILES per line, or CSV with SMILES in the first column.</div>
+              </>
+            )}
+          </div>
+
+          <div className="flex justify-between mt-5">
+            <button onClick={() => setStep(1)} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
+              <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Back
+            </button>
+            <button
+              disabled={!parsed}
+              onClick={() => setStep(3)}
+              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none", opacity: parsed ? 1 : 0.4 }}
+            >
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div>
+          <div className="rounded-[8px] mb-4" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "oklch(0.985 0.003 240)", padding: 14 }}>
+            {([
+              ["Compound", mol],
+              ["Target", target],
+              ["Indication", indication],
+              ["Virtual library", `${parsed?.n ?? 0} compounds`],
+              ["Auto-retrain", "Enabled · check every 60 min"],
+              ["21 CFR Part 11", "Audit trail active"],
+            ] as [string, string][]).map(([k, v], i, arr) => (
+              <div key={k} className="flex gap-2 text-[13px]" style={{ padding: "6px 0", borderBottom: i < arr.length - 1 ? "1px dashed oklch(0.915 0.006 240)" : "none" }}>
+                <span className="w-36 shrink-0" style={{ color: "oklch(0.48 0.012 260)" }}>{k}</span>
+                <span className="flex-1">{v}</span>
+              </div>
+            ))}
+            <div className="flex gap-2 text-[13px]" style={{ padding: "10px 0 4px" }}>
+              <span className="w-36 shrink-0" style={{ color: "oklch(0.48 0.012 260)" }}>Model validation</span>
+              <span className="flex-1 flex items-center gap-3">
+                {validationProgress < 100 ? (
+                  <>
+                    <span style={{ color: "oklch(0.48 0.012 260)" }}>Running…</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "oklch(0.915 0.006 240)", maxWidth: 180 }}>
+                      <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${validationProgress}%` }} />
+                    </div>
+                    <span className="font-mono text-[11.5px]" style={{ color: "oklch(0.62 0.010 260)" }}>{validationProgress}%</span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11.5px] font-medium px-2 py-0.5 rounded-full" style={{ background: "oklch(0.96 0.04 150)", color: "oklch(0.62 0.13 150)" }}>
+                    <Check className="h-3 w-3" /> EMA criterion met
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[12.5px] leading-relaxed mb-4" style={{ color: "oklch(0.48 0.012 260)" }}>
+            Once launched, BioMate will: (1) run PBPK model validation against 31 reference drugs, (2) start the audit trail, (3) activate the auto-retrain loop, and (4) enable CRO order export and IND assembly.
+          </p>
+
+          <div className="flex justify-between mt-5">
+            <button onClick={() => setStep(2)} className="h-8 px-3 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1" style={{ border: "1px solid oklch(0.915 0.006 240)", background: "#ffffff", color: "oklch(0.22 0.01 260)" }}>
+              <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Back
+            </button>
+            <button
+              onClick={() => { onToast("Campaign launched"); onDone() }}
+              className="h-8 px-4 text-[13px] font-medium rounded-[6px] cursor-pointer flex items-center gap-1"
+              style={{ background: "oklch(0.22 0.01 260)", color: "#ffffff", border: "none" }}
+            >
+              Launch Campaign <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DrugDiscoveryCroDemo() {
@@ -368,6 +739,10 @@ export default function DrugDiscoveryCroDemo() {
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard")
   const [loopRunning] = useState(true)   // matches reference default knobs loopState='running'
+  const [showWizard, setShowWizard] = useState(false)
+  const [esigOpen, setEsigOpen] = useState(false)
+  const [esigAction, setEsigAction] = useState<EsigAction>("EXPORT_CRO_ORDER")
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     async function setup() {
@@ -549,19 +924,23 @@ export default function DrugDiscoveryCroDemo() {
                 </div>
 
                 {/* .btn.sm — New campaign */}
-                <button
-                  className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
-                  style={{
-                    border: "1px solid oklch(0.915 0.006 240)",
-                    background: "#ffffff",
-                    color: "oklch(0.22 0.01 260)",
-                  }}
-                >
-                  <Plus className="h-3 w-3" /> New campaign
-                </button>
+                {!showWizard && (
+                  <button
+                    onClick={() => setShowWizard(true)}
+                    className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
+                    style={{
+                      border: "1px solid oklch(0.915 0.006 240)",
+                      background: "#ffffff",
+                      color: "oklch(0.22 0.01 260)",
+                    }}
+                  >
+                    <Plus className="h-3 w-3" /> New campaign
+                  </button>
+                )}
 
                 {/* .btn.sm.ghost — Sign action */}
                 <button
+                  onClick={() => { setEsigAction("EXPORT_CRO_ORDER"); setEsigOpen(true) }}
                   className="h-[26px] px-2 text-[12px] font-medium flex items-center gap-1.5 rounded-[4px] cursor-pointer"
                   style={{
                     border: "1px solid transparent",
