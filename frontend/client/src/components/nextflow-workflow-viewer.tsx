@@ -796,6 +796,7 @@ export function NextflowWorkflowViewer({
     llm_used: boolean;
   } | null>(null);
   const [errorExplaining, setErrorExplaining] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
 
 
   const [stepExecutionById, setStepExecutionById] = useState<Record<string, StepExecutionState>>({});
@@ -1306,6 +1307,9 @@ export function NextflowWorkflowViewer({
   useEffect(() => {
     if (status === 'completed') {
       setShowResults(true);
+    }
+    if (status === 'failed') {
+      setLogsOpen(true);
     }
   }, [status]);
 
@@ -2170,39 +2174,31 @@ export function NextflowWorkflowViewer({
                 />
               )}
           {/* ── Logs panel — collapsible, auto-expands on failure ─────────────── */}
-          {(() => {
-            const [logsOpen, setLogsOpen] = React.useState(status === 'failed');
-            React.useEffect(() => { if (status === 'failed') setLogsOpen(true); }, [status]);
-            return (
-              <>
-                <button
-                  type="button"
-                  className={`strip${logsOpen ? ' open' : ''}`}
-                  onClick={() => setLogsOpen(o => !o)}
-                >
-                  <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
-                  <span className="label">
-                    {status === 'running'
-                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Execution logs</>
-                      : 'Execution logs'}
-                    {status === 'running' && logs.length === 0 && (
-                      <span className="hint" data-testid="workflow-running-hint">starting…</span>
-                    )}
-                  </span>
-                  {logs.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>{logs.length} lines</span>}
-                </button>
-                {logsOpen && (
-                  <div className="strip-body" style={{ padding: 0 }}>
-                    <pre className="log-pre">
-                      {logs.length === 0
-                        ? (status === 'running' ? 'Waiting for logs…' : 'No logs available.')
-                        : logs.map(stripAnsi).join('\n')}
-                    </pre>
-                  </div>
-                )}
-              </>
-            );
-          })()}
+          <button
+            type="button"
+            className={`strip${logsOpen ? ' open' : ''}`}
+            onClick={() => setLogsOpen(o => !o)}
+          >
+            <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+            <span className="label">
+              {status === 'running'
+                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" style={{ marginRight: 4 }} />Execution logs</>
+                : 'Execution logs'}
+              {status === 'running' && logs.length === 0 && (
+                <span className="hint" data-testid="workflow-running-hint">starting…</span>
+              )}
+            </span>
+            {logs.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>{logs.length} lines</span>}
+          </button>
+          {logsOpen && (
+            <div className="strip-body" style={{ padding: 0 }}>
+              <pre className="log-pre">
+                {logs.length === 0
+                  ? (status === 'running' ? 'Waiting for logs…' : 'No logs available.')
+                  : logs.map(stripAnsi).join('\n')}
+              </pre>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 18px 0' }}>
             <ReportConfusionButton
@@ -2274,101 +2270,81 @@ export function NextflowWorkflowViewer({
 
           {/* ── AI Analysis Panel ───────────────────────────────────────── */}
           {(analysisState === 'loading' || analysisState === 'done' || analysisState === 'error') && (
-            <div className="mt-6" data-testid="ai-analysis-panel">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Activity className="h-4 w-4 text-blue-600" />
+            <div className="findings-card" data-testid="ai-analysis-panel">
+              <div className="f-h">
+                <Activity className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
                 AI Findings Analysis
-                {analysisState === 'done' && (
-                  <span className="text-xs font-normal text-muted-foreground ml-1">· claude-sonnet-4-6</span>
-                )}
-              </h3>
+                {analysisState === 'done' && <span style={{ fontWeight: 400, marginLeft: 'auto', fontSize: 10 }}>claude-sonnet-4-6</span>}
+              </div>
 
               {analysisState === 'loading' && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="f-body" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ flexShrink: 0 }} />
                   Analyzing output files…
                 </div>
               )}
 
               {analysisState === 'error' && (
-                <div className="rounded-md border border-red-200 bg-red-50 dark:bg-red-950/20 p-3 text-sm text-red-800 dark:text-red-300">
+                <div className="alert err" style={{ margin: '8px 14px' }}>
                   {analysisError || 'Analysis failed. Try again.'}
                 </div>
               )}
 
               {analysisState === 'done' && analysisResult && (
-                <div className="space-y-4 text-sm">
-                  {/* Summary */}
+                <>
                   {analysisResult.summary && (
-                    <div className="rounded-md border border-border bg-muted/30 p-3">
-                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Summary</p>
-                      <p>{analysisResult.summary}</p>
-                    </div>
+                    <div className="f-body">{analysisResult.summary}</div>
                   )}
 
-                  {/* Key Findings */}
                   {analysisResult.key_findings?.length > 0 && (
-                    <div>
-                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Key Findings</p>
-                      <div className="space-y-2">
-                        {analysisResult.key_findings.map((f, i) => (
-                          <div key={i} className="rounded-md border border-blue-200/60 bg-blue-50/30 dark:border-blue-900/40 dark:bg-blue-950/10 p-2.5">
-                            <p className="font-medium text-blue-900 dark:text-blue-200">{f.finding}</p>
-                            {f.significance && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{f.significance}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="f-section">
+                      <div className="f-section-lbl">Key Findings</div>
+                      {analysisResult.key_findings.map((f: any, i: number) => (
+                        <div key={i} className="f-row" style={{ flexDirection: 'column' }}>
+                          <b>{f.finding}</b>
+                          {f.significance && <span>{f.significance}</span>}
+                        </div>
+                      ))}
                     </div>
                   )}
 
-                  {/* Quality */}
                   {analysisResult.quality_assessment && (
-                    <div>
-                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Quality Assessment</p>
-                      <p className="text-muted-foreground">{analysisResult.quality_assessment}</p>
+                    <div className="f-section">
+                      <div className="f-section-lbl">Quality Assessment</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5 }}>{analysisResult.quality_assessment}</div>
                     </div>
                   )}
 
-                  {/* Next Steps */}
                   {analysisResult.next_steps?.length > 0 && (
-                    <div>
-                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">Recommended Next Steps</p>
-                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                        {analysisResult.next_steps.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
-                      </ol>
+                    <div className="f-section">
+                      <div className="f-section-lbl">Recommended Next Steps</div>
+                      {analysisResult.next_steps.map((step: string, i: number) => (
+                        <div key={i} className="f-row">{i + 1}. {step}</div>
+                      ))}
                     </div>
                   )}
 
-                  {/* Citations */}
                   {analysisResult.citations?.length > 0 && (
-                    <div>
-                      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-2">Supporting References</p>
-                      <div className="space-y-1.5">
-                        {analysisResult.citations.map((c, i) => (
-                          <div key={i} className="flex gap-2 text-xs">
-                            <span className="shrink-0 font-medium text-foreground">{c.tool_or_resource}:</span>
-                            <span className="text-muted-foreground">
-                              {c.reference}
-                              {c.relevance && <span className="ml-1 italic">— {c.relevance}</span>}
-                            </span>
-                          </div>
-                        ))}
+                    <div className="f-section">
+                      <div className="f-section-lbl">Supporting References</div>
+                      {analysisResult.citations.map((c: any, i: number) => (
+                        <div key={i} className="f-row" style={{ flexDirection: 'column', gap: 1 }}>
+                          <b>{c.tool_or_resource}</b>
+                          <span className="f-cite">{c.reference}{c.relevance ? ` — ${c.relevance}` : ''}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {analysisResult.limitations && (
+                    <div className="f-section">
+                      <div className="alert warn" style={{ margin: 0 }}>
+                        <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
+                        <span><b>Limitations: </b>{analysisResult.limitations}</span>
                       </div>
                     </div>
                   )}
-
-                  {/* Limitations */}
-                  {analysisResult.limitations && (
-                    <div className="rounded-md border border-amber-200/60 bg-amber-50/30 dark:border-amber-900/40 dark:bg-amber-950/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
-                      <span className="font-medium">Limitations: </span>
-                      {analysisResult.limitations}
-                    </div>
-                  )}
-                </div>
+                </>
               )}
             </div>
           )}
