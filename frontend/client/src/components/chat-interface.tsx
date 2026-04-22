@@ -27,7 +27,13 @@ import {
   Check,
   Clock,
   AlertTriangle,
-  Settings
+  Settings,
+  Dna,
+  FlaskConical,
+  Microscope,
+  BarChart3,
+  Brain,
+  Layers
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
