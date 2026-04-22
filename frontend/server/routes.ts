@@ -8925,12 +8925,19 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
           try {
             const cleanText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
             let parsed = JSON.parse(cleanText);
-            // Handle double-wrapped JSON: if summary is itself a JSON string, parse it
-            if (typeof parsed?.summary === 'string' && parsed.summary.trim().startsWith('{')) {
-              try {
-                const inner = JSON.parse(parsed.summary);
-                if (inner?.summary && typeof inner.summary === 'string') parsed = inner;
-              } catch {}
+            // Handle Gemini double-wrapping: model puts entire analysis in "summary" field.
+            // Unwrap up to 2 levels deep until key_results/next_steps arrays are populated.
+            for (let depth = 0; depth < 2; depth++) {
+              if (typeof parsed?.summary === 'string' && parsed.summary.trim().startsWith('{')) {
+                try {
+                  const inner = JSON.parse(parsed.summary);
+                  if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+                    parsed = inner;
+                    continue;
+                  }
+                } catch {}
+              }
+              break;
             }
             _findingsCache.set(runId, parsed);
           } catch {
