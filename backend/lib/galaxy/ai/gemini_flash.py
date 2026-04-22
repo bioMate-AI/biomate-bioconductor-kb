@@ -18,7 +18,7 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-GEMINI_FLASH_MODEL = "gemini-3-flash-preview"
+GEMINI_FLASH_MODEL = "gemini-2.5-flash"
 
 
 def _get_client():
