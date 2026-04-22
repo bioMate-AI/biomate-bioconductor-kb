@@ -1523,6 +1523,14 @@ export function NextflowWorkflowViewer({
       progress ??
       0
   );
+
+  // Detect the S3 cache-scan phase: running but 0 tasks for >30s.
+  // Nextflow scans the entire S3 work dir before emitting any task counts.
+  const isScanningCache = status === 'running'
+    && (nextflowStatus?.totalTasks ?? 0) === 0
+    && !!nextflowStatus?.started_at
+    && (Date.now() / 1000 - (nextflowStatus.started_at as number)) > 30;
+
   const nextflowRunId =
     nextflowStatus?.run_id ??
     nextflowStatus?.runId ??
@@ -2199,7 +2207,9 @@ export function NextflowWorkflowViewer({
                 ? <><Loader2 className="h-3.5 w-3.5 animate-spin" style={{ marginRight: 4 }} />Execution logs</>
                 : 'Execution logs'}
               {status === 'running' && logs.length === 0 && (
-                <span className="hint" data-testid="workflow-running-hint">starting…</span>
+                <span className="hint" data-testid="workflow-running-hint">
+                  {isScanningCache ? 'scanning cache…' : 'starting…'}
+                </span>
               )}
             </span>
             {logs.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>{logs.length} lines</span>}
@@ -2208,7 +2218,11 @@ export function NextflowWorkflowViewer({
             <div className="strip-body" style={{ padding: 0 }}>
               <pre className="log-pre">
                 {logs.length === 0
-                  ? (status === 'running' ? 'Waiting for logs…' : 'No logs available.')
+                  ? (status === 'running'
+                      ? (isScanningCache
+                          ? 'Scanning workflow cache on S3 — this takes 2–5 min for large pipelines…'
+                          : 'Waiting for logs…')
+                      : 'No logs available.')
                   : logs.map(stripAnsi).join('\n')}
               </pre>
             </div>

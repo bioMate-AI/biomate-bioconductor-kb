@@ -1624,6 +1624,9 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
+        # Emit structured log lines for every Batch job ID found in .nextflow.log
+        _scrape_batch_job_ids(run_id)
+
         # Tag all S3 output objects with user_id so the billing Lambda can attribute them.
         # This is done as a best-effort background step after run completion.
         _tag_s3_outputs(run_meta)
@@ -5201,3 +5204,101 @@ async def get_reproducibility_bundle(run_id: str):
         }, indent=2)
 
     return {"run_id": run_id, "files": files}
+
+
+# ---------------------------------------------------------------------------
+# Liveness probe — is this Nextflow run's process still alive?
+# ---------------------------------------------------------------------------
+
+@router.get("/api/nextflow/alive/{run_id}", summary="Check whether a Nextflow run is still alive")
+async def get_run_liveness(run_id: str):
+    """
+    Returns whether the Nextflow process for *run_id* is believed to be running.
+
+    Checks (in order):
+    1. _runs dict — process object, poll returncode
+    2. timing.json — completed_at present → terminal; log stale → interrupted
+    3. nextflow.log mtime — if not updated in >10 min while status=running → likely dead
+
+    Use this for health checks and to detect silent Nextflow deaths.
+    """
+    import json as _json
+
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    run_dir   = work_base / run_id
+    now       = time.time()
+
+    # ── In-memory check ──────────────────────────────────────────────────────
+    with _runs_lock:
+        info = _runs.get(run_id)
+
+    if info:
+        proc: Optional[subprocess.Popen] = info.get("process")
+        if proc is not None:
+            rc = proc.poll()
+            if rc is None:
+                return {"run_id": run_id, "alive": True, "source": "process", "pid": proc.pid}
+            return {
+                "run_id": run_id, "alive": False, "source": "process",
+                "returncode": rc, "status": info.get("status"),
+            }
+        status = info.get("status", "unknown")
+        if status in ("succeeded", "failed", "interrupted"):
+            return {"run_id": run_id, "alive": False, "source": "memory", "status": status}
+
+    # ── Disk fallback ────────────────────────────────────────────────────────
+    timing_path = run_dir / "timing.json"
+    if timing_path.exists():
+        try:
+            timing = _json.loads(timing_path.read_text())
+        except Exception:
+            timing = {}
+        if timing.get("completed_at"):
+            return {
+                "run_id": run_id, "alive": False, "source": "timing.json",
+                "status": timing.get("status", "terminal"),
+                "completed_at": timing["completed_at"],
+            }
+        nf_log = run_dir / "nextflow.log"
+        if nf_log.exists():
+            age_s = now - nf_log.stat().st_mtime
+            if age_s > 600:
+                log.warning(
+                    "[liveness] run %s nextflow.log not updated for %.0fs — process likely dead",
+                    run_id, age_s,
+                )
+                return {
+                    "run_id": run_id, "alive": False, "source": "log_stale",
+                    "log_age_seconds": round(age_s), "status": "interrupted",
+                }
+            return {
+                "run_id": run_id, "alive": True, "source": "log_fresh",
+                "log_age_seconds": round(age_s),
+            }
+
+    return {"run_id": run_id, "alive": None, "source": "unknown", "status": "not_found"}
+
+
+def _scrape_batch_job_ids(run_id: str) -> None:
+    """Parse .nextflow.log to extract AWS Batch job IDs and emit structured log lines."""
+    import re as _re
+    work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+    nf_daemon_log = work_base / run_id / "work" / ".nextflow.log"
+    if not nf_daemon_log.exists():
+        return
+    pattern = _re.compile(
+        r"Process `([^`]+)` submitted > job=([0-9a-f\-]{36}); work-dir=(\S+)"
+    )
+    seen: set = set()
+    try:
+        with open(nf_daemon_log) as fh:
+            for line in fh:
+                m = pattern.search(line)
+                if m and m.group(2) not in seen:
+                    seen.add(m.group(2))
+                    log.info(
+                        "[Nextflow run %s] Batch job submitted: process=%s job_id=%s work_dir=%s",
+                        run_id, m.group(1), m.group(2), m.group(3),
+                    )
+    except Exception as _e:
+        log.debug("[Nextflow run %s] Could not scrape Batch job IDs: %s", run_id, _e)
