@@ -6,10 +6,10 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="BioMate Team"
 LABEL description="Protein dynamics & conformational ensemble sampling for BioMate workflows"
-LABEL version="1.0.0"
+LABEL version="1.0.1"
 
 ENV DEBIAN_FRONTEND=noninteractive
-# Prevent interactive prompts from OpenMM / conda solvers
+ENV TZ=UTC
 ENV PIP_NO_INPUT=1
 
 # ── System dependencies ───────────────────────────────────────────────────────
@@ -33,25 +33,16 @@ RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tm
     && /tmp/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin \
     && rm -rf /tmp/awscliv2.zip /tmp/aws
 
-# ── Conda: fpocket + OpenMM (easier via conda-forge than pip) ─────────────────
-# Install miniconda alongside the existing base Python in the PyTorch image
-RUN curl -fsSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-        -o /tmp/miniconda.sh \
-    && bash /tmp/miniconda.sh -b -p /opt/conda \
-    && rm /tmp/miniconda.sh
+# ── fpocket from source ───────────────────────────────────────────────────────
+RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
+    && cd /tmp/fpocket \
+    && make \
+    && make install \
+    && rm -rf /tmp/fpocket
 
-ENV PATH="/opt/conda/bin:${PATH}"
-
-RUN conda install -y -n base -c bioconda -c conda-forge \
-        fpocket \
-        openmm \
-    && conda clean -ya
-
-# ── Python packages (pip into the conda base env) ─────────────────────────────
+# ── Python packages ───────────────────────────────────────────────────────────
 COPY requirements.txt /tmp/requirements.txt
-
 RUN pip install --no-cache-dir \
-    # Pinned direct deps first to avoid solver churn
     "numpy>=1.24.0,<2.0.0" \
     "scipy>=1.11.0" \
     "pandas>=2.0.0" \
@@ -59,11 +50,11 @@ RUN pip install --no-cache-dir \
     "seaborn>=0.12.0" \
     "biopython>=1.81" \
     "mdanalysis>=2.6.0" \
-    "nglview>=3.0.8" \
     "umap-learn>=0.5.5" \
     "scikit-learn>=1.3.0" \
     "tqdm>=4.65.0" \
     "h5py>=3.9.0" \
+    "openmm>=8.0.0" \
     && pip install --no-cache-dir \
     "bioemu>=0.1.0" \
     "cryodrgn>=3.0.0"
@@ -73,8 +64,6 @@ RUN git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pock
     && pip install --no-cache-dir /opt/pocketminer
 
 ENV POCKETMINER_HOME=/opt/pocketminer
-
-# ── PATH additions ────────────────────────────────────────────────────────────
 ENV PATH="/opt/aws-cli/bin:${PATH}"
 
 WORKDIR /data
