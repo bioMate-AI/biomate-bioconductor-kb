@@ -61,8 +61,10 @@ workflow CRYO_EM_HETEROGENEITY {
     )
 
     // Step 2: Analyze latent space — UMAP + k-means → volumes
+    // ctf_ch passed so analyze can patch the config with a local CTF path
     CRYODRGN_ANALYZE(
         CRYODRGN_TRAIN.out.model_dir,
+        ctf_ch,
         epoch,
         n_clusters
     )

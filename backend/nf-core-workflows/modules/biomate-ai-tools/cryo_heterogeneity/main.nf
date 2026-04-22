@@ -89,6 +89,7 @@ process CRYODRGN_ANALYZE {
 
     input:
     tuple val(meta), path(model_dir)
+    path ctf_pkl
     val epoch
     val n_clusters
 
@@ -112,15 +113,46 @@ process CRYODRGN_ANALYZE {
 
     echo "Analyzing cryoDRGN output at epoch \${EPOCH} with ${clusters} clusters"
 
+    # Patch the training config to point CTF to a local compat file.
+    # cryodrgn analyze reads the CTF path from config.yaml — the original
+    # path (from the TRAIN container) no longer exists in this container.
+    python3 - << 'PYEOF'
+import pickle, json, os, yaml
+import numpy as np
+
+# Convert ctf pkl to numpy array (handles both list-of-lists and old dict format)
+with open("${ctf_pkl}", "rb") as fh:
+    raw = pickle.load(fh)
+if isinstance(raw, dict):
+    ctf_arr = np.array(raw["ctf"], dtype=np.float32)
+else:
+    ctf_arr = np.array(raw, dtype=np.float32)
+with open("ctf_compat.pkl", "wb") as fh:
+    pickle.dump(ctf_arr, fh)
+print(f"ctf_compat.pkl: shape={ctf_arr.shape}")
+
+# Patch config.yaml inside model_dir so cryodrgn analyze finds the CTF
+cfg_path = "${model_dir}/config.yaml"
+if os.path.exists(cfg_path):
+    with open(cfg_path) as fh:
+        cfg = yaml.safe_load(fh)
+    cfg.setdefault("dataset_args", {})["ctf"] = os.path.abspath("ctf_compat.pkl")
+    with open(cfg_path, "w") as fh:
+        yaml.dump(cfg, fh)
+    print(f"Patched {cfg_path} -> ctf={os.path.abspath('ctf_compat.pkl')}")
+else:
+    print(f"WARNING: {cfg_path} not found; cryodrgn analyze may fail")
+PYEOF
+
     cryodrgn analyze \\
         ${model_dir} \\
         \${EPOCH} \\
         --ksample ${clusters}
 
-    echo "Analysis complete. Results in ${model_dir}/\${EPOCH}/"
+    echo "Analysis complete."
 
     # Confirm expected outputs exist
-    ls ${model_dir}/\${EPOCH}/umap.png        || { echo "ERROR: umap.png not found"; exit 1; }
+    ls ${model_dir}/\${EPOCH}/umap.png              || { echo "ERROR: umap.png not found"; exit 1; }
     ls ${model_dir}/\${EPOCH}/vol_*.mrc 2>/dev/null || { echo "ERROR: no vol_*.mrc found"; exit 1; }
 
     cat <<-END_VERSIONS > versions.yml
