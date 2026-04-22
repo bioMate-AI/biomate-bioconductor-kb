@@ -96,7 +96,7 @@ def _llm_narrative(section_type: str, data: dict) -> str:
         narrative = _gemini_flash(
             messages=[{"role": "user", "content": user_prompt}],
             system=_NARRATIVE_SYSTEM,
-            max_tokens=1024,
+            max_tokens=2048,
             temperature=0.3,
         ).strip()
 
