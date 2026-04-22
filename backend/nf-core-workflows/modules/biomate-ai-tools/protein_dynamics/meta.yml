@@ -1,0 +1,127 @@
+name: protein_dynamics
+description: |
+  Protein dynamics conformational ensemble pipeline.
+  Generates a diverse conformational ensemble for a given protein structure or
+  sequence using Microsoft BioEmu-1, identifies cryptic binding pockets in
+  each sampled state using fpocket and PocketMiner, and produces a summary
+  report with RMSD statistics, radius-of-gyration distribution, and a UMAP
+  projection of the ensemble.
+
+keywords:
+  - protein dynamics
+  - conformational ensemble
+  - cryptic pockets
+  - BioEmu
+  - fpocket
+  - PocketMiner
+  - MDAnalysis
+  - UMAP
+
+processes:
+
+  BIOEMU_SAMPLE:
+    description: |
+      Sample a conformational ensemble from a PDB structure or amino-acid
+      sequence using Microsoft BioEmu-1.  Runs on GPU.
+    tools:
+      - name: BioEmu
+        description: "Microsoft BioEmu-1: equilibrium conformational ensemble sampling"
+        homepage: "https://github.com/microsoft/bioemu"
+        documentation: "https://pypi.org/project/bioemu/"
+    inputs:
+      - meta:
+          type: map
+          description: "Groovy map with sample metadata (id, etc.)"
+      - pdb_or_fasta:
+          type: file
+          description: "Input PDB or FASTA file for the target protein"
+          pattern: "*.{pdb,fasta,fa}"
+      - n_samples:
+          type: integer
+          description: "Number of conformations to sample (default 100)"
+    outputs:
+      - meta:
+          type: map
+      - ensemble:
+          type: file
+          description: "Gzipped tar archive containing all sampled PDB conformers and MANIFEST.txt"
+          pattern: "*_ensemble.tar.gz"
+      - versions:
+          type: file
+          pattern: "versions.yml"
+
+  POCKET_MINER:
+    description: |
+      Detect and score cryptic binding pockets across representative frames of
+      the conformational ensemble.  Uses PocketMiner (deep-learning) as the
+      primary method and fpocket (geometry-based) as a supplement / fallback.
+    tools:
+      - name: PocketMiner
+          description: "Neural-network cryptic binding site prediction"
+          homepage: "https://github.com/Hoecker-Lab/pocketminer"
+      - name: fpocket
+          description: "Geometry-based protein pocket detection"
+          homepage: "https://fpocket.sourceforge.net/"
+    inputs:
+      - meta:
+          type: map
+      - ensemble_tgz:
+          type: file
+          description: "Conformational ensemble archive from BIOEMU_SAMPLE"
+          pattern: "*_ensemble.tar.gz"
+    outputs:
+      - meta:
+          type: map
+      - pockets:
+          type: file
+          description: "JSON file with per-frame pocket scores and druggability metrics"
+          pattern: "*_pockets.json"
+      - pocket_viz:
+          type: file
+          description: "Combined PDB of fpocket cavity atoms across representative frames (optional)"
+          pattern: "*_pockets.pdb"
+          optional: true
+      - versions:
+          type: file
+          pattern: "versions.yml"
+
+  CONFORMATIONAL_SUMMARY:
+    description: |
+      Compute ensemble-level statistics (RMSD to reference, radius of gyration,
+      pocket count per state) and generate a UMAP 2D projection coloured by
+      RMSD.  Outputs a machine-readable JSON report and a PNG figure.
+    tools:
+      - name: MDAnalysis
+          description: "Molecular dynamics trajectory analysis"
+          homepage: "https://www.mdanalysis.org/"
+      - name: umap-learn
+          description: "Uniform Manifold Approximation and Projection"
+          homepage: "https://umap-learn.readthedocs.io/"
+      - name: Biopython
+          description: "Biological computation library"
+          homepage: "https://biopython.org/"
+    inputs:
+      - meta:
+          type: map
+      - ensemble_tgz:
+          type: file
+          description: "Conformational ensemble archive"
+          pattern: "*_ensemble.tar.gz"
+      - pockets_json:
+          type: file
+          description: "Pocket analysis JSON from POCKET_MINER"
+          pattern: "*_pockets.json"
+    outputs:
+      - meta:
+          type: map
+      - report:
+          type: file
+          description: "summary_report.json with RMSD, Rg, pocket statistics"
+          pattern: "summary_report.json"
+      - umap:
+          type: file
+          description: "conformational_umap.png — RMSD distribution, Rg histogram, UMAP scatter"
+          pattern: "conformational_umap.png"
+      - versions:
+          type: file
+          pattern: "versions.yml"

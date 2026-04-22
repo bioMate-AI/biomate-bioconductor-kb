@@ -1,0 +1,27 @@
+# Core cryo-EM heterogeneity analysis
+cryodrgn>=3.3.2
+
+# PyTorch (already in base image, but pin for pip consistency)
+torch>=2.1.0
+numpy>=1.24.0
+scipy>=1.11.0
+pandas>=2.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+umap-learn>=0.5.3
+
+# Machine learning utilities
+scikit-learn>=1.3.0
+Pillow>=10.0.0
+
+# Structural biology I/O
+biopython>=1.81
+mrcfile>=1.4.3
+
+# RELION/cryoDRGN STAR file parsing
+starfile>=0.5.6
+
+# AWS / utility
+boto3>=1.28.0

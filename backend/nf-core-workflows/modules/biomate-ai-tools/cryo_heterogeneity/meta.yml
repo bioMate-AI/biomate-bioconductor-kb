@@ -1,0 +1,117 @@
+name: cryo_heterogeneity
+description: |
+  Cryo-EM conformational heterogeneity analysis using cryoDRGN (MIT VAE) to resolve
+  continuous structural heterogeneity in cryo-EM particle stacks.  Trains a variational
+  autoencoder on particle images to learn a continuous latent space of conformations,
+  generates representative 3D density maps via k-means sampling, and scans each
+  reconstructed state for druggable pockets using fpocket.
+keywords:
+  - cryo-EM
+  - heterogeneity
+  - cryodrgn
+  - conformational-ensemble
+  - druggability
+  - fpocket
+  - VAE
+
+tools:
+  - cryodrgn:
+      description: >
+        cryoDRGN — heterogeneous cryo-EM reconstruction via variational autoencoders.
+        Learns a continuous latent space of particle images enabling analysis of
+        conformational heterogeneity.
+      homepage: https://cryodrgn.cs.mit.edu/
+      documentation: https://cryodrgn.readthedocs.io/
+      licence: MIT
+
+  - fpocket:
+      description: >
+        fpocket — fast open source protein pocket (cavity) detection algorithm based
+        on Voronoi tessellation.  Used here to scan ensemble of reconstructed cryo-EM
+        states for druggable binding pockets.
+      homepage: https://github.com/Discngine/fpocket
+      documentation: https://github.com/Discngine/fpocket/blob/master/doc/MANUAL.md
+      licence: MIT
+
+input:
+  - meta:
+      type: map
+      description: |
+        Groovy Map containing sample information.
+        e.g. [ id:'sample1' ]
+  - particles_mrcs:
+      type: file
+      description: |
+        Particle stack in MRC/MRCS format, as exported from cryoSPARC or RELION.
+        Each slice is a 2D particle image; shape (N, box, box).
+      pattern: "*.{mrc,mrcs}"
+  - ctf_pkl:
+      type: file
+      description: |
+        CTF (Contrast Transfer Function) parameter file in cryoDRGN pickle format.
+        Generate with: cryodrgn parse_ctf_star <relion_ctf.star>
+        or: cryodrgn parse_ctf_csparc <cryosparc_ctf.cs>
+      pattern: "*.pkl"
+  - n_zdim:
+      type: integer
+      description: |
+        Dimensionality of the cryoDRGN latent space z.
+        Recommended 1–2 for single-domain motion, 8–10 for complex heterogeneity.
+      default: 8
+  - n_epochs:
+      type: integer
+      description: Number of training epochs for the cryoDRGN VAE.
+      default: 20
+  - epoch:
+      type: integer
+      description: |
+        Which training epoch to use for analysis (CRYODRGN_ANALYZE).
+        Leave null to auto-detect the last saved epoch.
+      default: null
+  - n_clusters:
+      type: integer
+      description: |
+        Number of k-means clusters to sample in latent space.
+        Each cluster centre produces one representative 3D density map.
+      default: 10
+
+output:
+  - model_dir:
+      type: directory
+      description: cryoDRGN output directory containing weights, loss logs, and z-coordinates.
+      pattern: "cryodrgn_output/"
+  - analysis_dir:
+      type: directory
+      description: |
+        Per-epoch analysis subdirectory containing UMAP embedding, k-means results,
+        and reconstructed volumes.
+      pattern: "cryodrgn_output/<epoch>/"
+  - umap:
+      type: file
+      description: UMAP 2D embedding of particle latent coordinates coloured by cluster.
+      pattern: "umap.png"
+  - volumes:
+      type: file
+      description: |
+        Reconstructed 3D density maps for each k-means cluster centre in latent space.
+        One .mrc file per conformational state.
+      pattern: "vol_*.mrc"
+  - pockets:
+      type: file
+      description: |
+        JSON file containing per-state pocket detection results from fpocket,
+        including druggability scores and pocket volumes for each conformational state.
+      pattern: "ensemble_pockets.json"
+  - report:
+      type: file
+      description: |
+        Final heterogeneity summary JSON: n_states, population_fractions,
+        conformational_entropy, top druggable state index and score.
+      pattern: "heterogeneity_report.json"
+  - versions:
+      type: file
+      description: Software version YAML (nf-core convention).
+      pattern: "versions.yml"
+
+authors:
+  - "@biomate-team"
