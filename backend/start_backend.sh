@@ -5,6 +5,7 @@ cd /home/yzhang/biomate/backend
 
 # Core Galaxy settings
 export ANTHROPIC_API_KEY=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
+export GEMINI_API_KEY=AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT=true
 export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
@@ -37,6 +38,19 @@ export AWS_S3_BUCKET=biomate-nextflow-work
 export AWS_DEFAULT_REGION=us-west-2
 export AWS_ACCESS_KEY_ID=AKIAV2DX3XSKGYVKVDET
 export AWS_SECRET_ACCESS_KEY=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
+
+# CryoSPARC direct executor — server-level connection config (shared infrastructure)
+# Each user's license key is stored separately in their credential vault, NOT here.
+export CRYOSPARC_HOST=100.54.207.255
+export CRYOSPARC_PORT=30000
+export CRYOSPARC_EMAIL=admin@biomate.ai
+export CRYOSPARC_PASSWORD=BioMate2026!
+export CRYOSPARC_AMI_ID=ami-008607f719aaac1b0
+export CRYOSPARC_INSTANCE_REGION=us-east-1
+export CRYOSPARC_INSTANCE_TYPE=g6.2xlarge
+export CRYOSPARC_PROJECT_DIR=/home/ubuntu/cryosparc_projects
+export CRYOSPARC_SSH_KEY=/home/yzhang/.ssh/cryosparc-benchmark.pem
+export CRYOSPARC_MOVIES_S3=s3://biomate-cryo-data/empiar-10028/Micrographs
 
 # Start billing monitoring stack (Prometheus + Grafana) if Docker is available
 MONITORING_DIR="$(dirname "$0")/../billing_system/monitoring"
