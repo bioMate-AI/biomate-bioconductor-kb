@@ -899,7 +899,7 @@ Return ONLY valid JSON with these exact keys. No explanation, no markdown fences
     const raw = await callGeminiFlash({
       messages: [{ role: 'user', content: userContent }],
       system: SessionMemoryUpdater.UPDATE_PROMPT,
-      maxTokens: 600,
+      maxTokens: 1024,
     });
     try {
       // Strip markdown fences if present
@@ -995,7 +995,7 @@ Rules:
     const raw = await callGeminiFlash({
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
       system: SYSTEM,
-      maxTokens: 256,
+      maxTokens: 1024,
       jsonMode: true,
       signal: AbortSignal.timeout(15_000), // 15s hard cap — prevents SSE stream stall
     });
@@ -1416,7 +1416,7 @@ Ambiguity type → what to ask about:
 - somatic_paired: matched tumor-normal vs tumor-only (panel of normals)
 - metagenomics_type: 16S amplicon (QIIME2/DADA2) vs shotgun metagenomics (Kraken2/MetaPhlAn)
 - docking_type: blind docking (DiffDock) vs site-directed docking (AutoDock Vina)`,
-        maxTokens: 200,
+        maxTokens: 1024,
       });
       return text.trim() || staticFallback;
     } catch {
@@ -1465,7 +1465,7 @@ Rules:
 - structural_biology: AlphaFold, protein structure prediction, molecular dynamics (non-cryo-EM)
 - other: recognised bioinformatics domain not listed above
 - unknown: insufficient information`,
-        maxTokens: 30,
+        maxTokens: 1024,
       }).then(r => r.trim());
       if ((VALID_DOMAINS as readonly string[]).includes(domain)) return domain as TechnicalSubdomain;
       return undefined; // 'other' or 'unknown' → no restriction
@@ -1968,7 +1968,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
     try {
       const text = await callGeminiFlash({
         messages: [{ role: 'user', content: prompt }],
-        maxTokens: 150,
+        maxTokens: 1024,
         jsonMode: true,
       });
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -4980,7 +4980,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             `Summarize the following conversation in 2-3 sentences, focusing on what the user was trying to accomplish and any decisions made:\n\n${historyText}`,
         },
       ],
-      maxTokens: 256,
+      maxTokens: 1024,
     }).then(r => r.trim()).catch(() => '');
 
     if (!summary) return;

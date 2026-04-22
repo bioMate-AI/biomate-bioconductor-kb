@@ -7991,7 +7991,7 @@ Rules:
           content: `Workflow: ${workflow_name || 'unknown'}\n\nError log (last 4000 chars):\n${log.slice(-4000)}`,
         }],
         system: ERROR_ANALYSIS_SYSTEM_PROMPT,
-        maxTokens: 500,
+        maxTokens: 1024,
         temperature: 0.1,
       });
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -8018,7 +8018,7 @@ Rules:
       const raw = await callGeminiFlash({
         messages: [{ role: 'user', content: `Query: ${text}` }],
         system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
-        maxTokens: 30,
+        maxTokens: 1024,
         temperature: 0.3,
       });
       const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
@@ -10382,7 +10382,7 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       try {
         const raw = await callGeminiFlash({
           messages: [{ role: "user", content: prompt }],
-          maxTokens: 10,
+          maxTokens: 1024,
           temperature: 0.0,  // binary yes/no classification must be deterministic
         });
         res.json({ answer: raw.trim().toLowerCase().startsWith("yes") || raw.trim().toLowerCase() === "true" });
