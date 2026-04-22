@@ -14,7 +14,7 @@
 
 import { GoogleGenerativeAI, GenerativeModel, GenerationConfig } from '@google/generative-ai';
 
-export const GEMINI_FLASH_MODEL = 'gemini-2.5-flash-lite';
+export const GEMINI_FLASH_MODEL = 'gemini-3-flash-preview';
 
 function getClient(): GoogleGenerativeAI {
   const apiKey = process.env.GEMINI_API_KEY;

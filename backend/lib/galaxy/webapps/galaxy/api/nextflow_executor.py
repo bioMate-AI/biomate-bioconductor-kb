@@ -2065,6 +2065,7 @@ def _accession_chain_thread(
             text=True,
             cwd=str(chain_work_dir),
             env=env,
+            start_new_session=True,
         )
         with _runs_lock:
             if run_id in _runs:
@@ -2574,6 +2575,7 @@ def execute_nextflow(
             text=True,
             cwd=str(work_dir),
             env=env,
+            start_new_session=True,
         )
     except Exception as exc:
         log.error(f"[Nextflow run {run_id}] failed to launch: {exc}")
