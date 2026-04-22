@@ -1153,13 +1153,27 @@ process HOMO_REFINEMENT_BATCH {
             timeout=21600,
             num_gpu=${params.num_gpu},
         )
+        # CryoSPARC v5: discover actual output slot (homo_refine_new typically outputs "volume"
+        # but guard against renames the same way we do for homo_abinit)
+        _refine_slot = None
+        for _s in ("volume", "volume_class_0", "volume_0", "volumes"):
+            try:
+                _o = job.load_output(_s)
+                if _o is not None:
+                    _refine_slot = _s
+                    break
+            except Exception:
+                pass
+        if _refine_slot is None:
+            _refine_slot = "volume"  # best guess — log if this is wrong
+            print(f"[CS] Warning: could not discover output slot for homo_refine_new {job.uid}; assuming 'volume'", flush=True)
         num_particles = par_data.get("num_items", 0)
         # Download refined volume MRC for visualization in BioMate DensityMapViewer
         viz_files = cs_download_outputs(cs, init["project_uid"], job.uid,
                                         mrc_prefix="cs_out_", png_prefix="cs_thumb_")
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
                    "workspace_uid": init["workspace_uid"],
-                   "job_uid": job.uid, "output_slot": "volume",
+                   "job_uid": job.uid, "output_slot": _refine_slot,
                    "num_items": num_particles, "batch_id": vol_name,
                    "volume": {"volume_name": vol_name, "num_particles": num_particles},
                    "viz_files": viz_files}
@@ -1872,13 +1886,14 @@ process VOLUME_TOOLS {
     init         = json.load(open("${cs_init_json}"))
     refine_uid   = refined_data.get('job_uid', '')
 
+    refine_slot = refined_data.get("output_slot", "volume")
     if use_real and refine_uid and refine_uid != 'MOCK':
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "volume_tools",
-            connections={"volume": (refine_uid, "volume")},
+            connections={"volume": (refine_uid, refine_slot)},
             params={},
             timeout=3600,
         )
@@ -1912,6 +1927,7 @@ process VOLUME_TOOLS {
 process VALIDATION_FSC {
     tag "val_fsc"
     publishDir "${params.outdir}/19_validation_fsc", mode: 'copy'
+    errorStrategy 'ignore'
     container CS_IMAGE
 
     input:
@@ -2110,9 +2126,13 @@ process NON_UNIFORM_REFINEMENT {
             shutil.copy(downloaded_mrc, 'volume_nu_refined.mrc')
         else:
             # Write minimal valid MRC stub (1×1×1) so Nextflow output is satisfied
+            # NC/NR/NS must be 1,1,1 (not 0,0,0) — mode 2 = float32
             with open('volume_nu_refined.mrc', 'wb') as f:
-                header = struct.pack('256i', *([0]*256))
-                f.write(header)
+                hdr = [0] * 256
+                hdr[0], hdr[1], hdr[2] = 1, 1, 1   # NC, NR, NS
+                hdr[3] = 2                            # mode: float32
+                hdr[7], hdr[8], hdr[9] = 1, 1, 1    # MX, MY, MZ
+                f.write(struct.pack('256i', *hdr))
                 f.write(struct.pack('f', 0.0))
         meta = {"cs_mode": "real", "project_uid": init["project_uid"],
                 "workspace_uid": init["workspace_uid"],

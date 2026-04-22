@@ -16,8 +16,11 @@ import {
   type CreateExecutionRunResponse,
   type ExecutionRunStatusResponse,
   type RunComparisonResponse,
+  executionRuns as executionRunsTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc, and } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -375,17 +378,126 @@ export class MemStorage implements IStorage {
     };
 
     this.executionRuns.set(id, executionRun);
+
+    // Persist to PostgreSQL (fire-and-forget; memory is primary for active runs)
+    db.insert(executionRunsTable).values({
+      id,
+      parentRunId: executionRun.parentRunId,
+      runSequence: String(executionRun.runSequence),
+      userId: executionRun.userId,
+      projectId: executionRun.projectId,
+      chatSessionId: executionRun.chatSessionId,
+      mode: executionRun.mode,
+      workflowName: executionRun.workflowName,
+      workflowDefinition: JSON.stringify(executionRun.workflowDefinition),
+      dataScope: JSON.stringify(executionRun.dataScope),
+      parameters: JSON.stringify(executionRun.parameters),
+      galaxyInvocationId: executionRun.execution?.galaxyInvocationId,
+      galaxyHistoryId: executionRun.execution?.galaxyHistoryId,
+      galaxyWorkflowId: executionRun.execution?.galaxyWorkflowId,
+      status: executionRun.execution?.status || 'running',
+      startedAt: executionRun.execution?.startedAt,
+      executionJson: JSON.stringify(executionRun.execution),
+      nextflowRunId: executionRun.execution?.nextflowRunId,
+      nextflowOutputDir: executionRun.execution?.nextflowOutputDir,
+      steps: JSON.stringify(executionRun.steps),
+      metrics: JSON.stringify(executionRun.metrics),
+      createdAt: executionRun.createdAt,
+      updatedAt: executionRun.updatedAt,
+    }).catch(e => console.warn('[Storage] Failed to persist execution run to DB:', e.message));
+
     return executionRun;
   }
 
+  private _dbRowToExecutionRun(row: any): ExecutionRun {
+    let execution: any = {};
+    try { execution = row.executionJson ? JSON.parse(row.executionJson) : {}; } catch {}
+    let workflowDefinition: any = {};
+    try { workflowDefinition = row.workflowDefinition ? JSON.parse(row.workflowDefinition) : {}; } catch {}
+    let dataScope: any = { fraction: 1, samplingStrategy: 'random', sampledIds: [] };
+    try { dataScope = row.dataScope ? JSON.parse(row.dataScope) : dataScope; } catch {}
+    let parameters: any = { version: 1, toolParameters: {} };
+    try { parameters = row.parameters ? JSON.parse(row.parameters) : parameters; } catch {}
+    let steps: any[] = [];
+    try { steps = row.steps ? JSON.parse(row.steps) : []; } catch {}
+    let metrics: any = { runtime: { totalSeconds: 0, perStepSeconds: {} }, resources: { peakMemoryGB: 0, avgCpuPercent: 0, diskUsedGB: 0 }, quality: {}, outputs: { fileCount: 0, totalSizeBytes: 0, byType: {}, bySize: {} } };
+    try { metrics = row.metrics ? JSON.parse(row.metrics) : metrics; } catch {}
+    return {
+      id: row.id,
+      parentRunId: row.parentRunId || undefined,
+      runSequence: parseInt(row.runSequence || '1'),
+      userId: row.userId || undefined,
+      projectId: row.projectId || undefined,
+      chatSessionId: row.chatSessionId || undefined,
+      mode: (row.mode || 'sandbox') as 'sandbox' | 'production',
+      workflowName: row.workflowName,
+      workflowDefinition,
+      dataScope,
+      parameters,
+      execution: {
+        ...execution,
+        galaxyInvocationId: execution.galaxyInvocationId || row.galaxyInvocationId,
+        galaxyHistoryId: execution.galaxyHistoryId || row.galaxyHistoryId,
+        galaxyWorkflowId: execution.galaxyWorkflowId || row.galaxyWorkflowId,
+        status: execution.status || row.status || 'running',
+        startedAt: execution.startedAt ? new Date(execution.startedAt) : (row.startedAt || undefined),
+        completedAt: execution.completedAt ? new Date(execution.completedAt) : (row.completedAt || undefined),
+        errorMessage: execution.errorMessage || row.errorMessage,
+        nextflowRunId: execution.nextflowRunId || row.nextflowRunId,
+        nextflowOutputDir: execution.nextflowOutputDir || row.nextflowOutputDir,
+      },
+      progress: {
+        totalSteps: parseInt(row.totalSteps || '0'),
+        completedSteps: parseInt(row.completedSteps || '0'),
+        currentStepIndex: row.currentStepIndex ? parseInt(row.currentStepIndex) : undefined,
+        currentStepName: row.currentStepName || undefined,
+        percentComplete: parseFloat(row.percentComplete || '0'),
+        milestone: undefined,
+      },
+      steps,
+      metrics,
+      interactions: [],
+      recommendations: [],
+      comparison: undefined,
+      createdAt: row.createdAt ? new Date(row.createdAt) : new Date(),
+      updatedAt: row.updatedAt ? new Date(row.updatedAt) : new Date(),
+    };
+  }
+
   async getExecutionRun(id: string): Promise<ExecutionRun | undefined> {
-    return this.executionRuns.get(id);
+    // Check memory first (active runs)
+    const cached = this.executionRuns.get(id);
+    if (cached) return cached;
+    // Fall back to DB
+    try {
+      const rows = await db.select().from(executionRunsTable).where(eq(executionRunsTable.id, id)).limit(1);
+      if (rows.length === 0) return undefined;
+      const run = this._dbRowToExecutionRun(rows[0]);
+      this.executionRuns.set(id, run); // warm cache
+      return run;
+    } catch (e: any) {
+      console.warn('[Storage] DB getExecutionRun failed:', e.message);
+      return undefined;
+    }
   }
 
   async getExecutionRunByGalaxyId(galaxyInvocationId: string): Promise<ExecutionRun | undefined> {
-    return Array.from(this.executionRuns.values()).find(
+    // Check memory first
+    const memResult = Array.from(this.executionRuns.values()).find(
       run => run.execution.galaxyInvocationId === galaxyInvocationId
     );
+    if (memResult) return memResult;
+    // Fall back to DB
+    try {
+      const rows = await db.select().from(executionRunsTable).where(eq(executionRunsTable.galaxyInvocationId, galaxyInvocationId)).limit(1);
+      if (rows.length === 0) return undefined;
+      const run = this._dbRowToExecutionRun(rows[0]);
+      this.executionRuns.set(run.id, run);
+      return run;
+    } catch (e: any) {
+      console.warn('[Storage] DB getExecutionRunByGalaxyId failed:', e.message);
+      return undefined;
+    }
   }
 
   async getExecutionRuns(
@@ -395,32 +507,39 @@ export class MemStorage implements IStorage {
     limit: number = 100,
     chatSessionId?: string
   ): Promise<ExecutionRun[]> {
-    let runs = Array.from(this.executionRuns.values());
+    try {
+      // Query DB and merge with in-memory active runs
+      const conditions: any[] = [];
+      if (userId) conditions.push(eq(executionRunsTable.userId, userId));
+      if (projectId) conditions.push(eq(executionRunsTable.projectId, projectId));
+      if (mode) conditions.push(eq(executionRunsTable.mode, mode));
+      if (chatSessionId) conditions.push(eq(executionRunsTable.chatSessionId, chatSessionId));
 
-    // Filter by userId if provided
-    if (userId) {
-      runs = runs.filter(run => run.userId === userId);
+      const query = db.select().from(executionRunsTable).orderBy(desc(executionRunsTable.createdAt)).limit(limit);
+      const rows = conditions.length > 0
+        ? await db.select().from(executionRunsTable).where(and(...conditions)).orderBy(desc(executionRunsTable.createdAt)).limit(limit)
+        : await query;
+
+      const dbRuns = rows.map(r => this._dbRowToExecutionRun(r));
+      // Overlay in-memory versions (more up-to-date for active runs)
+      const result = dbRuns.map(run => this.executionRuns.get(run.id) || run);
+      // Also include any in-memory runs not yet in DB
+      const dbIds = new Set(result.map(r => r.id));
+      let memRuns = Array.from(this.executionRuns.values()).filter(r => !dbIds.has(r.id));
+      if (userId) memRuns = memRuns.filter(r => r.userId === userId);
+      if (mode) memRuns = memRuns.filter(r => r.mode === mode);
+      if (chatSessionId) memRuns = memRuns.filter(r => r.chatSessionId === chatSessionId);
+      return [...result, ...memRuns].slice(0, limit);
+    } catch (e: any) {
+      console.warn('[Storage] DB getExecutionRuns failed, using memory:', e.message);
+      let runs = Array.from(this.executionRuns.values());
+      if (userId) runs = runs.filter(run => run.userId === userId);
+      if (projectId) runs = runs.filter(run => run.projectId === projectId);
+      if (mode) runs = runs.filter(run => run.mode === mode);
+      if (chatSessionId) runs = runs.filter(run => run.chatSessionId === chatSessionId);
+      runs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return runs.slice(0, limit);
     }
-
-    // Filter by projectId if provided
-    if (projectId) {
-      runs = runs.filter(run => run.projectId === projectId);
-    }
-
-    // Filter by mode if provided
-    if (mode) {
-      runs = runs.filter(run => run.mode === mode);
-    }
-
-    // Filter by chat session if provided
-    if (chatSessionId) {
-      runs = runs.filter(run => run.chatSessionId === chatSessionId);
-    }
-
-    // Sort by created date (newest first)
-    runs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-    return runs.slice(0, limit);
   }
 
   async getExecutionRunsByParent(parentRunId: string): Promise<ExecutionRun[]> {
@@ -434,17 +553,41 @@ export class MemStorage implements IStorage {
   }
 
   async updateExecutionRun(id: string, updates: Partial<ExecutionRun>): Promise<ExecutionRun | undefined> {
-    const existing = this.executionRuns.get(id);
-    if (!existing) return undefined;
+    let existing = this.executionRuns.get(id);
+    if (!existing) {
+      existing = await this.getExecutionRun(id);
+      if (!existing) return undefined;
+    }
 
     const updated: ExecutionRun = {
       ...existing,
       ...updates,
-      id, // Ensure ID doesn't change
+      id,
       updatedAt: new Date(),
     };
 
     this.executionRuns.set(id, updated);
+
+    // Persist to DB
+    const exec = updated.execution || {};
+    db.update(executionRunsTable).set({
+      status: exec.status || updated.execution?.status,
+      startedAt: exec.startedAt,
+      completedAt: exec.completedAt,
+      errorMessage: exec.errorMessage,
+      galaxyInvocationId: exec.galaxyInvocationId,
+      galaxyHistoryId: exec.galaxyHistoryId,
+      galaxyWorkflowId: exec.galaxyWorkflowId,
+      nextflowRunId: exec.nextflowRunId,
+      nextflowOutputDir: exec.nextflowOutputDir,
+      executionJson: JSON.stringify(exec),
+      steps: JSON.stringify(updated.steps),
+      metrics: JSON.stringify(updated.metrics),
+      completedSteps: String(updated.progress?.completedSteps || 0),
+      currentStepName: updated.progress?.currentStepName,
+      updatedAt: updated.updatedAt,
+    }).where(eq(executionRunsTable.id, id)).catch(e => console.warn('[Storage] DB updateExecutionRun failed:', e.message));
+
     return updated;
   }
 

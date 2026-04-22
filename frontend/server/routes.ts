@@ -8923,11 +8923,20 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
             jsonMode: true,
           });
           try {
-            const parsed = JSON.parse(rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim());
+            const cleanText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+            let parsed = JSON.parse(cleanText);
+            // Handle double-wrapped JSON: if summary is itself a JSON string, parse it
+            if (typeof parsed?.summary === 'string' && parsed.summary.trim().startsWith('{')) {
+              try {
+                const inner = JSON.parse(parsed.summary);
+                if (inner?.summary && typeof inner.summary === 'string') parsed = inner;
+              } catch {}
+            }
             _findingsCache.set(runId, parsed);
           } catch {
+            // Fallback: treat rawText as plain summary
             _findingsCache.set(runId, {
-              summary: rawText.slice(0, 300) || `${workflowName} completed successfully.`,
+              summary: rawText.slice(0, 500) || `${workflowName} completed successfully.`,
               key_results: [],
               next_steps: [],
               caveats: [],

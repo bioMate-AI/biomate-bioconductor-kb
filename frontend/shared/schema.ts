@@ -1210,6 +1210,11 @@ export const executionRuns = pgTable("execution_runs", {
   // Comparison (JSON)
   comparison: text("comparison"), // JSON stringified RunComparison
 
+  // Full execution state JSON blob (Nextflow metadata, etc.)
+  executionJson: text("execution_json"),
+  nextflowRunId: text("nextflow_run_id"),
+  nextflowOutputDir: text("nextflow_output_dir"),
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
