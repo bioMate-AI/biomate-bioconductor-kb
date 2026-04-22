@@ -1217,42 +1217,20 @@ class ResearchAgent:
 
     def _vision_read_figure(self, image_b64: str, question: str) -> str:
         """
-        Call Claude Haiku with a base64-encoded PNG image and extract numerical
+        Call Gemini Flash with a base64-encoded PNG image and extract numerical
         values relevant to the question.
 
         Returns the model's textual answer or "" on any failure.
         """
-        client = self._get_anthropic_client()
-        if client is None:
-            return ""
         try:
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=300,
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/png",
-                                "data": image_b64,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": (
-                                "This is a figure from a scientific paper. "
-                                "Extract the specific numerical values or data relevant to this question: "
-                                f"{question}\n"
-                                "Be concise — report only the specific numbers asked for."
-                            ),
-                        },
-                    ],
-                }]
+            from galaxy.ai.gemini_flash import call_gemini_flash_vision as _gemini_vision
+            prompt = (
+                "This is a figure from a scientific paper. "
+                "Extract the specific numerical values or data relevant to this question: "
+                f"{question}\n"
+                "Be concise — report only the specific numbers asked for."
             )
-            return response.content[0].text
+            return _gemini_vision(image_b64=image_b64, prompt=prompt, max_tokens=300)
         except Exception as e:
             log.debug(f"Vision call failed: {e}")
             return ""

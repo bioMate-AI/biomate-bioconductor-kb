@@ -143,7 +143,7 @@ def _embed_with_anthropic(texts: list[str], api_key: str) -> list[list[float]]:
     for i, text in enumerate(texts):
         try:
             resp = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="gemini-3-flash-preview",
                 max_tokens=1,
                 messages=[{"role": "user", "content": text}],
                 system="Return a single token.",

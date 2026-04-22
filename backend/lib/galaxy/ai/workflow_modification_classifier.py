@@ -65,16 +65,13 @@ def classify_modification(message: str, current_workflow: Optional[str] = None) 
 
 
 def _classify_with_llm(message: str, current_workflow: Optional[str]) -> WorkflowModification:
-    import anthropic
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash
     context = f"\nCurrent workflow: {current_workflow}" if current_workflow else ""
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=256,
-        system=_CLASSIFIER_SYSTEM,
+    text = _gemini_flash(
         messages=[{"role": "user", "content": f"Message: {message!r}{context}"}],
-    )
-    text = response.content[0].text.strip()
+        system=_CLASSIFIER_SYSTEM,
+        max_tokens=256,
+    ).strip()
     # Extract JSON from response
     m = re.search(r'\{.*\}', text, re.DOTALL)
     if not m:

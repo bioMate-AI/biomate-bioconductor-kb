@@ -18,6 +18,7 @@ import { parameterRepository } from "./parameter-repository";
 import { workflowRepository } from "./workflow-repository";
 import { memoryService } from "./memory-repository";
 import { createMemoryIntegration, getMemoryIntegration, type MemoryEnhancedContext } from "./memory-integration";
+import { callGeminiFlash } from "./gemini-flash";
 import { datasetValidator } from "./dataset-validator";
 import { getContextCompressor } from "./context-compressor";
 import { WorkflowPrerequisitesValidator } from "./workflow-prerequisites-validator";
@@ -3891,17 +3892,12 @@ Extract every real number from the output data. A reviewer should be able to ver
 
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
-        const Anthropic = (await import('@anthropic-ai/sdk')).default;
-        const client = new Anthropic({ apiKey });
-        // Use Haiku for fast generation (Sonnet exceeds E2E test timeouts).
-        // Haiku produces a concise but complete methods section in ~10s vs Sonnet's 60-90s.
-        const completion = await client.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 2048,
-          system: SYSTEM,
+        // Use Gemini Flash for fast generation (~10s latency, well within E2E timeouts).
+        const reportText = await callGeminiFlash({
           messages: [{ role: 'user', content: USER }],
+          system: SYSTEM,
+          maxTokens: 2048,
         });
-        const reportText = completion.content[0].type === 'text' ? completion.content[0].text : '';
 
         const header = [
           `BioMate AI — Methods Report`,
@@ -7949,19 +7945,15 @@ Rules:
     }
 
     try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey });
-      const completion = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 500,
-        temperature: 0.1,
-        system: ERROR_ANALYSIS_SYSTEM_PROMPT,
+      const text = await callGeminiFlash({
         messages: [{
           role: 'user',
           content: `Workflow: ${workflow_name || 'unknown'}\n\nError log (last 4000 chars):\n${log.slice(-4000)}`,
         }],
+        system: ERROR_ANALYSIS_SYSTEM_PROMPT,
+        maxTokens: 500,
+        temperature: 0.1,
       });
-      const text = completion.content[0].type === 'text' ? completion.content[0].text : '';
       const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const result = JSON.parse(cleaned);
       result.llm_used = true;
@@ -7983,18 +7975,13 @@ Rules:
       return res.json({ title: fallback.length > 50 ? fallback.slice(0, 47) + '...' : fallback });
     }
     try {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey });
-      const completion = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 30,
-        temperature: 0.3,
-        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+      const raw = await callGeminiFlash({
         messages: [{ role: 'user', content: `Query: ${text}` }],
+        system: 'Generate a concise 4-6 word chat session title that captures the scientific task. No quotes, no punctuation at end, no filler words like "user wants to".',
+        maxTokens: 30,
+        temperature: 0.3,
       });
-      const title = completion.content[0].type === 'text'
-        ? completion.content[0].text.trim().replace(/^["']|["']$/g, '').slice(0, 60)
-        : text.split(/\s+/).slice(0, 6).join(' ');
+      const title = raw.trim().replace(/^["']|["']$/g, '').slice(0, 60) || text.split(/\s+/).slice(0, 6).join(' ');
       return res.json({ title });
     } catch {
       const fallback = text.trim().split(/\s+/).slice(0, 6).join(' ');
@@ -8883,15 +8870,12 @@ Respond ONLY with valid JSON:
 }
 Respond with ONLY the JSON object, no markdown wrapper.`;
 
-          const Anthropic = (await import('@anthropic-ai/sdk')).default;
-          const client = new Anthropic({ apiKey });
-          const completion = await client.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1024,
-            system: SYSTEM,
+          const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
+            system: SYSTEM,
+            maxTokens: 1024,
+            jsonMode: true,
           });
-          const rawText = completion.content[0].type === 'text' ? completion.content[0].text : '';
           try {
             const parsed = JSON.parse(rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim());
             _findingsCache.set(runId, parsed);
@@ -10351,25 +10335,20 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
       return;
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
     const prompt = `Answer the following question about the provided text with ONLY "yes" or "no".\n\nText:\n${text.substring(0, 2000)}\n\nQuestion: ${question}`;
 
-    // Attempt 1: Anthropic API (primary)
-    if (apiKey) {
+    // Attempt 1: Gemini Flash (primary)
+    if (process.env.GEMINI_API_KEY) {
       try {
-        const { default: Anthropic } = await import("@anthropic-ai/sdk");
-        const client = new Anthropic({ apiKey });
-        const msg = await client.messages.create({
-          model: "claude-haiku-4-5",
-          max_tokens: 10,
-          temperature: 0.0,  // binary yes/no classification must be deterministic
+        const raw = await callGeminiFlash({
           messages: [{ role: "user", content: prompt }],
+          maxTokens: 10,
+          temperature: 0.0,  // binary yes/no classification must be deterministic
         });
-        const raw = (msg.content[0] as any)?.text?.trim().toLowerCase() ?? "";
-        res.json({ answer: raw.startsWith("yes") || raw === "true" });
+        res.json({ answer: raw.trim().toLowerCase().startsWith("yes") || raw.trim().toLowerCase() === "true" });
         return;
       } catch (err: any) {
-        console.warn("[llm/classify] Anthropic failed, trying Ollama:", err.message);
+        console.warn("[llm/classify] Gemini failed, trying Ollama:", err.message);
       }
     }
 

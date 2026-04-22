@@ -2199,6 +2199,16 @@ def execute_nextflow(
     log_dir = work_base / run_id
     log_dir.mkdir(parents=True, exist_ok=True)
 
+    # If resuming, copy .nextflow/ cache from the previous run's work dir so
+    # Nextflow recognises the project history and honours -resume.
+    # Nextflow's CWD is work_dir (work/ subdir), so .nextflow/ lives inside work/.
+    # Without this copy, Nextflow prints "never run this project before" and ignores -resume.
+    if request.resume_from_run_id:
+        import shutil as _shutil
+        _prev_nf_cache = work_base / request.resume_from_run_id / "work" / ".nextflow"
+        # _cur_nf_cache destination is set after work_dir is created below; save for later
+        _resume_nf_cache_src = _prev_nf_cache if _prev_nf_cache.exists() else None
+
     if is_s3:
         # S3 mode: outputs go to S3; local work_dir only used by Nextflow head process.
         outdir = effective_outdir   # pass through as-is
@@ -2541,6 +2551,20 @@ def execute_nextflow(
         }
 
     # ── Normal path: no accessions — launch Nextflow directly ────────────────
+    # Copy .nextflow/ cache into the CWD (work_dir) so -resume finds history.
+    if request.resume_from_run_id:
+        import shutil as _shutil
+        _dest_nf = work_dir / ".nextflow"
+        _src_nf  = locals().get("_resume_nf_cache_src")
+        if _src_nf and _src_nf.exists() and not _dest_nf.exists():
+            try:
+                _shutil.copytree(str(_src_nf), str(_dest_nf))
+                log.info(f"[Nextflow run {run_id}] Copied .nextflow cache from {request.resume_from_run_id}/work/.nextflow → work/.nextflow")
+            except Exception as _e:
+                log.warning(f"[Nextflow run {run_id}] Could not copy .nextflow cache: {_e}")
+        elif not _src_nf:
+            log.warning(f"[Nextflow run {run_id}] No .nextflow cache found for {request.resume_from_run_id} — resume will be ignored by Nextflow")
+
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
     try:
         process = subprocess.Popen(
@@ -5001,15 +5025,14 @@ output JSON with:
 }
 """
     try:
-        client = _anthropic.Anthropic(api_key=_os.environ.get("ANTHROPIC_API_KEY", ""))
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=300,
-            system=PARSE_SYSTEM,
-            messages=[{"role": "user", "content": f"Workflow: {workflow_path}\n\nLog tail:\n{log_tail[-3000:]}"}],
-        )
+        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash
         import re as _re, json as _json
-        text = resp.content[0].text
+        text = _gemini_flash(
+            messages=[{"role": "user", "content": f"Workflow: {workflow_path}\n\nLog tail:\n{log_tail[-3000:]}"}],
+            system=PARSE_SYSTEM,
+            max_tokens=300,
+            temperature=0.0,
+        )
         m = _re.search(r'\{.*\}', text, _re.DOTALL)
         if m:
             return _json.loads(m.group())

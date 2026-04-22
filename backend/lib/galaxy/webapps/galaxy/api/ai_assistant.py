@@ -4018,8 +4018,7 @@ def analyze_input_data(request: AnalyzeInputDataRequest) -> Dict[str, Any]:
 
     if api_key and issues:
         try:
-            import anthropic as _anthropic
-            client = _anthropic.Anthropic(api_key=api_key)
+            from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
             prompt = f"""You are a bioinformatics workflow parameter expert.
 Workflow: {workflow_name}
 Current parameters: {_json.dumps(parameters, indent=2)}
@@ -4038,13 +4037,12 @@ For each issue (and any other problems you notice), return a JSON array of recom
   }}
 ]
 Return ONLY the JSON array, no markdown."""
-            completion = client.messages.create(
-                model="claude-haiku-4-5",
+            raw = _gemini_flash(
+                messages=[{"role": "user", "content": prompt}],
                 max_tokens=600,
                 temperature=0.1,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            raw = completion.content[0].text.strip() if completion.content else "[]"
+                json_mode=True,
+            ).strip()
             raw = raw.replace("```json", "").replace("```", "").strip()
             recommendations = _json.loads(raw)
         except Exception as exc:
@@ -4132,7 +4130,7 @@ def explain_workflow_error(request: ExplainErrorRequest) -> Dict[str, Any]:
         }
 
     try:
-        client = _anthropic.Anthropic(api_key=api_key)
+        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
         truncated_log = request.error_log[-request.max_log_chars:] if len(request.error_log) > request.max_log_chars else request.error_log
 
         system_prompt = """You are a bioinformatics workflow debugging assistant.
@@ -4146,19 +4144,13 @@ A Nextflow workflow has failed. Analyze the error log and respond ONLY with vali
 
 Keep responses concise and actionable. The chat_prompt should be ready to paste."""
 
-        completion = client.messages.create(
-            model="claude-haiku-4-5",
+        result_text = _gemini_flash(
+            messages=[{"role": "user", "content": f"Workflow: {request.workflow_name or 'unknown'}\n\nError log:\n{truncated_log}"}],
+            system=system_prompt,
             max_tokens=400,
             temperature=0.1,
-            system=system_prompt,
-            messages=[{
-                "role": "user",
-                "content": f"Workflow: {request.workflow_name or 'unknown'}\n\nError log:\n{truncated_log}"
-            }],
-        )
-
-        result_text = completion.content[0].text.strip() if completion.content else "{}"
-        # Strip markdown if present
+            json_mode=True,
+        ).strip()
         result_text = result_text.replace("```json", "").replace("```", "").strip()
         import json as _json
         result = _json.loads(result_text)

@@ -13,6 +13,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { callGeminiFlash, GEMINI_FLASH_MODEL } from './gemini-flash';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
 import { conversationStateManager } from './conversation-state';
 import { userPatternsService, type UserContext } from './user-patterns-service';
@@ -113,8 +114,8 @@ RNA-seq alignment parameters, DESeq2 cutoffs for specific experimental designs).
  * Model configuration for different AI tasks
  *
  * Recommended configurations:
- * - Intent analysis: Fast model (haiku) - simple classification task
- * - Tool ranking: Medium model (haiku/sonnet) - needs domain knowledge
+ * - Intent analysis: Fast model (Gemini Flash) - simple classification task
+ * - Tool ranking: Medium model (Gemini Flash/Sonnet) - needs domain knowledge
  * - Response generation: Best model (sonnet) - user-facing, quality matters
  *
  * When to use Thinking Mode:
@@ -137,9 +138,9 @@ RNA-seq alignment parameters, DESeq2 cutoffs for specific experimental designs).
  * - Quality improvement is most noticeable for complex tasks
  */
 export interface ModelConfig {
-  /** Model for intent classification (default: claude-sonnet-4-5, can use haiku for speed) */
+  /** Model for intent classification (default: claude-sonnet-4-5, can use Gemini Flash for speed) */
   intentModel: string;
-  /** Model for tool ranking (default: claude-sonnet-4-5, can use haiku for speed) */
+  /** Model for tool ranking (default: claude-sonnet-4-5, can use Gemini Flash for speed) */
   toolRankingModel: string;
   /** Model for response generation (default: claude-sonnet-4-5) */
   responseModel: string;
@@ -192,7 +193,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'claude-sonnet-4-5',      // Sonnet 4-5: strong intent classification (41.3% BiomniEval1)
-  toolRankingModel: 'claude-haiku-4-5',  // Haiku: 1.4x faster for ranking
+  toolRankingModel: GEMINI_FLASH_MODEL,  // Gemini Flash: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
@@ -797,7 +798,7 @@ class SessionMemoryUpdater {
   private static readonly DEBOUNCE_MS = 30_000;  // 30 s — same as DeerFlow
   private static readonly SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours idle eviction
 
-  private static readonly HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+  private static readonly HAIKU_MODEL = GEMINI_FLASH_MODEL;
 
   private static readonly UPDATE_PROMPT = `You are maintaining a session memory for a bioinformatics research session.
 Given the new conversation turn below and the current memory, produce an updated memory JSON.
@@ -895,14 +896,11 @@ Return ONLY valid JSON with these exact keys. No explanation, no markdown fences
 
     const userContent = `## Current memory\n${currentJson}\n\n## New turn\nUser: ${userMessage.substring(0, 800)}\n\nAssistant: ${assistantResponse.substring(0, 800)}\n\nReturn the updated memory JSON:`;
 
-    const response = await this.claude.messages.create({
-      model: SessionMemoryUpdater.HAIKU_MODEL,
-      max_tokens: 600,
-      system: SessionMemoryUpdater.UPDATE_PROMPT,
+    const raw = await callGeminiFlash({
       messages: [{ role: 'user', content: userContent }],
+      system: SessionMemoryUpdater.UPDATE_PROMPT,
+      maxTokens: 600,
     });
-
-    const raw = (response.content as any[]).find((b: any) => b.type === 'text')?.text ?? '';
     try {
       // Strip markdown fences if present
       const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
@@ -994,13 +992,13 @@ Rules:
 - Return ONLY valid JSON, no markdown, no explanation`;
 
   try {
-    const resp = await claude.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 256,
-      system: SYSTEM,
+    const raw = await callGeminiFlash({
       messages: [{ role: 'user', content: message.slice(0, 1200) }],
-    }, { signal: AbortSignal.timeout(15_000) }); // 15s hard cap — prevents SSE stream stall
-    const raw = (resp.content as any[]).find((b: any) => b.type === 'text')?.text ?? '{}';
+      system: SYSTEM,
+      maxTokens: 256,
+      jsonMode: true,
+      signal: AbortSignal.timeout(15_000), // 15s hard cap — prevents SSE stream stall
+    });
     const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
     const parsed = JSON.parse(cleaned);
     if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
@@ -1369,9 +1367,11 @@ export class GalaxyAssistant {
     staticFallback: string
   ): Promise<string> {
     try {
-      const resp = await this.claude.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
+      const text = await callGeminiFlash({
+        messages: [{
+          role: 'user',
+          content: `User query: "${userMessage}"\nAmbiguity type: ${ambiguityType}\nGenerate the clarifying question:`
+        }],
         system: `You are a bioinformatics expert assistant. A user has sent a query that is ambiguous for workflow selection. Generate a single concise clarifying question tailored to their SPECIFIC query. Use **bold** for key options. Keep it under 70 words. Never repeat the user's exact phrasing verbatim.
 
 Ambiguity type → what to ask about:
@@ -1386,13 +1386,9 @@ Ambiguity type → what to ask about:
 - somatic_paired: matched tumor-normal vs tumor-only (panel of normals)
 - metagenomics_type: 16S amplicon (QIIME2/DADA2) vs shotgun metagenomics (Kraken2/MetaPhlAn)
 - docking_type: blind docking (DiffDock) vs site-directed docking (AutoDock Vina)`,
-        messages: [{
-          role: 'user',
-          content: `User query: "${userMessage}"\nAmbiguity type: ${ambiguityType}\nGenerate the clarifying question:`
-        }]
+        maxTokens: 200,
       });
-      const text = resp.content[0].type === 'text' ? resp.content[0].text.trim() : '';
-      return text || staticFallback;
+      return text.trim() || staticFallback;
     } catch {
       return staticFallback;
     }
@@ -1414,9 +1410,11 @@ Ambiguity type → what to ask about:
       const contextLine = currentWorkflowText
         ? `\nActive workflow context: "${currentWorkflowText}"`
         : '';
-      const resp = await this.claude.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 30,
+      const domain = await callGeminiFlash({
+        messages: [{
+          role: 'user',
+          content: `Query: "${userIntent}"${contextLine}`
+        }],
         system: `Classify the bioinformatics domain of a query. Respond with ONLY one of these exact strings (no punctuation, no explanation):
 ${TECHNICAL_SUBDOMAINS.join(' | ')} | other | unknown
 
@@ -1437,12 +1435,8 @@ Rules:
 - structural_biology: AlphaFold, protein structure prediction, molecular dynamics (non-cryo-EM)
 - other: recognised bioinformatics domain not listed above
 - unknown: insufficient information`,
-        messages: [{
-          role: 'user',
-          content: `Query: "${userIntent}"${contextLine}`
-        }]
-      });
-      const domain = resp.content[0].type === 'text' ? resp.content[0].text.trim() : 'unknown';
+        maxTokens: 30,
+      }).then(r => r.trim());
       if ((VALID_DOMAINS as readonly string[]).includes(domain)) return domain as TechnicalSubdomain;
       return undefined; // 'other' or 'unknown' → no restriction
     } catch {
@@ -1942,12 +1936,11 @@ Rules:
 Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1.0>, "reasoning": "<one sentence>"}`;
 
     try {
-      const resp = await this.claude.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 150,
+      const text = await callGeminiFlash({
         messages: [{ role: 'user', content: prompt }],
+        maxTokens: 150,
+        jsonMode: true,
       });
-      const text = (resp.content[0] as any)?.text || '{}';
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) return { confidence: 0, coversAll: false, coveredCount: 1 };
       const result = JSON.parse(jsonMatch[0]);
@@ -4938,11 +4931,9 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
     const historyText = compressedMessages
       .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
       .join('\n')
-      .slice(0, 4000); // Keep prompt compact for Haiku
+      .slice(0, 4000); // Keep prompt compact for Gemini Flash
 
-    const summaryResp = await this.claude.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 256,
+    const summary = await callGeminiFlash({
       messages: [
         {
           role: 'user',
@@ -4950,10 +4941,8 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             `Summarize the following conversation in 2-3 sentences, focusing on what the user was trying to accomplish and any decisions made:\n\n${historyText}`,
         },
       ],
-    });
-
-    const summary =
-      summaryResp.content[0]?.type === 'text' ? summaryResp.content[0].text.trim() : '';
+      maxTokens: 256,
+    }).then(r => r.trim()).catch(() => '');
 
     if (!summary) return;
 

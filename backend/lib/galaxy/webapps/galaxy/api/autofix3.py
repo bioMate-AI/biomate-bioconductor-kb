@@ -469,7 +469,7 @@ def get_workflow_realtime_status(invocation_id: str) -> Dict[str, Any]:
 def get_workflow_error_summary(invocation_id: str) -> Dict[str, Any]:
     """
     Reads the last 200 lines of the Nextflow log for a failed run and asks a
-    fast LLM (claude-haiku) to return a structured JSON summary with fields:
+    fast LLM (Gemini Flash) to return a structured JSON summary with fields:
       error_type, failed_step, human_summary, root_cause, suggested_fix, can_resume.
 
     Falls back to a minimal unknown-error payload when logs are unavailable or
@@ -533,10 +533,9 @@ def get_workflow_error_summary(invocation_id: str) -> Dict[str, Any]:
         ai_config = AIConfig()
         llm_client = LLMClient(ai_config)
 
-        raw_response = llm_client.complete(
-            prompt=prompt,
-            provider="anthropic",
-            model="claude-haiku-20240307",
+        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash
+        raw_response = _gemini_flash(
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=512,
             temperature=0.0,
         )
