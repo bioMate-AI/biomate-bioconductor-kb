@@ -1554,8 +1554,26 @@ def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
         log.warning("[S3 tag] Post-run tagging failed for run=%s: %s", run_id, exc)
 
 
+def _write_timing(run_id: str, updates: dict) -> None:
+    """Atomically merge *updates* into timing.json for *run_id*."""
+    import json as _json
+    _timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
+    try:
+        _existing: dict = {}
+        if _timing_path.exists():
+            _existing = _json.loads(_timing_path.read_text())
+        _existing.update(updates)
+        _timing_path.write_text(_json.dumps(_existing))
+    except Exception as _te:
+        log.debug("[timing] Could not update timing.json for %s: %s", run_id, _te)
+
+
 def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
     """Stream stdout+stderr to a log file and update run status when done."""
+    _completed_at_now: float = 0.0
+    final_status: str = "interrupted"
+    returncode: int = -1
+    run_meta: Dict[str, Any] = {}
     try:
         with open(log_path, "w") as fh:
             for line in process.stdout:            # type: ignore[union-attr]
@@ -1563,27 +1581,38 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                 fh.flush()
         process.wait()
         returncode = process.returncode
-        final_status = "succeeded" if returncode == 0 else "failed"
-        run_meta: Dict[str, Any] = {}
         _completed_at_now = time.time()
+
+        if returncode == 0:
+            final_status = "succeeded"
+        elif returncode < 0:
+            # Negative return code means killed by signal (e.g. SIGTERM = -15)
+            import signal as _signal
+            try:
+                sig_name = _signal.Signals(-returncode).name
+            except ValueError:
+                sig_name = str(-returncode)
+            final_status = "interrupted"
+            log.warning(
+                "[Nextflow run %s] process killed by signal %s (%s) — "
+                "gunicorn restart or container stop; resume required",
+                run_id, sig_name, returncode,
+            )
+        else:
+            final_status = "failed"
+
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["status"] = final_status
                 _runs[run_id]["returncode"] = returncode
                 _runs[run_id]["completed_at"] = _completed_at_now
 
-        # Update timing.json on disk so other workers can read timing via disk fallback.
-        try:
-            import json as _json
-            _timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
-            _existing = {}
-            if _timing_path.exists():
-                _existing = _json.loads(_timing_path.read_text())
-            _existing["completed_at"] = _completed_at_now
-            _existing["status"] = final_status
-            _timing_path.write_text(_json.dumps(_existing))
-        except Exception as _te:
-            log.debug("[timing] Could not update timing.json for %s: %s", run_id, _te)
+        # Write timing.json immediately — before any follow-on work that could fail.
+        _write_timing(run_id, {
+            "completed_at": _completed_at_now,
+            "status": final_status,
+            "returncode": returncode,
+        })
 
         with _runs_lock:
             if run_id in _runs:
@@ -1593,7 +1622,7 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     if str(outdir).startswith("s3://"):
                         _runs[run_id]["s3_output_files"] = _list_s3_output_files(outdir)
                 run_meta = dict(_runs[run_id])
-        log.info(f"[Nextflow run {run_id}] finished with exit code {returncode}")
+        log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
         # Tag all S3 output objects with user_id so the billing Lambda can attribute them.
         # This is done as a best-effort background step after run completion.
@@ -1675,10 +1704,21 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
             log.warning("[billing] job_completed emit failed for run %s: %s", run_id, _bill_err)
 
     except Exception as exc:
-        log.error(f"[Nextflow run {run_id}] log streaming error: {exc}")
+        log.error("[Nextflow run %s] log streaming error: %s", run_id, exc)
+        final_status = "failed"
+        _completed_at_now = time.time()
         with _runs_lock:
             if run_id in _runs:
                 _runs[run_id]["status"] = "failed"
+    finally:
+        # Best-effort: always write completed_at to disk so status endpoint
+        # can report a terminal state even after gunicorn worker is recycled.
+        if _completed_at_now:
+            _write_timing(run_id, {
+                "completed_at": _completed_at_now,
+                "status": final_status,
+                "returncode": returncode,
+            })
 
 
 # ---------------------------------------------------------------------------
@@ -2204,11 +2244,16 @@ def execute_nextflow(
     # Nextflow recognises the project history and honours -resume.
     # Nextflow's CWD is work_dir (work/ subdir), so .nextflow/ lives inside work/.
     # Without this copy, Nextflow prints "never run this project before" and ignores -resume.
+    _resume_nf_cache_src: Optional[Path] = None  # resolved after work_dir is created
     if request.resume_from_run_id:
-        import shutil as _shutil
         _prev_nf_cache = work_base / request.resume_from_run_id / "work" / ".nextflow"
-        # _cur_nf_cache destination is set after work_dir is created below; save for later
         _resume_nf_cache_src = _prev_nf_cache if _prev_nf_cache.exists() else None
+        if _resume_nf_cache_src is None:
+            log.warning(
+                "[Nextflow run %s] No .nextflow cache found at %s — "
+                "-resume will be ignored by Nextflow; all tasks will re-run",
+                run_id, _prev_nf_cache,
+            )
 
     if is_s3:
         # S3 mode: outputs go to S3; local work_dir only used by Nextflow head process.
@@ -2553,18 +2598,18 @@ def execute_nextflow(
 
     # ── Normal path: no accessions — launch Nextflow directly ────────────────
     # Copy .nextflow/ cache into the CWD (work_dir) so -resume finds history.
-    if request.resume_from_run_id:
+    if request.resume_from_run_id and _resume_nf_cache_src is not None:
         import shutil as _shutil
         _dest_nf = work_dir / ".nextflow"
-        _src_nf  = locals().get("_resume_nf_cache_src")
-        if _src_nf and _src_nf.exists() and not _dest_nf.exists():
+        if not _dest_nf.exists():
             try:
-                _shutil.copytree(str(_src_nf), str(_dest_nf))
-                log.info(f"[Nextflow run {run_id}] Copied .nextflow cache from {request.resume_from_run_id}/work/.nextflow → work/.nextflow")
+                _shutil.copytree(str(_resume_nf_cache_src), str(_dest_nf))
+                log.info(
+                    "[Nextflow run %s] Copied .nextflow cache from %s/work/.nextflow → work/.nextflow",
+                    run_id, request.resume_from_run_id,
+                )
             except Exception as _e:
-                log.warning(f"[Nextflow run {run_id}] Could not copy .nextflow cache: {_e}")
-        elif not _src_nf:
-            log.warning(f"[Nextflow run {run_id}] No .nextflow cache found for {request.resume_from_run_id} — resume will be ignored by Nextflow")
+                log.warning("[Nextflow run %s] Could not copy .nextflow cache: %s", run_id, _e)
 
     # Use the writable work_dir as cwd — nf_path.parent is read-only in container.
     try:
