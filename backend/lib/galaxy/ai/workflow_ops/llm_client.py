@@ -30,7 +30,7 @@ MODEL_PRICING = {
     # Claude
     'claude-3-5-sonnet-20241022': {'input': 3.0, 'output': 15.0},
     'claude-3-haiku-20240307': {'input': 0.25, 'output': 1.25},
-    'gemini-2.5-flash': {'input': 0.075, 'output': 0.30},
+    'gemini-2.5-flash-lite': {'input': 0.075, 'output': 0.30},
 
     # OpenAI
     'gpt-4o': {'input': 2.5, 'output': 10.0},
@@ -84,7 +84,7 @@ class AnthropicProvider(LLMProvider):
     def call(
         self,
         messages: List[Dict[str, str]],
-        model: str = 'gemini-2.5-flash',
+        model: str = 'gemini-2.5-flash-lite',
         temperature: float = 0.0,
         max_tokens: int = 4000,
         **kwargs
@@ -396,7 +396,7 @@ class UnifiedLLMClient:
     def call(
         self,
         messages: List[Dict[str, str]],
-        model: str = 'gemini-2.5-flash',
+        model: str = 'gemini-2.5-flash-lite',
         temperature: float = 0.0,
         max_tokens: int = 4000,
         provider: Optional[str] = None,

@@ -78,7 +78,7 @@ class WorkflowQueryAgent:
                     {"role": "system", "content": "你是Galaxy Nextflow workflow助手，帮助用户理解和调试workflow。回答要准确、简洁、实用。"},
                     {"role": "user", "content": prompt}
                 ],
-                model='gemini-2.5-flash',
+                model='gemini-2.5-flash-lite',
                 temperature=0.0,
             )
 
