@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { CodeExecutionBlock, type ToolBlock, type AgentToolEvent } from "./code-execution-block"
 import { ChatMessage, type Message } from "./chat-message"
+import { DataAnalysisCard, type FileAnalysisResult } from "./data-analysis-card"
+import { FindingsCard } from "./findings-card"
 import { ChatInput } from "./chat-input"
 import { TaskList, type TaskItem, type TaskStatus } from "./task-list"
 import { TypingIndicator } from "./typing-indicator"
@@ -321,6 +323,128 @@ function OnboardingWelcome({
   )
 }
 
+// ── Returning-user welcome (domain picker + starter prompts) ─────────────────
+
+type WelcomeDomain = 'genomics' | 'drug_discovery' | 'cryo_em' | 'proteomics' | 'single_cell' | 'transcriptomics' | 'structural_biology' | 'epigenomics'
+
+const WELCOME_DOMAINS: { key: WelcomeDomain; label: string; icon: React.ElementType; color: string }[] = [
+  { key: 'genomics',          label: 'Genomics',           icon: Dna,         color: 'text-emerald-600' },
+  { key: 'drug_discovery',    label: 'Drug Discovery',     icon: FlaskConical, color: 'text-violet-600' },
+  { key: 'cryo_em',           label: 'Cryo-EM',            icon: Microscope,  color: 'text-sky-600' },
+  { key: 'transcriptomics',   label: 'Transcriptomics',    icon: BarChart3,   color: 'text-orange-600' },
+  { key: 'single_cell',       label: 'Single Cell',        icon: Brain,       color: 'text-pink-600' },
+  { key: 'proteomics',        label: 'Proteomics',         icon: Layers,      color: 'text-teal-600' },
+  { key: 'structural_biology',label: 'Structural Biology', icon: Microscope,  color: 'text-indigo-600' },
+  { key: 'epigenomics',       label: 'Epigenomics',        icon: Dna,         color: 'text-amber-600' },
+]
+
+const WELCOME_PROMPTS: Record<WelcomeDomain, string[]> = {
+  genomics: [
+    'Run whole genome sequencing analysis on SRR1518169',
+    'Call germline variants with GATK HaplotypeCaller',
+    'Perform RNA-seq differential expression analysis',
+    'Align FASTQ reads with BWA-MEM2 against hg38',
+  ],
+  drug_discovery: [
+    'Run ADMET property prediction for aspirin (CC(=O)Oc1ccccc1C(=O)O)',
+    'Predict binding affinity between imatinib and BCR-ABL kinase',
+    'Screen compound library for drug-likeness and toxicity',
+    'Run PBPK/PK-PD modeling for semaglutide',
+  ],
+  cryo_em: [
+    'Process cryo-EM micrographs with standard SPA pipeline',
+    'Run CryoSPARC on EMPIAR-10025 apoferritin dataset',
+    'Perform helical reconstruction for filament data',
+    'Run RELION multi-body refinement for flexible regions',
+  ],
+  transcriptomics: [
+    'Run nf-core/rnaseq differential expression analysis',
+    'Perform spatial transcriptomics analysis with Visium data',
+    'Run single-cell RNA-seq with Seurat clustering',
+    'Long-read RNA-seq with Oxford Nanopore data',
+  ],
+  single_cell: [
+    'Run scRNA-seq clustering and cell-type annotation',
+    'Perform trajectory analysis on my scRNA-seq data',
+    'Integrate multi-modal single-cell ATAC + RNA data',
+    'Identify rare cell populations with high-resolution clustering',
+  ],
+  proteomics: [
+    'Run label-free quantification on DIA-MS data with DIA-NN',
+    'Identify phosphorylation sites in my MS/MS spectra',
+    'Run CyTOF mass cytometry analysis',
+    'Perform protein-protein interaction network analysis',
+  ],
+  structural_biology: [
+    'Run AlphaFold2 structure prediction for my protein sequence',
+    'Perform molecular docking of ligand against EGFR',
+    'Run GROMACS MD simulation for protein-ligand complex',
+    'Predict binding affinity with MM-GBSA free energy',
+  ],
+  epigenomics: [
+    'Run ChIP-seq peak calling with MACS2',
+    'Perform ATAC-seq chromatin accessibility analysis',
+    'Run bisulfite sequencing DNA methylation analysis',
+    'Integrate CUT&RUN with RNA-seq for regulatory analysis',
+  ],
+}
+
+function ReturningUserWelcome({ onSend }: { onSend: (msg: string) => void }) {
+  const [selectedDomain, setSelectedDomain] = useState<WelcomeDomain | null>(null)
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+
+  return (
+    <div data-testid="onboarding-welcome" className="flex flex-col items-center gap-5 py-8 px-2">
+      <div className="text-center space-y-1">
+        <h2 className="text-xl font-semibold">{greeting} — welcome to BioMate</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose a research domain to see suggested analyses, or type your question below.
+        </p>
+      </div>
+
+      {/* Domain picker */}
+      <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
+        {WELCOME_DOMAINS.map(({ key, label, icon: Icon, color }) => (
+          <button
+            key={key}
+            data-testid={`onboarding-domain-btn-${key}`}
+            onClick={() => setSelectedDomain(key === selectedDomain ? null : key)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+              selectedDomain === key
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border hover:bg-muted'
+            )}
+          >
+            <Icon className={cn('h-3.5 w-3.5', selectedDomain === key ? 'text-primary-foreground' : color)} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Starter prompts for selected domain */}
+      {selectedDomain && (
+        <div className="w-full max-w-lg space-y-2">
+          <p className="text-xs text-muted-foreground text-center mb-1 uppercase tracking-wider font-medium">
+            {WELCOME_DOMAINS.find(d => d.key === selectedDomain)?.label} — suggested analyses
+          </p>
+          {WELCOME_PROMPTS[selectedDomain].map((prompt) => (
+            <button
+              key={prompt}
+              data-testid="onboarding-starter-prompt"
+              onClick={() => onSend(prompt)}
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-left text-sm hover:bg-muted transition-colors"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function ChatInterface({
@@ -352,6 +476,8 @@ export function ChatInterface({
   onRegisterSetDraft,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
+  // File analysis results: messageId → FileAnalysisResult[] shown below user messages
+  const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, FileAnalysisResult[]>>({})
   // Soft query queue: messages submitted while AI is responding are held here
   // and auto-submitted one-at-a-time once each response completes.
   const [pendingMessages, setPendingMessages] = useState<string[]>([])
@@ -1290,11 +1416,32 @@ export function ChatInterface({
     }
 
     // Create user message
+    const msgId = Date.now().toString()
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: msgId,
       content,
       role: "user",
       timestamp: new Date()
+    }
+
+    // Async file analysis — non-blocking, results appear as cards below the user message
+    if (files && files.length > 0) {
+      const filesToAnalyze = files.map(f => ({ name: f.name }))
+      ;(async () => {
+        try {
+          const results = await Promise.all(
+            filesToAnalyze.map(async (f) => {
+              const r = await fetch(`/api/datasets/analyze?name=${encodeURIComponent(f.name)}`, { credentials: 'include' })
+              if (!r.ok) return null
+              return (await r.json()) as FileAnalysisResult
+            })
+          )
+          const valid = results.filter((r): r is FileAnalysisResult => !!r?.analyzed)
+          if (valid.length > 0) {
+            setFileAnalysisMap(prev => ({ ...prev, [msgId]: valid }))
+          }
+        } catch { /* non-fatal */ }
+      })()
     }
 
     // Add user message to chat session (create one if it doesn't exist)
@@ -1575,44 +1722,66 @@ export function ChatInterface({
           onComplete={() => setOnboardingDone(true)}
           visible={displayMessages.length === 0 && !isTyping && !isTypingLocal && !onboardingDone}
         />
+        {displayMessages.length === 0 && !isTyping && !isTypingLocal && onboardingDone && (
+          <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
+        )}
         <div className="space-y-4">
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
             .map((message) => (
-            <ChatMessage
-              key={message.id}
-              message={message}
-              sessionId={chatSession?.id}
-              onToolClick={handleToolClick}
-              onDatasetClick={handleDatasetClick}
-              onCreateWorkflow={() => {
-                if (message.metadata?.workflow) {
-                  onWorkflowGenerated(message.metadata.workflow);
+            <div key={message.id}>
+              <ChatMessage
+                message={message}
+                sessionId={chatSession?.id}
+                onToolClick={handleToolClick}
+                onDatasetClick={handleDatasetClick}
+                onCreateWorkflow={() => {
+                  if (message.metadata?.workflow) {
+                    onWorkflowGenerated(message.metadata.workflow);
+                  }
+                }}
+                // Workflow execution props for inline artifacts
+                onRunWorkflow={onRunWorkflow}
+                onStopWorkflow={onStopWorkflow}
+                onPauseWorkflow={onPauseWorkflow}
+                onResumeWorkflow={onResumeWorkflow}
+                onParameterChange={onParameterChange}
+                onSuggestionClick={handleSuggestionClick}
+                isWorkflowRunning={isWorkflowRunning}
+                workflowProgress={workflowProgress}
+                currentExecutionRun={currentExecutionRun}
+                isLatestAssistantMessage={message.id === latestAssistantMessageId}
+                isRunAnchorFocused={focusedAnchorMessageId === message.id}
+                isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
+                isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
+                onOpenInPanel={
+                  message.metadata?.type === 'workflow' && message.metadata?.workflow
+                    ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
+                    : undefined
                 }
-              }}
-              // Workflow execution props for inline artifacts
-              onRunWorkflow={onRunWorkflow}
-              onStopWorkflow={onStopWorkflow}
-              onPauseWorkflow={onPauseWorkflow}
-              onResumeWorkflow={onResumeWorkflow}
-              onParameterChange={onParameterChange}
-              onSuggestionClick={handleSuggestionClick}
-              isWorkflowRunning={isWorkflowRunning}
-              workflowProgress={workflowProgress}
-              currentExecutionRun={currentExecutionRun}
-              isLatestAssistantMessage={message.id === latestAssistantMessageId}
-              isRunAnchorFocused={focusedAnchorMessageId === message.id}
-              isRunAnchorHighlighted={highlightedAnchorMessageId === message.id}
-              // Right panel: suppress all inline workflow UI when the panel is open.
-              // isInPanel=true hides the workflow widget for the exact matched message;
-              // isPanelOpen=true suppresses pipeline/chain views for other messages too.
-              isInPanel={isPanelOpen || !!(panelWorkflowMessageId && message.id === panelWorkflowMessageId)}
-              onOpenInPanel={
-                message.metadata?.type === 'workflow' && message.metadata?.workflow
-                  ? () => onOpenWorkflowInPanel?.(message.id, message.metadata!.workflow)
-                  : undefined
-              }
-            />
+              />
+              {/* Inline file analysis cards — shown below user messages after async analysis */}
+              {message.role === 'user' && fileAnalysisMap[message.id] && (
+                <div className="ml-10 mt-1 space-y-1">
+                  {fileAnalysisMap[message.id].map((result, i) => (
+                    <DataAnalysisCard key={i} result={result} />
+                  ))}
+                </div>
+              )}
+              {/* FindingsCard — shown below completed workflow messages */}
+              {message.role === 'assistant' &&
+                message.metadata?.type === 'workflow' &&
+                currentExecutionRun?.id &&
+                (currentExecutionRun?.execution?.status === 'completed' || (currentExecutionRun?.execution?.status as string) === 'ok') &&
+                message.id === latestAssistantMessageId && (
+                <div className="ml-10 mt-1">
+                  <FindingsCard
+                    runId={currentExecutionRun.id}
+                    onContinueAnalysis={(suggestion) => handleSendOrQueue(suggestion)}
+                  />
+                </div>
+              )}
+            </div>
           ))}
           {displayTyping && <TypingIndicator />}
           {/* Auto-scroll anchor */}
@@ -1755,19 +1924,14 @@ export function ChatInterface({
         onStop={stopStreaming}
         onRegisterSetDraft={onRegisterSetDraft}
       />
-      {displayTyping && (
-        <div
-          className="border-t bg-muted/40 px-4 py-2 text-sm"
-          role="status"
-          aria-live="polite"
-          data-testid="chat-analysis-status"
-        >
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Analyzing request… response will stream in as soon as it&apos;s ready.</span>
-          </div>
-        </div>
-      )}
+      {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}
+      <div
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        data-testid="chat-analysis-status"
+        data-active={displayTyping ? "true" : "false"}
+      />
 
       {/* Compression dialog */}
       <CompressionDialog

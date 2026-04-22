@@ -603,28 +603,6 @@ export function ChatMessage({
             <Button
               variant="ghost"
               size="icon"
-              onClick={onCreateWorkflow}
-              data-testid="button-create-workflow-icon"
-              title="Create workflow"
-              aria-label="Create workflow"
-            >
-              <Workflow className="h-4 w-4" />
-            </Button>
-            {message.metadata?.workflow && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCopyWorkflow}
-                data-testid="button-copy-workflow-icon"
-                title="Copy workflow JSON"
-                aria-label="Copy workflow JSON"
-              >
-                <FileJson className="h-4 w-4" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={handleDownloadOutputs}
               data-testid="button-download-outputs-icon"
               title="Download outputs"

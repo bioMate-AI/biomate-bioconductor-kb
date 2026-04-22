@@ -5,7 +5,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Upload, Eye, Clock, Square } from "lucide-react"
+import { Send, Plus, X, FileText, Upload, Eye, Clock, Square, Database } from "lucide-react"
+import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 
 interface AttachedFile {
   id: string
@@ -40,6 +41,7 @@ export function ChatInput({
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -285,10 +287,7 @@ export function ChatInput({
             sideOffset={8}
           >
             <div className="space-y-3">
-              <p className="text-sm font-medium">Attach files</p>
-              <p className="text-xs text-muted-foreground">
-                Supported: FASTQ, BAM, SAM, mzML, CSV, TSV, FASTA, VCF, BED, h5ad
-              </p>
+              <p className="text-sm font-medium">Add data</p>
 
               <input
                 ref={fileInputRef}
@@ -303,14 +302,23 @@ export function ChatInput({
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => { fileInputRef.current?.click(); setIsPopoverOpen(false) }}
               >
                 <Upload className="w-4 h-4" />
-                Choose files
+                Upload from computer
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => { setShowDatasetBrowser(true); setIsPopoverOpen(false) }}
+              >
+                <Database className="w-4 h-4" />
+                Browse Galaxy datasets
               </Button>
 
               <p className="text-xs text-muted-foreground">
-                Max 500MB per file. Files are uploaded to Galaxy for analysis.
+                Uploaded files are analyzed and staged for workflows automatically.
               </p>
             </div>
           </PopoverContent>
@@ -365,6 +373,20 @@ export function ChatInput({
           </Button>
         )}
       </div>
+
+      {/* Galaxy dataset browser dialog */}
+      <GalaxyDatasetBrowser
+        open={showDatasetBrowser}
+        onClose={() => setShowDatasetBrowser(false)}
+        onSelect={(datasetId, datasetName) => {
+          // Append dataset reference to the message so the AI and workflow executor know about it
+          setMessage(prev => {
+            const ref = `[Galaxy dataset: ${datasetName} (id: ${datasetId})]`
+            return prev ? `${prev}\n${ref}` : ref
+          })
+          setTimeout(() => textareaRef.current?.focus(), 0)
+        }}
+      />
     </div>
   )
 }
