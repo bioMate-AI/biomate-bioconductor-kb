@@ -35,10 +35,37 @@ process CRYODRGN_TRAIN {
     echo "  Poses:     ${poses_pkl}"
     echo "  z-dim:     ${zdim}   epochs: ${epochs}"
 
+    # Re-serialize all pkl inputs using this container's numpy to avoid
+    # cross-version pickle incompatibility (numpy 1.x vs 2.x)
+    python3 - << 'PYEOF'
+import pickle, numpy as np
+
+# poses: tuple (rots N×3×3, trans N×2)
+with open("${poses_pkl}", "rb") as fh:
+    raw = pickle.load(fh)
+rots  = np.array(raw[0], dtype=np.float32)
+trans = np.array(raw[1], dtype=np.float32)
+with open("poses_compat.pkl", "wb") as fh:
+    pickle.dump((rots, trans), fh)
+print(f"poses_compat.pkl: rots={rots.shape} trans={trans.shape}")
+
+# ctf: dict with keys D (int), Apix (float), ctf (N×9 array)
+with open("${ctf_pkl}", "rb") as fh:
+    ctf = pickle.load(fh)
+ctf_out = {
+    "D":    int(ctf["D"]),
+    "Apix": float(ctf["Apix"]),
+    "ctf":  np.array(ctf["ctf"], dtype=np.float32),
+}
+with open("ctf_compat.pkl", "wb") as fh:
+    pickle.dump(ctf_out, fh)
+print(f"ctf_compat.pkl: ctf={ctf_out['ctf'].shape} D={ctf_out['D']} Apix={ctf_out['Apix']}")
+PYEOF
+
     cryodrgn train_vae \\
         ${particles_mrcs} \\
-        --ctf ${ctf_pkl} \\
-        --poses ${poses_pkl} \\
+        --ctf ctf_compat.pkl \\
+        --poses poses_compat.pkl \\
         -n ${epochs} \\
         --zdim ${zdim} \\
         -o cryodrgn_output/ \\
