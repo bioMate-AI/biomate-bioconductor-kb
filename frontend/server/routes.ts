@@ -8919,7 +8919,7 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
             system: SYSTEM,
-            maxTokens: 1024,
+            maxTokens: 2048,
             jsonMode: true,
           });
           try {
