@@ -2432,6 +2432,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Galaxy / BioMate histories API
+  app.get("/api/galaxy/histories", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const histories = await proxy.getHistories();
+      const shaped = (histories || []).map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        count: h.count ?? h.dataset_count ?? 0,
+        size: h.size ?? h.total_size ?? 0,
+        create_time: h.create_time ?? h.create_date ?? '',
+        update_time: h.update_time ?? h.update_date ?? '',
+      }));
+      res.json({ histories: shaped });
+    } catch (err: any) {
+      console.error('[Histories] fetch failed:', err.message);
+      res.json({ histories: [] });
+    }
+  });
+
+  app.get("/api/galaxy/histories/:historyId/datasets", optionalAuth, async (req, res) => {
+    try {
+      const { historyId } = req.params;
+      const proxy = userProxy(req);
+      const datasets = await proxy.getHistoryDatasets(historyId);
+      const shaped = (datasets || []).map((d: any) => ({
+        id: d.id,
+        name: d.name || d.dataset_id,
+        extension: d.extension ?? d.data_type ?? '',
+        file_size: d.file_size ?? d.size ?? 0,
+        state: d.state ?? 'ok',
+        create_time: d.create_time ?? '',
+      }));
+      res.json({ datasets: shaped });
+    } catch (err: any) {
+      console.error('[HistoryDatasets] fetch failed:', err.message);
+      res.json({ datasets: [] });
+    }
+  });
+
   // File Upload API
   app.post("/api/datasets/upload", authenticateToken, upload.single('file'), async (req, res) => {
     try {

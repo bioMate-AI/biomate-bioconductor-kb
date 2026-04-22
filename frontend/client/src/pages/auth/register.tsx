@@ -127,10 +127,12 @@ export default function RegisterPage() {
     } catch {
       // Non-fatal — user can update profile later from settings
     }
+    localStorage.setItem('biomate_onboarding_done', '1')
     setStep("trial")
   }
 
   const handleSkipDomainProfile = () => {
+    localStorage.setItem('biomate_onboarding_done', '1')
     setStep("trial")
   }
 
@@ -169,6 +171,7 @@ export default function RegisterPage() {
   }
 
   const handleSkipForNow = () => {
+    localStorage.setItem('biomate_onboarding_done', '1')
     setLocation('/')
   }
 

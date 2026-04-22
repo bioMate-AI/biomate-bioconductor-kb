@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect, KeyboardEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Send, Plus, X, FileText, Upload, Eye, Clock, Square, Database } from "lucide-react"
+import { Send, Plus, X, FileText, Eye, Clock, Square } from "lucide-react"
 import { GalaxyDatasetBrowser } from "./galaxy-dataset-browser"
 
 interface AttachedFile {
@@ -40,10 +39,8 @@ export function ChatInput({
 }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const [showDatasetBrowser, setShowDatasetBrowser] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Register an external draft setter so parent can pre-fill the textarea
   useEffect(() => {
@@ -82,30 +79,6 @@ export function ChatInput({
     // Auto-resize textarea
     target.style.height = "auto"
     target.style.height = `${Math.min(target.scrollHeight, 200)}px`
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      const newFiles: AttachedFile[] = Array.from(files).map(file => ({
-        id: `${file.name}-${Date.now()}-${Math.random()}`,
-        name: file.name,
-        size: file.size,
-        file
-      }))
-      setAttachedFiles(prev => [...prev, ...newFiles])
-
-      // Notify parent if callback provided
-      if (onFilesSelected) {
-        onFilesSelected(Array.from(files))
-      }
-
-      setIsPopoverOpen(false)
-    }
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
   }
 
   const removeFile = (id: string) => {
@@ -184,8 +157,6 @@ export function ChatInput({
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
-
-  const acceptedTypes = ".fastq,.fastq.gz,.fq,.fq.gz,.bam,.sam,.mzML,.mzXML,.csv,.tsv,.txt,.fasta,.fa,.vcf,.bed,.gff,.gtf,.h5ad"
 
   return (
     <div className="border-t bg-background p-4">
@@ -268,61 +239,17 @@ export function ChatInput({
       )}
 
       <div className="flex gap-2 items-end">
-        {/* Attachment button with popover */}
-        <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-[44px] w-[44px] flex-shrink-0"
-              disabled={disabled}
-            >
-              <Plus className="w-5 h-5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-64 p-3"
-            side="top"
-            align="start"
-            sideOffset={8}
-          >
-            <div className="space-y-3">
-              <p className="text-sm font-medium">Add data</p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={acceptedTypes}
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                id="chat-file-input"
-              />
-
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => { fileInputRef.current?.click(); setIsPopoverOpen(false) }}
-              >
-                <Upload className="w-4 h-4" />
-                Upload from computer
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => { setShowDatasetBrowser(true); setIsPopoverOpen(false) }}
-              >
-                <Database className="w-4 h-4" />
-                Browse Galaxy datasets
-              </Button>
-
-              <p className="text-xs text-muted-foreground">
-                Uploaded files are analyzed and staged for workflows automatically.
-              </p>
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Attachment button — opens dataset browser directly */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-[44px] w-[44px] flex-shrink-0"
+          disabled={disabled}
+          title="Add data"
+          onClick={() => setShowDatasetBrowser(true)}
+        >
+          <Plus className="w-5 h-5" />
+        </Button>
 
         <Textarea
           ref={textareaRef}
