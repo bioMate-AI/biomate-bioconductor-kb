@@ -50,6 +50,10 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/drug-discovery", tags=["drug_discovery"])
 
+# In-memory cache for last IND assembly per campaign (path → content).
+# Allows the download endpoint to serve files without requiring the temp dir to persist.
+_ind_cache: dict[str, dict] = {}  # campaign_id → {markdown_path, docx_path, markdown_content}
+
 # Per-campaign SQLite databases live in this directory.
 _CAMPAIGN_DB_DIR = os.environ.get(
     "BIOMATE_CAMPAIGN_DB_DIR",
@@ -828,6 +832,13 @@ async def assemble_ind_section(
     # Read Markdown content to return inline
     markdown_content = Path(result.markdown_path).read_text(encoding="utf-8")
 
+    # Cache for download endpoint
+    _ind_cache[campaign_id] = {
+        "markdown_path": result.markdown_path,
+        "docx_path": result.docx_path,
+        "markdown_content": markdown_content,
+    }
+
     return {
         "campaign_id": campaign_id,
         "sections": result.sections,
@@ -836,9 +847,50 @@ async def assemble_ind_section(
         "generated_at": result.generated_at,
         "warnings": result.warnings,
         "markdown_preview": markdown_content[:2000],
+        "markdown_content": markdown_content,
         "markdown_path": result.markdown_path,
         "docx_path": result.docx_path,
     }
+
+
+@router.get("/{campaign_id}/ind-assembly/download")
+async def download_ind_file(
+    campaign_id: str,
+    format: str = Query("md", regex="^(md|docx)$"),
+):
+    """
+    Download the last generated IND assembly file (Markdown or DOCX).
+    Serves from the in-memory cache populated by the POST endpoint.
+    """
+    from fastapi.responses import FileResponse, PlainTextResponse
+
+    cached = _ind_cache.get(campaign_id)
+    if not cached:
+        raise HTTPException(status_code=404, detail="No IND assembly found for this campaign. Generate first.")
+
+    if format == "docx":
+        docx_path = cached.get("docx_path")
+        if not docx_path or not Path(docx_path).exists():
+            raise HTTPException(status_code=404, detail="DOCX not available — pandoc may not be installed.")
+        return FileResponse(
+            docx_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"{campaign_id}_CTD_2.6.1.docx",
+        )
+    else:
+        # Markdown — serve from cache (always available)
+        content = cached.get("markdown_content") or ""
+        if not content:
+            md_path = cached.get("markdown_path")
+            if md_path and Path(md_path).exists():
+                content = Path(md_path).read_text(encoding="utf-8")
+        if not content:
+            raise HTTPException(status_code=404, detail="Markdown content not found in cache.")
+        return PlainTextResponse(
+            content,
+            media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{campaign_id}_CTD_2.6.1.md"'},
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -42,19 +42,20 @@ interface AssemblyResult {
   docx_generated: boolean
   generated_at: string
   warnings: string[]
-  markdown_preview: string
+  markdown_preview: string    // first 2000 chars (for display)
+  markdown_content: string    // full markdown (for download)
   markdown_path: string
   docx_path: string | null
 }
 
-// ICH M4 sections with human-readable titles
+// BioMate IND section titles (ICH M4 CTD §2.6.1 computational-CRO variant)
 const SECTION_TITLES: Record<string, string> = {
-  "2.6.1.1": "Primary Pharmacodynamics",
-  "2.6.1.2": "Secondary Pharmacodynamics",
-  "2.6.1.3": "Safety Pharmacology",
-  "2.6.1.4": "Pharmacodynamic Drug Interactions",
-  "2.6.1.5": "Pharmacokinetics",
-  "2.6.1.6": "Toxicokinetics",
+  "2.6.1.1": "Overview of Computational Methods",
+  "2.6.1.2": "PBPK Model Qualification",
+  "2.6.1.3": "ADMET Screening Results",
+  "2.6.1.4": "Compound Prioritization and Lead Candidate Selection",
+  "2.6.1.5": "Applicability Domain Assessment",
+  "2.6.1.6": "Audit Trail and Regulatory Traceability",
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -132,25 +133,11 @@ export function DrugDiscoveryIndAssembly({
     }
   }
 
-  const downloadMarkdown = async () => {
+  const downloadMarkdown = () => {
     if (!result) return
-    // Fetch the file from backend streaming endpoint
-    const res = await fetch(
-      `/api/drug-discovery/${campaignId}/ind-assembly/download?format=md`,
-      { credentials: "include" }
-    )
-    if (!res.ok) {
-      // Fallback: download the preview we already have
-      const blob = new Blob([result.markdown_preview], { type: "text/markdown" })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${campaignId}_CTD_2.6.1.md`
-      a.click()
-      URL.revokeObjectURL(url)
-      return
-    }
-    const blob = await res.blob()
+    // Use full markdown_content if available, fall back to markdown_preview
+    const content = result.markdown_content || result.markdown_preview
+    const blob = new Blob([content], { type: "text/markdown" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
@@ -290,7 +277,7 @@ export function DrugDiscoveryIndAssembly({
         <Button
           className="h-9 px-5 text-sm font-semibold gap-1.5"
           disabled={!canGenerate}
-          onClick={result ? undefined : generate}
+          onClick={result ? () => setConfirming(true) : generate}
           data-testid="ind-generate-button"
         >
           {generating ? (
