@@ -1069,15 +1069,12 @@ Return ONLY a JSON object, no markdown, no explanation.
 Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""
 
     try:
-        import anthropic as _anthropic
-        client = _anthropic.Anthropic(api_key=api_key)
-        completion = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        from galaxy.ai.gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
+        raw = _gemini_flash(
+            messages=[{"role": "user", "content": prompt}],
             max_tokens=400,
             temperature=0.0,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = (completion.content[0].text or "{}").strip()
+        ).strip()
         raw = raw.replace("```json", "").replace("```", "").strip()
         extracted = json.loads(raw)
         if isinstance(extracted, dict):
