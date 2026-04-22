@@ -115,10 +115,12 @@ def make_ctf_params(n_particles: int, box: int, pixel_size: float = 1.5,
 
     ctf_matrix = np.stack([df1, df2, ang, volt, cs, w, phase, bfactor, scale], axis=1)
 
+    # Use plain Python types to avoid numpy version-specific pickle incompatibility
+    # (numpy._core vs numpy.core across numpy 1.x/2.x)
     return {
-        "D":    box,
-        "Apix": pixel_size,
-        "ctf":  ctf_matrix.astype(np.float32),
+        "D":    int(box),
+        "Apix": float(pixel_size),
+        "ctf":  ctf_matrix.astype(np.float32).tolist(),
     }
 
 
