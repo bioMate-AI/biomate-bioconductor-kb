@@ -16,6 +16,7 @@ process CRYODRGN_TRAIN {
     input:
     tuple val(meta), path(particles_mrcs)
     path ctf_pkl
+    path poses_pkl
     val n_zdim
     val n_epochs
 
@@ -31,13 +32,15 @@ process CRYODRGN_TRAIN {
     echo "Starting cryoDRGN VAE training"
     echo "  Particles: ${particles_mrcs}"
     echo "  CTF:       ${ctf_pkl}"
+    echo "  Poses:     ${poses_pkl}"
     echo "  z-dim:     ${zdim}   epochs: ${epochs}"
 
     cryodrgn train_vae \\
         ${particles_mrcs} \\
         --ctf ${ctf_pkl} \\
+        --poses ${poses_pkl} \\
         -n ${epochs} \\
-        -z ${zdim} \\
+        --zdim ${zdim} \\
         -o cryodrgn_output/ \\
         --no-amp \\
         --log-interval 5

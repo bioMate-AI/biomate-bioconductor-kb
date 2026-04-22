@@ -16,6 +16,7 @@ Then run on AWS Batch:
         -profile aws \\
         --particles s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_particles.mrcs \\
         --ctf      s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_ctf.pkl \\
+        --poses    s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_poses.pkl \\
         --n_zdim   2 \\
         --n_epochs 5 \\
         --n_clusters 2 \\
@@ -175,6 +176,24 @@ def main():
         pickle.dump(ctf_params, fh)
     print(f"  Wrote {ctf_path}  ({N} CTF parameter vectors)")
 
+    # Generate poses (rotation matrices + translations) in cryoDRGN format:
+    # tuple of (rotations: N×3×3 float32, translations: N×2 float32)
+    # Saved as plain Python lists to avoid numpy version-specific pickle incompatibility.
+    # cryoDRGN's PoseTracker.load converts to numpy internally.
+    random_mats = rng.standard_normal((N, 3, 3)).astype(np.float32)
+    rotations   = np.array([np.linalg.qr(m)[0] for m in random_mats], dtype=np.float32)
+    # Ensure det=+1 (proper rotation, not reflection)
+    dets = np.linalg.det(rotations)
+    rotations[dets < 0, :, 0] *= -1
+    translations = np.zeros((N, 2), dtype=np.float32)  # zero in-plane translations
+
+    # Convert to plain Python lists so pickle doesn't embed numpy version-specific
+    # class references (numpy._core vs numpy.core across numpy 1.x/2.x)
+    poses_path = os.path.join(args.outdir, "cryo_het_test_poses.pkl")
+    with open(poses_path, "wb") as fh:
+        pickle.dump((rotations.tolist(), translations.tolist()), fh)
+    print(f"  Wrote {poses_path}  ({N} rotation matrices + zero translations)")
+
     # Usage hints
     print()
     print("=" * 65)
@@ -186,6 +205,7 @@ def main():
     print(f"    -profile local \\")
     print(f"    --particles {mrcs_path} \\")
     print(f"    --ctf       {ctf_path} \\")
+    print(f"    --poses     {poses_path} \\")
     print(f"    --n_zdim    2 \\")
     print(f"    --n_epochs  5 \\")
     print(f"    --n_clusters 2")
@@ -195,6 +215,7 @@ def main():
     print(f"    -profile aws \\")
     print(f"    --particles s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_particles.mrcs \\")
     print(f"    --ctf       s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_ctf.pkl \\")
+    print(f"    --poses     s3://biomate-nextflow-work/test-inputs/cryo-het/cryo_het_test_poses.pkl \\")
     print(f"    --n_zdim    2 \\")
     print(f"    --n_epochs  5 \\")
     print(f"    --n_clusters 2 \\")

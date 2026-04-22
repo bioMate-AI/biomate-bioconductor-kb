@@ -22,6 +22,7 @@ nextflow.enable.dsl=2
 // ─── Parameter defaults ──────────────────────────────────────────────────────
 params.particles  = null
 params.ctf        = null
+params.poses      = null
 params.n_zdim     = 8
 params.n_epochs   = 20
 params.n_clusters = 10
@@ -42,6 +43,7 @@ workflow CRYO_EM_HETEROGENEITY {
     take:
     particles_ch   // channel: [ val(meta), path(particles_mrcs) ]
     ctf_ch         // channel: path(ctf_pkl)
+    poses_ch       // channel: path(poses_pkl)
     n_zdim         // val
     n_epochs       // val
     epoch          // val (nullable)
@@ -53,6 +55,7 @@ workflow CRYO_EM_HETEROGENEITY {
     CRYODRGN_TRAIN(
         particles_ch,
         ctf_ch,
+        poses_ch,
         n_zdim,
         n_epochs
     )
@@ -97,29 +100,35 @@ workflow {
     if (!params.ctf) {
         error "ERROR: --ctf is required (path to CTF parameters .pkl file)"
     }
+    if (!params.poses) {
+        error "ERROR: --poses is required (path to particle poses .pkl file)"
+    }
 
     log.info """
-    ╔══════════════════════════════════════════════════════════╗
-    ║    Cryo-EM Conformational Heterogeneity Analysis         ║
-    ╠══════════════════════════════════════════════════════════╣
-    ║  particles  : ${params.particles}
-    ║  ctf        : ${params.ctf}
-    ║  n_zdim     : ${params.n_zdim}
-    ║  n_epochs   : ${params.n_epochs}
-    ║  n_clusters : ${params.n_clusters}
-    ║  epoch      : ${params.epoch ?: 'auto (last saved)'}
-    ║  outdir     : ${params.outdir}
-    ╚══════════════════════════════════════════════════════════╝
+    =========================================================
+         Cryo-EM Conformational Heterogeneity Analysis
+    =========================================================
+      particles  : ${params.particles}
+      ctf        : ${params.ctf}
+      poses      : ${params.poses}
+      n_zdim     : ${params.n_zdim}
+      n_epochs   : ${params.n_epochs}
+      n_clusters : ${params.n_clusters}
+      epoch      : ${params.epoch ?: 'auto (last saved)'}
+      outdir     : ${params.outdir}
+    =========================================================
     """.stripIndent()
 
     // Build input channels
     particles_ch = Channel.of([[id: 'sample'], file(params.particles)])
     ctf_ch       = Channel.fromPath(params.ctf)
+    poses_ch     = Channel.fromPath(params.poses)
 
     // Run workflow
     CRYO_EM_HETEROGENEITY(
         particles_ch,
         ctf_ch,
+        poses_ch,
         params.n_zdim,
         params.n_epochs,
         params.epoch,

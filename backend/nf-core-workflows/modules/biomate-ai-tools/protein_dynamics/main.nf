@@ -9,9 +9,9 @@
 
 nextflow.enable.dsl=2
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // BIOEMU_SAMPLE
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
@@ -32,19 +32,9 @@ process BIOEMU_SAMPLE {
     """
     set -euo pipefail
 
-    # ── Detect input type ──────────────────────────────────────────────────────
-    INPUT_FILE="${pdb_or_fasta}"
-    EXTENSION="\${INPUT_FILE##*.}"
+    echo "[BIOEMU_SAMPLE] Input: ${pdb_or_fasta}  n_samples: ${n_samp}"
 
-    if [[ "\$EXTENSION" == "fasta" || "\$EXTENSION" == "fa" ]]; then
-        INPUT_TYPE="fasta"
-    else
-        INPUT_TYPE="pdb"
-    fi
-
-    echo "[BIOEMU_SAMPLE] Input: \$INPUT_FILE  type: \$INPUT_TYPE  n_samples: ${n_samp}"
-
-    # ── Run BioEmu conformational sampling ────────────────────────────────────
+    # -- Run BioEmu conformational sampling ------------------------------------
     # BioEmu exposes both a Python API and the CLI entry point bioemu-sample.
     # We prefer the CLI so the process is self-contained.
     python3 << 'PYEOF'
@@ -56,7 +46,6 @@ import glob
 input_file   = "${pdb_or_fasta}"
 prefix       = "${prefix}"
 n_samples    = int("${n_samp}")
-input_type   = "${INPUT_TYPE}"
 
 # Attempt CLI first; fall back to Python API
 cli_result = subprocess.run(
@@ -100,7 +89,7 @@ with open("ensemble_pdbs/MANIFEST.txt", "w") as fh:
         fh.write(os.path.basename(p) + "\\n")
 PYEOF
 
-    # ── Pack ensemble into a single archive ───────────────────────────────────
+    # -- Pack ensemble into a single archive -----------------------------------
     tar -czf "${prefix}_ensemble.tar.gz" -C ensemble_pdbs .
 
     cat <<-END_VERSIONS > versions.yml
@@ -111,9 +100,9 @@ PYEOF
     """
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // POCKET_MINER
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
@@ -133,11 +122,11 @@ process POCKET_MINER {
     """
     set -euo pipefail
 
-    # ── Unpack ensemble ────────────────────────────────────────────────────────
+    # -- Unpack ensemble --------------------------------------------------------
     mkdir -p ensemble_pdbs
     tar -xzf "${ensemble_tgz}" -C ensemble_pdbs
 
-    # ── Select representative frames (every 10th, min 5, max 50) ──────────────
+    # -- Select representative frames (every 10th, min 5, max 50) --------------
     python3 << 'PYEOF'
 import os
 import glob
@@ -175,7 +164,7 @@ for i, pdb in enumerate(rep_pdbs):
         "pockets":     [],
     }
 
-    # ── Strategy 1: PocketMiner ───────────────────────────────────────────────
+    # -- Strategy 1: PocketMiner -----------------------------------------------
     pm_ok = False
     try:
         pm_result = subprocess.run(
@@ -201,7 +190,7 @@ for i, pdb in enumerate(rep_pdbs):
     except Exception as ex:
         print(f"[POCKET_MINER] PocketMiner exception for {frame_id}: {ex}", flush=True)
 
-    # ── Strategy 2: fpocket (fallback or supplement) ──────────────────────────
+    # -- Strategy 2: fpocket (fallback or supplement) --------------------------
     if not pm_ok or True:   # always run fpocket for geometry-based scores
         try:
             fp_result = subprocess.run(
@@ -243,7 +232,7 @@ for i, pdb in enumerate(rep_pdbs):
 
     all_pocket_data.append(pocket_info)
 
-# ── Write JSON summary ────────────────────────────────────────────────────────
+# -- Write JSON summary --------------------------------------------------------
 summary = {
     "n_total_conformers":       n_total,
     "n_analysed_conformers":    len(rep_pdbs),
@@ -255,7 +244,7 @@ with open(f"{prefix}_pockets.json", "w") as fh:
 
 print(f"[POCKET_MINER] Pocket analysis complete. Results written to {prefix}_pockets.json", flush=True)
 
-# ── Write combined pocket visualisation PDB ───────────────────────────────────
+# -- Write combined pocket visualisation PDB -----------------------------------
 if combined_pdb_lines:
     with open(f"{prefix}_pockets.pdb", "w") as fh:
         fh.writelines(combined_pdb_lines)
@@ -271,9 +260,9 @@ PYEOF
     """
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // CONFORMATIONAL_SUMMARY
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
@@ -294,7 +283,7 @@ process CONFORMATIONAL_SUMMARY {
     """
     set -euo pipefail
 
-    # ── Unpack ensemble ────────────────────────────────────────────────────────
+    # -- Unpack ensemble --------------------------------------------------------
     mkdir -p ensemble_pdbs
     tar -xzf "${ensemble_tgz}" -C ensemble_pdbs
 
@@ -305,7 +294,7 @@ import json
 import glob
 import numpy as np
 
-# ── MDAnalysis for RMSD / Rg ──────────────────────────────────────────────────
+# -- MDAnalysis for RMSD / Rg --------------------------------------------------
 try:
     import MDAnalysis as mda
     from MDAnalysis.analysis import rms, align
@@ -314,7 +303,7 @@ except ImportError:
     HAS_MDA = False
     print("[CONFORMATIONAL_SUMMARY] MDAnalysis not available — using Biopython fallback", flush=True)
 
-# ── Fallback: Biopython RMSD ──────────────────────────────────────────────────
+# -- Fallback: Biopython RMSD --------------------------------------------------
 from Bio import PDB as bpdb
 import warnings
 warnings.filterwarnings("ignore")
@@ -330,7 +319,7 @@ if n == 0:
 
 print(f"[CONFORMATIONAL_SUMMARY] Processing {n} conformers", flush=True)
 
-# ── Compute pairwise Cα RMSD matrix ──────────────────────────────────────────
+# -- Compute pairwise Cα RMSD matrix ------------------------------------------
 def get_ca_coords(pdb_path):
     """Extract Cα coordinates from a PDB file using Biopython."""
     parser = bpdb.PDBParser(QUIET=True)
@@ -385,7 +374,7 @@ rg_std    = float(np.std(rg_values))
 print(f"[CONFORMATIONAL_SUMMARY] RMSD to ref: mean={rmsd_mean:.3f} std={rmsd_std:.3f} Å", flush=True)
 print(f"[CONFORMATIONAL_SUMMARY] Rg: mean={rg_mean:.3f} std={rg_std:.3f} Å", flush=True)
 
-# ── Pocket statistics ─────────────────────────────────────────────────────────
+# -- Pocket statistics ---------------------------------------------------------
 with open("${pockets_json}") as fh:
     pocket_data = json.load(fh)
 
@@ -402,7 +391,7 @@ mean_pockets    = float(np.mean(pocket_counts))   if pocket_counts    else 0.0
 max_drug_score  = float(max(druggability_scores))  if druggability_scores else 0.0
 mean_drug_score = float(np.mean(druggability_scores)) if druggability_scores else 0.0
 
-# ── Build pairwise RMSD matrix for UMAP ───────────────────────────────────────
+# -- Build pairwise RMSD matrix for UMAP ---------------------------------------
 # Limit to first 200 conformers to keep memory manageable
 max_umap = min(n, 200)
 print(f"[CONFORMATIONAL_SUMMARY] Computing pairwise RMSD for {max_umap} conformers…", flush=True)
@@ -413,7 +402,7 @@ for i in range(max_umap):
         rmsd_matrix[i, j] = d
         rmsd_matrix[j, i] = d
 
-# ── UMAP projection ───────────────────────────────────────────────────────────
+# -- UMAP projection -----------------------------------------------------------
 try:
     import umap
     reducer = umap.UMAP(metric="precomputed", n_components=2, random_state=42,
@@ -427,7 +416,7 @@ except Exception as ex:
     embedding = reducer.fit_transform(rmsd_matrix)
     umap_ok = False
 
-# ── Plot ──────────────────────────────────────────────────────────────────────
+# -- Plot ----------------------------------------------------------------------
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -465,7 +454,7 @@ plt.savefig("conformational_umap.png", dpi=150, bbox_inches="tight")
 plt.close()
 print("[CONFORMATIONAL_SUMMARY] Plot saved to conformational_umap.png", flush=True)
 
-# ── Write summary JSON ────────────────────────────────────────────────────────
+# -- Write summary JSON --------------------------------------------------------
 summary = {
     "prefix":            prefix,
     "n_conformers":      n,
