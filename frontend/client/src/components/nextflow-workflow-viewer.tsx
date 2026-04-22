@@ -1567,8 +1567,9 @@ export function NextflowWorkflowViewer({
       {/* ── Panel header ─────────────────────────────────────────────────────── */}
       {(() => {
         const wfDomain = (workflowDefinition?.domain || workflowDefinition?.category || '') as string;
-        const kickerLabel = wfDomain
-          ? `${wfDomain.replace(/_/g, ' ').toUpperCase()} · WORKFLOW`
+        const meaningfulDomain = wfDomain && wfDomain !== 'general' ? wfDomain : '';
+        const kickerLabel = meaningfulDomain
+          ? `${meaningfulDomain.replace(/_/g, ' ').toUpperCase()} · WORKFLOW`
           : 'WORKFLOW';
         const hasRealPhases = groupedPhases.some((g: any) => g.key !== 'all');
         const phaseCount = hasRealPhases ? groupedPhases.length : 0;

@@ -509,6 +509,7 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
             candidates: list[FilePath] = [backend_root / nf_filename]
             raw = str(nf_filename)
             nfcore_root = backend_root / "biomni_workflows" / "nextflow_nfcore"
+            nfcore_modules_root = backend_root / "nf-core-modules"
             if raw.startswith("nextflow_nfcore/"):
                 rest = raw.split("nextflow_nfcore/", 1)[1].strip("/")
                 candidates += [
@@ -517,10 +518,18 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                     nfcore_root / "subworkflows" / rest,
                     nfcore_root / "subworkflows" / rest / "main.nf",
                 ]
+            elif raw.startswith("nfcore/subworkflows/"):
+                # Legacy path pattern: nfcore/subworkflows/<workflow> → nf-core-modules/subworkflows/nf-core/<workflow>/main.nf
+                rest = raw.split("nfcore/subworkflows/", 1)[1].strip("/")
+                candidates += [
+                    nfcore_modules_root / "subworkflows" / "nf-core" / rest / "main.nf",
+                    nfcore_modules_root / "subworkflows" / "nf-core" / rest,
+                ]
             else:
                 candidates += [
                     nfcore_root / nf_filename,
                     nfcore_root / "subworkflows" / nf_filename,
+                    nfcore_modules_root / "subworkflows" / "nf-core" / nf_filename / "main.nf",
                 ]
             abs_path = next((c for c in candidates if c.exists()), candidates[0])
         if not abs_path.exists():
