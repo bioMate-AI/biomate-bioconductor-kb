@@ -1070,6 +1070,36 @@ export class GalaxyAssistant {
   }
 
   /**
+   * Retry helper for Anthropic API calls — handles 429 rate-limit and 529 overloaded errors.
+   * Only retries if no streaming content has been emitted yet (rawResponseSoFar empty).
+   */
+  private async _withAnthropicRetry<T>(
+    fn: () => Promise<T>,
+    label: string,
+    maxAttempts = 3,
+  ): Promise<T> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        const status = err?.status ?? err?.statusCode;
+        const msg = String(err?.message || '');
+        const isRetryable =
+          status === 429 || status === 529 ||
+          msg.includes('rate_limit') || msg.includes('overloaded') || msg.includes('529');
+        if (isRetryable && attempt < maxAttempts - 1) {
+          const delayMs = Math.min(2000 * Math.pow(2, attempt), 16000); // 2s, 4s, 8s …
+          console.warn(`[GalaxyAssistant] Anthropic ${status ?? 'overload'} on ${label}, retry ${attempt + 1}/${maxAttempts - 1} in ${delayMs}ms`);
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error(`[GalaxyAssistant] Max retries exceeded for ${label}`);
+  }
+
+  /**
    * Fetch user domain profile from backend, with 5-minute in-memory cache.
    * Returns null if userId not set or fetch fails (never throws).
    */
@@ -3517,18 +3547,21 @@ For SEQUENTIAL pipeline messages (step outputs feed the next step), use "is_sequ
       } else {
         // Anthropic path (default)
         // Note: temperature is deprecated for Claude 4.x models
-        const completion = await this.claude.messages.create({
-          model: this.modelConfig.intentModel,
-          max_tokens: 2500,
-          system: [
-            {
-              type: 'text',
-              text: systemPrompt,
-              cache_control: { type: 'ephemeral' },
-            },
-          ],
-          messages: [{ role: 'user', content: message }],
-        });
+        const completion = await this._withAnthropicRetry(
+          () => this.claude.messages.create({
+            model: this.modelConfig.intentModel,
+            max_tokens: 2500,
+            system: [
+              {
+                type: 'text',
+                text: systemPrompt,
+                cache_control: { type: 'ephemeral' },
+              },
+            ],
+            messages: [{ role: 'user', content: message }],
+          }),
+          'intent-classification',
+        );
         console.log('[GalaxyAssistant] Intent API response:', {
           model: this.modelConfig.intentModel,
           time_ms: Date.now() - intentStartTime,
@@ -3855,23 +3888,26 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       });
       const rankStartTime = Date.now();
 
-      const completion = await this.claude.messages.create({
-        model: this.modelConfig.toolRankingModel,
-        max_tokens: 2000, // Increased to handle ranking many tools
-        system: [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: [
-          {
-            role: 'user',
-            content: `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`,
-          },
-        ],
-      });
+      const completion = await this._withAnthropicRetry(
+        () => this.claude.messages.create({
+          model: this.modelConfig.toolRankingModel,
+          max_tokens: 2000,
+          system: [
+            {
+              type: 'text',
+              text: systemPrompt,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          messages: [
+            {
+              role: 'user',
+              content: `User request: ${userMessage}\n\nAvailable tools:\n${toolCatalog}`,
+            },
+          ],
+        }),
+        'tool-ranking',
+      );
 
       console.log('[GalaxyAssistant] Tool ranking API response:', {
         model: this.modelConfig.toolRankingModel,
@@ -4511,10 +4547,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
 
         // ── Streaming (first turn) ────────────────────────────────────────────
         if (isFirstTurn && onResponseDelta) {
-          const stream = await this.claude.messages.create({
-            ...requestOptions,
-            stream: true,
-          } as any);
+          const stream = await this._withAnthropicRetry(
+            () => this.claude.messages.create({ ...requestOptions, stream: true } as any),
+            'response-stream',
+          );
 
           // Accumulate both text deltas and tool_use content blocks
           const contentBlocks: any[] = [];
@@ -4568,7 +4604,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
         }
 
         // ── Non-streaming (subsequent tool turns) ─────────────────────────────
-        const completion = await this.claude.messages.create(requestOptions);
+        const completion = await this._withAnthropicRetry(
+          () => this.claude.messages.create(requestOptions),
+          `tool-turn-${turn}`,
+        );
         console.log('[GalaxyAssistant] Response API response:', {
           model: this.modelConfig.responseModel, time_ms: Date.now() - apiStartTime,
           usage: completion.usage, stop_reason: completion.stop_reason,

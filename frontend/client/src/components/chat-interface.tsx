@@ -100,9 +100,11 @@ const ONBOARDING_DONE_KEY = 'biomate_onboarding_done'
 function OnboardingWelcome({
   onComplete,
   visible,
+  isReturning = false,
 }: {
   onComplete: () => void
   visible: boolean
+  isReturning?: boolean
 }) {
   const [step, setStep] = useState<"domains" | "topics">("domains")
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(new Set())
@@ -110,6 +112,26 @@ function OnboardingWelcome({
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set())
   const [otherTopics, setOtherTopics] = useState<Record<string, string>>({}) // domainKey → free text
   const [saving, setSaving] = useState(false)
+
+  // Pre-load saved profile for returning users
+  useEffect(() => {
+    if (!isReturning || !visible) return
+    fetch('/api/user/domain-profile', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        if (Array.isArray(data.domains) && data.domains.length > 0) {
+          setSelectedDomains(new Set(data.domains.filter((d: string) => d in DOMAIN_TAXONOMY)))
+        }
+        if (Array.isArray(data.topics) && data.topics.length > 0) {
+          setSelectedTopics(new Set(data.topics))
+        }
+      })
+      .catch(() => {})
+  }, [isReturning, visible])
+
+  const hour = new Date().getHours()
+  const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   if (!visible) return null
 
@@ -176,9 +198,16 @@ function OnboardingWelcome({
       <div data-testid="onboarding-welcome" className="flex flex-col items-center justify-center min-h-[60vh] px-4 py-8">
         <div className="w-full max-w-2xl">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-semibold mb-1">What would you like to analyze?</h2>
+            {isReturning && (
+              <p className="text-sm text-muted-foreground mb-2">{timeGreeting} — welcome back to BioMate</p>
+            )}
+            <h2 className="text-2xl font-semibold mb-1">
+              {isReturning ? 'What are you working on today?' : 'What would you like to analyze?'}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Select your research areas — BioMate will prioritise relevant workflows.
+              {isReturning
+                ? 'Update your research focus — BioMate will prioritise relevant workflows.'
+                : 'Select your research areas — BioMate will prioritise relevant workflows.'}
             </p>
           </div>
 
@@ -228,14 +257,14 @@ function OnboardingWelcome({
             </span>
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" onClick={() => { localStorage.setItem(ONBOARDING_DONE_KEY, '1'); onComplete() }}>
-                Skip
+                {isReturning ? 'Skip — start chatting' : 'Skip'}
               </Button>
               <Button
                 onClick={() => setStep("topics")}
                 disabled={selectedDomains.size === 0 && !otherDomain.trim()}
                 className="gap-2"
               >
-                Continue <ChevronRight className="h-4 w-4" />
+                {isReturning ? 'See topics' : 'Continue'} <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -315,7 +344,7 @@ function OnboardingWelcome({
           <Button variant="ghost" size="sm" onClick={() => setStep("domains")}>Back</Button>
           <Button onClick={handleNext} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Next — Enter BioMate <ChevronRight className="h-4 w-4" />
+            {isReturning ? 'Update focus & start chatting' : 'Next — Enter BioMate'} <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -476,6 +505,7 @@ export function ChatInterface({
   onRegisterSetDraft,
 }: ChatInterfaceProps) {
   const [isTypingLocal, setIsTypingLocal] = useState(false)
+  const [workflowGeneratingPhase, setWorkflowGeneratingPhase] = useState<'thinking' | 'workflow'>('thinking')
   // File analysis results: messageId → FileAnalysisResult[] shown below user messages
   const [fileAnalysisMap, setFileAnalysisMap] = useState<Record<string, FileAnalysisResult[]>>({})
   // Soft query queue: messages submitted while AI is responding are held here
@@ -684,6 +714,9 @@ export function ChatInterface({
         })
       })
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Chat API error: The service is temporarily busy. Please wait a moment and try again.')
+        }
         throw new Error(`Chat API error: ${response.statusText}`)
       }
       if (!response.body) {
@@ -755,8 +788,14 @@ export function ChatInterface({
               } else {
                 finalPayload = payload
               }
+            } else if (eventName === 'workflow_ready') {
+              setWorkflowGeneratingPhase('workflow')
             } else if (eventName === 'error') {
-              throw new Error(payload.message || 'Streaming chat failed')
+              const errMsg = payload.message || 'Streaming chat failed'
+              const isRateLimit = /rate.?limit|too many|overload|429|busy/i.test(errMsg)
+              throw new Error(isRateLimit
+                ? 'Chat API error: The service is temporarily busy. Please wait a moment and try again.'
+                : errMsg)
             }
           }
         }
@@ -956,6 +995,7 @@ export function ChatInterface({
         }
       }
       setIsTypingLocal(false)
+      setWorkflowGeneratingPhase('thinking')
 
       // Trigger workflow builder display
       if (workflowSuccess && workflowData) {
@@ -1720,11 +1760,9 @@ export function ChatInterface({
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
         <OnboardingWelcome
           onComplete={() => setOnboardingDone(true)}
-          visible={displayMessages.length === 0 && !isTyping && !isTypingLocal && !onboardingDone}
+          visible={displayMessages.length === 0 && !isTyping && !isTypingLocal}
+          isReturning={onboardingDone}
         />
-        {displayMessages.length === 0 && !isTyping && !isTypingLocal && onboardingDone && (
-          <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
-        )}
         <div className="space-y-4">
           {displayMessages
             .filter(msg => !(msg.role === 'assistant' && !msg.content?.trim() && (isTyping || isTypingLocal)))
@@ -1783,7 +1821,7 @@ export function ChatInterface({
               )}
             </div>
           ))}
-          {displayTyping && <TypingIndicator />}
+          {displayTyping && <TypingIndicator phase={workflowGeneratingPhase} />}
           {/* Auto-scroll anchor */}
           <div ref={messagesEndRef} />
         </div>

@@ -106,6 +106,18 @@ export function getChatAsyncGuidance(
     };
   }
 
+  const isRateLimit = /temporarily busy|wait a moment|rate.?limit|too many|overload/i.test(error);
+  if (isRateLimit) {
+    return {
+      title: "Service temporarily busy",
+      reason: "BioMate's AI service is handling many requests right now. Your request was not lost.",
+      retry: "Wait 10–30 seconds and send the message again — it will process normally.",
+      escalation: "If this keeps happening after a few retries, report issue with timestamp.",
+      isTimeout: false,
+      isNetworkRelated: false,
+    };
+  }
+
   return {
     title: "Workflow generation failed",
     reason: error || "The service returned an unexpected error while generating your workflow.",
