@@ -2457,7 +2457,9 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     VALIDATION_FSC(VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
-    LOCAL_CTF_REFINEMENT(SELECT_2D_R2.out.selected_cs, VOLUME_TOOLS.out.processed_cs, init_json_ch)
+    // CS v5 ctf_refine_local requires particles WITH alignments3D — must come from homo_refine output,
+    // not raw extracted particles. best_refined_ch holds the homo_refine cs_data (job_uid present).
+    LOCAL_CTF_REFINEMENT(best_refined_ch, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
     NON_UNIFORM_REFINEMENT(LOCAL_CTF_REFINEMENT.out.refined_particles_cs, VOLUME_TOOLS.out.processed_cs, init_json_ch)
 
