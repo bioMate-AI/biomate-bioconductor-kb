@@ -1449,6 +1449,46 @@ export function NextflowWorkflowViewer({
         console.error("[AutoLoop] escalation parse error:", err);
       }
     });
+
+    // ── Real-time step & workflow state via SSE (replaces per-step polling) ──
+    es.addEventListener("step_state", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        const stepId = String(data.step_id ?? "");
+        const backendState = normalizeBackendState(data.step_state);
+        const phaseStatus = mapBackendToPhaseStatus(backendState);
+        if (!stepId) return;
+        setStepExecutionById((prev) => ({
+          ...prev,
+          [stepId]: {
+            ...(prev[stepId] || { runCount: 0, phaseStatus: "pending", isExecuting: false }),
+            backendState,
+            phaseStatus,
+            jobId: data.job_id || prev[stepId]?.jobId,
+            isExecuting: !isTerminalBackendState(backendState),
+            runCount: prev[stepId]?.runCount ?? 1,
+          },
+        }));
+        if (isTerminalBackendState(backendState)) {
+          clearStepPoller(stepId);
+        }
+      } catch (err) {
+        console.error("[SSE] step_state parse error:", err);
+      }
+    });
+
+    es.addEventListener("workflow_state", (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string);
+        const wfState = normalizeBackendState(data.workflow_state);
+        // If workflow reached a terminal state, clear all outstanding pollers
+        if (isTerminalBackendState(wfState)) {
+          Object.keys(stepPollersRef.current).forEach((sid) => clearStepPoller(sid));
+        }
+      } catch (err) {
+        console.error("[SSE] workflow_state parse error:", err);
+      }
+    });
     // ─────────────────────────────────────────────────────────────────────
 
     es.onerror = () => {

@@ -179,6 +179,10 @@ function PlatformLayout({
   const { isAuthenticated, isLoading } = useAuth()
   const [, navigate] = useLocation()
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate('/login')
+  }, [isAuthenticated, isLoading, navigate])
+
   if (!isAuthenticated) return null
 
   const toggleSidebar = () => {
