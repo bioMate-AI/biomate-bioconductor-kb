@@ -1,12 +1,12 @@
 # BioMate Protein Dynamics Nextflow Container
-# Tools: BioEmu-1 (conformational ensemble), PocketMiner, fpocket, MDAnalysis, OpenMM
+# Tools: Microsoft BioEmu-1 (conformational ensemble), PocketMiner, fpocket, MDAnalysis
 # Base: PyTorch 2.1 with CUDA 12.1 / cuDNN 8 runtime
 
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="BioMate Team"
 LABEL description="Protein dynamics & conformational ensemble sampling for BioMate workflows"
-LABEL version="1.0.1"
+LABEL version="1.0.2"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -33,15 +33,17 @@ RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tm
     && /tmp/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin \
     && rm -rf /tmp/awscliv2.zip /tmp/aws
 
-# ── fpocket from source ───────────────────────────────────────────────────────
+# ── Clone GitHub repos FIRST (before long pip installs to avoid network timeout) ─
 RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket \
-    && make \
-    && make install \
-    && rm -rf /tmp/fpocket
+    && cd /tmp/fpocket && make && make install && rm -rf /tmp/fpocket
+
+RUN git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer
+
+# Microsoft BioEmu-1 (Feb 2025) — clone early for pip install below
+RUN git clone --depth 1 https://github.com/microsoft/bioemu.git /opt/bioemu
 
 # ── Python packages ───────────────────────────────────────────────────────────
-COPY requirements.txt /tmp/requirements.txt
+# Install core scientific deps first; keep torch at 2.1 (base image version)
 RUN pip install --no-cache-dir \
     "numpy>=1.24.0,<2.0.0" \
     "scipy>=1.11.0" \
@@ -54,14 +56,20 @@ RUN pip install --no-cache-dir \
     "scikit-learn>=1.3.0" \
     "tqdm>=4.65.0" \
     "h5py>=3.9.0" \
-    "openmm>=8.0.0" \
-    && pip install --no-cache-dir \
-    "bioemu>=0.1.0" \
-    "cryodrgn>=3.0.0"
+    "einops>=0.7.0" \
+    "biotite>=0.39.0" \
+    "openmm>=8.0.0"
 
-# ── PocketMiner (Hoecker-Lab) — clone & install ───────────────────────────────
-RUN git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer \
-    && pip install --no-cache-dir /opt/pocketminer
+# Install cryodrgn (for latent-space analysis utilities shared with cryo track)
+RUN pip install --no-cache-dir "cryodrgn>=3.0.0"
+
+# Install Microsoft BioEmu from cloned source
+RUN pip install --no-cache-dir /opt/bioemu || \
+    echo "WARNING: BioEmu install failed — workflow will use MDAnalysis sampling fallback"
+
+# Install PocketMiner from cloned source
+RUN pip install --no-cache-dir /opt/pocketminer || \
+    echo "WARNING: PocketMiner install failed — workflow will use fpocket only"
 
 ENV POCKETMINER_HOME=/opt/pocketminer
 ENV PATH="/opt/aws-cli/bin:${PATH}"
