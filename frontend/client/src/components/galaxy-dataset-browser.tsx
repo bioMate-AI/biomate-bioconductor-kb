@@ -175,7 +175,7 @@ function SessionTab({
   );
 }
 
-// Tab: "Galaxy histories" — browse all histories + their datasets
+// Tab: "BioMate history" — browse all histories + their datasets
 function HistoryTab({
   search,
   onSelect,
@@ -189,19 +189,20 @@ function HistoryTab({
   const [loading, setLoading] = useState(false);
   const [datasetsLoading, setDatasetsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadTick, setLoadTick] = useState(0);
 
-  // Load histories on mount
+  // Load histories on mount (or on retry)
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/galaxy/histories')
-      .then(r => r.json())
+    fetch('/api/galaxy/histories', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => {
         setHistories(data.histories || []);
       })
-      .catch(() => setError('Could not load Galaxy histories'))
+      .catch(() => setError('Could not load histories'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadTick]);
 
   // Load datasets when a history is selected
   const openHistory = useCallback((history: GalaxyHistory) => {

@@ -247,10 +247,17 @@ function _isGlobalE2EBypass(req: Request): boolean {
 export const globalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: process.env.NODE_ENV === 'production' ? 1000 : 50000, // Dev: eval harness needs high throughput
-  message: 'Too many requests from this IP, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: _isGlobalE2EBypass,
+  // Skip in dev to avoid false lockouts during development; skip E2E test token in all envs
+  skip: (req) => process.env.NODE_ENV !== 'production' || _isGlobalE2EBypass(req),
+  handler: (_req: any, res: any) => {
+    res.status(429).json({
+      success: false,
+      error: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many requests. Please try again later.',
+    });
+  },
   // Store in Redis for distributed rate limiting (optional)
   // store: new RedisStore({ client: redisClient }),
 });

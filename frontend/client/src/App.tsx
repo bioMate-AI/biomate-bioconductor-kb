@@ -24,7 +24,6 @@ import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics";
 
 // Import new pages
-import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
@@ -139,7 +138,7 @@ function PlatformLayout({
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate('/home')
+      navigate('/login')
     }
   }, [isAuthenticated, isLoading, navigate])
 
@@ -237,13 +236,6 @@ function Router({
 }: RouterProps) {
   return (
     <Switch>
-      {/* Public marketing pages */}
-      <Route path="/home">
-        <PublicPageLayout>
-          <LandingPage />
-        </PublicPageLayout>
-      </Route>
-
       {/* Auth pages */}
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />

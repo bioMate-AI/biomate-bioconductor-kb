@@ -1729,11 +1729,7 @@ export function ChatInterface({
       )}
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
-        <OnboardingWelcome
-          onComplete={() => setOnboardingDone(true)}
-          visible={displayMessages.length === 0 && !isTyping && !isTypingLocal && !onboardingDone}
-        />
-        {displayMessages.length === 0 && !isTyping && !isTypingLocal && onboardingDone && (
+        {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
           <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
         )}
         <div className="space-y-4">
