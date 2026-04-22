@@ -101,17 +101,14 @@ process CRYODRGN_ANALYZE {
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
     def clusters = n_clusters ?: 10
-    // Resolve epoch: use explicit value, else detect last epoch from model_dir
-    def epoch_arg = epoch ? "${epoch}" : "\$(ls -d ${model_dir}/weights.*.pkl 2>/dev/null | sort -V | tail -1 | grep -oP '(?<=weights\\.)[0-9]+(?=\\.pkl)' || echo '19')"
     """
-    # Determine the epoch to analyze — skip 'auto' / 'null' / empty
-    if echo "${epoch}" | grep -qE '^[0-9]+$'; then
-        EPOCH="${epoch}"
-    else
-        EPOCH=\$(ls ${model_dir}/weights.*.pkl 2>/dev/null \\
-                  | sort -V | tail -1 \\
-                  | grep -oE '[0-9]+\\.pkl\$' | grep -oE '^[0-9]+' || echo "4")
-    fi
+    # Determine the epoch to analyze (case avoids single-quote Groovy tokenizer issues)
+    case "${epoch}" in
+        [0-9]*) EPOCH="${epoch}";;
+        *) EPOCH=\$(ls ${model_dir}/weights.*.pkl 2>/dev/null \\
+                    | sort -V | tail -1 \\
+                    | grep -oE [0-9]+[.] | grep -oE [0-9]+ || echo 4);;
+    esac
 
     echo "Analyzing cryoDRGN output at epoch \${EPOCH} with ${clusters} clusters"
 
