@@ -94,10 +94,10 @@ process CRYODRGN_ANALYZE {
     val n_clusters
 
     output:
-    tuple val(meta), path("cryodrgn_output/*/"),          emit: analysis_dir
-    tuple val(meta), path("cryodrgn_output/*/umap.png"),  emit: umap
-    tuple val(meta), path("cryodrgn_output/*/vol_*.mrc"), emit: volumes
-    path "versions.yml",                                  emit: versions
+    tuple val(meta), path("cryodrgn_output/analyze.*/"),          emit: analysis_dir
+    tuple val(meta), path("cryodrgn_output/analyze.*/umap.png"),  emit: umap
+    tuple val(meta), path("cryodrgn_output/analyze.*/vol_*.mrc"), emit: volumes
+    path "versions.yml",                                          emit: versions
 
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
@@ -150,10 +150,11 @@ PYEOF
         --ksample ${clusters}
 
     echo "Analysis complete."
+    echo "Output dir: ${model_dir}/analyze.\${EPOCH}/"
 
-    # Confirm expected outputs exist
-    ls ${model_dir}/\${EPOCH}/umap.png              || { echo "ERROR: umap.png not found"; exit 1; }
-    ls ${model_dir}/\${EPOCH}/vol_*.mrc 2>/dev/null || { echo "ERROR: no vol_*.mrc found"; exit 1; }
+    # cryodrgn 4.x writes to analyze.<epoch>/ (not just <epoch>/)
+    ls ${model_dir}/analyze.\${EPOCH}/umap.png              || { echo "ERROR: umap.png not found in analyze.\${EPOCH}/"; exit 1; }
+    ls ${model_dir}/analyze.\${EPOCH}/vol_*.mrc 2>/dev/null || { echo "WARNING: no vol_*.mrc in analyze.\${EPOCH}/ (may be in kmeans dirs)"; true; }
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
