@@ -90,14 +90,14 @@ def make_particle(size: int, state: str, noise_std: float = 0.05,
 
 
 def make_ctf_params(n_particles: int, box: int, pixel_size: float = 1.5,
-                    rng: np.random.Generator = None) -> dict:
+                    rng: np.random.Generator = None) -> list:
     """
-    Generate synthetic CTF parameters in cryoDRGN format.
+    Generate synthetic CTF parameters in cryoDRGN ≥4.x format.
 
-    cryoDRGN expects a dict with keys:
-        D        — box size (pixels)
-        Apix     — pixel size (Angstrom/pixel)
-        ctf      — (N, 9) array of [df1, df2, angle, volt, cs, w, phase, bfactor, scale]
+    cryoDRGN 4.x expects a pkl containing an (N, 9) array:
+        [df1, df2, angle, volt, cs, w, phase, bfactor, scale]
+
+    Returned as a plain Python list-of-lists so pickle is numpy-version-agnostic.
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -115,13 +115,8 @@ def make_ctf_params(n_particles: int, box: int, pixel_size: float = 1.5,
 
     ctf_matrix = np.stack([df1, df2, ang, volt, cs, w, phase, bfactor, scale], axis=1)
 
-    # Use plain Python types to avoid numpy version-specific pickle incompatibility
-    # (numpy._core vs numpy.core across numpy 1.x/2.x)
-    return {
-        "D":    int(box),
-        "Apix": float(pixel_size),
-        "ctf":  ctf_matrix.astype(np.float32).tolist(),
-    }
+    # Plain Python list — no numpy class refs in pickle (numpy 1.x/2.x safe)
+    return ctf_matrix.astype(np.float32).tolist()
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -175,8 +170,8 @@ def main():
     ctf_params = make_ctf_params(N, box, pixel_size=args.pixel_size, rng=rng)
     ctf_path   = os.path.join(args.outdir, "cryo_het_test_ctf.pkl")
     with open(ctf_path, "wb") as fh:
-        pickle.dump(ctf_params, fh)
-    print(f"  Wrote {ctf_path}  ({N} CTF parameter vectors)")
+        pickle.dump(ctf_params, fh)  # list of N×9 rows — numpy-version-agnostic
+    print(f"  Wrote {ctf_path}  ({N} CTF parameter vectors, N×9 list)")
 
     # Generate poses (rotation matrices + translations) in cryoDRGN format:
     # tuple of (rotations: N×3×3 float32, translations: N×2 float32)

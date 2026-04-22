@@ -49,17 +49,13 @@ with open("poses_compat.pkl", "wb") as fh:
     pickle.dump((rots, trans), fh)
 print(f"poses_compat.pkl: rots={rots.shape} trans={trans.shape}")
 
-# ctf: dict with keys D (int), Apix (float), ctf (N×9 array)
+# ctf: cryodrgn 4.x expects raw (N, 9) ndarray — not a dict
 with open("${ctf_pkl}", "rb") as fh:
-    ctf = pickle.load(fh)
-ctf_out = {
-    "D":    int(ctf["D"]),
-    "Apix": float(ctf["Apix"]),
-    "ctf":  np.array(ctf["ctf"], dtype=np.float32),
-}
+    raw_ctf = pickle.load(fh)
+ctf_arr = np.array(raw_ctf, dtype=np.float32)
 with open("ctf_compat.pkl", "wb") as fh:
-    pickle.dump(ctf_out, fh)
-print(f"ctf_compat.pkl: ctf={ctf_out['ctf'].shape} D={ctf_out['D']} Apix={ctf_out['Apix']}")
+    pickle.dump(ctf_arr, fh)
+print(f"ctf_compat.pkl: shape={ctf_arr.shape}")
 PYEOF
 
     cryodrgn train_vae \\
