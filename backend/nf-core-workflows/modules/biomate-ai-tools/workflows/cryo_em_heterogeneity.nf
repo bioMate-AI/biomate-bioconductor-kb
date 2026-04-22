@@ -25,7 +25,7 @@ params.ctf        = null
 params.n_zdim     = 8
 params.n_epochs   = 20
 params.n_clusters = 10
-params.epoch      = null   // null → auto-detect last epoch
+params.epoch      = 'auto'   // 'auto' = detect last saved epoch
 params.outdir     = './results'
 
 // ─── Module imports ──────────────────────────────────────────────────────────

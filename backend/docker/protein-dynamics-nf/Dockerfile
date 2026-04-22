@@ -33,14 +33,13 @@ RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tm
     && /tmp/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin \
     && rm -rf /tmp/awscliv2.zip /tmp/aws
 
-# ── Clone GitHub repos FIRST (before long pip installs to avoid network timeout) ─
+# ── Clone GitHub repos in ONE layer (keep network warm, all or nothing) ──────
 RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket && make && make install && rm -rf /tmp/fpocket
-
-RUN git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer
-
-# Microsoft BioEmu-1 (Feb 2025) — clone early for pip install below
-RUN git clone --depth 1 https://github.com/microsoft/bioemu.git /opt/bioemu
+    && cd /tmp/fpocket && make && make install && rm -rf /tmp/fpocket \
+    && git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer \
+    || echo "WARNING: PocketMiner clone failed" \
+    && git clone --depth 1 https://github.com/microsoft/bioemu.git /opt/bioemu \
+    || echo "WARNING: BioEmu clone failed"
 
 # ── Python packages ───────────────────────────────────────────────────────────
 # Install core scientific deps first; keep torch at 2.1 (base image version)

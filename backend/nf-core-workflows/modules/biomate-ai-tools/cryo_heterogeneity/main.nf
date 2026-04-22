@@ -4,9 +4,9 @@
 
 nextflow.enable.dsl=2
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // PROCESS 1: Train cryoDRGN VAE on particle stack
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process CRYODRGN_TRAIN {
     tag "$meta.id"
     label 'process_gpu'
@@ -52,9 +52,9 @@ process CRYODRGN_TRAIN {
     """
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // PROCESS 2: Analyze latent space — UMAP + k-means → representative volumes
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process CRYODRGN_ANALYZE {
     tag "$meta.id"
     label 'process_medium'
@@ -67,10 +67,10 @@ process CRYODRGN_ANALYZE {
     val n_clusters
 
     output:
-    tuple val(meta), path("${model_dir}/${epoch}/"),         emit: analysis_dir
-    tuple val(meta), path("${model_dir}/${epoch}/umap.png"), emit: umap
-    tuple val(meta), path("${model_dir}/${epoch}/vol_*.mrc"), emit: volumes
-    path "versions.yml",                                     emit: versions
+    tuple val(meta), path("cryodrgn_output/*/"),          emit: analysis_dir
+    tuple val(meta), path("cryodrgn_output/*/umap.png"),  emit: umap
+    tuple val(meta), path("cryodrgn_output/*/vol_*.mrc"), emit: volumes
+    path "versions.yml",                                  emit: versions
 
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
@@ -109,9 +109,9 @@ process CRYODRGN_ANALYZE {
     """
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // PROCESS 3: Scan conformational ensemble for druggable pockets
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process POCKET_SCAN_ENSEMBLE {
     tag "$meta.id"
     label 'process_medium'
@@ -119,7 +119,7 @@ process POCKET_SCAN_ENSEMBLE {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryo-heterogeneity-nf:latest'
 
     input:
-    tuple val(meta), path(volumes, stageAs: "vol_*.mrc")
+    tuple val(meta), path(volumes)
 
     output:
     tuple val(meta), path("ensemble_pockets.json"), emit: pockets
@@ -145,10 +145,10 @@ except ImportError as e:
     sys.exit(1)
 
 def mrc_density_to_pseudo_pdb(mrc_path, out_pdb, threshold_percentile=80):
-    """
+    '''
     Convert MRC density map to a pseudo-PDB by placing C-alpha atoms at
     high-density voxel centres. fpocket requires a PDB input.
-    """
+    '''
     with mrcfile.open(mrc_path, mode='r', permissive=True) as mrc:
         data = mrc.data.astype(np.float32)
         vsize = mrc.voxel_size          # Angstrom/voxel (Å)
@@ -185,10 +185,10 @@ def mrc_density_to_pseudo_pdb(mrc_path, out_pdb, threshold_percentile=80):
     return len(xx)
 
 def run_fpocket(pdb_path):
-    """
+    '''
     Run fpocket on a PDB file, parse output, return list of pocket dicts.
     Returns empty list if fpocket fails (non-fatal: density map may lack pockets).
-    """
+    '''
     result = subprocess.run(
         ['fpocket', '-f', pdb_path],
         capture_output=True, text=True
@@ -227,7 +227,7 @@ def run_fpocket(pdb_path):
 
     return pockets
 
-# ── Main loop ────────────────────────────────────────────────────────────────
+# -- Main loop ----------------------------------------------------------------
 vol_files = sorted(glob.glob("vol_*.mrc"))
 print(f"Found {len(vol_files)} volume(s) to scan")
 
@@ -298,9 +298,9 @@ PYEOF
     """
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // PROCESS 4: Generate heterogeneity summary report
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 process HETEROGENEITY_REPORT {
     tag "$meta.id"
     label 'process_low'
@@ -333,7 +333,7 @@ except ImportError as e:
     print(f"ERROR: missing dependency: {e}", file=sys.stderr)
     sys.exit(1)
 
-# ── Load cryoDRGN analysis outputs ────────────────────────────────────────────
+# -- Load cryoDRGN analysis outputs --------------------------------------------
 analysis_dir = "${analysis_dir}"
 
 # Latent z-coordinates (N x zdim array)
@@ -388,7 +388,7 @@ else:
         conformational_entropy = math.log(n_states)
     print(f"Used {n_states} volume files as conformational state proxy")
 
-# ── Load pocket scan results ──────────────────────────────────────────────────
+# -- Load pocket scan results --------------------------------------------------
 with open("${pockets_json}") as fh:
     pocket_data = json.load(fh)
 
@@ -410,7 +410,7 @@ for item in ensemble:
 states_with_pockets = sum(1 for s in ensemble if s["n_pockets"] > 0)
 avg_pockets = (sum(s["n_pockets"] for s in ensemble) / len(ensemble)) if ensemble else 0.0
 
-# ── Compose final report ──────────────────────────────────────────────────────
+# -- Compose final report ------------------------------------------------------
 report = {
     "sample_id":                "${meta.id}",
     "n_states":                 n_states,
