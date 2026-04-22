@@ -24,6 +24,7 @@ import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics";
 
 // Import new pages
+import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
@@ -84,6 +85,42 @@ function ProjectsRouter() {
   }
 }
 
+// Smart root route: shows marketing landing for guests, platform for authenticated users
+function RootRoute({
+  sidebarCollapsed, setSidebarCollapsed, onNewChat, onChatSelect, onCategorySelect,
+  onToolSelect, onProjectSelect, onNewProject, currentChatSession, onChatUpdated, chatSessions
+}: any) {
+  const { isAuthenticated, isLoading } = useAuth()
+  if (isLoading) return null
+  if (!isAuthenticated) {
+    return (
+      <PublicPageLayout>
+        <LandingPage />
+      </PublicPageLayout>
+    )
+  }
+  return (
+    <PlatformLayout
+      sidebarCollapsed={sidebarCollapsed}
+      setSidebarCollapsed={setSidebarCollapsed}
+      onNewChat={onNewChat}
+      onChatSelect={onChatSelect}
+      onCategorySelect={onCategorySelect}
+      onToolSelect={onToolSelect}
+      onProjectSelect={onProjectSelect}
+      onNewProject={onNewProject}
+      activeChatId={currentChatSession?.id}
+      chatSessions={chatSessions}
+    >
+      <ChatWithArtifacts
+        currentChatSession={currentChatSession}
+        onChatUpdated={onChatUpdated}
+        onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
+      />
+    </PlatformLayout>
+  )
+}
+
 // Public pages wrapper with header and footer
 function PublicPageLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -97,8 +134,14 @@ function PublicPageLayout({ children }: { children: React.ReactNode }) {
 
 // NextflowDemoPage removed
 
-// Authenticated pages wrapper with header
+// Authenticated pages wrapper with header — redirects to /login if not authenticated
 function AuthenticatedPageLayout({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth()
+  const [, navigate] = useLocation()
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) navigate('/login')
+  }, [isAuthenticated, isLoading, navigate])
+  if (!isAuthenticated) return null
   return (
     <>
       <SiteHeader isAuthenticated />
@@ -135,12 +178,6 @@ function PlatformLayout({
 }) {
   const { isAuthenticated, isLoading } = useAuth()
   const [, navigate] = useLocation()
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login')
-    }
-  }, [isAuthenticated, isLoading, navigate])
 
   if (!isAuthenticated) return null
 
@@ -315,9 +352,9 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
-      {/* Platform (existing chat interface with sidebar) */}
+      {/* Root: landing page for guests, platform for authenticated users */}
       <Route path="/">
-        <PlatformLayout
+        <RootRoute
           sidebarCollapsed={sidebarCollapsed}
           setSidebarCollapsed={setSidebarCollapsed}
           onNewChat={onNewChat}
@@ -326,15 +363,10 @@ function Router({
           onToolSelect={onToolSelect}
           onProjectSelect={onProjectSelect}
           onNewProject={onNewProject}
-          activeChatId={currentChatSession?.id}
+          currentChatSession={currentChatSession}
+          onChatUpdated={onChatUpdated}
           chatSessions={chatSessions}
-        >
-          <ChatWithArtifacts
-            currentChatSession={currentChatSession}
-            onChatUpdated={onChatUpdated}
-            onWorkflowPanelOpenChange={(open) => setSidebarCollapsed(open)}
-          />
-        </PlatformLayout>
+        />
       </Route>
 
       <Route path="/projects">
