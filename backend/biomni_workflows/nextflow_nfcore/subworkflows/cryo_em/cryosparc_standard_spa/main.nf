@@ -2415,15 +2415,12 @@ workflow CRYOSPARC_STANDARD_SPA {
     merged_vols = MERGE_VOLUMES(all_volumes)
 
     // ── Phase D-cont: Refinement — parallel per volume ────────────────────────
+    // Use individual AB_INITIO outputs directly so vol_data retains job_uid/output_slot.
+    // MERGE_VOLUMES is kept for reporting only.
 
     HOMO_REFINEMENT_BATCH(
-        merged_vols.volumes_cs
-            .flatMap { vols_file ->
-                def data = new groovy.json.JsonSlurper().parse(vols_file)
-                data.volumes.collect { v ->
-                    tuple("vol_${v.volume_idx}", vols_file)
-                }
-            },
+        AB_INITIO_BATCH.out.volume_cs
+            .map { k, vol_file -> tuple("vol_${k}", vol_file) },
         SELECT_2D_R2.out.selected_cs,
         init_json_ch
     )
