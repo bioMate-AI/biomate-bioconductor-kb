@@ -2601,6 +2601,7 @@ class ResumeRunRequest(BaseModel):
     # Optional nextflow_path sent by routes.ts when _runs may be empty
     # (multi-worker: the original run was registered in a different gunicorn worker)
     nextflow_path: Optional[str] = None
+    is_batch: Optional[bool] = None  # True → awsbatch/S3 resume; None → auto-detect
 
 
 @router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
@@ -2634,31 +2635,39 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
         prev = dict(_runs.get(run_id, {}))
 
     if not prev:
-        # Multi-worker fallback: reconstruct from disk.
-        work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
-        candidate_work_dir = work_base / run_id / "work"
         nextflow_path = body.nextflow_path
-        if not nextflow_path or not candidate_work_dir.exists():
+        if not nextflow_path:
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    f"Run {run_id!r} not found in this worker's run registry "
-                    f"and work directory {candidate_work_dir} does not exist on disk. "
-                    "The run may have been on a different host or the work directory was cleaned up."
+                    f"Run {run_id!r} not found in this worker's run registry. "
+                    "Provide nextflow_path in the request body to resume."
                 ),
             )
+        # Determine if this was a Batch (S3) run.
+        # body.is_batch=True forces Batch mode; None → auto-detect via env var default.
+        _force_batch = body.is_batch
+        if _force_batch is None:
+            _nf_profile = os.environ.get("BIOMATE_NF_PROFILE", "")
+            _force_batch = "batch" in _nf_profile or "awsbatch" in _nf_profile
+        if not _force_batch:
+            # Local fallback: check disk
+            work_base = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs"))
+            candidate_work_dir = work_base / run_id / "work"
+            if not candidate_work_dir.exists():
+                # No disk dir and not forced batch — still try batch if NEXTFLOW_S3_BUCKET set
+                _force_batch = bool(os.environ.get("NEXTFLOW_S3_BUCKET") or os.environ.get("AWS_S3_BUCKET"))
         prev = {
             "nextflow_path": nextflow_path,
-            "work_dir": str(candidate_work_dir),
-            "is_batch": False,
+            "work_dir": None,  # execute_nextflow will reconstruct S3 path via resume_from_run_id
+            "is_batch": _force_batch,
             "profile": None,
             "entry": None,
             "workflow_domain": None,
             "user_id": None,
         }
         log.info(
-            f"[resume/{run_id}] _runs miss — reconstructed from disk: "
-            f"work_dir={candidate_work_dir} nextflow_path={nextflow_path}"
+            f"[resume/{run_id}] _runs miss — reconstructed: nextflow_path={nextflow_path} is_batch={_force_batch}"
         )
 
     resume_request = NextflowExecuteRequest(
