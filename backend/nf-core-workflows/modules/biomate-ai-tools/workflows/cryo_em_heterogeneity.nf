@@ -121,10 +121,11 @@ workflow {
     =========================================================
     """.stripIndent()
 
-    // Build input channels
+    // Build input channels — ctf and poses as value channels so they can
+    // be consumed by both CRYODRGN_TRAIN and CRYODRGN_ANALYZE
     particles_ch = Channel.of([[id: 'sample'], file(params.particles)])
-    ctf_ch       = Channel.fromPath(params.ctf)
-    poses_ch     = Channel.fromPath(params.poses)
+    ctf_ch       = Channel.value(file(params.ctf))
+    poses_ch     = Channel.value(file(params.poses))
 
     // Run workflow
     CRYO_EM_HETEROGENEITY(
