@@ -767,6 +767,8 @@ export function NextflowWorkflowViewer({
           inputs: step.inputs && typeof step.inputs === "object" ? (step.inputs as Record<string, unknown>) : {},
           summary: typeof step.summary === "string" ? step.summary : undefined,
           autoloop: typeof step.autoloop === "boolean" ? step.autoloop : undefined,
+          phase_group: typeof step.phase_group === "string" && step.phase_group ? step.phase_group : undefined,
+          phase_label: typeof step.phase_label === "string" && step.phase_label ? step.phase_label : undefined,
         };
       });
     }
