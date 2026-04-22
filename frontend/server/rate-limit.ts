@@ -73,6 +73,7 @@ export const registerLimiter = rateLimit({
 export const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // 3 attempts per window
+  skip: (req) => isE2EBypass(req) || process.env.NODE_ENV !== 'production',
   message: 'Too many password reset requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -89,6 +90,7 @@ export const passwordResetLimiter = rateLimit({
 export const emailVerificationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 attempts per window
+  skip: (req) => isE2EBypass(req) || process.env.NODE_ENV !== 'production',
   message: 'Too many verification attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

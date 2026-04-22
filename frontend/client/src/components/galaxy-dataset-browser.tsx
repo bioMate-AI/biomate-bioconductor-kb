@@ -228,7 +228,7 @@ function HistoryTab({
     return (
       <div className="text-center py-10 text-sm text-muted-foreground">
         <p>{error}</p>
-        <Button variant="ghost" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+        <Button variant="ghost" size="sm" className="mt-2" onClick={() => setLoadTick(t => t + 1)}>
           Retry
         </Button>
       </div>
@@ -313,8 +313,11 @@ function HistoryTab({
       <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
         <Database className="h-8 w-8 mb-3 opacity-40" />
         <p className="text-sm font-medium">
-          {search ? `No histories match "${search}"` : 'No Galaxy histories found'}
+          {search ? `No histories match "${search}"` : 'No analysis histories found'}
         </p>
+        {!search && (
+          <p className="text-xs mt-1">Run a workflow to see your histories here</p>
+        )}
       </div>
     );
   }
@@ -386,16 +389,38 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
 
   return (
     <div className="space-y-3 px-1 pb-2">
-      <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground">Supported URL formats</p>
-        <p><span className="font-mono text-xs">https://…</span> — public files, no credentials needed</p>
-        <p><span className="font-mono text-xs">ftp://user:pass@host/path</span> — embed credentials in URL</p>
-        <p><span className="font-mono text-xs">s3://bucket/key</span> — uses your AWS credentials from Account Settings</p>
-        <p><span className="font-mono text-xs">https://…</span> <em>with auth</em> — add <span className="font-mono">?token=…</span> or use signed URLs</p>
+      <div className="rounded-md bg-muted/50 p-3 text-xs space-y-2">
+        <p className="font-medium text-foreground">Paste a URL to any remote file</p>
+        <div className="space-y-1.5 text-muted-foreground">
+          <div>
+            <p className="font-medium text-foreground/80 mb-0.5">Public HTTP/HTTPS (no login needed):</p>
+            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
+              https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_file_list.txt
+            </code>
+          </div>
+          <div>
+            <p className="font-medium text-foreground/80 mb-0.5">NCBI SRA / EBI ENA (public dataset):</p>
+            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
+              https://sra-pub-run-odp.s3.amazonaws.com/sra/SRR000001/SRR000001
+            </code>
+          </div>
+          <div>
+            <p className="font-medium text-foreground/80 mb-0.5">FTP with credentials:</p>
+            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
+              ftp://username:password@ftp.example.com/path/to/file.fastq.gz
+            </code>
+          </div>
+          <div>
+            <p className="font-medium text-foreground/80 mb-0.5">AWS S3 (uses Account Settings credentials):</p>
+            <code className="block font-mono bg-background/60 rounded px-2 py-1 text-[11px] select-all">
+              s3://my-bucket/path/to/sample.bam
+            </code>
+          </div>
+        </div>
       </div>
       <div className="flex gap-2">
         <Input
-          placeholder="https://example.com/data.fastq.gz"
+          placeholder="https://… or ftp://… or s3://…"
           value={url}
           onChange={e => setUrl(e.target.value)}
           className="h-8 text-sm font-mono"

@@ -68,6 +68,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (data.success && data.user) {
             setUser(mapResponseToUser(data))
           }
+        } else if (response.status === 429) {
+          // Rate-limited — don't treat as logged out; retry silently after a brief delay
+          setTimeout(checkAuth, 3000)
+          return
         }
       } catch (error) {
         console.error('Auth check failed:', error)
