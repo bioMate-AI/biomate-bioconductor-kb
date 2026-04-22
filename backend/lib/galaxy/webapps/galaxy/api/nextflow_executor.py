@@ -2601,7 +2601,9 @@ class ResumeRunRequest(BaseModel):
     # Optional nextflow_path sent by routes.ts when _runs may be empty
     # (multi-worker: the original run was registered in a different gunicorn worker)
     nextflow_path: Optional[str] = None
-    is_batch: Optional[bool] = None  # True → awsbatch/S3 resume; None → auto-detect
+    is_batch: Optional[bool] = None       # True → awsbatch/S3 resume; None → auto-detect
+    user_id: Optional[str] = None         # needed to reconstruct S3 work dir after restart
+    parameters: Optional[Dict[str, Any]] = None  # forwarded to execute_nextflow
 
 
 @router.get("/api/nextflow/steps", summary="Parse workflow phase steps from a .nf file")
@@ -2664,10 +2666,10 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
             "profile": None,
             "entry": None,
             "workflow_domain": None,
-            "user_id": None,
+            "user_id": body.user_id,
         }
         log.info(
-            f"[resume/{run_id}] _runs miss — reconstructed: nextflow_path={nextflow_path} is_batch={_force_batch}"
+            f"[resume/{run_id}] _runs miss — reconstructed: nextflow_path={nextflow_path} is_batch={_force_batch} user_id={body.user_id!r}"
         )
 
     resume_request = NextflowExecuteRequest(
@@ -2675,7 +2677,8 @@ def resume_nextflow_run(run_id: str, body: ResumeRunRequest = ResumeRunRequest()
         profile=prev.get("profile"),
         entry=prev.get("entry"),
         workflow_domain=prev.get("workflow_domain"),
-        user_id=prev.get("user_id"),
+        user_id=prev.get("user_id") or body.user_id,
+        parameters=body.parameters or None,
         resume_from_run_id=run_id,
         compute_config=(
             {"executor": "awsbatch"} if prev.get("is_batch") else None

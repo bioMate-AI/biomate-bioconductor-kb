@@ -71,7 +71,9 @@ _MULTI_TASK_CACHE_MAX = 128
 
 # Fastest/cheapest model per provider for lightweight classification calls.
 _FAST_CLASSIFICATION_MODELS: dict = {
-    'anthropic': 'claude-haiku-3-5',
+    'anthropic': 'claude-haiku-3-5',  # fallback only — Gemini Flash preferred
+    'gemini': 'gemini-3-flash-preview',
+    'google': 'gemini-3-flash-preview',
     'openai': 'gpt-3.5-turbo',
     'gemini': 'gemini-1.5-flash',
     'google': 'gemini-1.5-flash',
@@ -2532,16 +2534,6 @@ Examples of good inference:
         import os as _os
         import json as _json
 
-        api_key = _os.environ.get("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            return []
-
-        try:
-            import anthropic as _anthropic
-            client = _anthropic.Anthropic(api_key=api_key)
-        except Exception:
-            return []
-
         # Build a compact param catalogue for the prompt
         all_params = req + opt
         # Skip file params — LLM should not fill paths
@@ -2571,13 +2563,12 @@ Examples of good inference:
         )
 
         try:
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=512,
-                system=self._PARAM_SUGGEST_SYSTEM,
+            from .gemini_flash import call_gemini_flash as _gemini_flash  # noqa: PLC0415
+            text = _gemini_flash(
                 messages=[{"role": "user", "content": user_msg}],
-            )
-            text = response.content[0].text.strip()
+                system=self._PARAM_SUGGEST_SYSTEM,
+                max_tokens=512,
+            ).strip()
             # Extract JSON array from response
             start = text.find("[")
             end = text.rfind("]") + 1
