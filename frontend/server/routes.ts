@@ -8764,7 +8764,9 @@ Rules:
         try {
           const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
           const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
-          const s3Uri = `s3://${s3Bucket}/nextflow/outputs/${nfRunId}/output/findings_data.json`;
+          const storedOutdir2: string = (run as any).execution?.nextflowOutputDir || '';
+          const sidecarBase = storedOutdir2 || `s3://${s3Bucket}/nextflow/outputs/${nfRunId}`;
+          const s3Uri = `${sidecarBase.replace(/\/?$/, '')}/output/findings_data.json`;
           const galaxyUrl2 = process.env.GALAXY_URL || 'http://localhost:8081';
           const presignResp = await fetch(
             `${galaxyUrl2}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=${nfRunId}&presigned_only=1`,
@@ -8846,7 +8848,11 @@ Rules:
             try {
               const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
               const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
-              const s3Prefix = `nextflow/outputs/${nfRunId}/`;
+              // Use stored output dir if available (format: s3://bucket/prefix), else fall back to run ID
+              const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+              const s3Prefix = storedOutdir
+                ? storedOutdir.replace(`s3://${s3Bucket}/`, '').replace(/\/?$/, '/')
+                : `nextflow/outputs/${nfRunId}/`;
               const { execFile } = await import('child_process');
               const { promisify } = await import('util');
               const execFileP = promisify(execFile);
