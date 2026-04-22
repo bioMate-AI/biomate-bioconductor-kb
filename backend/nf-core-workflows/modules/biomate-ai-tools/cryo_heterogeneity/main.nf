@@ -104,13 +104,13 @@ process CRYODRGN_ANALYZE {
     // Resolve epoch: use explicit value, else detect last epoch from model_dir
     def epoch_arg = epoch ? "${epoch}" : "\$(ls -d ${model_dir}/weights.*.pkl 2>/dev/null | sort -V | tail -1 | grep -oP '(?<=weights\\.)[0-9]+(?=\\.pkl)' || echo '19')"
     """
-    # Determine the epoch to analyze
-    if [ -n "${epoch}" ] && [ "${epoch}" != "null" ]; then
+    # Determine the epoch to analyze — skip 'auto' / 'null' / empty
+    if echo "${epoch}" | grep -qE '^[0-9]+$'; then
         EPOCH="${epoch}"
     else
         EPOCH=\$(ls ${model_dir}/weights.*.pkl 2>/dev/null \\
                   | sort -V | tail -1 \\
-                  | grep -oE '[0-9]+\\.pkl\$' | grep -oE '^[0-9]+' || echo "19")
+                  | grep -oE '[0-9]+\\.pkl\$' | grep -oE '^[0-9]+' || echo "4")
     fi
 
     echo "Analyzing cryoDRGN output at epoch \${EPOCH} with ${clusters} clusters"
