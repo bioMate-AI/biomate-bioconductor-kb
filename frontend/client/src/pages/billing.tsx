@@ -153,8 +153,12 @@ function monthLabel(month: string): string {
 }
 
 function authHeader(): HeadersInit {
-  const token = localStorage.getItem("auth_token")
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  // Auth is cookie-based; credentials:'include' sends the httpOnly cookie automatically
+  return {}
+}
+
+function authFetch(url: string, opts: RequestInit = {}) {
+  return fetch(url, { ...opts, credentials: 'include' })
 }
 
 // ── data hooks ─────────────────────────────────────────────────────────────
@@ -166,7 +170,7 @@ function useCurrentUsage() {
 
   const fetch_ = useCallback(async () => {
     try {
-      const res = await fetch("/api/billing/usage", { headers: authHeader() })
+      const res = await authFetch("/api/billing/usage", { headers: authHeader() })
       if (res.status === 401) { setError("Not authenticated"); return }
       if (!res.ok) { setError(`Error ${res.status}`); return }
       setData(await res.json())
@@ -189,7 +193,7 @@ function useUsageHistory(months: number) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/billing/usage/history?months=${months}`, {
+        const res = await authFetch(`/api/billing/usage/history?months=${months}`, {
           headers: authHeader(),
         })
         if (res.ok) {
@@ -214,7 +218,7 @@ function useSubscription() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/payments/subscription", { headers: authHeader() })
+        const res = await authFetch("/api/payments/subscription", { headers: authHeader() })
         if (res.ok) setSub(await res.json())
       } catch {
         // non-critical
@@ -244,7 +248,7 @@ function AddCreditsDialog({
   async function handleCheckout() {
     setLoading(true)
     try {
-      const res = await fetch("/api/payments/add-credits", {
+      const res = await authFetch("/api/payments/add-credits", {
         method: "POST",
         headers: {
           ...authHeader(),
@@ -506,7 +510,7 @@ export default function BillingPage() {
     })
     // Small delay so toast is visible before redirect
     setTimeout(async () => {
-      const res = await fetch("/api/payments/add-credits", {
+      const res = await authFetch("/api/payments/add-credits", {
         method: "POST",
         headers: { ...authHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({ amountCents: autoCharge.amountCents, returnUrl: window.location.href }),
@@ -520,7 +524,7 @@ export default function BillingPage() {
   async function handleManageSubscription() {
     setPortalLoading(true)
     try {
-      const res = await fetch("/api/payments/create-portal-session", {
+      const res = await authFetch("/api/payments/create-portal-session", {
         method: "POST",
         headers: { ...authHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({ returnUrl: window.location.href }),
