@@ -41,9 +41,11 @@ export function ReportConfusionButton({
   const [open, setOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setSubmitError(null);
     const ok = await submitFeedback({
       feedback_type: "confusion_report",
       comment: comment.trim() || undefined,
@@ -56,7 +58,10 @@ export function ReportConfusionButton({
     setIsSubmitting(false);
     if (ok.success) {
       setComment("");
+      setSubmitError(null);
       setOpen(false);
+    } else {
+      setSubmitError(ok.error || "Submission failed — please try again.");
     }
   };
 
@@ -90,8 +95,11 @@ export function ReportConfusionButton({
             className="min-h-[80px]"
             rows={3}
           />
+          {submitError && (
+            <p className="text-xs text-destructive">{submitError}</p>
+          )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>
+            <Button variant="ghost" onClick={() => { setOpen(false); setSubmitError(null); }}>
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>

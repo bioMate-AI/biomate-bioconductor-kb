@@ -89,6 +89,7 @@ export async function submitFeedback(payload: FeedbackPayload): Promise<Feedback
   const response = await fetch('/api/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
 

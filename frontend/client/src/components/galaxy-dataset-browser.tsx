@@ -384,13 +384,17 @@ function UrlImportForm({ onImported }: { onImported: (id: string, name: string) 
   };
 
   return (
-    <div className="space-y-2 px-1 pb-2">
-      <p className="text-xs text-muted-foreground">
-        Paste an HTTP, HTTPS, FTP, or S3 URL — Galaxy will fetch the file directly.
-      </p>
+    <div className="space-y-3 px-1 pb-2">
+      <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+        <p className="font-medium text-foreground">Supported URL formats</p>
+        <p><span className="font-mono text-xs">https://…</span> — public files, no credentials needed</p>
+        <p><span className="font-mono text-xs">ftp://user:pass@host/path</span> — embed credentials in URL</p>
+        <p><span className="font-mono text-xs">s3://bucket/key</span> — uses your AWS credentials from Account Settings</p>
+        <p><span className="font-mono text-xs">https://…</span> <em>with auth</em> — add <span className="font-mono">?token=…</span> or use signed URLs</p>
+      </div>
       <div className="flex gap-2">
         <Input
-          placeholder="https://... or s3://bucket/key"
+          placeholder="https://example.com/data.fastq.gz"
           value={url}
           onChange={e => setUrl(e.target.value)}
           className="h-8 text-sm font-mono"
