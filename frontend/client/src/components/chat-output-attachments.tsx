@@ -115,7 +115,7 @@ export function ChatOutputAttachments({
 
   if (visibleOutputs.length === 0) {
     return (
-      <Card className={className}>
+      <Card className={className} data-testid="chat-output-attachments">
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
             No outputs generated yet
