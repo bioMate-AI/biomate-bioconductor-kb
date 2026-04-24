@@ -83,7 +83,6 @@ workflow CRYO_EM_HETEROGENEITY {
     emit:
     model_dir   = CRYODRGN_TRAIN.out.model_dir        // [ meta, path ]
     analysis_dir= CRYODRGN_ANALYZE.out.analysis_dir   // [ meta, path ]
-    umap        = CRYODRGN_ANALYZE.out.umap            // [ meta, path ]
     volumes     = CRYODRGN_ANALYZE.out.volumes         // [ meta, path ]
     pockets     = POCKET_SCAN_ENSEMBLE.out.pockets     // [ meta, path ]
     report      = HETEROGENEITY_REPORT.out.report      // [ meta, path ]
@@ -139,11 +138,6 @@ workflow {
     )
 
     // Summary subscriptions
-    CRYO_EM_HETEROGENEITY.out.umap
-        .subscribe { meta, umap ->
-            log.info "UMAP embedding: ${umap}"
-        }
-
     CRYO_EM_HETEROGENEITY.out.volumes
         .subscribe { meta, vols ->
             def volList = vols instanceof List ? vols : [vols]
