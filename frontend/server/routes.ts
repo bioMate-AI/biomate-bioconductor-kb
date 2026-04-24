@@ -1704,14 +1704,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const _galaxyUrlReg = process.env.GALAXY_URL || 'http://localhost:8081';
       const _billingKeyReg = process.env.BILLING_INTERNAL_KEY;
       if (_billingKeyReg) {
-        fetch(`${_galaxyUrlReg}/internal/billing/upsert_customer`, {
+        fetch(`${_galaxyUrlReg}/internal/billing/register_user`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Internal-Key': _billingKeyReg },
           body: JSON.stringify({
             user_id: result.user.id,
             email: result.user.email,
-            name: result.user.fullName,
-            plan_code: 'base',
+            name: result.user.fullName || result.user.email,
+            plan: result.user.subscriptionTier || 'base',
           }),
           signal: AbortSignal.timeout(8000),
         }).catch((err: any) => console.warn('[Billing] upsert_customer on register failed:', err?.message));
