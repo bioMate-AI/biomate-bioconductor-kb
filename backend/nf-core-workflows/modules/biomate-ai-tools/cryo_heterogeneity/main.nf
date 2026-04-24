@@ -94,9 +94,8 @@ process CRYODRGN_ANALYZE {
     val n_clusters
 
     output:
-    tuple val(meta), path("cryodrgn_output/analyze.*"),                    emit: analysis_dir
-    tuple val(meta), path("cryodrgn_output/analyze.*/kmeans*/vol_*.mrc"),  emit: volumes
-    path "versions.yml",                                                   emit: versions
+    tuple val(meta), path("cryodrgn_output/analyze.*"), emit: analysis_dir
+    path "versions.yml",                                emit: versions
 
     script:
     def prefix   = task.ext.prefix ?: "${meta.id}"
@@ -179,7 +178,7 @@ process POCKET_SCAN_ENSEMBLE {
     container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/cryo-heterogeneity-nf:latest'
 
     input:
-    tuple val(meta), path(volumes)
+    tuple val(meta), path(analysis_dir)
 
     output:
     tuple val(meta), path("ensemble_pockets.json"), emit: pockets
@@ -288,14 +287,16 @@ def run_fpocket(pdb_path):
     return pockets
 
 # -- Main loop ----------------------------------------------------------------
-vol_files = sorted(glob.glob("vol_*.mrc"))
-print(f"Found {len(vol_files)} volume(s) to scan")
+# Scan all kmeans cluster volumes in the staged analysis directory
+vol_files = sorted(glob.glob("${analysis_dir}/kmeans*/vol_*.mrc"))
+print(f"Found {len(vol_files)} volume(s) to scan in {analysis_dir}")
 
 ensemble_results = []
 np.random.seed(42)
 
 for vol_path in vol_files:
-    state_id = os.path.splitext(vol_path)[0]  # e.g. vol_000
+    # e.g. "analyze.5/kmeans2/vol_000" — include subdirectory for uniqueness
+    state_id = os.path.splitext(vol_path)[0]
     print(f"  Processing {vol_path} ...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -349,12 +350,16 @@ print(f"\\nPocket scan complete. Results written to ensemble_pockets.json")
 print(f"States with pockets: {sum(1 for r in ensemble_results if r['n_pockets'] > 0)}/{len(ensemble_results)}")
 PYEOF
 
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        mrcfile: \$(python -c "import mrcfile; print(mrcfile.__version__)")
-        fpocket: \$(fpocket --version 2>&1 | head -1 || echo "installed")
-        numpy: \$(python -c "import numpy; print(numpy.__version__)")
-    END_VERSIONS
+    python3 -c "
+import mrcfile, numpy
+import subprocess, sys
+fp = subprocess.run(['fpocket','--version'],capture_output=True,text=True)
+fp_ver = fp.stdout.strip() or fp.stderr.strip() or 'installed'
+print('${task.process}:')
+print('    mrcfile: ' + mrcfile.__version__)
+print('    fpocket: ' + fp_ver.split()[0])
+print('    numpy: ' + numpy.__version__)
+" > versions.yml
     """
 }
 

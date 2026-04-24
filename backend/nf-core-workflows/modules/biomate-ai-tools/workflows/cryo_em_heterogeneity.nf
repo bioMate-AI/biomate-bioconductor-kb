@@ -71,7 +71,7 @@ workflow CRYO_EM_HETEROGENEITY {
 
     // Step 3: Scan reconstructed ensemble for druggable pockets
     POCKET_SCAN_ENSEMBLE(
-        CRYODRGN_ANALYZE.out.volumes
+        CRYODRGN_ANALYZE.out.analysis_dir
     )
 
     // Step 4: Compile heterogeneity report
@@ -83,7 +83,6 @@ workflow CRYO_EM_HETEROGENEITY {
     emit:
     model_dir   = CRYODRGN_TRAIN.out.model_dir        // [ meta, path ]
     analysis_dir= CRYODRGN_ANALYZE.out.analysis_dir   // [ meta, path ]
-    volumes     = CRYODRGN_ANALYZE.out.volumes         // [ meta, path ]
     pockets     = POCKET_SCAN_ENSEMBLE.out.pockets     // [ meta, path ]
     report      = HETEROGENEITY_REPORT.out.report      // [ meta, path ]
     versions    = CRYODRGN_TRAIN.out.versions          // path
@@ -138,12 +137,6 @@ workflow {
     )
 
     // Summary subscriptions
-    CRYO_EM_HETEROGENEITY.out.volumes
-        .subscribe { meta, vols ->
-            def volList = vols instanceof List ? vols : [vols]
-            log.info "Reconstructed ${volList.size()} conformational state volume(s)"
-        }
-
     CRYO_EM_HETEROGENEITY.out.report
         .subscribe { meta, rpt ->
             log.info "Heterogeneity report: ${rpt}"

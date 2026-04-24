@@ -35,6 +35,7 @@ S3_WORK_DIR="${S3_BUCKET}/work"
 LOCAL_TEST_DATA="${SCRIPT_DIR}"
 PARTICLES_FILE="${LOCAL_TEST_DATA}/cryo_het_test_particles.mrcs"
 CTF_FILE="${LOCAL_TEST_DATA}/cryo_het_test_ctf.pkl"
+POSES_FILE="${LOCAL_TEST_DATA}/cryo_het_test_poses.pkl"
 
 # Reduced params for fast test run
 N_ZDIM=2
@@ -69,9 +70,11 @@ python3 "${SCRIPT_DIR}/generate_cryo_heterogeneity_test.py" \
 
 [[ -f "${PARTICLES_FILE}" ]] || fail "particles file not generated: ${PARTICLES_FILE}"
 [[ -f "${CTF_FILE}"       ]] || fail "CTF file not generated: ${CTF_FILE}"
+[[ -f "${POSES_FILE}"     ]] || fail "poses file not generated: ${POSES_FILE}"
 
 log "  -> particles: ${PARTICLES_FILE}"
 log "  -> ctf:       ${CTF_FILE}"
+log "  -> poses:     ${POSES_FILE}"
 
 # ─── Step 2: Upload to S3 (skip in local mode) ───────────────────────────────
 if [[ "${LOCAL_MODE}" == "false" ]]; then
@@ -92,13 +95,20 @@ if [[ "${LOCAL_MODE}" == "false" ]]; then
         --only-show-errors
     log "  -> uploaded CTF to ${S3_INPUT_PREFIX}/cryo_het_test_ctf.pkl"
 
+    "${AWS_CLI}" s3 cp "${POSES_FILE}" \
+        "${S3_INPUT_PREFIX}/cryo_het_test_poses.pkl" \
+        --only-show-errors
+    log "  -> uploaded poses to ${S3_INPUT_PREFIX}/cryo_het_test_poses.pkl"
+
     PARTICLES_ARG="${S3_INPUT_PREFIX}/cryo_het_test_particles.mrcs"
     CTF_ARG="${S3_INPUT_PREFIX}/cryo_het_test_ctf.pkl"
+    POSES_ARG="${S3_INPUT_PREFIX}/cryo_het_test_poses.pkl"
     OUTDIR_ARG="${S3_OUTPUT_PREFIX}"
 else
     log "Step 2: Skipping S3 upload (--local mode)"
     PARTICLES_ARG="${PARTICLES_FILE}"
     CTF_ARG="${CTF_FILE}"
+    POSES_ARG="${POSES_FILE}"
     OUTDIR_ARG="${WORKFLOW_DIR}/results/cryo_het_test"
 fi
 
@@ -115,6 +125,7 @@ NF_CMD=(
     -name    "${RUN_NAME}"
     --particles  "${PARTICLES_ARG}"
     --ctf        "${CTF_ARG}"
+    --poses      "${POSES_ARG}"
     --n_zdim     "${N_ZDIM}"
     --n_epochs   "${N_EPOCHS}"
     --n_clusters "${N_CLUSTERS}"
