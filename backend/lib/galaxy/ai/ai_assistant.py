@@ -2831,21 +2831,23 @@ Examples of good inference:
         # extract them directly from the raw user intent via regex.
         import re as _re
         _exec_params: dict = {}
+        _is_cryo_em = _is_cryosparc or match.domain in ('cryo_em',) or 'cryo' in match.name.lower()
         if _is_cryosparc:
             for _kw in ('movies_path', 'movie_dir', 'pixel_size', 'num_movies'):
                 _m = _re.search(rf'\b{_kw}\s*=\s*([^\s,;]+)', user_intent, _re.IGNORECASE)
                 if _m:
                     _exec_params[_kw] = _m.group(1).rstrip('.,;')
-            # Auto-inject movies_path from uploaded files (e.g. .mrc/.tif/.eer)
-            if not _exec_params.get('movies_path') and uploaded_datasets:
-                _cryo_exts = ('.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.dm4')
-                for _ds in uploaded_datasets:
-                    _fp = _ds.get('file_path', '') or ''
-                    _nm = _ds.get('name', '') or ''
-                    if any((_fp.lower().endswith(ext) or _nm.lower().endswith(ext))
-                           for ext in _cryo_exts):
-                        _exec_params['movies_path'] = _fp or _nm
-                        break
+        # Auto-inject movies_path from uploaded files for ALL cryo-EM workflows (CryoSPARC + Nextflow)
+        if _is_cryo_em and not _exec_params.get('movies_path') and uploaded_datasets:
+            _cryo_exts = ('.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.dm4')
+            for _ds in uploaded_datasets:
+                _fp = _ds.get('file_path', '') or ''
+                _nm = _ds.get('name', '') or ''
+                if any((_fp.lower().endswith(ext) or _nm.lower().endswith(ext))
+                       for ext in _cryo_exts):
+                    _exec_params['movies_path'] = _fp or _nm
+                    break
+        if _is_cryosparc:
             for _p in req + opt:
                 _pn = _p.get('name', '')
                 _pv = _p.get('default') or _p.get('value')
