@@ -289,14 +289,16 @@ def run_fpocket(pdb_path):
 # -- Main loop ----------------------------------------------------------------
 # Scan all kmeans cluster volumes in the staged analysis directory
 vol_files = sorted(glob.glob("${analysis_dir}/kmeans*/vol_*.mrc"))
-print(f"Found {len(vol_files)} volume(s) to scan in {analysis_dir}")
+print(f"Found {len(vol_files)} volume(s) to scan in ${analysis_dir}")
 
 ensemble_results = []
 np.random.seed(42)
 
 for vol_path in vol_files:
-    # e.g. "analyze.5/kmeans2/vol_000" — include subdirectory for uniqueness
-    state_id = os.path.splitext(vol_path)[0]
+    # Build unique state_id: "kmeans2_vol_001" to distinguish across cluster dirs
+    cluster_dir = os.path.basename(os.path.dirname(vol_path))
+    vol_base    = os.path.splitext(os.path.basename(vol_path))[0]
+    state_id    = f"{cluster_dir}_{vol_base}"
     print(f"  Processing {vol_path} ...")
 
     with tempfile.TemporaryDirectory() as tmpdir:
