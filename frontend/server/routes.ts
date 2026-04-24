@@ -1700,6 +1700,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('[Auth] Failed to send verification email:', err)
       );
 
+      // Register user in Lago for usage-based billing (fire-and-forget)
+      const _galaxyUrlReg = process.env.GALAXY_URL || 'http://localhost:8081';
+      const _billingKeyReg = process.env.BILLING_INTERNAL_KEY;
+      if (_billingKeyReg) {
+        fetch(`${_galaxyUrlReg}/internal/billing/upsert_customer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Internal-Key': _billingKeyReg },
+          body: JSON.stringify({
+            user_id: result.user.id,
+            email: result.user.email,
+            name: result.user.fullName,
+            plan_code: 'base',
+          }),
+          signal: AbortSignal.timeout(8000),
+        }).catch((err: any) => console.warn('[Billing] upsert_customer on register failed:', err?.message));
+      }
+
       // Set HTTP-only cookie
       res.cookie('biomate_token', result.token, {
         httpOnly: true,
