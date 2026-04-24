@@ -16,7 +16,7 @@ process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.3'
 
     input:
     tuple val(meta), path(pdb_or_fasta)
@@ -146,7 +146,7 @@ process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.3'
 
     input:
     tuple val(meta), path(ensemble_tgz)
@@ -314,7 +314,7 @@ process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:latest'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.3'
 
     input:
     tuple val(meta), path(ensemble_tgz)
