@@ -2074,6 +2074,9 @@ def generate_workflow_unified(
         # request.available_datasets contains BioMNI public reference datasets used for
         # knowledge retrieval — NOT user input files.
         uploaded_datasets = request.session_datasets or None
+        import sys
+        print(f"[DEBUG generate_workflow] session_datasets={request.session_datasets}", file=sys.stderr, flush=True)
+        print(f"[DEBUG generate_workflow] uploaded_datasets={uploaded_datasets}", file=sys.stderr, flush=True)
 
         user_id = str(trans.user.id) if getattr(trans, "user", None) else None
 
