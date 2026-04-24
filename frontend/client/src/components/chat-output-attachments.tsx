@@ -166,7 +166,7 @@ export function ChatOutputAttachments({
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`} data-testid="chat-output-attachments">
       <DownloadOutcomePrompt
         open={downloadPromptOpen}
         onOpenChange={setDownloadPromptOpen}
