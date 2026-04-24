@@ -2836,6 +2836,16 @@ Examples of good inference:
                 _m = _re.search(rf'\b{_kw}\s*=\s*([^\s,;]+)', user_intent, _re.IGNORECASE)
                 if _m:
                     _exec_params[_kw] = _m.group(1).rstrip('.,;')
+            # Auto-inject movies_path from uploaded files (e.g. .mrc/.tif/.eer)
+            if not _exec_params.get('movies_path') and uploaded_datasets:
+                _cryo_exts = ('.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.dm4')
+                for _ds in uploaded_datasets:
+                    _fp = _ds.get('file_path', '') or ''
+                    _nm = _ds.get('name', '') or ''
+                    if any((_fp.lower().endswith(ext) or _nm.lower().endswith(ext))
+                           for ext in _cryo_exts):
+                        _exec_params['movies_path'] = _fp or _nm
+                        break
             for _p in req + opt:
                 _pn = _p.get('name', '')
                 _pv = _p.get('default') or _p.get('value')
