@@ -322,7 +322,8 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
         invocationId: currentRun?.execution?.galaxyInvocationId,
         actualTimeSec: currentRun?.execution?.nextflowStatus?.duration_s ?? undefined,
       })
-      setShowPostRunSurvey(true)
+      // Delay survey 8s so users can see the completion state / download panel first
+      setTimeout(() => setShowPostRunSurvey(true), 8000)
     }
   }, [currentRun?.id, currentRun?.execution?.status, currentRun?.execution?.galaxyInvocationId])
 
