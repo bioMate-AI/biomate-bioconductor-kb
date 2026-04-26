@@ -73,6 +73,7 @@ ECR_STORAGE_PER_GB_MONTH         = 0.10
 LLM_PRICING: dict[str, dict] = {
     # Anthropic Claude
     "claude-opus-4-6":                {"input_per_1m": 15.00, "output_per_1m": 75.00},
+    "claude-sonnet-4-6":              {"input_per_1m":  3.00, "output_per_1m": 15.00},
     "claude-sonnet-4-5-20250929":     {"input_per_1m":  3.00, "output_per_1m": 15.00},
     "claude-haiku-4-5-20251001":      {"input_per_1m":  0.25, "output_per_1m":  1.25},
     # Google Gemini
