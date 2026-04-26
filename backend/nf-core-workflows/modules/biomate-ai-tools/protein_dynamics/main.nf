@@ -375,7 +375,7 @@ print(f"[CONFORMATIONAL_SUMMARY] Processing {n} conformers", flush=True)
 
 # -- Compute pairwise Cα RMSD matrix ------------------------------------------
 def get_ca_coords(pdb_path):
-    """Extract Cα coordinates from a PDB file using Biopython."""
+    # Extract Ca coordinates from a PDB file using Biopython
     parser = bpdb.PDBParser(QUIET=True)
     structure = parser.get_structure("s", pdb_path)
     coords = []
@@ -391,7 +391,7 @@ def get_ca_coords(pdb_path):
     return np.array(coords, dtype=np.float32)
 
 def rmsd(a, b):
-    """Compute RMSD between two Cα coordinate arrays (same length)."""
+    # Compute RMSD between two Ca coordinate arrays (same length)
     min_len = min(len(a), len(b))
     if min_len == 0:
         return 0.0
@@ -399,7 +399,7 @@ def rmsd(a, b):
     return float(np.sqrt((diff ** 2).sum(axis=1).mean()))
 
 def radius_of_gyration(coords):
-    """Mass-unweighted radius of gyration."""
+    # Mass-unweighted radius of gyration
     if len(coords) == 0:
         return 0.0
     centre = coords.mean(axis=0)
