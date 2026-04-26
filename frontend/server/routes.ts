@@ -4121,6 +4121,7 @@ Extract every real number from the output data. A reviewer should be able to ver
 
       // Use memory-enhanced processing when available: loads user preferences + past corrections,
       // injects prior experience hints, and records interactions for future learning.
+      const _streamStartTime = Date.now();
       const assistantResponse = memoryIntegration
         ? await memoryIntegration.processWithMemory(
             safeMessage,
