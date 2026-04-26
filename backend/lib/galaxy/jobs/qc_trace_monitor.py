@@ -370,6 +370,32 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
             "[BRONZE] CryoSPARC VPP tutorial (2023) — CTF fit quality relaxed for VPP data",
         ],
     },
+    "cryoem_spa_standard": {
+        "description": (
+            "Standard single-particle analysis with default gates (alias for cryoem_spa_purified). "
+            "Suitable for well-behaved soluble complexes without special sample considerations."
+        ),
+        "domain_hint": "cryo_em",
+        "overrides": {},
+        "references": ["EMPIAR deposition standards; EMDB validation report (2024)"],
+    },
+    "cryoem_spa_lowdose": {
+        "description": (
+            "Low-dose single-particle cryo-EM using minimal electron dose per frame. "
+            "Optimized for beam-sensitive samples (e.g., RNA complexes, small proteins <100 kDa). "
+            "Total drift and correlation thresholds are relaxed to accommodate low-SNR micrographs."
+        ),
+        "domain_hint": "cryo_em",
+        "overrides": {
+            "total_drift_angstrom": 70.0,   # relaxed: low-dose means higher shot noise → more drift
+            "fit_quality": 0.60,            # relaxed for low-SNR CTF estimates
+            "correlation_score": 0.40,      # relaxed: low dose reduces particle correlation
+        },
+        "references": [
+            "[BRONZE] Low-dose cryo-EM community practice; Henderson et al. 2012 Structure",
+            "[BRONZE] CryoSPARC low-dose guide (2024)",
+        ],
+    },
     "cryoem_tomo_in_situ": {
         "description": (
             "Cryo-electron tomography of cellular lamellae prepared by FIB-SEM milling. "
