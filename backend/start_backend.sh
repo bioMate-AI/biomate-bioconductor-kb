@@ -21,14 +21,14 @@ export BILLING_INTERNAL_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE
 export JWT_SECRET="grhFb+sJVOuSvQXQrxjjbSWWBby/w0oQFvg9tVv/KSc="
 export REDIS_URL=redis://localhost:6379
 
-# Lago billing (local Docker)
-export LAGO_API_URL=http://localhost:3010
-export LAGO_API_KEY=ba049ead-f0da-494a-b0ec-b76bdc26fc96
+# Lago billing — AWS production instance
+export LAGO_API_URL=http://35.86.137.71:3000
+export LAGO_API_KEY=01b71711-be39-49af-8d14-87a4ee827157
 export LAGO_WEBHOOK_SECRET=9ef2c8b4-9d99-47f5-98d8-520a22ed3bde
 
-# Java billing service — disabled in local dev (AWS EC2 instance stopped)
+# Java billing service
 export JAVA_BILLING_SERVICE_URL=http://35.86.137.71:8080
-export JAVA_BILLING_ENABLED=false
+export JAVA_BILLING_ENABLED=true
 
 # AWS Batch execution — ALL Nextflow workflows run on AWS Batch by default
 export NEXTFLOW_USE_AWS=true

@@ -55,6 +55,7 @@ _RETRY_DELAYS: tuple[float, ...] = (1.0, 2.0, 4.0)
 # Event codes — must match exactly what is configured in Lago
 # ---------------------------------------------------------------------------
 class EventCode:
+    LLM                 = "llm"
     LLM_INPUT_TOKENS    = "llm_input_tokens"
     LLM_OUTPUT_TOKENS   = "llm_output_tokens"
     BATCH_VCPU_SECONDS  = "batch_vcpu_seconds"
@@ -236,6 +237,17 @@ class LagoClient:
                 code=EventCode.LLM_OUTPUT_TOKENS,
                 timestamp=ts,
                 properties={"tokens": output_tokens, "model": model},
+            ),
+            LagoEvent(
+                transaction_id=f"llm-agg-{session_id}-{uid}",
+                external_subscription_id=sub,
+                code=EventCode.LLM,
+                timestamp=ts,
+                properties={
+                    "value": input_tokens + output_tokens,
+                    "model": model,
+                    "session_id": session_id,
+                },
             ),
         ])
 

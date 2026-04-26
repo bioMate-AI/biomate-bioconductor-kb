@@ -53,6 +53,27 @@ def _cost_calculator():
         return None
 
 
+def _lago_client():
+    """Lazy import of Lago client. Returns None on import failure."""
+    try:
+        import importlib
+        lago_mod = importlib.import_module("galaxy.ai.billing.core.lago_client")
+        return lago_mod.get_lago_client()
+    except Exception as exc:
+        log.debug("[BillingInternal] lago_client unavailable: %s", exc)
+        return None
+
+
+def _get_user_plan_code(user_id: str) -> str:
+    """Lazy import of user plan resolver."""
+    try:
+        import importlib
+        qe = importlib.import_module("galaxy.ai.billing.core.quota_enforcer")
+        return qe.get_user_plan_code(user_id)
+    except Exception:
+        return "base"
+
+
 @router.post("/internal/billing/llm_cost", include_in_schema=False)
 async def record_llm_cost(request: Request) -> Dict[str, Any]:
     """
@@ -123,6 +144,22 @@ async def record_llm_cost(request: Request) -> Dict[str, Any]:
                     )
             except Exception as redis_exc:
                 log.debug("[BillingInternal] Redis write skipped (non-fatal): %s", redis_exc)
+
+        # 3. Lago emission for usage-based billing (fire-and-forget)
+        try:
+            lago = _lago_client()
+            if lago is not None:
+                plan_code = _get_user_plan_code(user_id)
+                lago.emit_llm(
+                    user_id=user_id,
+                    session_id=session_id,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    model=model,
+                    plan_code=plan_code,
+                )
+        except Exception as lago_exc:
+            log.warning("[BillingInternal] Lago emit skipped (non-fatal): %s", lago_exc)
 
         log.info(
             "[BillingInternal] Recorded LLM cost: user=%s model=%s in=%d out=%d",
