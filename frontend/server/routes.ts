@@ -4254,6 +4254,24 @@ Extract every real number from the output data. A reviewer should be able to ver
           sources: assistantResponse.sources,
           memoryUsed: false,
           workflowGenerationDiagnostics,
+          // Cost/token metadata — consumed by eval harness and billing dashboard
+          llm_usage: (() => {
+            const model = galaxyAssistant?.getModelConfig().responseModel || 'claude-sonnet-4-6';
+            const inTok  = tokenCounter.countText(String(message || "")).tokens;
+            const outTok = tokenCounter.countText(String(assistantResponse.message || "")).tokens;
+            const dur    = Date.now() - _streamStartTime;
+            // Pricing table (mirrors cost_calculator.py LLM_PRICING)
+            const pricing: Record<string, {i: number; o: number}> = {
+              'claude-opus-4-6':            {i: 15.00,  o: 75.00},
+              'claude-sonnet-4-6':          {i:  3.00,  o: 15.00},
+              'claude-sonnet-4-5-20250929': {i:  3.00,  o: 15.00},
+              'claude-haiku-4-5-20251001':  {i:  0.25,  o:  1.25},
+              'gemini-3-flash-preview':     {i:  0.075, o:  0.30},
+            };
+            const p = pricing[model] ?? {i: 3.00, o: 15.00};
+            const cost = (inTok * p.i + outTok * p.o) / 1_000_000;
+            return { model, input_tokens: inTok, output_tokens: outTok, cost_usd: cost, duration_ms: dur };
+          })(),
         },
         subIntentResults: assistantResponse.subIntentResults,
         isMultiIntent: assistantResponse.isMultiIntent || false,
@@ -4282,7 +4300,7 @@ Extract every real number from the output data. A reviewer should be able to ver
               model: galaxyAssistant?.getModelConfig().responseModel || 'claude-sonnet-4-6',
               input_tokens: inCount,
               output_tokens: outCount,
-              duration_ms: 0,
+              duration_ms: Date.now() - _streamStartTime,
             }),
             signal: AbortSignal.timeout(5000),
           }).catch((err: any) => {
