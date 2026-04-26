@@ -48,23 +48,30 @@ input_file   = "${pdb_or_fasta}"
 prefix       = "${prefix}"
 n_samples    = int("${n_samp}")
 
-# Attempt CLI first; fall back to Python API
-cli_result = subprocess.run(
-    ["bioemu-sample",
-     "--input",     input_file,
-     "--n_samples", str(n_samples),
-     "--output_dir", "ensemble_pdbs"],
-    capture_output=True, text=True
-)
+os.makedirs("ensemble_pdbs", exist_ok=True)
 
-if cli_result.returncode == 0:
-    print("[BIOEMU_SAMPLE] BioEmu CLI succeeded", flush=True)
-    print(cli_result.stdout, flush=True)
-else:
-    print("[BIOEMU_SAMPLE] BioEmu CLI failed, trying Python API", flush=True)
-    print(cli_result.stderr[:300], flush=True)
+bioemu_ok = False
 
-    bioemu_ok = False
+# Attempt BioEmu CLI (raises FileNotFoundError if not installed, not returncode!=0)
+try:
+    cli_result = subprocess.run(
+        ["bioemu-sample",
+         "--input",     input_file,
+         "--n_samples", str(n_samples),
+         "--output_dir", "ensemble_pdbs"],
+        capture_output=True, text=True
+    )
+    if cli_result.returncode == 0:
+        bioemu_ok = True
+        print("[BIOEMU_SAMPLE] BioEmu CLI succeeded", flush=True)
+        print(cli_result.stdout, flush=True)
+    else:
+        print("[BIOEMU_SAMPLE] BioEmu CLI non-zero exit — trying Python API", flush=True)
+        print(cli_result.stderr[:300], flush=True)
+except (FileNotFoundError, OSError):
+    print("[BIOEMU_SAMPLE] bioemu-sample not found — trying Python API", flush=True)
+
+if not bioemu_ok:
     try:
         from bioemu.sample import sample_conformations
         sample_conformations(
@@ -78,7 +85,7 @@ else:
     except Exception as ex:
         print(f"[BIOEMU_SAMPLE] bioemu API error: {ex} — using MDAnalysis fallback", flush=True)
 
-    if not bioemu_ok:
+if not bioemu_ok:
         # MDAnalysis fallback: generate Gaussian-perturbed conformations (~0.5 Å sigma)
         # approximates thermal backbone fluctuations for ordered proteins at 300 K
         ext = os.path.splitext(input_file)[1].lower()
