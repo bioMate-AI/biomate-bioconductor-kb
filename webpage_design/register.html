@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Create an account — BioMate AI</title>
+  <link rel="stylesheet" href="fonts/fonts.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .bm-or-divider {
+      display: flex; align-items: center; gap: .75rem;
+      color: var(--text-faint); font-size: .75rem;
+      margin: 1rem 0;
+    }
+    .bm-or-divider::before, .bm-or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+    .bm-oauth-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .bm-oauth-btn {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      padding: .6rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg);
+      font-size: .85rem; color: var(--text);
+      text-decoration: none;
+      transition: border-color .2s;
+    }
+    .bm-oauth-btn:hover { border-color: var(--accent); color: var(--text); }
+    .bm-pw-reqs { list-style: none; display: flex; flex-direction: column; gap: .2rem; margin-top: .4rem; }
+    .bm-pw-reqs li { font-size: .75rem; color: var(--text-faint); padding-left: 1.2rem; position: relative; }
+    .bm-pw-reqs li::before { content: '·'; position: absolute; left: .35rem; }
+  </style>
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-section" style="min-height:calc(100vh - 140px);display:flex;align-items:flex-start;padding-top:3rem;">
+    <div class="bm-section-inner" style="max-width:520px;width:100%;">
+
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem;">
+        <span class="bm-eyebrow">Free to start</span>
+        <h1 class="bm-h2" style="margin:.5rem 0 .35rem;">Create your account</h1>
+        <p style="font-size:.875rem;color:var(--text-muted);margin-bottom:1.75rem;">7-day free trial &middot; no credit card required to start</p>
+
+        <form action="https://dev-public.biomate.ai/register" method="get" style="display:flex;flex-direction:column;gap:.85rem;">
+          <input type="hidden" name="next" id="next-field" value=""/>
+          <script>
+            (function(){
+              const n = new URLSearchParams(window.location.search).get('next');
+              if (n) document.getElementById('next-field').value = decodeURIComponent(n);
+            })();
+          </script>
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Full name
+            <input type="text" name="fullName" placeholder="Dr. Jane Smith" autocomplete="name"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;"/>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Email
+            <input type="email" name="email" placeholder="name@institution.edu" autocomplete="email"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;"/>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Institution or organization
+            <input type="text" name="institution" placeholder="e.g. Pfizer, Genentech, Stanford University" autocomplete="organization"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;"/>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Your role
+            <select name="role" class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;">
+              <option value="">Select your role…</option>
+              <option>Principal Investigator / PI</option>
+              <option>Postdoctoral Researcher</option>
+              <option>PhD Student / Graduate Student</option>
+              <option>Research Scientist</option>
+              <option>Computational Biologist / Bioinformatician</option>
+              <option>Core Facility Operator</option>
+              <option>Pharma / Biotech Researcher</option>
+              <option>Clinical Genomics</option>
+              <option>Other</option>
+            </select>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Invite code
+            <span style="font-size:.75rem;color:var(--text-faint);margin-top:-.15rem;">Optional — required during closed beta</span>
+            <input type="text" name="inviteCode" placeholder="BETA-XXXX-XXXX" autocomplete="off"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;font-family:monospace;letter-spacing:.06em;"/>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Password
+            <input type="password" name="password" autocomplete="new-password"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;"/>
+            <ul class="bm-pw-reqs">
+              <li>At least 8 characters</li>
+              <li>Contains a number</li>
+              <li>Contains a special character (!@#$%^&amp;*)</li>
+            </ul>
+          </label>
+
+          <label style="display:flex;flex-direction:column;gap:.35rem;font-size:.82rem;color:var(--text-muted);">
+            Confirm password
+            <input type="password" name="confirmPassword" autocomplete="new-password"
+              class="bm-side-input" style="margin:0;padding:11px 14px;font-size:.95rem;"/>
+          </label>
+
+          <label style="display:flex;align-items:flex-start;gap:.6rem;font-size:.82rem;color:var(--text-muted);cursor:pointer;margin-top:.25rem;">
+            <input type="checkbox" name="agreeToTerms" required
+              style="margin-top:.2rem;accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;"/>
+            I agree to the
+            <a href="https://dev-public.biomate.ai/terms" target="_blank" style="color:var(--accent);">Terms of Service</a>
+            and
+            <a href="https://dev-public.biomate.ai/privacy" target="_blank" style="color:var(--accent);">Privacy Policy</a>
+          </label>
+
+          <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg" style="justify-content:center;margin-top:.5rem;">
+            Create account &rarr;
+          </button>
+        </form>
+
+        <div class="bm-or-divider">or continue with</div>
+
+        <div class="bm-oauth-row">
+          <a href="https://dev-public.biomate.ai/register?oauth=google" class="bm-oauth-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Google
+          </a>
+          <a href="https://dev-public.biomate.ai/register?oauth=github" class="bm-oauth-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/></svg>
+            GitHub
+          </a>
+        </div>
+
+        <p style="text-align:center;margin-top:1.5rem;font-size:.85rem;color:var(--text-muted);">
+          Already have an account? <a href="login.html" style="color:var(--accent);">Log in &rarr;</a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({active:'register'});</script>
+</body>
+</html>

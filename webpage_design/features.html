@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Features &mdash; BioMate AI</title>
+  <meta name="description" content="A guided product tour of BioMate AI: retrieval-grounded answers, evidence-graded QC, audit-ready packs and a workflow catalog purpose-built for regulated biomedical science." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- ════ Page hero ════ -->
+  <section class="bm-page-hero">
+    <div class="bm-page-hero-inner">
+      <span class="bm-eyebrow">Platform capabilities</span>
+      <h1 class="bm-h1" style="margin-top:1rem;">Everything your team needs to <em class="bm-em-accent">move faster.</em></h1>
+      <p class="bm-lead">BioMate is built for real scientific work, not demos. Every capability is QC-gated, auditable, and reproducible — whether the result is going into a paper, a regulatory submission, or the next experiment.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:2rem;">
+        <a href="register.html" class="bm-btn bm-btn-primary bm-btn-lg">Start free</a>
+        <a href="pricing.html" class="bm-btn bm-btn-outline bm-btn-lg">See pricing</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Feature 1 — Routing ════ -->
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Workflow routing</span>
+          <h2 class="bm-h2">Describe a goal in plain English. BioMate picks the right pipeline.</h2>
+          <p>The routing engine maps loose research questions to validated workflows with <b>94.6% accuracy</b> across 60+ pipelines &mdash; from AlphaFold structure prediction to GATK variant calling to CryoSPARC particle picking. No bioinformatics rote required.</p>
+          <ul>
+            <li>Ranks candidate pipelines with explicit confidence scores</li>
+            <li>Surfaces alternative workflows when the top choice has a known limitation</li>
+            <li>Refuses ambiguous queries instead of guessing</li>
+            <li>Falls back to human triage with a reasoning trace attached</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">router · resolved 0.94 confidence</span>
+          </div>
+          <div class="bm-feat-mock-body">
+            <div style="font-family:var(--font-mono);font-size:.78rem;color:#cfeaf2;background:rgba(255,255,255,.04);padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+              &gt; predict structures of 38 variants of human IL23R extracellular domain
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(143,214,234,.08);border:1px solid rgba(143,214,234,.3);border-radius:8px;">
+                <span style="color:#fff;font-weight:600;">AlphaFold2 multimer · v2.3.2</span>
+                <span style="color:#a6e2c4;font-family:var(--font-mono);font-size:.78rem;">0.94 ✓</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:8px;color:var(--on-ink-mute);">
+                <span>ESMFold · v1</span>
+                <span style="font-family:var(--font-mono);font-size:.78rem;">0.71</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:8px;color:var(--on-ink-mute);">
+                <span>OmegaFold</span>
+                <span style="font-family:var(--font-mono);font-size:.78rem;">0.62</span>
+              </div>
+            </div>
+            <div style="font-size:.78rem;color:var(--on-ink-mute);">Inputs auto‑prepared from a Benchling sequence collection · 38 jobs queued · 12.4 GPU‑h estimated.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Feature 2 — Parameter mgmt ════ -->
+  <section class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row reverse">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Parameter management</span>
+          <h2 class="bm-h2">Pre‑filled parameters, validated before they run.</h2>
+          <p>BioMate auto‑fills workflow parameters from your query context, file type and research domain. Required inputs are flagged. Optional ones show evidence‑based defaults &mdash; with the citation that justified the value.</p>
+          <ul>
+            <li>Parameter validation at submit, not at runtime</li>
+            <li>Defaults grounded in published benchmarks, not folklore</li>
+            <li>Per‑lab overrides preserved across runs</li>
+            <li>Diff view between an old run and the next</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">params · GATK HaplotypeCaller · germline</span>
+          </div>
+          <div class="bm-feat-mock-body" style="font-family:var(--font-mono);font-size:.8rem;">
+            <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>--min-base-quality</span><span style="color:#a6e2c4;">20</span></div>
+            <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>--standard-min-confidence</span><span style="color:#a6e2c4;">30.0</span></div>
+            <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>--emit-ref-confidence</span><span style="color:#a6e2c4;">GVCF</span></div>
+            <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>--ploidy</span><span style="color:#f5cd87;">2 ⚠ override?</span></div>
+            <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>--reference</span><span style="color:#a6e2c4;">GRCh38.p14</span></div>
+            <div style="background:rgba(143,214,234,.08);border:1px solid rgba(143,214,234,.2);border-radius:6px;padding:8px 10px;color:#cfeaf2;font-size:.74rem;line-height:1.5;">
+              <b style="color:#8fd6ea;">Why this default?</b><br/>
+              Min base quality of 20 follows GATK best practices for germline short‑variant discovery (Van der Auwera &amp; O'Connor, 2020).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Feature 3 — QC ════ -->
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Evidence‑graded QC</span>
+          <h2 class="bm-h2">GOLD / SILVER / BRONZE &mdash; so you always know where your result stands.</h2>
+          <p>Every run is evaluated against 32 domain‑specific QC profiles. BioMate grades outputs, explains <em>which</em> metrics passed or failed, and gives you the cited standard behind every threshold &mdash; so the result is defensible whether it goes into a paper, a regulatory filing, or a CRO handoff.</p>
+          <ul>
+            <li>Per‑profile thresholds, version‑pinned</li>
+            <li>Reviewer overrides require a written justification</li>
+            <li>Explicit &ldquo;needs human review&rdquo; state &mdash; never silently passes</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">qc · run #c2f9 · cryo-EM single particle</span>
+          </div>
+          <div class="bm-feat-mock-body">
+            <div style="display:flex;align-items:center;gap:14px;background:linear-gradient(90deg, rgba(245,205,135,.18), transparent);padding:12px 14px;border-radius:10px;border:1px solid rgba(245,205,135,.3);">
+              <div style="font-family:var(--font-head);font-size:1.6rem;font-weight:600;color:#f5cd87;">SILVER</div>
+              <div style="flex:1;color:var(--on-ink-mute);font-size:.84rem;">3 of 4 gates passed · CTF resolution at threshold</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:.78rem;">
+              <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>defocus range (μm)</span><span style="color:#a6e2c4;">1.0&ndash;2.4 ✓</span></div>
+              <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>CTF resolution (Å)</span><span style="color:#f5cd87;">3.8 ⚠</span></div>
+              <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>particle count</span><span style="color:#a6e2c4;">142,108 ✓</span></div>
+              <div style="display:flex;justify-content:space-between;color:#cfeaf2;"><span>FSC 0.143 (Å)</span><span style="color:#a6e2c4;">3.1 ✓</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Feature 4 — Reproducibility / audit ════ -->
+  <section class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-feat-row reverse">
+        <div class="bm-feat-text">
+          <span class="bm-eyebrow">Reproducibility &amp; audit</span>
+          <h2 class="bm-h2">A complete record of every decision &mdash; forever.</h2>
+          <p>BioMate maintains an immutable audit trail for every run: parameters set, parameters overridden, retrieved sources, reviewer comments, and a deterministic re‑run hash. Export to PDF or JSON, or pipe directly to your DMS.</p>
+          <ul>
+            <li>21 CFR Part 11 e‑signature support</li>
+            <li>Tenant‑managed key rotation</li>
+            <li>Bit‑identical re‑run from a single hash</li>
+            <li>Reviewer surface separate from the executor</li>
+          </ul>
+        </div>
+        <div class="bm-feat-mock">
+          <div class="bm-feat-mock-bar">
+            <div class="bm-console-dots"><span></span><span></span><span></span></div>
+            <span class="bm-feat-mock-title">audit · run #c2f9 · history (14 events)</span>
+          </div>
+          <div class="bm-feat-mock-body" style="font-size:.82rem;">
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:6px;height:6px;border-radius:50%;background:#a6e2c4;margin-top:7px;flex-shrink:0;"></span><div><div style="color:#fff;">Run submitted by Dr. Sara Kim</div><div style="font-size:.74rem;color:var(--on-ink-mute);font-family:var(--font-mono);">2026‑04‑08 09:14:22 UTC · sha 7b21…f3c</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:6px;height:6px;border-radius:50%;background:#a6e2c4;margin-top:7px;flex-shrink:0;"></span><div><div style="color:#fff;">QC profile <code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:3px;">cryo-em.singleparticle.v3</code> applied</div><div style="font-size:.74rem;color:var(--on-ink-mute);font-family:var(--font-mono);">2026‑04‑08 09:14:23 UTC</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:6px;height:6px;border-radius:50%;background:#f5cd87;margin-top:7px;flex-shrink:0;"></span><div><div style="color:#fff;">Reviewer <b>J. Thiele</b> requested re‑run with override</div><div style="font-size:.74rem;color:var(--on-ink-mute);">&ldquo;Defocus drift on 18% of micrographs &mdash; tighten range.&rdquo;</div></div></div>
+              <div style="display:flex;gap:10px;align-items:flex-start;"><span style="width:6px;height:6px;border-radius:50%;background:#a6e2c4;margin-top:7px;flex-shrink:0;"></span><div><div style="color:#fff;">21 CFR Part 11 signature applied</div><div style="font-size:.74rem;color:var(--on-ink-mute);font-family:var(--font-mono);">e‑sig · J. Thiele · 09:42:11</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Capability cards grid ════ -->
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-section-head">
+        <span class="bm-eyebrow">All capabilities</span>
+        <h2 class="bm-h2">Built for production research.</h2>
+        <p class="bm-lead">Every feature ships production‑tested &mdash; not as a prototype.</p>
+      </div>
+
+      <div class="bm-approach-cards" id="bm-cap-grid">
+        <!-- populated by features.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Workflow catalog teaser ════ -->
+  <section id="integrations" class="bm-section bm-bg-2">
+    <div class="bm-section-inner">
+      <div class="bm-section-head">
+        <span class="bm-eyebrow">Workflow catalog</span>
+        <h2 class="bm-h2">2,000+ validated workflows across 20+ domains.</h2>
+        <p class="bm-lead">Container‑pinned, version‑locked, community‑validated. Bring your own when you need to.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:12px;" id="bm-wf-grid"></div>
+    </div>
+  </section>
+
+  <!-- ════ Security strip ════ -->
+  <section id="security" class="bm-section bm-product-band">
+    <div class="bm-section-inner">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(2rem,5vw,4rem);align-items:center;">
+        <div>
+          <span class="bm-eyebrow">Security &amp; compliance</span>
+          <h2 class="bm-h2" style="margin-top:1rem;margin-bottom:1rem;">Designed for the most regulated science on earth.</h2>
+          <p class="bm-lead">From SOC 2 Type II to GxP audit support, BioMate is the rare AI tool your QA lead approves on the first call.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:1.1rem 1.25rem;">
+            <div style="font-family:var(--font-mono);font-size:.7rem;color:#8fd6ea;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Certified</div>
+            <div style="font-family:var(--font-head);font-size:1.1rem;color:#fff;font-weight:600;">SOC 2 Type II · ISO 27001</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:1.1rem 1.25rem;">
+            <div style="font-family:var(--font-mono);font-size:.7rem;color:#8fd6ea;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Aligned</div>
+            <div style="font-family:var(--font-head);font-size:1.1rem;color:#fff;font-weight:600;">HIPAA · GDPR · 21 CFR Part 11</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:1.1rem 1.25rem;">
+            <div style="font-family:var(--font-mono);font-size:.7rem;color:#8fd6ea;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Tenant data</div>
+            <div style="font-family:var(--font-head);font-size:1.1rem;color:#fff;font-weight:600;">Customer‑managed keys, in‑region</div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:1.1rem 1.25rem;">
+            <div style="font-family:var(--font-mono);font-size:.7rem;color:#8fd6ea;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem;">Training policy</div>
+            <div style="font-family:var(--font-head);font-size:1.1rem;color:#fff;font-weight:600;">Never on your data. Never co‑mingled.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ CTA ════ -->
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <div class="bm-cta-banner">
+        <h2>Ready to run your first workflow?</h2>
+        <p>7-day free trial. No procurement gauntlet. Most teams complete their first analysis in under an hour.</p>
+        <div class="bm-cta-actions">
+          <a href="register.html" class="bm-btn bm-btn-primary bm-btn-lg">Start free</a>
+          <a href="mailto:contact@biomate.ai?subject=Talk%20to%20a%20scientist" class="bm-btn bm-btn-outline bm-btn-lg">Talk to a scientist</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="illustrations.js"></script>
+  <script src="shell.js"></script>
+  <script>
+    renderShell({ active: 'features' });
+
+    // Capability cards
+    const CAPS = [
+      { icon: 'data',     title: 'Validated corpora',           desc: 'PubMed, ChEMBL, ClinicalTrials.gov, FDA labels, PDB, AlphaFold &mdash; all version‑pinned and reproducible.' },
+      { icon: 'route',    title: 'Domain‑aware routing',        desc: '94.6% pipeline‑match accuracy across 60+ workflows, with confidence scoring you can act on.' },
+      { icon: 'shield',   title: '21 CFR Part 11 eSig',         desc: 'Inline e‑signature with role‑aware reviewer flows and immutable audit history.' },
+      { icon: 'cloud',    title: 'Bring‑your‑own infra',        desc: 'Run on AWS, Azure, GCP or your private GPU cluster &mdash; same control plane, your region.' },
+      { icon: 'community',title: 'Reviewer workflows',          desc: 'Separate executor and reviewer surfaces, structured comment threads, and reviewer dashboards.' },
+      { icon: 'scale',    title: 'Workflow benchmarking',       desc: 'Per‑workflow accuracy metrics from a continuously growing benchmark suite of >1,400 cases.' },
+      { icon: 'brain',    title: 'Tool use, not autocomplete',  desc: 'Calls structured tools (search, fetch, dock, simulate) instead of inventing answers from token weights.' },
+      { icon: 'chat',     title: 'Reviewer comments',           desc: 'Threaded, anchored to a specific claim or figure &mdash; never lost in a Slack channel.' },
+      { icon: 'defensible',title: 'GxP‑ready',                  desc: 'Mapped controls, validated state, and an audit packet your QA lead can hand a regulator on day one.' }
+    ];
+    const capGrid = document.getElementById('bm-cap-grid');
+    capGrid.innerHTML = CAPS.map((c) => `
+      <article class="bm-approach-card">
+        <div class="bm-icon-wrap">${(window.BM_ICON && window.BM_ICON[c.icon]) || ''}</div>
+        <h4>${c.title}</h4>
+        <p>${c.desc}</p>
+      </article>
+    `).join('');
+
+    // Workflow catalog tiles
+    const DOMAINS = [
+      ['Genomics',          '184 pipelines'],
+      ['Variant calling',   '32 pipelines'],
+      ['RNA‑seq',           '46 pipelines'],
+      ['Single‑cell',       '38 pipelines'],
+      ['Cryo‑EM',           '24 pipelines'],
+      ['Crystallography',   '18 pipelines'],
+      ['Structure prediction', '12 pipelines'],
+      ['Docking · screening',  '52 pipelines'],
+      ['Free‑energy / FEP', '14 pipelines'],
+      ['Proteomics',        '36 pipelines'],
+      ['Metabolomics',      '22 pipelines'],
+      ['Microbiome',        '28 pipelines'],
+      ['Phylogenetics',     '19 pipelines'],
+      ['Pathway / network', '24 pipelines'],
+      ['ADMET · DMPK',      '17 pipelines'],
+      ['PBPK',              '8 pipelines'],
+      ['Trial simulation',  '11 pipelines'],
+      ['Real‑world data',   '14 pipelines']
+    ];
+    document.getElementById('bm-wf-grid').innerHTML = DOMAINS.map(([name, count]) => `
+      <div class="bm-tech-chip">
+        <div class="bm-tech-chip-name">${name}</div>
+        <div class="bm-tech-chip-role">${count}</div>
+      </div>
+    `).join('');
+  </script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="tweaks-app.jsx"></script>
+</body>
+</html>

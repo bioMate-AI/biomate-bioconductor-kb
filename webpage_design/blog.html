@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog &mdash; BioMate AI</title>
+  <meta name="description" content="Insights on computational biology, drug discovery AI, genomics, structural biology, cryo-EM, ADMET profiling, clinical pharmacology, and scientific workflow automation from the BioMate team." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="bm-nav"></div>
+
+  <section class="bm-page-hero">
+    <div class="bm-page-hero-inner">
+      <span class="bm-eyebrow">From the BioMate team</span>
+      <h1 class="bm-h1" style="margin-top:1rem;">Research notes &amp; <em class="bm-em-accent">platform updates</em>.</h1>
+      <p class="bm-lead">Workflow deep&#8209;dives, QC methodology, drug discovery case studies, and what we're building next.</p>
+    </div>
+  </section>
+
+  <section class="bm-section">
+    <div class="bm-section-inner">
+      <!-- Featured post -->
+      <article class="bm-blog-feature">
+        <div class="bm-blog-feature-art" id="bm-feature-art" style="background:none;padding:0;overflow:hidden;">
+          <span class="bm-blog-feature-tag" style="z-index:2;">Featured</span>
+          <img src="images/blog-auto-qc-loop-hero.png" alt="Auto QC Loop" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;" loading="lazy"/>
+        </div>
+        <div class="bm-blog-feature-body">
+          <div class="bm-blog-meta"><b>Platform Architecture</b> &middot; 9 min read &middot; April 22, 2026</div>
+          <h2>Quality That Never Settles: BioMate's Evidence&#8209;Graded Auto&#8209;QC Loop</h2>
+          <p>BioMate evaluates every analysis against published domain quality standards. When results fall short, the system identifies the specific failing metric, adjusts parameters, and reruns automatically &mdash; returning either a quality&#8209;graded passing result or a clear, documented explanation of what prevented one.</p>
+          <a href="blog-auto-qc-loop.html" class="bm-read-link">Read the full post &rarr;</a>
+        </div>
+      </article>
+
+      <!-- Category pills -->
+      <div class="bm-topic-chips" style="margin-bottom:2rem;">
+        <a href="#" class="bm-topic-chip" data-cat="all" style="background:var(--accent);color:#fff;border-color:var(--accent);">All</a>
+        <a href="#" class="bm-topic-chip" data-cat="Drug Development">Drug Development</a>
+        <a href="#" class="bm-topic-chip" data-cat="Platform Architecture">Platform Architecture</a>
+        <a href="#" class="bm-topic-chip" data-cat="AI &amp; LLMs">AI &amp; LLMs</a>
+        <a href="#" class="bm-topic-chip" data-cat="QC &amp; Methods">QC &amp; Methods</a>
+        <a href="#" class="bm-topic-chip" data-cat="Genomics">Genomics</a>
+        <a href="#" class="bm-topic-chip" data-cat="Structural Biology">Structural Biology</a>
+        <a href="#" class="bm-topic-chip" data-cat="Cryo-EM">Cryo&#8209;EM</a>
+      </div>
+
+      <div class="bm-blog-layout">
+        <div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.5rem;">
+            <h2 class="bm-h3" style="font-size:1.5rem;">Latest writing</h2>
+            <span style="font-size:.85rem;color:var(--text-muted);" id="bm-post-count"></span>
+          </div>
+          <div class="bm-blog-grid" id="bm-posts"></div>
+        </div>
+
+        <aside class="bm-side">
+          <div class="bm-side-widget" id="sub-widget">
+            <h3>Stay updated</h3>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.9rem;">New posts every week &mdash; workflow guides, QC notes, and platform updates.</p>
+            <div id="sub-form">
+              <input type="email" id="sub-email" class="bm-side-input" placeholder="your@email.com" style="margin-bottom:.6rem;" />
+              <button class="bm-btn bm-btn-primary" onclick="handleSubscribe()" style="width:100%;justify-content:center;">Subscribe</button>
+              <p id="sub-msg" style="font-size:.78rem;margin-top:.5rem;display:none;"></p>
+            </div>
+          </div>
+          <script>
+            function handleSubscribe() {
+              const email = document.getElementById('sub-email').value.trim();
+              const msg = document.getElementById('sub-msg');
+              if (!email || !email.includes('@')) {
+                msg.style.color = '#b42828';
+                msg.textContent = 'Please enter a valid email address.';
+                msg.style.display = '';
+                return;
+              }
+              fetch('https://dev-public.biomate.ai/api/newsletter/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+              }).then(() => {
+                document.getElementById('sub-form').innerHTML =
+                  '<p style="font-size:.85rem;color:var(--accent);font-weight:600;">You\'re subscribed! Check your inbox for a confirmation.</p>';
+              }).catch(() => {
+                msg.style.color = '#b42828';
+                msg.textContent = 'Something went wrong. Try emailing contact@biomate.ai directly.';
+                msg.style.display = '';
+              });
+            }
+          </script>
+
+          <div class="bm-side-widget">
+            <h3>Series: Computational Drug Development</h3>
+            <ul>
+              <li><a href="blog-drug-1-target.html">Part 1 &mdash; Target Discovery &amp; Validation</a></li>
+              <li><a href="blog-drug-2-hit.html">Part 2 &mdash; Hit Discovery &amp; Virtual Screening</a></li>
+              <li><a href="blog-drug-3-admet.html">Part 3 &mdash; ADMET &amp; Lead Optimization</a></li>
+              <li><a href="blog-drug-4-preclinical.html">Part 4 &mdash; Preclinical &amp; IND Preparation</a></li>
+              <li><a href="blog-drug-5-clinical.html">Part 5 &mdash; Clinical Trial Design &amp; PK</a></li>
+              <li><a href="blog-drug-6-postmarket.html">Part 6 &mdash; Post&#8209;Approval &amp; Pharmacovigilance</a></li>
+            </ul>
+          </div>
+
+          <div class="bm-side-widget">
+            <h3>Recent posts</h3>
+            <ul>
+              <li><a href="blog-llm-core.html">Purpose&#8209;Built AI for Science</a><div class="meta">April 22, 2026</div></li>
+              <li><a href="blog-drug-1-target.html">Target Discovery and Validation</a><div class="meta">April 22, 2026</div></li>
+              <li><a href="blog-drug-2-hit.html">Virtual Screening and Hit Discovery</a><div class="meta">April 21, 2026</div></li>
+              <li><a href="blog-drug-3-admet.html">ADMET Profiling and Lead Optimization</a><div class="meta">April 19, 2026</div></li>
+              <li><a href="blog-drug-4-preclinical.html">Preclinical Development and IND Filing</a><div class="meta">April 17, 2026</div></li>
+              <li><a href="blog-drug-5-clinical.html">Clinical Development and Trial Design</a><div class="meta">April 15, 2026</div></li>
+              <li><a href="blog-drug-6-postmarket.html">Post&#8209;Approval and Pharmacovigilance</a><div class="meta">April 13, 2026</div></li>
+            </ul>
+          </div>
+
+          <div class="bm-side-widget">
+            <h3>Topics</h3>
+            <div class="bm-topic-chips">
+              <a href="blog-drug-1-target.html" class="bm-topic-chip">Target Discovery</a>
+              <a href="blog-drug-2-hit.html" class="bm-topic-chip">Virtual Screening</a>
+              <a href="blog-drug-3-admet.html" class="bm-topic-chip">ADMET</a>
+              <a href="blog-drug-3-admet.html" class="bm-topic-chip">Lead Optimization</a>
+              <a href="blog-drug-4-preclinical.html" class="bm-topic-chip">Preclinical</a>
+              <a href="blog-drug-4-preclinical.html" class="bm-topic-chip">IND Filing</a>
+              <a href="blog-drug-5-clinical.html" class="bm-topic-chip">Clinical Trials</a>
+              <a href="blog-drug-6-postmarket.html" class="bm-topic-chip">Pharmacovigilance</a>
+              <a href="blog-structure-docking.html" class="bm-topic-chip">Structure Prediction</a>
+              <a href="blog-structure-docking.html" class="bm-topic-chip">Molecular Docking</a>
+              <a href="blog-reinvent4.html" class="bm-topic-chip">Generative Design</a>
+              <a href="blog-cryosparc-spa.html" class="bm-topic-chip">Cryo&#8209;EM</a>
+              <a href="blog-gatk-deepvariant.html" class="bm-topic-chip">Genomics</a>
+              <a href="blog-bioconductor.html" class="bm-topic-chip">Bioconductor</a>
+              <a href="blog-auto-qc-loop.html" class="bm-topic-chip">Auto&#8209;QC</a>
+              <a href="blog-memory.html" class="bm-topic-chip">Memory</a>
+              <a href="blog-workflow-routing.html" class="bm-topic-chip">Workflow Routing</a>
+              <a href="blog-admet-guide.html" class="bm-topic-chip">ADMET Guide</a>
+              <a href="blog-qc-grading.html" class="bm-topic-chip">Quality Grading</a>
+              <a href="blog-cro-submission.html" class="bm-topic-chip">CRO Handoff</a>
+            </div>
+          </div>
+
+          <div class="bm-side-widget">
+            <h3>Try BioMate</h3>
+            <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">Everything described in this blog runs live on the platform. Start free &mdash; no credit card required.</p>
+            <a class="bm-btn bm-btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" style="width:100%;justify-content:center;">Start free trial</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="illustrations.js"></script>
+  <script src="shell.js"></script>
+  <script>
+    renderShell({ active: 'blog' });
+
+    // ──────────────────────────────────────────────────────────────
+    // Generated post art — deterministic SVG tile per post
+    // ──────────────────────────────────────────────────────────────
+    function postArt(seed, palette) {
+      const colors = {
+        navy:   ['#2a5582', '#cfdcec', '#14283a'],
+        gold:   ['#9c6a3e', '#f0dec5', '#3a2a18'],
+        leaf:   ['#5e8a36', '#daead0', '#1f2e15'],
+        deep:   ['#1d3d5f', '#dfe9f1', '#0e1a26']
+      }[palette] || ['#2a5582', '#cfdcec', '#14283a'];
+
+      let s = 0;
+      for (let i = 0; i < seed.length; i++) s = (s * 31 + seed.charCodeAt(i)) >>> 0;
+      const rnd = () => { s = (s * 1103515245 + 12345) >>> 0; return (s & 0x7fffffff) / 0x7fffffff; };
+
+      const variants = [
+        // Variant A: lattice
+        () => {
+          let g = '';
+          for (let i = 0; i < 18; i++) {
+            const cx = 24 + rnd() * 432, cy = 24 + rnd() * 192, r = 4 + rnd() * 14;
+            g += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${colors[1]}" opacity="${0.3 + rnd() * 0.4}"/>`;
+          }
+          for (let i = 0; i < 8; i++) {
+            const x1 = rnd() * 480, y1 = rnd() * 240, x2 = rnd() * 480, y2 = rnd() * 240;
+            g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${colors[1]}" stroke-width=".7" opacity=".4"/>`;
+          }
+          return g;
+        },
+        // Variant B: waves
+        () => {
+          let g = '';
+          for (let i = 0; i < 6; i++) {
+            const y = 30 + i * 32 + rnd() * 8;
+            g += `<path d="M0,${y} C120,${y - 20} 240,${y + 20} 360,${y - 10} C420,${y - 18} 460,${y - 4} 480,${y}" fill="none" stroke="${colors[1]}" stroke-width="1" opacity="${0.3 + i * 0.08}"/>`;
+          }
+          return g;
+        },
+        // Variant C: heatmap blocks
+        () => {
+          let g = '';
+          for (let r = 0; r < 6; r++) for (let c = 0; c < 14; c++) {
+            const v = rnd();
+            g += `<rect x="${24 + c * 32}" y="${30 + r * 30}" width="28" height="26" fill="${colors[1]}" opacity="${0.15 + v * 0.55}"/>`;
+          }
+          return g;
+        },
+        // Variant D: orbit
+        () => `
+          <circle cx="240" cy="120" r="70" fill="none" stroke="${colors[1]}" stroke-width="1" opacity=".5"/>
+          <circle cx="240" cy="120" r="100" fill="none" stroke="${colors[1]}" stroke-width="1" opacity=".35" stroke-dasharray="3 4"/>
+          <circle cx="240" cy="120" r="32" fill="${colors[1]}" opacity=".3"/>
+          <circle cx="310" cy="120" r="6" fill="${colors[1]}"/>
+          <circle cx="200" cy="60" r="4" fill="${colors[1]}" opacity=".7"/>
+          <circle cx="170" cy="170" r="5" fill="${colors[1]}" opacity=".5"/>`
+      ];
+      const v = variants[Math.floor(rnd() * variants.length)]();
+      return `<svg viewBox="0 0 480 240" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+        <rect width="480" height="240" fill="${colors[0]}"/>
+        ${v}
+      </svg>`;
+    }
+
+    // Real posts from the BioMate blog
+    const POSTS = [
+      // Platform Architecture
+      { cat: 'AI & LLMs', title: 'Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results',
+        date: 'Apr 22, 2026', read: '7 min', href: 'blog-llm-core.html',
+        desc: "BioMate coordinates specialized AI systems for routing, analysis, quality evaluation, and findings narration — matching each scientific task to the reasoning capability best suited to it." },
+      { cat: 'Platform Architecture', title: 'The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate',
+        date: 'Apr 20, 2026', read: '6 min', href: 'blog-bioconductor.html',
+        desc: "The full Bioconductor ecosystem of peer-reviewed R methods, available through plain-English requests — no R required." },
+      { cat: 'Platform Architecture', title: 'Keeping Current: How BioMate Discovers and Validates New Analytical Tools',
+        date: 'Apr 18, 2026', read: '8 min', href: 'blog-auto-discovery.html',
+        desc: "BioMate continuously monitors primary tool sources, tests candidates against sample datasets, and adds validated workflows after human review." },
+      { cat: 'Platform Architecture', title: "Context That Compounds: BioMate's Hierarchical Memory for Scientific Research",
+        date: 'Apr 17, 2026', read: '6 min', href: 'blog-memory.html',
+        desc: "BioMate's multi-tier memory hierarchy learns your lab's preferences, QC standards, and workflows — improving recommendations with every session." },
+      { cat: 'Platform Architecture', title: "Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search",
+        date: 'Apr 15, 2026', read: '7 min', href: 'blog-workflow-routing.html',
+        desc: "Hybrid semantic search combining vector embeddings, domain scoring, and reasoning resolves ambiguous requests to the right workflow — or surfaces ranked alternatives." },
+
+      // Drug Development series
+      { cat: 'Drug Development', title: 'Before the First Compound: Computational Target Discovery and Validation',
+        date: 'Apr 22, 2026', read: '8 min', href: 'blog-drug-1-target.html',
+        desc: "Computational target validation — structure prediction, pocket druggability, CRISPR essentiality, and functional genomics — before any chemistry begins." },
+      { cat: 'Drug Development', title: 'From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale',
+        date: 'Apr 21, 2026', read: '8 min', href: 'blog-drug-2-hit.html',
+        desc: "AI-powered virtual screening filters millions of compounds by binding geometry, pharmacophore fit, and ADMET liability before a single assay is run." },
+      { cat: 'Drug Development', title: 'The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis',
+        date: 'Apr 19, 2026', read: '10 min', href: 'blog-drug-3-admet.html',
+        desc: "Full ADMET profiling, CYP DDI analysis, molecular dynamics, and generative design close the lead optimization loop in silico." },
+      { cat: 'Drug Development', title: 'From Animal Studies to IND Filing: Computational Preclinical Development',
+        date: 'Apr 17, 2026', read: '9 min', href: 'blog-drug-4-preclinical.html',
+        desc: "PBPK simulation, allometric scaling, toxicity prediction, and IND document assembly — translating preclinical data into regulatory-ready packages." },
+      { cat: 'Drug Development', title: 'Designing Safer Trials: Computational Support for Clinical Development',
+        date: 'Apr 15, 2026', read: '9 min', href: 'blog-drug-5-clinical.html',
+        desc: "Dose escalation simulation, population PK, pharmacogenomics stratification, and real-time safety signal analysis for clinical teams." },
+      { cat: 'Drug Development', title: 'After Approval: Computational Pharmacovigilance and Real-World Safety',
+        date: 'Apr 13, 2026', read: '7 min', href: 'blog-drug-6-postmarket.html',
+        desc: "Post-approval safety monitoring, drug interaction surveillance, and pharmacovigilance — supporting regulatory obligations through the full product lifecycle." },
+
+      // QC & Methods
+      { cat: 'QC & Methods', title: 'Gold, Silver, Bronze: A Transparent Framework for Scientific Quality Assessment',
+        date: 'Apr 11, 2026', read: '7 min', href: 'blog-qc-grading.html',
+        desc: "Evidence-graded QC assessed against published community standards — with the specific failing metric, its value, and remediation context included in every report." },
+
+      // Genomics
+      { cat: 'Genomics', title: 'Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing',
+        date: 'Apr 8, 2026', read: '6 min', href: 'blog-gatk-deepvariant.html',
+        desc: "When to use established heuristic-probabilistic variant calling versus deep learning approaches — and how BioMate selects between them based on your data." },
+
+      // Drug Discovery — practical
+      { cat: 'Drug Development', title: 'Reading ADMET Results: A Practical Guide for Drug Discovery Teams',
+        date: 'Apr 5, 2026', read: '10 min', href: 'blog-admet-guide.html',
+        desc: "How to read ADMET results in therapeutic context — co-occurring liabilities, threshold interpretation, and actionable remediation guidance." },
+
+      // Structural Biology / Cryo-EM
+      { cat: 'Cryo-EM', title: 'End-to-End Cryo-EM Processing: From Raw Micrographs to Publication-Ready Map',
+        date: 'Apr 2, 2026', read: '9 min', href: 'blog-cryosparc-spa.html',
+        desc: "BioMate automates the complete cryo-EM SPA pipeline from raw micrographs to publication-ready map, with QC gates at every processing stage." },
+      { cat: 'Structural Biology', title: 'From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking',
+        date: 'Mar 22, 2026', read: '5 min', href: 'blog-structure-docking.html',
+        desc: "From protein sequence to ranked binding poses in one pipeline — structure prediction feeds directly into flexible docking with confidence annotation throughout." },
+      { cat: 'Drug Development', title: 'Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization',
+        date: 'Mar 18, 2026', read: '12 min', href: 'blog-reinvent4.html',
+        desc: "Reinforcement learning-guided generative design explores structural variants optimized simultaneously for binding, ADMET, selectivity, and synthesizability." },
+      { cat: 'Drug Development', title: 'Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate',
+        date: 'Feb 28, 2026', read: '5 min', href: 'blog-cro-submission.html',
+        desc: "BioMate generates structured compound packages — structures, ADMET predictions, assay specs, and audit trail — in formats CROs consume directly." }
+    ];
+
+    // Map category → palette so palette is consistent within a topic
+    const CAT_PALETTE = {
+      'Drug Development':       'gold',
+      'Platform Architecture':  'navy',
+      'AI & LLMs':              'deep',
+      'QC & Methods':           'leaf',
+      'Genomics':               'navy',
+      'Structural Biology':     'deep',
+      'Cryo-EM':                'navy'
+    };
+
+    function renderPosts(filter) {
+      const posts = filter && filter !== 'all' ? POSTS.filter(p => p.cat === filter) : POSTS;
+      // derive image slug from href (blog-foo.html → images/blog-foo-hero.png)
+      function heroImg(href) {
+        const slug = href.replace('.html', '');
+        return `images/${slug}-hero.png`;
+      }
+      document.getElementById('bm-posts').innerHTML = posts.map(p => `
+        <article class="bm-post-card">
+          <a href="${p.href}" class="bm-post-card-art" style="display:block;overflow:hidden;">
+            <img src="${heroImg(p.href)}" alt="${p.title}" loading="lazy"
+              style="width:100%;height:100%;object-fit:cover;display:block;"
+              onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('afterbegin',\`${postArt(p.title, CAT_PALETTE[p.cat] || 'navy').replace(/`/g,"'")}\`)"/>
+          </a>
+          <div class="bm-post-card-body">
+            <div class="bm-post-cat">${p.cat}</div>
+            <h3><a href="${p.href}" style="color:inherit;">${p.title}</a></h3>
+            <p>${p.desc}</p>
+            <div class="bm-post-card-foot">
+              <span>${p.date} &middot; ${p.read}</span>
+              <a href="${p.href}">Read &rarr;</a>
+            </div>
+          </div>
+        </article>
+      `).join('');
+      document.getElementById('bm-post-count').textContent =
+        posts.length + ' post' + (posts.length === 1 ? '' : 's');
+    }
+
+    // Featured post uses real hero image (see HTML above)
+
+    renderPosts('all');
+
+    // Category filter
+    document.querySelectorAll('[data-cat]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('[data-cat]').forEach(x => {
+          x.style.background = '';
+          x.style.color = '';
+          x.style.borderColor = '';
+        });
+        el.style.background = 'var(--accent)';
+        el.style.color = '#fff';
+        el.style.borderColor = 'var(--accent)';
+        renderPosts(el.dataset.cat);
+      });
+    });
+  </script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="tweaks-app.jsx"></script>
+</body>
+</html>
