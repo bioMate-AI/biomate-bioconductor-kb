@@ -19,7 +19,7 @@ export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_forma
 export BILLING_DEV_MODE=false
 export BILLING_INTERNAL_KEY=w498JF1dufdEd9O8AInfhS4VyJXi7CKiBz_0qzNVGOE
 export JWT_SECRET="grhFb+sJVOuSvQXQrxjjbSWWBby/w0oQFvg9tVv/KSc="
-export REDIS_URL=redis://localhost:6379
+export REDIS_URL=redis://biomate-billing-redis.xzhevl.0001.usw2.cache.amazonaws.com:6379
 
 # Lago billing — AWS production instance
 export LAGO_API_URL=http://35.86.137.71:3000
