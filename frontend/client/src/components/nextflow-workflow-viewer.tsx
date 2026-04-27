@@ -392,6 +392,7 @@ function PhaseGroupSection({
   onRun,
   onSkip,
   onStopPhase,
+  onEditGate,
   onPreviewFile,
   onAdjustAndRerun,
   activeRunId,
@@ -412,6 +413,7 @@ function PhaseGroupSection({
   onRun: (phase: any) => void;
   onSkip: (id: string) => void;
   onStopPhase?: () => void;
+  onEditGate?: (paramId: string) => void;
   onPreviewFile: (file: any) => void;
   onAdjustAndRerun: (step: any) => void;
   activeRunId: string | null | undefined;
@@ -575,7 +577,7 @@ function PhaseGroupSection({
                   <span className="metric">{p.label}</span>
                   <span className="op">{p.type === 'number' ? '≥' : '='}</span>
                   <span className="thr">{String(params[p.id] ?? p.value ?? '')}</span>
-                  <button className="linkish edit" onClick={() => onParamChange(p.id, params[p.id])}>edit</button>
+                  <button className="linkish edit" onClick={() => onEditGate ? onEditGate(p.id) : onParamChange(p.id, params[p.id])}>edit</button>
                 </div>
               ))}
               <div className="qc-autoloop">
@@ -597,6 +599,7 @@ function PhaseGroupSection({
             <div style={{padding:'8px 14px 0 40px'}}>
               <AutoLoopPanel
                 state={autoLoopPanelState}
+                currentParams={params}
                 onDismiss={onDismissAutoloop}
                 onAccept={onAcceptAutoloop}
               />
@@ -1778,6 +1781,12 @@ export function NextflowWorkflowViewer({
                     onRun={handleRunStep}
                     onSkip={(id) => setConfirmSkipPhaseId(id)}
                     onStopPhase={onCancel}
+                    onEditGate={(paramId) => {
+                      setGlobalParamsOpen(true);
+                      setTimeout(() => {
+                        document.querySelector(`[data-param-id="${paramId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }, 150);
+                    }}
                     onPreviewFile={(file) => setPreviewFile(file)}
                     onAdjustAndRerun={(phase) => setAdjustStep({
                       id: phase.id,

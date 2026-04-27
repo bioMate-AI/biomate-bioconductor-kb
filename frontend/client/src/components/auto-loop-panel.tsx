@@ -184,7 +184,7 @@ const MAX_INLINE_CITATIONS = 3
 
 // ── RemediationCard sub-component ──────────────────────────────────────────────
 
-function RemediationCard({ rem }: { rem: AutoLoopRemediation }) {
+function RemediationCard({ rem, currentParams }: { rem: AutoLoopRemediation; currentParams?: Record<string, unknown> }) {
   const [showCitations, setShowCitations] = useState(false)
 
   const paramEntries = Object.entries(rem.param_changes)
@@ -202,16 +202,16 @@ function RemediationCard({ rem }: { rem: AutoLoopRemediation }) {
       </div>
 
       {paramEntries.length > 0 && (
-        <div className="flex flex-wrap gap-1 ml-6">
+        <div className="ml-6 space-y-0.5">
           {paramEntries.map(([k, v]) => (
-            <span
-              key={k}
-              className="inline-flex items-center gap-1 text-xs bg-white dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700 rounded px-2 py-0.5"
-            >
-              <span className="font-mono text-amber-700 dark:text-amber-300">{k}</span>
+            <div key={k} className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-gray-600 dark:text-gray-400 min-w-[120px]">{k}</span>
+              <span className="text-red-500 dark:text-red-400 line-through opacity-80">
+                {currentParams && k in currentParams ? String(currentParams[k]) : "…"}
+              </span>
               <span className="text-gray-400">→</span>
-              <span className="font-mono text-blue-700 dark:text-blue-300">{String(v)}</span>
-            </span>
+              <span className="text-green-600 dark:text-green-400 font-semibold">{String(v)}</span>
+            </div>
           ))}
         </div>
       )}
@@ -251,11 +251,13 @@ function RemediationCard({ rem }: { rem: AutoLoopRemediation }) {
 interface AutoLoopPanelProps {
   state: AutoLoopPanelState
   onDismiss: () => void
+  /** Current workflow parameter values — used to show was→now in remediation cards */
+  currentParams?: Record<string, unknown>
   /** Called when user clicks "Apply & Re-run". Receives merged param_changes from all remediations. */
   onAccept?: (paramChanges: Record<string, unknown>) => void
 }
 
-export function AutoLoopPanel({ state, onDismiss, onAccept }: AutoLoopPanelProps) {
+export function AutoLoopPanel({ state, onDismiss, onAccept, currentParams }: AutoLoopPanelProps) {
   const { gateResults, remediations, complete } = state
 
   if (!gateResults) return null
@@ -301,8 +303,12 @@ export function AutoLoopPanel({ state, onDismiss, onAccept }: AutoLoopPanelProps
             <tbody>
               {gateResults.gates.map(g => (
                 <tr key={g.gate} title={g.message || undefined} className="border-b border-blue-100 dark:border-blue-900/40 last:border-0 cursor-default">
-                  <td className="py-1 pr-3 text-gray-700 dark:text-gray-300">{gateLabel(g.gate)}</td>
-                  <td className="py-1 pr-3 text-right font-mono text-gray-600 dark:text-gray-400">
+                  <td className="py-1 pr-3 font-mono text-gray-700 dark:text-gray-300">{gateLabel(g.gate)}</td>
+                  <td className={`py-1 pr-3 text-right font-mono font-semibold ${
+                    g.action === "halt" ? "text-red-600 dark:text-red-400" :
+                    g.action === "pass" ? "text-green-600 dark:text-green-400" :
+                    "text-amber-600 dark:text-amber-400"
+                  }`}>
                     {typeof g.value === "number" ? fmtNum(g.value) : g.value}
                   </td>
                   <td className="py-1 pr-3 text-right font-mono text-gray-500">
@@ -352,7 +358,7 @@ export function AutoLoopPanel({ state, onDismiss, onAccept }: AutoLoopPanelProps
               Suggested parameter adjustments for next run:
             </p>
             {remediations.map((rem, i) => (
-              <RemediationCard key={`${rem.phase ?? ""}-${rem.gate}-${i}`} rem={rem} />
+              <RemediationCard key={`${rem.phase ?? ""}-${rem.gate}-${i}`} rem={rem} currentParams={currentParams} />
             ))}
             {onAccept && (() => {
               // Merge param_changes from all remediations (later entries win on conflict)
