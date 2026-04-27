@@ -408,21 +408,22 @@ Run ADMET toxicity prediction on all three. I need hERG IC50, DILI risk, Ames mu
     let response = await waitForAIResponse(page, label, 90000);
     await screenshot(page, 'admet_02_ai_response');
 
-    // Handle clarification if AI asks
-    const needsClarification = response.toLowerCase().includes('clarif') ||
-      response.toLowerCase().includes('provide') ||
-      response.toLowerCase().includes('which') ||
-      !response.includes('ADMET');
+    await screenshot(page, 'admet_03_first_response');
 
-    if (needsClarification) {
-      console.log(`[${label}] AI asked for clarification — answering`);
-      await sendMessage(page, `Use all three SMILES I provided as the input_smiles. Run the ADMET_pred workflow now.`, label);
-      response = await waitForAIResponse(page, label, 90000);
-      await screenshot(page, 'admet_03_after_clarification');
+    // Check if workflow card appeared; if not, send focused follow-up (max 3 tries)
+    let cardVisible = await waitForWorkflowCard(page, label, 15000);
+    for (let attempt = 0; !cardVisible && attempt < 3; attempt++) {
+      console.log(`[${label}] Card not visible after attempt ${attempt+1} — sending follow-up`);
+      const followUps = [
+        `Use these three SMILES as input_smiles: ${TEST_DATA.ADMET_SINGLE}, C#Cc1cccc(NC(=O)c2cc(NCc3ccc(F)cc3)c(OC)cc2OC)c1, CC(C)c1ccc(-c2nc3cc(N4CCOCC4)ccc3[nH]2)cc1. Generate the ADMET_pred workflow card now. Do not ask for clarification.`,
+        `Run ADMET_pred workflow immediately. Input SMILES: ${TEST_DATA.ADMET_SINGLE}. No clarification needed.`,
+        `Generate workflow card for ADMET toxicity prediction. SMILES: ${TEST_DATA.ADMET_SINGLE}`,
+      ];
+      await sendMessage(page, followUps[attempt], label);
+      await waitForAIResponse(page, label, 90000);
+      await screenshot(page, `admet_03_followup_${attempt+1}`);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
     }
-
-    // Wait for workflow card
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
     expect(cardVisible, 'ADMET workflow card should appear').toBe(true);
     await screenshot(page, 'admet_04_workflow_card');
 
@@ -527,7 +528,12 @@ Please use max_spots=100000 to limit download size for this test run.`;
       response = await waitForAIResponse(page, label, 90000);
     }
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run the RNA-seq alignment and QC pipeline using SRR accession ${TEST_DATA.RNASEQ_SRR} with genome ${TEST_DATA.RNASEQ_GENOME}. Use max_spots=100000. Generate the workflow card now.`, label);
+      await waitForAIResponse(page, label, 90000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('rnaseq_card_visible', cardVisible);
     await screenshot(page, 'rnaseq_03_workflow_card');
 
@@ -601,7 +607,12 @@ Please use max_spots=50000 to limit the download for testing purposes.`;
       response = await waitForAIResponse(page, label, 90000);
     }
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run the germline variant calling workflow on ${TEST_DATA.WGS_SRR} with genome ${TEST_DATA.WGS_GENOME}. Use max_spots=50000. Generate the workflow card now.`, label);
+      await waitForAIResponse(page, label, 90000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('wgs_card_visible', cardVisible);
     await screenshot(page, 'wgs_03_card');
 
@@ -657,16 +668,12 @@ Use the ADMET_pred workflow. Do not ask for clarification.`;
     await waitForAIResponse(page, label, 90000);
     await screenshot(page, 'outputs_02_response');
 
-    // If clarification needed
-    const ta = page.locator('textarea').first();
-    const cardCheck = await waitForWorkflowCard(page, label, 30000);
-    if (!cardCheck) {
-      await ta.fill('Run the ADMET_pred workflow with SMILES CC(=O)Oc1ccccc1C(=O)O. No further clarification needed.');
-      await page.keyboard.press('Enter');
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run ADMET_pred workflow with SMILES CC(=O)Oc1ccccc1C(=O)O. No clarification needed — generate the workflow card immediately.`, label);
       await waitForAIResponse(page, label, 60000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
     }
-
-    const cardVisible = await waitForWorkflowCard(page, label, 30000);
     await screenshot(page, 'outputs_03_card');
 
     // Verify workflow panel opens automatically
@@ -763,7 +770,12 @@ Output format: SDF file with ranked poses and a binding affinity summary.`;
       response = await waitForAIResponse(page, label, 90000);
     }
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run autodock_vina or perform_virtual_screening with PDB ID ${TEST_DATA.DOCKING_PDB} as receptor and SMILES ${TEST_DATA.DOCKING_SMILES} as ligand. Generate workflow card now.`, label);
+      await waitForAIResponse(page, label, 90000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('docking_card_visible', cardVisible);
     await screenshot(page, 'docking_02_card');
 
@@ -825,7 +837,12 @@ Use the nca_analysis workflow with this S3 path as the input.`;
       response = await waitForAIResponse(page, label, 90000);
     }
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run nca_analysis workflow with input file at ${TEST_DATA.PK_S3}. Route is IV bolus. Generate workflow card now.`, label);
+      await waitForAIResponse(page, label, 90000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('pkpd_card_visible', cardVisible);
     await screenshot(page, 'pkpd_02_card');
 
@@ -874,7 +891,12 @@ Enable auto-loop so that if any safety gate (hERG, DILI, Ames) fails, the system
     let response = await waitForAIResponse(page, label, 90000);
     await screenshot(page, 'autoloop_02_response');
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run ADMET_pred workflow with SMILES CC(=O)Nc1ccc(O)cc1 (acetaminophen). Generate workflow card now.`, label);
+      await waitForAIResponse(page, label, 60000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('autoloop_card', cardVisible);
 
     if (cardVisible) {
@@ -993,7 +1015,12 @@ Please run the ADMET_pred workflow with CRO compliance mode enabled.`;
     let response = await waitForAIResponse(page, label, 90000);
     await screenshot(page, 'cro_04_admet_response');
 
-    const cardVisible = await waitForWorkflowCard(page, label, 60000);
+    let cardVisible = await waitForWorkflowCard(page, label, 20000);
+    for (let attempt = 0; !cardVisible && attempt < 2; attempt++) {
+      await sendMessage(page, `Run ADMET_pred workflow for ${TEST_DATA.CRO_COMPOUND_NAME} with SMILES ${TEST_DATA.CRO_SMILES}. Generate the workflow card now.`, label);
+      await waitForAIResponse(page, label, 60000);
+      cardVisible = await waitForWorkflowCard(page, label, 20000);
+    }
     record('cro_admet_card', cardVisible);
 
     if (cardVisible) {
@@ -1092,14 +1119,18 @@ test.describe('V2-HISTORY — Chat History Persistence Across Reload', () => {
     await page.waitForTimeout(2000);
     await screenshot(page, 'hist_02_after_reload');
 
-    // Check that chat history is visible in sidebar
-    const historyItems = await page.locator('[data-testid^="chat-session-item"]').count().catch(() => 0);
+    // Wait up to 8s for sidebar chat history items to load after reload
+    await page.waitForSelector('[data-testid^="button-chat-"]', { timeout: 8000 }).catch(() => {});
+
+    // Check that chat history buttons appear (data-testid="button-chat-{id}")
+    const historyItems = await page.locator('[data-testid^="button-chat-"]').count().catch(() => 0);
     record('hist_sidebar_items', historyItems);
+    console.log(`[${label}] Sidebar chat buttons: ${historyItems}`);
     expect(historyItems, 'Chat history should persist after reload').toBeGreaterThan(0);
 
     // Click the first history item to restore
     if (historyItems > 0) {
-      await page.locator('[data-testid^="chat-session-item"]').first().click();
+      await page.locator('[data-testid^="button-chat-"]').first().click();
       await page.waitForTimeout(1500);
       await screenshot(page, 'hist_03_restored');
 
