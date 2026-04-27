@@ -2246,7 +2246,7 @@ export function NextflowWorkflowViewer({
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}
           {status === 'failed' && (
-            <div className="alert err" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
+            <div className="alert err" data-testid="execution-triage-panel" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, margin: '8px 18px' }}>
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <XCircle className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
                 Workflow Failed
