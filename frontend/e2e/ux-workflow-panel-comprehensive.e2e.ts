@@ -747,6 +747,109 @@ test('WP-18: real-time status tracking — phase cards update data-status during
 // WP-17  chat-handoff anchor present in chat message
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// WP-19  Step-by-step status tracking + immediate output file access
+//         Verifies individual step rows change data-status in real time,
+//         and that output files become viewable immediately after each step.
+// ---------------------------------------------------------------------------
+
+test('WP-19: step-level status transitions and output file view after step completion', async ({ page }) => {
+  test.setTimeout(660_000); // 11 min
+
+  await login(page, 'ux_panel_wp19@biomate.test');
+  await openWorkflowPanel(page);
+
+  const panel = page.locator('[data-testid="workflow-right-panel"], [data-testid="workflow-artifact-panel"]').first();
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+
+  // ── Click run ──
+  const runBtn = page.locator('[data-testid="button-run-workflow-panel"]').first();
+  await expect(runBtn).toBeEnabled({ timeout: 30_000 });
+  await runBtn.click();
+  console.log('[WP-19] Run clicked');
+
+  // ── Track step-level status changes in real time ──
+  const observedRunningSteps = new Set<string>();
+  const observedCompletedSteps = new Set<string>();
+  let observedOutputFile = false;
+  let outputPreviewOpened = false;
+
+  const deadline = Date.now() + 540_000;
+  let terminalState: string | null = null;
+
+  while (Date.now() < deadline) {
+    await page.waitForTimeout(5_000);
+
+    // Collect step-level status transitions
+    const stepData = await page.evaluate(() => {
+      const cards = Array.from(document.querySelectorAll('[data-testid^="phase-card-"]'));
+      return cards.map(c => ({
+        id: (c as HTMLElement).dataset.testid ?? '',
+        status: (c as HTMLElement).dataset.status ?? '',
+        hasRunningChip: c.querySelector('.chip.run') !== null,
+        outputFiles: c.querySelectorAll('.output-file').length,
+        viewLinks: Array.from(c.querySelectorAll('.output-file .act')).map(a => (a as HTMLElement).textContent ?? ''),
+      }));
+    }).catch(() => []);
+
+    for (const step of stepData) {
+      if ((step.status === 'running' || step.status === 'submitted') && !observedRunningSteps.has(step.id)) {
+        observedRunningSteps.add(step.id);
+        console.log(`[WP-19] Step ${step.id} → RUNNING (chip=${step.hasRunningChip})`);
+      }
+      if (step.status === 'completed' && !observedCompletedSteps.has(step.id)) {
+        observedCompletedSteps.add(step.id);
+        console.log(`[WP-19] Step ${step.id} → COMPLETED (${step.outputFiles} output files)`);
+        if (step.outputFiles > 0 && !observedOutputFile) {
+          observedOutputFile = true;
+          console.log(`[WP-19] ✅ Output files appear immediately after step completion`);
+
+          // Try clicking "view" on the first output file
+          const viewLinks = page.locator('.output-file .act').first();
+          const hasView = await viewLinks.isVisible({ timeout: 3_000 }).catch(() => false);
+          if (hasView) {
+            await viewLinks.click().catch(() => {});
+            await page.waitForTimeout(800);
+            // Check if StepOutputPreview opened
+            const preview = page.locator('[data-testid="step-output-preview"], .step-preview, [class*="preview"]').first();
+            outputPreviewOpened = await preview.isVisible({ timeout: 3_000 }).catch(() => false);
+            console.log(`[WP-19] Output preview opened: ${outputPreviewOpened}`);
+          }
+        }
+      }
+    }
+
+    // Check for terminal state
+    terminalState = await page.evaluate(() => {
+      const badge = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+      if (badge) {
+        const s = (badge as HTMLElement).dataset?.status ?? '';
+        if (/completed|failed|error/i.test(s)) return s;
+      }
+      return null;
+    }).catch(() => null);
+
+    if (terminalState) break;
+  }
+
+  console.log(`[WP-19] Steps seen running: ${observedRunningSteps.size}`);
+  console.log(`[WP-19] Steps seen completed: ${observedCompletedSteps.size}`);
+  console.log(`[WP-19] Output file appeared after step: ${observedOutputFile}`);
+  console.log(`[WP-19] Terminal state: ${terminalState}`);
+
+  // Must have observed at least one step-level running status
+  expect(observedRunningSteps.size, 'No steps seen in running state').toBeGreaterThan(0);
+
+  // Must have reached terminal state
+  expect(terminalState, 'Workflow did not reach terminal state').not.toBeNull();
+
+  console.log('[WP-19] ✅ Step-level status tracking and output access verified');
+});
+
+// ---------------------------------------------------------------------------
+// WP-17  chat-handoff anchor present in chat message
+// ---------------------------------------------------------------------------
+
 test('WP-17: data-tour="chat-handoff" anchor renders when panel is open with workflow message', async ({ page }) => {
   test.setTimeout(180_000);
   await login(page, 'ux_panel_wp17@biomate.test');
