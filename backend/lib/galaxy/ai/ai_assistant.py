@@ -2059,9 +2059,9 @@ Respond with a single JSON object — no other text:
         'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
         'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
-        # CryoSPARC infra — passed via backend env vars, never shown to users
-        'cryosparc_password', 'cryosparc_email', 'cryosparc_host', 'cryosparc_port',
-        'cryosparc_project_dir', 'cryosparc_lane',
+        # CryoSPARC infra — passed via backend env vars / credential vault, never shown to users
+        'cryosparc_license', 'cryosparc_password', 'cryosparc_email', 'cryosparc_host',
+        'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
         # Parallelism controls — internal pipeline tuning
         'micrograph_batch_size', 'particle_batch_size', 'num_gpu_workers', 'max_parallel_jobs',
         'num_gpu', 'num_gpu_workers',
@@ -2799,12 +2799,6 @@ Examples of good inference:
         nf_params = self._get_workflow_params(match.filename)
         req = nf_params['required']
         opt = nf_params['optional']
-        # Credential-system params (license keys, passwords) are handled by LicenseGate + credential
-        # vault — never shown as editable form fields since they'd block the Run button when empty.
-        _CREDENTIAL_PARAMS = {'cryosparc_license', 'cryosparc_password', 'cryosparc_email',
-                               'license_key', 'api_key', 'docker_token'}
-        req = [p for p in req if p.get('name') not in _CREDENTIAL_PARAMS]
-        opt = [p for p in opt if p.get('name') not in _CREDENTIAL_PARAMS]
         log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
         sra = self._extract_sra_accession(user_intent)
         if sra:

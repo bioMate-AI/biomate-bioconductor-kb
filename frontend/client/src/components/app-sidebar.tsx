@@ -343,289 +343,136 @@ export function AppSidebar({
     { id: "4", title: "Genome Assembly Help", timestamp: "1 week ago" },
   ];
   return (
-    <div className="h-full bg-sidebar border-r border-border flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <FileText className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-sidebar-foreground">bioMate AI</h1>
-              <p className="text-xs text-sidebar-foreground/70">Bioinformatics Assistant</p>
-            </div>
+    <div className="h-full flex flex-col" style={{
+      background: 'var(--bm-surface, hsl(var(--sidebar)))',
+      borderRight: '1px solid var(--bm-border, hsl(var(--border)))',
+      padding: '14px 10px',
+      gap: 0,
+    }}>
+      {/* Brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px 10px', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: 'var(--bm-text, hsl(var(--foreground)))',
+            color: 'var(--bm-bg-elev, white)',
+            display: 'grid', placeItems: 'center',
+            fontFamily: 'var(--bm-font-mono, monospace)',
+            fontSize: 13, fontWeight: 700, letterSpacing: '-0.03em', flexShrink: 0,
+          }}>B</div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', lineHeight: 1.2, color: 'var(--bm-text)' }}>biomate</div>
+            <div style={{ fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))', marginTop: 1 }}>workflow console</div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleSidebar}
-            className="h-7 w-7 flex-shrink-0"
-            data-testid="button-sidebar-toggle"
-          >
-            <PanelLeft className="h-4 w-4" />
-            <span className="sr-only">Toggle Sidebar</span>
-          </Button>
         </div>
-        <Button 
-          size="sm"
-          className="w-fit mx-auto px-3" 
-          onClick={onNewChat}
-          data-testid="button-new-chat"
+        <button
+          onClick={onToggleSidebar}
+          data-testid="button-sidebar-toggle"
+          style={{ background: 'transparent', border: 'none', padding: 4, borderRadius: 4, cursor: 'pointer', color: 'var(--bm-text-dim)' }}
+          title="Collapse sidebar"
         >
-          <Plus className="w-4 h-4 mr-1" />
-          New Chat
-        </Button>
+          <PanelLeft className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-hidden">
-        {/* Projects */}
-        <div className="p-4">
-          <Collapsible open={projectsExpanded} onOpenChange={setProjectsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start p-0 h-auto mb-3"
-                data-testid="button-toggle-projects"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold text-sidebar-foreground uppercase tracking-wider">Projects</h3>
-                  {projectsExpanded ? (
-                    <ChevronDown className="w-3 h-3" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3" />
-                  )}
-                </div>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <ScrollArea className="h-[120px]">
-                <div className="space-y-1">
-                  {recentProjects.length > 0 ? recentProjects.map((project) => (
-                    <Button
-                      key={project.id}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start text-left h-auto p-2",
-                        activeProjectId === project.id && "bg-sidebar-accent text-sidebar-accent-foreground"
-                      )}
-                      onClick={() => onProjectSelect(project.id)}
-                      data-testid={`button-project-${project.id}`}
-                    >
-                      <FolderOpen className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="truncate text-sm font-medium">{project.name}</div>
-                      </div>
-                    </Button>
-                  )) : (
-                    <div className="text-xs text-sidebar-foreground/50 text-center py-2">
-                      No projects yet
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+      {/* Workspace nav */}
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Workspace</div>
+        <button className="side-link" onClick={onNewChat} data-testid="button-new-chat" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted, oklch(0.48 0.012 260))', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }}>
+          <Plus className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>New Chat</span>
+        </button>
+        <button className="side-link" data-testid="button-workflows-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => {}}>
+          <FlaskConical className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Workflows</span>
+        </button>
+        <button className="side-link" data-testid="button-runs-nav" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => {}}>
+          <Activity className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Runs</span>
+        </button>
+        <button className="side-link" data-testid="button-cro-compliance" style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 13, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/drug-discovery-cro')}>
+          <Database className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>CRO Library</span>
+        </button>
+      </div>
 
-        {/* Recent Chats */}
-        <div className="p-4 border-t border-border">
-          <Collapsible open={chatsExpanded} onOpenChange={setChatsExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start p-0 h-auto mb-3"
-                data-testid="button-toggle-chats"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold text-sidebar-foreground uppercase tracking-wider">Recent Chats</h3>
-                  {chatsExpanded ? (
-                    <ChevronDown className="w-3 h-3" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3" />
-                  )}
-                </div>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-1">
-                  {recentChats.map((chat) => {
-                    const dotStatus = sessionStatusMap.get(chat.id)
-                    return (
-                      <Button
-                        key={chat.id}
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start text-left h-auto p-2",
-                          activeChatId === chat.id && "bg-sidebar-accent text-sidebar-accent-foreground"
-                        )}
-                        onClick={() => onChatSelect(chat.id)}
-                        data-testid={`button-chat-${chat.id}`}
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="truncate text-sm">{chat.title}</div>
-                        </div>
-                        {dotStatus === 'running' && (
-                          <span
-                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500 animate-pulse"
-                            title="Workflow running"
-                          />
-                        )}
-                        {dotStatus === 'failed' && (
-                          <span
-                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-red-500"
-                            title="Workflow failed — needs attention"
-                          />
-                        )}
-                        {dotStatus === 'completed' && activeChatId !== chat.id && (
-                          <span
-                            className="ml-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-green-500"
-                            title="Workflow completed"
-                          />
-                        )}
-                      </Button>
-                    )
-                  })}
-                </div>
-              </ScrollArea>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-
-        {/* Tool Categories */}
-        <div className="p-4 border-t border-border">
-          <Collapsible open={toolCategoriesExpanded} onOpenChange={setToolCategoriesExpanded}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start p-0 h-auto mb-3"
-                data-testid="button-toggle-tool-categories"
-              >
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-semibold text-sidebar-foreground uppercase tracking-wider">Tool Categories</h3>
-                  {toolCategoriesExpanded ? (
-                    <ChevronDown className="w-3 h-3" />
-                  ) : (
-                    <ChevronRight className="w-3 h-3" />
-                  )}
-                </div>
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div className="space-y-1">
-                {toolCategories.map((category) => {
-                  const isExpanded = expandedCategories.includes(category.name);
-                  return (
-                    <Collapsible key={category.name} open={isExpanded} onOpenChange={() => toggleCategory(category.name)}>
-                      <CollapsibleTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start",
-                            activeCategory === category.name && "bg-sidebar-accent text-sidebar-accent-foreground"
-                          )}
-                          data-testid={`button-category-${category.name.toLowerCase()}`}
-                        >
-                          <category.icon className="w-4 h-4 mr-2" />
-                          <span className="flex-1 text-left">{category.name}</span>
-                          <span className="text-xs text-sidebar-foreground/50 mr-2">
-                            {category.count}
-                          </span>
-                          {isExpanded ? (
-                            <ChevronDown className="w-3 h-3" />
-                          ) : (
-                            <ChevronRight className="w-3 h-3" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <div className="ml-6 mt-1 space-y-1">
-                          {category.tools.map((tool) => (
-                            <Button
-                              key={tool.id}
-                              variant="ghost"
-                              size="sm"
-                              className={cn(
-                                "w-full justify-start text-left h-auto p-2",
-                                activeTool === tool.id && "bg-sidebar-accent text-sidebar-accent-foreground"
-                              )}
-                              onClick={() => onToolSelect(tool)}
-                              data-testid={`button-tool-${tool.id}`}
-                            >
-                              <tool.icon className="w-3 h-3 mr-2 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="truncate">
-                                  <span className="text-sm">{tool.name}</span>
-                                  <span className="text-xs text-sidebar-foreground/60 ml-2">
-                                    - {tool.description}
-                                  </span>
-                                </div>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  );
-                })}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="p-4 border-t border-border">
-          <h3 className="text-xs font-semibold text-sidebar-foreground mb-3 uppercase tracking-wider">Quick Actions</h3>
-          <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              data-testid="button-starred-workflows"
-              onClick={() => setShowStarredDialog(true)}
-            >
-              <Star className="w-4 h-4 mr-2" />
-              <span>Starred Workflows</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              data-testid="button-recent-tools"
-              onClick={() => setShowRecentToolsDialog(true)}
-            >
-              <Clock className="w-4 h-4 mr-2" />
-              <span>Recent Tools</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              data-testid="button-cro-compliance"
-              onClick={() => setLocation("/drug-discovery-cro")}
-            >
-              <FlaskConical className="w-4 h-4 mr-2" />
-              <span>CRO Compliance</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              data-testid="button-billing"
-              onClick={() => setLocation("/billing")}
-            >
-              <DollarSign className="w-4 h-4 mr-2" />
-              <span>Billing &amp; Invoices</span>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              data-testid="button-settings"
-              onClick={() => setShowSettingsDialog(true)}
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              <span>Settings</span>
-            </Button>
+      {/* Chat history — scrollable, takes remaining space */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        {recentChats.length > 0 && (
+          <>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 8 }}>Current</div>
+            {recentChats.slice(0, 6).map((chat) => {
+              const dotStatus = sessionStatusMap.get(chat.id)
+              const isActive = activeChatId === chat.id
+              return (
+                <button
+                  key={chat.id}
+                  onClick={() => onChatSelect(chat.id)}
+                  data-testid={`button-chat-${chat.id}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '5px 10px', borderRadius: 6,
+                    color: isActive ? 'var(--bm-text)' : 'var(--bm-text-muted)',
+                    background: isActive ? 'var(--bm-surface-3, oklch(0.945 0.005 240))' : 'transparent',
+                    fontWeight: isActive ? 500 : 400,
+                    fontSize: 12.5, cursor: 'pointer', border: 'none',
+                    width: '100%', textAlign: 'left',
+                  }}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    background: dotStatus === 'running' ? 'var(--bm-accent, oklch(0.55 0.14 245))' :
+                                dotStatus === 'failed'  ? 'var(--bm-err, oklch(0.58 0.18 25))' :
+                                dotStatus === 'completed' ? 'var(--bm-ok, oklch(0.62 0.13 150))' :
+                                'var(--bm-border-strong, oklch(0.80 0.008 240))',
+                    animation: dotStatus === 'running' ? 'pulse 1.5s infinite' : 'none',
+                  }} title={dotStatus || 'idle'} />
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
+                </button>
+              )
+            })}
+            {recentChats.length > 6 && (
+              <>
+                <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600, marginTop: 14 }}>Recent</div>
+                {recentChats.slice(6, 12).map((chat) => (
+                  <button
+                    key={chat.id}
+                    onClick={() => onChatSelect(chat.id)}
+                    data-testid={`button-chat-${chat.id}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '5px 10px', borderRadius: 6,
+                      color: activeChatId === chat.id ? 'var(--bm-text)' : 'var(--bm-text-muted)',
+                      background: activeChatId === chat.id ? 'var(--bm-surface-3)' : 'transparent',
+                      fontSize: 12.5, cursor: 'pointer', border: 'none',
+                      width: '100%', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ width: 8, flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{chat.title}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </>
+        )}
+        {recentChats.length === 0 && (
+          <div style={{ padding: '10px', fontSize: 12, color: 'var(--bm-text-dim)', textAlign: 'center' }}>
+            No chats yet
           </div>
+        )}
+
+        {/* Quick actions (compact) */}
+        <div style={{ marginTop: 16, borderTop: '1px solid var(--bm-border)', paddingTop: 10 }}>
+          <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--bm-text-dim)', padding: '0 10px', marginBottom: 4, fontWeight: 600 }}>Actions</div>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowStarredDialog(true)} data-testid="button-starred-workflows">
+            <Star className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Starred Workflows</span>
+          </button>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowRecentToolsDialog(true)} data-testid="button-recent-tools">
+            <Clock className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Recent Tools</span>
+          </button>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setLocation('/billing')} data-testid="button-billing">
+            <DollarSign className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Billing</span>
+          </button>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '5px 10px', borderRadius: 6, color: 'var(--bm-text-muted)', fontSize: 12.5, cursor: 'pointer', border: 'none', background: 'transparent', width: '100%', textAlign: 'left' }} onClick={() => setShowSettingsDialog(true)} data-testid="button-settings">
+            <Settings className="w-3.5 h-3.5" style={{ opacity: 0.7, flexShrink: 0 }} /><span>Settings</span>
+          </button>
         </div>
       </div>
 
@@ -633,46 +480,29 @@ export function AppSidebar({
       <BillingWidget />
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
-        <Card className="p-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={userAvatar} alt="User" />
-              <AvatarFallback>{user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-card-foreground truncate">{user?.name || user?.email?.split('@')[0] || 'Researcher'}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email || 'researcher@biomate.ai'}</p>
-            </div>
-          </div>
-        </Card>
+      <div style={{ borderTop: '1px solid var(--bm-border)', padding: '10px 10px 4px', display: 'flex', alignItems: 'center', gap: 9 }}>
+        <div style={{
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'oklch(0.85 0.05 60)', color: 'oklch(0.35 0.08 60)',
+          display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0,
+        }}>
+          {user?.name ? user.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() : 'U'}
+        </div>
+        <div style={{ flex: 1, minWidth: 0, lineHeight: 1.2 }}>
+          <div style={{ fontWeight: 500, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--bm-text)' }}>{user?.name || user?.email?.split('@')[0] || 'Researcher'}</div>
+          <div style={{ color: 'var(--bm-text-dim)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email || 'researcher@biomate.ai'}</div>
+        </div>
       </div>
 
       {/* Dialogs */}
-      <SettingsDialog 
-        open={showSettingsDialog} 
-        onOpenChange={setShowSettingsDialog}
+      <SettingsDialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog} />
+      <StarredWorkflowsDialog open={showStarredDialog} onOpenChange={setShowStarredDialog}
+        onWorkflowSelect={(workflow) => console.log('Selected starred workflow:', workflow)}
       />
-      
-      <StarredWorkflowsDialog 
-        open={showStarredDialog} 
-        onOpenChange={setShowStarredDialog}
-        onWorkflowSelect={(workflow) => {
-          console.log('Selected starred workflow:', workflow);
-          // Handle workflow selection - could trigger workflow builder or chat
-        }}
-      />
-      
-      <RecentToolsDialog 
-        open={showRecentToolsDialog} 
-        onOpenChange={setShowRecentToolsDialog}
-        onToolSelect={(tool) => {
-          console.log('Selected recent tool:', tool);
-          if (onToolSelect) {
-            onToolSelect(tool as any); // Type assertion since interfaces are compatible
-          }
-        }}
+      <RecentToolsDialog open={showRecentToolsDialog} onOpenChange={setShowRecentToolsDialog}
+        onToolSelect={(tool) => { if (onToolSelect) onToolSelect(tool as any); }}
       />
     </div>
   )
 }
+
