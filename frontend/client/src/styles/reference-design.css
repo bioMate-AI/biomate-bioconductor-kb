@@ -1,0 +1,383 @@
+/* ============================================================
+   BioMate Reference Design — Global Token Extension
+   Applies the Claude reference design tokens and styles to the
+   full app: chat column, sidebar, and shared elements.
+   Ported from localhost:7779/biomate/src/{tokens,layout}.css
+   ============================================================ */
+
+/* ── Global design tokens ─────────────────────────────────── */
+:root {
+  /* Neutrals — cool-leaning oklch, matches reference tokens.css */
+  --bm-bg:            oklch(0.99  0.003 240);
+  --bm-bg-elev:       #ffffff;
+  --bm-surface:       oklch(0.985 0.003 240);
+  --bm-surface-2:     oklch(0.965 0.004 240);
+  --bm-surface-3:     oklch(0.945 0.005 240);
+  --bm-border:        oklch(0.915 0.006 240);
+  --bm-border-strong: oklch(0.86  0.008 240);
+  --bm-text:          oklch(0.22  0.01  260);
+  --bm-text-muted:    oklch(0.48  0.012 260);
+  --bm-text-dim:      oklch(0.62  0.010 260);
+
+  /* Accent — single cool blue, used sparingly */
+  --bm-accent:        oklch(0.55  0.14  245);
+  --bm-accent-soft:   oklch(0.96  0.03  245);
+  --bm-accent-ink:    oklch(0.38  0.12  245);
+
+  /* Status colours */
+  --bm-ok:            oklch(0.62  0.13  150);
+  --bm-ok-soft:       oklch(0.96  0.04  150);
+  --bm-warn:          oklch(0.72  0.14  75);
+  --bm-warn-soft:     oklch(0.96  0.05  75);
+  --bm-err:           oklch(0.58  0.18  25);
+  --bm-err-soft:      oklch(0.96  0.05  25);
+
+  /* Radii */
+  --bm-r-xs: 4px;
+  --bm-r-sm: 6px;
+  --bm-r-md: 8px;
+  --bm-r-lg: 12px;
+  --bm-r-xl: 16px;
+
+  /* Shadows */
+  --bm-shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --bm-shadow-md: 0 1px 3px rgba(15,23,42,0.06), 0 4px 12px rgba(15,23,42,0.04);
+  --bm-shadow-lg: 0 4px 12px rgba(15,23,42,0.08), 0 16px 40px rgba(15,23,42,0.06);
+
+  /* Typography */
+  --bm-font-ui:   'Inter', system-ui, -apple-system, sans-serif;
+  --bm-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+}
+
+/* ── Dark mode overrides ───────────────────────────────────── */
+.dark {
+  --bm-bg:            oklch(0.12  0.008 260);
+  --bm-bg-elev:       oklch(0.14  0.007 260);
+  --bm-surface:       oklch(0.155 0.008 260);
+  --bm-surface-2:     oklch(0.185 0.007 260);
+  --bm-surface-3:     oklch(0.215 0.006 260);
+  --bm-border:        oklch(0.255 0.010 260);
+  --bm-border-strong: oklch(0.32  0.012 260);
+  --bm-text:          oklch(0.92  0.005 250);
+  --bm-text-muted:    oklch(0.65  0.010 255);
+  --bm-text-dim:      oklch(0.50  0.008 255);
+  --bm-accent:        oklch(0.65  0.14  245);
+  --bm-accent-soft:   oklch(0.20  0.04  245);
+  --bm-accent-ink:    oklch(0.78  0.10  245);
+  --bm-ok:            oklch(0.70  0.13  150);
+  --bm-ok-soft:       oklch(0.18  0.04  150);
+  --bm-err:           oklch(0.68  0.18  25);
+  --bm-err-soft:      oklch(0.18  0.04  25);
+  --bm-warn:          oklch(0.72  0.12  75);
+  --bm-warn-soft:     oklch(0.18  0.04  75);
+}
+
+/* ── App shell ─────────────────────────────────────────────── */
+body {
+  font-family: var(--bm-font-ui);
+  font-size: 14px;
+  color: var(--bm-text);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+
+/* Brand area at the top of sidebar */
+[data-testid="app-sidebar"] .brand,
+.app-sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px 10px;
+}
+
+/* Sidebar background */
+[data-sidebar="sidebar"],
+aside[data-slot="sidebar"] {
+  background: var(--bm-surface) !important;
+  border-right: 1px solid var(--bm-border) !important;
+  font-family: var(--bm-font-ui);
+}
+
+/* Sidebar nav links */
+[data-sidebar="menu-button"],
+[data-sidebar="menu-item"] button {
+  color: var(--bm-text-muted);
+  font-size: 13px;
+  border-radius: var(--bm-r-sm);
+}
+
+[data-sidebar="menu-button"]:hover,
+[data-sidebar="menu-item"] button:hover {
+  background: var(--bm-surface-2);
+  color: var(--bm-text);
+}
+
+/* Sidebar section labels */
+[data-sidebar="group-label"] {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bm-text-dim);
+  font-weight: 600;
+  padding: 0 10px;
+  margin-bottom: 4px;
+}
+
+/* Recent chats list items */
+[data-testid^="button-chat-"] {
+  color: var(--bm-text-muted) !important;
+  font-size: 12.5px !important;
+  border-radius: var(--bm-r-sm) !important;
+  padding: 5px 10px !important;
+}
+
+[data-testid^="button-chat-"]:hover {
+  background: var(--bm-surface-2) !important;
+  color: var(--bm-text) !important;
+}
+
+[data-testid^="button-chat-"].bg-sidebar-accent {
+  background: var(--bm-surface-3) !important;
+  color: var(--bm-text) !important;
+}
+
+/* ── Chat column ───────────────────────────────────────────── */
+
+/* Chat thread scrollable area */
+.flex-1.overflow-y-auto,
+[class*="chat-scroll"],
+[class*="messages-container"] {
+  background: var(--bm-bg);
+}
+
+/* User message bubble */
+[data-role="user"] .bg-primary {
+  background: var(--bm-surface-3) !important;
+  color: var(--bm-text) !important;
+  border-radius: 14px 14px 2px 14px !important;
+}
+
+/* Assistant message — no card background, clean text */
+[data-role="assistant"] .bg-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
+}
+
+/* Message avatars — tighter */
+[data-role="user"] .h-8,
+[data-role="assistant"] .h-8 {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* BioMate logo avatar in messages — clean circular */
+[data-role="assistant"] img[alt="BioMate"] {
+  border-radius: 50%;
+  background: var(--bm-accent-soft);
+  padding: 2px;
+  object-fit: contain;
+}
+
+/* ── Chat input area ───────────────────────────────────────── */
+.chat-input-area,
+[class*="chat-input"],
+textarea[placeholder*="message"],
+textarea[placeholder*="BioMate"] {
+  border: 1px solid var(--bm-border) !important;
+  border-radius: var(--bm-r-lg) !important;
+  background: var(--bm-bg-elev) !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+  font-family: var(--bm-font-ui) !important;
+  font-size: 14px !important;
+  transition: border-color .15s !important;
+}
+
+textarea:focus {
+  outline: none !important;
+  border-color: var(--bm-border-strong) !important;
+}
+
+textarea::placeholder {
+  color: var(--bm-text-dim) !important;
+}
+
+/* Send button */
+[data-testid="send-message-btn"],
+button[type="submit"][aria-label*="send"],
+button[aria-label*="Send"] {
+  background: var(--bm-text) !important;
+  color: var(--bm-bg-elev) !important;
+  border-radius: var(--bm-r-sm) !important;
+  border: none !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+[data-testid="send-message-btn"]:disabled {
+  background: var(--bm-surface-3) !important;
+  color: var(--bm-text-dim) !important;
+}
+
+/* ── Welcome screen ─────────────────────────────────────────── */
+[data-testid="onboarding-welcome"] {
+  background: var(--bm-bg);
+  font-family: var(--bm-font-ui);
+}
+
+[data-testid="onboarding-welcome"] h2 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bm-text);
+}
+
+[data-testid="onboarding-welcome"] p {
+  color: var(--bm-text-muted);
+  font-size: 13.5px;
+}
+
+/* Domain selector buttons */
+[data-testid^="onboarding-domain-btn-"] {
+  font-size: 13px !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--bm-border) !important;
+  color: var(--bm-text-muted) !important;
+  transition: background .12s, color .12s !important;
+}
+
+[data-testid^="onboarding-domain-btn-"]:hover {
+  background: var(--bm-surface-2) !important;
+  color: var(--bm-text) !important;
+}
+
+/* Selected domain button uses accent */
+[data-testid^="onboarding-domain-btn-"].border-primary,
+[data-testid^="onboarding-domain-btn-"][class*="bg-primary"] {
+  background: var(--bm-accent) !important;
+  color: white !important;
+  border-color: var(--bm-accent) !important;
+}
+
+/* Starter prompt buttons */
+[data-testid="onboarding-starter-prompt"] {
+  border: 1px solid var(--bm-border) !important;
+  border-radius: var(--bm-r-md) !important;
+  background: var(--bm-bg-elev) !important;
+  color: var(--bm-text-muted) !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+  transition: background .12s, border-color .12s !important;
+}
+
+[data-testid="onboarding-starter-prompt"]:hover {
+  background: var(--bm-surface) !important;
+  border-color: var(--bm-border-strong) !important;
+  color: var(--bm-text) !important;
+}
+
+/* ── Site header (top bar) ──────────────────────────────────── */
+header,
+[data-testid="site-header"],
+.site-header {
+  background: var(--bm-bg-elev) !important;
+  border-bottom: 1px solid var(--bm-border) !important;
+  height: 48px;
+}
+
+/* ── Cards and surfaces ─────────────────────────────────────── */
+.card,
+[class*="rounded-lg border bg-card"],
+[class*="bg-card text-card"] {
+  background: var(--bm-bg-elev);
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-r-md);
+}
+
+/* ── Buttons (global overrides for consistent style) ─────────── */
+.btn-primary,
+button.bg-primary,
+[class*="bg-primary text-primary-foreground"] {
+  background: var(--bm-accent) !important;
+  color: white !important;
+  border-radius: var(--bm-r-sm) !important;
+  font-weight: 500 !important;
+}
+
+/* Secondary / ghost buttons */
+button.border.bg-background,
+button[class*="variant-outline"],
+[class*="border-input bg-background"] {
+  border-color: var(--bm-border) !important;
+  background: var(--bm-bg-elev) !important;
+  color: var(--bm-text) !important;
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--bm-font-ui);
+  letter-spacing: -0.01em;
+  color: var(--bm-text);
+}
+
+code, pre, .font-mono {
+  font-family: var(--bm-font-mono) !important;
+}
+
+/* ── Scrollbars (thin, unobtrusive) ──────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bm-border) transparent;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bm-border);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--bm-border-strong); }
+
+/* ── Focus rings ─────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--bm-accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* ── Disambiguation card ─────────────────────────────────────── */
+[data-testid="workflow-disambiguation-card"],
+.workflow-disambiguation-card {
+  border: 1px solid var(--bm-border) !important;
+  border-radius: var(--bm-r-md) !important;
+  background: var(--bm-bg-elev) !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+  padding: 12px 14px !important;
+  max-width: 540px;
+}
+
+/* ── Chat message metadata (token count, etc.) ───────────────── */
+.text-xs.text-muted-foreground {
+  font-family: var(--bm-font-mono);
+  color: var(--bm-text-dim) !important;
+}
+
+/* ── Workflow chip / WorkflowRef card in messages ──────────────── */
+[data-testid="workflow-ref-card"],
+.workflow-ref-card {
+  border: 1px solid var(--bm-border) !important;
+  background: var(--bm-bg-elev) !important;
+  border-radius: var(--bm-r-md) !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+  padding: 12px 14px !important;
+  max-width: 540px;
+}
+
+/* ── Right panel chrome (tour / close buttons) ────────────────── */
+[data-testid="workflow-right-panel"] > div:first-child {
+  background: var(--bm-bg-elev);
+  border-bottom: 1px solid var(--bm-border);
+}

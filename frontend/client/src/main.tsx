@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { Component, type ReactNode } from "react";
 import App from "./App";
 import "./index.css";
+import "./styles/reference-design.css";
 
 // Global error boundary to capture React render crashes (prevents blank pages,
 // logs the actual error so we can diagnose and fix the root cause).
