@@ -318,6 +318,20 @@ def CS_HELPER = '''
         print(f"[CS] Lane '{lane}' max GPU/worker = {count}", flush=True)
         return count
 
+    def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
+        """Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
+        lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
+        prior single-lane behaviour.  With num_workers > N, lanes 'worker_0' .. 'worker_{N-1}'
+        must be pre-registered on the CryoSPARC instance (cryosparcm addworker)."""
+        if num_workers <= 1:
+            return base_lane
+        # batch_id may be 'batch_0003' or a raw integer string '3'
+        try:
+            idx = int(batch_id.split("_")[-1])
+        except ValueError:
+            idx = 0
+        return f"worker_{idx % num_workers}"
+
     def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
         """Download output MRC files and thumbnails from a completed CryoSPARC job.
         Returns list of local filenames that were actually written."""
@@ -450,12 +464,47 @@ process INIT_CRYOSPARC_PROJECT {
             pass
     print(f"[CS] Imported {num_movies} movies", flush=True)
 
+    # ── Multi-lane worker registration (only when num_cs_workers > 1) ──────────
+    # Each worker gets a dedicated lane name "worker_0" .. "worker_{N-1}".
+    # Pre-requisite: the CryoSPARC instance must have N GPUs; one worker per GPU
+    # is created here via cryosparcm CLI over SSH (or locally if host=localhost).
+    import subprocess as _sp, shutil as _sh
+    _num_workers = ${params.num_cs_workers}
+    if _num_workers > 1:
+        _cryosparcm = _sh.which("cryosparcm") or "/home/ubuntu/cryosparc_master/bin/cryosparcm"
+        print(f"[CS] Registering {_num_workers} CryoSPARC workers (lanes worker_0..worker_{_num_workers-1})", flush=True)
+        for _i in range(_num_workers):
+            _wname = f"worker_{_i}"
+            try:
+                # Check if lane already exists
+                _r = _sp.run(
+                    [_cryosparcm, "cli", f"list(db.workers.find({{'lane':'{_wname}'}}, {{'_id':1}}))"],
+                    capture_output=True, text=True, timeout=15
+                )
+                if f"worker_{_i}" in (_r.stdout or ""):
+                    print(f"[CS] Lane {_wname} already registered — skipping", flush=True)
+                    continue
+                # Register: GPU index _i, single GPU per worker for parallel execution
+                _reg = _sp.run(
+                    [_cryosparcm, "addworker", "--name", _wname,
+                     "--hostname", "localhost", "--gpus", str(_i),
+                     "--script_path_prefix", "${params.cryosparc_project_dir}"],
+                    capture_output=True, text=True, timeout=30
+                )
+                if _reg.returncode == 0:
+                    print(f"[CS] Registered lane {_wname} (GPU {_i})", flush=True)
+                else:
+                    print(f"[CS] Warning: addworker {_wname} exit={_reg.returncode}: {_reg.stderr[:200]}", flush=True)
+            except Exception as _e:
+                print(f"[CS] Warning: worker registration {_wname} failed: {_e}", flush=True)
+
     with open("cs_init.json", "w") as f:
         json.dump({
-            "project_uid":   proj_uid,
-            "workspace_uid": ws_uid,
+            "project_uid":    proj_uid,
+            "workspace_uid":  ws_uid,
             "import_job_uid": import_job_uid,
-            "num_movies":    num_movies,
+            "num_movies":     num_movies,
+            "num_cs_workers": _num_workers,
         }, f, indent=2)
     """
     else
@@ -468,6 +517,7 @@ process INIT_CRYOSPARC_PROJECT {
             "workspace_uid":  "MOCK",
             "import_job_uid": "MOCK",
             "num_movies":     ${params.micrograph_batch_size},
+            "num_cs_workers": 1,
         }, f)
     print("[CS] mock init done")
     """
@@ -542,6 +592,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
     batch_id = '${batch_id}'
     use_real = ${real}
     init = json.load(open("${cs_init_json}"))
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -551,9 +602,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
             init["project_uid"], init["workspace_uid"],
             "patch_motion_correction_multi",
             connections={"movies": (init["import_job_uid"], "imported_movies")},
-            params={
-                
-            },
+            params={},
+            lane=_lane,
             timeout=14400,
         )
         micrographs_out = job.load_output("micrographs")
@@ -624,6 +674,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
     prev      = json.load(open("${micrographs_cs}"))
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -632,10 +683,8 @@ process PATCH_CTF_ESTIMATION_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "patch_ctf_estimation_multi",
             connections={"micrographs": (prev["job_uid"], "micrographs")},
-            params={
-                "amp_contrast":     0.1,
-                
-            },
+            params={"amp_contrast": 0.1},
+            lane=_lane,
             timeout=7200,
         )
         num_mics = prev.get("num_items", 0)
@@ -722,6 +771,7 @@ process BLOB_PICKER_BATCH {
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
     prev      = json.load(open("${ctf_cs}"))
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -731,6 +781,7 @@ process BLOB_PICKER_BATCH {
             "blob_picker_gpu",
             connections={"micrographs": (prev["job_uid"], "micrographs_ctf")},
             params={"diameter": ${diameter}},
+            lane=_lane,
             timeout=7200,
         )
         particles_out = job.load_output("particles")
@@ -803,6 +854,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
     init_ws        = ctf_data.get('workspace_uid', '')
     ctf_job_uid    = ctf_data.get('job_uid', '')
     picks_job_uid  = inspected_data.get('job_uid', '')
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real and ctf_job_uid and picks_job_uid:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -815,6 +867,7 @@ process EXTRACT_PARTICLES_R1_BATCH {
                 "particles":   (picks_job_uid, "particles"),
             },
             params={"box_size_pix": box_size},
+            lane=_lane,
             timeout=7200,
         )
         particles_out = job.load_output("particles")
@@ -974,6 +1027,7 @@ process CLASSIFY_2D_R1_BATCH {
     src_n       = int('${src_num_items}')
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -983,6 +1037,7 @@ process CLASSIFY_2D_R1_BATCH {
             "class_2D",
             connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 50},
+            lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
         )
@@ -1079,6 +1134,7 @@ process CLASSIFY_2D_R2_BATCH {
     src_n       = int('${src_num_items}')
     use_real  = ${real}
     init      = json.load(open("${cs_init_json}"))
+    _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -1088,6 +1144,7 @@ process CLASSIFY_2D_R2_BATCH {
             "class_2D",
             connections={"particles": (src_job_uid, "particles")},
             params={"class2D_K": 100},
+            lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
         )
@@ -1154,6 +1211,7 @@ process AB_INITIO_BATCH {
     use_real = ${real}
     init     = json.load(open("${cs_init_json}"))
     prev     = json.load(open("${particles_cs}"))
+    _lane = _lane_for_batch(str(k - 1), ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -1163,6 +1221,7 @@ process AB_INITIO_BATCH {
             "homo_abinit",
             connections={"particles": (prev["job_uid"], "particles")},
             params={"abinit_K": 1, "abinit_symmetry": "${params.symmetry}"},
+            lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
         )
@@ -1241,6 +1300,7 @@ process HOMO_REFINEMENT_BATCH {
     init      = json.load(open("${cs_init_json}"))
     vol_data  = json.load(open("${volume_cs}"))
     par_data  = json.load(open("${particles_cs}"))
+    _lane = _lane_for_batch(vol_name, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
     if use_real:
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
@@ -1253,6 +1313,7 @@ process HOMO_REFINEMENT_BATCH {
                 "volume":    (vol_data["job_uid"], vol_data.get("output_slot", "volume_class_0")),
             },
             params={"refine_symmetry": "${params.symmetry}"},
+            lane=_lane,
             timeout=21600,
             num_gpu=${params.num_gpu},
         )
