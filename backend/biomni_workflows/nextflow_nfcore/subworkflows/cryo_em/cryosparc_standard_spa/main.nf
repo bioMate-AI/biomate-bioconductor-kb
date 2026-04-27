@@ -99,6 +99,10 @@ params.num_cs_workers = 1                    // CryoSPARC workers to spread para
 params.import_mode          = "movies"       // "movies" (default) or "particles"
 params.particle_star_file   = ""             // STAR file path (local on CryoSPARC instance)
 params.particle_blob_path   = ""             // base dir for resolving STAR file .mrcs paths
+// Per-batch movie directories: JSON list of {batch_id, dir, num_movies} created by backend SSH.
+// Non-empty only when num_cs_workers>1 and import_mode="movies".
+// When set, INIT creates one workspace+import_movies job per batch → true parallel motion correction.
+params.movie_batch_dirs     = ""             // JSON string; empty = single-workspace fallback
 
 // ============================================================================
 // Helper Functions
@@ -474,31 +478,83 @@ process INIT_CRYOSPARC_PROJECT {
         print(f"[CS] Imported {num_particles} particles (particle mode)", flush=True)
     else:
         # ── import_movies: standard raw movie pipeline ──────────────────────────
-        import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
-            connections={},
-            params={
-                "blob_paths":          blob_paths,
-                "psize_A":             ${params.pixel_size},
-                "accel_kv":            ${params.voltage},
-                "cs_mm":               ${params.spherical_aberration},
-                "total_dose_e_per_A2": ${params.total_dose},
-            },
-            timeout=3600,
-        )
-        import_job_uid = import_job.uid
-        num_particles  = 0
-
-        # Get movie count from completed import job outputs
-        num_movies = 0
-        for out_name in ("imported_movies", "movies"):
+        # Check if per-batch dirs were pre-created by the backend (num_cs_workers>1 case).
+        # If so, create one workspace+import_movies job per batch; otherwise fall back to
+        # a single workspace+import covering all movies.
+        import json as _jmod
+        _batch_dirs_raw = "${params.movie_batch_dirs}".strip()
+        _per_batch_dirs = []
+        if _batch_dirs_raw and _batch_dirs_raw.startswith("["):
             try:
-                imported = import_job.load_output(out_name)
-                if imported is not None:
-                    num_movies = len(imported)
-                    break
-            except Exception:
-                pass
-        print(f"[CS] Imported {num_movies} movies", flush=True)
+                _per_batch_dirs = _jmod.loads(_batch_dirs_raw)
+                print(f"[CS] Per-batch movie dirs provided: {len(_per_batch_dirs)} batches", flush=True)
+            except Exception as _je:
+                print(f"[CS] Warning: could not parse movie_batch_dirs ({_je}) — falling back to single batch", flush=True)
+
+        if _per_batch_dirs:
+            # ── Multi-batch imports: one workspace + import_movies job per batch dir ──
+            # This enables truly parallel motion correction: each batch's motion correction
+            # job connects to ITS OWN import job, so CryoSPARC processes only that batch's
+            # movies (not all movies, which was the old bug).
+            _batch_infos = []
+            _total_movies = 0
+            for _bd in _per_batch_dirs:
+                _bid  = _bd["batch_id"]
+                _bdir = _bd["dir"]
+                _nmov = int(_bd["num_movies"])
+                _ws_b = cs_create_workspace(cs, proj_uid, f"W_{_bid}")
+                _imp  = submit_and_wait(cs, proj_uid, _ws_b, "import_movies",
+                    connections={},
+                    params={
+                        "blob_paths":          _bdir + "/*",
+                        "psize_A":             ${params.pixel_size},
+                        "accel_kv":            ${params.voltage},
+                        "cs_mm":               ${params.spherical_aberration},
+                        "total_dose_e_per_A2": ${params.total_dose},
+                    },
+                    timeout=1800,
+                )
+                _batch_infos.append({
+                    "batch_id":       _bid,
+                    "workspace_uid":  _ws_b,
+                    "import_job_uid": _imp.uid,
+                    "num_movies":     _nmov,
+                })
+                _total_movies += _nmov
+                print(f"[CS] Batch {_bid}: ws={_ws_b} import={_imp.uid} ({_nmov} movies)", flush=True)
+            # Single-batch fields kept for backwards compat with non-batch processes
+            import_job_uid = _batch_infos[0]["import_job_uid"]
+            ws_uid         = _batch_infos[0]["workspace_uid"]
+            num_movies     = _total_movies
+            num_particles  = 0
+        else:
+            # ── Single-batch fallback: one workspace + one import_movies covering ALL movies ──
+            import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
+                connections={},
+                params={
+                    "blob_paths":          blob_paths,
+                    "psize_A":             ${params.pixel_size},
+                    "accel_kv":            ${params.voltage},
+                    "cs_mm":               ${params.spherical_aberration},
+                    "total_dose_e_per_A2": ${params.total_dose},
+                },
+                timeout=3600,
+            )
+            import_job_uid = import_job.uid
+            num_particles  = 0
+            _batch_infos   = []  # no per-batch info in single-batch mode
+
+            # Get movie count from completed import job outputs
+            num_movies = 0
+            for out_name in ("imported_movies", "movies"):
+                try:
+                    imported = import_job.load_output(out_name)
+                    if imported is not None:
+                        num_movies = len(imported)
+                        break
+                except Exception:
+                    pass
+            print(f"[CS] Imported {num_movies} movies (single-batch)", flush=True)
 
     # ── Multi-lane worker registration (only when num_cs_workers > 1) ──────────
     # Each worker gets a dedicated lane name "worker_0" .. "worker_{N-1}".
@@ -535,7 +591,7 @@ process INIT_CRYOSPARC_PROJECT {
                 print(f"[CS] Warning: worker registration {_wname} failed: {_e}", flush=True)
 
     with open("cs_init.json", "w") as f:
-        json.dump({
+        _init_doc = {
             "project_uid":    proj_uid,
             "workspace_uid":  ws_uid,
             "import_job_uid": import_job_uid,
@@ -543,7 +599,11 @@ process INIT_CRYOSPARC_PROJECT {
             "num_particles":  num_particles,
             "import_mode":    _import_mode,
             "num_cs_workers": _num_workers,
-        }, f, indent=2)
+        }
+        # Per-batch info (non-empty only in multi-batch movies mode)
+        if "_batch_infos" in dir() and _batch_infos:
+            _init_doc["batches"] = _batch_infos
+        json.dump(_init_doc, f, indent=2)
     """
     else
     """
@@ -586,20 +646,22 @@ process SPLIT_INTO_BATCHES {
     init = json.load(open("${cs_init_json}"))
     num_movies = init.get("num_movies", batch_size)
 
-    # Embed start/end directly in CSV (columns: batch_id, start, end).
-    # Do NOT write separate range files — Nextflow can only stage declared outputs.
-    batches = []
-    for start in range(0, max(num_movies, 1), batch_size):
-        end = min(start + batch_size, num_movies)
-        batches.append((start, end))
+    # If per-batch info is available (multi-GPU mode), emit one row per batch
+    # with columns: batch_id, workspace_uid, import_job_uid, num_movies
+    # so PATCH_MOTION_CORRECTION_BATCH can use the per-batch workspace + import job.
+    # Otherwise (single-batch fallback), emit a single row with the global workspace/import.
+    per_batches = init.get("batches", [])
 
     with open("batch_manifest.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        for idx, (start, end) in enumerate(batches):
-            batch_id = f"batch_{idx:04d}"
-            writer.writerow([batch_id, start, end])
-
-    print(f"Split {num_movies} movies into {len(batches)} batches of <={batch_size}")
+        if per_batches:
+            for b in per_batches:
+                writer.writerow([b["batch_id"], b["workspace_uid"], b["import_job_uid"], b["num_movies"]])
+            print(f"Per-batch manifest: {len(per_batches)} batches (multi-GPU mode)")
+        else:
+            # Single-batch: emit one row using global workspace/import
+            writer.writerow(["batch_0000", init["workspace_uid"], init["import_job_uid"], num_movies])
+            print(f"Single-batch manifest: {num_movies} movies → workspace={init['workspace_uid']}")
     """
 }
 
@@ -609,7 +671,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
     container CS_IMAGE
 
     input:
-    tuple val(batch_id), val(batch_start), val(batch_end)
+    tuple val(batch_id), val(batch_ws_uid), val(batch_import_uid), val(batch_num_movies)
     path cs_init_json
 
     output:
@@ -632,22 +694,28 @@ process PATCH_MOTION_CORRECTION_BATCH {
     init = json.load(open("${cs_init_json}"))
     _lane = _lane_for_batch(batch_id, ${params.num_cs_workers}, "${params.cryosparc_lane}")
 
+    # Per-batch workspace/import: use values from the CSV row (passed in as Nextflow vals).
+    # These are the workspace + import job that belong ONLY to this batch's movie subset,
+    # enabling true parallel motion correction (each batch processes its own N movies).
+    _ws_uid     = "${batch_ws_uid}"     or init["workspace_uid"]
+    _import_uid = "${batch_import_uid}" or init["import_job_uid"]
+
     if use_real:
         cs = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
                         ${params.cryosparc_port}, "${params.cryosparc_email}",
                         "${params.cryosparc_password}")
         job = submit_and_wait(cs,
-            init["project_uid"], init["workspace_uid"],
+            init["project_uid"], _ws_uid,
             "patch_motion_correction_multi",
-            connections={"movies": (init["import_job_uid"], "imported_movies")},
+            connections={"movies": (_import_uid, "imported_movies")},
             params={},
             lane=_lane,
             timeout=14400,
         )
         micrographs_out = job.load_output("micrographs")
-        num_mics = len(micrographs_out) if micrographs_out is not None else init.get("num_movies", 0)
+        num_mics = len(micrographs_out) if micrographs_out is not None else int("${batch_num_movies}" or "0")
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
-                   "workspace_uid": init["workspace_uid"],
+                   "workspace_uid": _ws_uid,
                    "job_uid": job.uid, "output_slot": "micrographs",
                    "num_items": num_mics, "batch_id": batch_id}
         report = {"step": "02_patch_motion_correction", "batch_id": batch_id,
@@ -738,7 +806,9 @@ process PATCH_CTF_ESTIMATION_BATCH {
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
-        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+        # Use per-batch workspace from the motion correction output if available
+        _ws_uid_ctf = prev.get("workspace_uid", init["workspace_uid"])
+        job = submit_and_wait(cs, init["project_uid"], _ws_uid_ctf,
             "patch_ctf_estimation_multi",
             connections={"micrographs": (prev["job_uid"], "micrographs")},
             params={"amp_contrast": 0.1},
@@ -747,7 +817,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
         )
         num_mics = prev.get("num_items", 0)
         cs_data  = {"cs_mode": "real", "project_uid": init["project_uid"],
-                    "workspace_uid": init["workspace_uid"],
+                    "workspace_uid": _ws_uid_ctf,
                     "job_uid": job.uid, "output_slot": "micrographs_ctf",
                     "num_items": num_mics, "batch_id": batch_id}
         report   = {"step": "03_patch_ctf_estimation", "batch_id": batch_id,
@@ -849,7 +919,8 @@ process BLOB_PICKER_BATCH {
         cs  = cs_connect("${params.cryosparc_license}", "${params.cryosparc_host}",
                          ${params.cryosparc_port}, "${params.cryosparc_email}",
                          "${params.cryosparc_password}")
-        job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
+        _ws_uid_bp = prev.get("workspace_uid", init["workspace_uid"])
+        job = submit_and_wait(cs, init["project_uid"], _ws_uid_bp,
             "blob_picker_gpu",
             connections={"micrographs": (prev["job_uid"], "micrographs_ctf")},
             params={"diameter": ${diameter}},
@@ -859,7 +930,7 @@ process BLOB_PICKER_BATCH {
         particles_out = job.load_output("particles")
         num_particles = len(particles_out) if particles_out is not None else 0
         cs_data = {"cs_mode": "real", "project_uid": init["project_uid"],
-                   "workspace_uid": init["workspace_uid"],
+                   "workspace_uid": _ws_uid_bp,
                    "job_uid": job.uid, "output_slot": "particles",
                    "num_items": num_particles, "batch_id": batch_id}
         report = {"step": "05_blob_picker", "batch_id": batch_id,
@@ -2748,12 +2819,15 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
-    // Split movie directory into batches; emit one CSV row per batch (batch_id, start, end)
+    // Split into batches; CSV columns: batch_id, workspace_uid, import_job_uid, num_movies.
+    // In single-batch mode (num_cs_workers==1): one row with the global workspace/import.
+    // In multi-batch mode (num_cs_workers>1): one row per GPU batch, each with its own
+    // per-batch workspace+import so motion correction is truly parallel.
     batches_ch = SPLIT_INTO_BATCHES(init_json_ch)
         .splitCsv(header: false)
-        .map { row -> tuple(row[0], row[1].toInteger(), row[2].toInteger()) }
+        .map { row -> tuple(row[0], row[1], row[2], row[3]) }
 
-    // Parallel motion correction — one job per batch
+    // Parallel motion correction — one job per batch (truly parallel in multi-batch mode)
     PATCH_MOTION_CORRECTION_BATCH(batches_ch, init_json_ch)
     motion_ch = PATCH_MOTION_CORRECTION_BATCH.out.micrographs_cs
 

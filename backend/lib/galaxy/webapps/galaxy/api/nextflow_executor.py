@@ -750,6 +750,7 @@ def _is_path_param(key: str, value: Any) -> bool:
         "movies_path",          # staged to remote CryoSPARC EC2 instance; not on head node
         "particle_star_file",   # lives on CryoSPARC EC2 instance
         "particle_blob_path",   # lives on CryoSPARC EC2 instance
+        "movie_batch_dirs",     # JSON string of per-batch dir info (not a local path)
     })
     key_l = key.lower()
     if key_l in _NON_PATH_KEYS:
@@ -4384,6 +4385,70 @@ def _stage_s3_movies_on_cryosparc(s3_url: str, instance_ip: str, ssh_key: str, s
     return f"{local_dir}/"
 
 
+def _create_movie_batch_dirs(
+    movies_path: str, instance_ip: str, ssh_key: str, ssh_user: str,
+    num_workers: int, batch_size: int,
+) -> List[Dict[str, Any]]:
+    """SSH to the CryoSPARC instance and create per-batch symlink directories.
+
+    Returns a list of dicts: [{"batch_id": "batch_0000", "dir": "/path/batch_0000", "num_movies": 5}, ...]
+    Each dir contains symlinks to the movie files for that batch.  INIT_CRYOSPARC_PROJECT
+    reads this list to create one CryoSPARC workspace + import_movies job per batch,
+    enabling truly parallel motion correction across GPUs.
+    """
+    import subprocess, time as _time, os as _os
+    if not ssh_key or not instance_ip or instance_ip in ("localhost", "127.0.0.1"):
+        return []
+    try:
+        # List all movie files (sorted so batches are deterministic)
+        ls_result = subprocess.run(
+            ["ssh", "-i", ssh_key, "-o", "StrictHostKeyChecking=no",
+             "-o", "ConnectTimeout=15", f"{ssh_user}@{instance_ip}",
+             f"ls {movies_path} 2>/dev/null | sort"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if ls_result.returncode != 0 or not ls_result.stdout.strip():
+            log.warning("[CryoSPARC] ls %s returned empty — skipping per-batch dirs", movies_path)
+            return []
+        movies = [f.strip() for f in ls_result.stdout.strip().split('\n') if f.strip()]
+
+        # Resolve the movies directory (strip glob/trailing wildcard)
+        movies_dir = _os.path.dirname(movies_path.rstrip('/*'))
+
+        run_tag = _time.strftime("%Y%m%d-%H%M%S")
+        batches: List[Dict[str, Any]] = []
+        for i in range(0, len(movies), batch_size):
+            batch_files = movies[i:i + batch_size]
+            batch_idx   = i // batch_size
+            batch_id    = f"batch_{batch_idx:04d}"
+            batch_dir   = f"/home/{ssh_user}/biomate_batches/{run_tag}/{batch_id}"
+
+            # Build symlinks: create dir then ln -sf each movie into it
+            symlink_cmds = [f"mkdir -p {batch_dir}"]
+            for fname in batch_files:
+                # fname may be absolute or relative; resolve to absolute
+                full_path = fname if fname.startswith("/") else f"{movies_dir}/{fname}"
+                symlink_cmds.append(f"ln -sf {full_path} {batch_dir}/")
+
+            cmd_str = " && ".join(symlink_cmds)
+            subprocess.run(
+                ["ssh", "-i", ssh_key, "-o", "StrictHostKeyChecking=no",
+                 f"{ssh_user}@{instance_ip}", cmd_str],
+                capture_output=True, timeout=60,
+            )
+            batches.append({
+                "batch_id":   batch_id,
+                "dir":        batch_dir,
+                "num_movies": len(batch_files),
+            })
+            log.info("[CryoSPARC] Created batch dir %s (%d movies)", batch_dir, len(batch_files))
+
+        return batches
+    except Exception as exc:
+        log.warning("[CryoSPARC] _create_movie_batch_dirs failed: %s", exc)
+        return []
+
+
 def _count_movies_on_cryosparc(movies_path: str, instance_ip: str, ssh_key: str, ssh_user: str) -> int:
     """SSH to CryoSPARC instance and count movie files matching the glob path.
     Returns 0 on failure (caller falls back to default instance type).
@@ -4563,6 +4628,36 @@ def execute_cryosparc(
     batch_size     = int(params.get("micrograph_batch_size", 200))
     num_cs_workers = int(params.get("num_cs_workers", 1))
 
+    # ── Part A: per-batch movie directory setup (multi-worker movies mode only) ──
+    # When num_cs_workers > 1 and processing raw movies, SSH to the CryoSPARC instance
+    # before launching Nextflow to create per-batch symlink directories.  Each batch
+    # gets its own CryoSPARC workspace + import_movies job, enabling truly parallel
+    # motion correction across GPUs rather than all batches sharing one import job.
+    _movie_batch_dirs: str = ""  # JSON-encoded list of per-batch dir info
+    input_mode = params.get("mode", "import_movies")
+    if num_cs_workers > 1 and input_mode != "import_particles" and movies_path_raw:
+        _ssh_key_mb  = os.environ.get("CRYOSPARC_SSH_KEY", "")
+        _ssh_user_mb = os.environ.get("CRYOSPARC_SSH_USER", "ubuntu")
+        _inst_ip_mb  = cs_exec.CRYOSPARC_HOST
+        if _ssh_key_mb:
+            try:
+                _batch_dirs = _create_movie_batch_dirs(
+                    movies_path=movies_path_raw,
+                    instance_ip=_inst_ip_mb,
+                    ssh_key=_ssh_key_mb,
+                    ssh_user=_ssh_user_mb,
+                    num_workers=num_cs_workers,
+                    batch_size=batch_size,
+                )
+                if _batch_dirs:
+                    import json as _json
+                    _movie_batch_dirs = _json.dumps(_batch_dirs)
+                    log.info("[CryoSPARC] Created %d per-batch movie dirs on %s",
+                             len(_batch_dirs), _inst_ip_mb)
+            except Exception as _mbd_err:
+                log.warning("[CryoSPARC] Per-batch movie dir setup failed (%s) — "
+                            "falling back to single-batch mode", _mbd_err)
+
     # ── import_particles mode: start from pre-extracted particle stacks ─────────
     # star_file / particle_dir_s3 may be S3 URIs; we sync them to the instance
     # local filesystem so CryoSPARC can read them.  The STAR file's embedded
@@ -4605,7 +4700,7 @@ def execute_cryosparc(
                 f"python3 -c \""
                 f"import re; "
                 f"txt=open('{star_file}').read(); "
-                f"txt2=re.sub(r'/home/ubuntu/particles/', '{particle_dir.rstrip(\"/\")  }/', txt); "
+                f"txt2=re.sub(r'/home/ubuntu/particles/', '{particle_dir.rstrip(chr(47))}/', txt); "
                 f"open('{star_file}','w').write(txt2); "
                 f"print('Rewrote paths in', '{star_file}')\""
             )
@@ -4635,6 +4730,8 @@ def execute_cryosparc(
         "micrograph_batch_size":  batch_size,
         "num_cs_workers":         num_cs_workers,
         "mock_mode":              False,
+        # Per-batch movie directories (non-empty only when num_cs_workers>1 and movies mode)
+        "movie_batch_dirs":       _movie_batch_dirs or "",
     }
 
     if input_mode == "import_particles" and star_file:

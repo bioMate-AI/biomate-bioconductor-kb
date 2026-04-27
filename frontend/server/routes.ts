@@ -6647,30 +6647,21 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
       } else if (localPath) {
         rawText = await fs.readFile(localPath, "utf8");
       } else if (s3Uri) {
-        // Fetch via Galaxy presign → download the actual bytes
+        // Fetch S3 object content directly via AWS SDK
         try {
-          const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-          const presignResp = await fetch(
-            `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`,
-            { signal: AbortSignal.timeout(10_000) }
-          );
-          if (presignResp.ok) {
-            const contentType = presignResp.headers.get("content-type") || "";
-            if (contentType.includes("application/json")) {
-              // The response itself is JSON with a presigned_url field
-              const body = await presignResp.json() as any;
-              if (body.presigned_url) {
-                const fileResp = await fetch(body.presigned_url, { signal: AbortSignal.timeout(15_000) });
-                if (fileResp.ok) rawText = await fileResp.text();
-              }
-            } else {
-              rawText = await presignResp.text();
-            }
+          const s3Match = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+          if (!s3Match) throw new Error(`Invalid S3 URI: ${s3Uri}`);
+          const [, bucket, key] = s3Match;
+          const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+          const s3 = new S3Client({ region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-west-2' });
+          const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+          const chunks: Buffer[] = [];
+          for await (const chunk of s3Obj.Body as any) {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
           }
+          rawText = Buffer.concat(chunks).toString('utf8');
         } catch (s3Err) {
           console.warn("[Preview] S3 fetch failed:", s3Err);
-        }
-        if (!rawText) {
           return res.status(503).json({ error: "S3 preview temporarily unavailable" });
         }
       } else {
