@@ -41,9 +41,76 @@ Never ship a fix that only works locally — always verify on dev.
 
 ## Testing Rules
 
-**NEVER mock API calls in E2E tests.** All E2E tests run against the live server with real backend responses. No `page.route()` interception, no `msw`, no `nock`, no stub responses. If a test requires data that depends on backend state, set it up through the real API or real UI actions.
+**NEVER mock API calls in E2E tests.** All E2E tests run against the live server with real backend responses. No `page.route()` interception, no `msw`, no `nock`, no stub responses. If a task requires data that depends on backend state, set it up through the real API or real UI actions.
 
 Unit tests may use mocks only for external third-party services (e.g. AWS, Stripe) where real calls are impractical.
+
+---
+
+## UX E2E Completeness Standard
+
+Every UX change must be verified to cover **all elements, all states, and all scenarios** from the Claude design reference at `http://localhost:7779`. A shallow "it renders" check is not acceptable.
+
+### Required coverage for each component
+
+**Workflow Panel (`nextflow-workflow-viewer.tsx`)**
+- [ ] Pre-run state: param strip shows required params; missing required params → blocked alert with "Fix now" + "Confirm anyway"
+- [ ] Running state: spinner, "Running…" footer button, phase cards show `running` status (spinner icon)
+- [ ] Completed state: phase cards show `completed`; "Run again" footer button
+- [ ] Failed state: phase cards show `failed`; "Restart" footer button
+- [ ] QC gate: when gate is blocked (e.g. ADMET hERG > threshold), alert shows with red border; two-number display (measured vs threshold) in correct colors
+- [ ] QC Settings section: threshold editor renders per-metric rows; each row has name, value, editable input; saving updates thresholds
+- [ ] "Edit" button on QC gate row: opens QC settings section and scrolls to correct metric
+- [ ] Parameter override: clicking "Edit params" opens GlobalParamsPanel; all param types render (boolean → toggle, select → dropdown, file → textarea, number → input with range hint)
+- [ ] "View phase outputs" link: panel opens and scrolls to step outputs section
+- [ ] Step file preview: image files render as `<img>`, tables render as HTML table, FASTA/VCF/text render as code block
+- [ ] Auto-loop panel: remediation card shows was→now param diff (red strikethrough → green new value); gate table shows halt/advisory/pass with correct color coding
+- [ ] Skip phase/step: commented out (no backend API) — verify buttons do NOT appear
+- [ ] Watcher bar: commented out — verify it does NOT appear
+- [ ] **Real-time status tracking** (CRITICAL): the panel must reflect live process state changes as they happen via SSE
+  - Pre-run: `data-status="idle"` on overall badge, phase cards have `data-status="pending"`
+  - After run clicked: footer button immediately shows "Running…" spinner; overall badge `data-status="running"`
+  - As each phase starts: that phase's card `data-status` changes from `pending` → `running` (verified via Playwright `waitForFunction`)
+  - As each step completes: step row `data-status` changes to `completed`
+  - After all phases done: overall badge `data-status="completed"`, footer shows "Run again"
+  - Failure path: any phase `data-status="failed"` → overall badge `data-status="failed"`, footer shows "Restart"
+  - The test must observe at least one idle→running→terminal transition in real time (not mocked)
+
+**Sidebar (`app-sidebar.tsx`)**
+- [ ] "New Chat" → starts new chat session
+- [ ] "Workflows" → opens StarredWorkflowsDialog
+- [ ] "Runs" → navigates to `/dashboard`
+- [ ] "CRO Library" → navigates to `/drug-discovery-cro`
+- [ ] Chat history dots: blue=running, red=failed, green=completed (empty=no run)
+- [ ] "Starred Workflows" → opens StarredWorkflowsDialog
+- [ ] "Recent Tools" → opens RecentToolsDialog
+- [ ] "Billing" → navigates to `/billing`
+- [ ] "Settings" → opens SettingsDialog
+- [ ] Collapse toggle: hides sidebar, icon-rail shows; expand restores
+
+**Chat message (`chat-message.tsx`)**
+- [ ] AI text-only message renders (markdown, code blocks)
+- [ ] Workflow card appears AFTER AI text message when workflow is suggested
+- [ ] wf-chip shows "In panel" badge when workflow is open in right panel
+- [ ] DisambiguationCard renders when `workflow_type === 'disambiguation'`
+- [ ] Alert banners: warn/error/info variants render with correct icon+color
+
+**Use-case scenarios (must all pass end-to-end)**
+1. **ADMET screening** — send SMILES list; get ADMET workflow; run; QC gate fires; auto-loop remediates; final report downloads
+2. **RNA-seq** — upload FASTQ paths; get nf-core/rnaseq; run on AWS Batch; step updates via SSE; findings panel appears; methods report downloads
+3. **WGS / variant calling** — genome param set; sarek pipeline; GATK steps complete; VCF output previews
+4. **CryoEM** — MRC files; cryosparc_standard_spa; phases complete; 3D reconstruction output
+5. **CRO compliance** — navigate to CRO Library; create campaign; attach ADMET results; export compliance package
+6. **Drug discovery IND** — run PBPK + clinical trial; generate §2.6.1 LLM narrative; download DOCX
+
+### Audit protocol after each E2E run
+
+1. **Screenshot every state** — pre-run, running (with at least one phase card in running state), completed, QC-blocked
+2. **Log assertions** — record pass/fail count per scenario
+3. **Visual diff** — compare screenshots against reference design at `localhost:7779`; call out any pixel-level deviations
+4. **Fix before marking done** — do not report "passing" if any visual element deviates from the reference or any scenario is skipped
+
+This standard applies to every PR that touches the workflow panel, sidebar, chat message rendering, or auto-loop panel.
 
 ---
 
