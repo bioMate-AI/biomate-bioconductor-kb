@@ -6653,7 +6653,10 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
           if (!s3Match) throw new Error(`Invalid S3 URI: ${s3Uri}`);
           const [, bucket, key] = s3Match;
           const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-          const s3 = new S3Client({ region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-west-2' });
+          const s3 = new S3Client({
+            region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
+            followRegionRedirects: true,
+          });
           const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
           const chunks: Buffer[] = [];
           for await (const chunk of s3Obj.Body as any) {
