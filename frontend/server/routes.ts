@@ -6099,6 +6099,11 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
 
         for (const artifactPath of expandedFiles) {
           if (existingLocalPaths.has(artifactPath)) continue;
+          // Skip S3 directory URIs (no extension, ends with '/', or basename has no dot)
+          if (artifactPath.startsWith("s3://") && artifactPath.endsWith("/")) continue;
+          const artifactBasename = path.basename(artifactPath);
+          if (NF_INTERNAL_FILES.has(artifactBasename)) continue;
+          if (NF_SKIP_DIRS.has(artifactBasename)) continue;
           try {
             const ext = path.extname(artifactPath).replace(".", "").toLowerCase() || "txt";
             const fileType = classifyFileType(ext);
@@ -6180,28 +6185,34 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
       let outputs = await storage.getInvocationOutputs(req.params.id);
       console.log(`[Outputs] req.id=${req.params.id} direct=${outputs.length} sources=${outputs.map((o:any)=>o?.metadata?.source).join(',')}`);
 
-      // If no outputs found, check if this is an ExecutionRun ID
-      // and look up the corresponding WorkflowInvocation
+      // If no outputs found, attempt to source them from the execution run record
       if (outputs.length === 0) {
         const invocation = await resolveInvocation(req.params.id);
+        // Also try direct execution run lookup — Nextflow runs often reference by executionRun.id
+        const directExecRun = await storage.getExecutionRun(req.params.id);
+        const effectiveInvocationId = invocation?.id || req.params.id;
+
         if (invocation) {
           outputs = await storage.getInvocationOutputs(invocation.id);
+        }
 
-          // If outputs are missing or consist only of the fallback runtime summary,
-          // attempt a real disk scan. The summary fallback is created while the workflow
-          // is still running (no files yet) so it must be superseded on completion.
-          const onlyFallbackSummary =
-            outputs.length > 0 &&
-            outputs.every((o: any) => o?.metadata?.source === 'nextflow_runtime_summary');
+        // If outputs are missing or consist only of the fallback runtime summary,
+        // attempt a real disk/S3 scan using the execution run's nextflowStatus.
+        const onlyFallbackSummary =
+          outputs.length > 0 &&
+          outputs.every((o: any) => o?.metadata?.source === 'nextflow_runtime_summary');
 
-          if ((outputs.length === 0 || onlyFallbackSummary) && invocation.galaxyInvocationId) {
-            const executionRun = await storage.getExecutionRunByGalaxyId(invocation.galaxyInvocationId);
-            // Also try looking up executionRun directly by the request ID (could be executionRun.id)
-            const executionRunDirect = executionRun || await storage.getExecutionRun(req.params.id);
-            const effectiveExecutionRun = executionRun || executionRunDirect;
+        if (outputs.length === 0 || onlyFallbackSummary) {
+          const galaxyInvId = invocation?.galaxyInvocationId;
+          const executionRun = galaxyInvId
+            ? (await storage.getExecutionRunByGalaxyId(galaxyInvId) || directExecRun)
+            : directExecRun;
+          const effectiveExecutionRun = executionRun;
+
+          if (effectiveExecutionRun) {
             const nextflowStatus = effectiveExecutionRun?.execution?.nextflowStatus;
             const nfRunId = effectiveExecutionRun?.execution?.nextflowRunId;
-            console.log(`[Outputs] invId=${invocation.id} galaxyInvId=${invocation.galaxyInvocationId} nfRunId=${nfRunId} nfOutdir=${nextflowStatus?.outdir} nfStatus=${nextflowStatus?.status}`);
+            console.log(`[Outputs] invId=${effectiveInvocationId} nfRunId=${nfRunId} nfOutdir=${nextflowStatus?.outdir} nfStatus=${nextflowStatus?.status}`);
 
             const artifacts: string[] = [];
             const pushArtifact = (value: any) => {
@@ -6304,15 +6315,15 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
                   console.warn('[Outputs] S3 file listing failed (non-fatal):', s3Err);
                 }
               }
-              await addRuntimeArtifactOutputs(invocation.id, Array.from(new Set(artifacts)));
-              outputs = await storage.getInvocationOutputs(invocation.id);
+              await addRuntimeArtifactOutputs(effectiveInvocationId, Array.from(new Set(artifacts)));
+              outputs = await storage.getInvocationOutputs(effectiveInvocationId);
               console.log(`[Outputs] After scan: ${outputs.length} outputs registered (terminal=${isTerminal})`);
             }
 
             // Only materialize fallback summary after workflow has actually finished
             if (outputs.length === 0 && isTerminal) {
-              await materializeRuntimeSummary(invocation.id, nextflowStatus || {}, effectiveExecutionRun?.id);
-              outputs = await storage.getInvocationOutputs(invocation.id);
+              await materializeRuntimeSummary(effectiveInvocationId, nextflowStatus || {}, effectiveExecutionRun?.id);
+              outputs = await storage.getInvocationOutputs(effectiveInvocationId);
             }
           }
         }
