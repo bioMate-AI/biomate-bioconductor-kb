@@ -24,7 +24,6 @@ import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics";
 
 // Import new pages
-import LandingPage from "@/pages/landing";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
@@ -85,20 +84,17 @@ function ProjectsRouter() {
   }
 }
 
-// Smart root route: shows marketing landing for guests, platform for authenticated users
+// Root route: redirect guests to /login, show platform for authenticated users
 function RootRoute({
   sidebarCollapsed, setSidebarCollapsed, onNewChat, onChatSelect, onCategorySelect,
   onToolSelect, onProjectSelect, onNewProject, currentChatSession, onChatUpdated, chatSessions
 }: any) {
   const { isAuthenticated, isLoading } = useAuth()
-  if (isLoading) return null
-  if (!isAuthenticated) {
-    return (
-      <PublicPageLayout>
-        <LandingPage />
-      </PublicPageLayout>
-    )
-  }
+  const [, setLocation] = useLocation()
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) setLocation('/login')
+  }, [isAuthenticated, isLoading, setLocation])
+  if (isLoading || !isAuthenticated) return null
   return (
     <PlatformLayout
       sidebarCollapsed={sidebarCollapsed}
@@ -364,7 +360,7 @@ function Router({
         </AuthenticatedPageLayout>
       </Route>
 
-      {/* Root: landing page for guests, platform for authenticated users */}
+      {/* Root: platform for authenticated users, redirect to /login for guests */}
       <Route path="/">
         <RootRoute
           sidebarCollapsed={sidebarCollapsed}
