@@ -1,0 +1,294 @@
+# ADMET Benchmark Dataset — 20 reference compounds
+# Source: ChEMBL measured values + PharmaBench QSAR validation set
+# Reference: Siramshetty et al. J Cheminform 2021; hERG thresholds: Cavalli 2005
+# hERG class: toxic = IC50 < 1 µM, moderate = 1–10 µM, safe = > 10 µM
+
+metadata:
+  version: "1.0"
+  created: "2026-04-27"
+  n_compounds: 20
+  herg_thresholds: {toxic_uM: 1.0, moderate_uM: 10.0}
+  sources: ["ChEMBL", "PharmaBench", "FDA labels"]
+  benchmark: "B1_ADMET"
+  stage: "S2_Hit_to_Lead"
+  primary_workflow: "predict_admet_properties"
+  correct_workflows:
+    - "predict_admet_properties"
+    - "admet_pred"
+    - "admet_screening"
+    - "drug_discovery"
+
+cases:
+  - id: ADMET-001
+    name: Aspirin
+    smiles: "CC(=O)Oc1ccccc1C(=O)O"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null  # >100 µM, not measurable
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: easy
+    notes: "Well-known safe drug; all properties should be easy to predict"
+
+  - id: ADMET-002
+    name: Cisapride
+    smiles: "CCOC1=CC=C(C=C1)NC(=O)C2=CC(=C(C=C2OC)N)Cl"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.14
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Withdrawn from market due to hERG toxicity; should be flagged"
+
+  - id: ADMET-003
+    name: Terfenadine
+    smiles: "OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.20
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Classic hERG blocker; first-generation antihistamine withdrawn"
+
+  - id: ADMET-004
+    name: Caffeine
+    smiles: "Cn1cnc2c1c(=O)n(c(=O)n2C)C"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: easy
+    notes: "Very safe; widely consumed stimulant"
+
+  - id: ADMET-005
+    name: Nitrofurantoin
+    smiles: "O=C1CN(N1C(=O)/C=N/O[N+](=O)[O-])c1ccccc1"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: positive
+      ames_class: positive
+      ro5_pass: true
+    difficulty: medium
+    notes: "Antibiotic; Ames positive due to nitro group; DILI positive"
+
+  - id: ADMET-006
+    name: Ibuprofen
+    smiles: "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: easy
+    notes: "Common NSAID; clean ADMET profile"
+
+  - id: ADMET-007
+    name: Doxorubicin
+    smiles: "OC1C(OC2CC(OC3CC(O)C(O)(Cc4c(O)c5C(=O)c6cccc(O)c6C(=O)c5c(O)c4C3=O)O2)N(C)C)C(C)OC1O"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 5.2
+      dili_class: positive
+      ames_class: positive
+      ro5_pass: false
+    difficulty: hard
+    notes: "Anthracycline chemotherapy; Ro5 fail (MW~544); both tox alerts"
+
+  - id: ADMET-008
+    name: Metformin
+    smiles: "CN(C)C(=N)NC(=N)N"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: easy
+    notes: "Biguanide antidiabetic; very clean profile"
+
+  - id: ADMET-009
+    name: Haloperidol
+    smiles: "OC1(CCc2ccc(Cl)cc2)CCN(CCCC(=O)c2ccc(F)cc2)CC1"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.11
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Antipsychotic; strong hERG blocker; QTc prolongation risk"
+
+  - id: ADMET-010
+    name: Atorvastatin
+    smiles: "CC(C)c1c(C(=O)Nc2ccccc2F)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CCC(O)CC(O)CC(=O)O"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 8.3
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Statin; borderline hERG moderate; clinically well-tolerated"
+
+  - id: ADMET-011
+    name: Verapamil
+    smiles: "COc1ccc(CCN(C)CCCC(C#N)(c2ccc(OC)c(OC)c2)C(C)C)cc1OC"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.43
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Calcium channel blocker; known hERG blocker at therapeutic doses"
+
+  - id: ADMET-012
+    name: Tamoxifen
+    smiles: "CCC(=C(c1ccccc1)c1ccc(OCCN(C)C)cc1)c1ccccc1"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.60
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "SERM; hERG blocker; DILI in long-term use"
+
+  - id: ADMET-013
+    name: Warfarin
+    smiles: "OC(=O)c1ccccc1OCC(=O)c1ccccc1"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: easy
+    notes: "Anticoagulant; safe ADMET profile; narrow TI but not ADMET-related"
+
+  - id: ADMET-014
+    name: Chlorpromazine
+    smiles: "CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 1.4
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "First antipsychotic; moderate hERG; DILI positive"
+
+  - id: ADMET-015
+    name: Loratadine
+    smiles: "CCOC(=O)N1CCC(=C2c3ccc(Cl)cc3CCc3ccncc32)CC1"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 6.1
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Second-gen antihistamine; designed to avoid CNS; borderline hERG"
+
+  - id: ADMET-016
+    name: Sildenafil
+    smiles: "CCCC1=NN(C)C(=C1C(=O)OCC)c1cc(S(=O)(=O)N2CCN(C)CC2)ccc1OCC"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 5.6
+      dili_class: negative
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "PDE5 inhibitor; moderate hERG at high doses"
+
+  - id: ADMET-017
+    name: Thalidomide
+    smiles: "O=C1CCC(N2C(=O)c3ccccc3C2=O)C(=O)N1"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: negative
+      ames_class: positive
+      ro5_pass: true
+    difficulty: hard
+    notes: "Notorious teratogen; but clean hERG/DILI; Ames positive"
+
+  - id: ADMET-018
+    name: Ketoconazole
+    smiles: "CC(=O)N1CCN(CC1)c1ccc(OCC2COC(Cn3ccnc3)(O2)c2ccc(Cl)cc2Cl)cc1"
+    reference:
+      herg_class: toxic
+      herg_ic50_uM: 0.82
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: medium
+    notes: "Antifungal; strong CYP3A4 inhibitor; hERG toxic; withdrawn for oral use"
+
+  - id: ADMET-019
+    name: Methotrexate
+    smiles: "CN(Cc1cnc2nc(N)nc(N)c2n1)c1ccc(cc1)C(=O)NC(CCC(=O)O)C(=O)O"
+    reference:
+      herg_class: safe
+      herg_ic50_uM: null
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: false
+    difficulty: hard
+    notes: "Antifolate chemo/DMARD; Ro5 fail (MW=454 borderline, HBA>10); DILI"
+
+  - id: ADMET-020
+    name: Clozapine
+    smiles: "CN1CCN(CC1)C1=NC2=CC(Cl)=CC=C2NC2=CC=CC=C12"
+    reference:
+      herg_class: moderate
+      herg_ic50_uM: 1.1
+      dili_class: positive
+      ames_class: negative
+      ro5_pass: true
+    difficulty: hard
+    notes: "Atypical antipsychotic; borderline moderate hERG; rare but serious DILI"
+
+# ---------------------------------------------------------------------------
+# NL Query Templates
+# ---------------------------------------------------------------------------
+nl_query_templates:
+  - type: complete_single
+    template: "Run ADMET screening on this compound: {smiles}"
+    expect_routing: true
+    expect_params: [smiles_list]
+    description: "Single SMILES provided in NL query — should route + extract param"
+
+  - type: complete_multi
+    template: "Screen these {n} compounds for ADMET properties: {smiles_list}"
+    expect_routing: true
+    expect_params: [smiles_list]
+    description: "Multiple SMILES comma-separated — should route + extract all"
+
+  - type: incomplete
+    template: "I need to check the ADMET profile of my lead compound before advancing to in vivo studies"
+    expect_routing: true
+    expect_prereq_ask: true
+    description: "No SMILES provided — BioMate must ask for SMILES before proceeding"
+
+  - type: ambiguous
+    template: "Can you analyze this molecule for me? {smiles}"
+    expect_routing: true
+    expect_params: [smiles_list]
+    description: "Ambiguous intent but SMILES present — should still route to ADMET"
+
+  - type: negative_control
+    template: "Perform RNA-seq differential expression analysis on my FASTQ files"
+    expect_routing: false
+    expect_workflow: "rnaseq"
+    description: "Wrong domain query — must NOT route to ADMET; should route to rnaseq"

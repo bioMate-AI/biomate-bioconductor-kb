@@ -20,6 +20,27 @@ Usage:
     adapter = ParamPrefillAdapter(config)
     adapter.prepare(client)           # extracts token from authenticated client
     results = adapter.run(client, max_tasks=None)
+
+-- ROOT CAUSE OF ALL-ZERO SCORES (diagnosed 2026-04-27) --
+
+Two bugs were found and fixed:
+
+Bug 1 — Wrong port / host down:
+    The adapter called client.base_url (port 5000, the Node.js proxy) which is
+    only available when the full frontend stack is running.  The endpoint
+    /api/ai_assistant/search_nextflow_workflow lives on the Galaxy backend
+    (port 8081).  When port 5000 is down the request times out → score 0.0.
+    Fix: prepare() now probes port 5000 first; if unavailable it falls back to
+    the Galaxy backend directly on http://localhost:8081 (or GALAXY_URL env var).
+    When port 5000 is up, the proxy path is used normally.
+
+Bug 2 — Wrong field name for extracted parameter values:
+    The backend's _infer_params_from_intent_llm() writes extracted values into
+    the 'default' field of each param dict (not a 'value' field):
+        {**p, 'default': str(_llm_extracted[p['name']]), 'autoFilled': True}
+    The adapter's _extract_generated_params() was reading param.get("value")
+    which is always None → nothing scored as filled → all 0.0.
+    Fix: _extract_generated_params() now checks 'value' first, then 'default'.
 """
 
 from __future__ import annotations
@@ -156,10 +177,45 @@ class ParamPrefillAdapter(BenchmarkAdapter):
     # ------------------------------------------------------------------
 
     def prepare(self, client) -> None:
-        """Extract connection details from an authenticated BioMateEvalClient."""
-        self._base_url = client.base_url.rstrip("/")
+        """
+        Extract connection details from an authenticated BioMateEvalClient.
+
+        Bug 1 fix: probe port 5000 (Node.js proxy); fall back to Galaxy backend
+        on port 8081 when the proxy is not reachable.  This makes the benchmark
+        runnable even when only the Galaxy backend is up.
+        """
+        import os
+        import requests as _requests
+
+        client_url = client.base_url.rstrip("/")
         self._token = client.token
-        self._session = client._session  # reuse existing authenticated session
+
+        # Try the client URL first (may be port 5000 proxy or remote host)
+        probe_ok = False
+        try:
+            r = _requests.get(f"{client_url}/api/version", timeout=5)
+            probe_ok = r.status_code < 500
+        except Exception:
+            probe_ok = False
+
+        if probe_ok:
+            self._base_url = client_url
+            self._session = client._session
+        else:
+            # Fall back to Galaxy backend directly
+            galaxy_url = (
+                os.environ.get("GALAXY_URL", "").rstrip("/")
+                or "http://localhost:8081"
+            )
+            self._base_url = galaxy_url
+            # Create a new bare session — Galaxy backend doesn't need JWT auth
+            # for this endpoint when called directly (no auth middleware on port 8081)
+            self._session = _requests.Session()
+            self._session.headers.update({"Content-Type": "application/json"})
+            print(
+                f"  [ParamPrefillAdapter] Port 5000 unavailable; "
+                f"falling back to Galaxy backend at {galaxy_url}"
+            )
 
     # ------------------------------------------------------------------
     # Task loading
@@ -196,7 +252,10 @@ class ParamPrefillAdapter(BenchmarkAdapter):
 
     def _call_generation_endpoint(self, query: str) -> dict:
         """
-        POST to /api/ai_assistant/search_nextflow_workflow and return the JSON body.
+        POST to the workflow search endpoint and return the JSON body.
+
+        Port 5000 (Node.js proxy): POST /api/workflows/search  {"query": "..."}
+        Port 8081 (Galaxy direct): POST /api/ai_assistant/search_nextflow_workflow  {"user_intent": "..."}
 
         Returns an empty dict with success=False on any error.
         """
@@ -204,11 +263,15 @@ class ParamPrefillAdapter(BenchmarkAdapter):
             raise RuntimeError(
                 "ParamPrefillAdapter.prepare(client) must be called before run()"
             )
-        resp = self._session.post(
-            f"{self._base_url}/api/ai_assistant/search_nextflow_workflow",
-            json={"user_intent": query},
-            timeout=60,
-        )
+        # Use the right path and payload format depending on which server we're talking to
+        if ":5000" in self._base_url or "localhost:5000" in self._base_url:
+            url     = f"{self._base_url}/api/workflows/search"
+            payload = {"query": query}
+        else:
+            url     = f"{self._base_url}/api/ai_assistant/search_nextflow_workflow"
+            payload = {"user_intent": query}
+
+        resp = self._session.post(url, json=payload, timeout=180)
         resp.raise_for_status()
         return resp.json()
 
@@ -232,12 +295,21 @@ class ParamPrefillAdapter(BenchmarkAdapter):
             {
               "success": bool,
               "generated_parameters": [
-                  {"name": str, "value": any, "autoFilled": bool, ...},
+                  {"name": str, "default": any, "autoFilled": bool, "llm_extracted": bool, ...},
                   ...
               ],
               ...
             }
-        Returns a flat name→value dict of the parameters that were auto-filled.
+
+        Bug 2 fix: the backend's _infer_params_from_intent_llm() stores the
+        extracted value in the 'default' field (not a 'value' field):
+            {**p, 'default': str(_llm_extracted[p['name']]), 'autoFilled': True}
+        We check 'value' first for forward-compatibility, then fall back to 'default'.
+
+        Additionally, params without 'autoFilled' key default to False (not True)
+        because un-filled params from the workflow schema have null/None defaults
+        and should not be counted as filled.  Only params explicitly marked
+        autoFilled=True by the LLM extraction pass are counted.
         """
         raw: list[dict] = response.get("generated_parameters", []) or []
         result: dict[str, Any] = {}
@@ -245,10 +317,18 @@ class ParamPrefillAdapter(BenchmarkAdapter):
             name = param.get("name") or param.get("key") or ""
             if not name:
                 continue
-            # Only count parameters that were actually auto-filled by BioMate
-            if not param.get("autoFilled", True):
+            # Only count parameters actually auto-filled by BioMate's LLM pass.
+            # autoFilled is only set to True when _infer_params_from_intent_llm
+            # successfully extracted a value; absent = not filled (default False).
+            auto_filled = param.get("autoFilled", False)
+            llm_extracted = param.get("llm_extracted", False)
+            if not (auto_filled or llm_extracted):
                 continue
+            # Value is stored in 'default' by the backend (Bug 2 fix); 'value' is
+            # checked first for forward-compatibility with future schema changes.
             value = param.get("value")
+            if value is None:
+                value = param.get("default")
             if value is not None and value != "":
                 result[name] = value
         return result
