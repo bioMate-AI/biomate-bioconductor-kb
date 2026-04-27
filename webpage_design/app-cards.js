@@ -9,14 +9,14 @@
       meta: 'Target discovery',
       title: 'Binding‑pose triage in minutes',
       desc: 'Rank co‑crystal and AlphaFold‑predicted poses by computed ΔG and proximity to known hot‑spots, with the SAR rationale written for you.',
-      photo: 'images/photo-pharmaceutical.png'
+      photo: 'images/photo-binding-pose.png'
     },
     {
       id: 'screening',
       meta: 'Lead optimization',
       title: 'Virtual screen, with provenance',
       desc: 'Score compound libraries against your target pocket using structure‑based docking and pharmacophore filtering &mdash; with every hit traced back to its source.',
-      photo: 'images/photo-data-foundation.png'
+      photo: 'images/photo-virtual-screening.png'
     },
     {
       id: 'admet',
@@ -37,7 +37,7 @@
       meta: 'Clinical pharmacology',
       title: 'Dose simulation, before the first patient',
       desc: 'Run dose‑escalation simulations, population PK models, and exposure‑response analyses to inform trial design and dose selection.',
-      photo: 'images/photo-precision-medicine.png'
+      photo: 'images/photo-clinical-trial.png'
     },
     {
       id: 'omics',
