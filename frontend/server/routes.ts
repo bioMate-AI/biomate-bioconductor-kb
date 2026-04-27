@@ -7099,25 +7099,53 @@ Extract every real number from the output data. A reviewer should be able to ver
             status: 'ok',
           });
 
-          // Background poller: sync CryoSPARC direct-executor status → Node executionRun every 15s
-          // Uses /api/cryosparc/status since execute_spa_pipeline runs directly on the GPU instance.
+          // Background poller: sync executor status → Node executionRun every 15s.
+          // When launched via Nextflow (effectiveEngine='nextflow'), poll /api/nextflow/status.
+          // When launched directly on the CryoSPARC instance, poll /api/cryosparc/status.
           const csPollerTimer = setInterval(async () => {
             try {
-              const statusResp = await fetch(
-                `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${csRunId}`,
-                { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
-              );
-              if (!statusResp.ok) {
-                console.log(`[CryoSPARC Poller] status ${statusResp.status} for ${csRunId}`);
-                return;
+              let mappedStatus: string;
+              let completedSteps: number = 0;
+              let totalSteps: number = 4;
+
+              if (effectiveEngine === 'nextflow') {
+                const statusResp = await fetch(
+                  `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${csRunId}`,
+                  { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+                );
+                if (!statusResp.ok) {
+                  console.log(`[CryoSPARC/NF Poller] status ${statusResp.status} for ${csRunId}`);
+                  return;
+                }
+                const s = await statusResp.json();
+                const nfStatus = (s.status as string || '').toLowerCase();
+                console.log(`[CryoSPARC/NF Poller] run=${csRunId} nfStatus=${nfStatus} steps=${s.completedSteps}/${s.totalSteps}`);
+                // Nextflow executor reports: running | succeeded | failed | interrupted
+                mappedStatus = nfStatus === 'succeeded' ? 'completed'
+                  : (nfStatus === 'failed' || nfStatus === 'interrupted') ? 'failed'
+                  : 'running';
+                completedSteps = s.completedSteps || 0;
+                totalSteps = Math.max(s.totalSteps || 4, 4);
+              } else {
+                const statusResp = await fetch(
+                  `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/cryosparc/status/${csRunId}`,
+                  { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' } }
+                );
+                if (!statusResp.ok) {
+                  console.log(`[CryoSPARC Poller] status ${statusResp.status} for ${csRunId}`);
+                  return;
+                }
+                const s = await statusResp.json();
+                const csStatus = (s.status as string || '').toLowerCase();
+                console.log(`[CryoSPARC Poller] run=${csRunId} status=${csStatus} progress=${s.progress_percent}% jobs=${s.completed_jobs}/${s.total_jobs}`);
+                // CryoSPARC executor reports: queued | running | completed | failed | qc_halt
+                mappedStatus = csStatus === 'completed' ? 'completed'
+                  : (csStatus === 'failed' || csStatus === 'qc_halt') ? 'failed'
+                  : 'running';
+                completedSteps = s.completed_jobs || 0;
+                totalSteps = Math.max(s.total_jobs || 4, 4);
               }
-              const s = await statusResp.json();
-              const csStatus = (s.status as string || '').toLowerCase();
-              console.log(`[CryoSPARC Poller] run=${csRunId} status=${csStatus} progress=${s.progress_percent}% jobs=${s.completed_jobs}/${s.total_jobs}`);
-              // CryoSPARC executor reports: queued | running | completed | failed | qc_halt
-              const mappedStatus = csStatus === 'completed' ? 'completed'
-                : (csStatus === 'failed' || csStatus === 'qc_halt') ? 'failed'
-                : 'running';
+
               const terminal = ['completed', 'failed'].includes(mappedStatus);
               await storage.updateExecutionRun(executionRun.id, {
                 execution: {
@@ -7127,8 +7155,8 @@ Extract every real number from the output data. A reviewer should be able to ver
                 },
                 progress: {
                   ...executionRun.progress,
-                  completedSteps: s.completed_jobs || 0,
-                  totalSteps: Math.max(s.total_jobs || 4, 4),
+                  completedSteps,
+                  totalSteps,
                 },
               });
               if (terminal) clearInterval(csPollerTimer);
@@ -7141,7 +7169,7 @@ Extract every real number from the output data. A reviewer should be able to ver
             runId: executionRun.id,
             galaxyInvocationId: csRunId,
             galaxyHistoryId: galaxyHistoryId,
-            executionEngine: 'cryosparc',
+            executionEngine: effectiveEngine,
             status: 'running',
             message: `CryoSPARC SPA pipeline queued (run_id: ${csRunId})`,
           });
