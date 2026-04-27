@@ -780,16 +780,7 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
           }
           if ((stepStatus === 'completed' || stepStatus === 'ok') && !observedCompletedSteps.has(stepId)) {
             observedCompletedSteps.add(stepId);
-            // Check for output files on this step
-            const outputFiles = card.locator('.step-outputs .output-file');
-            const fileCount = await outputFiles.count().catch(() => 0);
-            if (fileCount > 0) {
-              observedStepOutputs.add(stepId);
-              const firstName = await outputFiles.first().locator('.fn').textContent().catch(() => '');
-              console.log(`[CE-1] Step ${stepId} DONE — ${fileCount} output file(s): ${firstName}`);
-            } else {
-              console.log(`[CE-1] Step ${stepId} DONE (no outputs yet)`);
-            }
+            console.log(`[CE-1] Step ${stepId} DONE`);
           }
         }
 
@@ -834,11 +825,7 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
         passed: observedRunningSteps.size > 0 || observedCompletedSteps.size > 0,
         note: `running=${observedRunningSteps.size} completed=${observedCompletedSteps.size}`,
       });
-      assertions.push({
-        name: "Per-step output files visible after step completion",
-        passed: observedStepOutputs.size > 0,
-        note: observedStepOutputs.size > 0 ? `${observedStepOutputs.size} step(s) showed outputs` : "no step outputs observed yet",
-      });
+      // Step output chips populate from S3 after run completes — checked post-terminal below
       assertions.push({
         name: "QC gate panel check",
         passed: true,
@@ -848,38 +835,84 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
 
       screenshots.push(await shot(page, `CE1_08_terminal_${finalStatus}`));
 
-      // T8 — output visualization
+      // T8 — output visualization and QC results
       if (finalStatus === "completed") {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(2000); // allow S3 outputs + QC report to render
 
-        // Completion banner
+        // T8a — Completion banner
         const completionBanner = page.locator('[data-testid="workflow-completion-banner"]').first();
         const bannerVisible = await completionBanner.isVisible({ timeout: 10_000 }).catch(() => false);
         assertions.push({ name: "Download commands panel visible after completion", passed: bannerVisible,
-          note: bannerVisible ? "completion banner shown" : "completion banner not visible — panel may not have rendered" });
+          note: bannerVisible ? "completion banner shown" : "not visible" });
 
-        // Output attachments: the ChatOutputAttachments component renders in chat area.
-        // For local/simulated runs there may be no real files — check for the card container.
-        // data-testid is set on the Card root when component is visible (has outputs OR loading).
-        await page.waitForTimeout(3000); // allow outputs fetch to settle
+        // T8b — QC Results panel: shows measured vs threshold for each metric
+        // Populated from S3 JSON report files — requires real CryoSPARC run
+        const qcPanel = page.locator('[data-testid="qc-report-panel"]').first();
+        const qcPanelVisible = await qcPanel.isVisible({ timeout: 8_000 }).catch(() => false);
+        assertions.push({
+          name: "QC Results panel visible after completion",
+          passed: qcPanelVisible,
+          note: qcPanelVisible ? "QC metrics shown" : "not visible — JSON reports may lack extracted metrics (needs run with fixed pipeline)",
+        });
+        if (qcPanelVisible) {
+          const metricRows = qcPanel.locator('div[style*="border-bottom"]');
+          const rowCount = await metricRows.count().catch(() => 0);
+          console.log(`[CE-1] QC panel: ${rowCount} metric row(s)`);
+          screenshots.push(await shot(page, "CE1_10_qc_results"));
+        }
+
+        // T8c — Step output file chips in phase cards (S3-backed, appear after completion)
+        // Phase C step 11 (classify_2d) should have cs_out_J*_class_averages.mrc
+        // Phase E step 21 (sharpen) should have volume_sharpened.mrc
+        await page.waitForTimeout(2000);
+        const outputChips = page.locator('.step-outputs .output-file');
+        const chipCount = await outputChips.count().catch(() => 0);
+        const chipNames = await Promise.all(
+          Array.from({ length: Math.min(chipCount, 6) }, (_, i) =>
+            outputChips.nth(i).locator('.fn').textContent().catch(() => '')
+          )
+        );
+        const hasMrc = chipNames.some(n => n.endsWith('.mrc'));
+        const hasJson = chipNames.some(n => n.endsWith('.json'));
+        assertions.push({
+          name: "Step output file chips visible in phase cards",
+          passed: chipCount > 0,
+          note: chipCount > 0
+            ? `${chipCount} chip(s) — MRC: ${hasMrc}, JSON: ${hasJson}, names: ${chipNames.filter(Boolean).slice(0, 4).join(', ')}`
+            : "no output chips — S3 listing may not have run yet",
+        });
+        if (chipCount > 0) screenshots.push(await shot(page, "CE1_10b_step_outputs"));
+
+        // T8d — MRC file "view" click opens DensityMapViewer (class averages or final map)
+        const mrcChip = outputChips.filter({ hasText: /\.mrc$/ }).first();
+        const mrcVisible = await mrcChip.isVisible({ timeout: 2000 }).catch(() => false);
+        if (mrcVisible) {
+          const viewBtn = mrcChip.locator('.act', { hasText: 'view' }).first();
+          await viewBtn.click({ timeout: 3000 }).catch(() => {});
+          await page.waitForTimeout(1500);
+          const densityViewer = page.locator('canvas, [data-testid="density-map-viewer"]').first();
+          const densityVisible = await densityViewer.isVisible({ timeout: 5000 }).catch(() => false);
+          assertions.push({
+            name: "DensityMapViewer opens for MRC file",
+            passed: densityVisible,
+            note: densityVisible ? "canvas rendered" : "viewer not found after click",
+          });
+          if (densityVisible) screenshots.push(await shot(page, "CE1_10c_density_viewer"));
+        } else {
+          assertions.push({ name: "DensityMapViewer opens for MRC file", passed: false, note: "no MRC chip visible to click" });
+        }
+
+        // T8e — Output attachments card
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(1000);
         const outputCard = page.locator('[data-testid="chat-output-attachments"], .chat-output-card').first();
         const outputVisible = await outputCard.isVisible({ timeout: 5000 }).catch(() => false);
-        // Fallback: "No outputs generated yet" text is also valid — it means the component rendered
         const noOutputsText = await page.locator('text=No outputs generated yet').isVisible({ timeout: 3000 }).catch(() => false);
         assertions.push({
           name: "Output attachments/files visible",
           passed: outputVisible || noOutputsText,
-          note: outputVisible ? "output card rendered" : noOutputsText ? "no-outputs-yet message (expected for local run)" : "not found",
-        });
-
-        // For a real Batch run there might be a CSV viewer; for local/mock, skip gracefully
-        const csvViewer = page.locator('[data-testid="csv-table-viewer"]').first();
-        const csvVisible = await csvViewer.isVisible({ timeout: 5000 }).catch(() => false);
-        assertions.push({
-          name: "CSV/table viewer rendered",
-          passed: csvVisible,
-          note: csvVisible ? "ok" : "not visible (expected for local/mock run — no real output files)",
+          note: outputVisible ? "output card rendered" : noOutputsText ? "no-outputs-yet text (real outputs populate from S3)" : "not found",
         });
 
         screenshots.push(await shot(page, "CE1_09_output_viz"));
@@ -915,7 +948,12 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
     }
 
     // Verify all critical assertions passed
-    const failed = assertions.filter(a => !a.passed && a.name !== "CSV/table viewer rendered" && a.name !== "Output attachments/files visible");
+    // Non-critical: QC panel and DensityMapViewer require new run with fixed pipeline metrics
+    const nonCritical = new Set([
+      "QC Results panel visible after completion",    // needs run with fixed main.nf QC extraction
+      "DensityMapViewer opens for MRC file",          // needs MRC chips to be present first
+    ]);
+    const failed = assertions.filter(a => !a.passed && !nonCritical.has(a.name));
     for (const f of failed) {
       console.warn(`[CE-1] FAILED assertion: ${f.name} — ${f.note ?? ""}`);
     }
