@@ -1984,6 +1984,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Newsletter subscribe (no auth required; stores email for future mailouts)
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ success: false, error: 'Valid email required' });
+      }
+      // Log the subscription; a real mailout service (ConvertKit, Loops, etc.) can be wired here later
+      console.log(`[Newsletter] New subscriber: ${email}`);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Subscription failed' });
+    }
+  });
+
   // ============================================================================
   // OAuth Authentication (Google & GitHub)
   // ============================================================================
