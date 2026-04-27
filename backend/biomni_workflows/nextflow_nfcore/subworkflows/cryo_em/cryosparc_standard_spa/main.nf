@@ -177,12 +177,15 @@ def CS_HELPER = '''
 
     # CryoSPARC v5 renamed many I/O group names — try all aliases on connect
     _IO_ALIASES = {
-        "micrographs":     ["exposures"],
-        "micrographs_ctf": ["exposures_ctf", "exposures"],
-        "exposures":       ["micrographs"],
-        "exposures_ctf":   ["micrographs_ctf", "exposures"],
-        "imported_movies": ["movies"],
-        "movies":          ["imported_movies"],
+        "micrographs":        ["exposures"],
+        "micrographs_ctf":    ["exposures_ctf", "exposures"],
+        "exposures":          ["micrographs"],
+        "exposures_ctf":      ["micrographs_ctf", "exposures"],
+        "imported_movies":    ["movies"],
+        "movies":             ["imported_movies"],
+        # Particle output: v4 "particles", v5 import_particles job = "imported_particles"
+        "particles":          ["imported_particles"],
+        "imported_particles": ["particles"],
     }
 
     def cs_connect(license, host, port, email, password=None):
@@ -1179,7 +1182,7 @@ process CLASSIFY_2D_R1_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (src_job_uid, "particles")},
-            params={"class2D_K": 50},
+            params={"class2D_K": 50, "compute_use_ssd": False},
             lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
@@ -1286,7 +1289,7 @@ process CLASSIFY_2D_R2_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "class_2D",
             connections={"particles": (src_job_uid, "particles")},
-            params={"class2D_K": 100},
+            params={"class2D_K": 100, "compute_use_ssd": False},
             lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
@@ -1363,7 +1366,7 @@ process AB_INITIO_BATCH {
         job = submit_and_wait(cs, init["project_uid"], init["workspace_uid"],
             "homo_abinit",
             connections={"particles": (prev["job_uid"], "particles")},
-            params={"abinit_K": 1, "abinit_symmetry": "${params.symmetry}"},
+            params={"abinit_K": 1, "abinit_symmetry": "${params.symmetry}", "compute_use_ssd": False},
             lane=_lane,
             timeout=14400,
             num_gpu=${params.num_gpu},
@@ -1455,7 +1458,7 @@ process HOMO_REFINEMENT_BATCH {
                 "particles": (par_data["job_uid"], "particles"),
                 "volume":    (vol_data["job_uid"], vol_data.get("output_slot", "volume_class_0")),
             },
-            params={"refine_symmetry": "${params.symmetry}"},
+            params={"refine_symmetry": "${params.symmetry}", "compute_use_ssd": False},
             lane=_lane,
             timeout=21600,
             num_gpu=${params.num_gpu},
@@ -2398,19 +2401,56 @@ process VALIDATION_FSC {
         fsc_data = {"fsc_curve": [], "cs_job_uid": job.uid, "real_mode": True}
         try:
             import numpy as np
+
+            # Discover available output slots dynamically
+            _known_slots = ["fsc_info", "fsc", "fsc_no_masking", "fsc_masked",
+                            "fsc_tight_masked", "fsc_phase_randomized", "fsc_corrected"]
+            _discovered_slots = []
+            try:
+                _doc = job.doc
+                _grps = getattr(_doc, "output_slot_groups", None) or {}
+                if isinstance(_grps, dict):
+                    _discovered_slots = list(_grps.keys())
+                elif hasattr(_grps, "__iter__"):
+                    _discovered_slots = [g.name if hasattr(g, "name") else str(g) for g in _grps]
+            except Exception as _de:
+                print(f"[FSC] doc read error: {_de}", flush=True)
+
+            _all_slots = _discovered_slots + [s for s in _known_slots if s not in _discovered_slots]
+            print(f"[FSC] Trying slots: {_all_slots}", flush=True)
+
             fsc_out = None
-            for slot in ("fsc_info", "fsc", "fsc_no_masking", "fsc_masked"):
+            _best_candidate = None
+            for _slot in _all_slots:
                 try:
-                    fsc_out = job.load_output(slot)
-                    if fsc_out is not None:
-                        break
-                except Exception:
-                    continue
+                    _out = job.load_output(_slot)
+                    if _out is not None:
+                        _arr = _out.data if hasattr(_out, "data") else _out
+                        _fields = list(_arr.dtype.names) if hasattr(_arr, "dtype") else []
+                        print(f"[FSC] Slot '{_slot}': {len(_out)} rows, fields: {_fields[:8]}", flush=True)
+                        _has_freq = any("freq" in f.lower() or "spatial" in f.lower() for f in _fields)
+                        _has_fsc  = any("fsc" in f.lower() for f in _fields)
+                        if _has_freq and _has_fsc:
+                            fsc_out = _out
+                            break
+                        elif len(_fields) > 0 and _best_candidate is None:
+                            _best_candidate = _out
+                except Exception as _se:
+                    print(f"[FSC] Slot '{_slot}' error: {type(_se).__name__}", flush=True)
+
+            if fsc_out is None and _best_candidate is not None:
+                fsc_out = _best_candidate
+
             if fsc_out is not None:
-                arr = fsc_out.data if hasattr(fsc_out, 'data') else fsc_out
-                fields = list(arr.dtype.names) if hasattr(arr, 'dtype') else []
-                freq_field = next((f for f in fields if 'freq' in f.lower() or 'spatial' in f.lower()), None)
-                fsc_fields  = [f for f in fields if 'fsc' in f.lower() and f != freq_field]
+                arr = fsc_out.data if hasattr(fsc_out, "data") else fsc_out
+                fields = list(arr.dtype.names) if hasattr(arr, "dtype") else []
+                fsc_data["debug_fields"] = fields
+                freq_field = next((f for f in fields if "freq" in f.lower() or "spatial" in f.lower()), None)
+                fsc_fields = [f for f in fields if "fsc" in f.lower() and f != freq_field]
+                if not fsc_fields and freq_field:
+                    fsc_fields = [f for f in fields if f != freq_field and
+                                  arr.dtype[f].kind in ("f", "i", "u")]
+                print(f"[FSC] freq_field={freq_field}, fsc_fields={fsc_fields[:5]}", flush=True)
                 if freq_field and fsc_fields:
                     primary = fsc_fields[0]
                     curve = []
@@ -2418,17 +2458,20 @@ process VALIDATION_FSC {
                         freq = float(row[freq_field])
                         val  = float(row[primary])
                         shell_res = round(1.0 / freq, 2) if freq > 0 else 9999.0
-                        curve.append({'spatial_frequency': round(freq, 6),
-                                      'resolution_angstroms': shell_res,
-                                      'fsc': round(max(-1.0, min(1.0, val)), 4)})
+                        curve.append({"spatial_frequency": round(freq, 6),
+                                      "resolution_angstroms": shell_res,
+                                      "fsc": round(max(-1.0, min(1.0, val)), 4)})
                     fsc_data["fsc_curve"] = curve
                     fsc_data["fsc_field"] = primary
                     if curve:
-                        above_143 = [p for p in curve if p['fsc'] >= 0.143]
+                        above_143 = [p for p in curve if p["fsc"] >= 0.143]
                         if above_143:
-                            fsc_data["fsc_0143_resolution"] = above_143[-1]['resolution_angstroms']
+                            fsc_data["fsc_0143_resolution"] = above_143[-1]["resolution_angstroms"]
+                    print(f"[FSC] {len(curve)} points; 0.143 res={fsc_data.get('fsc_0143_resolution','?')}", flush=True)
+            else:
+                print("[FSC] No usable output — fsc_curve empty", flush=True)
         except Exception as _fsc_err:
-            print(f"[FSC] extraction error: {_fsc_err}")
+            print(f"[FSC] extraction error: {_fsc_err}", flush=True)
         report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
                   "cs_job_uid": job.uid, "real_mode": True}
     else:
@@ -2572,7 +2615,7 @@ process NON_UNIFORM_REFINEMENT {
                 "particles": (particles_uid, "particles"),
                 "volume":    (volume_uid,    "volume"),
             },
-            params={"refine_symmetry": "${params.symmetry}"},
+            params={"refine_symmetry": "${params.symmetry}", "compute_use_ssd": False},
             timeout=21600,
             num_gpu=${params.num_gpu},
         )
