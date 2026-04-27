@@ -48,6 +48,7 @@ export default function CheckoutPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [yearly, setYearly] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   const planKey = (params?.plan || 'premium').toLowerCase()
   const plan = PLANS[planKey] || PLANS.premium
@@ -60,12 +61,26 @@ export default function CheckoutPage() {
   const statusParam = urlParams.get('status')
 
   useEffect(() => {
-    if (statusParam === 'success') return
-    // Verify auth — redirect to login if not signed in
+    if (statusParam === 'success') { setAuthChecked(true); return }
     fetch('/api/auth/me', { credentials: 'include' }).then(r => {
-      if (!r.ok) setLocation(`/login?next=/checkout/${planKey}`)
+      if (!r.ok) {
+        setLocation(`/login?next=/checkout/${planKey}`)
+      } else {
+        setAuthChecked(true)
+      }
+    }).catch(() => {
+      setLocation(`/login?next=/checkout/${planKey}`)
     })
   }, [planKey, statusParam])
+
+  // Block render until auth check completes — prevents flash of checkout form before redirect
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   if (statusParam === 'success') {
     return (
@@ -97,11 +112,16 @@ export default function CheckoutPage() {
         body: JSON.stringify({ tier: planKey, interval }),
       })
       const data = await res.json()
+      if (res.status === 503) {
+        // Stripe not yet configured on this deployment
+        setError('Payment is not yet active. Contact contact@biomate.ai to arrange access.')
+        setIsLoading(false)
+        return
+      }
       if (!res.ok) throw new Error(data.message || data.error || 'Checkout failed')
       if (data.url) {
         window.location.href = data.url
       } else {
-        // Stripe not configured — dev mode, proceed to dashboard
         setLocation('/dashboard')
       }
     } catch (err: any) {
@@ -229,13 +249,9 @@ export default function CheckoutPage() {
 
                 <p className="text-center text-xs text-muted-foreground">
                   By continuing you agree to our{" "}
-                  <button className="underline underline-offset-2 hover:text-foreground" onClick={() => window.open('/terms', '_blank')}>
-                    Terms of Service
-                  </button>{" "}
-                  and{" "}
-                  <button className="underline underline-offset-2 hover:text-foreground" onClick={() => window.open('/privacy', '_blank')}>
-                    Privacy Policy
-                  </button>.
+                  <a href="https://dev-public.biomate.ai/terms" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-foreground">Terms of Service</a>
+                  {" "}and{" "}
+                  <a href="https://dev-public.biomate.ai/privacy" target="_blank" rel="noopener" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</a>.
                 </p>
               </CardContent>
             </Card>
