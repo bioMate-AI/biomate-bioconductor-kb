@@ -170,8 +170,8 @@ export function ChatMessage({
   }
 
   // Format timestamp like reference: "YOU · 3:40 PM"
-  const timeLabel = message.createdAt
-    ? new Date(message.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  const timeLabel = message.timestamp
+    ? new Date(message.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
     : null;
 
   return (
@@ -662,7 +662,6 @@ export function ChatMessage({
             />
           </div>
         )}
-      </div>
     </div>
   )
 }
