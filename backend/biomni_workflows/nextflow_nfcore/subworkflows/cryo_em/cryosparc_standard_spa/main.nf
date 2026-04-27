@@ -276,13 +276,36 @@ def CS_HELPER = '''
     def _get_lane_gpu_count(cs, lane="default"):
         """Return max GPUs on any single worker in the lane.
         compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
-        that runs the job — it must not exceed the per-worker GPU count."""
+        that runs the job — it must not exceed the per-worker GPU count.
+        cryosparc-tools v5+ returns Pydantic SchedulerTarget objects, so
+        we access .config.gpus (list) rather than dict .get()."""
         if lane in _gpu_count_cache:
             return _gpu_count_cache[lane]
         count = 1  # safe default
         try:
             targets = cs.get_targets() if hasattr(cs, "get_targets") else []
-            per_worker = [int(t.get("gpu_count", 0)) for t in (targets or [])]
+            per_worker = []
+            for t in (targets or []):
+                try:
+                    # cryosparc-tools v5 Pydantic object: t.config.gpus is a list
+                    cfg = getattr(t, "config", None)
+                    if cfg is not None:
+                        gpus = getattr(cfg, "gpus", None) or (cfg.get("gpus") if isinstance(cfg, dict) else None)
+                        if gpus is not None:
+                            per_worker.append(len(gpus))
+                            continue
+                        slots = getattr(cfg, "resource_slots", None) or (cfg.get("resource_slots") if isinstance(cfg, dict) else None)
+                        if slots is not None:
+                            gpu_slot = getattr(slots, "GPU", None) or (slots.get("GPU") if isinstance(slots, dict) else None)
+                            if gpu_slot is not None:
+                                per_worker.append(len(gpu_slot))
+                                continue
+                    # dict fallback (older API versions)
+                    raw = t if isinstance(t, dict) else {}
+                    g = raw.get("gpu_count") or raw.get("num_gpus") or 0
+                    per_worker.append(int(g))
+                except Exception:
+                    per_worker.append(1)
             if per_worker:
                 count = max(per_worker) or 1
         except Exception as _e:
