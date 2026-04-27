@@ -61,7 +61,6 @@ import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt"
 import { ReportConfusionButton } from "./feedback/report-confusion-button"
 import { useToast } from "@/hooks/use-toast"
 import { normalizePrereqChecklist } from "@/lib/prereq-normalizer"
-import assistantAvatar from "@assets/generated_images/AI_assistant_avatar_8313ba2b.png"
 import userAvatar from "@assets/generated_images/User_avatar_placeholder_d2803d15.png"
 
 // Use the shared Message type for consistency
@@ -181,11 +180,12 @@ export function ChatMessage({
       data-is-latest-assistant={isLatestAssistantMessage ? "true" : "false"}
     >
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage 
-          src={isUser ? userAvatar : assistantAvatar} 
-          alt={isUser ? "User" : "Assistant"} 
-        />
-        <AvatarFallback>{isUser ? "U" : "AI"}</AvatarFallback>
+        {isUser ? (
+          <AvatarImage src={userAvatar} alt="User" />
+        ) : (
+          <AvatarImage src="/logo.png" alt="BioMate" className="object-contain p-0.5" />
+        )}
+        <AvatarFallback>{isUser ? "U" : "BM"}</AvatarFallback>
       </Avatar>
       
       <div className={cn("flex-1 space-y-2", isUser && "flex flex-col items-end")}>

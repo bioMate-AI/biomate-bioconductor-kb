@@ -396,7 +396,8 @@ function ReturningUserWelcome({ onSend }: { onSend: (msg: string) => void }) {
 
   return (
     <div data-testid="onboarding-welcome" className="flex flex-col items-center gap-5 py-8 px-2">
-      <div className="text-center space-y-1">
+      <div className="text-center space-y-2">
+        <img src="/logo.png" alt="BioMate" className="h-14 w-auto mx-auto mb-1" />
         <h2 className="text-xl font-semibold">{greeting} — welcome to BioMate</h2>
         <p className="text-sm text-muted-foreground">
           Choose a research domain to see suggested analyses, or type your question below.

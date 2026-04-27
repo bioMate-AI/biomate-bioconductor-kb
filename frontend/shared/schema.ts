@@ -1006,6 +1006,7 @@ export const executionRunSchema = z.object({
     galaxyHistoryId: z.string().optional(),
     galaxyWorkflowId: z.string().optional(),
     nextflowRunId: z.string().optional(),
+    nextflowOutputDir: z.string().optional(),
     executionEngine: z.string().optional(),
     nextflowStatus: z.any().optional(),
     status: executionRunStatusSchema,
