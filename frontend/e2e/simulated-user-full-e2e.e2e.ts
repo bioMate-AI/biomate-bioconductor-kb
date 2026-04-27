@@ -160,20 +160,24 @@ async function waitForAIResponse(page: Page, label: string, timeoutMs = 90000): 
 
 async function waitForWorkflowCard(page: Page, label: string, timeoutMs = 60000): Promise<boolean> {
   try {
+    // The workflow panel opens on the right; the "Confirm and Run Workflow" button is the gate
     await page.waitForSelector(
-      '[data-testid="workflow-run-card"], [data-testid^="confirm-run-btn-"], [data-testid="btn-confirm-run"]',
+      '[data-testid="button-run-workflow-panel"], [data-testid="workflow-artifact-panel"], ' +
+      '[data-testid^="confirm-run-btn-"], [data-testid="button-confirm-low-confidence-run"]',
       { timeout: timeoutMs }
     );
     console.log(`[${label}] Workflow card appeared`);
     return true;
   } catch {
-    console.log(`[${label}] Workflow card did not appear`);
+    console.log(`[${label}] Workflow card did not appear within ${timeoutMs}ms`);
     return false;
   }
 }
 
 async function clickConfirmAndRun(page: Page, label: string): Promise<string | null> {
-  const btn = page.locator('[data-testid^="confirm-run-btn-"], [data-testid="btn-confirm-run"]').first();
+  const btn = page.locator(
+    '[data-testid="button-run-workflow-panel"], [data-testid^="confirm-run-btn-"], [data-testid="button-confirm-low-confidence-run"]'
+  ).first();
   if (!await btn.isVisible({ timeout: 5000 }).catch(() => false)) {
     console.log(`[${label}] No confirm-run button visible`);
     return null;
