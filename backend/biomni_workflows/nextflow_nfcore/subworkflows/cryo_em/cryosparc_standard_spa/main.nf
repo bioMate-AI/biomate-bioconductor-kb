@@ -863,12 +863,18 @@ process SPLIT_PARTICLE_BATCHES {
     mock_mode = ${mock}
     batch_size = ${batch_size}
 
-    # Load merged particles
     particles_data = json.load(open('${all_particles_r1_json}'))
     particles = particles_data.get('particles', [])
+    job_uid   = particles_data.get("job_uid", "MOCK")
+    num_items = particles_data.get("num_items", len(particles))
+
+    # Real-mode: no inline particles list — synthesize index-only entries for batch sizing
+    if not particles and num_items > 0:
+        particles = [{'particle_idx': i} for i in range(min(num_items, batch_size * 20))]
+        num_items = max(num_items, len(particles))
 
     if not particles:
-        particles = [{'particle_idx': i} for i in range(100)]  # fallback for mock
+        particles = [{'particle_idx': i} for i in range(100)]  # final fallback
 
     # Split into sub-batches
     batches = []
@@ -876,18 +882,14 @@ process SPLIT_PARTICLE_BATCHES {
         batches.append(particles[start:start + batch_size])
 
     # Embed job_uid + num_items directly in CSV (batch_id, job_uid, num_items).
-    # Do NOT write separate JSON files — Nextflow can only stage declared outputs.
-    job_uid   = particles_data.get("job_uid", "MOCK")
-    num_items = particles_data.get("num_items", len(particles))
-
     with open('particle_batch_manifest.csv', 'w', newline='') as manifest_f:
         writer = csv.writer(manifest_f)
         for batch_idx, batch_particles in enumerate(batches):
-            batch_id = f'pbatch_{batch_idx:04d}'
+            batch_id  = f'pbatch_{batch_idx:04d}'
             batch_num = len(batch_particles)
             writer.writerow([batch_id, job_uid, batch_num])
 
-    print(f"Split {len(particles)} particles into {len(batches)} sub-batches of <= ${batch_size}")
+    print(f"Split {num_items} particles (job={job_uid}) into {len(batches)} sub-batches of <= ${batch_size}")
     """
 }
 
@@ -1358,26 +1360,32 @@ process MERGE_PARTICLES {
     import json
     import glob
 
-    all_particles = []
-    last_job_uid  = None
+    all_particles  = []
+    last_job_uid   = None
     last_num_items = 0
+    last_project   = None
+    last_workspace = None
     for cs_file in sorted(glob.glob('particles_*.cs')):
         data = json.load(open(cs_file))
-        # Real-mode: preserve CryoSPARC job UID for downstream extraction
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
             last_job_uid   = data['job_uid']
             last_num_items = data.get('num_items', last_num_items)
+            last_project   = data.get('project_uid', last_project)
+            last_workspace = data.get('workspace_uid', last_workspace)
         all_particles.extend(data.get('particles', []))
 
     merged = {'particles': all_particles, 'merged': True}
     if last_job_uid:
-        merged['job_uid']   = last_job_uid
-        merged['num_items'] = last_num_items
+        merged['cs_mode']       = 'real'
+        merged['job_uid']       = last_job_uid
+        merged['num_items']     = last_num_items
+        if last_project:   merged['project_uid']   = last_project
+        if last_workspace: merged['workspace_uid'] = last_workspace
 
     with open('all_particles.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}) from all batches")
+    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}, num_items={last_num_items}) from all batches")
     """
 }
 
@@ -1397,21 +1405,28 @@ process MERGE_CLASSES {
     import json
     import glob
 
-    all_classes = []
-    last_job_uid = None
+    all_classes    = []
+    last_job_uid   = None
+    last_num_items = 0
+    last_num_cls   = 0
     for cs_file in sorted(glob.glob('class2d_*.cs')):
         data = json.load(open(cs_file))
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
-            last_job_uid = data['job_uid']
+            last_job_uid   = data['job_uid']
+            last_num_items = data.get('num_items', last_num_items)
+            last_num_cls   = data.get('num_classes', last_num_cls)
         all_classes.extend(data.get('classes', []))
 
     merged = {'classes': all_classes, 'merged': True}
     if last_job_uid:
-        merged['job_uid'] = last_job_uid
+        merged['cs_mode']    = 'real'
+        merged['job_uid']    = last_job_uid
+        merged['num_items']  = last_num_items
+        merged['num_classes'] = last_num_cls
     with open('all_classes.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}) from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
     """
 }
 
@@ -1433,25 +1448,32 @@ process MERGE_PARTICLES_R1 {
     import json
     import glob
 
-    all_particles = []
-    last_job_uid  = None
+    all_particles  = []
+    last_job_uid   = None
     last_num_items = 0
+    last_project   = None
+    last_workspace = None
     for cs_file in sorted(glob.glob('particles_*.cs')):
         data = json.load(open(cs_file))
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
             last_job_uid   = data['job_uid']
             last_num_items = data.get('num_items', last_num_items)
+            last_project   = data.get('project_uid', last_project)
+            last_workspace = data.get('workspace_uid', last_workspace)
         all_particles.extend(data.get('particles', []))
 
     merged = {'particles': all_particles, 'merged': True}
     if last_job_uid:
-        merged['job_uid']   = last_job_uid
-        merged['num_items'] = last_num_items
+        merged['cs_mode']       = 'real'
+        merged['job_uid']       = last_job_uid
+        merged['num_items']     = last_num_items
+        if last_project:   merged['project_uid']   = last_project
+        if last_workspace: merged['workspace_uid'] = last_workspace
 
     with open('all_particles.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}) from all batches")
+    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}, num_items={last_num_items}) from all batches")
     """
 }
 
@@ -1471,21 +1493,28 @@ process MERGE_CLASSES_R2 {
     import json
     import glob
 
-    all_classes = []
-    last_job_uid = None
+    all_classes    = []
+    last_job_uid   = None
+    last_num_items = 0
+    last_num_cls   = 0
     for cs_file in sorted(glob.glob('class2d_*.cs')):
         data = json.load(open(cs_file))
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
-            last_job_uid = data['job_uid']
+            last_job_uid   = data['job_uid']
+            last_num_items = data.get('num_items', last_num_items)
+            last_num_cls   = data.get('num_classes', last_num_cls)
         all_classes.extend(data.get('classes', []))
 
     merged = {'classes': all_classes, 'merged': True}
     if last_job_uid:
-        merged['job_uid'] = last_job_uid
+        merged['cs_mode']    = 'real'
+        merged['job_uid']    = last_job_uid
+        merged['num_items']  = last_num_items
+        merged['num_classes'] = last_num_cls
     with open('all_classes.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}) from all sub-batches")
+    print(f"✓ Merged {len(all_classes)} classes (job_uid={last_job_uid}, num_items={last_num_items}) from all sub-batches")
     """
 }
 
@@ -2121,14 +2150,41 @@ process VALIDATION_FSC {
             params={},
             timeout=3600,
         )
-        # Attempt to read FSC data from the job output
+        # Extract FSC curve from the validation job output
         fsc_data = {"fsc_curve": [], "cs_job_uid": job.uid, "real_mode": True}
         try:
-            fsc_out = job.load_output("fsc")
+            import numpy as np
+            fsc_out = None
+            for slot in ("fsc_info", "fsc", "fsc_no_masking", "fsc_masked"):
+                try:
+                    fsc_out = job.load_output(slot)
+                    if fsc_out is not None:
+                        break
+                except Exception:
+                    continue
             if fsc_out is not None:
-                fsc_data["fsc_curve"] = list(fsc_out)
-        except Exception:
-            pass
+                arr = fsc_out.data if hasattr(fsc_out, 'data') else fsc_out
+                fields = list(arr.dtype.names) if hasattr(arr, 'dtype') else []
+                freq_field = next((f for f in fields if 'freq' in f.lower() or 'spatial' in f.lower()), None)
+                fsc_fields  = [f for f in fields if 'fsc' in f.lower() and f != freq_field]
+                if freq_field and fsc_fields:
+                    primary = fsc_fields[0]
+                    curve = []
+                    for row in arr:
+                        freq = float(row[freq_field])
+                        val  = float(row[primary])
+                        shell_res = round(1.0 / freq, 2) if freq > 0 else 9999.0
+                        curve.append({'spatial_frequency': round(freq, 6),
+                                      'resolution_angstroms': shell_res,
+                                      'fsc': round(max(-1.0, min(1.0, val)), 4)})
+                    fsc_data["fsc_curve"] = curve
+                    fsc_data["fsc_field"] = primary
+                    if curve:
+                        above_143 = [p for p in curve if p['fsc'] >= 0.143]
+                        if above_143:
+                            fsc_data["fsc_0143_resolution"] = above_143[-1]['resolution_angstroms']
+        except Exception as _fsc_err:
+            print(f"[FSC] extraction error: {_fsc_err}")
         report = {"step": "19_validation_fsc", "timestamp": datetime.now().isoformat(),
                   "cs_job_uid": job.uid, "real_mode": True}
     else:
