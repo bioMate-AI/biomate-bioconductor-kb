@@ -1943,9 +1943,7 @@ export function NextflowWorkflowViewer({
             </div>
           </div>{/* end flex-column wrapper */}
 
-            {executionEngine === 'nextflow' && (status === 'running' || status === 'paused') && (
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 18px 0' }}>Batch job continues running after detach.</p>
-            )}
+            {/* Detach note removed alongside watcher UI */}
 
               {/* QC Settings — only shown when QC profiles are available or a QC gate event fired */}
               {(availableQcProfiles.length > 0 || qcGateData !== null) && (
