@@ -1070,6 +1070,92 @@ export class GalaxyAssistant {
   }
 
   /**
+   * Generate a response using Gemini as the backbone LLM.
+   * Handles streaming via Google's GenerativeAI SDK.
+   * Tool use is disabled (Gemini function calling uses a different format — future work).
+   */
+  private async _generateWithGemini(
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+  ): Promise<string> {
+    if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
+    const model = this.gemini.getGenerativeModel({
+      model: this.modelConfig.responseModel,
+      systemInstruction: systemPrompt,
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 },
+    });
+    let rawResponse = '';
+    if (messages.length === 0) return '';
+    if (messages.length === 1) {
+      const stream = await model.generateContentStream(messages[0].content);
+      for await (const chunk of stream.stream) {
+        const text = chunk.text();
+        if (text) { rawResponse += text; onResponseDelta?.(text); }
+      }
+      return rawResponse;
+    }
+    const history = messages.slice(0, -1).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+    const chat = model.startChat({ history });
+    const stream = await chat.sendMessageStream(messages[messages.length - 1].content);
+    for await (const chunk of stream.stream) {
+      const text = chunk.text();
+      if (text) { rawResponse += text; onResponseDelta?.(text); }
+    }
+    return rawResponse;
+  }
+
+  /**
+   * Generate a response using a local Ollama model (e.g. gemma4:31b).
+   * Calls Ollama's OpenAI-compatible endpoint; no tool use.
+   */
+  private async _generateWithOllama(
+    systemPrompt: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    onResponseDelta?: (text: string) => void,
+    maxTokens = 4096,
+  ): Promise<string> {
+    const ollamaBase = process.env.OLLAMA_BASE_URL ?? 'http://localhost:11434';
+    const model = this.modelConfig.responseModel;
+    const body = JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+      ],
+      stream: true,
+      options: { num_predict: maxTokens, temperature: 0.7, num_ctx: 32768 },
+    });
+    const res = await fetch(`${ollamaBase}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    });
+    if (!res.ok) throw new Error(`Ollama HTTP ${res.status}: ${await res.text()}`);
+    let rawResponse = '';
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    if (!reader) throw new Error('No response body from Ollama');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value).split('\n')) {
+        const trimmed = line.replace(/^data:\s*/, '').trim();
+        if (!trimmed || trimmed === '[DONE]') continue;
+        try {
+          const delta = JSON.parse(trimmed).choices?.[0]?.delta?.content;
+          if (delta) { rawResponse += delta; onResponseDelta?.(delta); }
+        } catch { /* skip malformed chunk */ }
+      }
+    }
+    return rawResponse;
+  }
+
+  /**
    * Retry helper for Anthropic API calls — handles 429 rate-limit and 529 overloaded errors.
    * Only retries if no streaming content has been emitted yet (rawResponseSoFar empty).
    */
@@ -4536,6 +4622,48 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       let rawResponse = '';
       let lastStopReason: string | null = null;
       const MAX_TOOL_TURNS = 5;
+
+      // ── Non-Claude backbone: Gemini or Ollama ────────────────────────────────
+      // Tool use is not supported on these paths (different function-call formats).
+      // All other BioMate pipeline stages (routing, context-building, RAG) still run.
+      const responseModel = this.modelConfig.responseModel;
+      const isGeminiBackbone = responseModel.startsWith('gemini-');
+      const isOllamaBackbone = !responseModel.startsWith('claude-') && !isGeminiBackbone;
+
+      if (isGeminiBackbone || isOllamaBackbone) {
+        const plainMessages = [
+          ...previousMessages.map(m => ({
+            role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
+            content: typeof m.content === 'string' ? m.content
+              : (m.content as any[]).filter((b: any) => b.type === 'text').map((b: any) => b.text).join(''),
+          })),
+          { role: 'user' as const, content: userPrompt },
+        ];
+        try {
+          rawResponse = isGeminiBackbone
+            ? await this._generateWithGemini(systemPrompt, plainMessages, onResponseDelta)
+            : await this._generateWithOllama(systemPrompt, plainMessages, onResponseDelta);
+        } catch (err: any) {
+          console.error(`[GalaxyAssistant] ${isGeminiBackbone ? 'Gemini' : 'Ollama'} backbone error:`, err.message);
+          rawResponse = `I encountered an error generating a response: ${err.message}`;
+          if (onResponseDelta) onResponseDelta(rawResponse);
+        }
+        // Skip the Anthropic agent loop entirely
+        const thinkingResult = thinkingDetector.detectThinking(rawResponse);
+        const qualityEnforcedMessage = this.enforceDrugDevelopmentResponseQuality({
+          userMessage: message,
+          assistantMessage: thinkingResult.answerContent,
+          runnableWorkflow,
+          workflowGenerationFailed,
+          workflowFailureSignals,
+          isResearchAnswer: new Set(['research_question','troubleshooting','parameter_optimization',
+            'experiment_design','data_interpretation','protocol_guidance',
+            'methods_writing','comparative_methodology','regulatory_compliance',
+          ]).has((intent as any)?.type ?? ''),
+        });
+        return { message: qualityEnforcedMessage || rawResponse, truncated: false };
+      }
+      // ── End non-Claude backbone ───────────────────────────────────────────────
 
       for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
         const isFirstTurn = turn === 0;
