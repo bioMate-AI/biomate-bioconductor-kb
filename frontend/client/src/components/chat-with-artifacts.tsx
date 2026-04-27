@@ -935,18 +935,27 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
           )}
         </div>
         <div className="flex items-center gap-2">
-          {runningCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              data-testid="button-toggle-run-manager"
-              onClick={() => setShowRunManager((prev) => !prev)}
-              style={{ fontSize: 12, height: 28 }}
-            >
-              <Layers className="h-3 w-3 mr-1" />
-              {runningCount} running
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            data-testid="button-toggle-run-manager"
+            onClick={() => setShowRunManager((prev) => !prev)}
+            style={{ fontSize: 12, height: 28, gap: 5 }}
+          >
+            <Layers className="h-3 w-3" style={{ flexShrink: 0 }} />
+            Run Manager
+            {runningCount > 0 ? (
+              <span style={{
+                background: 'var(--bm-blue, oklch(0.55 0.18 240))',
+                color: 'white', borderRadius: 9, fontSize: 10,
+                padding: '0 5px', fontWeight: 600, lineHeight: '16px',
+              }}>{runningCount}</span>
+            ) : (
+              <span style={{ color: 'var(--bm-text-dim)', fontSize: 11 }}>
+                {runList.length > 0 ? runList.length : '0'}
+              </span>
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
