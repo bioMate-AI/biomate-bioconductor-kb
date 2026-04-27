@@ -1567,6 +1567,42 @@ process MERGE_CLASSES {
     """
 }
 
+// ── import_particles mode: synthesise a merged_cs stub from cs_init.json ────
+// Used when import_mode="particles" — skips Phases A+B entirely and connects
+// the already-imported particles directly to the Phase C classification chain.
+process PARTICLES_AS_R1 {
+    tag "particles_as_r1"
+    publishDir "${params.outdir}/01_import_particles", mode: 'copy'
+    container CS_IMAGE
+
+    input:
+    path cs_init_json
+
+    output:
+    path "particles_imported_r1.cs", emit: merged_cs
+
+    script:
+    """
+    #!/usr/bin/env python3
+    import json
+
+    init = json.load(open("${cs_init_json}"))
+    stub = {
+        "cs_mode":       "real",
+        "project_uid":   init["project_uid"],
+        "workspace_uid": init["workspace_uid"],
+        "job_uid":       init["import_job_uid"],
+        "output_slot":   "particles",
+        "num_items":     init.get("num_particles", 0),
+        "merged":        True,
+        "import_mode":   "particles",
+    }
+    with open("particles_imported_r1.cs", "w") as f:
+        json.dump(stub, f, indent=2)
+    print(f"[CS] Particles stub: {stub['num_items']} particles from job {stub['job_uid']}", flush=True)
+    """
+}
+
 // Alias processes that are called more than once in the same workflow context
 // (Nextflow DSL2 forbids reusing the same process name within a workflow)
 process MERGE_PARTICLES_R1 {
@@ -2701,31 +2737,12 @@ workflow CRYOSPARC_STANDARD_SPA {
     init_json_ch = INIT_CRYOSPARC_PROJECT.out.init_json
 
     // ── Routing: particles mode skips Phases A+B entirely ────────────────────
-    // When import_mode="particles", INIT already ran import_particles so J1 has
-    // all particles ready.  merged_r1 is synthesised directly from cs_init.json.
+    // When import_mode="particles", INIT already ran import_particles; jump to
+    // Phase C (2D classification) directly via the PARTICLES_AS_R1 stub process.
 
     if (params.import_mode == "particles") {
 
-        // Build a single merged_cs file pointing to the import_particles job
-        merged_r1 = Channel.fromPath(INIT_CRYOSPARC_PROJECT.out.init_json)
-            | map { init_json ->
-                def init = new groovy.json.JsonSlurper().parse(init_json)
-                // Write a particles-merged stub that downstream processes can read
-                def stub = [
-                    cs_mode: "real",
-                    project_uid: init.project_uid,
-                    workspace_uid: init.workspace_uid,
-                    job_uid: init.import_job_uid,
-                    output_slot: "particles",
-                    num_items: init.num_particles ?: 0,
-                    merged: true
-                ]
-                def stubFile = file("particles_imported.cs")
-                stubFile.text = groovy.json.JsonOutput.toJson(stub)
-                return stubFile
-            }
-            | map { f -> [merged_cs: f] }
-            | first()
+        merged_r1 = PARTICLES_AS_R1(init_json_ch)
 
     } else {
 
