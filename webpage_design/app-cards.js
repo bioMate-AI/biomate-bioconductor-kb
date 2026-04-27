@@ -9,14 +9,14 @@
       meta: 'Target discovery',
       title: 'Binding‑pose triage in minutes',
       desc: 'Rank co‑crystal and AlphaFold‑predicted poses by computed ΔG and proximity to known hot‑spots, with the SAR rationale written for you.',
-      photo: 'images/photo-binding-pose.png'
+      photo: 'images/photo-target-discovery.png'
     },
     {
       id: 'screening',
       meta: 'Lead optimization',
       title: 'Virtual screen, with provenance',
       desc: 'Score compound libraries against your target pocket using structure‑based docking and pharmacophore filtering &mdash; with every hit traced back to its source.',
-      photo: 'images/photo-virtual-screening.png'
+      photo: 'images/photo-lead-optimization.png'
     },
     {
       id: 'admet',
