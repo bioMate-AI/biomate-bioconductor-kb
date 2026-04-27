@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react"
+import { useLocation } from "wouter"
+import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -37,8 +39,16 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const { logout } = useAuth()
+  const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
   const [activeTab, setActiveTab] = useState("profile")
+
+  const handleLogout = async () => {
+    onOpenChange(false)
+    await logout()
+    setLocation('/login')
+  }
 
   useEffect(() => {
     if (open) {
@@ -172,7 +182,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <ExternalLink className="w-4 h-4" />
                   Documentation
                 </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive" data-testid="button-logout">
+                <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-destructive hover:text-destructive" data-testid="button-logout" onClick={handleLogout}>
                   <LogOut className="w-4 h-4" />
                   Log Out
                 </Button>
