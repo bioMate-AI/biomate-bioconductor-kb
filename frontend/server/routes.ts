@@ -6265,8 +6265,10 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
       // If no outputs found, attempt to source them from the execution run record
       if (outputs.length === 0) {
         const invocation = await resolveInvocation(req.params.id);
-        // Also try direct execution run lookup — Nextflow runs often reference by executionRun.id
-        const directExecRun = await storage.getExecutionRun(req.params.id);
+        // Try direct execution run lookup — by ID or by galaxyInvocationId (Nextflow runs use
+        // execution.galaxyInvocationId as the invocationId displayed in the chat UI)
+        const directExecRun = await storage.getExecutionRun(req.params.id)
+          || await storage.getExecutionRunByGalaxyId(req.params.id);
         const effectiveInvocationId = invocation?.id || req.params.id;
 
         if (invocation) {
