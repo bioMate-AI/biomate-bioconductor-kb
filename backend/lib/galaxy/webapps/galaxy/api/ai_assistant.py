@@ -536,40 +536,9 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
             return steps
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
-        # Strategy 1: numbered steps in comment block ("* 1. Import Movies")
-        # Only scan the header (lines before first process/workflow definition)
-        # to avoid picking up sub-step comments inside process script blocks.
-        header_lines = []
-        for line in content.splitlines():
-            if re.match(r'^\s*(process|workflow)\s*\b', line):
-                break
-            header_lines.append(line)
-        header = '\n'.join(header_lines)
-        comment_steps = re.findall(r'\*\s+(\d+)\.\s+(.+)', header)
-        if comment_steps:
-            for raw_num, raw_name in comment_steps:
-                idx = int(raw_num) - 1
-                clean = raw_name.strip().rstrip('*').strip()
-                if not clean:
-                    continue
-                tool_id = re.sub(r'[^A-Za-z0-9]+', '_', clean.upper()).strip('_')
-                steps[str(idx)] = {
-                    "id": str(idx),
-                    "name": clean,
-                    "tool_id": tool_id,
-                    "annotation": clean,
-                    "description": "",
-                    "type": "tool",
-                    "parameters": {},
-                    "inputs": {},
-                }
-            if steps:
-                _enrich_steps_with_phase_info(steps, content, nf_filename)
-                return steps
-
-        # Strategy 2: parse actual `process NAME {` definitions.
-        # These are the only discrete computational units in Nextflow — `workflow`
-        # blocks are orchestration, not steps. One `process` = one viewer step.
+        # Strategy 1: `process NAME {` definitions — the authoritative source.
+        # In Nextflow, a `process` is a discrete computational unit (one container,
+        # one job on Batch). Comments document intent; they do not define execution.
         for m in re.finditer(r'^process\s+([A-Za-z][A-Za-z0-9_]+)\s*\{', content, re.MULTILINE):
             proc = m.group(1)
             human = proc.replace('_', ' ').title()
@@ -584,6 +553,36 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                 "inputs": {},
             }
             idx += 1
+        if steps:
+            _enrich_steps_with_phase_info(steps, content, nf_filename)
+            return steps
+
+        # Strategy 2 (fallback): numbered steps in comment block ("* 1. Step name").
+        # Used only when the file contains no `process` definitions — e.g. a wrapper
+        # that calls an external pipeline and documents expected logical steps.
+        header_lines = []
+        for line in content.splitlines():
+            if re.match(r'^\s*(process|workflow)\s*\b', line):
+                break
+            header_lines.append(line)
+        header = '\n'.join(header_lines)
+        comment_steps = re.findall(r'\*\s+(\d+)\.\s+(.+)', header)
+        for raw_num, raw_name in comment_steps:
+            idx = int(raw_num) - 1
+            clean = raw_name.strip().rstrip('*').strip()
+            if not clean:
+                continue
+            tool_id = re.sub(r'[^A-Za-z0-9]+', '_', clean.upper()).strip('_')
+            steps[str(idx)] = {
+                "id": str(idx),
+                "name": clean,
+                "tool_id": tool_id,
+                "annotation": clean,
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+            }
     except Exception as exc:
         log.warning(f"[NextflowSteps] Failed to parse steps from {nf_filename}: {exc}")
     # ── Enrich steps with phase groups and per-step params ──────────────────────
