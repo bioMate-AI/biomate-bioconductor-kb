@@ -3,10 +3,12 @@
  * pharmacology/predict_admet_properties
  *
  * Predicts ADMET (Absorption, Distribution, Metabolism, Excretion, Toxicity)
- * properties for a list of compounds using:
- *   1. RDKit molecular descriptors (hERG IC50 estimate, DILI risk) — always runs
- *   2. DeepPurpose MPNN/CNN/Morgan pretrained models (ClinTox, solubility, etc.)
- *      — optional; runs when DeepPurpose is installed in the container.
+ * properties for a list of compounds.
+ *
+ * Single process: PREDICT_ADMET_PROPERTIES
+ *   - Phase A: RDKit molecular descriptors (hERG IC50 estimate, DILI risk) — always runs
+ *   - Phase B: DeepPurpose MPNN/CNN/Morgan pretrained models (ClinTox, solubility, etc.)
+ *              — optional; runs when DeepPurpose is installed in the container
  *
  * Always produces toxicity_report.json with structured QC-gate-ready fields.
  * nf-core style module generated from tested Galaxy wrapper.
