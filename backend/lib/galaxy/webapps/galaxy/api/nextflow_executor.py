@@ -2544,7 +2544,10 @@ def execute_nextflow(
         import json as _json
         _timing_path = Path(os.environ.get("NEXTFLOW_WORK_DIR", "/tmp/nextflow_runs")) / run_id / "timing.json"
         _timing_path.parent.mkdir(parents=True, exist_ok=True)
-        _timing_path.write_text(_json.dumps({"started_at": _started_at_now}))
+        _timing_path.write_text(_json.dumps({
+            "started_at": _started_at_now,
+            "outdir": str(outdir),   # actual S3 path — NOT the config file path
+        }))
     except Exception as _te:
         log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
 
@@ -2889,18 +2892,22 @@ def get_nextflow_status(
             if not trace_done and _fb_completed_at:
                 trace_done = True
 
-            # Read S3 outdir from config if available
-            _s3_outdir: str | None = None
-            _config_path = log_dir / "biomate_executor_override.config"
-            if _config_path.exists():
-                try:
-                    _cfg = _config_path.read_text()
-                    import re as _re
-                    m = _re.search(r"outdir\s*=\s*['\"]?(s3://[^\s'\"]+)", _cfg)
-                    if m:
-                        _s3_outdir = m.group(1)
-                except Exception:
-                    pass
+            # Read S3 outdir from timing.json (written at run start with the actual S3 path).
+            # Fallback: scan config file (legacy runs that predate timing.json outdir field).
+            _s3_outdir: str | None = _disk_timing.get("outdir") or None
+            if _s3_outdir and not _s3_outdir.startswith("s3://"):
+                _s3_outdir = None   # local path — not useful here
+            if not _s3_outdir:
+                _config_path = log_dir / "biomate_executor_override.config"
+                if _config_path.exists():
+                    try:
+                        _cfg = _config_path.read_text()
+                        import re as _re
+                        m = _re.search(r"outdir\s*=\s*['\"]?(s3://[^\s'\"]+)", _cfg)
+                        if m:
+                            _s3_outdir = m.group(1)
+                    except Exception:
+                        pass
 
             if trace_done:
                 # List S3 output files for completed AWS Batch runs
