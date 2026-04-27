@@ -603,7 +603,16 @@ function PhaseGroupSection({
 
           {/* Phase actions */}
           <div className="phase-actions">
-            {!allDone && (
+            {anyRunning && onCancel && (
+              <button
+                className="btn sm"
+                data-testid={`button-stop-phase-${group.key}`}
+                onClick={onCancel}
+              >
+                Stop phase
+              </button>
+            )}
+            {!allDone && !anyRunning && (
               <button
                 className="btn sm"
                 disabled={!canRunPhase}
@@ -2381,38 +2390,46 @@ export function NextflowWorkflowViewer({
       {/* ── Sticky footer with primary run action ─────────────────────────────── */}
       <div className="panel-foot" data-tour="run-footer">
         {executionBlockedReason && (
-          <div className="alert warn" style={{ margin: 0, marginBottom: 6 }}>
+          <div className="alert err" style={{ margin: 0, marginBottom: 6 }}>
             <AlertTriangle className="h-3.5 w-3.5" style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>{executionBlockedReason}</span>
+            <div className="body">
+              <strong>Execution blocked</strong> — {executionBlockedReason}
+              <div className="act">
+                <button className="btn sm" onClick={() => setSettingsOpen(true)}>Fix now</button>
+                <button
+                  className="btn ghost sm"
+                  data-testid="button-confirm-low-confidence-run"
+                  disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
+                  onClick={() => {
+                    emitUxEvent('workflow.low_confidence_override_clicked', { workflowId, invocationId, runId });
+                    onExecute?.({
+                      ...params,
+                      __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason },
+                    });
+                  }}
+                >
+                  Confirm anyway
+                </button>
+              </div>
+            </div>
           </div>
         )}
         <div className="run-primary">
-          {executionBlockedReason ? (
-            <button
-              className="btn primary"
-              data-testid="button-confirm-low-confidence-run"
-              onClick={() => {
-                emitUxEvent('workflow.low_confidence_override_clicked', { workflowId, invocationId, runId });
-                onExecute?.({
-                  ...params,
-                  __executionOverrides: { allowLowConfidence: true, overrideReason: executionBlockedReason },
-                });
-              }}
-              disabled={status === 'running' || status === 'completed' || (isPrereqBlocked && !prereqChecklist?.overrideAllowed) || isAutofixActive || isLicenseBlocked}
-            >
-              Confirm and Run Anyway
-            </button>
-          ) : (
+          {!executionBlockedReason && (
             <button
               className="btn primary"
               data-testid="button-run-workflow-panel"
               onClick={handleExecute}
-              disabled={status === 'running' || !!executionBlockedReason || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
+              disabled={status === 'running' || isPrereqBlocked || isAutofixActive || isLicenseBlocked}
             >
               {status === 'running' ? (
                 <><Loader2 className="h-4 w-4 animate-spin" style={{ marginRight: 6 }} />Running…</>
+              ) : status === 'failed' ? (
+                'Restart'
+              ) : status === 'completed' ? (
+                'Run again'
               ) : (
-                'Confirm and Run Workflow'
+                'Confirm and run workflow'
               )}
             </button>
           )}

@@ -7057,14 +7057,21 @@ Extract every real number from the output data. A reviewer should be able to ver
           const csRunId = cryosparcData.run_id || cryosparcData.invocation_id || '';
           console.log('[CryoSPARC Direct] Queued run_id:', csRunId);
 
+          // When the executor launched via Nextflow internally (cryosparc_standard_spa/main.nf),
+          // store executionEngine as 'nextflow' so /api/workflows/runs/:id/status uses the
+          // Nextflow poller instead of the CryoSPARC direct-API poller.
+          const effectiveEngine = (cryosparcData.executor === 'nextflow' || cryosparcData.execution_engine?.startsWith('nextflow'))
+            ? 'nextflow'
+            : 'cryosparc';
           await storage.updateExecutionRun(executionRun.id, {
             execution: {
               ...executionRun.execution,
               galaxyInvocationId: csRunId,
+              nextflowRunId: effectiveEngine === 'nextflow' ? csRunId : undefined,
               galaxyHistoryId: galaxyHistoryId,
               status: 'running',
               startedAt: new Date(),
-              executionEngine: 'cryosparc',
+              executionEngine: effectiveEngine,
             }
           });
 
