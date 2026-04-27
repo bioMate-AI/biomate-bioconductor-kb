@@ -1736,10 +1736,25 @@ export function NextflowWorkflowViewer({
                       : qcGateData.processName.replace(/_/g, " ")} — Review Required
                   </div>
                   {qcGateData.failures.length > 0 && (
-                    <div style={{ opacity: 0.85 }}>
-                      {typeof qcGateData.failures[0] === 'string'
-                        ? qcGateData.failures[0]
-                        : (qcGateData.failures[0] as QCGateFailure).message}
+                    <div style={{ marginTop: 4 }}>
+                      {qcGateData.failures.map((f, i) => {
+                        if (typeof f === 'string') {
+                          return <div key={i} style={{ opacity: 0.85 }}>{f}</div>;
+                        }
+                        const fail = f as QCGateFailure;
+                        return (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '3px 0', borderBottom: i < qcGateData.failures.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                            <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>{fail.metric}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--red, #dc2626)', fontSize: 13 }} data-testid="qc-gate-measured">
+                              {typeof fail.value === 'number' ? fail.value.toFixed(fail.value < 10 ? 2 : 0) : fail.value}
+                            </span>
+                            <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>{fail.operator}</span>
+                            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600, color: 'var(--green, #16a34a)', fontSize: 13 }} data-testid="qc-gate-threshold">
+                              {typeof fail.threshold === 'number' ? fail.threshold.toFixed(fail.threshold < 10 ? 2 : 0) : fail.threshold}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {qcGateData.suggestions.length > 0 && (
@@ -1770,6 +1785,36 @@ export function NextflowWorkflowViewer({
               <span>Workflow completed. View Results and Download All are available.</span>
             </div>
           )}
+
+          {/* QC Report — always shown for completed runs, summarises measured vs threshold */}
+          {status === 'completed' && (() => {
+            const qcReport = (nextflowStatus as any)?.qc_report;
+            const allMetrics: any[] = qcReport?._all_metrics || [];
+            if (allMetrics.length === 0) return null;
+            return (
+              <div data-testid="qc-report-panel" style={{
+                margin: '0 18px 10px', padding: '10px 12px',
+                border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+                background: 'var(--bg-elev)',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase' }}>
+                  QC Results
+                </div>
+                {allMetrics.map((m: any, i: number) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, padding: '3px 0', borderBottom: i < allMetrics.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                    <span style={{ flex: 1, color: 'var(--text-2)' }}>{m.name}</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums', color: m.pass ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                      {typeof m.measured === 'number' ? m.measured.toFixed(m.measured < 10 ? 2 : 0) : m.measured}
+                      {m.unit ? ` ${m.unit}` : ''}
+                    </span>
+                    <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>
+                      {m.pass ? '✓' : '✗'} thresh {m.threshold}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

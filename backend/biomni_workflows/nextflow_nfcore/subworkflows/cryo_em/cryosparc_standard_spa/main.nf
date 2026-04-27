@@ -561,6 +561,21 @@ process PATCH_MOTION_CORRECTION_BATCH {
         report = {"step": "02_patch_motion_correction", "batch_id": batch_id,
                   "timestamp": datetime.now().isoformat(),
                   "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True}
+        # Extract QC metrics from CryoSPARC job output for QC gate + display
+        try:
+            import numpy as np
+            if micrographs_out is not None and len(micrographs_out) > 0:
+                _data = micrographs_out.data if hasattr(micrographs_out, 'data') else micrographs_out
+                for _field in ("total_motion_A", "micrograph/total_motion_A", "motion_global_a"):
+                    if _field in _data.dtype.names if hasattr(_data, 'dtype') else False:
+                        _vals = _data[_field]
+                        report["avg_total_motion_A"] = round(float(np.nanmean(_vals)), 2)
+                        report["min_total_motion_A"] = round(float(np.nanmin(_vals)), 2)
+                        report["max_total_motion_A"] = round(float(np.nanmax(_vals)), 2)
+                        report["num_accepted"] = int((~np.isnan(_vals)).sum())
+                        break
+        except Exception as _qc_err:
+            print(f"[QC] motion metrics extraction skipped: {_qc_err}")
     else:
         # Mock mode
         num_mics = 10
@@ -627,6 +642,38 @@ process PATCH_CTF_ESTIMATION_BATCH {
         report   = {"step": "03_patch_ctf_estimation", "batch_id": batch_id,
                     "timestamp": datetime.now().isoformat(),
                     "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True}
+        # Extract QC metrics: defocus range and CTF fit quality
+        try:
+            import numpy as np
+            ctf_out = job.load_output("micrographs_ctf")
+            if ctf_out is not None and len(ctf_out) > 0:
+                _d = ctf_out.data if hasattr(ctf_out, 'data') else ctf_out
+                _names = _d.dtype.names if hasattr(_d, 'dtype') else []
+                # CTF fit quality (resolution at which CTF fit is reliable — lower = better)
+                for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A"):
+                    if _f in _names:
+                        _v = _d[_f]
+                        report["avg_ctf_fit_to_A"] = round(float(np.nanmean(_v)), 2)
+                        report["min_ctf_fit_to_A"] = round(float(np.nanmin(_v)), 2)
+                        # QC gate uses fit_quality = 1.0 - (fit_to_A / 10.0) heuristic
+                        report["avg_fit_quality"] = round(max(0.0, 1.0 - float(np.nanmean(_v)) / 10.0), 3)
+                        break
+                # Defocus range
+                for _f in ("ctf_info/df1_A", "ctf/df1_A", "df1_A"):
+                    if _f in _names:
+                        _v = _d[_f]
+                        report["avg_defocus_A"] = round(float(np.nanmean(_v)), 0)
+                        report["min_defocus_A"] = round(float(np.nanmin(_v)), 0)
+                        report["max_defocus_A"] = round(float(np.nanmax(_v)), 0)
+                        break
+                # Astigmatism
+                for _f1, _f2 in [("ctf_info/df1_A","ctf_info/df2_A"), ("ctf/df1_A","ctf/df2_A")]:
+                    if _f1 in _names and _f2 in _names:
+                        _astig = np.abs(_d[_f1] - _d[_f2])
+                        report["avg_astigmatism_A"] = round(float(np.nanmean(_astig)), 0)
+                        break
+        except Exception as _qc_err:
+            print(f"[QC] CTF metrics extraction skipped: {_qc_err}")
     else:
         mics = prev.get("micrographs", [{"micrograph_idx": i} for i in range(10)])
         ctf  = [{"defocus_u_angstroms": round(random.uniform(10000, 35000), 1),
@@ -943,10 +990,35 @@ process CLASSIFY_2D_R1_BATCH {
                    "job_uid": job.uid, "output_slot": "particles",
                    "num_items": num_particles, "batch_id": batch_id,
                    "viz_files": viz_files}
+        # Compute junk fraction: classes with very few particles or low density are junk
+        try:
+            import numpy as np
+            classes_out = job.load_output("class_averages")
+            if classes_out is not None and len(classes_out) > 0:
+                _d = classes_out.data if hasattr(classes_out, 'data') else classes_out
+                _names = _d.dtype.names if hasattr(_d, 'dtype') else []
+                for _f in ("class_posterior_prob",  "fraction_selected", "count"):
+                    if _f in _names:
+                        _vals = _d[_f]
+                        _good = int((_vals > 0.01).sum()) if _f != "count" else int((_vals > 10).sum())
+                        _total = len(_vals)
+                        _junk_frac = round(1.0 - _good / max(_total, 1), 3)
+                        break
+                else:
+                    _junk_frac = None
+                    _good = None
+            else:
+                _junk_frac = None
+                _good = None
+        except Exception:
+            _junk_frac = None
+            _good = None
         report  = {"step": "09_classify_2d_round1", "batch_id": batch_id,
                    "timestamp": datetime.now().isoformat(),
                    "cs_job_uid": job.uid, "num_particles": num_particles,
-                   "num_classes": 50, "real_mode": True, "viz_files": viz_files}
+                   "num_classes": 50, "real_mode": True, "viz_files": viz_files,
+                   **({"junk_class_fraction": _junk_frac, "num_good_classes": _good}
+                      if _junk_frac is not None else {})}
     else:
         num_particles = src_n or 1000
         num_classes   = ${num_classes}

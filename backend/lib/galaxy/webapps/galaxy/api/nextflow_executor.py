@@ -1597,6 +1597,101 @@ def _build_processes_from_s3_files(s3_files: List[Dict], outdir: str,
     return processes
 
 
+def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optional[Dict]:
+    """
+    Download JSON report files from S3 and aggregate QC metrics into a structured
+    report dict. Works for any workflow — reads all *_report*.json files.
+
+    Returns None if no metrics could be extracted, or:
+    {
+      "motion": {"avg_total_motion_A": 18.3, "max_total_motion_A": 41.2},
+      "ctf":    {"avg_fit_quality": 0.72, "avg_defocus_A": 18500, "avg_astigmatism_A": 420},
+      "picking": {"num_particles": 24879},
+      "classification": {"num_good_classes": 32, "num_classes": 50, "junk_class_fraction": 0.36},
+      "_all_metrics": [{"name": "...", "measured": ..., "unit": "...", "step": "..."}]
+    }
+    """
+    try:
+        import boto3 as _boto3
+        s3_client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+    except ImportError:
+        return None
+
+    report_files = [f for f in s3_files
+                    if "report" in f.get("name", "").lower() and f.get("extension") == "json"]
+    if not report_files:
+        return None
+
+    metrics: Dict[str, Any] = {}
+    all_metrics: List[Dict] = []
+
+    for rf in report_files:
+        uri = rf.get("s3_uri", "")
+        if not uri.startswith("s3://"):
+            continue
+        try:
+            parts = uri[5:].split("/", 1)
+            obj = s3_client.get_object(Bucket=parts[0], Key=parts[1])
+            data: Dict = json.loads(obj["Body"].read().decode("utf-8"))
+        except Exception:
+            continue
+
+        step = data.get("step", rf.get("name", ""))
+
+        if "02_patch_motion" in step or "02_motion" in step:
+            if "avg_total_motion_A" in data:
+                metrics.setdefault("motion", {}).update({
+                    "avg_total_motion_A": data["avg_total_motion_A"],
+                    "max_total_motion_A": data.get("max_total_motion_A"),
+                    "num_micrographs": data.get("num_micrographs"),
+                    "num_accepted": data.get("num_accepted"),
+                })
+                all_metrics.append({"name": "Avg motion drift (Å)", "step": step,
+                                     "measured": data["avg_total_motion_A"], "unit": "Å",
+                                     "threshold": 50, "pass": data["avg_total_motion_A"] < 50})
+
+        elif "03_patch_ctf" in step or "03_ctf" in step:
+            if "avg_fit_quality" in data:
+                metrics.setdefault("ctf", {}).update({
+                    "avg_fit_quality": data["avg_fit_quality"],
+                    "avg_ctf_fit_to_A": data.get("avg_ctf_fit_to_A"),
+                    "avg_defocus_A": data.get("avg_defocus_A"),
+                    "avg_astigmatism_A": data.get("avg_astigmatism_A"),
+                })
+                all_metrics.append({"name": "CTF fit quality", "step": step,
+                                     "measured": data["avg_fit_quality"], "unit": "",
+                                     "threshold": 0.7, "pass": data["avg_fit_quality"] >= 0.7})
+            elif data.get("real_mode"):
+                metrics.setdefault("ctf", {})["num_micrographs"] = data.get("num_micrographs")
+
+        elif "09_classify" in step or "14_classify" in step:
+            nm = data.get("num_particles") or data.get("num_items", 0)
+            if nm:
+                metrics.setdefault("picking", {})["num_particles"] = nm
+            if "junk_class_fraction" in data:
+                metrics.setdefault("classification", {}).update({
+                    "junk_class_fraction": data["junk_class_fraction"],
+                    "num_good_classes": data.get("num_good_classes"),
+                    "num_classes": data.get("num_classes"),
+                })
+                all_metrics.append({"name": "Junk class fraction", "step": step,
+                                     "measured": data["junk_class_fraction"], "unit": "",
+                                     "threshold": 0.5, "pass": data["junk_class_fraction"] <= 0.5})
+
+        elif "fsc" in step.lower():
+            if "fsc_resolution_angstrom" in data:
+                metrics.setdefault("fsc", {})["resolution_A"] = data["fsc_resolution_angstrom"]
+                all_metrics.append({"name": "FSC 0.143 resolution (Å)", "step": step,
+                                     "measured": data["fsc_resolution_angstrom"], "unit": "Å",
+                                     "threshold": 10.0,
+                                     "pass": data["fsc_resolution_angstrom"] <= 10.0})
+
+    if not metrics:
+        return None
+    metrics["_all_metrics"] = all_metrics
+    return metrics
+
+
 def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
     """
     Tag all S3 output objects for a completed run with user_id and run_id.
@@ -3115,6 +3210,14 @@ def get_nextflow_status(
         end = completed_at if completed_at else now
         duration_s = int(end - started_at)
 
+    # Build QC report from S3 JSON report files when run is terminal
+    qc_report: Optional[Dict] = None
+    if info.get("status") in ("succeeded", "completed") and s3_files and outdir:
+        try:
+            qc_report = _build_qc_report_from_s3_files(s3_files, outdir)
+        except Exception:
+            pass
+
     return {
         "run_id": run_id,
         "invocation_id": info["invocation_id"],
@@ -3125,6 +3228,7 @@ def get_nextflow_status(
         "log_tail": log_tail,
         "is_batch": info.get("is_batch", False),
         "s3_output_files": s3_files,
+        "qc_report": qc_report,
         "started_at": started_at,
         "completed_at": completed_at,
         "duration_s": duration_s,
