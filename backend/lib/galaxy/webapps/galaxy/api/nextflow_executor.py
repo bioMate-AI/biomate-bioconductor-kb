@@ -1561,17 +1561,19 @@ def _build_processes_from_s3_files(s3_files: List[Dict], outdir: str,
     prefix = outdir.rstrip("/") + "/"
     for f in s3_files:
         uri = f.get("s3_uri", "")
-        if not uri:
+        if not uri or uri.endswith("/"):   # skip directory markers
             continue
         # Get path relative to outdir
         if uri.startswith(prefix):
             rel = uri[len(prefix):]
         else:
-            # Fallback: strip up to the last common prefix segment
-            rel = uri.split("/")[-3:]  # step_dir/subdir/file
-            rel = "/".join(rel) if len(rel) >= 2 else uri.split("/")[-1]
+            parts = uri.split("/")
+            # Reconstruct relative from last 3 segments (step_dir/subdir/file)
+            rel = "/".join(parts[-3:]) if len(parts) >= 3 else parts[-1]
         step_dir = rel.split("/")[0]
         filename = rel.split("/")[-1]
+        if not filename:   # another guard against directory URIs
+            continue
         ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
         if ext in _CRYOSPARC_SKIP_EXT:
             continue
