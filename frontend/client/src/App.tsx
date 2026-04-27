@@ -334,17 +334,17 @@ function Router({
 {/* NextflowDemoPage removed */}
 
       {/* Authenticated pages */}
-      <Route path="/dashboard">
+      {/* <Route path="/dashboard">
         <AuthenticatedPageLayout>
           <DashboardPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
-      <Route path="/billing">
+      {/* <Route path="/billing">
         <AuthenticatedPageLayout>
           <BillingPage />
         </AuthenticatedPageLayout>
-      </Route>
+      </Route> */}
 
       <Route path="/admin/feedback-dashboard">
         <AuthenticatedPageLayout>
