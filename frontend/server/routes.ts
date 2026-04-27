@@ -8529,13 +8529,16 @@ Rules:
         }
 
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-west-2' });
+        const s3 = new S3Client({
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
+          followRegionRedirects: true,
+        });
         const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
         if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
 
-        const { Readable } = await import('stream');
-        const nodeStream = Readable.fromWeb ? Readable.fromWeb(s3Obj.Body as any) : (s3Obj.Body as any);
-        nodeStream.pipe(res);
+        // AWS SDK v3 Body is a SdkStreamMixin (Node.js Readable in Node context)
+        // pipe it directly to the response
+        (s3Obj.Body as any).pipe(res);
         return;
       }
 
@@ -8933,27 +8936,36 @@ Rules:
           const TEXT_EXTS = /\.(txt|log|csv|tsv|json|vcf|fasta|fa|fastq|fq|md|bed|gff|gtf)$/i;
           const fsImport = await import('fs/promises');
           for (const out of outputs.slice(0, 30)) {
-            const filePath: string = out.file_path || out.path || '';
-            const fileName: string = out.name || out.file_name || filePath.split('/').pop() || 'output';
+            // S3-backed outputs store path in metadata.s3Uri; local outputs in file_path/path
+            const filePath: string = (out as any).metadata?.s3Uri || (out as any).file_path || (out as any).path || '';
+            const fileName: string = out.name || (out as any).file_name || filePath.split('/').pop() || 'output';
             if (!fileName || !TEXT_EXTS.test(fileName)) continue;
             try {
               let content = '';
               if (filePath.startsWith('s3://')) {
-                const { execFile } = await import('child_process');
-                const { promisify } = await import('util');
-                const execFileP = promisify(execFile);
-                const { stdout } = await execFileP('/opt/aws-cli/dist/aws', ['s3', 'cp', filePath, '-'], {
-                  timeout: 8000, maxBuffer: 64 * 1024,
-                }).catch(() => execFileP('aws', ['s3', 'cp', filePath, '-'], {
-                  timeout: 8000, maxBuffer: 64 * 1024,
-                }));
-                content = stdout.slice(0, 8000);
+                // Use AWS SDK directly (avoids relying on CLI path)
+                const s3Match = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
+                if (s3Match) {
+                  const [, bucket, key] = s3Match;
+                  const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+                  const s3c = new S3Client({
+                    region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
+                    followRegionRedirects: true,
+                  });
+                  const obj = await s3c.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+                  const chunks: Buffer[] = [];
+                  for await (const chunk of obj.Body as any) {
+                    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                    if (chunks.reduce((t, c) => t + c.length, 0) > 8000) break;
+                  }
+                  content = Buffer.concat(chunks).toString('utf8').slice(0, 8000);
+                }
               } else if (filePath) {
                 const raw = await fsImport.readFile(filePath, 'utf8');
                 content = raw.slice(0, 8000);
               }
               if (content.trim()) {
-                outputSamples.push({ name: fileName, content, type: out.file_type || 'text' });
+                outputSamples.push({ name: fileName, content, type: (out as any).fileType || 'text' });
               }
             } catch { /* skip unreadable files */ }
             if (outputSamples.length >= 6) break;
