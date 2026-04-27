@@ -998,22 +998,88 @@ def _build_cryoem_rationale(user_intent: str) -> Dict[str, Any]:
     }
 
 
+def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Deterministic pre-inference for common biological parameters.
+    Runs before the LLM call to ensure consistent extraction of well-known mappings.
+    These rules encode domain knowledge that is stable and unambiguous.
+    """
+    result: Dict[str, Any] = {}
+    text = user_intent.lower()
+    param_names = {p["name"] for p in all_params}
+
+    # ── Organism → genome reference ─────────────────────────────────────────
+    if "genome" in param_names:
+        _genome_patterns = [
+            # Explicit genome IDs
+            (r'\b(GRCh38|hg38|GRCh38\.p\d+)\b', 'GRCh38'),
+            (r'\b(GRCh37|hg19|GRCh37\.p\d+)\b', 'GRCh37'),
+            (r'\b(GRCm39|mm39)\b', 'GRCm39'),
+            (r'\b(GRCm38|mm10|GRCm38\.p\d+)\b', 'GRCm38'),
+            (r'\b(Rnor_6\.0|rnor6|rnor_6)\b', 'Rnor_6.0'),
+            (r'\b(GRCz11|grcz11|danio_rerio)\b', 'GRCz11'),
+            (r'\b(BDGP6|bdgp6|drosophila_melanogaster|dm6)\b', 'BDGP6'),
+            (r'\b(R64-1-1|r64|saccharomyces_cerevisiae|s288c)\b', 'R64-1-1'),
+            (r'\b(TAIR10|tair10|arabidopsis_thaliana)\b', 'TAIR10'),
+            (r'\b(WBcel235|wbcel235|caenorhabditis_elegans)\b', 'WBcel235'),
+            # Organism names → canonical genome
+            (r'\bhuman\b|\bhomo\s+sapiens\b|\bhuman\s+(?:cell|tissue|sample|patient|tumor|cancer|plasma|blood|brain|lung|liver|kidney|colon|breast|skin|heart|muscle|bone|ovary|prostate)\b', 'GRCh38'),
+            (r'\bmouse\b|\bmurine\b|\bmus\s+musculus\b|\bC57BL\b|\bBALB/c\b|\bMDCK\b', 'GRCm39'),
+            (r'\brat\b|\battus\s+norvegicus\b|\bSprague\b|\bWistar\b', 'Rnor_6.0'),
+            (r'\bzebrafish\b|\bdanio\s+rerio\b|\bzebra\s+fish\b', 'GRCz11'),
+            (r'\bdrosophila\b|\bfruit\s*fly\b|\bmelanogaster\b', 'BDGP6'),
+            (r'\byeast\b|\bsaccharomyces\b|\bs\.\s*cerevisiae\b', 'R64-1-1'),
+            (r'\barabidopsis\b|\bplant\b.*\bmodel\b|\bA\.\s*thaliana\b', 'TAIR10'),
+            (r'\bC\.\s*elegans\b|\bworm\b|\bnematode\b', 'WBcel235'),
+        ]
+        import re as _re
+        for pattern, genome_id in _genome_patterns:
+            if _re.search(pattern, text, _re.IGNORECASE):
+                result["genome"] = genome_id
+                break
+
+    # ── Strandedness ─────────────────────────────────────────────────────────
+    if "strandedness" in param_names:
+        import re as _re
+        if _re.search(r'\b(reverse|rf|dUTP|dutp|reverse.strand)\b', text, _re.IGNORECASE):
+            result["strandedness"] = "reverse"
+        elif _re.search(r'\b(forward|fr|ligation|forward.strand)\b', text, _re.IGNORECASE):
+            result["strandedness"] = "forward"
+        elif _re.search(r'\b(unstranded|no.strand|strand.unknown|non-stranded)\b', text, _re.IGNORECASE):
+            result["strandedness"] = "unstranded"
+
+    # ── MACS genome size ─────────────────────────────────────────────────────
+    if "macs_gsize" in param_names:
+        if result.get("genome", "").startswith("GRCh"):
+            result["macs_gsize"] = "hs"
+        elif result.get("genome", "").startswith("GRCm"):
+            result["macs_gsize"] = "mm"
+        elif "BDGP" in result.get("genome", ""):
+            result["macs_gsize"] = "dm"
+        elif "WBcel" in result.get("genome", ""):
+            result["macs_gsize"] = "ce"
+
+    return result
+
+
 def _infer_params_from_intent_llm(
     user_intent: str,
     workflow_name: str,
     all_params: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Use Claude Haiku to extract parameter values from the user's natural language message.
+    """Extract parameter values from user's natural language message.
 
-    Called after the workflow is identified but before the response is returned.
-    Returns a dict of {param_name: extracted_value} for any params whose values
-    can be confidently inferred from the user's message.
+    Step 1: deterministic rule-based inference for well-known biological params.
+    Step 2: LLM-based extraction for remaining explicit values in the message.
 
     Falls back silently to {} on any error or when ANTHROPIC_API_KEY is unset.
     """
+    # Step 1: deterministic rules (always runs, no API cost)
+    result = _rule_based_param_inference(user_intent, all_params)
+
     api_key = _os.getenv("ANTHROPIC_API_KEY")
     if not api_key or not all_params:
-        return {}
+        return result
 
     # Skip params that cannot come from natural language
     _SKIP_TYPES = {"file", "boolean"}
@@ -1027,7 +1093,12 @@ def _infer_params_from_intent_llm(
         and p["name"] not in _SKIP_NAMES
     ]
     if not extractable:
-        return {}
+        return result
+
+    # Exclude params already filled by rule-based step
+    extractable = [p for p in extractable if p["name"] not in result]
+    if not extractable:
+        return result
 
     # Show current defaults so the LLM knows what to replace
     param_descriptions = "\n".join(
@@ -1071,20 +1142,23 @@ Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)
         raw = raw.replace("```json", "").replace("```", "").strip()
         extracted = json.loads(raw)
         if isinstance(extracted, dict):
-            result = {}
+            llm_result: Dict[str, Any] = {}
             for k, v in extracted.items():
                 if isinstance(v, (int, float, bool)):
-                    result[str(k)] = v
+                    llm_result[str(k)] = v
                 elif isinstance(v, list):
                     # Keep lists as strings using JSON-style repr so Nextflow
                     # receives "--param '[x, y, z]'" on the CLI.
-                    result[str(k)] = json.dumps(v)
+                    llm_result[str(k)] = json.dumps(v)
                 else:
-                    result[str(k)] = str(v)
+                    llm_result[str(k)] = str(v)
+            # Merge: LLM result takes precedence for params it explicitly extracted;
+            # rule-based result fills in the rest.
+            result.update(llm_result)
             return result
     except Exception as exc:
         log.debug("_infer_params_from_intent_llm failed (%s) — no pre-fill", exc)
-    return {}
+    return result  # return rule-based results even if LLM fails
 
 
 class RankedSearchRequest(BaseModel):
