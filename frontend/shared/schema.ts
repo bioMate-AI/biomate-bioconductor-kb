@@ -8,7 +8,8 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  organization: text("organization"),
+  organization: text("organization"),   // institution / employer
+  role: text("role"),                   // PI, Postdoc, Research Scientist, etc.
   phone: text("phone"),
 
   // Trial management
@@ -33,6 +34,10 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   lastLoginAt: timestamp("last_login_at"),
+
+  // Session control — set at login; rememberMe=false means 24h, true means 30d
+  rememberMe: boolean("remember_me").default(false),
+  sessionExpiresAt: timestamp("session_expires_at"),
 
   // Metadata
   termsAcceptedAt: timestamp("terms_accepted_at"),
@@ -143,6 +148,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   fullName: true,
   organization: true,
+  role: true,
   phone: true,
   termsAcceptedAt: true,
   marketingEmailsOptIn: true,

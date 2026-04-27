@@ -30,6 +30,8 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    organization: "",
+    role: "",
     password: "",
     confirmPassword: "",
     inviteCode: prefilledCode,

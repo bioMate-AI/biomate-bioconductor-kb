@@ -26,6 +26,7 @@ export interface RegisterData {
   password: string;
   fullName: string;
   organization?: string;
+  role?: string;
   phone?: string;
   termsAccepted: boolean;
   marketingEmailsOptIn?: boolean;
@@ -35,6 +36,7 @@ export interface RegisterData {
 export interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface JWTPayload {
@@ -48,7 +50,8 @@ export interface JWTPayload {
 export interface AuthResponse {
   user: SafeUser;
   token: string;
-  expiresIn: number;
+  expiresIn: number;  // seconds
+  rememberMe?: boolean;
 }
 
 export class AuthService {
@@ -139,6 +142,7 @@ export class AuthService {
           password: passwordHash,
           fullName: data.fullName,
           organization: data.organization,
+          role: data.role,
           phone: data.phone,
           trialStartedAt: now,
           trialEndsAt: trialEndsAt,
@@ -322,7 +326,10 @@ export class AuthService {
   }
 
   /**
-   * Login existing user
+   * Login existing user.
+   *
+   * rememberMe=false → 24-hour session (cookie expires when browser closes, JWT lives 24h)
+   * rememberMe=true  → 30-day session (cookie persists, JWT lives 30d)
    */
   async login(data: LoginData): Promise<AuthResponse> {
     // Find user by email
@@ -355,19 +362,25 @@ export class AuthService {
       this.provisionGalaxyUser(user.id, user.email);
     }
 
-    // Update last login
+    const rememberMe = data.rememberMe ?? false;
+    // 30 days if remembered, 24 hours otherwise
+    const sessionSeconds = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
+    const sessionExpiresAt = new Date(now.getTime() + sessionSeconds * 1000);
+
+    // Update last login + session metadata
     await db
       .update(users)
-      .set({ lastLoginAt: now, updatedAt: now })
+      .set({ lastLoginAt: now, updatedAt: now, rememberMe, sessionExpiresAt })
       .where(eq(users.id, user.id));
 
-    // Generate JWT
-    const token = this.generateToken(user);
+    // Generate JWT with duration matching the session choice
+    const token = this.generateToken(user, rememberMe);
 
     return {
       user: this.sanitizeUser(user),
       token,
-      expiresIn: this.getTokenExpiresInSeconds(),
+      expiresIn: sessionSeconds,
+      rememberMe,
     };
   }
 
@@ -577,7 +590,7 @@ export class AuthService {
   /**
    * Generate JWT token
    */
-  private generateToken(user: User): string {
+  private generateToken(user: User, rememberMe = false): string {
     const payload: JWTPayload = {
       userId: user.id,
       email: user.email,
@@ -586,8 +599,11 @@ export class AuthService {
       trialEndsAt: user.trialEndsAt ? user.trialEndsAt.toISOString() : null,
     };
 
+    // rememberMe=false → 24h; rememberMe=true → 30d; registration always uses JWT_EXPIRES_IN default
+    const expiresIn = rememberMe ? '30d' : '24h';
+
     return jwt.sign(payload, _JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+      expiresIn: expiresIn as jwt.SignOptions['expiresIn'],
       issuer: 'biomate.com',
       subject: user.id,
     });

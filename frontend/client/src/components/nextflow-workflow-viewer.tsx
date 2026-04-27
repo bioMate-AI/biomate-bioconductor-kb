@@ -637,7 +637,17 @@ function PhaseGroupSection({
             )}
             <span style={{flex:1}}/>
             {allDone && (
-              <button className="linkish" style={{fontSize:12}}>View phase outputs</button>
+              <button
+                className="linkish"
+                style={{fontSize:12}}
+                onClick={() => {
+                  setOpen(true);
+                  setTimeout(() => {
+                    const el = document.querySelector(`[data-testid="phase-group-${group.key}"] .step-outputs`);
+                    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  }, 120);
+                }}
+              >View phase outputs</button>
             )}
           </div>
         </div>

@@ -1686,7 +1686,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: req.body.email,
         password: req.body.password,
         fullName: req.body.fullName || req.body.name,
-        organization: req.body.organization,
+        organization: req.body.organization || req.body.institution,
+        role: req.body.role,
         phone: req.body.phone,
         termsAccepted: req.body.terms_accepted || req.body.termsAccepted || false,
         marketingEmailsOptIn: req.body.marketing_emails_opt_in || req.body.marketingEmailsOptIn || false,
@@ -1746,17 +1747,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loginData: LoginData = {
         email: req.body.email,
         password: req.body.password,
+        rememberMe: req.body.rememberMe === true || req.body.rememberMe === 'true',
       };
 
       const result = await authService.login(loginData);
 
-      // Set HTTP-only cookie
-      res.cookie('biomate_token', result.token, {
+      // Cookie options: no maxAge (session cookie) when rememberMe=false so the
+      // browser drops it on close; explicit 30-day maxAge when rememberMe=true.
+      const cookieOptions: Parameters<typeof res.cookie>[2] = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: result.expiresIn * 1000,
-      });
+        ...(result.rememberMe ? { maxAge: result.expiresIn * 1000 } : {}),
+      };
+      res.cookie('biomate_token', result.token, cookieOptions);
 
       // Check subscription status
       const subscriptionStatus = authService.checkSubscriptionStatus(result.user);

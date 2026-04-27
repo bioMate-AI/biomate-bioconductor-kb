@@ -2423,8 +2423,10 @@ Respond with a single JSON object — no other text:
         """Build prerequisitesValidation payload consumed by prereq-normalizer.ts.
         Excludes params that have a pre-filled default (e.g. SRR accession injected) from
         missingParameters — those are provided by the user and do not block the Run button."""
-        # Only params without a pre-filled default are truly missing
-        truly_missing = [p for p in required_params if not p.get('default')]
+        # A param is truly missing only when it has neither a default NOR a pre-filled value.
+        # The 'value' field is set by AI extraction (e.g. movies_path from user query) and
+        # is distinct from 'default' which comes from the .nf file's params.* declaration.
+        truly_missing = [p for p in required_params if not p.get('default') and not p.get('value')]
         if not truly_missing:
             return None
         return {
