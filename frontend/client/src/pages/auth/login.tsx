@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const { toast } = useToast()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [loginError, setLoginError] = useState<string | null>(null)
 
@@ -25,7 +27,7 @@ export default function LoginPage() {
     setLoginError(null)
 
     try {
-      await login(email, password)
+      await login(email, password, rememberMe)
       toast({
         title: "Success!",
         description: "You have been logged in successfully.",
@@ -113,6 +115,18 @@ export default function LoginPage() {
                 disabled={isLoading}
                 required
               />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(v) => setRememberMe(v as boolean)}
+                disabled={isLoading}
+              />
+              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer text-muted-foreground">
+                Remember me for 30 days
+              </Label>
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>

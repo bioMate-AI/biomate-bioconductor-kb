@@ -1752,15 +1752,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const result = await authService.login(loginData);
 
-      // Cookie options: no maxAge (session cookie) when rememberMe=false so the
-      // browser drops it on close; explicit 30-day maxAge when rememberMe=true.
-      const cookieOptions: Parameters<typeof res.cookie>[2] = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        ...(result.rememberMe ? { maxAge: result.expiresIn * 1000 } : {}),
-      };
-      res.cookie('biomate_token', result.token, cookieOptions);
+      // rememberMe=false → session cookie (browser discards on close, JWT lives 24h)
+      // rememberMe=true  → persistent cookie (maxAge=30d, JWT lives 30d)
+      if (result.rememberMe) {
+        res.cookie('biomate_token', result.token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: result.expiresIn * 1000, // 30 days in ms
+        });
+      } else {
+        res.cookie('biomate_token', result.token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          // No maxAge → session cookie; dropped when browser closes
+        });
+      }
 
       // Check subscription status
       const subscriptionStatus = authService.checkSubscriptionStatus(result.user);

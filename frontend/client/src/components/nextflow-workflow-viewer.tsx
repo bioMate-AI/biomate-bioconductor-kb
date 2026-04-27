@@ -524,6 +524,7 @@ function PhaseGroupSection({
                         data-testid={`button-adjust-step-${step.id}`}
                       >Params</button>
                     )}
+                    {/* Skip step — no backend API, UI-only; hidden until backend skip endpoint added
                     {!isRunning && !isDone && (
                       <button
                         className="btn ghost sm danger"
@@ -531,7 +532,7 @@ function PhaseGroupSection({
                         title="Skip step"
                         data-testid={`button-skip-step-${step.id}`}
                       >Skip</button>
-                    )}
+                    )} */}
                   </div>
                 </div>
 
@@ -627,6 +628,7 @@ function PhaseGroupSection({
                 Run {phaseTitle}
               </button>
             )}
+            {/* Skip phase — no backend API, UI-only; hidden until backend skip endpoint added
             {!allDone && (
               <button
                 className="btn ghost sm danger"
@@ -634,7 +636,7 @@ function PhaseGroupSection({
               >
                 Skip phase
               </button>
-            )}
+            )} */}
             <span style={{flex:1}}/>
             {allDone && (
               <button
@@ -1792,10 +1794,10 @@ export function NextflowWorkflowViewer({
                     onSkip={(id) => setConfirmSkipPhaseId(id)}
                     onStopPhase={onCancel}
                     onEditGate={(paramId) => {
-                      setGlobalParamsOpen(true);
+                      setQcSettingsOpen(true);
                       setTimeout(() => {
-                        document.querySelector(`[data-param-id="${paramId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                      }, 150);
+                        document.querySelector(`[data-qc-key="${paramId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                      }, 200);
                     }}
                     onPreviewFile={(file) => setPreviewFile(file)}
                     onAdjustAndRerun={(phase) => setAdjustStep({
@@ -2007,7 +2009,7 @@ export function NextflowWorkflowViewer({
                           </div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {displayedQcThresholds.map(t => (
-                              <div key={t.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <div key={t.key} data-qc-key={t.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <div className="param-row">
                                   <span className="k">
                                     {t.label}
@@ -2457,6 +2459,7 @@ export function NextflowWorkflowViewer({
           )}
         </div>
         <div className="run-foot-meta">
+          {/* Watcher attach/detach — purpose unclear, hidden until defined
           <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
             <span className="dot" />
             {status === 'running'
@@ -2474,7 +2477,7 @@ export function NextflowWorkflowViewer({
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
               Reconnect watcher
             </button>
-          )}
+          )} */}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
             <span data-testid="usage-meter" style={{ fontSize: 11 }}>
               {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
@@ -2483,38 +2486,10 @@ export function NextflowWorkflowViewer({
         </div>
       </div>
 
-      {/* Skip step confirmation dialog */}
+      {/* Skip step confirmation dialog — disabled until backend skip endpoint added
       {confirmSkipPhaseId && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
-          onClick={() => setConfirmSkipPhaseId(null)}
-        >
-          <div
-            style={{ background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', maxWidth: 360, margin: '0 16px' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Skip this step?</div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.5 }}>
-              Skipping this phase removes it from the execution plan. Its output files will not be generated and downstream steps that depend on them may fail.
-            </p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn ghost sm" onClick={() => setConfirmSkipPhaseId(null)}>
-                Keep step
-              </button>
-              <button
-                className="btn sm danger"
-                data-testid="button-confirm-skip-step"
-                onClick={() => {
-                  handleSkipPhase(confirmSkipPhaseId);
-                  setConfirmSkipPhaseId(null);
-                }}
-              >
-                Skip anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <div ...>...</div>
+      )} */}
 
       <GalaxyDatasetBrowser
         open={!!browsingForParam}
