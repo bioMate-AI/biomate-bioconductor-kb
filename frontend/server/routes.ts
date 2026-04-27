@@ -6634,6 +6634,7 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
 
       const maxLines = parseInt(req.query.lines as string) || 100;
       const localPath = String((output as any)?.metadata?.localPath || "");
+      const s3Uri = String((output as any)?.metadata?.s3Uri || "");
       let rawText = "";
       if (output.galaxyDatasetId) {
         const fileStream = await galaxyAPIProxy.downloadDataset(output.galaxyDatasetId);
@@ -6645,6 +6646,33 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
         }
       } else if (localPath) {
         rawText = await fs.readFile(localPath, "utf8");
+      } else if (s3Uri) {
+        // Fetch via Galaxy presign → download the actual bytes
+        try {
+          const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+          const presignResp = await fetch(
+            `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`,
+            { signal: AbortSignal.timeout(10_000) }
+          );
+          if (presignResp.ok) {
+            const contentType = presignResp.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              // The response itself is JSON with a presigned_url field
+              const body = await presignResp.json() as any;
+              if (body.presigned_url) {
+                const fileResp = await fetch(body.presigned_url, { signal: AbortSignal.timeout(15_000) });
+                if (fileResp.ok) rawText = await fileResp.text();
+              }
+            } else {
+              rawText = await presignResp.text();
+            }
+          }
+        } catch (s3Err) {
+          console.warn("[Preview] S3 fetch failed:", s3Err);
+        }
+        if (!rawText) {
+          return res.status(503).json({ error: "S3 preview temporarily unavailable" });
+        }
       } else {
         return res.status(404).json({ error: "Output has no preview source" });
       }
