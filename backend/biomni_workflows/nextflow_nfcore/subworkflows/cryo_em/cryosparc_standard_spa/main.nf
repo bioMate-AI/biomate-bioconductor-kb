@@ -274,19 +274,21 @@ def CS_HELPER = '''
     _gpu_count_cache = {}
 
     def _get_lane_gpu_count(cs, lane="default"):
-        """Query CryoSPARC worker targets for total GPU count on the given lane."""
+        """Return max GPUs on any single worker in the lane.
+        compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
+        that runs the job — it must not exceed the per-worker GPU count."""
         if lane in _gpu_count_cache:
             return _gpu_count_cache[lane]
         count = 1  # safe default
         try:
             targets = cs.get_targets() if hasattr(cs, "get_targets") else []
-            total = sum(int(t.get("gpu_count", 0)) for t in (targets or []))
-            if total > 0:
-                count = total
+            per_worker = [int(t.get("gpu_count", 0)) for t in (targets or [])]
+            if per_worker:
+                count = max(per_worker) or 1
         except Exception as _e:
             print(f"[CS] Warning: get_targets() failed ({_e}) — defaulting to 1 GPU", flush=True)
         _gpu_count_cache[lane] = count
-        print(f"[CS] Lane '{lane}' GPU count = {count}", flush=True)
+        print(f"[CS] Lane '{lane}' max GPU/worker = {count}", flush=True)
         return count
 
     def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
