@@ -1128,13 +1128,18 @@ export class GalaxyAssistant {
         ...messages.map(m => ({ role: m.role, content: m.content })),
       ],
       stream: true,
-      options: { num_predict: maxTokens, temperature: 0.7, num_ctx: 32768 },
+      options: { num_predict: maxTokens, temperature: 0.7, num_ctx: 32768, keep_alive: '60m' },
     });
+    const ollamaTimeout = 480_000; // 480s — covers gemma4:31b worst case
+    const abortCtrl = new AbortController();
+    const ollamaTimer = setTimeout(() => abortCtrl.abort(), ollamaTimeout);
     const res = await fetch(`${ollamaBase}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
+      signal: abortCtrl.signal,
     });
+    clearTimeout(ollamaTimer);
     if (!res.ok) throw new Error(`Ollama HTTP ${res.status}: ${await res.text()}`);
     let rawResponse = '';
     const reader = res.body?.getReader();

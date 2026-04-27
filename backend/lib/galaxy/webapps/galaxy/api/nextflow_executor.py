@@ -747,7 +747,9 @@ def _is_path_param(key: str, value: Any) -> bool:
         # CryoSPARC remote paths — exist on EC2 instance, not local disk
         "cryosparc_project_dir", "cryosparc_host", "cryosparc_email",
         "cryosparc_password", "cryosparc_license", "cryosparc_lane",
-        "movies_path",  # staged to remote CryoSPARC EC2 instance via SSH; not on head node
+        "movies_path",          # staged to remote CryoSPARC EC2 instance; not on head node
+        "particle_star_file",   # lives on CryoSPARC EC2 instance
+        "particle_blob_path",   # lives on CryoSPARC EC2 instance
     })
     key_l = key.lower()
     if key_l in _NON_PATH_KEYS:
@@ -4552,15 +4554,25 @@ def execute_cryosparc(
     }
     spa_params = {k: v for k, v in spa_params.items() if v is not None}
 
-    # ── Step 4: launch via Nextflow for parallel batch speedup (5.9×) ──────────
-    # Each micrograph batch becomes a separate AWS Batch task; up to max_parallel_jobs
-    # run concurrently.  This is the "Nextflow on top of CryoSPARC" design documented
-    # in docs/sessions/20260212_1530_PARALLELISM_ANALYSIS.md.
-    max_parallel = int(params.get("max_parallel_jobs", 20))
-    batch_size   = int(params.get("micrograph_batch_size", 200))
+    # ── Step 4: launch via Nextflow ──────────────────────────────────────────────
+    # Parallelism: each micrograph batch is an independent AWS Batch task.
+    # With num_cs_workers > 1 and a multi-GPU instance that has N CryoSPARC workers
+    # registered (cryosparcm addworker), batches are routed to separate lanes and run
+    # simultaneously.  Default (num_cs_workers=1) is backwards-compatible: single lane.
+    max_parallel   = int(params.get("max_parallel_jobs", 20))
+    batch_size     = int(params.get("micrograph_batch_size", 200))
+    num_cs_workers = int(params.get("num_cs_workers", 1))
+
+    # ── import_particles mode: start from pre-extracted particle stacks ─────────
+    # When mode="import_particles", the pipeline skips motion correction / CTF /
+    # picking.  star_file and particle_dir must be paths accessible on the
+    # CryoSPARC EC2 instance (already staged).  They are passed directly to
+    # Nextflow — no local staging or path validation applies.
+    input_mode   = params.get("mode", "import_movies")
+    star_file    = params.get("star_file", "")
+    particle_dir = params.get("particle_dir", params.get("particle_dir_s3", ""))
 
     nf_params: Dict[str, Any] = {
-        "movies_path":                 movies_path_raw,
         "pixel_size":                  spa_params["pixel_size"],
         "voltage":                     spa_params["voltage"],
         "spherical_aberration":        spa_params["cs"],
@@ -4569,17 +4581,30 @@ def execute_cryosparc(
         "symmetry":                    spa_params["symmetry"],
         "num_ab_initio_classes":       spa_params["num_ab_initio_classes"],
         "use_cryosparc":               True,
-        "num_gpu":                     _selected_num_gpu,  # auto-sized from dataset movie count
+        "num_gpu":                     _selected_num_gpu,
         # CryoSPARC connection — live instance IP provisioned above
         "cryosparc_host":     cs_exec.CRYOSPARC_HOST,
         "cryosparc_port":     int(os.environ.get("CRYOSPARC_DIRECT_PORT", "30000")),
         "cryosparc_email":    os.environ.get("CRYOSPARC_EMAIL", "admin@biomate.ai"),
         "cryosparc_license":  license_key,
-        # Parallelism
+        # Parallelism — multi-lane routing
         "max_parallel_jobs":      max_parallel,
         "micrograph_batch_size":  batch_size,
+        "num_cs_workers":         num_cs_workers,
         "mock_mode":              False,
     }
+
+    if input_mode == "import_particles" and star_file:
+        # Start from pre-extracted particles: skip motion/CTF/picking phases
+        nf_params["movies_path"]       = ""          # not used in particle mode
+        nf_params["import_mode"]       = "particles"
+        nf_params["particle_star_file"] = star_file
+        nf_params["particle_blob_path"] = particle_dir or ""
+        log.info("[CryoSPARC] import_particles mode: star_file=%s, blob_path=%s",
+                 star_file, nf_params["particle_blob_path"])
+    else:
+        nf_params["movies_path"] = movies_path_raw
+
     if spa_params.get("molecular_weight_kda"):
         nf_params["molecular_weight_kda"] = spa_params["molecular_weight_kda"]
     nf_params = {k: v for k, v in nf_params.items() if v is not None and v != ""}
@@ -4590,14 +4615,13 @@ def execute_cryosparc(
         compute_config={"executor": "awsbatch"},
         workflow_domain="cryo_em",
         user_id=user_id,
-        # qc_profile omitted — auto-inferred from NF path by NextflowQCGateHandler
     )
     nf_result = execute_nextflow(nf_request)
     run_id = nf_result["run_id"]
-    log.info("[CryoSPARC] Nextflow SPA run %s started (instance=%s [%s, %d GPU], movies=%s, "
-             "parallel_jobs=%s, batch_size=%s)",
+    log.info("[CryoSPARC] Nextflow SPA run %s started (instance=%s [%s, %d GPU, %d workers], "
+             "mode=%s, parallel_jobs=%s, batch_size=%s)",
              run_id, cs_exec.CRYOSPARC_HOST, _selected_instance_type, _selected_num_gpu,
-             movies_path_raw, max_parallel, batch_size)
+             num_cs_workers, input_mode, max_parallel, batch_size)
 
     return {
         "success":          True,

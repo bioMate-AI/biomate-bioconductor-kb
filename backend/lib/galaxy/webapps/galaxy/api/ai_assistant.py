@@ -497,6 +497,7 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
     2. UPPERCASE process calls in the workflow body
     """
     steps: Dict[str, Any] = {}
+    idx = 0
     if not nf_filename:
         return steps
     try:

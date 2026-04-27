@@ -94,6 +94,11 @@ params.max_parallel_jobs = 20                // Nextflow queueSize cap
 // "worker_0" .. "worker_{N-1}" are pre-registered (cryosparcm addworker).
 // When 1 (default), all jobs use params.cryosparc_lane ("default") — identical to prior behaviour.
 params.num_cs_workers = 1                    // CryoSPARC workers to spread parallel batches across
+// import_particles mode: skip motion/CTF/picking; start from pre-extracted particle stacks.
+// Set import_mode="particles", particle_star_file=<path>, particle_blob_path=<dir>.
+params.import_mode          = "movies"       // "movies" (default) or "particles"
+params.particle_star_file   = ""             // STAR file path (local on CryoSPARC instance)
+params.particle_blob_path   = ""             // base dir for resolving STAR file .mrcs paths
 
 // ============================================================================
 // Helper Functions
@@ -438,31 +443,62 @@ process INIT_CRYOSPARC_PROJECT {
         blob_paths = _movies_path + "/*.mrcs"  # bare directory → append default glob
     print(f"[CS] blob_paths={blob_paths}", flush=True)
 
-    # Import movies
-    import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
-        connections={},
-        params={
-            "blob_paths":         blob_paths,
-            "psize_A":            ${params.pixel_size},
-            "accel_kv":           ${params.voltage},
-            "cs_mm":              ${params.spherical_aberration},
-            "total_dose_e_per_A2": ${params.total_dose},
-        },
-        timeout=3600,
-    )
-    import_job_uid = import_job.uid
+    _import_mode = "${params.import_mode}"
 
-    # Get movie count from completed import job outputs
-    num_movies = 0
-    for out_name in ("imported_movies", "movies"):
-        try:
-            imported = import_job.load_output(out_name)
-            if imported is not None:
-                num_movies = len(imported)
-                break
-        except Exception:
-            pass
-    print(f"[CS] Imported {num_movies} movies", flush=True)
+    if _import_mode == "particles":
+        # ── import_particles: start from pre-extracted polished stacks ─────────
+        _star_file  = "${params.particle_star_file}"
+        _blob_path  = "${params.particle_blob_path}"
+        print(f"[CS] import_particles mode: star={_star_file}, blob_path={_blob_path}", flush=True)
+        import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_particles",
+            connections={},
+            params={
+                "particle_meta_path": _star_file,
+                "particle_blob_path": _blob_path,
+                "psize_A":            ${params.pixel_size},
+            },
+            timeout=3600,
+        )
+        import_job_uid = import_job.uid
+        num_movies = 0  # no movies in particle mode
+        # Get particle count
+        num_particles = 0
+        for out_name in ("particles", "imported_particles"):
+            try:
+                out = import_job.load_output(out_name)
+                if out is not None:
+                    num_particles = len(out)
+                    break
+            except Exception:
+                pass
+        print(f"[CS] Imported {num_particles} particles (particle mode)", flush=True)
+    else:
+        # ── import_movies: standard raw movie pipeline ──────────────────────────
+        import_job = submit_and_wait(cs, proj_uid, ws_uid, "import_movies",
+            connections={},
+            params={
+                "blob_paths":          blob_paths,
+                "psize_A":             ${params.pixel_size},
+                "accel_kv":            ${params.voltage},
+                "cs_mm":               ${params.spherical_aberration},
+                "total_dose_e_per_A2": ${params.total_dose},
+            },
+            timeout=3600,
+        )
+        import_job_uid = import_job.uid
+        num_particles  = 0
+
+        # Get movie count from completed import job outputs
+        num_movies = 0
+        for out_name in ("imported_movies", "movies"):
+            try:
+                imported = import_job.load_output(out_name)
+                if imported is not None:
+                    num_movies = len(imported)
+                    break
+            except Exception:
+                pass
+        print(f"[CS] Imported {num_movies} movies", flush=True)
 
     # ── Multi-lane worker registration (only when num_cs_workers > 1) ──────────
     # Each worker gets a dedicated lane name "worker_0" .. "worker_{N-1}".
@@ -504,6 +540,8 @@ process INIT_CRYOSPARC_PROJECT {
             "workspace_uid":  ws_uid,
             "import_job_uid": import_job_uid,
             "num_movies":     num_movies,
+            "num_particles":  num_particles,
+            "import_mode":    _import_mode,
             "num_cs_workers": _num_workers,
         }, f, indent=2)
     """
@@ -614,7 +652,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
                    "num_items": num_mics, "batch_id": batch_id}
         report = {"step": "02_patch_motion_correction", "batch_id": batch_id,
                   "timestamp": datetime.now().isoformat(),
-                  "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True}
+                  "cs_job_uid": job.uid, "num_micrographs": num_mics, "real_mode": True,
+                  "lane": _lane}
         # Extract QC metrics from CryoSPARC job output for QC gate + display
         try:
             import numpy as np
@@ -2661,6 +2700,35 @@ workflow CRYOSPARC_STANDARD_SPA {
     INIT_CRYOSPARC_PROJECT(movies_path)
     init_json_ch = INIT_CRYOSPARC_PROJECT.out.init_json
 
+    // ── Routing: particles mode skips Phases A+B entirely ────────────────────
+    // When import_mode="particles", INIT already ran import_particles so J1 has
+    // all particles ready.  merged_r1 is synthesised directly from cs_init.json.
+
+    if (params.import_mode == "particles") {
+
+        // Build a single merged_cs file pointing to the import_particles job
+        merged_r1 = Channel.fromPath(INIT_CRYOSPARC_PROJECT.out.init_json)
+            | map { init_json ->
+                def init = new groovy.json.JsonSlurper().parse(init_json)
+                // Write a particles-merged stub that downstream processes can read
+                def stub = [
+                    cs_mode: "real",
+                    project_uid: init.project_uid,
+                    workspace_uid: init.workspace_uid,
+                    job_uid: init.import_job_uid,
+                    output_slot: "particles",
+                    num_items: init.num_particles ?: 0,
+                    merged: true
+                ]
+                def stubFile = file("particles_imported.cs")
+                stubFile.text = groovy.json.JsonOutput.toJson(stub)
+                return stubFile
+            }
+            | map { f -> [merged_cs: f] }
+            | first()
+
+    } else {
+
     // ── Phase A: Per-batch preprocessing (motion + CTF) ─────────────────────
 
     // Split movie directory into batches; emit one CSV row per batch (batch_id, start, end)
@@ -2702,6 +2770,8 @@ workflow CRYOSPARC_STANDARD_SPA {
     extract_r1_ch    = EXTRACT_PARTICLES_R1_BATCH.out.extracted_cs
     all_extracted_r1 = extract_r1_ch.map { batch_id, f -> f }.collect()
     merged_r1        = MERGE_PARTICLES_R1(all_extracted_r1)
+
+    } // end movies-only branch
 
     // ── Phase C: 2D classification R1 — parallel particle sub-batches ────────
 
