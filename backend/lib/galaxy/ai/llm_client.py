@@ -579,6 +579,7 @@ CLAUDE_MODELS = [
 
 # Google Gemini models
 GEMINI_MODELS = [
+    "gemini-3-flash-preview",        # Gemini 3 Flash Preview - Primary cloud model (BioMate default)
     "gemini-2.0-flash-exp",          # Gemini 2.0 Flash - Latest experimental
     "gemini-1.5-pro",                # Gemini 1.5 Pro - Production ready
     "gemini-1.5-flash",              # Gemini 1.5 Flash - Fast responses
@@ -600,9 +601,12 @@ DEEPSEEK_MODELS = [
 
 # Ollama local models
 OLLAMA_MODELS = [
+    "gemma4:31b",                    # Gemma 4 31B - Primary local model (BioMate default)
     "qwen3:32b",                     # Qwen3 32B - Strong reasoning, /think mode
+    "qwen3:30b-a3b",                 # Qwen3 30B MoE - Fast (61 tok/s), good MCQ
     "qwen3:14b",                     # Qwen3 14B - Good balance
     "qwen3:8b",                      # Qwen3 8B - Fast
+    "gemma3:27b",                    # Gemma 3 27B - Efficient
     "llama3.3:70b",                  # Llama 3.3 70B - Very capable
     "llama3.1:8b",                   # Llama 3.1 8B - Fast routing
     "mistral:7b",                    # Mistral 7B - Efficient
@@ -622,11 +626,11 @@ def get_recommended_model(provider: str) -> str:
     """Get recommended model for provider."""
     recommendations = {
         'anthropic': 'claude-sonnet-4-5',
-        'gemini': 'gemini-2.0-flash-exp',
-        'google': 'gemini-2.0-flash-exp',
+        'gemini': 'gemini-3-flash-preview',
+        'google': 'gemini-3-flash-preview',
         'openai': 'gpt-4o',
         'deepseek': 'deepseek-chat',
-        'ollama': 'qwen3:32b',
+        'ollama': 'gemma4:31b',
         'zhipu': 'glm-4.7',
     }
 
