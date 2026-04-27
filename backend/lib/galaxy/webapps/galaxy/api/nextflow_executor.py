@@ -1506,6 +1506,97 @@ def _list_s3_output_files(s3_uri: str) -> list:
         return []
 
 
+# CryoSPARC-specific: map S3 output directory names → 0-indexed step IDs
+# (matching _CRYOSPARC_STEP_PHASES in ai_assistant.py)
+_CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
+    "00_cs_init": 0, "00_batch_split": 0,
+    "02_motion_correction": 1,
+    "03b_merge_micrographs": 2,
+    "03_ctf_estimation": 3,
+    "04_denoiser": 5,
+    "05_blob_picker": 6,
+    "merge_particles": 6,
+    "06_junk_detector": 7,
+    "07_inspect_picks_round1": 8,
+    "08_extract_round1": 10,
+    "09_particle_batch_split": 10,
+    "merge_particles_r1": 10,
+    "09_classify_2d_round1": 11,
+    "merge_classes": 11,
+    "10_select_2d_round1": 12,
+    "11_template_picker": 8,
+    "12_inspect_picks_round2": 9,
+    "13_extract_round2": 13,
+    "14_classify_2d_round2": 14,
+    "15_select_2d_round2": 14,
+    "16_ab_initio": 15,
+    "17_homo_refinement": 16,
+    "18_nu_refinement": 18,
+    "19_local_ctf": 19,
+    "20_local_resolution": 20,
+    "21_sharpen": 21,
+    "22_fsc_validation": 22,
+}
+
+# File extensions to surface as step outputs; .cs are CryoSPARC binary datasets (skip)
+_CRYOSPARC_SKIP_EXT = {".cs"}
+
+
+def _build_processes_from_s3_files(s3_files: List[Dict], outdir: str,
+                                    workflow_domain: str = "") -> List[Dict]:
+    """
+    Group S3 output files by step directory and return a `processes` array
+    compatible with the viewer's nfProcessByName lookup.
+
+    For cryo_em domain: uses _CRYOSPARC_S3_DIR_TO_STEP to map directory names to
+    step IDs (string integers) that match the workflow definition's step indices.
+    For other domains: uses the numeric prefix of the directory name as the step ID.
+
+    The viewer looks up processes via proc.id / proc.name and reads proc.task_files
+    (array of string paths) to populate step output chips.
+    """
+    from collections import defaultdict
+    step_files: Dict[str, List[str]] = defaultdict(list)
+
+    prefix = outdir.rstrip("/") + "/"
+    for f in s3_files:
+        uri = f.get("s3_uri", "")
+        if not uri:
+            continue
+        # Get path relative to outdir
+        if uri.startswith(prefix):
+            rel = uri[len(prefix):]
+        else:
+            # Fallback: strip up to the last common prefix segment
+            rel = uri.split("/")[-3:]  # step_dir/subdir/file
+            rel = "/".join(rel) if len(rel) >= 2 else uri.split("/")[-1]
+        step_dir = rel.split("/")[0]
+        filename = rel.split("/")[-1]
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext in _CRYOSPARC_SKIP_EXT:
+            continue
+        step_files[step_dir].append(uri)
+
+    processes = []
+    for step_dir, uris in step_files.items():
+        if workflow_domain == "cryo_em":
+            step_id = str(_CRYOSPARC_S3_DIR_TO_STEP.get(step_dir, -1))
+        else:
+            # Generic: parse numeric prefix (e.g. "02_motion" → "1" (0-indexed))
+            try:
+                step_id = str(int(step_dir.split("_")[0]) - 1)
+            except (ValueError, IndexError):
+                step_id = step_dir
+        processes.append({
+            "id": step_id,
+            "name": step_dir.replace("_", " "),
+            "status": "completed",
+            "task_files": uris,
+        })
+
+    return processes
+
+
 def _tag_s3_outputs(run_meta: Dict[str, Any]) -> None:
     """
     Tag all S3 output objects for a completed run with user_id and run_id.
@@ -2986,19 +3077,30 @@ def get_nextflow_status(
     trace_path = Path(info.get("trace_path", ""))
     progress = _parse_trace_progress(trace_path)
 
-    # Annotate each process with its matching S3 output files.
-    # Convention: outdir/<PROCESS_NAME>/... — match by last segment of process name.
     s3_files = info.get("s3_output_files", [])
-    processes = progress.get("processes", [])
-    for proc in processes:
-        proc_name = proc["name"].split(":")[-1]  # "NF_RNASEQ:STAR_ALIGN" → "STAR_ALIGN"
-        proc["outputs"] = [
-            f for f in s3_files
-            if f"/{proc_name}/" in f.get("s3_uri", "") or
-               f"/{proc_name.lower()}/" in f.get("s3_uri", "")
-        ]
-
     outdir = info.get("outdir", "")
+    workflow_domain = info.get("workflow_domain", "")
+
+    # Build step-level processes from S3 output files.
+    # If the trace produced real process entries, annotate them with matching S3 files.
+    # If the trace is empty/sparse (e.g. CryoSPARC-via-Nextflow where Batch jobs exit
+    # after submitting CryoSPARC jobs), build entirely from S3 directory structure.
+    trace_processes = progress.get("processes", [])
+    if trace_processes:
+        for proc in trace_processes:
+            proc_name = proc["name"].split(":")[-1]
+            proc["outputs"] = [
+                f for f in s3_files
+                if f"/{proc_name}/" in f.get("s3_uri", "") or
+                   f"/{proc_name.lower()}/" in f.get("s3_uri", "")
+            ]
+        processes = trace_processes
+    elif s3_files and outdir:
+        processes = _build_processes_from_s3_files(s3_files, outdir, workflow_domain)
+    else:
+        processes = []
+
+    progress = {**progress, "processes": processes}
     work_dir = info.get("work_dir", "")
 
     started_at: float | None = info.get("started_at")
