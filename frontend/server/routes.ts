@@ -6225,6 +6225,24 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
               pushArtifact(nextflowStatus.results);
               pushArtifact(nextflowStatus.output_files);
               pushArtifact(nextflowStatus.outdir);
+              // s3_output_files: [{s3_uri, filename, size}] — primary source for AWS Batch runs
+              if (Array.isArray(nextflowStatus.s3_output_files)) {
+                for (const f of nextflowStatus.s3_output_files) {
+                  if (f?.s3_uri && f.filename) {
+                    artifacts.push(f.s3_uri);
+                  }
+                }
+              }
+              // task_files from each process — per-step output file listing
+              if (Array.isArray(nextflowStatus.processes)) {
+                for (const proc of nextflowStatus.processes) {
+                  if (Array.isArray(proc?.task_files)) {
+                    for (const tf of proc.task_files) {
+                      if (typeof tf === "string" && tf) artifacts.push(tf);
+                    }
+                  }
+                }
+              }
               if (Array.isArray(nextflowStatus.log_tail)) {
                 for (const line of nextflowStatus.log_tail) {
                   if (typeof line !== "string") continue;
