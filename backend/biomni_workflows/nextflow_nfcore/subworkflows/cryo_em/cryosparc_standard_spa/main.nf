@@ -2803,6 +2803,16 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     SELECT_2D_R1(merged_classes_r1.merged_cs, merged_r1.merged_cs)
 
+    // ── Routing: particles mode skips template picking + R2 classification ────
+    // Template picker needs micrographs; in particles mode we go straight to
+    // ab-initio using the R1-selected particles.
+
+    if (params.import_mode == "particles") {
+
+        all_selected_particles = SELECT_2D_R1.out.selected_cs
+
+    } else {
+
     // ── Template picker (single — needs global 2D class templates) ───────────
 
     TEMPLATE_PICKER(merged_classes_r1.merged_cs, merged_mics_ch.merged_cs, init_json_ch)
@@ -2822,12 +2832,14 @@ workflow CRYOSPARC_STANDARD_SPA {
 
     SELECT_2D_R2(merged_classes_r2.merged_cs, EXTRACT_PARTICLES_R2.out.extracted_cs)
 
-    all_selected_r2_val = SELECT_2D_R2.out.selected_cs
+    all_selected_particles = SELECT_2D_R2.out.selected_cs
+
+    } // end movies-only R2 branch
 
     // ── Phase D: Ab-initio — K parallel model reconstructions ────────────────
 
     ab_initio_inputs = Channel.of(1..params.num_ab_initio_classes)
-        .combine(all_selected_r2_val)
+        .combine(all_selected_particles)
         .map { k, particles -> tuple(k, particles) }
 
     AB_INITIO_BATCH(ab_initio_inputs, init_json_ch)
@@ -2842,7 +2854,7 @@ workflow CRYOSPARC_STANDARD_SPA {
     HOMO_REFINEMENT_BATCH(
         AB_INITIO_BATCH.out.volume_cs
             .map { k, vol_file -> tuple("vol_${k}", vol_file) },
-        SELECT_2D_R2.out.selected_cs,
+        all_selected_particles,
         init_json_ch
     )
 
