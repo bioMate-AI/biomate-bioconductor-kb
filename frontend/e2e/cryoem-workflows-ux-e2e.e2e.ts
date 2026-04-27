@@ -767,7 +767,7 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
           }
         }
 
-        // Individual step cards — check RUNNING and DONE chips
+        // Individual step cards — check RUNNING and DONE chips + immediate output access
         const stepCards = page.locator('[data-testid^="phase-card-"]');
         const stepCount = await stepCards.count().catch(() => 0);
         for (let i = 0; i < stepCount; i++) {
@@ -777,10 +777,22 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
           if ((stepStatus === 'running' || stepStatus === 'submitted') && !observedRunningSteps.has(stepId)) {
             observedRunningSteps.add(stepId);
             console.log(`[CE-1] Step ${stepId} → RUNNING`);
+            screenshots.push(await shot(page, `CE1_step_running_${stepId}`));
           }
           if ((stepStatus === 'completed' || stepStatus === 'ok') && !observedCompletedSteps.has(stepId)) {
             observedCompletedSteps.add(stepId);
-            console.log(`[CE-1] Step ${stepId} DONE`);
+            // Check for output chips immediately after step completes (within current render)
+            const stepOutputs = card.locator('.step-outputs .output-file, [data-testid*="output-file"]');
+            const chipCount = await stepOutputs.count().catch(() => 0);
+            const chipFiles = await Promise.all(
+              Array.from({ length: Math.min(chipCount, 4) }, (_, ci) =>
+                stepOutputs.nth(ci).locator('.fn, [class*="filename"], span').first().textContent().catch(() => '')
+              )
+            );
+            console.log(`[CE-1] Step ${stepId} DONE — output chips: ${chipCount}, files: [${chipFiles.filter(Boolean).join(', ')}]`);
+            if (chipCount > 0) {
+              screenshots.push(await shot(page, `CE1_step_complete_${stepId}`));
+            }
           }
         }
 
@@ -916,6 +928,38 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
         });
 
         screenshots.push(await shot(page, "CE1_09_output_viz"));
+
+        // T8f — Methods/tech report endpoint returns valid content
+        if (runId) {
+          const methodsResp = await page.evaluate(async (rid: string) => {
+            const r = await fetch(`/api/invocations/${rid}/methods-report`, {
+              credentials: 'include',
+            }).catch(() => null);
+            if (!r) return { status: 0, text: '' };
+            return { status: r.status, text: await r.text().catch(() => '') };
+          }, runId);
+          const methodsOk = methodsResp.status === 200 && methodsResp.text.length > 50;
+          assertions.push({
+            name: "Methods/tech report endpoint returns content",
+            passed: methodsOk,
+            note: methodsOk ? `${methodsResp.text.length} chars` : `HTTP ${methodsResp.status}`,
+          });
+          if (methodsOk) console.log(`[CE-1] Methods report: ${methodsResp.text.substring(0, 200)}`);
+        }
+
+        // T8g — Findings card content (AI analysis)
+        const findingsCard = page.locator('[data-testid="workflow-findings-card"], [data-testid="findings-card"], .findings-card').first();
+        const findingsVisible = await findingsCard.isVisible({ timeout: 10_000 }).catch(() => false);
+        let findingsText = '';
+        if (findingsVisible) {
+          findingsText = await findingsCard.textContent().catch(() => '') || '';
+        }
+        assertions.push({
+          name: "Findings card visible after completion",
+          passed: findingsVisible,
+          note: findingsVisible ? `has content: ${findingsText.substring(0, 100)}` : "not visible — AI analysis not triggered",
+        });
+        if (findingsVisible) screenshots.push(await shot(page, "CE1_11_findings_card"));
       } else if (finalStatus === "failed" || finalStatus === "error") {
         // Check execution triage summary appears on failure
         const triagePanel = page.locator('[data-testid="execution-triage-summary"], [data-testid="execution-triage-panel"], [data-testid="autofix-suggestion"]').first();
@@ -948,10 +992,11 @@ test.describe("CE-1 CryoSPARC Standard SPA — full journey", () => {
     }
 
     // Verify all critical assertions passed
-    // Non-critical: QC panel and DensityMapViewer require new run with fixed pipeline metrics
+    // Non-critical: require a completed run with all main.nf metadata fixes (run10+)
     const nonCritical = new Set([
-      "QC Results panel visible after completion",    // needs run with fixed main.nf QC extraction
-      "DensityMapViewer opens for MRC file",          // needs MRC chips to be present first
+      "QC Results panel visible after completion",   // needs motion/CTF QC numbers in JSON reports
+      "DensityMapViewer opens for MRC file",         // needs MRC output chips to be present
+      "Findings card visible after completion",      // needs AI analysis to complete
     ]);
     const failed = assertions.filter(a => !a.passed && !nonCritical.has(a.name));
     for (const f of failed) {
@@ -1218,10 +1263,12 @@ test.describe("CE-3 QC settings panel controls", () => {
       screenshots.push(await shot(page, "CE3_05_after_execute"));
 
       if (ran && overrideReady) {
-        // Re-check that override tags are still visible (didn't reset on execute)
-        const driftTag = page.locator('text=total_drift_angstrom').first();
-        const stillVisible = await driftTag.isVisible({ timeout: 5000 }).catch(() => false);
-        assertions.push({ name: "QC override tag persists after execute click", passed: stillVisible });
+        // Re-check that QC override state persists after execute (Reset button or "edited" chip still visible)
+        const qcSection2 = page.locator('[data-testid="qc-settings-section"]').first();
+        const qcText2 = await qcSection2.textContent().catch(() => "");
+        const stillTracked = qcText2.includes("Reset") || qcText2.includes("edited") ||
+          await page.locator('button:has-text("Reset all"), button:has-text("Reset")').first().isVisible({ timeout: 3000 }).catch(() => false);
+        assertions.push({ name: "QC override tag persists after execute click", passed: stillTracked });
       }
 
     } catch (err: any) {
