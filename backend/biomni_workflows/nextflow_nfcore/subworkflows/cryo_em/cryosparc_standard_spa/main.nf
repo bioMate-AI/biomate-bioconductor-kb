@@ -90,6 +90,10 @@ params.micrograph_batch_size = 200           // micrographs per parallel batch
 params.particle_batch_size = 10000           // particles per parallel 2D class batch
 params.num_gpu_workers = 1                   // controls ThreadPoolExecutor in Python side
 params.max_parallel_jobs = 20                // Nextflow queueSize cap
+// Multi-lane parallelism: set > 1 on a multi-GPU instance where CryoSPARC workers
+// "worker_0" .. "worker_{N-1}" are pre-registered (cryosparcm addworker).
+// When 1 (default), all jobs use params.cryosparc_lane ("default") — identical to prior behaviour.
+params.num_cs_workers = 1                    // CryoSPARC workers to spread parallel batches across
 
 // ============================================================================
 // Helper Functions
