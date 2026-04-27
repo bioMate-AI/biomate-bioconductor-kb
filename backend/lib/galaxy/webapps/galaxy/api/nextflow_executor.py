@@ -4564,13 +4564,56 @@ def execute_cryosparc(
     num_cs_workers = int(params.get("num_cs_workers", 1))
 
     # ── import_particles mode: start from pre-extracted particle stacks ─────────
-    # When mode="import_particles", the pipeline skips motion correction / CTF /
-    # picking.  star_file and particle_dir must be paths accessible on the
-    # CryoSPARC EC2 instance (already staged).  They are passed directly to
-    # Nextflow — no local staging or path validation applies.
-    input_mode   = params.get("mode", "import_movies")
-    star_file    = params.get("star_file", "")
-    particle_dir = params.get("particle_dir", params.get("particle_dir_s3", ""))
+    # star_file / particle_dir_s3 may be S3 URIs; we sync them to the instance
+    # local filesystem so CryoSPARC can read them.  The STAR file's embedded
+    # paths are rewritten to match the local staging directory.
+    input_mode      = params.get("mode", "import_movies")
+    star_file       = params.get("star_file", "")
+    particle_dir_s3 = params.get("particle_dir_s3", "")
+    particle_dir    = params.get("particle_dir", "")
+
+    if input_mode == "import_particles":
+        _ssh_key  = os.environ.get("CRYOSPARC_SSH_KEY", "")
+        _ssh_user = os.environ.get("CRYOSPARC_SSH_USER", "ubuntu")
+        _inst_ip  = cs_exec.CRYOSPARC_HOST
+
+        # Stage particle stacks from S3 if provided
+        if particle_dir_s3 and particle_dir_s3.startswith("s3://"):
+            log.info("[CryoSPARC] Syncing particle stacks from S3: %s", particle_dir_s3)
+            # _stage_s3_movies_on_cryosparc syncs a whole S3 prefix to local dir
+            particle_dir = _stage_s3_movies_on_cryosparc(
+                s3_url=particle_dir_s3.rstrip("/") + "/",
+                instance_ip=_inst_ip,
+                ssh_key=_ssh_key,
+                ssh_user=_ssh_user,
+            ).rstrip("/*.mrcs")  # strip glob appended by staging helper
+
+        # Stage and rewrite STAR file paths if it's an S3 URI
+        if star_file.startswith("s3://"):
+            import subprocess as _sub
+            _star_local = f"/home/{_ssh_user}/particles/{star_file.split('/')[-1]}"
+            _cp_cmd = f"aws s3 cp {star_file} {_star_local}"
+            _sub.run(["ssh", "-i", _ssh_key, "-o", "StrictHostKeyChecking=no",
+                      f"{_ssh_user}@{_inst_ip}", _cp_cmd],
+                     capture_output=True, timeout=60)
+            star_file = _star_local
+            log.info("[CryoSPARC] STAR file staged to: %s", star_file)
+
+        # If particle_dir is set, rewrite absolute paths in STAR file to match local dir
+        if particle_dir and star_file:
+            _rewrite_cmd = (
+                f"python3 -c \""
+                f"import re; "
+                f"txt=open('{star_file}').read(); "
+                f"txt2=re.sub(r'/home/ubuntu/particles/', '{particle_dir.rstrip(\"/\")  }/', txt); "
+                f"open('{star_file}','w').write(txt2); "
+                f"print('Rewrote paths in', '{star_file}')\""
+            )
+            import subprocess as _sub2
+            _sub2.run(["ssh", "-i", _ssh_key, "-o", "StrictHostKeyChecking=no",
+                       f"{_ssh_user}@{_inst_ip}", _rewrite_cmd],
+                      capture_output=True, timeout=30)
+            log.info("[CryoSPARC] Rewrote STAR paths → %s", particle_dir)
 
     nf_params: Dict[str, Any] = {
         "pixel_size":                  spa_params["pixel_size"],
