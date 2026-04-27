@@ -2221,17 +2221,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { priceId, successUrl, cancelUrl } = req.body;
+      // Accept either a direct priceId or a tier+interval pair
+      let { priceId, tier, interval, successUrl, cancelUrl } = req.body;
 
-      if (!priceId) {
-        return res.status(400).json({ error: 'Price ID is required' });
+      if (!priceId && tier) {
+        const tiers = stripeService.getPricingTiers() as Record<string, { monthly?: string; yearly?: string }>;
+        const tierPrices = tiers[tier];
+        if (!tierPrices) {
+          return res.status(400).json({ error: `Unknown tier: ${tier}` });
+        }
+        priceId = interval === 'yearly' ? tierPrices.yearly : tierPrices.monthly;
       }
 
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID or tier+interval required' });
+      }
+
+      const appUrl = process.env.APP_URL || 'https://dev-public.biomate.ai';
       const session = await stripeService.createCheckoutSession(
         req.user!.id,
         priceId,
-        successUrl,
-        cancelUrl
+        successUrl || `${appUrl}/checkout.html?status=success`,
+        cancelUrl || `${appUrl}/pricing.html`
       );
 
       res.json({
