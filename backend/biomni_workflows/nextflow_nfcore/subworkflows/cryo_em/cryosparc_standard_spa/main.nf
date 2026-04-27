@@ -620,16 +620,35 @@ process PATCH_MOTION_CORRECTION_BATCH {
             import numpy as np
             if micrographs_out is not None and len(micrographs_out) > 0:
                 _data = micrographs_out.data if hasattr(micrographs_out, 'data') else micrographs_out
-                for _field in ("total_motion_A", "micrograph/total_motion_A", "motion_global_a"):
-                    if _field in _data.dtype.names if hasattr(_data, 'dtype') else False:
-                        _vals = _data[_field]
-                        report["avg_total_motion_A"] = round(float(np.nanmean(_vals)), 2)
-                        report["min_total_motion_A"] = round(float(np.nanmin(_vals)), 2)
-                        report["max_total_motion_A"] = round(float(np.nanmax(_vals)), 2)
-                        report["num_accepted"] = int((~np.isnan(_vals)).sum())
-                        break
+                _all_fields = list(_data.dtype.names) if hasattr(_data, 'dtype') else []
+                print(f"[QC] micrographs output fields: {_all_fields[:20]}", flush=True)
+                report["cs_output_fields"] = _all_fields[:30]
+                # CryoSPARC v4/v5 field names for total motion (Å)
+                for _field in ("total_motion_A", "micrograph/total_motion_A", "motion_global_a",
+                               "patch_motion/total_motion_A", "motion_total_a", "drift_total_A"):
+                    if _field in _all_fields:
+                        _vals = np.asarray(_data[_field], dtype=float)
+                        _valid = _vals[np.isfinite(_vals)]
+                        if len(_valid) > 0:
+                            report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
+                            report["min_total_motion_A"] = round(float(np.nanmin(_valid)), 2)
+                            report["max_total_motion_A"] = round(float(np.nanmax(_valid)), 2)
+                            report["num_accepted"] = int(len(_valid))
+                            report["motion_field_used"] = _field
+                            break
+                else:
+                    # Try any field containing 'motion' as fallback
+                    _motion_fields = [f for f in _all_fields if 'motion' in f.lower() or 'drift' in f.lower()]
+                    print(f"[QC] No standard motion field found. Motion-related: {_motion_fields}", flush=True)
+                    if _motion_fields:
+                        _field = _motion_fields[0]
+                        _vals = np.asarray(_data[_field], dtype=float)
+                        _valid = _vals[np.isfinite(_vals)]
+                        if len(_valid) > 0:
+                            report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
+                            report["motion_field_used"] = f"{_field} (fallback)"
         except Exception as _qc_err:
-            print(f"[QC] motion metrics extraction skipped: {_qc_err}")
+            print(f"[QC] motion metrics extraction error: {_qc_err}", flush=True)
     else:
         # Mock mode
         num_mics = 10
@@ -701,32 +720,46 @@ process PATCH_CTF_ESTIMATION_BATCH {
             ctf_out = job.load_output("micrographs_ctf")
             if ctf_out is not None and len(ctf_out) > 0:
                 _d = ctf_out.data if hasattr(ctf_out, 'data') else ctf_out
-                _names = _d.dtype.names if hasattr(_d, 'dtype') else []
-                # CTF fit quality (resolution at which CTF fit is reliable — lower = better)
-                for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A"):
+                _names = list(_d.dtype.names) if hasattr(_d, 'dtype') else []
+                print(f"[QC] CTF output fields: {_names[:20]}", flush=True)
+                report["cs_ctf_output_fields"] = _names[:30]
+                # CTF fit quality (resolution at which CTF fit is reliable — lower Å = better)
+                for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A",
+                           "fit_to_A", "ctf_info/fit_to_A", "ctf_fit_res_A"):
                     if _f in _names:
-                        _v = _d[_f]
-                        report["avg_ctf_fit_to_A"] = round(float(np.nanmean(_v)), 2)
-                        report["min_ctf_fit_to_A"] = round(float(np.nanmin(_v)), 2)
-                        # QC gate uses fit_quality = 1.0 - (fit_to_A / 10.0) heuristic
-                        report["avg_fit_quality"] = round(max(0.0, 1.0 - float(np.nanmean(_v)) / 10.0), 3)
-                        break
+                        _v = np.asarray(_d[_f], dtype=float)
+                        _valid = _v[np.isfinite(_v) & (_v > 0)]
+                        if len(_valid) > 0:
+                            report["avg_ctf_fit_to_A"] = round(float(np.nanmean(_valid)), 2)
+                            report["min_ctf_fit_to_A"] = round(float(np.nanmin(_valid)), 2)
+                            report["avg_fit_quality"] = round(max(0.0, 1.0 - float(np.nanmean(_valid)) / 10.0), 3)
+                            report["ctf_fit_field_used"] = _f
+                            break
+                else:
+                    _fit_fields = [f for f in _names if 'fit' in f.lower() or 'resolution' in f.lower()]
+                    print(f"[QC] No standard CTF fit field. Candidates: {_fit_fields}", flush=True)
                 # Defocus range
-                for _f in ("ctf_info/df1_A", "ctf/df1_A", "df1_A"):
+                for _f in ("ctf_info/df1_A", "ctf/df1_A", "df1_A", "ctf_df1_A", "defocus_1_A"):
                     if _f in _names:
-                        _v = _d[_f]
-                        report["avg_defocus_A"] = round(float(np.nanmean(_v)), 0)
-                        report["min_defocus_A"] = round(float(np.nanmin(_v)), 0)
-                        report["max_defocus_A"] = round(float(np.nanmax(_v)), 0)
-                        break
-                # Astigmatism
-                for _f1, _f2 in [("ctf_info/df1_A","ctf_info/df2_A"), ("ctf/df1_A","ctf/df2_A")]:
+                        _v = np.asarray(_d[_f], dtype=float)
+                        _valid = _v[np.isfinite(_v) & (_v > 0)]
+                        if len(_valid) > 0:
+                            report["avg_defocus_A"] = round(float(np.nanmean(_valid)), 0)
+                            report["min_defocus_A"] = round(float(np.nanmin(_valid)), 0)
+                            report["max_defocus_A"] = round(float(np.nanmax(_valid)), 0)
+                            report["defocus_field_used"] = _f
+                            break
+                # Astigmatism |df1 - df2|
+                for _f1, _f2 in [("ctf_info/df1_A","ctf_info/df2_A"), ("ctf/df1_A","ctf/df2_A"),
+                                  ("df1_A","df2_A"), ("ctf_df1_A","ctf_df2_A")]:
                     if _f1 in _names and _f2 in _names:
-                        _astig = np.abs(_d[_f1] - _d[_f2])
-                        report["avg_astigmatism_A"] = round(float(np.nanmean(_astig)), 0)
+                        _astig = np.abs(np.asarray(_d[_f1],float) - np.asarray(_d[_f2],float))
+                        _valid = _astig[np.isfinite(_astig)]
+                        if len(_valid) > 0:
+                            report["avg_astigmatism_A"] = round(float(np.nanmean(_valid)), 0)
                         break
         except Exception as _qc_err:
-            print(f"[QC] CTF metrics extraction skipped: {_qc_err}")
+            print(f"[QC] CTF metrics extraction error: {_qc_err}", flush=True)
     else:
         mics = prev.get("micrographs", [{"micrograph_idx": i} for i in range(10)])
         ctf  = [{"defocus_u_angstroms": round(random.uniform(10000, 35000), 1),
