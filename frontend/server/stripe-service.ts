@@ -6,7 +6,7 @@ import { emailService } from './email-service';
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-const APP_URL = process.env.APP_URL || 'http://localhost:5000';
+const APP_URL = process.env.APP_URL || 'https://dev-public.biomate.ai';
 
 // Subscription tier price IDs (set these in Stripe dashboard)
 // Free tier has no price ID — it uses the 7-day trial flow only
@@ -196,11 +196,11 @@ export class StripeService {
 
     // Determine tier from price ID
     const priceId = subscription.items.data[0]?.price.id;
-    let tier = 'academic';
+    let tier = 'premium';
 
-    if (priceId?.includes('professional')) {
-      tier = 'professional';
-    } else if (priceId?.includes('enterprise')) {
+    if (priceId === PRICE_IDS.team_monthly || priceId === PRICE_IDS.team_yearly) {
+      tier = 'team';
+    } else if (priceId === PRICE_IDS.enterprise_monthly || priceId === PRICE_IDS.enterprise_yearly) {
       tier = 'enterprise';
     }
 
@@ -515,13 +515,13 @@ export class StripeService {
    */
   getPricingTiers() {
     return {
-      academic: {
-        monthly: PRICE_IDS.academic_monthly,
-        yearly: PRICE_IDS.academic_yearly,
+      premium: {
+        monthly: PRICE_IDS.premium_monthly,
+        yearly: PRICE_IDS.premium_yearly,
       },
-      professional: {
-        monthly: PRICE_IDS.professional_monthly,
-        yearly: PRICE_IDS.professional_yearly,
+      team: {
+        monthly: PRICE_IDS.team_monthly,
+        yearly: PRICE_IDS.team_yearly,
       },
       enterprise: {
         monthly: PRICE_IDS.enterprise_monthly,

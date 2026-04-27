@@ -19,6 +19,8 @@ export default function RegisterPage() {
 
   // Pre-fill invite code from ?invite=CODE query param
   const prefilledCode = new URLSearchParams(search).get('invite') || ''
+  // ?next=URL redirects to that URL after successful registration (e.g. checkout page)
+  const nextUrl = new URLSearchParams(search).get('next') || ''
 
   // Four-step: "account" → "email-sent" → "domain" → "trial"
   const [step, setStep] = useState<"account" | "email-sent" | "domain" | "trial">("account")
@@ -155,14 +157,16 @@ export default function RegisterPage() {
         body: JSON.stringify({ returnUrl: `${window.location.origin}/dashboard` }),
       })
 
-      // If endpoint doesn't exist or Stripe not configured, go straight to app
+      // If endpoint doesn't exist or Stripe not configured, go straight to next page or dashboard
       if (!res.ok) {
+        if (nextUrl) { window.location.href = nextUrl; return; }
         setLocation('/dashboard')
         return
       }
 
       const data = await res.json()
       if (data.devMode || !data.url) {
+        if (nextUrl) { window.location.href = nextUrl; return; }
         setLocation('/dashboard')
         return
       }
