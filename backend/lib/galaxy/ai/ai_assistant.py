@@ -2788,6 +2788,7 @@ Examples of good inference:
         search_results: List[Any],
         selected_trial: str,
         trials: List[str],
+        uploaded_datasets: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Shared return path for high- and medium-confidence Nextflow template matches."""
         scientific_rationale = self._build_scientific_rationale(
@@ -3238,6 +3239,7 @@ Examples of good inference:
                         match=best_match, score=score, user_intent=user_intent,
                         source='template_reuse', needs_user_feedback=False,
                         search_results=search_results, selected_trial=selected_trial, trials=trials,
+                        uploaded_datasets=uploaded_datasets,
                     )
                     if _routing_audit:
                         result['routing_rationale'] = _routing_audit.get('rationale', '')
@@ -3292,6 +3294,7 @@ Examples of good inference:
                         match=best_match, score=score, user_intent=user_intent,
                         source='template_adapt', needs_user_feedback=True,
                         search_results=search_results, selected_trial=selected_trial, trials=trials,
+                        uploaded_datasets=uploaded_datasets,
                     )
                     if _routing_audit:
                         result['routing_rationale'] = _routing_audit.get('rationale', '')
