@@ -31,7 +31,7 @@ export function ChatInput({
   onSend,
   disabled = false,
   pendingCount = 0,
-  placeholder = "Type your message here...",
+  placeholder = "Ask BioMate to run a workflow, adjust parameters, or extend the pipeline...",
   onFilesSelected,
   isStreaming = false,
   onStop,
@@ -238,67 +238,89 @@ export function ChatInput({
         </Dialog>
       )}
 
-      <div className="flex gap-2 items-end">
-        {/* Attachment button — opens dataset browser directly */}
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-[44px] w-[44px] flex-shrink-0"
-          disabled={disabled}
-          title="Add data"
-          onClick={() => setShowDatasetBrowser(true)}
-        >
-          <Plus className="w-5 h-5" />
-        </Button>
-
-        <Textarea
-          ref={textareaRef}
-          data-testid="chat-input"
-          value={message}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className="min-h-[44px] max-h-[200px] resize-none py-3"
-          rows={1}
-        />
-
-        {isStreaming ? (
-          <Button
-            data-testid="chat-stop-button"
-            onClick={onStop}
-            size="icon"
-            variant="destructive"
-            className="h-[44px] w-[44px] flex-shrink-0 relative"
-            title="Stop reply"
+      {/* Reference design: pill input with attachment + textarea + send */}
+      <div className="chat-input" style={{
+        border: '1px solid var(--bm-border, hsl(var(--border)))',
+        borderRadius: 'var(--bm-r-lg, 12px)',
+        background: 'var(--bm-bg-elev, hsl(var(--background)))',
+        boxShadow: 'var(--bm-shadow-sm, 0 1px 2px rgba(15,23,42,0.04))',
+        padding: '8px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        transition: 'border-color .15s',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+          {/* Attachment button */}
+          <button
+            disabled={disabled}
+            title="Add data"
+            onClick={() => setShowDatasetBrowser(true)}
+            style={{
+              width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+              border: 'none', background: 'transparent',
+              color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
-            {pendingCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
-                {pendingCount}
-              </span>
-            )}
-            <Square className="w-4 h-4 fill-current" />
-          </Button>
-        ) : (
-          <Button
-            data-testid="chat-send-button"
-            onClick={handleSend}
-            disabled={!message.trim() && attachedFiles.length === 0}
-            size="icon"
-            className="h-[44px] w-[44px] flex-shrink-0 relative"
-            title={pendingCount > 0 ? `${pendingCount} message${pendingCount > 1 ? 's' : ''} queued` : undefined}
-          >
-            {pendingCount > 0 ? (
-              <>
-                <Clock className="w-4 h-4" />
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-white">
-                  {pendingCount}
-                </span>
-              </>
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        )}
+            <Plus className="w-4 h-4" />
+          </button>
+
+          <Textarea
+            ref={textareaRef}
+            data-testid="chat-input"
+            value={message}
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            className="min-h-[22px] max-h-[140px] resize-none border-none outline-none shadow-none p-0 bg-transparent text-sm flex-1"
+            style={{
+              fontFamily: 'var(--bm-font-ui)',
+              fontSize: 14,
+              lineHeight: 1.5,
+              color: 'var(--bm-text)',
+            }}
+            rows={1}
+          />
+
+          {/* Send / Stop button */}
+          {isStreaming ? (
+            <button
+              data-testid="chat-stop-button"
+              onClick={onStop}
+              style={{
+                width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+                background: 'var(--bm-err, oklch(0.58 0.18 25))',
+                color: 'white', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}
+              title="Stop reply"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+            </button>
+          ) : (
+            <button
+              data-testid="chat-send-button"
+              onClick={handleSend}
+              disabled={!message.trim() && attachedFiles.length === 0}
+              style={{
+                width: 28, height: 28, borderRadius: 'var(--bm-r-sm, 6px)',
+                background: (!message.trim() && attachedFiles.length === 0)
+                  ? 'var(--bm-surface-3, oklch(0.945 0.005 240))'
+                  : 'var(--bm-text, oklch(0.22 0.01 260))',
+                color: (!message.trim() && attachedFiles.length === 0)
+                  ? 'var(--bm-text-dim)' : 'white',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, transition: 'background .15s',
+              }}
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Galaxy dataset browser dialog */}

@@ -1729,7 +1729,9 @@ export function ChatInterface({
         </div>
       )}
 
-      <ScrollArea className="flex-1 p-4" ref={scrollRef} data-testid="chat-messages">
+      <ScrollArea className="flex-1" ref={scrollRef} data-testid="chat-messages" style={{
+        padding: '28px clamp(20px, 8%, 80px) 20px',
+      }}>
         {displayMessages.length === 0 && !isTyping && !isTypingLocal && (
           <ReturningUserWelcome onSend={(q) => handleSendOrQueue(q)} />
         )}
@@ -1925,13 +1927,19 @@ export function ChatInterface({
           </div>
         </div>
       )}
-      <ChatInput
-        onSend={handleSendOrQueue}
-        pendingCount={pendingMessages.length}
-        isStreaming={displayTyping}
-        onStop={stopStreaming}
-        onRegisterSetDraft={onRegisterSetDraft}
-      />
+      {/* Reference design chat input wrap — padding clamp like layout.css */}
+      <div style={{
+        padding: '10px clamp(20px, 8%, 80px) 16px',
+        background: 'var(--bm-bg, hsl(var(--background)))',
+      }}>
+        <ChatInput
+          onSend={handleSendOrQueue}
+          pendingCount={pendingMessages.length}
+          isStreaming={displayTyping}
+          onStop={stopStreaming}
+          onRegisterSetDraft={onRegisterSetDraft}
+        />
+      </div>
       {/* chat-analysis-status kept for E2E selectors but visually hidden — TypingIndicator in message list handles the visual */}
       <div
         className="sr-only"

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { chatHistoryService } from "@/lib/chat-history";
 import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, Plus, FlaskConical, MessageCircle } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
 import { analytics } from "@/lib/analytics";
 
@@ -190,60 +190,68 @@ function PlatformLayout({
   }
 
   return (
-    <div className="h-screen w-full bg-background bio-grid-bg">
-      <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Resizable Left Sidebar */}
-        {!sidebarCollapsed && (
-          <>
-            <ResizablePanel
-              defaultSize={20}
-              minSize={15}
-              maxSize={35}
-              className="flex"
-            >
-              <AppSidebar
-                onNewChat={onNewChat}
-                onChatSelect={onChatSelect}
-                onCategorySelect={onCategorySelect}
-                onToolSelect={onToolSelect}
-                onProjectSelect={onProjectSelect}
-                onNewProject={onNewProject}
-                onToggleSidebar={toggleSidebar}
-                activeChatId={activeChatId}
-                chatSessions={chatSessions}
-              />
-            </ResizablePanel>
+    <div className="h-screen w-full flex" style={{ background: 'var(--bm-bg, hsl(var(--background)))' }}>
+      {/* Sidebar: full when not collapsed, slim icon rail when collapsed */}
+      {sidebarCollapsed ? (
+        /* Slim icon rail — 52px, always visible when panel is open */
+        <div
+          className="flex-shrink-0 flex flex-col items-center border-r py-3 gap-3"
+          style={{
+            width: 52,
+            background: 'var(--bm-surface, hsl(var(--sidebar)))',
+            borderColor: 'var(--bm-border, hsl(var(--border)))',
+          }}
+          title="Sidebar collapsed — panel is open"
+        >
+          {/* Brand mark */}
+          <button
+            onClick={toggleSidebar}
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm flex-shrink-0"
+            style={{
+              background: 'var(--bm-text, hsl(var(--foreground)))',
+              color: 'var(--bm-bg-elev, white)',
+              fontSize: 13,
+              letterSpacing: '-0.03em',
+            }}
+            data-testid="button-sidebar-toggle-main"
+            title="Expand sidebar"
+          >
+            B
+          </button>
+          {/* Icon buttons */}
+          <button onClick={onNewChat} className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="New chat">
+            <Plus className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+          </button>
+          <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Workflows">
+            <FlaskConical className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+          </button>
+          <button className="w-8 h-8 rounded flex items-center justify-center hover:bg-muted transition-colors" title="Chat history">
+            <MessageCircle className="h-4 w-4" style={{ color: 'var(--bm-text-muted)' }} />
+          </button>
+          <div className="flex-1" />
+          <ThemeToggle />
+        </div>
+      ) : (
+        /* Full sidebar */
+        <div className="flex-shrink-0 flex" style={{ width: 260 }}>
+          <AppSidebar
+            onNewChat={onNewChat}
+            onChatSelect={onChatSelect}
+            onCategorySelect={onCategorySelect}
+            onToolSelect={onToolSelect}
+            onProjectSelect={onProjectSelect}
+            onNewProject={onNewProject}
+            onToggleSidebar={toggleSidebar}
+            activeChatId={activeChatId}
+            chatSessions={chatSessions}
+          />
+        </div>
+      )}
 
-            <ResizableHandle withHandle />
-          </>
-        )}
-
-        {/* Main Content Area */}
-        <ResizablePanel defaultSize={sidebarCollapsed ? 100 : 80} minSize={65} className="flex flex-col">
-          {/* Header */}
-          <header className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            {sidebarCollapsed && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleSidebar}
-                className="h-7 w-7"
-                data-testid="button-sidebar-toggle-main"
-              >
-                <PanelLeft className="h-4 w-4" />
-                <span className="sr-only">Show Sidebar</span>
-              </Button>
-            )}
-            <div className="flex-1" />
-            <ThemeToggle />
-          </header>
-
-          {/* Content */}
-          <div className="flex-1 overflow-hidden">
-            {children}
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      {/* Main content — no separate header; chat-with-artifacts owns its own top bar */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }

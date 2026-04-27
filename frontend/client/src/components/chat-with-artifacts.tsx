@@ -912,42 +912,52 @@ export function ChatWithArtifacts({ currentChatSession, onChatUpdated, onWorkflo
 
   return (
     <div className="h-full flex flex-col">
-      {/* Minimal Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary" />
-            <h2 className="font-semibold">bioMate</h2>
-            {/* Connection status indicator */}
-            {isConnected && (
-              <div className="flex items-center gap-1 ml-2">
-                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-xs text-muted-foreground">Live</span>
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Chat top bar — matches reference: "New thread · Domain" */}
+      <div className="chat-top flex-shrink-0" style={{
+        height: 48, borderBottom: '1px solid var(--bm-border, hsl(var(--border)))',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 18px',
+        background: 'var(--bm-bg-elev, hsl(var(--background)))',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            fontWeight: 600, fontSize: 14,
+            color: 'var(--bm-text, hsl(var(--foreground)))',
+            fontFamily: 'var(--bm-font-ui)',
+          }}>
+            {currentChatSession?.title || 'New thread'}
+          </span>
+          {isConnected && (
+            <span style={{ fontSize: 11, color: 'var(--bm-ok, oklch(0.62 0.13 150))', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+              live
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {runningCount > 0 && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               data-testid="button-toggle-run-manager"
               onClick={() => setShowRunManager((prev) => !prev)}
+              style={{ fontSize: 12, height: 28 }}
             >
-              <Layers className="h-4 w-4 mr-1" />
-              Run Manager
-              <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">{runningCount}</span>
+              <Layers className="h-3 w-3 mr-1" />
+              {runningCount} running
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              data-testid="button-refresh-run-manager"
-              onClick={fetchRunList}
-              disabled={isRunListLoading}
-              title="Refresh run list"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRunListLoading ? "animate-spin" : ""}`} />
-            </Button>
-          </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            data-testid="button-refresh-run-manager"
+            onClick={fetchRunList}
+            disabled={isRunListLoading}
+            title="Refresh run list"
+            className="h-7 w-7"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isRunListLoading ? "animate-spin" : ""}`} />
+          </Button>
         </div>
       </div>
 

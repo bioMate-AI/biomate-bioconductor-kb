@@ -169,33 +169,46 @@ export function ChatMessage({
     toast({ title: "Download started" })
   }
 
+  // Format timestamp like reference: "YOU · 3:40 PM"
+  const timeLabel = message.createdAt
+    ? new Date(message.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : null;
+
   return (
     <div
-      className={cn("flex gap-4 p-4", isUser && "flex-row-reverse")}
+      className={cn("msg px-4 py-2", isUser ? "user" : "assistant")}
       id={`chat-message-anchor-${message.id}`}
       data-testid={`chat-message-${message.id}`}
       data-role={message.role}
       data-run-anchor-focused={isRunAnchorFocused ? "true" : "false"}
       data-run-anchor-highlighted={isRunAnchorHighlighted ? "true" : "false"}
       data-is-latest-assistant={isLatestAssistantMessage ? "true" : "false"}
+      style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}
     >
-      <Avatar className="h-8 w-8 flex-shrink-0">
-        {isUser ? (
-          <AvatarImage src={userAvatar} alt="User" />
-        ) : (
-          <AvatarImage src="/logo.png" alt="BioMate" className="object-contain p-0.5" />
-        )}
-        <AvatarFallback>{isUser ? "U" : "BM"}</AvatarFallback>
-      </Avatar>
-      
-      <div className={cn("flex-1 space-y-2", isUser && "flex flex-col items-end")}>
-        <div className="max-w-full space-y-3">
-          <Card className={cn(
-            "p-4",
-            isUser
-              ? "bg-primary text-primary-foreground ml-auto"
-              : "bg-card"
-          )}>
+      {/* Who label — "YOU · 3:40 PM" or "BIOMATE" */}
+      <div className="who" style={{
+        fontSize: 11, color: 'var(--bm-text-dim, oklch(0.62 0.010 260))',
+        textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600,
+        fontFamily: 'var(--bm-font-ui)',
+      }}>
+        {isUser ? `You${timeLabel ? ` · ${timeLabel}` : ''}` : 'BioMate'}
+      </div>
+
+      <div className={cn("max-w-full space-y-3", isUser && "flex flex-col items-end")}>
+        <div className={cn(
+          isUser
+            ? "bubble"  /* reference: .msg.user .bubble */
+            : ""        /* assistant: no card wrapper */
+        )} style={isUser ? {
+          background: 'var(--bm-surface-3, oklch(0.945 0.005 240))',
+          color: 'var(--bm-text, oklch(0.22 0.01 260))',
+          borderRadius: '14px 14px 2px 14px',
+          padding: '10px 14px',
+          maxWidth: '80%',
+          fontSize: 14,
+          lineHeight: 1.5,
+          alignSelf: 'flex-end',
+        } : undefined}>
             {isUser ? (
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
             ) : (
@@ -238,7 +251,7 @@ export function ChatMessage({
               </div>
               </>
             )}
-          </Card>
+          </div>
 
           {/* Thinking Display - Show AI reasoning process */}
           {!isUser && message.thinking_content && (
