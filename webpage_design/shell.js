@@ -21,8 +21,8 @@
             ${link('pricing', 'Pricing', 'pricing.html')}
             ${link('about', 'About', 'about.html')}
             ${link('blog', 'Blog', 'blog.html')}
-            <li><a href="login.html" class="bm-nav-login">Log in</a></li>
-            <li><a href="register.html" class="bm-nav-cta">Start free</a></li>
+            <li><a href="https://dev-public.biomate.ai/login" class="bm-nav-login">Log in</a></li>
+            <li><a href="https://dev-public.biomate.ai/register" class="bm-nav-cta">Start free</a></li>
           </ul>
           <button class="bm-mobile-toggle" aria-label="Open menu" id="bmMobileToggle">
             ${svg('<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>')}
@@ -48,7 +48,7 @@
               <ul>
                 <li><a href="features.html">Features</a></li>
                 <li><a href="pricing.html">Pricing</a></li>
-                <li><a href="register.html">Start free trial</a></li>
+                <li><a href="https://dev-public.biomate.ai/register">Start free</a></li>
               </ul>
             </div>
             <div class="bm-footer-col">
