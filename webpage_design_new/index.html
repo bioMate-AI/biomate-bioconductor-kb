@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate AI — A virtual lab that thinks</title>
+  <meta name="description" content="AI-powered computational platform for drug development. BioMate covers target discovery, ADMET profiling, clinical pharmacology, genomics, and structural biology — delivering audit-ready results for pharma teams, CROs, and research institutions." />
+  <meta name="author" content="BioMate AI" />
+  <meta name="theme-color" content="#577789" />
+  <meta name="keywords" content="computational biology platform, AI drug discovery, biomedical AI, ADMET profiling, genomics analysis, structural biology, cryo-EM, clinical pharmacology, CRO software, pharma R&D platform, bioinformatics automation, variant calling, RNA-seq analysis, proteomics, metabolomics, single-cell sequencing, PBPK modeling, pharmacokinetics, pharmacodynamics, AlphaFold structure prediction, molecular docking, molecular dynamics simulation, generative molecular design, lead optimization, IND filing support, clinical trial simulation, pharmacovigilance, Bioconductor workflows, GATK genomics, CryoSPARC, GROMACS, REINVENT4, drug target discovery, virtual screening, hit discovery, DMPK, toxicology prediction, biotech AI platform, academic core facility software, scientific workflow automation, audit trail for regulatory, GxP compliance, reproducible research platform" />
+  <link rel="canonical" href="https://biomate.ai/" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="BioMate AI — Computational Platform for Biomedical Science" />
+  <meta property="og:description" content="AI-powered platform for pharma, biotech, CROs, and clinical teams. 2,000+ validated workflows across genomics, drug discovery, structural biology, and clinical development. Audit-ready results in minutes." />
+  <meta property="og:url" content="https://biomate.ai/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="BioMate AI — Computational Platform for Biomedical Science" />
+  <meta name="twitter:description" content="AI-powered platform for pharma, biotech, and CROs. 2,000+ validated scientific workflows. Audit-ready results." />
+  <meta name="twitter:image" content="https://biomate.ai/images/og-cover.png" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai",
+    "description": "AI-powered computational platform for pharma, biotech, CROs, and clinical teams. Covers genomics, drug discovery, structural biology, ADMET profiling, cryo-EM, and clinical pharmacology with 2,000+ validated workflows.",
+    "applicationCategory": "ScienceApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free pilot access"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "BioMate AI",
+      "url": "https://biomate.ai",
+      "email": "contact@biomate.ai",
+      "sameAs": []
+    },
+    "featureList": [
+      "AI-guided scientific workflow routing",
+      "2000+ validated analytical workflows",
+      "Evidence-graded quality control (Gold/Silver/Bronze)",
+      "Full audit trail and parameter provenance",
+      "ADMET profiling and drug-likeness prediction",
+      "Genomic variant calling (WGS, WES, RNA-seq)",
+      "Single-cell sequencing analysis",
+      "Proteomics and metabolomics pipelines",
+      "Cryo-EM single-particle analysis",
+      "AlphaFold3 protein structure prediction",
+      "Molecular docking and binding pose prediction",
+      "Molecular dynamics simulation (GROMACS, AmberTools)",
+      "Generative molecular design (REINVENT4)",
+      "PBPK pharmacokinetic modeling",
+      "Clinical trial simulation and dose optimization",
+      "Pharmacovigilance and safety signal detection",
+      "CRO compound submission package generation",
+      "Bioconductor R statistical genomics workflows",
+      "IND filing computational support",
+      "GPU-accelerated cloud execution",
+      "Methods section auto-generation",
+      "Hierarchical scientific memory across sessions",
+      "Multi-team organizational workspaces",
+      "SOC 2 compliance in progress"
+    ],
+    "audience": [
+      "Pharmaceutical R&D teams",
+      "Biotechnology companies",
+      "Contract Research Organizations (CROs)",
+      "Contract Development and Manufacturing Organizations (CDMOs)",
+      "Academic medical centers",
+      "Clinical pharmacology teams",
+      "Regulatory affairs teams",
+      "Computational chemistry groups",
+      "Bioinformatics core facilities",
+      "Structural biology labs"
+    ]
+  }
+  </script>
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    /* ─── Reset & Base ────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f0e4;
+      --bg-card:   #ece7d8;
+      --bg-card2:  #e2dcc8;
+      --accent:    #4a7a8a;
+      --accent-light: #3a6878;
+      --text:      #1c2b32;
+      --text-muted:#5a7280;
+      --border:    #cec5ae;
+      --radius:    10px;
+      --font-body: 'Open Sans', sans-serif;
+      --font-head: 'Crimson Text', serif;
+      --nav-h:     68px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 400;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    /* ─── Site Header ─────────────────────────────────────────────────────── */
+    .site-header {
+      background: var(--bg);
+      padding: 1.25rem 1rem 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .site-header img { height: 56px; width: auto; display: inline-block; }
+
+    /* ─── Nav ─────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: var(--nav-h);
+      background: rgba(245,240,228,.97);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 clamp(1rem, 4vw, 3rem);
+    }
+    .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+    .nav-links a {
+      color: var(--text-muted); font-size: .875rem; font-weight: 400;
+      padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s;
+    }
+    .nav-links a:hover { color: var(--accent); background: rgba(74,122,138,.10); }
+    .nav-cta {
+      background: var(--accent) !important; color: #fff !important;
+      font-weight: 700 !important; padding: 7px 18px !important; border-radius: 6px !important;
+    }
+    .nav-cta:hover { background: var(--accent-light) !important; color: #fff !important; }
+    .nav-login { border: 1px solid var(--border) !important; color: var(--text) !important; }
+    .nav-login:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+    /* ─── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      min-height: calc(100vh - var(--nav-h));
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      padding: clamp(3rem, 8vw, 7rem) clamp(1rem, 5vw, 4rem);
+      background:
+        linear-gradient(to bottom, rgba(15,22,28,.60) 0%, rgba(15,22,28,.45) 50%, rgba(15,22,28,.65) 100%),
+        url('images/2026-04-08-hero-banner.png') center/cover no-repeat;
+    }
+    .hero-inner { max-width: 780px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,132,150,.12); border: 1px solid var(--border);
+      color: var(--accent-light); font-size: .8rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 50px; margin-bottom: 2rem;
+    }
+    .hero-badge .dot {
+      width: 7px; height: 7px; background: var(--accent-light);
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(1.4); }
+    }
+    .hero h1 {
+      font-family: var(--font-head); font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 700; line-height: 1.15; color: #fff; margin-bottom: 1.5rem;
+    }
+    .hero h1 span { color: #8fd6ea; }
+    .hero p {
+      font-size: clamp(1rem, 2.5vw, 1.2rem); color: rgba(255,255,255,.80);
+      max-width: 600px; margin: 0 auto 2.5rem;
+    }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* ─── Buttons ─────────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; border-radius: 8px;
+      font-family: var(--font-body); font-size: .95rem; font-weight: 700;
+      cursor: pointer; text-decoration: none; transition: all .2s; border: none;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+    .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-ghost:hover { background: rgba(255,255,255,.22); color: #fff; }
+
+    /* ─── Section scaffold ────────────────────────────────────────────────── */
+    section { padding: clamp(3rem, 7vw, 6rem) clamp(1rem, 5vw, 3rem); }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-tag {
+      display: inline-block; font-size: .75rem; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent-light); margin-bottom: .75rem;
+    }
+    .section-title {
+      font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700; color: var(--text); margin-bottom: .75rem; line-height: 1.2;
+    }
+    .section-sub {
+      color: var(--text-muted); font-size: 1.05rem;
+      max-width: 620px; margin-bottom: 3rem;
+    }
+
+    /* ─── Stats strip ─────────────────────────────────────────────────────── */
+    .stats-strip {
+      background: var(--accent);
+      padding: 1.5rem clamp(1rem, 5vw, 3rem);
+    }
+    .stats-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 1rem; text-align: center;
+    }
+    .stat-item { color: #fff; }
+    .stat-number {
+      font-family: var(--font-head); font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700; line-height: 1.1; display: block;
+    }
+    .stat-label { font-size: .8rem; opacity: .85; letter-spacing: .06em; text-transform: uppercase; margin-top: .25rem; }
+
+    /* ─── How it works ────────────────────────────────────────────────────── */
+    #how-it-works { background: var(--bg-card); }
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 2rem; position: relative;
+    }
+    .step-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem 1.75rem;
+      position: relative; text-align: center;
+    }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-family: var(--font-head); font-size: 1.2rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+    }
+    .step-card h3 {
+      font-family: var(--font-head); font-size: 1.25rem;
+      color: var(--text); margin-bottom: .6rem;
+    }
+    .step-card p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ─── Applications grid ───────────────────────────────────────────────── */
+    #applications { background: var(--bg); }
+    .apps-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;
+    }
+    .app-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      transition: border-color .25s, transform .25s;
+    }
+    .app-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .app-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg-card2); }
+    .app-card-body { padding: 1.25rem 1.4rem 1.5rem; }
+    .app-card-body h4 {
+      font-family: var(--font-head); font-size: 1.25rem;
+      font-weight: 700; color: var(--text); margin-bottom: .35rem;
+    }
+    .app-card-meta {
+      font-size: .75rem; color: var(--accent-light); font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; margin-bottom: .5rem;
+    }
+    .app-card-body p { font-size: .875rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* ─── Approach grid ───────────────────────────────────────────────────── */
+    #approach { background: var(--bg-card); }
+    .approach-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;
+    }
+    .approach-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column; transition: border-color .25s, transform .25s;
+    }
+    .approach-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .approach-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg-card2); }
+    .approach-card-body { padding: 1.25rem 1.4rem 1.5rem; flex: 1; }
+    .approach-card-body h4 {
+      font-family: var(--font-head); font-size: 1.2rem;
+      font-weight: 700; color: var(--text); margin-bottom: .5rem;
+    }
+    .approach-card-body p { font-size: .875rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* ─── Social proof / Testimonials ────────────────────────────────────── */
+    #social-proof { background: var(--bg); }
+    .testimonials-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;
+      margin-bottom: 3rem;
+    }
+    .testimonial-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem;
+    }
+    .testimonial-text {
+      font-size: .95rem; color: var(--text); line-height: 1.7;
+      font-style: italic; margin-bottom: 1.25rem;
+    }
+    .testimonial-author { font-size: .82rem; font-weight: 700; color: var(--accent-light); }
+    .testimonial-role { font-size: .8rem; color: var(--text-muted); }
+
+    .trust-row {
+      display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+      justify-content: center; padding-top: 2rem; border-top: 1px solid var(--border);
+    }
+    .trust-badge {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: .5rem 1.1rem;
+      font-size: .78rem; font-weight: 700; color: var(--text-muted);
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    /* ─── Platform links ──────────────────────────────────────────────────── */
+    #platform { background: var(--bg-card2); }
+    .platform-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;
+    }
+    .platform-link-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem 1.5rem;
+      text-align: center; text-decoration: none;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      transition: border-color .25s, transform .25s; color: var(--text);
+    }
+    .platform-link-card:hover { border-color: var(--accent); transform: translateY(-3px); color: var(--text); }
+    .platform-link-card .icon {
+      width: 52px; height: 52px; background: rgba(99,132,150,.15);
+      border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+    }
+    .platform-link-card h3 { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .platform-link-card p { font-size: .82rem; color: var(--text-muted); }
+
+    /* ─── CTA banner ──────────────────────────────────────────────────────── */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(99,132,150,.25) 0%, rgba(87,119,137,.1) 100%);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 5vw, 3rem);
+      text-align: center; max-width: 700px; margin: 0 auto;
+    }
+    .cta-banner h2 { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.6rem); color: var(--text); margin-bottom: 1rem; }
+    .cta-banner p { color: var(--text-muted); margin-bottom: 2rem; font-size: 1.05rem; }
+
+    /* ─── Contact ─────────────────────────────────────────────────────────── */
+    #contact { background: var(--bg-card); }
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; max-width: 900px; }
+    @media (max-width: 640px) { .contact-grid { grid-template-columns: 1fr; } }
+    .contact-info h3 { font-family: var(--font-head); font-size: 1.4rem; color: var(--text); margin-bottom: 1rem; }
+    .contact-info p, .contact-info address { color: var(--text-muted); font-size: .9rem; line-height: 1.7; font-style: normal; }
+    .contact-info .hours { margin-top: 1.25rem; }
+    .contact-form { display: flex; flex-direction: column; gap: 12px; }
+    .contact-form input, .contact-form textarea {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 10px 14px; color: var(--text); font-family: var(--font-body);
+      font-size: .9rem; width: 100%; transition: border-color .2s; resize: vertical;
+    }
+    .contact-form input:focus, .contact-form textarea:focus { outline: none; border-color: var(--accent); }
+    .contact-form textarea { min-height: 120px; }
+
+    /* ─── Subscribe strip ─────────────────────────────────────────────────── */
+    .subscribe-strip {
+      background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1.75rem clamp(1rem, 5vw, 3rem);
+      display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+    }
+    .subscribe-strip span { color: var(--text-muted); font-size: .9rem; }
+    .subscribe-form { display: flex; gap: 8px; }
+    .subscribe-form input {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px 14px; color: var(--text); font-family: var(--font-body); font-size: .875rem; width: 220px;
+    }
+    .subscribe-form input:focus { outline: none; border-color: var(--accent); }
+
+    /* ─── Footer ──────────────────────────────────────────────────────────── */
+    footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 3rem clamp(1rem, 5vw, 3rem) 1.5rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem;
+    }
+    .footer-brand img { height: 36px; margin-bottom: 1rem; }
+    .footer-brand p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; max-width: 280px; }
+    .footer-col h4 { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); margin-bottom: .875rem; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .footer-col ul a { font-size: .875rem; color: var(--text-muted); }
+    .footer-col ul a:hover { color: var(--accent); }
+    .footer-copy {
+      color: var(--text-muted); font-size: .8rem; text-align: center;
+      padding-top: 1.25rem; border-top: 1px solid var(--border);
+    }
+
+    /* ─── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 720px) {
+      .nav-links { display: none; }
+      .apps-grid, .approach-grid, .testimonials-grid { grid-template-columns: 1fr; }
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ SITE HEADER === -->
+<div class="site-header">
+  <a href="/"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ NAV === -->
+<nav>
+  <ul class="nav-links">
+    <li><a href="#how-it-works">How It Works</a></li>
+    <li><a href="#applications">Applications</a></li>
+    <li><a href="#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════ HERO === -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      AI Platform for Biomedical Science
+    </div>
+    <h1>A virtual lab<br /><span>that thinks</span></h1>
+    <p>Ask the question. Get the answer. BioMate handles everything in between.</p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+      <a class="btn btn-ghost" href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener">Log In</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ STATS STRIP === -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <span class="stat-number">20+</span>
+      <div class="stat-label">Research Domains</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">2,000+</span>
+      <div class="stat-label">Validated Workflows</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">&lt;30 min</span>
+      <div class="stat-label">Average Time to Results</div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-number">Gold / Silver / Bronze</span>
+      <div class="stat-label">Evidence-Graded QC</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ HOW IT WORKS === -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <span class="section-tag">Simple by Design</span>
+    <h2 class="section-title">From question to results in minutes</h2>
+    <p class="section-sub">No PhD in bioinformatics required.</p>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h3>Ask</h3>
+        <p>Describe your objective in plain language — BioMate routes it to the right workflow instantly.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h3>Review &amp; Confirm</h3>
+        <p>Check the plan, adjust parameters, approve — all in one conversation.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h3>Get Results</h3>
+        <p>Outputs arrive QC-graded with a complete audit trail, ready for review or submission.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ APPLICATIONS === -->
+<section id="applications">
+  <div class="section-inner">
+    <span class="section-tag">Coverage</span>
+    <h2 class="section-title">One platform. Every domain.</h2>
+    <p class="section-sub">20+ biomedical disciplines. One interface. No context switching.</p>
+
+    <div class="apps-grid">
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-structure-biology.png"
+             alt="Structural biologist identifying drug targets" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">Target Discovery &amp; Validation</div>
+          <h4>Know Your Target Before You Design</h4>
+          <p>A three-dimensional, biologically validated view of your target before the first compound is synthesized.</p>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-pharmaceutical.png"
+             alt="Computational chemist running virtual screening" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">Hit Discovery &amp; Virtual Screening</div>
+          <h4>Screen Millions. Assay Dozens.</h4>
+          <p>Narrow millions of candidates to a shortlist of testable leads — before a single compound is purchased.</p>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-synthetic-biology.png"
+             alt="Medicinal chemist optimizing drug candidates" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">ADMET &amp; Lead Optimization</div>
+          <h4>Close the DMTA Loop in Silico</h4>
+          <p>Optimize leads against a multi-property target profile before committing to wet-lab synthesis.</p>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-virtual-cell.png"
+             alt="Pharmacokineticist running PBPK simulation" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">Preclinical Development &amp; Regulatory</div>
+          <h4>From Data to Regulatory Package</h4>
+          <p>Turn preclinical evidence into the documentation that moves a program to the clinic.</p>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-precision-medicine.png"
+             alt="Clinical investigator reviewing adaptive trial design" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">Clinical Pharmacology &amp; Pharmacovigilance</div>
+          <h4>Computation Across the Full Trial Lifecycle</h4>
+          <p>From Phase I dose design through post-approval safety surveillance — without a dedicated pharmacometrician.</p>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-multi-omics.png"
+             alt="Bioinformatics team integrating multi-omics data" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-meta">Genomics &amp; Multi-Omics</div>
+          <h4>The Data Layer Beneath Every Stage</h4>
+          <p>WGS, RNA-seq, single-cell, proteomics, metabolomics, cryo-EM — the biological evidence every downstream decision rests on.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════ APPROACH === -->
+<section id="approach">
+  <div class="section-inner">
+    <span class="section-tag">How We Work</span>
+    <h2 class="section-title">Built for rigor. Designed for speed.</h2>
+    <p class="section-sub">Every result on BioMate is defensible — by design.</p>
+
+    <div class="approach-grid">
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-data-foundation.png"
+             alt="Data scientist building curated biological database" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Data Foundation</h4>
+          <p>Curated, versioned biomedical databases with semantic search — the right data, one question away.</p>
+        </div>
+      </div>
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-intelligent-design.png"
+             alt="Scientist using AI-assisted experimental design tool" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Intelligent Routing</h4>
+          <p>Context-aware workflow selection tuned to your data type, goal, and scientific domain — automatically.</p>
+        </div>
+      </div>
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-no-code-workflows.png"
+             alt="Biologist using no-code visual workflow builder" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>No-Code Execution</h4>
+          <p>Describe your analysis in plain language and run — no scripting, no pipeline configuration.</p>
+        </div>
+      </div>
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-reproducible-science.png"
+             alt="Researchers reviewing reproducibility audit report" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Audit-Ready Results</h4>
+          <p>Evidence-graded QC, full parameter provenance, and a complete audit trail on every single run.</p>
+        </div>
+      </div>
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-best-practices.png"
+             alt="Research team in bioinformatics best practices workshop" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Community Standards</h4>
+          <p>Validated workflows built to the bar that peer review and regulators both expect.</p>
+        </div>
+      </div>
+
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-scalable-computing.png"
+             alt="Computing specialist monitoring cloud bioinformatics pipeline" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Elastic Cloud Compute</h4>
+          <p>Days become minutes — GPU-backed, auto-scaling, zero infrastructure to manage.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════ SOCIAL PROOF === -->
+<section id="social-proof">
+  <div class="section-inner">
+    <span class="section-tag">Early Adopters</span>
+    <h2 class="section-title">What teams are saying</h2>
+    <p class="section-sub">Pharma, CROs, and core facilities already on the platform.</p>
+
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p class="testimonial-text">"I described my RNA-seq experiment in plain English and BioMate had the pipeline configured, running, and producing QC-gated results while I was still writing the Methods section. The draft it generated was 80% ready to submit."</p>
+        <div class="testimonial-author">Dr. Sarah Chen</div>
+        <div class="testimonial-role">Postdoctoral Researcher, Transcriptomics Lab</div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-text">"Our lab runs cryo-EM sessions 3 nights a week. Having BioMate start the CryoSPARC pipeline automatically as soon as the EPU session ends has cut our turnaround from 2 days to a morning. The QC report is waiting for us when we arrive."</p>
+        <div class="testimonial-author">Prof. Marcus Webb</div>
+        <div class="testimonial-role">Director, Structural Biology Core Facility</div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-text">"We evaluated BioMate against our internal pipeline for ADMET prediction on 200 compounds. BioMate matched our results in 23 minutes versus 4 days, and the audit trail it generated was more detailed than what our bioinformatician would have written manually."</p>
+        <div class="testimonial-author">Dr. Priya Nair</div>
+        <div class="testimonial-role">Computational Chemist, Drug Discovery</div>
+      </div>
+    </div>
+
+    <div class="trust-row">
+      <span class="trust-badge">AlphaFold3</span>
+      <span class="trust-badge">GATK4</span>
+      <span class="trust-badge">CryoSPARC</span>
+      <span class="trust-badge">REINVENT4</span>
+      <span class="trust-badge">GROMACS / AmberTools</span>
+      <span class="trust-badge">SOC 2 In Progress</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════ CTA === -->
+<section style="background: var(--bg-card); padding: clamp(3rem,6vw,5rem) 1rem;">
+  <div class="cta-banner">
+    <h2>Bring your question.<br/>BioMate handles the rest.</h2>
+    <p>Trusted by pharma teams, CROs, and core facilities worldwide.</p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+      <a class="btn btn-outline" href="#contact">Talk to Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ SUBSCRIBE === -->
+<div class="subscribe-strip">
+  <span>Stay updated with BioMate news and new workflow integrations</span>
+  <form class="subscribe-form" onsubmit="return false;">
+    <input type="email" placeholder="your@email.com" aria-label="Email address" />
+    <button class="btn btn-primary" style="padding:8px 18px; font-size:.875rem;">Subscribe</button>
+  </form>
+</div>
+
+<!-- ══════════════════════════════════════════════════ CONTACT === -->
+<section id="contact">
+  <div class="section-inner">
+    <span class="section-tag">Get In Touch</span>
+    <h2 class="section-title">Drop us a line</h2>
+    <div class="contact-grid">
+      <div class="contact-info">
+        <h3>BioMate AI</h3>
+        <address>
+          <strong style="color:var(--text)">Email</strong><br />
+          <a href="mailto:contact@biomate.ai">contact@biomate.ai</a>
+        </address>
+        <div class="hours">
+          <strong style="color:var(--text); font-size:.9rem;">Hours</strong>
+          <p style="margin-top:.4rem;">Monday – Friday: 9 am – 5 pm CT</p>
+        </div>
+      </div>
+      <form class="contact-form" onsubmit="return false;">
+        <input type="text"  placeholder="Name"    required />
+        <input type="email" placeholder="Email"   required />
+        <input type="text"  placeholder="Subject" />
+        <textarea placeholder="Your message…"></textarea>
+        <button class="btn btn-primary" type="submit" style="align-self:flex-start;">Send Message</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════ FOOTER === -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered computational platform for pharma, biotech, and life sciences.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#applications">Applications</a></li>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Science</h4>
+        <ul>
+          <li><a href="#approach">Our Approach</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="#contact">Contact</a></li>
+          <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer-copy">© 2026 BioMate AI · All rights reserved</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — BioMate AI</title>
+  <meta name="description" content="BioMate AI is the computational platform for organizations running hard biomedical science at scale — pharma, biotech, CROs, and clinical teams. Learn about our mission, team, and approach." />
+  <meta name="keywords" content="BioMate AI, computational biology platform, AI pharma, biomedical AI company, drug discovery AI, genomics platform, structural biology AI, cryo-EM software, clinical pharmacology platform, CRO technology, bioinformatics automation, ADMET prediction, molecular docking platform, pharmacovigilance software, regulatory science AI, precision medicine platform, computational chemistry tools, multi-omics analysis" />
+  <link rel="canonical" href="https://biomate.ai/about.html" />
+  <meta property="og:title" content="About BioMate AI" />
+  <meta property="og:description" content="The computational platform for organizations running hard biomedical science at scale — pharma, biotech, CROs, and clinical teams." />
+  <meta property="og:url" content="https://biomate.ai/about.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "BioMate AI",
+    "url": "https://biomate.ai",
+    "description": "AI-powered computational platform for pharma, biotech, CROs, and clinical teams. 2,000+ validated scientific workflows across genomics, drug discovery, structural biology, and clinical development.",
+    "email": "contact@biomate.ai",
+    "foundingDate": "2025",
+    "knowsAbout": ["computational biology", "drug discovery", "genomics", "structural biology", "cryo-EM", "ADMET profiling", "clinical pharmacology", "bioinformatics AI"]
+  }
+  </script>
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f0e4;
+      --bg-card:   #ece7d8;
+      --bg-card2:  #e2dcc8;
+      --accent:    #4a7a8a;
+      --accent-light: #3a6878;
+      --text:      #1c2b32;
+      --text-muted:#5a7280;
+      --border:    #cec5ae;
+      --radius:    10px;
+      --font-body: 'Open Sans', sans-serif;
+      --font-head: 'Crimson Text', serif;
+      --nav-h:     68px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    /* Header */
+    .site-header { background: var(--bg); padding: 1.25rem 1rem 0.75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 56px; width: auto; display: inline-block; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(245,240,228,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 0 clamp(1rem, 4vw, 3rem); }
+    .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: .875rem; font-weight: 400; padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s; }
+    .nav-links a:hover { color: var(--accent); background: rgba(74,122,138,.10); }
+    .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; padding: 7px 18px !important; border-radius: 6px !important; }
+    .nav-cta:hover { background: var(--accent-light) !important; color: #fff !important; }
+    .nav-login { border: 1px solid var(--border) !important; color: var(--text) !important; }
+    .nav-login:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+    /* Section scaffold */
+    section { padding: clamp(3rem, 7vw, 6rem) clamp(1rem, 5vw, 3rem); }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .75rem; }
+    .section-title { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: var(--text); margin-bottom: .75rem; line-height: 1.2; }
+    .section-sub { color: var(--text-muted); font-size: 1.05rem; max-width: 620px; margin-bottom: 3rem; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Page hero — mission statement */
+    .mission-hero { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: clamp(4rem, 9vw, 7rem) clamp(1rem, 5vw, 3rem); }
+    .mission-hero-inner { max-width: 820px; margin: 0 auto; }
+    .mission-hero .section-tag { display: block; margin-bottom: 1rem; }
+    .mission-hero h1 { font-family: var(--font-head); font-size: clamp(2.2rem, 5.5vw, 3.8rem); font-weight: 700; color: var(--text); line-height: 1.15; margin-bottom: 1.5rem; }
+    .mission-hero h1 em { font-style: normal; color: var(--accent); }
+    .mission-hero p { color: var(--text-muted); font-size: 1.1rem; line-height: 1.75; max-width: 680px; margin-bottom: 1.25rem; }
+
+    /* Story / two-col prose */
+    .prose-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
+    .prose-two-col p { color: var(--text-muted); font-size: .95rem; line-height: 1.75; margin-bottom: 1rem; }
+    .prose-two-col h2 { font-family: var(--font-head); font-size: 1.5rem; color: var(--text); margin-bottom: 1rem; }
+    .pull-quote { font-family: var(--font-head); font-size: 1.35rem; color: var(--text); border-left: 3px solid var(--accent); padding-left: 1.25rem; margin: 1.5rem 0; line-height: 1.45; }
+
+    /* Values */
+    .values-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+    .value-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem 1.5rem; }
+    .value-card .v-icon { font-size: 1.75rem; margin-bottom: .75rem; }
+    .value-card h3 { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); margin-bottom: .5rem; }
+    .value-card p { font-size: .875rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--border); }
+    .tl-item { position: relative; margin-bottom: 2rem; padding-left: 1.5rem; }
+    .tl-item::before { content: ''; position: absolute; left: -2.35rem; top: .45rem; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg-card); }
+    .tl-date { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .25rem; }
+    .tl-title { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin-bottom: .3rem; }
+    .tl-body { font-size: .875rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Tech stack */
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .tech-chip { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; text-align: center; }
+    .tech-chip-name { font-size: .88rem; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
+    .tech-chip-role { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+
+    /* Location section */
+    .location-row { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    .location-map { background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem; text-align: center; font-size: .85rem; color: var(--text-muted); }
+    .location-map .map-placeholder { width: 100%; height: 200px; background: linear-gradient(135deg, rgba(74,122,138,.15), rgba(74,122,138,.05)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; margin-bottom: 1rem; }
+    .stat-cluster { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .mini-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; text-align: center; }
+    .mini-stat-num { font-family: var(--font-head); font-size: 1.75rem; color: var(--text); line-height: 1.1; display: block; }
+    .mini-stat-label { font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-top: .25rem; }
+
+    /* Careers */
+    .open-role { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 12px; }
+    .open-role-title { font-family: var(--font-head); font-size: 1.1rem; color: var(--text); }
+    .open-role-meta { font-size: .8rem; color: var(--text-muted); margin-top: .2rem; }
+    .open-role-tag { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: rgba(74,122,138,.12); color: var(--accent-light); padding: 3px 9px; border-radius: 4px; white-space: nowrap; }
+
+    /* CTA strip */
+    .cta-strip { background: var(--accent); padding: clamp(2.5rem, 6vw, 4rem) clamp(1rem, 5vw, 3rem); text-align: center; }
+    .cta-strip h2 { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; margin-bottom: 1rem; }
+    .cta-strip p { color: rgba(255,255,255,.8); margin-bottom: 2rem; font-size: 1.05rem; max-width: 540px; margin-left: auto; margin-right: auto; }
+    .btn-white { background: #fff; color: var(--accent); }
+    .btn-white:hover { background: rgba(255,255,255,.9); color: var(--accent); }
+    .btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); }
+    .btn-outline-white:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* Footer */
+    footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 3rem clamp(1rem, 5vw, 3rem) 1.5rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem; }
+    .footer-brand img { height: 36px; margin-bottom: 1rem; }
+    .footer-brand p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; max-width: 280px; }
+    .footer-col h4 { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); margin-bottom: .875rem; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .footer-col ul a { font-size: .875rem; color: var(--text-muted); }
+    .footer-col ul a:hover { color: var(--accent); }
+    .footer-copy { color: var(--text-muted); font-size: .8rem; text-align: center; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+    /* Vision & Mission */
+    .vision-mission { background: var(--bg); }
+    .vm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    .vm-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.25rem 2rem; }
+    .vm-block.vision { border-left: 4px solid var(--accent); }
+    .vm-block.mission { border-left: 4px solid var(--accent-light); }
+    .vm-block .vm-tag { font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .6rem; display: block; }
+    .vm-block h2 { font-family: var(--font-head); font-size: 1.55rem; color: var(--text); margin-bottom: 1rem; line-height: 1.3; }
+    .vm-block p { font-size: .9rem; color: var(--text-muted); line-height: 1.72; margin-bottom: .85rem; }
+    .vm-block p:last-child { margin-bottom: 0; }
+    .stakeholder-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.25rem; }
+    .stakeholder-chip { background: rgba(74,122,138,.1); border: 1px solid rgba(74,122,138,.25); border-radius: 50px; padding: 4px 13px; font-size: .75rem; font-weight: 700; color: var(--accent-light); letter-spacing: .04em; white-space: nowrap; }
+    .bridge-banner { margin-top: 3rem; background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 2.5rem; text-align: center; }
+    .bridge-banner .bridge-icon { font-size: 2rem; margin-bottom: .75rem; }
+    .bridge-banner h3 { font-family: var(--font-head); font-size: 1.35rem; color: var(--text); margin-bottom: .6rem; }
+    .bridge-banner p { color: var(--text-muted); font-size: .9rem; max-width: 680px; margin: 0 auto; line-height: 1.7; }
+    .pipeline-stages { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0; margin-top: 1.5rem; }
+    .ps-item { display: flex; align-items: center; gap: 0; }
+    .ps-label { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 5px 11px; font-size: .72rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .ps-arrow { color: var(--accent-light); font-size: .85rem; padding: 0 4px; opacity: .6; }
+
+    /* Responsive */
+    @media (max-width: 900px) { .prose-two-col, .location-row, .vm-grid { grid-template-columns: 1fr; } .footer-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .nav-links { display: none; } .stat-cluster { grid-template-columns: 1fr 1fr; } .footer-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- MISSION HERO -->
+<div class="mission-hero">
+  <div class="mission-hero-inner">
+    <span class="section-tag">BioMate AI</span>
+    <h1>Where complex science becomes <em>confident decisions</em>.</h1>
+    <p>BioMate is the computational platform for organizations that run hard science at scale — pharma, biotech, CROs, clinical teams, and the institutions that support them. One environment. Every discipline. Every stakeholder.</p>
+  </div>
+</div>
+
+<!-- VISION & MISSION -->
+<section class="vision-mission">
+  <div class="section-inner">
+    <span class="section-tag">Why BioMate Exists</span>
+    <h2 class="section-title">The infrastructure layer biomedical science has been missing</h2>
+
+    <div class="vm-grid">
+      <div class="vm-block vision">
+        <span class="vm-tag">Vision</span>
+        <h2>One platform across every team, every discipline, every stage</h2>
+        <p>Biomedical organizations generate more data, run more analyses, and coordinate across more teams than ever before. Yet results still move between groups as email attachments. Decisions still get re-litigated because context didn't survive the handoff. Regulatory packages still have to be assembled from fragments produced by systems that never spoke to each other.</p>
+        <p>BioMate's vision is to become the shared computational environment that ends that fragmentation — not for one team or one discipline, but across the full span of an organization's scientific work. A common layer where findings are produced, quality-assessed, and handed forward without anything being lost.</p>
+        <div class="stakeholder-row">
+          <span class="stakeholder-chip">Pharma R&amp;D</span>
+          <span class="stakeholder-chip">Biotech Programs</span>
+          <span class="stakeholder-chip">CROs &amp; CDMOs</span>
+          <span class="stakeholder-chip">Academic Medical Centers</span>
+          <span class="stakeholder-chip">Clinical &amp; Regulatory Teams</span>
+        </div>
+      </div>
+
+      <div class="vm-block mission">
+        <span class="vm-tag">Mission</span>
+        <h2>Turn scientific complexity into organizational advantage</h2>
+        <p>Every organization doing serious biomedical work faces the same constraint: the computationally intensive questions that matter most take too long to answer, cost too much to run, and produce outputs that require experts to interpret before anyone else can act on them.</p>
+        <p>BioMate exists to invert that. Scientific questions get answered faster. Outputs arrive already structured, quality-assessed, and ready for the next team to use — not just the team that ran the analysis. The expertise required to operate at this level stops being a hiring problem and becomes a platform capability.</p>
+        <div class="stakeholder-row">
+          <span class="stakeholder-chip">Speed to Decision</span>
+          <span class="stakeholder-chip">Audit-Ready Outputs</span>
+          <span class="stakeholder-chip">Organizational Scale</span>
+          <span class="stakeholder-chip">Regulatory Confidence</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THE STORY -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+    <span class="section-tag">Our Story</span>
+    <h2 class="section-title">Built for the organizations doing the hardest science</h2>
+
+    <div class="prose-two-col">
+      <div>
+        <p>The computational methods that biomedical science depends on — structure prediction, molecular simulation, genomic analysis, pharmacokinetic modeling — have never been more capable. The gap is not in the science. It is between what the tools can do and what most organizations can actually deploy, operate, and hand forward at speed.</p>
+        <div class="pull-quote">"The bottleneck is never the science. It is the distance between the science and the decision."</div>
+        <p>BioMate was built to close that distance. Not by simplifying the methods — but by making them accessible, auditable, and organizationally usable at a level that matches the pace modern programs demand.</p>
+      </div>
+      <div>
+        <p>What makes BioMate different is not any individual capability — the scientific methods it employs are the same gold-standard approaches used by the most rigorous organizations in the world. What is different is the layer above them: AI that routes work to the right method, quality assurance built into every output, and a shared audit record that survives every team transition.</p>
+        <p>The result is an organization that can ask harder questions, answer them faster, and hand the results forward in a form the next team can immediately use — without rebuilding context from scratch at every boundary.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">What We Believe</span>
+    <h2 class="section-title">Principles that shape every decision</h2>
+    <p class="section-sub">These are not aspirational statements. They are the constraints we apply when deciding what to build, what to charge, and what to say no to.</p>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="v-icon">🔬</div>
+        <h3>Every result must be defensible</h3>
+        <p>A result that cannot be reproduced or explained to a regulator has limited value. Every analysis on BioMate produces a complete, time-stamped record of how the result was obtained — ready for internal review, publication, or submission.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">📊</div>
+        <h3>Quality signals over false confidence</h3>
+        <p>A result flagged as marginal is more useful than one that looks clean and isn't. BioMate surfaces quality assessments with clear explanations — so teams can make informed decisions, not just move on to the next step.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🤝</div>
+        <h3>AI that your leadership can trust</h3>
+        <p>BioMate's AI makes recommendations, not black-box decisions. Every analytical choice is explainable — which method was selected, why, and what the alternatives were. Your scientific team remains in control.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🏗️</div>
+        <h3>Infrastructure, not just software</h3>
+        <p>A better tool helps one team. A shared platform compounds across every team that joins it. BioMate is designed from day one to become the connective tissue across your organization — not another point solution.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">💰</div>
+        <h3>Pricing that reflects the value we add</h3>
+        <p>Compute is a commodity. We do not mark it up. BioMate's fees reflect the AI layer, the scientific curation, and the quality intelligence that make computational work reliable and fast — not the hardware running underneath it.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🌍</div>
+        <h3>Your data, your results</h3>
+        <p>Everything BioMate produces — results, audit trails, reports — is yours to export, publish, and submit. We build on community-validated scientific standards precisely because science should not be locked into any one vendor.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+    <span class="section-tag">How We Got Here</span>
+    <h2 class="section-title">From prototype to production platform</h2>
+    <p class="section-sub" style="margin-bottom:2.5rem;">Every milestone was earned by running real science, not just building features.</p>
+
+    <div style="max-width:700px;">
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-date">Late 2025</div>
+          <div class="tl-title">Platform foundation: AI-guided scientific workflows in production</div>
+          <div class="tl-body">First working system: scientific intent expressed in natural language, automatically matched to the right analytical method, executed end-to-end in the cloud. Structure prediction, molecular docking, and simulation running in production from day one.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Q1 2026</div>
+          <div class="tl-title">Audit-ready results and quality assurance</div>
+          <div class="tl-body">Built-in quality assessment across all major scientific domains. Every completed analysis produces a structured findings report, a draft Methods section, and a full audit trail — ready for internal review or external submission.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Q2 2026</div>
+          <div class="tl-title">2,000+ workflows · pilot program launched</div>
+          <div class="tl-body">Expanded coverage to 2,000+ validated workflows spanning the complete drug development pipeline. Pilot program opened to pharma teams, CROs, and research institutions — providing full platform access with no usage limits during evaluation.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-date">Next</div>
+          <div class="tl-title">Enterprise workspaces · partner integrations · compliance</div>
+          <div class="tl-body">Multi-team organizational workspaces with role-based access. Direct integrations with CRO partners for structured handoffs. SOC 2 Type II certification underway. Private deployment available for institutions with data sovereignty requirements.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCIENTIFIC COVERAGE -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">Scientific Coverage</span>
+    <h2 class="section-title">The tools your scientists trust, unified in one platform</h2>
+    <p class="section-sub">BioMate integrates the gold-standard methods your teams already rely on — not alternatives or approximations. The same tools, with the coordination layer they were always missing.</p>
+    <div class="tech-grid">
+      <div class="tech-chip"><div class="tech-chip-name">AlphaFold3</div><div class="tech-chip-role">Structure prediction</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">GATK 4</div><div class="tech-chip-role">Genomic variant analysis</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">REINVENT4</div><div class="tech-chip-role">Generative molecular design</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">DiffDock</div><div class="tech-chip-role">Molecular docking</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">GROMACS</div><div class="tech-chip-role">Molecular dynamics</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">CryoSPARC</div><div class="tech-chip-role">Cryo-EM structure determination</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">AmberTools</div><div class="tech-chip-role">Free energy calculation</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">ADMET Profiling</div><div class="tech-chip-role">Drug-likeness &amp; safety</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">PBPK Simulation</div><div class="tech-chip-role">Pharmacokinetic modeling</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">Bioconductor</div><div class="tech-chip-role">Statistical genomics (R)</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">Frontier AI</div><div class="tech-chip-role">Scientific reasoning &amp; routing</div></div>
+      <div class="tech-chip"><div class="tech-chip-name">Cloud-Native</div><div class="tech-chip-role">Global scale, any infrastructure</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LOCATION -->
+<section id="location" style="background: var(--bg);">
+  <div class="section-inner">
+    <span class="section-tag">Where We Are</span>
+    <h2 class="section-title">Headquartered in Houston. Built for global science.</h2>
+
+    <div class="location-row">
+      <div>
+        <p style="color:var(--text-muted);font-size:.95rem;line-height:1.75;margin-bottom:1rem;">BioMate serves pharma teams, CROs, biotech companies, and academic institutions worldwide. Our platform is cloud-native by design — accessible from any research environment, deployable on any compute infrastructure, and built to the reproducibility standards that peer review and regulatory review both demand.</p>
+        <p style="color:var(--text-muted);font-size:.95rem;line-height:1.75;margin-bottom:1.5rem;">We work directly with research teams at every stage of drug development — early discovery through post-approval — to understand the real bottlenecks that computational infrastructure can and cannot solve. That ground-level feedback is the foundation our product is built on.</p>
+        <div class="stat-cluster">
+          <div class="mini-stat"><span class="mini-stat-num">2,000+</span><div class="mini-stat-label">Validated Workflows</div></div>
+          <div class="mini-stat"><span class="mini-stat-num">20+</span><div class="mini-stat-label">Scientific Domains</div></div>
+          <div class="mini-stat"><span class="mini-stat-num">Global</span><div class="mini-stat-label">Deployment</div></div>
+          <div class="mini-stat"><span class="mini-stat-num">SOC 2</span><div class="mini-stat-label">In Progress</div></div>
+        </div>
+      </div>
+      <div class="location-map">
+        <div class="map-placeholder">🌐</div>
+        <strong>BioMate AI</strong><br />
+        Houston, Texas<br /><br />
+        <a href="mailto:contact@biomate.ai">contact@biomate.ai</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAREERS -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">Join Us</span>
+    <h2 class="section-title">We're building the research network of the future</h2>
+    <p class="section-sub">Small team. Real science. Production systems from day one. If that sounds like your kind of work, we'd like to talk.</p>
+
+    <div class="open-role">
+      <div>
+        <div class="open-role-title">Senior Bioinformatics Engineer</div>
+        <div class="open-role-meta">Houston, TX or Remote · Full-time</div>
+      </div>
+      <span class="open-role-tag">Engineering</span>
+    </div>
+    <div class="open-role">
+      <div>
+        <div class="open-role-title">ML Engineer — Workflow Routing &amp; Fine-tuning</div>
+        <div class="open-role-meta">Houston, TX or Remote · Full-time</div>
+      </div>
+      <span class="open-role-tag">ML / AI</span>
+    </div>
+    <div class="open-role">
+      <div>
+        <div class="open-role-title">Research Partnerships Lead</div>
+        <div class="open-role-meta">Houston, TX · Full-time</div>
+      </div>
+      <span class="open-role-tag">Partnerships</span>
+    </div>
+    <div class="open-role">
+      <div>
+        <div class="open-role-title">Life Science Sales — Academic &amp; Pharma Accounts</div>
+        <div class="open-role-meta">Houston, TX or Remote · Full-time</div>
+      </div>
+      <span class="open-role-tag">Sales</span>
+    </div>
+
+    <p style="margin-top:1.5rem;font-size:.9rem;color:var(--text-muted);">Don't see your role? Send a note to <a href="mailto:careers@biomate.ai">careers@biomate.ai</a> — we read every message.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-strip">
+  <h2>Start your free pilot today</h2>
+  <p>No credit card. No configuration. Bring your question — BioMate handles the rest.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a class="btn btn-white" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    <a class="btn btn-outline-white" href="index.html#contact">Get in Touch</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Science</h4>
+        <ul>
+          <li><a href="index.html#approach">Our Approach</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="index.html#applications">Applications</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+          <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer-copy">© 2026 BioMate AI · All rights reserved</p>
+  </div>
+</footer>
+
+</body>
+</html>

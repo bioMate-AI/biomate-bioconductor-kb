@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get Started — BioMate AI</title>
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f0e4; --bg-card: #ece7d8; --bg-card2: #e2dcc8;
+      --accent: #4a7a8a; --accent-light: #3a6878;
+      --text: #1c2b32; --text-muted: #5a7280; --border: #cec5ae;
+      --radius: 10px; --font-body: 'Open Sans', sans-serif; --font-head: 'Crimson Text', serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: var(--accent-light); text-decoration: none; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    .site-header { background: var(--bg); padding: 1.25rem 1rem .75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 48px; width: auto; display: inline-block; }
+
+    .auth-wrap { flex: 1; display: flex; align-items: start; justify-content: center; padding: 3rem 1rem; gap: 3rem; }
+    .auth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; width: 100%; max-width: 420px; flex-shrink: 0; }
+    .auth-card h1 { font-family: var(--font-head); font-size: 1.9rem; color: var(--text); margin-bottom: .35rem; }
+    .auth-card .subtitle { font-size: .875rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+    .form-field { margin-bottom: 1rem; }
+    .form-field label { display: block; font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .06em; }
+    .form-field input, .form-field select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-family: var(--font-body); font-size: .9rem; color: var(--text); transition: border-color .2s; }
+    .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--accent); }
+
+    .btn-full { display: block; width: 100%; padding: 12px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; border: none; cursor: pointer; text-align: center; transition: background .2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+
+    .terms { font-size: .78rem; color: var(--text-muted); text-align: center; margin-top: 1rem; }
+    .terms a { color: var(--accent-light); }
+
+    .auth-alt { text-align: center; font-size: .85rem; color: var(--text-muted); margin-top: 1.5rem; }
+    .auth-alt a { color: var(--accent-light); font-weight: 700; }
+
+    .perks { max-width: 300px; padding-top: 2.5rem; }
+    .perks h2 { font-family: var(--font-head); font-size: 1.4rem; color: var(--text); margin-bottom: 1.25rem; }
+    .perk { display: flex; gap: .75rem; align-items: flex-start; margin-bottom: 1rem; }
+    .perk-icon { font-size: 1.25rem; flex-shrink: 0; margin-top: .1rem; }
+    .perk-text h3 { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: .2rem; }
+    .perk-text p { font-size: .82rem; color: var(--text-muted); line-height: 1.5; }
+
+    footer { text-align: center; padding: 1.5rem; font-size: .78rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+
+    @media (max-width: 820px) { .auth-wrap { flex-direction: column; align-items: center; } .perks { padding-top: 0; max-width: 420px; width: 100%; } .form-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Start for free</h1>
+    <p class="subtitle">No credit card required during the pilot phase.</p>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label for="fname">First name</label>
+        <input type="text" id="fname" name="fname" placeholder="Jane" />
+      </div>
+      <div class="form-field">
+        <label for="lname">Last name</label>
+        <input type="text" id="lname" name="lname" placeholder="Smith" />
+      </div>
+    </div>
+    <div class="form-field">
+      <label for="email">Work / institutional email</label>
+      <input type="email" id="email" name="email" placeholder="you@institution.edu" autocomplete="email" />
+    </div>
+    <div class="form-field">
+      <label for="org">Institution or organization</label>
+      <input type="text" id="org" name="org" placeholder="e.g. Pfizer, Genentech, Stanford University" />
+    </div>
+    <div class="form-field">
+      <label for="role">Your role</label>
+      <select id="role" name="role">
+        <option value="">Select your role…</option>
+        <option>Principal Investigator / PI</option>
+        <option>Postdoctoral Researcher</option>
+        <option>PhD Student / Graduate Student</option>
+        <option>Research Scientist</option>
+        <option>Computational Biologist / Bioinformatician</option>
+        <option>Core Facility Operator</option>
+        <option>Pharma / Biotech Researcher</option>
+        <option>Clinical Genomics</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Min. 8 characters" autocomplete="new-password" />
+    </div>
+
+    <a class="btn-full btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Create Account</a>
+
+    <p class="terms">By signing up you agree to BioMate's <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+
+    <div class="auth-alt">
+      Already have an account? <a href="login.html">Log in →</a>
+    </div>
+  </div>
+
+  <div class="perks">
+    <h2>What you get on day one</h2>
+    <div class="perk">
+      <div class="perk-icon">🧬</div>
+      <div class="perk-text">
+        <h3>2,000+ validated workflows</h3>
+        <p>Drug discovery, genomics, structural biology, cryo-EM, and more — all pre-configured.</p>
+      </div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">⚡</div>
+      <div class="perk-text">
+        <h3>GPU-backed cloud execution</h3>
+        <p>AlphaFold3, GROMACS, and DiffDock running in the cloud — results in under 30 minutes.</p>
+      </div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">🏅</div>
+      <div class="perk-text">
+        <h3>Evidence-graded QC</h3>
+        <p>GOLD / SILVER / BRONZE classification on every run. Know what you can publish before you write the paper.</p>
+      </div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">📄</div>
+      <div class="perk-text">
+        <h3>Methods section included</h3>
+        <p>Auto-generated publication-ready Methods draft with every completed run.</p>
+      </div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">🔒</div>
+      <div class="perk-text">
+        <h3>No quota limits during pilot</h3>
+        <p>Pilot accounts have no rate limits. Run as many analyses as your research requires.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 BioMate AI · <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a></footer>
+
+</body>
+</html>

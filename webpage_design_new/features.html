@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Features — BioMate AI</title>
+  <meta name="description" content="AI-guided workflow routing, evidence-graded QC, GPU-backed execution, and full audit trails — every capability BioMate brings to your research." />
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f0e4;
+      --bg-card:   #ece7d8;
+      --bg-card2:  #e2dcc8;
+      --accent:    #4a7a8a;
+      --accent-light: #3a6878;
+      --text:      #1c2b32;
+      --text-muted:#5a7280;
+      --border:    #cec5ae;
+      --radius:    10px;
+      --font-body: 'Open Sans', sans-serif;
+      --font-head: 'Crimson Text', serif;
+      --nav-h:     68px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    /* Header */
+    .site-header { background: var(--bg); padding: 1.25rem 1rem 0.75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 56px; width: auto; display: inline-block; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(245,240,228,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 0 clamp(1rem, 4vw, 3rem); }
+    .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: .875rem; font-weight: 400; padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s; }
+    .nav-links a:hover { color: var(--accent); background: rgba(74,122,138,.10); }
+    .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; padding: 7px 18px !important; border-radius: 6px !important; }
+    .nav-cta:hover { background: var(--accent-light) !important; color: #fff !important; }
+    .nav-login { border: 1px solid var(--border) !important; color: var(--text) !important; }
+    .nav-login:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+    /* Section scaffold */
+    section { padding: clamp(3rem, 7vw, 6rem) clamp(1rem, 5vw, 3rem); }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .75rem; }
+    .section-title { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: var(--text); margin-bottom: .75rem; line-height: 1.2; }
+    .section-sub { color: var(--text-muted); font-size: 1.05rem; max-width: 620px; margin-bottom: 3rem; }
+
+    /* Page hero */
+    .page-hero { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: clamp(3rem, 7vw, 5rem) clamp(1rem, 5vw, 3rem); text-align: center; }
+    .page-hero .section-tag { display: block; }
+    .page-hero h1 { font-family: var(--font-head); font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+    .page-hero p { color: var(--text-muted); font-size: 1.1rem; max-width: 640px; margin: 0 auto 2rem; }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Feature rows — alternating */
+    .feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-bottom: clamp(3rem, 7vw, 5rem); }
+    .feature-row.reverse { direction: rtl; }
+    .feature-row.reverse > * { direction: ltr; }
+    .feature-text .label { font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .6rem; }
+    .feature-text h2 { font-family: var(--font-head); font-size: clamp(1.6rem, 3vw, 2.2rem); color: var(--text); margin-bottom: 1rem; }
+    .feature-text p { color: var(--text-muted); font-size: .95rem; line-height: 1.7; margin-bottom: 1rem; }
+    .feature-text ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.5rem; }
+    .feature-text ul li { font-size: .9rem; color: var(--text-muted); padding-left: 1.4rem; position: relative; }
+    .feature-text ul li::before { content: "✓"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+    /* UI mockup panels */
+    .ui-mock { background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+    .ui-mock-bar { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    .ui-mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .ui-mock-dot:nth-child(1) { background: #e06c75; }
+    .ui-mock-dot:nth-child(2) { background: #e5c07b; }
+    .ui-mock-dot:nth-child(3) { background: #98c379; }
+    .ui-mock-title { font-size: .75rem; color: var(--text-muted); margin-left: 6px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .ui-mock-body { padding: 1.25rem; }
+
+    /* Chat mock */
+    .chat-bubble { border-radius: 8px; padding: .7rem 1rem; font-size: .85rem; margin-bottom: .6rem; max-width: 88%; line-height: 1.5; }
+    .chat-bubble.user { background: var(--accent); color: #fff; margin-left: auto; text-align: right; }
+    .chat-bubble.ai { background: var(--bg); border: 1px solid var(--border); color: var(--text); }
+    .chat-bubble.ai .ai-tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-light); margin-bottom: .25rem; }
+
+    /* Param table mock */
+    .param-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    .param-table th { text-align: left; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .4rem .75rem; border-bottom: 1px solid var(--border); }
+    .param-table td { padding: .55rem .75rem; border-bottom: 1px solid rgba(206,197,174,.4); color: var(--text); vertical-align: middle; }
+    .param-table tr:last-child td { border-bottom: none; }
+    .param-badge { display: inline-block; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 7px; border-radius: 4px; }
+    .param-badge.req { background: rgba(224,108,117,.15); color: #c0454f; }
+    .param-badge.opt { background: rgba(74,122,138,.12); color: var(--accent-light); }
+    .param-badge.auto { background: rgba(152,195,121,.2); color: #4a8a5a; }
+
+    /* QC mock */
+    .qc-grade { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; }
+    .qc-gold { background: rgba(229,192,123,.25); color: #917820; }
+    .qc-silver { background: rgba(120,140,155,.18); color: #4a6070; }
+    .qc-metric-row { display: flex; justify-content: space-between; align-items: center; padding: .5rem 0; border-bottom: 1px solid rgba(206,197,174,.4); font-size: .83rem; }
+    .qc-metric-row:last-child { border-bottom: none; }
+    .qc-metric-name { color: var(--text-muted); }
+    .qc-metric-val { font-weight: 700; color: var(--text); }
+    .qc-pass { color: #4a8a5a; }
+    .qc-bar-wrap { height: 5px; background: rgba(206,197,174,.5); border-radius: 3px; width: 80px; margin-left: auto; margin-right: 1rem; }
+    .qc-bar { height: 100%; border-radius: 3px; background: var(--accent); }
+
+    /* Audit mock */
+    .audit-line { font-size: .78rem; color: var(--text-muted); padding: .3rem 0; border-bottom: 1px solid rgba(206,197,174,.3); display: flex; gap: .75rem; }
+    .audit-line:last-child { border-bottom: none; }
+    .audit-ts { color: var(--accent-light); font-weight: 700; white-space: nowrap; font-family: monospace; }
+    .audit-evt { flex: 1; }
+
+    /* Feature grid (capability cards) */
+    .cap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+    .cap-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem 1.25rem; }
+    .cap-card .cap-icon { font-size: 1.75rem; margin-bottom: .75rem; }
+    .cap-card h3 { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin-bottom: .4rem; }
+    .cap-card p { font-size: .85rem; color: var(--text-muted); line-height: 1.55; }
+
+    /* Workflow domain table */
+    .wf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .wf-chip { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: .75rem 1rem; display: flex; align-items: center; justify-content: space-between; }
+    .wf-chip-name { font-size: .88rem; font-weight: 700; color: var(--text); }
+    .wf-chip-count { font-size: .75rem; color: var(--accent-light); font-weight: 700; background: rgba(74,122,138,.1); padding: 2px 8px; border-radius: 4px; }
+
+    /* CTA strip */
+    .cta-strip { background: var(--accent); padding: clamp(2.5rem, 6vw, 4rem) clamp(1rem, 5vw, 3rem); text-align: center; }
+    .cta-strip h2 { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.6rem); color: #fff; margin-bottom: 1rem; }
+    .cta-strip p { color: rgba(255,255,255,.8); margin-bottom: 2rem; font-size: 1.05rem; max-width: 540px; margin-left: auto; margin-right: auto; }
+    .btn-white { background: #fff; color: var(--accent); }
+    .btn-white:hover { background: rgba(255,255,255,.9); color: var(--accent); }
+    .btn-outline-white { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); }
+    .btn-outline-white:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* Footer */
+    footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 3rem clamp(1rem, 5vw, 3rem) 1.5rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem; }
+    .footer-brand img { height: 36px; margin-bottom: 1rem; }
+    .footer-brand p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; max-width: 280px; }
+    .footer-col h4 { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); margin-bottom: .875rem; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .footer-col ul a { font-size: .875rem; color: var(--text-muted); }
+    .footer-col ul a:hover { color: var(--accent); }
+    .footer-copy { color: var(--text-muted); font-size: .8rem; text-align: center; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+    /* Responsive */
+    @media (max-width: 900px) { .feature-row { grid-template-columns: 1fr; } .feature-row.reverse { direction: ltr; } .footer-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .nav-links { display: none; } .footer-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <span class="section-tag">Platform Capabilities</span>
+  <h1>Everything your lab needs.<br />Nothing it doesn't.</h1>
+  <p>BioMate is built for real research — not demos. Every feature is production-tested, QC-gated, and designed to produce results you can publish.</p>
+  <div class="hero-btns">
+    <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    <a class="btn btn-outline" href="pricing.html">See Pricing</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ FEATURE 1: AI Routing -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+    <div class="feature-row">
+      <div class="feature-text">
+        <div class="label">AI Workflow Routing</div>
+        <h2>Describe your goal. BioMate picks the right pipeline.</h2>
+        <p>BioMate's routing engine maps plain-English research queries to the correct validated workflow with 94.6% accuracy across 60+ pipelines — without any bioinformatics knowledge required.</p>
+        <ul>
+          <li>Understands biological intent, not just keywords</li>
+          <li>Routes across 20+ research domains</li>
+          <li>Asks clarifying questions when intent is ambiguous</li>
+          <li>Explains its reasoning at every step</li>
+        </ul>
+        <a class="btn btn-outline" href="index.html#applications">See all domains →</a>
+      </div>
+      <div class="ui-mock">
+        <div class="ui-mock-bar">
+          <span class="ui-mock-dot"></span><span class="ui-mock-dot"></span><span class="ui-mock-dot"></span>
+          <span class="ui-mock-title">BioMate Chat</span>
+        </div>
+        <div class="ui-mock-body">
+          <div class="chat-bubble user">I have 8 tumor WGS samples from colorectal cancer patients — FFPE-derived, hg38. I need germline variant calls and somatic SNV/indels for each.</div>
+          <div class="chat-bubble ai">
+            <div class="ai-tag">BioMate</div>
+            I've matched your query to two workflows: <strong>wgs_germline_gatk</strong> (germline SNPs/indels, GATK4 HaplotypeCaller) and <strong>somatic_snv_strelka2</strong> (somatic mutation calling).<br /><br />
+            For FFPE-derived samples, I recommend enabling the FFPE artifact filter in the somatic pipeline. Your reference genome (hg38) is pre-configured. Shall I pre-fill parameters for both?
+          </div>
+          <div class="chat-bubble user">Yes, pre-fill everything and flag any missing inputs.</div>
+          <div class="chat-bubble ai">
+            <div class="ai-tag">BioMate</div>
+            Parameters pre-filled. One required input missing: <strong>known_sites VCF</strong> (dbSNP 138). I can use the standard iGenomes S3 path — confirm?
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FEATURE 2: Parameter Management -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="label">Parameter Management</div>
+        <h2>Pre-filled parameters, validated before they run.</h2>
+        <p>BioMate auto-fills workflow parameters from your query context, file type, and research domain. Required inputs are clearly marked. Optional parameters show evidence-based defaults with rationale.</p>
+        <ul>
+          <li>AI infers parameters from conversational context</li>
+          <li>File type detection (MRC, EER, FASTQ, SMILES, VCF)</li>
+          <li>Parameter history preserved across sessions</li>
+          <li>One-click override with inline editing</li>
+        </ul>
+      </div>
+      <div class="ui-mock">
+        <div class="ui-mock-bar">
+          <span class="ui-mock-dot"></span><span class="ui-mock-dot"></span><span class="ui-mock-dot"></span>
+          <span class="ui-mock-title">Parameter Review</span>
+        </div>
+        <div class="ui-mock-body">
+          <table class="param-table">
+            <thead>
+              <tr><th>Parameter</th><th>Value</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Reference genome</td><td>hg38</td><td><span class="param-badge auto">Auto-filled</span></td></tr>
+              <tr><td>Known sites VCF</td><td>dbSNP138 (iGenomes)</td><td><span class="param-badge auto">Auto-filled</span></td></tr>
+              <tr><td>FFPE artifact filter</td><td>true</td><td><span class="param-badge auto">Auto-filled</span></td></tr>
+              <tr><td>Min base quality</td><td>20</td><td><span class="param-badge opt">Default</span></td></tr>
+              <tr><td>Input BAM files</td><td style="color:#c0454f">— not provided —</td><td><span class="param-badge req">Required</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FEATURE 3: Evidence-Graded QC -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+    <div class="feature-row">
+      <div class="feature-text">
+        <div class="label">Evidence-Graded QC</div>
+        <h2>GOLD / SILVER / BRONZE — so you know what you can publish.</h2>
+        <p>Every run is evaluated against 32 domain-specific QC profiles. BioMate grades outputs with GOLD, SILVER, or BRONZE classification — and explains exactly which metrics passed or failed.</p>
+        <ul>
+          <li>32 protocol-aware QC profiles across all domains</li>
+          <li>Thresholds sourced from published community guidelines (ENCODE and equivalent)</li>
+          <li>Inline QC report embedded in every run</li>
+          <li>BRONZE runs flagged with specific remediation steps</li>
+        </ul>
+      </div>
+      <div class="ui-mock">
+        <div class="ui-mock-bar">
+          <span class="ui-mock-dot"></span><span class="ui-mock-dot"></span><span class="ui-mock-dot"></span>
+          <span class="ui-mock-title">QC Report — Sample 3 of 8</span>
+        </div>
+        <div class="ui-mock-body">
+          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;">
+            <span class="qc-grade qc-gold">● GOLD</span>
+            <span style="font-size:.8rem;color:var(--text-muted);">All critical thresholds passed · Publication-ready</span>
+          </div>
+          <div class="qc-metric-row">
+            <span class="qc-metric-name">Mean coverage (WGS)</span>
+            <div class="qc-bar-wrap"><div class="qc-bar" style="width:92%"></div></div>
+            <span class="qc-metric-val qc-pass">46×</span>
+          </div>
+          <div class="qc-metric-row">
+            <span class="qc-metric-name">Duplicate rate</span>
+            <div class="qc-bar-wrap"><div class="qc-bar" style="width:78%"></div></div>
+            <span class="qc-metric-val qc-pass">8.3%</span>
+          </div>
+          <div class="qc-metric-row">
+            <span class="qc-metric-name">Ti/Tv ratio (SNPs)</span>
+            <div class="qc-bar-wrap"><div class="qc-bar" style="width:95%"></div></div>
+            <span class="qc-metric-val qc-pass">2.14</span>
+          </div>
+          <div class="qc-metric-row">
+            <span class="qc-metric-name">Insert size median</span>
+            <div class="qc-bar-wrap"><div class="qc-bar" style="width:83%"></div></div>
+            <span class="qc-metric-val qc-pass">384 bp</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FEATURE 4: Audit Trail -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="label">Reproducibility &amp; Audit</div>
+        <h2>A complete record of every decision — forever.</h2>
+        <p>BioMate maintains an immutable audit trail for every run: which parameters were set, which were changed from defaults, what the AI reasoned, and what the QC outcome was. Export to PDF or JSON at any time.</p>
+        <ul>
+          <li>Full parameter provenance with changedFrom history</li>
+          <li>AI decision reasoning captured per workflow</li>
+          <li>Draft Methods section generated automatically</li>
+          <li>One-click export for peer review or regulatory submission</li>
+        </ul>
+      </div>
+      <div class="ui-mock">
+        <div class="ui-mock-bar">
+          <span class="ui-mock-dot"></span><span class="ui-mock-dot"></span><span class="ui-mock-dot"></span>
+          <span class="ui-mock-title">Audit Trail — Run #NF-20260413-0047</span>
+        </div>
+        <div class="ui-mock-body">
+          <div class="audit-line"><span class="audit-ts">09:02:14</span><span class="audit-evt">Run submitted · workflow: wgs_germline_gatk · user: dr.chen@tmclab.org</span></div>
+          <div class="audit-line"><span class="audit-ts">09:02:15</span><span class="audit-evt">Parameter: known_sites changed from <em>null</em> → s3://igenomes/hg38/dbSNP138.vcf (AI auto-fill)</span></div>
+          <div class="audit-line"><span class="audit-ts">09:02:15</span><span class="audit-evt">Parameter: ffpe_filter changed from <em>false</em> → <em>true</em> (AI inferred from user message: "FFPE-derived")</span></div>
+          <div class="audit-line"><span class="audit-ts">09:47:31</span><span class="audit-evt">Execution completed · Cloud · 8 samples · 45 min 17 sec</span></div>
+          <div class="audit-line"><span class="audit-ts">09:47:32</span><span class="audit-evt">QC evaluation: 6 × GOLD · 2 × SILVER · 0 × BRONZE</span></div>
+          <div class="audit-line"><span class="audit-ts">09:47:33</span><span class="audit-evt">Methods section generated · Audit PDF exported</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ CAPABILITY GRID -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+    <span class="section-tag">All Capabilities</span>
+    <h2 class="section-title">Built for production research</h2>
+    <p class="section-sub">Every feature ships production-tested — not as a prototype.</p>
+    <div class="cap-grid">
+      <div class="cap-card"><div class="cap-icon">🧠</div><h3>AI Workflow Routing</h3><p>Natural language → validated pipeline, 94.6% accuracy across 2,000+ workflows.</p></div>
+      <div class="cap-card"><div class="cap-icon">⚡</div><h3>GPU-Backed Execution</h3><p>CPU and GPU queues. AlphaFold3, DiffDock, GROMACS MD — production grade.</p></div>
+      <div class="cap-card"><div class="cap-icon">🏅</div><h3>Evidence-Graded QC</h3><p>32 protocol-aware profiles. GOLD / SILVER / BRONZE with per-metric rationale.</p></div>
+      <div class="cap-card"><div class="cap-icon">📋</div><h3>Full Audit Trail</h3><p>Parameter provenance, AI reasoning, QC outcomes — exportable anytime.</p></div>
+      <div class="cap-card"><div class="cap-icon">📄</div><h3>Methods Section Generator</h3><p>Publication-ready Methods draft generated from every completed run.</p></div>
+      <div class="cap-card"><div class="cap-icon">🔬</div><h3>File Type Intelligence</h3><p>MRC / EER (cryo-EM), SMILES, VCF, FASTQ, BAM — auto-detected, params injected.</p></div>
+      <div class="cap-card"><div class="cap-icon">💾</div><h3>5-Tier Memory</h3><p>Remembers your workflows, parameters, and corrections — within and across sessions.</p></div>
+      <div class="cap-card"><div class="cap-icon">📦</div><h3>CRO Submission Export</h3><p>Structured compound packages ready to send to external contract labs.</p></div>
+      <div class="cap-card"><div class="cap-icon">🔒</div><h3>Per-User Isolation</h3><p>Each account gets its own Galaxy API key and isolated execution environment.</p></div>
+      <div class="cap-card"><div class="cap-icon">📊</div><h3>Interactive Results Viewer</h3><p>Inline table rendering, image viewer, download commands, and QC panels.</p></div>
+      <div class="cap-card"><div class="cap-icon">🧬</div><h3>Reference Genome Integration</h3><p>Reference genomes and annotation files auto-sourced from cloud-hosted genome repositories.</p></div>
+      <div class="cap-card"><div class="cap-icon">🛡️</div><h3>SOC 2 In Progress</h3><p>Observation window started. Audit trail and RBAC meet compliance prerequisites.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ WORKFLOW DOMAINS -->
+<section style="background: var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">Workflow Catalog</span>
+    <h2 class="section-title">2,000+ validated workflows across 20+ domains</h2>
+    <p class="section-sub">All workflows run on community-validated pipelines with container-pinned reproducibility.</p>
+    <div class="wf-grid">
+      <div class="wf-chip"><span class="wf-chip-name">Drug Discovery</span><span class="wf-chip-count">18</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Genomics</span><span class="wf-chip-count">12</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Structural Biology</span><span class="wf-chip-count">6</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Multi-Omics</span><span class="wf-chip-count">8</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Synthetic Biology</span><span class="wf-chip-count">9</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Systems Biology</span><span class="wf-chip-count">5</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Cryo-EM</span><span class="wf-chip-count">4</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Clinical Genomics</span><span class="wf-chip-count">4</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Metabolomics</span><span class="wf-chip-count">3</span></div>
+      <div class="wf-chip"><span class="wf-chip-name">Pharmacology</span><span class="wf-chip-count">7</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-strip">
+  <h2>Ready to run your first workflow?</h2>
+  <p>Sign up free — no credit card required during the pilot phase. Results in under 30 minutes.</p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a class="btn btn-white" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    <a class="btn btn-outline-white" href="pricing.html">See Pricing</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Science</h4>
+        <ul>
+          <li><a href="index.html#approach">Our Approach</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="index.html#applications">Applications</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+          <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer-copy">© 2026 BioMate AI · All rights reserved</p>
+  </div>
+</footer>
+
+</body>
+</html>

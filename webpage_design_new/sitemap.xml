@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://biomate.ai/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://biomate.ai/about.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://biomate.ai/features.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://biomate.ai/pricing.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://biomate.ai/blog-auto-qc-loop.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-llm-core.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-bioconductor.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-auto-discovery.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-memory.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-workflow-routing.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-1-target.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-2-hit.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-3-admet.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-4-preclinical.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-5-clinical.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-drug-6-postmarket.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-admet-guide.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-gatk-deepvariant.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-cryosparc-spa.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-qc-grading.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-structure-docking.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-reinvent4.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://biomate.ai/blog-cro-submission.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>

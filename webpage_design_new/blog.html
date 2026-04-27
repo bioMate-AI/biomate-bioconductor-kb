@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog — BioMate AI</title>
+  <meta name="description" content="Insights on computational biology, drug discovery AI, genomics, structural biology, cryo-EM, ADMET profiling, clinical pharmacology, and scientific workflow automation from the BioMate team." />
+  <meta name="keywords" content="computational biology blog, drug discovery AI, ADMET profiling, genomics workflows, cryo-EM processing, molecular docking, PBPK modeling, pharmacovigilance, bioinformatics, RNA-seq, WGS variant calling, single-cell sequencing, Bioconductor, AlphaFold, CryoSPARC, GROMACS, REINVENT4, lead optimization, IND filing, clinical pharmacokinetics, scientific quality control, regulatory science, CRO software, biotech AI" />
+  <link rel="canonical" href="https://biomate.ai/blog.html" />
+  <meta property="og:title" content="BioMate AI Blog — Computational Biology Insights" />
+  <meta property="og:description" content="Insights on drug discovery AI, genomics, structural biology, cryo-EM, ADMET profiling, clinical pharmacology, and scientific workflow automation." />
+  <meta property="og:url" content="https://biomate.ai/blog.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://biomate.ai/images/og-cover.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f5f0e4;
+      --bg-card:   #ece7d8;
+      --bg-card2:  #e2dcc8;
+      --accent:    #4a7a8a;
+      --accent-light: #3a6878;
+      --text:      #1c2b32;
+      --text-muted:#5a7280;
+      --border:    #cec5ae;
+      --radius:    10px;
+      --font-body: 'Open Sans', sans-serif;
+      --font-head: 'Crimson Text', serif;
+      --nav-h:     68px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-weight: 400; line-height: 1.6; font-size: 16px; }
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    /* Header */
+    .site-header { background: var(--bg); padding: 1.25rem 1rem 0.75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 56px; width: auto; display: inline-block; }
+
+    /* Nav */
+    nav { position: sticky; top: 0; z-index: 100; height: var(--nav-h); background: rgba(245,240,228,.97); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 0 clamp(1rem, 4vw, 3rem); }
+    .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: .875rem; font-weight: 400; padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s; }
+    .nav-links a:hover { color: var(--accent); background: rgba(74,122,138,.10); }
+    .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; padding: 7px 18px !important; border-radius: 6px !important; }
+    .nav-cta:hover { background: var(--accent-light) !important; color: #fff !important; }
+    .nav-login { border: 1px solid var(--border) !important; color: var(--text) !important; }
+    .nav-login:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+    /* Section scaffold */
+    section { padding: clamp(3rem, 7vw, 6rem) clamp(1rem, 5vw, 3rem); }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .75rem; }
+    .section-title { font-family: var(--font-head); font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: var(--text); margin-bottom: .75rem; line-height: 1.2; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Page header */
+    .blog-header { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: clamp(3rem, 7vw, 5rem) clamp(1rem, 5vw, 3rem); }
+    .blog-header-inner { max-width: 1200px; margin: 0 auto; }
+    .blog-header .section-tag { display: block; }
+    .blog-header h1 { font-family: var(--font-head); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 700; color: var(--text); margin-bottom: .75rem; }
+    .blog-header p { color: var(--text-muted); font-size: 1.05rem; max-width: 560px; }
+
+    /* Category pills */
+    .category-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.5rem; }
+    .pill { display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 5px 14px; border-radius: 50px; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+    .pill:hover, .pill.active { border-color: var(--accent); color: var(--accent-light); background: rgba(74,122,138,.08); }
+
+    /* Featured post */
+    .featured-post { background: var(--bg-card2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: grid; grid-template-columns: 1.2fr 1fr; margin-bottom: 3rem; }
+    .featured-post-img { background: linear-gradient(135deg, rgba(74,122,138,.3), rgba(28,43,50,.5)); min-height: 300px; display: flex; align-items: flex-end; padding: 2rem; }
+    .featured-tag { display: inline-block; background: var(--accent); color: #fff; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px; border-radius: 4px; }
+    .featured-post-body { padding: 2.5rem 2rem; display: flex; flex-direction: column; justify-content: center; }
+    .post-meta { font-size: .78rem; color: var(--text-muted); margin-bottom: .75rem; }
+    .post-meta span { color: var(--accent-light); font-weight: 700; }
+    .featured-post-body h2 { font-family: var(--font-head); font-size: clamp(1.4rem, 2.5vw, 1.9rem); color: var(--text); margin-bottom: .75rem; line-height: 1.3; }
+    .featured-post-body p { font-size: .9rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 1.5rem; }
+    .read-link { font-size: .875rem; font-weight: 700; color: var(--accent-light); display: inline-flex; align-items: center; gap: 5px; }
+    .read-link:hover { color: var(--accent); }
+    .read-link::after { content: "→"; }
+
+    /* Blog grid */
+    .blog-layout { display: grid; grid-template-columns: 1fr 300px; gap: 3rem; align-items: start; }
+    .post-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+
+    /* Post card */
+    .post-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color .25s, transform .25s; }
+    .post-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .post-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg-card2); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--text-muted); }
+    .post-card-body { padding: 1.25rem 1.25rem 1.5rem; }
+    .post-cat { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-light); margin-bottom: .4rem; }
+    .post-card-body h3 { font-family: var(--font-head); font-size: 1.15rem; color: var(--text); margin-bottom: .4rem; line-height: 1.3; }
+    .post-card-body p { font-size: .83rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1rem; }
+    .post-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: .75rem; color: var(--text-muted); }
+    .post-card-footer a { color: var(--accent-light); font-weight: 700; font-size: .78rem; }
+    .post-card-footer a:hover { color: var(--accent); }
+
+    /* Sidebar */
+    .sidebar-widget { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.5rem; }
+    .sidebar-widget h3 { font-family: var(--font-head); font-size: 1.1rem; color: var(--text); margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+    .sidebar-list { list-style: none; display: flex; flex-direction: column; gap: .75rem; }
+    .sidebar-list li { font-size: .85rem; }
+    .sidebar-list a { color: var(--text); font-weight: 400; }
+    .sidebar-list a:hover { color: var(--accent); }
+    .sidebar-list .meta { font-size: .75rem; color: var(--text-muted); }
+
+    .subscribe-widget input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-family: var(--font-body); font-size: .875rem; color: var(--text); margin-bottom: 8px; }
+    .subscribe-widget input:focus { outline: none; border-color: var(--accent); }
+    .subscribe-widget .btn-primary { width: 100%; justify-content: center; padding: 10px 20px; }
+
+    .topic-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .topic-chip { background: var(--bg); border: 1px solid var(--border); border-radius: 4px; font-size: .75rem; color: var(--text-muted); padding: 3px 9px; }
+    .topic-chip:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Footer */
+    footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 3rem clamp(1rem, 5vw, 3rem) 1.5rem; }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem; }
+    .footer-brand img { height: 36px; margin-bottom: 1rem; }
+    .footer-brand p { color: var(--text-muted); font-size: .875rem; line-height: 1.6; max-width: 280px; }
+    .footer-col h4 { font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text); margin-bottom: .875rem; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+    .footer-col ul a { font-size: .875rem; color: var(--text-muted); }
+    .footer-col ul a:hover { color: var(--accent); }
+    .footer-copy { color: var(--text-muted); font-size: .8rem; text-align: center; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+
+    /* Responsive */
+    @media (max-width: 1000px) { .blog-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .nav-links { display: none; } .featured-post { grid-template-columns: 1fr; } .featured-post-img { min-height: 200px; } .footer-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<!-- NAV -->
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<!-- BLOG HEADER -->
+<div class="blog-header">
+  <div class="blog-header-inner">
+    <span class="section-tag">From the BioMate Team</span>
+    <h1>Research Notes &amp; Platform Updates</h1>
+    <p>Workflow deep-dives, QC methodology, drug discovery case studies, and what we're building next.</p>
+    <div class="category-pills">
+      <span class="pill active">All</span>
+      <span class="pill">Drug Development</span>
+      <span class="pill">Platform Architecture</span>
+      <span class="pill">AI &amp; LLMs</span>
+      <span class="pill">QC &amp; Methods</span>
+      <span class="pill">Genomics</span>
+      <span class="pill">Structural Biology</span>
+      <span class="pill">Cryo-EM</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<section style="background: var(--bg);">
+  <div class="section-inner">
+
+    <!-- Featured Post -->
+    <div class="featured-post">
+      <div class="featured-post-img">
+        <span class="featured-tag">Featured</span>
+      </div>
+      <div class="featured-post-body">
+        <div class="post-meta">April 22, 2026 · <span>Platform Architecture</span> · 9 min read</div>
+        <h2>Quality That Never Settles: BioMate's Evidence-Graded Auto-QC Loop</h2>
+        <p>BioMate evaluates every analysis against published domain quality standards. When results fall short, the system identifies the specific failing metric, adjusts parameters, and reruns automatically — returning either a quality-graded passing result or a clear, documented explanation of what prevented one.</p>
+        <a class="read-link" href="blog-auto-qc-loop.html">Read the full post</a>
+      </div>
+    </div>
+
+    <!-- Blog grid + sidebar -->
+    <div class="blog-layout">
+      <div class="post-grid">
+
+        <!-- ── Platform Architecture ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-llm-core-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">AI &amp; LLMs</div>
+            <h3>Purpose-Built AI for Science: Coordinating Frontier Models for Reliable Results</h3>
+            <p>BioMate coordinates specialized AI systems for routing, analysis, quality evaluation, and findings narration — matching each scientific task to the reasoning capability best suited to it.</p>
+            <div class="post-card-footer">
+              <span>April 22, 2026 · 7 min</span>
+              <a href="blog-llm-core.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-bioconductor-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Platform Architecture</div>
+            <h3>The R Ecosystem, Accessible to Everyone: Bioconductor Methods in BioMate</h3>
+            <p>The full Bioconductor ecosystem of peer-reviewed R methods, available through plain-English requests — no R required.</p>
+            <div class="post-card-footer">
+              <span>April 20, 2026 · 6 min</span>
+              <a href="blog-bioconductor.html">The R Ecosystem, Accessible to Everyone: Bioconductor M…</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-auto-discovery-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Platform Architecture</div>
+            <h3>Keeping Current: How BioMate Discovers and Validates New Analytical Tools</h3>
+            <p>BioMate continuously monitors primary tool sources, tests candidates against sample datasets, and adds validated workflows after human review.</p>
+            <div class="post-card-footer">
+              <span>April 18, 2026 · 8 min</span>
+              <a href="blog-auto-discovery.html">Keeping Current: How BioMate Discovers and Validates Ne…</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-memory-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Platform Architecture</div>
+            <h3>Context That Compounds: BioMate's Hierarchical Memory for Scientific Research</h3>
+            <p>BioMate's multi-tier memory hierarchy learns your lab's preferences, QC standards, and workflows — improving recommendations with every session.</p>
+            <div class="post-card-footer">
+              <span>April 17, 2026 · 6 min</span>
+              <a href="blog-memory.html">Context That Compounds: BioMate's Hierarchical Memory f…</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-workflow-routing-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Platform Architecture</div>
+            <h3>Scientific Intent, Precisely Matched: BioMate's Hybrid Workflow Search</h3>
+            <p>Hybrid semantic search combining vector embeddings, domain scoring, and reasoning resolves ambiguous requests to the right workflow — or surfaces ranked alternatives.</p>
+            <div class="post-card-footer">
+              <span>April 15, 2026 · 7 min</span>
+              <a href="blog-workflow-routing.html">Scientific Intent, Precisely Matched: BioMate's Hybrid …</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Drug Development Series ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-gatk-deepvariant-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>Before the First Compound: Computational Target Discovery and Validation</h3>
+            <p>Computational target validation — structure prediction, pocket druggability, CRISPR essentiality, and functional genomics — before any chemistry begins.</p>
+            <div class="post-card-footer">
+              <span>April 22, 2026 · 8 min</span>
+              <a href="blog-drug-1-target.html">Target Discovery and Validation</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-2-hit-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>From Chemical Space to Hit List: AI-Guided Virtual Screening at Scale</h3>
+            <p>AI-powered virtual screening filters millions of compounds by binding geometry, pharmacophore fit, and ADMET liability before a single assay is run.</p>
+            <div class="post-card-footer">
+              <span>April 21, 2026 · 8 min</span>
+              <a href="blog-drug-2-hit.html">Virtual Screening and Hit Discovery</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-2-hit-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>The ADMET Bottleneck: Profiling Drug-Like Properties Before Synthesis</h3>
+            <p>Full ADMET profiling, CYP DDI analysis, molecular dynamics, and generative design close the lead optimization loop in silico.</p>
+            <div class="post-card-footer">
+              <span>April 19, 2026 · 10 min</span>
+              <a href="blog-drug-3-admet.html">ADMET Profiling and Lead Optimization</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-3-admet-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>From Animal Studies to IND Filing: Computational Preclinical Development</h3>
+            <p>PBPK simulation, allometric scaling, toxicity prediction, and IND document assembly — translating preclinical data into regulatory-ready packages.</p>
+            <div class="post-card-footer">
+              <span>April 17, 2026 · 9 min</span>
+              <a href="blog-drug-4-preclinical.html">Preclinical Development and IND Filing</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-5-clinical-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>Designing Safer Trials: Computational Support for Clinical Development</h3>
+            <p>Dose escalation simulation, population PK, pharmacogenomics stratification, and real-time safety signal analysis for clinical teams.</p>
+            <div class="post-card-footer">
+              <span>April 15, 2026 · 9 min</span>
+              <a href="blog-drug-5-clinical.html">Clinical Development and Trial Design</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-6-postmarket-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>After Approval: Computational Pharmacovigilance and Real-World Safety</h3>
+            <p>Post-approval safety monitoring, drug interaction surveillance, and pharmacovigilance — supporting regulatory obligations through the full product lifecycle.</p>
+            <div class="post-card-footer">
+              <span>April 13, 2026 · 7 min</span>
+              <a href="blog-drug-6-postmarket.html">Post-Approval and Pharmacovigilance</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── QC & Methods ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-qc-grading-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">QC &amp; Methods</div>
+            <h3>Gold, Silver, Bronze: A Transparent Framework for Scientific Quality Assessment</h3>
+            <p>Evidence-graded QC assessed against published community standards — with the specific failing metric, its value, and remediation context included in every report.</p>
+            <div class="post-card-footer">
+              <span>April 11, 2026 · 7 min</span>
+              <a href="blog-qc-grading.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Genomics ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-structure-docking-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Genomics</div>
+            <h3>Choosing Your Variant Caller: GATK4 vs. Deep Learning in Whole-Genome Sequencing</h3>
+            <p>When to use established heuristic-probabilistic variant calling versus deep learning approaches — and how BioMate selects between them based on your data.</p>
+            <div class="post-card-footer">
+              <span>April 8, 2026 · 6 min</span>
+              <a href="blog-gatk-deepvariant.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Drug Discovery ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-admet-guide-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>Reading ADMET Results: A Practical Guide for Drug Discovery Teams</h3>
+            <p>How to read ADMET results in therapeutic context — co-occurring liabilities, threshold interpretation, and actionable remediation guidance.</p>
+            <div class="post-card-footer">
+              <span>April 5, 2026 · 10 min</span>
+              <a href="blog-admet-guide.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Structural Biology / Cryo-EM ── -->
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-drug-1-target-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Cryo-EM</div>
+            <h3>End-to-End Cryo-EM Processing: From Raw Micrographs to Publication-Ready Map</h3>
+            <p>BioMate automates the complete cryo-EM SPA pipeline from raw micrographs to publication-ready map, with QC gates at every processing stage.</p>
+            <div class="post-card-footer">
+              <span>April 2, 2026 · 9 min</span>
+              <a href="blog-cryosparc-spa.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-structure-docking-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Structural Biology</div>
+            <h3>From Sequence to Binding Pose: Integrated Structure Prediction and Molecular Docking</h3>
+            <p>From protein sequence to ranked binding poses in one pipeline — structure prediction feeds directly into flexible docking with confidence annotation throughout.</p>
+            <div class="post-card-footer">
+              <span>March 22, 2026 · 5 min</span>
+              <a href="blog-structure-docking.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-cryosparc-spa-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>Exploring Chemical Space: AI-Guided Generative Design for Lead Optimization</h3>
+            <p>Reinforcement learning-guided generative design explores structural variants optimized simultaneously for binding, ADMET, selectivity, and synthesizability.</p>
+            <div class="post-card-footer">
+              <span>March 18, 2026 · 12 min</span>
+              <a href="blog-reinvent4.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="post-card">
+          <div class="post-card-img"><img src="images/blog-cro-submission-hero.png" alt="" style="width:100%;height:100%;object-fit:cover;" loading="lazy" /></div>
+          <div class="post-card-body">
+            <div class="post-cat">Drug Development</div>
+            <h3>Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate</h3>
+            <p>BioMate generates structured compound packages — structures, ADMET predictions, assay specs, and audit trail — in formats CROs consume directly.</p>
+            <div class="post-card-footer">
+              <span>February 28, 2026 · 5 min</span>
+              <a href="blog-cro-submission.html">Read →</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="sidebar-widget subscribe-widget">
+          <h3>Stay updated</h3>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">New posts every week — workflow guides, QC notes, and platform updates.</p>
+          <input type="email" placeholder="your@email.com" />
+          <a class="btn btn-primary" href="mailto:contact@biomate.ai?subject=Blog%20Updates">Subscribe</a>
+        </div>
+
+        <div class="sidebar-widget">
+          <h3>Recent Posts</h3>
+          <ul class="sidebar-list">
+            <li>
+              <a href="blog-llm-core.html">Purpose-Built AI for Science: Coordinating Frontier Mod…</a>
+              <div class="meta">April 22, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-1-target.html">Target Discovery and Validation</a>
+              <div class="meta">April 22, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-2-hit.html">Virtual Screening and Hit Discovery</a>
+              <div class="meta">April 20, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-3-admet.html">ADMET Profiling and Lead Optimization</a>
+              <div class="meta">April 21, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-4-preclinical.html">Preclinical Development and IND Filing</a>
+              <div class="meta">April 18, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-5-clinical.html">Clinical Development and Trial Design</a>
+              <div class="meta">April 19, 2026</div>
+            </li>
+            <li>
+              <a href="blog-drug-6-postmarket.html">Post-Approval and Pharmacovigilance</a>
+              <div class="meta">April 17, 2026</div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="sidebar-widget">
+          <h3>Series: Computational Drug Development</h3>
+          <ul class="sidebar-list">
+            <li><a href="blog-drug-1-target.html">Part 1 — Target Discovery &amp; Validation</a></li>
+            <li><a href="blog-drug-2-hit.html">Part 2 — Hit Discovery &amp; Virtual Screening</a></li>
+            <li><a href="blog-drug-3-admet.html">Part 3 — ADMET &amp; Lead Optimization</a></li>
+            <li><a href="blog-drug-4-preclinical.html">Part 4 — Preclinical &amp; IND Preparation</a></li>
+            <li><a href="blog-drug-5-clinical.html">Part 5 — Clinical Trial Design &amp; PK</a></li>
+            <li><a href="blog-drug-6-postmarket.html">Part 6 — Post-Approval &amp; Pharmacovigilance</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-widget">
+          <h3>Topics</h3>
+          <div class="topic-chips">
+            <a href="blog-drug-1-target.html" class="topic-chip">Target Discovery</a>
+            <a href="blog-drug-2-hit.html" class="topic-chip">Virtual Screening</a>
+            <a href="blog-drug-3-admet.html" class="topic-chip">ADMET</a>
+            <a href="blog-drug-3-admet.html" class="topic-chip">Lead Optimization</a>
+            <a href="blog-drug-4-preclinical.html" class="topic-chip">Preclinical</a>
+            <a href="blog-drug-4-preclinical.html" class="topic-chip">IND Filing</a>
+            <a href="blog-drug-5-clinical.html" class="topic-chip">Clinical Trials</a>
+            <a href="blog-drug-6-postmarket.html" class="topic-chip">Pharmacovigilance</a>
+            <a href="blog-structure-docking.html" class="topic-chip">Structure Prediction</a>
+            <a href="blog-structure-docking.html" class="topic-chip">Molecular Docking</a>
+            <a href="blog-reinvent4.html" class="topic-chip">Generative Design</a>
+            <a href="blog-cryosparc-spa.html" class="topic-chip">Cryo-EM</a>
+            <a href="blog-gatk-deepvariant.html" class="topic-chip">Genomics</a>
+            <a href="blog-bioconductor.html" class="topic-chip">Bioconductor</a>
+            <a href="blog-auto-qc-loop.html" class="topic-chip">Auto-QC</a>
+            <a href="blog-memory.html" class="topic-chip">Memory</a>
+            <a href="blog-workflow-routing.html" class="topic-chip">Workflow Routing</a>
+            <a href="blog-admet-guide.html" class="topic-chip">ADMET Guide</a>
+            <a href="blog-qc-grading.html" class="topic-chip">Quality Grading</a>
+            <a href="blog-cro-submission.html" class="topic-chip">CRO Handoff</a>
+          </div>
+        </div>
+
+        <div class="sidebar-widget">
+          <h3>Try BioMate</h3>
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:1rem;">Everything described in this blog runs live on the platform. Start free — no credit card required.</p>
+          <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" style="width:100%;justify-content:center;padding:10px 20px;">Start Free Trial</a>
+        </div>
+      </aside>
+    </div>
+
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="features.html">Features</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Science</h4>
+        <ul>
+          <li><a href="index.html#approach">Our Approach</a></li>
+          <li><a href="blog.html">Blog</a></li>
+          <li><a href="index.html#applications">Applications</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+          <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="footer-copy">© 2026 BioMate AI · All rights reserved</p>
+  </div>
+</footer>
+
+</body>
+</html>

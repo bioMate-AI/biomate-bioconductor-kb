@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /register.html
+Disallow: /login.html
+
+Sitemap: https://biomate.ai/sitemap.xml

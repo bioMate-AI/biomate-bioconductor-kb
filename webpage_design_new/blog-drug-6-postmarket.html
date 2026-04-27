@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Computational Pharmacovigilance — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  a:hover { color:var(--accent); }
+  img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+</style>
+  <meta name="description" content="BioMate supports ongoing pharmacovigilance with adverse event signal detection, drug interaction monitoring, and pharmacogenomics reporting." />
+  <meta name="keywords" content="BioMate AI, drug development, computational biology, biomedical AI, blog drug 6 postmarket" />
+  <link rel="canonical" href="https://biomate.ai/blog-drug-6-postmarket.html" />
+  <meta property="og:title" content="After Approval: Computational Pharmacovigilance and Real-World Safety" />
+  <meta property="og:description" content="BioMate supports ongoing pharmacovigilance with adverse event signal detection, drug interaction monitoring, and pharmacogenomics reporting." />
+  <meta property="og:url" content="https://biomate.ai/blog-drug-6-postmarket.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-drug-6-postmarket-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="After Approval: Computational Pharmacovigilance and Real-World Safety" />
+  <meta name="twitter:description" content="BioMate supports ongoing pharmacovigilance with adverse event signal detection, drug interaction monitoring, and pharmacogenomics reporting." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-drug-6-postmarket-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "After Approval: Computational Pharmacovigilance and Real-World Safety",
+    "description": "BioMate supports ongoing pharmacovigilance with adverse event signal detection, drug interaction monitoring, and pharmacogenomics reporting.",
+    "datePublished": "2026-04-17",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-drug-6-postmarket.html",
+    "image": "https://biomate.ai/images/blog-drug-6-postmarket-hero.png",
+    "articleSection": "Drug Development"
+  }
+  </script>
+</head>
+<body>
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<div class="article-hero">
+  <img src="images/blog-drug-6-postmarket-hero.png" alt="BioMate for Drug Discovery, Part 6: Post-Approval and Pharmacovigilance" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development</span>
+      <h1>After Approval: Computational Pharmacovigilance and Real-World Safety</h1>
+      <div class="article-meta">
+        <span><strong>April 13, 2026</strong></span>
+        <span>7 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">Approval is not the end of a drug's computational story. It is the beginning of a new chapter: monitoring real-world safety at a scale and diversity that no clinical trial can match, detecting unexpected interactions as co-prescription patterns evolve, and managing ongoing pharmacovigilance obligations that persist for the life of the product.</p>
+
+      <h2>Real-World Safety Signal Detection</h2>
+      <p>Post-market pharmacovigilance relies on spontaneous adverse event reporting — data collected from healthcare providers, patients, and manufacturers through systems like the FDA Adverse Event Reporting System (FAERS). This data is large, noisy, and requires computational analysis to identify meaningful signals against the background of expected event rates.</p>
+      <p>BioMate integrates FAERS signal analysis, applying standard disproportionality methods to identify adverse event-drug pairs that occur more frequently than expected given the reporting patterns of the full database. Signals are contextualized against the known mechanism of action, the drug class, and the approved indication — distinguishing expected on-target effects from unexpected safety findings that warrant follow-up.</p>
+
+      <h2>Drug-Drug Interaction Monitoring</h2>
+      <p>As an approved drug enters clinical use, its co-prescription landscape evolves. Patients may be started on new medications that interact with its metabolic pathways, altering exposure in ways that were not anticipated during development. BioMate integrates drug combination safety checking and CYP450 DDI monitoring, allowing pharmacovigilance teams to proactively assess new co-prescription patterns as they emerge in real-world prescribing data.</p>
+
+      <blockquote>"Post-market surveillance is an ongoing obligation, not a one-time event. The tools that support it should be as accessible as the tools that supported development."</blockquote>
+
+      <h2>Pharmacogenomics in Post-Market Practice</h2>
+      <p>Real-world populations are more genetically diverse than clinical trial populations. After approval, PGx data from real-world patients can reveal subgroups with systematically different exposure profiles, efficacy outcomes, or adverse event rates. BioMate supports PGx reporting that can inform label updates, risk management strategies, and companion diagnostic development — translating real-world genetic data into actionable clinical guidance.</p>
+
+      <div class="callout">
+        <strong>What this means for regulatory and pharmacovigilance teams</strong>
+        <p>Post-market safety monitoring, drug interaction surveillance, and adverse event signal detection require the same rigor as clinical development — with the additional complexity of operating at real-world scale. BioMate provides the computational tools to meet that obligation efficiently and consistently.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-drug-1-target.html">BioMate for Drug Discovery, Part 1: Computational Target Discovery</a><div class="meta">April 22, 2026</div></li>
+<li><a href="blog-drug-2-hit.html">BioMate for Drug Discovery, Part 2: AI-Powered Hit Discovery</a><div class="meta">April 21, 2026</div></li>
+<li><a href="blog-drug-3-admet.html">BioMate for Drug Discovery, Part 3: ADMET and the Lead Optimization Loop</a><div class="meta">April 19, 2026</div></li>
+<li><a href="blog-drug-4-preclinical.html">BioMate for Drug Discovery, Part 4: Preclinical Modeling and IND Preparation</a><div class="meta">April 17, 2026</div></li>
+<li><a href="blog-drug-5-clinical.html">BioMate for Drug Discovery, Part 5: Supporting Clinical Development</a><div class="meta">April 15, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">Pharmacovigilance</span><span class="topic-chip">Post-Market</span><span class="topic-chip">FAERS</span><span class="topic-chip">Drug Interactions</span><span class="topic-chip">Safety Signals</span><span class="topic-chip">PGx</span><span class="topic-chip">DDinter</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Science</h4><ul>
+        <li><a href="index.html#approach">Our Approach</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#applications">Applications</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Company</h4><ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+      </ul></div>
+    </div>
+    <p class="footer-copy">&#169; 2026 BioMate AI &middot; All rights reserved</p>
+  </div>
+</footer>
+</body>
+</html>

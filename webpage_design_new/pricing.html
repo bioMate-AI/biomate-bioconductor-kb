@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pricing — BioMate AI</title>
+  <meta name="description" content="BioMate pricing — free pilot access, premium plans, and enterprise deployments for research institutions and pharma." />
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f0e4; --bg-card: #ece7d8; --bg-card2: #e2dcc8;
+      --accent: #4a7a8a; --accent-light: #3a6878;
+      --text: #1c2b32; --text-muted: #5a7280; --border: #cec5ae;
+      --radius: 10px; --font-body: 'Open Sans', sans-serif; --font-head: 'Crimson Text', serif; --nav-h: 68px;
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+    a { color: var(--accent-light); text-decoration: none; transition: color .2s; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    .site-header { background: var(--bg); padding: 1.25rem 1rem .75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 56px; width: auto; display: inline-block; }
+    nav {
+      position: sticky; top: 0; z-index: 100; height: var(--nav-h);
+      background: rgba(245,240,228,.97); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; padding: 0 clamp(1rem,4vw,3rem);
+    }
+    .nav-links { display: flex; align-items: center; gap: 8px; list-style: none; flex-wrap: wrap; }
+    .nav-links a { color: var(--text-muted); font-size: .875rem; padding: 6px 12px; border-radius: 6px; transition: background .2s, color .2s; }
+    .nav-links a:hover, .nav-links a.active { color: var(--accent); background: rgba(74,122,138,.10); }
+    .nav-cta { background: var(--accent) !important; color: #fff !important; font-weight: 700 !important; padding: 7px 18px !important; border-radius: 6px !important; }
+    .nav-login { border: 1px solid var(--border) !important; color: var(--text) !important; }
+
+    section { padding: clamp(3rem,7vw,6rem) clamp(1rem,5vw,3rem); }
+    .section-inner { max-width: 1200px; margin: 0 auto; }
+    .section-tag { display: inline-block; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-light); margin-bottom: .75rem; }
+    .section-title { font-family: var(--font-head); font-size: clamp(1.8rem,4vw,2.8rem); font-weight: 700; color: var(--text); margin-bottom: .75rem; line-height: 1.2; }
+    .section-sub { color: var(--text-muted); font-size: 1.05rem; max-width: 600px; margin-bottom: 3rem; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all .2s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 2px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    /* Page hero */
+    .page-hero { background: var(--bg-card); padding: clamp(3rem,7vw,5rem) clamp(1rem,5vw,3rem); text-align: center; border-bottom: 1px solid var(--border); }
+    .page-hero h1 { font-family: var(--font-head); font-size: clamp(2.2rem,5vw,3.4rem); font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+    .page-hero p { color: var(--text-muted); font-size: 1.1rem; max-width: 560px; margin: 0 auto; }
+
+    /* Pricing cards */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 4rem; }
+    .price-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 2.25rem 2rem; display: flex; flex-direction: column; gap: .75rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .price-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+    .price-card.featured { border-color: var(--accent); background: var(--bg); box-shadow: 0 0 0 2px var(--accent); }
+    .price-tag-label { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-light); }
+    .price-name { font-family: var(--font-head); font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    .price-amount { font-family: var(--font-head); font-size: 2.6rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .price-amount span { font-family: var(--font-body); font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+    .price-desc { font-size: .9rem; color: var(--text-muted); padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .price-features { list-style: none; display: flex; flex-direction: column; gap: .6rem; flex: 1; }
+    .price-features li { font-size: .875rem; color: var(--text-muted); padding-left: 1.4rem; position: relative; }
+    .price-features li::before { content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+    .price-card .btn { margin-top: 1.5rem; text-align: center; justify-content: center; }
+
+    /* Comparison table */
+    .compare-table { width: 100%; border-collapse: collapse; margin-bottom: 3rem; font-size: .9rem; }
+    .compare-table th { background: var(--bg-card2); padding: 1rem 1.25rem; text-align: left; font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border); }
+    .compare-table td { padding: .85rem 1.25rem; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table td:first-child { color: var(--text); font-weight: 400; }
+    .compare-table .check { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+    .compare-table .dash { color: var(--border); }
+    .compare-table tr:hover td { background: var(--bg-card); }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 1rem; max-width: 760px; }
+    .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .faq-q { font-weight: 700; color: var(--text); margin-bottom: .5rem; }
+    .faq-a { font-size: .9rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* Enterprise strip */
+    .enterprise-strip {
+      background: var(--accent); color: #fff;
+      padding: clamp(2.5rem,6vw,4rem) clamp(1rem,5vw,3rem); text-align: center;
+    }
+    .enterprise-strip h2 { font-family: var(--font-head); font-size: clamp(1.6rem,3.5vw,2.4rem); margin-bottom: .75rem; }
+    .enterprise-strip p { opacity: .85; font-size: 1.05rem; max-width: 540px; margin: 0 auto 2rem; }
+    .btn-white { background: #fff; color: var(--accent); font-weight: 700; }
+    .btn-white:hover { background: var(--bg-card); color: var(--accent-light); }
+
+    footer { background: var(--bg-card2); border-top: 1px solid var(--border); padding: 2rem clamp(1rem,5vw,3rem); }
+    .footer-inner { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem; }
+    .footer-logo img { height: 32px; }
+    .footer-links { display: flex; gap: 20px; list-style: none; flex-wrap: wrap; }
+    .footer-links a { color: var(--text-muted); font-size: .85rem; }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-copy { color: var(--text-muted); font-size: .8rem; width: 100%; text-align: center; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+    @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .nav-links { display: none; } }
+  </style>
+</head>
+<body>
+
+<div class="site-header"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html" class="active">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="register.html" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <span class="section-tag">Pricing</span>
+  <h1>Simple, transparent pricing</h1>
+  <p>Start free during our pilot program. Scale to professional or enterprise as your lab grows.</p>
+</div>
+
+<section>
+  <div class="section-inner">
+    <div class="pricing-grid">
+
+      <div class="price-card">
+        <div class="price-tag-label">Pilot</div>
+        <div class="price-name">Free Access</div>
+        <div class="price-amount">$0 <span>/ during pilot</span></div>
+        <p class="price-desc">Invite-only. For research groups evaluating BioMate. No credit card required.</p>
+        <ul class="price-features">
+          <li>20+ research domains</li>
+          <li>2,000+ validated workflows</li>
+          <li>GPU-backed cloud execution</li>
+          <li>QC-gated results with audit trail</li>
+          <li>Email support</li>
+        </ul>
+        <a href="index.html#contact" class="btn btn-outline">Request Invite</a>
+      </div>
+
+      <div class="price-card featured">
+        <div class="price-tag-label">Most Popular</div>
+        <div class="price-name">Premium</div>
+        <div class="price-amount">$199 <span>/ month</span></div>
+        <p class="price-desc">For individual researchers and small labs running regular analyses.</p>
+        <ul class="price-features">
+          <li>Everything in Pilot</li>
+          <li>Unlimited workflow runs</li>
+          <li>Priority job queue</li>
+          <li>Full audit trail export</li>
+          <li>AI-generated methods sections</li>
+          <li>Priority email + chat support</li>
+          <li>Annual billing available ($1,990/yr)</li>
+        </ul>
+        <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="btn btn-primary">Start Free Trial</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-tag-label">Enterprise</div>
+        <div class="price-name">Custom</div>
+        <div class="price-amount">Custom <span>pricing</span></div>
+        <p class="price-desc">For institutions, core facilities, and pharma teams requiring dedicated infrastructure.</p>
+        <ul class="price-features">
+          <li>Everything in Premium</li>
+          <li>Private / VPC deployment option</li>
+          <li>Multi-user lab workspace</li>
+          <li>Per-lab billing and usage reports</li>
+          <li>SLA with guaranteed uptime</li>
+          <li>Dedicated support engineer</li>
+          <li>SOC 2 / HIPAA compliance docs</li>
+          <li>Custom workflow development</li>
+        </ul>
+        <a href="index.html#contact" class="btn btn-outline">Talk to Sales</a>
+      </div>
+
+    </div>
+
+    <span class="section-tag">Full Comparison</span>
+    <h2 class="section-title" style="margin-bottom:2rem;">Feature breakdown</h2>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Pilot</th>
+          <th>Premium</th>
+          <th>Enterprise</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Research domains</td><td>20+</td><td>20+</td><td>20+ + custom</td></tr>
+        <tr><td>Validated workflows</td><td>2,000+</td><td>2,000+</td><td>2,000+ + custom</td></tr>
+        <tr><td>GPU-backed cloud execution</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Evidence-graded QC (GOLD/SILVER/BRONZE)</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Full audit trail</td><td class="check">✓</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>AI-generated methods section</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Unlimited workflow runs</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Priority job queue</td><td class="dash">—</td><td class="check">✓</td><td class="check">✓</td></tr>
+        <tr><td>Multi-user lab workspace</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>Private / VPC deployment</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>Per-lab billing &amp; reports</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>SLA</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>SOC 2 / HIPAA compliance docs</td><td class="dash">—</td><td class="dash">—</td><td class="check">✓</td></tr>
+        <tr><td>Support</td><td>Email</td><td>Priority email + chat</td><td>Dedicated engineer</td></tr>
+      </tbody>
+    </table>
+
+    <span class="section-tag">FAQ</span>
+    <h2 class="section-title" style="margin-bottom:2rem;">Common questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">How is compute billed?</div>
+        <div class="faq-a">Premium and Enterprise plans include a monthly compute allowance. GPU-intensive workflows (cryo-EM, MD simulation) consume more compute credits than standard genomics runs. You see an estimated cost before every run — no surprise bills.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I use BioMate with my own AWS account?</div>
+        <div class="faq-a">Yes, Enterprise plans support private / VPC deployment where BioMate runs entirely within your institution's AWS account. Your data never leaves your infrastructure.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is there a free trial for the Premium plan?</div>
+        <div class="faq-a">Yes — all new accounts start with a 14-day Premium trial at no cost. No credit card required to start. If you are in the pilot program, your access continues until the pilot concludes.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does BioMate support HIPAA-compliant workflows?</div>
+        <div class="faq-a">SOC 2 Type II certification is in progress. Enterprise customers can deploy BioMate within their own HIPAA-compliant AWS environment today using the private deployment option. We provide the compliance documentation package to support your institution's review process.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can core facilities use BioMate for multiple PI labs?</div>
+        <div class="faq-a">Yes — Enterprise plans include per-lab isolation and billing, making BioMate suitable for core facilities that serve 10–40+ PI labs from a single account. Usage reports are exportable per PI for chargeback purposes.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What workflows are included?</div>
+        <div class="faq-a">2,000+ validated workflows across drug discovery, genomics, cryo-EM, multi-omics, structural biology, preclinical, and systems biology. Enterprise plans can include custom workflow development for domain-specific pipelines.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="enterprise-strip">
+  <h2>Running a core facility or pharma team?</h2>
+  <p>We offer private deployment, multi-lab management, and custom workflow development. Let's talk about what BioMate looks like at your institution.</p>
+  <a href="index.html#contact" class="btn btn-white">Contact Sales</a>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+    <ul class="footer-links">
+      <li><a href="index.html#applications">Applications</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="pricing.html">Pricing</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="blog.html">Blog</a></li>
+      <li><a href="index.html#contact">Contact</a></li>
+    </ul>
+    <p class="footer-copy">© 2026 BioMate AI · All rights reserved</p>
+  </div>
+</footer>
+
+</body>
+</html>

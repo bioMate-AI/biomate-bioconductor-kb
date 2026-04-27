@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log In — BioMate AI</title>
+
+  <!-- Fonts (local — no internet required) -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f0e4; --bg-card: #ece7d8; --bg-card2: #e2dcc8;
+      --accent: #4a7a8a; --accent-light: #3a6878;
+      --text: #1c2b32; --text-muted: #5a7280; --border: #cec5ae;
+      --radius: 10px; --font-body: 'Open Sans', sans-serif; --font-head: 'Crimson Text', serif;
+    }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: var(--accent-light); text-decoration: none; }
+    a:hover { color: var(--accent); }
+    img { max-width: 100%; display: block; }
+
+    .site-header { background: var(--bg); padding: 1.25rem 1rem .75rem; text-align: center; border-bottom: 1px solid var(--border); }
+    .site-header img { height: 48px; width: auto; display: inline-block; }
+
+    .auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1rem; }
+    .auth-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2.5rem 2rem; width: 100%; max-width: 400px; }
+    .auth-card h1 { font-family: var(--font-head); font-size: 1.9rem; color: var(--text); margin-bottom: .35rem; }
+    .auth-card .subtitle { font-size: .875rem; color: var(--text-muted); margin-bottom: 2rem; }
+
+    .form-field { margin-bottom: 1rem; }
+    .form-field label { display: block; font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: .4rem; text-transform: uppercase; letter-spacing: .06em; }
+    .form-field input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-family: var(--font-body); font-size: .9rem; color: var(--text); transition: border-color .2s; }
+    .form-field input:focus { outline: none; border-color: var(--accent); }
+
+    .form-footer { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; font-size: .82rem; }
+    .form-footer a { color: var(--accent-light); }
+
+    .btn-full { display: block; width: 100%; padding: 12px; border-radius: 8px; font-family: var(--font-body); font-size: .95rem; font-weight: 700; border: none; cursor: pointer; text-align: center; transition: background .2s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-light); }
+
+    .divider { text-align: center; font-size: .8rem; color: var(--text-muted); margin: 1.25rem 0; position: relative; }
+    .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 38%; height: 1px; background: var(--border); }
+    .divider::before { left: 0; } .divider::after { right: 0; }
+
+    .auth-alt { text-align: center; font-size: .85rem; color: var(--text-muted); margin-top: 1.5rem; }
+    .auth-alt a { color: var(--accent-light); font-weight: 700; }
+
+    footer { text-align: center; padding: 1.5rem; font-size: .78rem; color: var(--text-muted); border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1>Welcome back</h1>
+    <p class="subtitle">Log in to your BioMate account</p>
+
+    <form action="https://dev-public.biomate.ai/login" method="get">
+      <div class="form-field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" placeholder="you@institution.edu" autocomplete="email" />
+      </div>
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="form-footer">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" style="accent-color:var(--accent);width:auto;" /> Remember me
+        </label>
+        <a href="#">Forgot password?</a>
+      </div>
+      <a class="btn-full btn-primary" href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener">Log In</a>
+    </form>
+
+    <div class="divider">or</div>
+
+    <div class="auth-alt">
+      Don't have an account? <a href="register.html">Sign up free →</a>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 BioMate AI · <a href="index.html">Home</a></footer>
+
+</body>
+</html>
