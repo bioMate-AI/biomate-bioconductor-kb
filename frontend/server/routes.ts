@@ -3876,12 +3876,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ? allOutputFiles.map(f => `  - ${f}`).join('\n')
           : '  (No output files indexed — see S3 bucket directly)';
 
-        // Text file context for Claude
+        // Text file context for LLM — inject ALL key report JSONs
         const fileContext = textOutputSamples.length > 0
           ? textOutputSamples.map(f =>
               `### Output file: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``
             ).join('\n\n')
           : '(No readable text output files available — binary outputs (MRC, CS, STAR) produced)';
+
+        // ── Structured extraction pass (CryoSPARC protocol §2–3) ────────────
+        // Parse required fields before LLM synthesis so numbers are confirmed real.
+        const _parse = (name: string): Record<string, any> => {
+          const sample = textOutputSamples.find(s => s.name === name);
+          if (!sample) return {};
+          try { return JSON.parse(sample.content); } catch { return {}; }
+        };
+
+        // Aggregate across batches
+        const allReports = textOutputSamples.map(s => {
+          try { return { name: s.name, data: JSON.parse(s.content) }; } catch { return { name: s.name, data: {} }; }
+        });
+
+        const _sumField = (namePattern: RegExp, field: string): number => {
+          return allReports
+            .filter(r => namePattern.test(r.name))
+            .reduce((acc, r) => acc + (Number(r.data[field]) || 0), 0);
+        };
+        const _firstField = (namePattern: RegExp, field: string): any => {
+          const hit = allReports.find(r => namePattern.test(r.name));
+          return hit ? hit.data[field] : undefined;
+        };
+
+        const motionRpt   = allReports.find(r => r.name.includes('motion_report'));
+        const ctfRpt      = allReports.find(r => r.name.includes('ctf_report_batch'));
+        const class2dR1   = allReports.find(r => r.name.includes('class2d_report_pbatch'));
+        const selectR1    = _parse('selection_report.json');
+        const class2dR2   = allReports.find(r => r.name.includes('class2d_report_r2_pbatch'));
+        const extractR2   = _parse('extract_report.json');
+        const fscRpt      = _parse('fsc_validation.json');
+        const wfSummary   = _parse('workflow_summary.json');
+        const nuRpt       = _parse('nu_refinement_report.json');
+        const sharpenRpt  = _parse('sharpening_report.json');
+
+        const extractedMetrics: Record<string, string> = {
+          num_micrographs:      String(motionRpt?.data?.num_micrographs ?? 'MISSING'),
+          avg_total_motion_A:   String(motionRpt?.data?.avg_total_motion_A ?? 'MISSING'),
+          min_total_motion_A:   String(motionRpt?.data?.min_total_motion_A ?? 'MISSING'),
+          max_total_motion_A:   String(motionRpt?.data?.max_total_motion_A ?? 'MISSING'),
+          avg_defocus_A:        String(ctfRpt?.data?.avg_defocus_A ?? 'MISSING'),
+          avg_fit_quality:      String(ctfRpt?.data?.avg_fit_quality ?? 'MISSING'),
+          avg_astigmatism_A:    String(ctfRpt?.data?.avg_astigmatism_A ?? 'MISSING'),
+          num_particles_r1:     String(class2dR1?.data?.num_particles ?? 'MISSING'),
+          num_classes_r1:       String(class2dR1?.data?.num_classes ?? 'MISSING'),
+          num_selected_r1:      String(selectR1?.num_selected_particles ?? 'MISSING'),
+          selection_ratio_r1:   String(selectR1?.selection_ratio ?? 'MISSING'),
+          num_extracted_r2:     String(extractR2?.num_particles ?? 'MISSING'),
+          num_particles_r2:     String(class2dR2?.data?.num_particles ?? 'MISSING'),
+          num_particles_nu:     String(nuRpt?.num_particles ?? 'MISSING'),
+          fsc_0143_resolution:  String(fscRpt?.fsc_0143_resolution ?? 'MISSING'),
+          fsc_curve_points:     String(Array.isArray(fscRpt?.fsc_curve) ? fscRpt.fsc_curve.length : 0),
+          pixel_size_A:         String(wfSummary?.pixel_size_angstroms ?? params?.pixel_size ?? 'MISSING'),
+          voltage_kv:           String(wfSummary?.voltage_kv ?? params?.voltage_kv ?? 'MISSING'),
+          symmetry:             String(wfSummary?.symmetry ?? params?.symmetry ?? 'C1'),
+          steps_completed:      String(wfSummary?.steps_completed ?? 'MISSING'),
+          cs_project_uid:       String(
+            motionRpt?.data?.cs_project_uid ?? nuRpt?.cs_project_uid ?? 'MISSING'
+          ),
+        };
+
+        const missingCount = Object.values(extractedMetrics).filter(v => v === 'MISSING').length;
+        const metricsBlock = Object.entries(extractedMetrics)
+          .map(([k, v]) => `  ${k}: ${v}`)
+          .join('\n');
 
         // If no AI key, produce a structured template without LLM synthesis
         if (!apiKey) {
@@ -3940,7 +4005,7 @@ Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS f
 9. EMDB/PDB DEPOSITION NOTE — Recommended deposition metadata: map pixel size, symmetry imposed, final particle count, box size, applied B-factor sharpening, reconstruction software version, licensing constraints
 10. REPRODUCIBILITY STATEMENT — Steps taken to ensure reproducibility: random seed (if applicable), software version pinning, cloud environment specification, parameter archiving` : '';
 
-        const USER = `Generate a complete, publication-quality computational biology manuscript section for journal submission.
+        const USER = `Generate a complete, publication-quality computational biology manuscript section for journal submission. Use ONLY the numbers in the EXTRACTED METRICS block — do not invent values. For any metric marked MISSING, use the exact text: "[data not available — pipeline re-run required]".
 
 === EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
@@ -3953,49 +4018,67 @@ TOTAL WALL TIME: ${wallTimeStr}
 CLOUD PLATFORM: AWS Batch (us-west-2 region)
 ORCHESTRATION: Nextflow DSL2 + AWS Batch
 ${isCryoEM ? 'GPU COMPUTE: NVIDIA L4 (g6.2xlarge EC2 instance, 1x GPU, 8 vCPU, 32 GB RAM)\nSOFTWARE: CryoSPARC v5.0.2, cryosparc-tools Python API' : ''}
+DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metrics are MISSING (will be noted in report)
+
+=== EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
+${metricsBlock}
 
 === INPUT PARAMETERS ===
 ${paramLines || '(not recorded)'}
 
-=== WORKFLOW STEPS AND TIMING ===
-${stepLines}
+=== OUTPUT FILE CONTENTS (raw JSON reports from pipeline) ===
+${fileContext}
 
 === OUTPUT FILES ===
 ${outputInventory}
 
-=== OUTPUT FILE CONTENTS (text-parseable) ===
-${fileContext}
+=== REQUIRED SECTIONS (follow CryoSPARC Tech Report Protocol) ===
+Write ALL sections below. For any section where required metrics are MISSING, explicitly state which data is unavailable and why.
 
-=== REQUIRED SECTIONS ===
-Write ALL of these sections. Never skip a section — if data is unavailable, state "Data not available for this run" and explain what would normally appear.
+1. ABSTRACT (150 words max) — Include: sample/dataset, num_micrographs, final particle count (num_particles_nu), FSC 0.143 resolution (fsc_0143_resolution), software version, cloud platform.
 
-1. ABSTRACT (150 words max) — Concise summary of the computational analysis, key inputs, methods, and most important quantitative results
+2. STUDY OVERVIEW — Biological question; dataset source; pixel size; voltage; symmetry; expected particle size.
 
-2. STUDY OVERVIEW — Scientific objective, dataset description, biological question being addressed, significance of the chosen workflow
+3. COMPUTATIONAL ENVIRONMENT — AWS Batch us-west-2; g6.2xlarge (1×NVIDIA L4 GPU, 8 vCPU, 32 GB RAM); CryoSPARC v5.0.2; Nextflow DSL2; BioMate pipeline.
 
-3. COMPUTATIONAL ENVIRONMENT — Cloud infrastructure details (AWS Batch, region, instance type, GPU model, vCPU count, RAM, storage); Nextflow version; pipeline version; all software tool versions with version numbers
+4. DATA ACQUISITION AND PREPROCESSING — num_micrographs; avg_total_motion_A (Å drift); avg_defocus_A (Å); avg_fit_quality; pixel_size_A Å/pixel; voltage_kv kV. Quality thresholds applied: motion < 10 Å, CTF fit > 0.5.
 
-4. DATA ACQUISITION AND PREPROCESSING — Input data description, format, source; quality control steps performed; preprocessing parameters with scientific justification for each value
+5. METHODS — One paragraph per stage:
+   5.1 Motion Correction (Patch Motion Correction, CryoSPARC v5.0.2, Punjani 2017)
+   5.2 CTF Estimation (Patch CTF, CTFFIND4 algorithm, Rohou 2015)
+   5.3 Particle Picking (blob picker diameter, then template picker from 2D classes)
+   5.4 Particle Extraction (box_size from params, Å box size)
+   5.5 2D Classification R1 (num_particles_r1 particles, num_classes_r1 classes → num_selected_r1 selected)
+   5.6 2D Classification R2 (template-guided, num_particles_r2 → num extracted_r2 selected)
+   5.7 Ab-Initio Reconstruction (symmetry, num_ab_initio_classes models)
+   5.8 Homogeneous Refinement (symmetry, num_particles_nu particles)
+   5.9 Post-Processing (local CTF refinement, Punjani 2021; NU refinement, Punjani 2020)
+   5.10 FSC Validation + Map Sharpening (gold-standard FSC; B-factor sharpening)
 
-5. METHODS — One detailed paragraph per major processing stage. For each stage: tool used with version, key parameters with values, scientific rationale for parameter choices, quality thresholds applied. Be exhaustive.
+6. PIPELINE EXECUTION — Wall time; CryoSPARC project cs_project_uid; steps_completed steps completed.
 
-6. PIPELINE EXECUTION — Step-by-step narrative of execution with wall-clock times per step, parallelization strategy, resource utilization (CPU/GPU hours, memory peak), any retries or parameter adjustments made
+7. RESULTS — Include this particle yield table with actual values (use MISSING for unavailable):
+   Blob picking → X particles
+   Junk filtering → X kept (X% yield)
+   2D classify R1: num_particles_r1 → num_selected_r1 selected (selection_ratio_r1)
+   Template picking → X candidates
+   Extract R2 → num_extracted_r2
+   2D classify R2 → X selected
+   Homogeneous refinement → num_particles_nu
+   NU refinement → num_particles_nu
+   FSC 0.143 resolution: fsc_0143_resolution Å
 
-7. RESULTS — All quantitative outcomes extracted from output files. Include real numbers. Describe all output files and what they represent scientifically. For cryo-EM: particle statistics, resolution, map quality metrics. Use precise language.
+8. DATA ANALYSIS AND SCIENTIFIC INTERPRETATION — Compare all metrics to field standards. For resolution: comment on what is achievable at this particle count. Note any MISSING metrics and what they would normally reveal.${cryoemSections}
 
-8. DATA ANALYSIS AND SCIENTIFIC INTERPRETATION — Quality assessment against field standards; comparison to expected values; limitations; confidence in results; suggestions for further analysis${cryoemSections}
+${isCryoEM ? `REQUIRED CRYO-EM REFERENCES (always include with correct PMIDs):
+1. CryoSPARC: Punjani et al. (2017) Nature Methods 14:290-296. PMID: 28165473
+2. CTFFIND4: Rohou & Grigorieff (2015) JSB 192:216-221. PMID: 26278980
+3. MotionCor2: Zheng et al. (2017) Nature Methods 14:331-332. PMID: 28250466
+4. Non-uniform refinement: Punjani et al. (2020) Nature Methods 17:1214-1221. PMID: 33257830
+5. Local CTF refinement: Punjani & Fleet (2021) Nature Methods 18:860-869. PMID: 34282325
+6. DeepEMhancer (map sharpening): Sanchez-Garcia et al. (2021) Commun Biol 4:874. PMID: 34267316` : ''}
 
-${isCryoEM ? `REQUIRED CRYO-EM REFERENCES (always include these with correct PMIDs):
-- CryoSPARC: Punjani et al. (2017) Nature Methods 14:290-296. PMID: 28165473
-- CTFFIND4: Rohou & Grigorieff (2015) JSB 192:216-221. PMID: 26278980
-- MotionCor2: Zheng et al. (2017) Nature Methods 14:331-332. PMID: 28250466
-- Non-uniform refinement: Punjani et al. (2020) Nature Methods 17:1214-1221. PMID: 33257830
-- Local CTF refinement: Punjani & Fleet (2021) Nature Methods 18:860-869. PMID: 34282325
-- DeepEMhancer (if sharpening used): Sanchez-Garcia et al. (2021) Commun Biol 4:874. PMID: 34267316` : ''}
-
-N. REFERENCES — Complete numbered reference list in Vancouver format with PMIDs. Include all tools cited above.
-
-Extract every real number from the output data. A reviewer should be able to verify your numbers against the raw output files.`;
+N. REFERENCES — Complete numbered reference list in Vancouver format with PMIDs.`;
 
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
