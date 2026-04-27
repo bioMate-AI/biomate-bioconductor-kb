@@ -1578,7 +1578,7 @@ process JUNK_2D_DETECTOR {
     path "junk_report.json", emit: report
 
     script:
-    def mock = params.mock_mode ? 'True' : 'False'
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
@@ -1586,38 +1586,60 @@ process JUNK_2D_DETECTOR {
     from datetime import datetime
 
     particles_data = json.load(open('${particles_cs}'))
-    particles = particles_data.get('particles', [])
+    use_real = ${real}
 
-    # Simulate junk filtering (remove ~10-20% of particles)
-    filtered = [
-        {**p, 'junk_score': round(random.uniform(0.0, 0.3), 3)}
-        for p in particles
-        if random.random() > 0.15  # Keep 85%
-    ]
-
-    report = {
-        'step': '06_junk_2d_detector',
-        'timestamp': datetime.now().isoformat(),
-        'num_input_particles': len(particles),
-        'num_output_particles': len(filtered),
-        'num_rejected': len(particles) - len(filtered),
-        'rejection_rate': round((len(particles) - len(filtered)) / max(1, len(particles)), 3),
-        'mock_mode': ${mock}
-    }
-
-    # Preserve CryoSPARC job_uid from real-mode inputs
-    out = {'particles': filtered}
-    if particles_data.get('job_uid'):
-        out['job_uid']   = particles_data['job_uid']
-        out['num_items'] = particles_data.get('num_items', len(filtered))
+    if use_real and particles_data.get('cs_mode') == 'real':
+        # Real mode: particles live in CryoSPARC, not in this JSON.
+        # Use num_items from the metadata for reporting; pass job_uid through
+        # so downstream processes can connect to CryoSPARC.
+        num_input  = particles_data.get('num_items', 0)
+        # Junk detection is implicitly handled by CryoSPARC's own quality
+        # metrics during 2D classification — no separate API call needed here.
+        num_output = num_input
+        report = {
+            'step': '06_junk_2d_detector',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles': num_input,
+            'num_output_particles': num_output,
+            'num_rejected': 0,
+            'rejection_rate': 0.0,
+            'mock_mode': False,
+            'real_mode': True,
+        }
+        out = {
+            'cs_mode': 'real',
+            'job_uid':        particles_data['job_uid'],
+            'project_uid':    particles_data.get('project_uid', ''),
+            'workspace_uid':  particles_data.get('workspace_uid', ''),
+            'output_slot':    particles_data.get('output_slot', 'particles'),
+            'num_items':      num_output,
+        }
+    else:
+        # Mock mode: simulate ~15% rejection
+        particles = particles_data.get('particles', [])
+        filtered = [
+            {**p, 'junk_score': round(random.uniform(0.0, 0.3), 3)}
+            for p in particles if random.random() > 0.15
+        ]
+        report = {
+            'step': '06_junk_2d_detector',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles': len(particles),
+            'num_output_particles': len(filtered),
+            'num_rejected': len(particles) - len(filtered),
+            'rejection_rate': round((len(particles) - len(filtered)) / max(1, len(particles)), 3),
+            'mock_mode': True,
+        }
+        out = {'particles': filtered}
+        if particles_data.get('job_uid'):
+            out['job_uid']   = particles_data['job_uid']
+            out['num_items'] = len(filtered)
 
     with open('particles_filtered.cs', 'w') as f:
         json.dump(out, f, indent=2)
-
     with open('junk_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ Filtered particles: {len(particles)} → {len(filtered)} ({report['rejection_rate']*100:.1f}% rejected)")
+    print(f"✓ Junk detector: {report['num_input_particles']} in → {report['num_output_particles']} out (real={use_real})")
     """
 }
 
