@@ -6329,6 +6329,19 @@ N. REFERENCES — Complete numbered reference list in Vancouver format with PMID
         }
       }
 
+      // Post-filter: remove directories, internal files, and zero-content noise.
+      // Done at response time so stale DB entries from older code are also cleaned.
+      outputs = outputs.filter((o: any) => {
+        const name: string = o?.name || '';
+        // No extension → S3 job-ID directory (e.g. "65781309") or bare directory name
+        if (!name.includes('.')) return false;
+        // Nextflow-internal control files
+        if (NF_INTERNAL_FILES.has(name)) return false;
+        // Skip Nextflow pipeline/trace outputs
+        if (NF_SKIP_DIRS.has(name)) return false;
+        return true;
+      });
+
       res.json(outputs);
     } catch (error: any) {
       console.error("Error fetching outputs:", error);
