@@ -1594,6 +1594,12 @@ export function NextflowWorkflowViewer({
     pushArtifact(nextflowStatus?.results);
     pushArtifact(nextflowStatus?.output_files);
     pushArtifact(nextflowStatus?.outdir);
+    // S3 output files: push the s3_uri of each file as an artifact path
+    if (Array.isArray(nextflowStatus?.s3_output_files)) {
+      for (const f of nextflowStatus.s3_output_files) {
+        if (f?.s3_uri) artifacts.push(f.s3_uri);
+      }
+    }
 
     if (Array.isArray(nextflowStatus?.log_tail)) {
       for (const line of nextflowStatus.log_tail) {

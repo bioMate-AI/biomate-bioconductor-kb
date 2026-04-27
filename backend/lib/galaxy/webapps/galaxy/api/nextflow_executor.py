@@ -2637,7 +2637,8 @@ def execute_nextflow(
         _timing_path.parent.mkdir(parents=True, exist_ok=True)
         _timing_path.write_text(_json.dumps({
             "started_at": _started_at_now,
-            "outdir": str(outdir),   # actual S3 path — NOT the config file path
+            "outdir": str(outdir),
+            "workflow_domain": workflow_domain or "",
         }))
     except Exception as _te:
         log.debug("[timing] Could not write timing.json for %s: %s", run_id, _te)
@@ -3022,6 +3023,9 @@ def get_nextflow_status(
                     except Exception:
                         pass
                 _fb_final_status = "failed" if trace_failed else "succeeded"
+                _fb_processes = _build_processes_from_s3_files(
+                    _s3_files_fb, _s3_outdir or "", _disk_timing.get("workflow_domain", "")
+                ) if _s3_files_fb and _s3_outdir else []
                 return {
                     "run_id": run_id,
                     "invocation_id": run_id,
@@ -3035,7 +3039,7 @@ def get_nextflow_status(
                     "completedSteps": completed_steps_fb,
                     "totalSteps": total_steps_fb,
                     "progressPercent": 100,
-                    "processes": [],
+                    "processes": _fb_processes,
                     "started_at": _fb_started_at,
                     "completed_at": _fb_completed_at or time.time(),
                     "duration_s": _fb_duration_s,
