@@ -363,13 +363,15 @@ test('NUF-2: upload FASTA → sequence analysis → workflow card with file pre-
   await loginUser(page, 'nuf2');
   const fastaFile = path.join(DATA_DIR, 'sample.fasta');
 
-  // Upload FASTA via Galaxy dataset browser dialog
+  // Type message FIRST, then upload (upload appends dataset ref to existing message)
+  const input = page.locator('textarea').first();
+  await input.fill('I have a FASTA file with two protein sequences. Can you run sequence alignment or structural prediction on them?');
+
+  // Now upload FASTA — appends [Galaxy dataset: ...] to the typed message
   await uploadLocalFile(page, fastaFile);
   console.log('[NUF-2] FASTA uploaded via Galaxy dataset browser');
 
-  // Send natural language request
-  const input = page.locator('textarea').first();
-  await input.fill('I uploaded a FASTA file with two protein sequences. Can you run sequence alignment or structural prediction on them?');
+  // Send the combined message
   await input.press('Enter');
   console.log('[NUF-2] Message sent');
 
@@ -418,13 +420,15 @@ test('NUF-3: upload VCF → variant annotation query → workflow suggested', as
   await loginUser(page, 'nuf3');
   const vcfFile = path.join(DATA_DIR, 'variants.vcf');
 
-  // Upload VCF via Galaxy dataset browser dialog
+  // Type message first, then upload (appends dataset ref)
+  const input = page.locator('textarea').first();
+  await input.fill('I have a VCF file with 3 variants from chromosome 1. Can you annotate them with functional impact and population frequency?');
+
+  // Upload VCF — appends [Galaxy dataset: ...] to message
   await uploadLocalFile(page, vcfFile);
   console.log('[NUF-3] VCF uploaded via Galaxy dataset browser');
 
-  // Ask about the uploaded VCF
-  const input = page.locator('textarea').first();
-  await input.fill('I have a VCF file with 3 variants from chromosome 1. Can you annotate them with functional impact and population frequency?');
+  // Send combined message
   await input.press('Enter');
   console.log('[NUF-3] Message sent');
 
