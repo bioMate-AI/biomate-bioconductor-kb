@@ -73,6 +73,8 @@ export default function RegisterPage() {
         body: JSON.stringify({
           fullName: formData.name,
           email: formData.email,
+          organization: formData.organization || undefined,
+          role: formData.role || undefined,
           password: formData.password,
           termsAccepted: true,
           ...(formData.inviteCode ? { inviteCode: formData.inviteCode } : {}),
@@ -369,6 +371,47 @@ export default function RegisterPage() {
                 disabled={isLoading}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="organization">
+                Institution or Organization
+                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="organization"
+                type="text"
+                placeholder="e.g. Pfizer, Genentech, Stanford University"
+                value={formData.organization}
+                onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                disabled={isLoading}
+                autoComplete="organization"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">
+                Your Role
+                <span className="ml-1 text-xs text-muted-foreground">(optional)</span>
+              </Label>
+              <select
+                id="role"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                disabled={isLoading}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select your role…</option>
+                <option>Principal Investigator / PI</option>
+                <option>Postdoctoral Researcher</option>
+                <option>PhD Student / Graduate Student</option>
+                <option>Research Scientist</option>
+                <option>Computational Biologist / Bioinformatician</option>
+                <option>Core Facility Operator</option>
+                <option>Pharma / Biotech Researcher</option>
+                <option>Clinical Genomics</option>
+                <option>Other</option>
+              </select>
             </div>
 
             <div className="space-y-2">

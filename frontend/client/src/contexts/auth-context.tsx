@@ -83,12 +83,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include', // server sets httpOnly biomate_token cookie
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, rememberMe })
     })
 
     const data = await response.json()
