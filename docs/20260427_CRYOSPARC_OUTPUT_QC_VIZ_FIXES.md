@@ -1,7 +1,7 @@
 # CryoSPARC Output Display, QC Metrics, and Step Visualization Fixes
 
 **Date:** 2026-04-27  
-**Commit:** 4f3cd7f493 (auto-commit pre-sync)
+**Commits:** 4f3cd7f493 (prior session), 9f532226b (pipeline metadata), ed8ae1aea (tech report protocol), 5600da83d (S3 outdir fix)
 
 ---
 
