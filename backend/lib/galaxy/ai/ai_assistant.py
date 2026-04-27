@@ -2799,6 +2799,12 @@ Examples of good inference:
         nf_params = self._get_workflow_params(match.filename)
         req = nf_params['required']
         opt = nf_params['optional']
+        # Credential-system params (license keys, passwords) are handled by LicenseGate + credential
+        # vault — never shown as editable form fields since they'd block the Run button when empty.
+        _CREDENTIAL_PARAMS = {'cryosparc_license', 'cryosparc_password', 'cryosparc_email',
+                               'license_key', 'api_key', 'docker_token'}
+        req = [p for p in req if p.get('name') not in _CREDENTIAL_PARAMS]
+        opt = [p for p in opt if p.get('name') not in _CREDENTIAL_PARAMS]
         log.info(f"[_return_nextflow_match] filename={match.filename} req={len(req)} opt={len(opt)} opt_names={[p['name'] for p in opt]}")
         sra = self._extract_sra_accession(user_intent)
         if sra:
