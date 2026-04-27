@@ -45,7 +45,7 @@ import { Card } from "@/components/ui/card"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight } from "lucide-react"
+import { Copy, RotateCcw, Workflow, Download, FileJson, FileText, FileDown, FlaskConical, PanelRight, ExternalLink } from "lucide-react"
 import { cn, getSimpleToolName } from "@/lib/utils"
 import { downloadAsTxt, downloadAsMd, downloadAsDocx } from "@/lib/download-response"
 import { GalaxyRecommendations } from "./galaxy-recommendations"
@@ -297,6 +297,30 @@ export function ChatMessage({
               }}
               className="mt-3"
             />
+          )}
+
+          {/* wf-chip: compact workflow card shown in chat when workflow is open in the panel */}
+          {isWorkflowMessage && isInPanel && message.metadata?.workflow && (
+            <div className="wf-chip" data-tour="chat-handoff">
+              <div className="wf-chip-ic">
+                <FlaskConical size={16} />
+              </div>
+              <div className="wf-chip-body">
+                <div className="wf-chip-name">{message.metadata.workflow.name || message.metadata.workflow.display_name || 'Workflow'}</div>
+                <div className="wf-chip-sub">
+                  {[
+                    message.metadata.workflow.domain,
+                    message.metadata.workflow.subtitle ||
+                      (message.metadata.workflow.steps && typeof message.metadata.workflow.steps === 'object' && !Array.isArray(message.metadata.workflow.steps)
+                        ? `${Object.keys(message.metadata.workflow.steps).length} steps` : null),
+                  ].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              <span className="chip-ok">
+                <span className="dot" />
+                In panel
+              </span>
+            </div>
           )}
 
           {/* Nextflow Workflow Viewer - Replaces WorkflowArtifact */}
