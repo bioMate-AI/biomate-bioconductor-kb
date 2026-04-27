@@ -1522,20 +1522,23 @@ _CRYOSPARC_S3_DIR_TO_STEP: Dict[str, int] = {
     "09_particle_batch_split": 10,
     "merge_particles_r1": 10,
     "09_classify_2d_round1": 11,
-    "merge_classes": 11,
+    "merge_classes": 11, "merge_classes_r2": 14,
     "10_select_2d_round1": 12,
     "11_template_picker": 8,
     "12_inspect_picks_round2": 9,
     "13_extract_round2": 13,
     "14_classify_2d_round2": 14,
     "15_select_2d_round2": 14,
-    "16_ab_initio": 15,
-    "17_homo_refinement": 16,
-    "18_nu_refinement": 18,
-    "19_local_ctf": 19,
+    "16_ab_initio": 15, "16b_merge_volumes": 16,
+    # Phase D refinement — actual S3 dir names from pipeline
+    "17_homo_refinement": 16, "17_homogeneous_refinement": 16,
+    "18_volume_tools": 17,
+    # Phase E post-processing — actual S3 dir names from pipeline
+    "19_validation_fsc": 22, "22_fsc_validation": 22,
+    "20_local_ctf_refinement": 19, "19_local_ctf": 19,
+    "21_non_uniform_refinement": 18, "18_nu_refinement": 18,
     "20_local_resolution": 20,
-    "21_sharpen": 21,
-    "22_fsc_validation": 22,
+    "23_sharpening": 21, "21_sharpen": 21,
 }
 
 # File extensions to surface as step outputs; .cs are CryoSPARC binary datasets (skip)
