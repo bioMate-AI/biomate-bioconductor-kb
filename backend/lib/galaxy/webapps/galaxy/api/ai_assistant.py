@@ -567,30 +567,23 @@ def _parse_nextflow_steps(nf_filename: str) -> Dict[str, Any]:
                 _enrich_steps_with_phase_info(steps, content, nf_filename)
                 return steps
 
-        # Strategy 2: UPPERCASE_CALL(...) process invocations in workflow body
-        in_workflow = False
-        idx = 0
-        for line in content.splitlines():
-            stripped = line.strip()
-            if re.match(r'^workflow\b', stripped):
-                in_workflow = True
-                continue
-            if in_workflow:
-                m = re.match(r'([A-Z][A-Z0-9_]+)\s*\(', stripped)
-                if m:
-                    proc = m.group(1)
-                    human = proc.replace('_', ' ').title()
-                    steps[str(idx)] = {
-                        "id": str(idx),
-                        "name": human,
-                        "tool_id": proc,
-                        "annotation": human,
-                        "description": "",
-                        "type": "tool",
-                        "parameters": {},
-                        "inputs": {},
-                    }
-                    idx += 1
+        # Strategy 2: parse actual `process NAME {` definitions.
+        # These are the only discrete computational units in Nextflow — `workflow`
+        # blocks are orchestration, not steps. One `process` = one viewer step.
+        for m in re.finditer(r'^process\s+([A-Za-z][A-Za-z0-9_]+)\s*\{', content, re.MULTILINE):
+            proc = m.group(1)
+            human = proc.replace('_', ' ').title()
+            steps[str(idx)] = {
+                "id": str(idx),
+                "name": human,
+                "tool_id": proc,
+                "annotation": human,
+                "description": "",
+                "type": "tool",
+                "parameters": {},
+                "inputs": {},
+            }
+            idx += 1
     except Exception as exc:
         log.warning(f"[NextflowSteps] Failed to parse steps from {nf_filename}: {exc}")
     # ── Enrich steps with phase groups and per-step params ──────────────────────
