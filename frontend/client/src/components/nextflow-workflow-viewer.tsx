@@ -391,6 +391,7 @@ function PhaseGroupSection({
   onParamChange,
   onRun,
   onSkip,
+  onStopPhase,
   onPreviewFile,
   onAdjustAndRerun,
   activeRunId,
@@ -410,6 +411,7 @@ function PhaseGroupSection({
   onParamChange: (id: string, val: any) => void;
   onRun: (phase: any) => void;
   onSkip: (id: string) => void;
+  onStopPhase?: () => void;
   onPreviewFile: (file: any) => void;
   onAdjustAndRerun: (step: any) => void;
   activeRunId: string | null | undefined;
@@ -603,11 +605,11 @@ function PhaseGroupSection({
 
           {/* Phase actions */}
           <div className="phase-actions">
-            {anyRunning && onCancel && (
+            {anyRunning && onStopPhase && (
               <button
                 className="btn sm"
                 data-testid={`button-stop-phase-${group.key}`}
-                onClick={onCancel}
+                onClick={onStopPhase}
               >
                 Stop phase
               </button>
@@ -1775,6 +1777,7 @@ export function NextflowWorkflowViewer({
                     onParamChange={handleParamChange}
                     onRun={handleRunStep}
                     onSkip={(id) => setConfirmSkipPhaseId(id)}
+                    onStopPhase={onCancel}
                     onPreviewFile={(file) => setPreviewFile(file)}
                     onAdjustAndRerun={(phase) => setAdjustStep({
                       id: phase.id,
@@ -2395,7 +2398,7 @@ export function NextflowWorkflowViewer({
             <div className="body">
               <strong>Execution blocked</strong> — {executionBlockedReason}
               <div className="act">
-                <button className="btn sm" onClick={() => setSettingsOpen(true)}>Fix now</button>
+                <button className="btn sm" onClick={() => setGlobalParamsOpen(true)}>Fix now</button>
                 <button
                   className="btn ghost sm"
                   data-testid="button-confirm-low-confidence-run"
@@ -2437,16 +2440,20 @@ export function NextflowWorkflowViewer({
         <div className="run-foot-meta">
           <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
             <span className="dot" />
-            {status === 'running' ? 'Watcher attached · live' : status === 'paused' ? 'Watcher detached' : ''}
+            {status === 'running'
+              ? 'Watcher attached · live SSE'
+              : (status === 'paused' || status === 'failed')
+              ? 'Watcher detached · job on AWS Batch'
+              : ''}
           </span>
           {status === 'running' && onPause && (
             <button className="linkish" data-testid="button-pause-workflow-panel" onClick={onPause}>
-              Detach
+              Detach watcher
             </button>
           )}
-          {status === 'paused' && onResume && (
+          {(status === 'paused' || status === 'failed') && onResume && (
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
-              Reconnect
+              Reconnect watcher
             </button>
           )}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (

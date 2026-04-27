@@ -428,7 +428,8 @@
   border: 1px solid; line-height: 1.5;
 }
 .wf-panel .alert .body { flex: 1; }
-.wf-panel .alert .act  { margin-top: 6px; display: flex; gap: 8px; }
+.wf-panel .alert .body strong { color: var(--text); font-weight: 600; }
+.wf-panel .alert .act  { margin-top: 6px; display: flex; gap: 8px; align-items: center; }
 .wf-panel .alert.ok    { border-color: var(--ok);   background: var(--ok-soft);   color: oklch(0.40 0.13 150); }
 .wf-panel .alert.warn  { border-color: var(--warn); background: var(--warn-soft); color: oklch(0.42 0.14 75); }
 .wf-panel .alert.err   { border-color: var(--err);  background: var(--err-soft);  color: oklch(0.38 0.14 25); }
