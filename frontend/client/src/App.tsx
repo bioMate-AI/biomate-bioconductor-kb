@@ -213,7 +213,7 @@ function PlatformLayout({
               fontSize: 13,
               letterSpacing: '-0.03em',
             }}
-            data-testid="button-sidebar-toggle-main"
+            data-testid="button-sidebar-expand"
             title="Expand sidebar"
           >
             B
