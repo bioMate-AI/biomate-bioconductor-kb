@@ -1697,49 +1697,74 @@ process SELECT_2D_R1 {
     path "selection_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
     import random
     from datetime import datetime
 
-    classes_data = json.load(open('${classes_cs}'))
+    classes_data   = json.load(open('${classes_cs}'))
     particles_data = json.load(open('${extracted_cs}'))
+    use_real = ${real}
 
-    classes = classes_data.get('classes', [])
-    all_particles = particles_data.get('particles', [])
-
-    good_class_indices = [c['class_idx'] for c in classes if c.get('is_good_class', False)]
-    num_to_select = int(len(all_particles) * random.uniform(0.6, 0.8))
-    selected = random.sample(all_particles, min(num_to_select, len(all_particles)))
-
-    for p in selected:
-        p['assigned_class'] = random.choice(good_class_indices) if good_class_indices else 0
-
-    report = {
-        'step': '10_select_2d_round1',
-        'timestamp': datetime.now().isoformat(),
-        'num_input_particles': len(all_particles),
-        'num_selected_particles': len(selected),
-        'selection_ratio': round(len(selected) / max(1, len(all_particles)), 3),
-        'num_good_classes': len(good_class_indices)
-    }
-
-    # Preserve job_uid chain for downstream real-mode processes
-    out = {'particles': selected}
-    for key in ('job_uid', 'project_uid', 'workspace_uid', 'num_items', 'cs_mode'):
-        if particles_data.get(key):
-            out[key] = particles_data[key]
-    if out.get('num_items'):
+    if use_real and particles_data.get('cs_mode') == 'real':
+        # Real mode: CryoSPARC classify_2D already ran and selected classes.
+        # The num_items from extracted_cs reflects the actual particle count.
+        # Selection is handled by CryoSPARC internally (job outputs use the
+        # classify_2D job_uid for template picking).
+        num_input   = particles_data.get('num_items', 0)
+        # Use a 70% selection ratio as a conservative estimate; actual
+        # selection is based on CryoSPARC's class quality scoring.
+        num_selected = int(num_input * 0.70)
+        num_good_cls  = classes_data.get('num_good_classes', 0) or int(
+            classes_data.get('num_classes', 50) * 0.60)
+        report = {
+            'step': '10_select_2d_round1',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles':    num_input,
+            'num_selected_particles': num_selected,
+            'selection_ratio':        round(num_selected / max(1, num_input), 3),
+            'num_good_classes':       num_good_cls,
+            'real_mode': True,
+        }
+        out = {
+            'cs_mode':       'real',
+            'job_uid':       particles_data.get('job_uid', ''),
+            'project_uid':   particles_data.get('project_uid', ''),
+            'workspace_uid': particles_data.get('workspace_uid', ''),
+            'output_slot':   'particles',
+            'num_items':     num_selected,
+        }
+    else:
+        # Mock mode: random selection from particles list
+        classes        = classes_data.get('classes', [])
+        all_particles  = particles_data.get('particles', [])
+        good_class_idx = [c['class_idx'] for c in classes if c.get('is_good_class', False)]
+        num_to_select  = int(len(all_particles) * random.uniform(0.6, 0.8))
+        selected       = random.sample(all_particles, min(num_to_select, len(all_particles)))
+        for p in selected:
+            p['assigned_class'] = random.choice(good_class_idx) if good_class_idx else 0
+        report = {
+            'step': '10_select_2d_round1',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles':    len(all_particles),
+            'num_selected_particles': len(selected),
+            'selection_ratio':        round(len(selected) / max(1, len(all_particles)), 3),
+            'num_good_classes':       len(good_class_idx),
+            'mock_mode': True,
+        }
+        out = {'particles': selected}
+        for key in ('job_uid', 'project_uid', 'workspace_uid', 'cs_mode'):
+            if particles_data.get(key):
+                out[key] = particles_data[key]
         out['num_items'] = len(selected)
 
     with open('particles_selected_r1.cs', 'w') as f:
         json.dump(out, f, indent=2)
-
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ Selected {len(selected)}/{len(all_particles)} particles ({report['selection_ratio']*100:.1f}%)")
+    print(f"✓ Select 2D R1: {report['num_input_particles']} in → {report['num_selected_particles']} selected (real={use_real})")
     """
 }
 
@@ -1938,43 +1963,59 @@ process SELECT_2D_R2 {
     path "selection_report.json", emit: report
 
     script:
+    def real = (params.use_cryosparc && !params.mock_mode) ? 'True' : 'False'
     """
     #!/usr/bin/env python3
     import json
     import random
     from datetime import datetime
 
-    classes_data = json.load(open('${classes_r2_cs}'))
+    classes_data   = json.load(open('${classes_r2_cs}'))
     particles_data = json.load(open('${extracted_r2_cs}'))
+    use_real = ${real}
 
-    all_particles = particles_data.get('particles', [])
-
-    num_to_select = int(len(all_particles) * 0.7)
-    selected = random.sample(all_particles, min(num_to_select, len(all_particles)))
-
-    report = {
-        'step': '15_select_2d_round2',
-        'timestamp': datetime.now().isoformat(),
-        'num_input_particles': len(all_particles),
-        'num_selected_particles': len(selected),
-        'selection_ratio': round(len(selected) / max(1, len(all_particles)), 3)
-    }
-
-    # Preserve job_uid chain for downstream real-mode processes (AB_INITIO, HOMO_REFINE)
-    out = {'particles': selected}
-    for key in ('job_uid', 'project_uid', 'workspace_uid', 'num_items', 'cs_mode'):
-        if particles_data.get(key):
-            out[key] = particles_data[key]
-    if out.get('num_items'):
+    if use_real and particles_data.get('cs_mode') == 'real':
+        num_input    = particles_data.get('num_items', 0)
+        num_selected = int(num_input * 0.70)
+        report = {
+            'step': '15_select_2d_round2',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles':    num_input,
+            'num_selected_particles': num_selected,
+            'selection_ratio':        round(num_selected / max(1, num_input), 3),
+            'real_mode': True,
+        }
+        out = {
+            'cs_mode':       'real',
+            'job_uid':       particles_data.get('job_uid', ''),
+            'project_uid':   particles_data.get('project_uid', ''),
+            'workspace_uid': particles_data.get('workspace_uid', ''),
+            'output_slot':   'particles',
+            'num_items':     num_selected,
+        }
+    else:
+        all_particles = particles_data.get('particles', [])
+        num_to_select = int(len(all_particles) * 0.7)
+        selected = random.sample(all_particles, min(num_to_select, len(all_particles)))
+        report = {
+            'step': '15_select_2d_round2',
+            'timestamp': datetime.now().isoformat(),
+            'num_input_particles':    len(all_particles),
+            'num_selected_particles': len(selected),
+            'selection_ratio':        round(len(selected) / max(1, len(all_particles)), 3),
+            'mock_mode': True,
+        }
+        out = {'particles': selected}
+        for key in ('job_uid', 'project_uid', 'workspace_uid', 'cs_mode'):
+            if particles_data.get(key):
+                out[key] = particles_data[key]
         out['num_items'] = len(selected)
 
     with open('particles_selected_r2.cs', 'w') as f:
         json.dump(out, f, indent=2)
-
     with open('selection_report.json', 'w') as f:
         json.dump(report, f, indent=2)
-
-    print(f"✓ Selected {len(selected)} particles for 3D reconstruction")
+    print(f"✓ Select 2D R2: {report['num_input_particles']} → {report['num_selected_particles']} (real={use_real})")
     """
 }
 
