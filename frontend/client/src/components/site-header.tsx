@@ -117,9 +117,9 @@ export function SiteHeader({ isAuthenticated: isAuthenticatedProp }: SiteHeaderP
                     {user?.name || 'My Account'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleNavigation('/dashboard')}>
+                  {/* <DropdownMenuItem onClick={() => handleNavigation('/dashboard')}>
                     Dashboard
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                   <DropdownMenuItem onClick={() => handleNavigation('/')}>
                     Platform
                   </DropdownMenuItem>
