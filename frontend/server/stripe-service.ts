@@ -9,11 +9,12 @@ const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const APP_URL = process.env.APP_URL || 'http://localhost:5000';
 
 // Subscription tier price IDs (set these in Stripe dashboard)
+// Free tier has no price ID — it uses the 7-day trial flow only
 const PRICE_IDS = {
-  academic_monthly: process.env.STRIPE_PRICE_ACADEMIC_MONTHLY,
-  academic_yearly: process.env.STRIPE_PRICE_ACADEMIC_YEARLY,
-  professional_monthly: process.env.STRIPE_PRICE_PROFESSIONAL_MONTHLY,
-  professional_yearly: process.env.STRIPE_PRICE_PROFESSIONAL_YEARLY,
+  premium_monthly: process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+  premium_yearly: process.env.STRIPE_PRICE_PREMIUM_YEARLY,
+  team_monthly: process.env.STRIPE_PRICE_TEAM_MONTHLY,
+  team_yearly: process.env.STRIPE_PRICE_TEAM_YEARLY,
   enterprise_monthly: process.env.STRIPE_PRICE_ENTERPRISE_MONTHLY,
   enterprise_yearly: process.env.STRIPE_PRICE_ENTERPRISE_YEARLY,
 };
