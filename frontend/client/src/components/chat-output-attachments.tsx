@@ -101,12 +101,14 @@ export function ChatOutputAttachments({
     )
   }
 
-  // Filter out Nextflow internal files: 0-byte files, 8-char hex hash names,
-  // and known internal filenames (dag.dot, versions.yml, etc.)
+  // Filter out Nextflow internal files: unnamed/hash files, known internal filenames.
+  // NOTE: S3-backed outputs have size=0 (unknown at registration time) — do NOT filter on size.
   const NF_INTERNAL_RE = /^[0-9a-f]{8}$/i;
   const NF_INTERNAL_NAMES = new Set(['dag.dot', 'versions.yml', 'nextflow_run_summary.txt', 'trace.txt', 'timeline.html', 'report.html']);
   const visibleOutputs = outputs.filter(o => {
-    if ((o as any).size === 0) return false;
+    const isS3Backed = !!(o as any).metadata?.s3Uri;
+    // For local files: filter out zero-byte files (they're empty placeholders)
+    if (!isS3Backed && (o as any).size === 0) return false;
     const base = (o.name || '').split('/').pop() || o.name;
     if (NF_INTERNAL_RE.test(base)) return false;
     if (NF_INTERNAL_NAMES.has(base)) return false;

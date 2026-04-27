@@ -3883,65 +3883,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ).join('\n\n')
           : '(No readable text output files available — binary outputs (MRC, CS, STAR) produced)';
 
-        // ── Structured extraction pass (CryoSPARC protocol §2–3) ────────────
-        // Parse required fields before LLM synthesis so numbers are confirmed real.
+        // ── Domain detection ─────────────────────────────────────────────────
+        const wfLower = workflowName.toLowerCase();
+        const isCryoEM   = /cryo|spa\b|cryosparc|electron microscopy/i.test(wfLower);
+        const isADMET    = /admet|toxicity|pharmacol|dili|herg|predict.*prop/i.test(wfLower);
+        const isRNAseq   = /rnaseq|rna.?seq|differential.*abund|deseq|edger/i.test(wfLower);
+        const isVariant  = /sarek|wgs|variant|gatk|snp|vcf|genomics/i.test(wfLower);
+        const isDocking  = /docking|dock|autodock|vina|binding/i.test(wfLower);
+        const isDrugDisc = /drug.?disc|admet|pbpk|clinical.?trial|ind.?prep|ddi|cyp/i.test(wfLower);
+
+        // Parse all JSON output files
         const _parse = (name: string): Record<string, any> => {
           const sample = textOutputSamples.find(s => s.name === name);
           if (!sample) return {};
           try { return JSON.parse(sample.content); } catch { return {}; }
         };
-
-        // Aggregate across batches
         const allReports = textOutputSamples.map(s => {
           try { return { name: s.name, data: JSON.parse(s.content) }; } catch { return { name: s.name, data: {} }; }
         });
 
-        const _sumField = (namePattern: RegExp, field: string): number => {
-          return allReports
-            .filter(r => namePattern.test(r.name))
-            .reduce((acc, r) => acc + (Number(r.data[field]) || 0), 0);
-        };
-        const _firstField = (namePattern: RegExp, field: string): any => {
-          const hit = allReports.find(r => namePattern.test(r.name));
-          return hit ? hit.data[field] : undefined;
-        };
+        // ── Domain-specific metric extraction ────────────────────────────────
+        let extractedMetrics: Record<string, string> = {};
 
-        const motionRpt   = allReports.find(r => r.name.includes('motion_report'));
-        const ctfRpt      = allReports.find(r => r.name.includes('ctf_report_batch'));
-        const class2dR1   = allReports.find(r => r.name.includes('class2d_report_pbatch'));
-        const selectR1    = _parse('selection_report.json');
-        const class2dR2   = allReports.find(r => r.name.includes('class2d_report_r2_pbatch'));
-        const extractR2   = _parse('extract_report.json');
-        const fscRpt      = _parse('fsc_validation.json');
-        const wfSummary   = _parse('workflow_summary.json');
-        const nuRpt       = _parse('nu_refinement_report.json');
-        const sharpenRpt  = _parse('sharpening_report.json');
-
-        const extractedMetrics: Record<string, string> = {
-          num_micrographs:      String(motionRpt?.data?.num_micrographs ?? 'MISSING'),
-          avg_total_motion_A:   String(motionRpt?.data?.avg_total_motion_A ?? 'MISSING'),
-          min_total_motion_A:   String(motionRpt?.data?.min_total_motion_A ?? 'MISSING'),
-          max_total_motion_A:   String(motionRpt?.data?.max_total_motion_A ?? 'MISSING'),
-          avg_defocus_A:        String(ctfRpt?.data?.avg_defocus_A ?? 'MISSING'),
-          avg_fit_quality:      String(ctfRpt?.data?.avg_fit_quality ?? 'MISSING'),
-          avg_astigmatism_A:    String(ctfRpt?.data?.avg_astigmatism_A ?? 'MISSING'),
-          num_particles_r1:     String(class2dR1?.data?.num_particles ?? 'MISSING'),
-          num_classes_r1:       String(class2dR1?.data?.num_classes ?? 'MISSING'),
-          num_selected_r1:      String(selectR1?.num_selected_particles ?? 'MISSING'),
-          selection_ratio_r1:   String(selectR1?.selection_ratio ?? 'MISSING'),
-          num_extracted_r2:     String(extractR2?.num_particles ?? 'MISSING'),
-          num_particles_r2:     String(class2dR2?.data?.num_particles ?? 'MISSING'),
-          num_particles_nu:     String(nuRpt?.num_particles ?? 'MISSING'),
-          fsc_0143_resolution:  String(fscRpt?.fsc_0143_resolution ?? 'MISSING'),
-          fsc_curve_points:     String(Array.isArray(fscRpt?.fsc_curve) ? fscRpt.fsc_curve.length : 0),
-          pixel_size_A:         String(wfSummary?.pixel_size_angstroms ?? params?.pixel_size ?? 'MISSING'),
-          voltage_kv:           String(wfSummary?.voltage_kv ?? params?.voltage_kv ?? 'MISSING'),
-          symmetry:             String(wfSummary?.symmetry ?? params?.symmetry ?? 'C1'),
-          steps_completed:      String(wfSummary?.steps_completed ?? 'MISSING'),
-          cs_project_uid:       String(
-            motionRpt?.data?.cs_project_uid ?? nuRpt?.cs_project_uid ?? 'MISSING'
-          ),
-        };
+        if (isCryoEM) {
+          const motionRpt  = allReports.find(r => r.name.includes('motion_report'));
+          const ctfRpt     = allReports.find(r => r.name.includes('ctf_report_batch'));
+          const class2dR1  = allReports.find(r => r.name.includes('class2d_report_pbatch'));
+          const selectR1   = _parse('selection_report.json');
+          const class2dR2  = allReports.find(r => r.name.includes('class2d_report_r2_pbatch'));
+          const extractR2  = _parse('extract_report.json');
+          const fscRpt     = _parse('fsc_validation.json');
+          const wfSummary  = _parse('workflow_summary.json');
+          const nuRpt      = _parse('nu_refinement_report.json');
+          extractedMetrics = {
+            num_micrographs:     String(motionRpt?.data?.num_micrographs    ?? 'MISSING'),
+            avg_total_motion_A:  String(motionRpt?.data?.avg_total_motion_A ?? 'MISSING'),
+            avg_defocus_A:       String(ctfRpt?.data?.avg_defocus_A          ?? 'MISSING'),
+            avg_fit_quality:     String(ctfRpt?.data?.avg_fit_quality        ?? 'MISSING'),
+            num_particles_r1:    String(class2dR1?.data?.num_particles       ?? 'MISSING'),
+            num_selected_r1:     String(selectR1?.num_selected_particles     ?? 'MISSING'),
+            num_extracted_r2:    String(extractR2?.num_particles             ?? 'MISSING'),
+            num_particles_nu:    String(nuRpt?.num_particles                 ?? 'MISSING'),
+            fsc_0143_resolution: String(fscRpt?.fsc_0143_resolution         ?? 'MISSING'),
+            pixel_size_A:        String(wfSummary?.pixel_size_angstroms      ?? params?.pixel_size ?? 'MISSING'),
+            voltage_kv:          String(wfSummary?.voltage_kv                ?? params?.voltage_kv ?? 'MISSING'),
+            symmetry:            String(wfSummary?.symmetry                  ?? params?.symmetry   ?? 'C1'),
+            steps_completed:     String(wfSummary?.steps_completed           ?? 'MISSING'),
+            cs_project_uid:      String(motionRpt?.data?.cs_project_uid      ?? nuRpt?.cs_project_uid ?? 'MISSING'),
+          };
+        } else if (isADMET || isDrugDisc) {
+          const toxRpt     = _parse('toxicity_report.json');
+          const admetRes   = _parse('predict_admet_properties_results.json');
+          const perCpd     = Array.isArray(toxRpt?.per_compound) ? toxRpt.per_compound : [];
+          extractedMetrics = {
+            compounds_assessed:    String(toxRpt?.compounds_assessed      ?? perCpd.length         ?? 'MISSING'),
+            model_type:            String(toxRpt?.model_type               ?? admetRes?.result?.model ?? 'MPNN'),
+            estimation_method:     String(toxRpt?.estimation_method        ?? 'rdkit_descriptors'),
+            herg_ic50_min_uM:      String(Math.min(...perCpd.map((c:any) => c.herg_ic50_uM ?? Infinity)).toFixed(3) ?? 'MISSING'),
+            dili_risk_max:         String(perCpd.find((c:any) => c.dili_risk === 'high')?.dili_risk ?? toxRpt?.toxicity?.dili_risk ?? 'MISSING'),
+            dili_probability_max:  String(toxRpt?.toxicity?.dili_probability ?? 'MISSING'),
+            ames_positive:         String(toxRpt?.toxicity?.ames_positive    ?? 'MISSING'),
+            ames_probability:      String(toxRpt?.toxicity?.ames_probability ?? 'MISSING'),
+            smiles_input:          String(Array.isArray(params?.smiles_list) ? params.smiles_list.join('; ') : (params?.smiles_list ?? params?.smiles ?? 'MISSING')),
+            logP_range:            String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.logP ?? 99)).toFixed(2)} – ${Math.max(...perCpd.map((c:any) => c.logP ?? -99)).toFixed(2)}` : 'MISSING'),
+            mw_range:              String(perCpd.length > 0 ? `${Math.min(...perCpd.map((c:any) => c.mw ?? 9999)).toFixed(1)} – ${Math.max(...perCpd.map((c:any) => c.mw ?? 0)).toFixed(1)} Da` : 'MISSING'),
+          };
+        } else if (isRNAseq) {
+          const qcRpt  = _parse('multiqc_report.json') || _parse('qc_summary.json');
+          const deRpt  = _parse('differential_expression.json');
+          extractedMetrics = {
+            total_samples:   String(qcRpt?.total_samples     ?? params?.samples ?? 'MISSING'),
+            aligner:         String(params?.aligner          ?? 'STAR'),
+            genome:          String(params?.genome           ?? params?.genome_index ?? 'MISSING'),
+            de_tool:         String(params?.pseudo_aligner   ?? 'DESeq2'),
+            total_de_genes:  String(deRpt?.total_significant ?? 'MISSING'),
+            upregulated:     String(deRpt?.upregulated       ?? 'MISSING'),
+            downregulated:   String(deRpt?.downregulated     ?? 'MISSING'),
+          };
+        } else if (isVariant) {
+          const vcfRpt = _parse('variant_summary.json');
+          extractedMetrics = {
+            genome:         String(params?.genome    ?? 'MISSING'),
+            total_variants: String(vcfRpt?.total     ?? 'MISSING'),
+            snps:           String(vcfRpt?.snps      ?? 'MISSING'),
+            indels:         String(vcfRpt?.indels    ?? 'MISSING'),
+            caller:         String(params?.tools     ?? 'GATK HaplotypeCaller'),
+          };
+        } else {
+          // Generic: pull what we can from params
+          extractedMetrics = Object.fromEntries(
+            Object.entries(params).slice(0, 15).map(([k, v]) => [k, String(v ?? 'MISSING')])
+          );
+        }
 
         const missingCount = Object.values(extractedMetrics).filter(v => v === 'MISSING').length;
         const metricsBlock = Object.entries(extractedMetrics)
@@ -3986,28 +4019,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(200).send(fallback);
         }
 
-        // Claude Sonnet — generate publication-quality methods + results report
-        const SYSTEM = `You are a senior structural biologist and computational scientist writing a complete, submission-ready Methods and Results manuscript section for a peer-reviewed journal (e.g., Nature Methods, IUCrJ, eLife, Journal of Structural Biology).
+        // Domain-specific system + user prompts
+        let SYSTEM: string;
+        let USER: string;
 
-Your output must be:
-- Written in formal third-person scientific prose, past tense
-- Specific and quantitative: include every parameter value, version number, and hardware spec provided
-- Complete enough that an independent researcher could reproduce the analysis exactly
-- Structured for direct copy-paste into a journal submission
-- Properly cited with author (Year) format, PMIDs listed in References
-- Include statistical quality indicators wherever available (FSC, map quality, particle counts, resolution)
-
-Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
-
-        const isCryoEM = workflowName.toLowerCase().includes('cryo') || workflowName.toLowerCase().includes('spa');
-        const cryoemSections = isCryoEM ? `
-8. CRYO-EM DATA QUALITY ASSESSMENT — Resolution at FSC 0.143 gold-standard criterion; local resolution range; map-to-model cross-correlation if applicable; Rosenthal-Henderson B-factor; preferred orientation analysis (sphericity score); particle yield efficiency (picked / selected / final); defocus range and CTF fit quality
-9. EMDB/PDB DEPOSITION NOTE — Recommended deposition metadata: map pixel size, symmetry imposed, final particle count, box size, applied B-factor sharpening, reconstruction software version, licensing constraints
-10. REPRODUCIBILITY STATEMENT — Steps taken to ensure reproducibility: random seed (if applicable), software version pinning, cloud environment specification, parameter archiving` : '';
-
-        const USER = `Generate a complete, publication-quality computational biology manuscript section for journal submission. Use ONLY the numbers in the EXTRACTED METRICS block — do not invent values. For any metric marked MISSING, use the exact text: "[data not available — pipeline re-run required]".
-
-=== EXECUTION METADATA ===
+        const executionBlock = `=== EXECUTION METADATA ===
 WORKFLOW: ${workflowName}
 INVOCATION ID: ${invocationId}
 NEXTFLOW RUN ID: ${nfRunId}
@@ -4016,69 +4032,130 @@ START TIME: ${startedAt}
 COMPLETION TIME: ${completedAt || 'N/A'}
 TOTAL WALL TIME: ${wallTimeStr}
 CLOUD PLATFORM: AWS Batch (us-west-2 region)
-ORCHESTRATION: Nextflow DSL2 + AWS Batch
-${isCryoEM ? 'GPU COMPUTE: NVIDIA L4 (g6.2xlarge EC2 instance, 1x GPU, 8 vCPU, 32 GB RAM)\nSOFTWARE: CryoSPARC v5.0.2, cryosparc-tools Python API' : ''}
-DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metrics are MISSING (will be noted in report)
+ORCHESTRATION: Nextflow DSL2 + AWS Batch`;
 
+        const commonTail = `
 === EXTRACTED METRICS (parsed from pipeline JSON reports — verified real numbers) ===
 ${metricsBlock}
 
 === INPUT PARAMETERS ===
 ${paramLines || '(not recorded)'}
 
-=== OUTPUT FILE CONTENTS (raw JSON reports from pipeline) ===
+=== OUTPUT FILE CONTENTS (raw pipeline reports) ===
 ${fileContext}
 
 === OUTPUT FILES ===
-${outputInventory}
+${outputInventory}`;
 
-=== REQUIRED SECTIONS (follow CryoSPARC Tech Report Protocol) ===
-Write ALL sections below. For any section where required metrics are MISSING, explicitly state which data is unavailable and why.
+        if (isCryoEM) {
+          SYSTEM = `You are a senior structural biologist and computational scientist writing a complete, submission-ready Methods and Results section for a peer-reviewed cryo-EM journal (Nature Methods, IUCrJ, eLife, JSB). Write in formal third-person scientific prose, past tense. Include every parameter value, version number, and hardware spec. Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
 
-1. ABSTRACT (150 words max) — Include: sample/dataset, num_micrographs, final particle count (num_particles_nu), FSC 0.143 resolution (fsc_0143_resolution), software version, cloud platform.
+          USER = `Generate a complete, publication-quality cryo-EM manuscript section. Use ONLY the numbers in EXTRACTED METRICS — do not invent values. For any metric marked MISSING, write: "[data not available — pipeline re-run required]".
 
-2. STUDY OVERVIEW — Biological question; dataset source; pixel size; voltage; symmetry; expected particle size.
+${executionBlock}
+GPU COMPUTE: NVIDIA L4 (g6.2xlarge, 1×GPU, 8 vCPU, 32 GB RAM)
+SOFTWARE: CryoSPARC v5.0.2
+DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metrics are MISSING
+${commonTail}
 
-3. COMPUTATIONAL ENVIRONMENT — AWS Batch us-west-2; g6.2xlarge (1×NVIDIA L4 GPU, 8 vCPU, 32 GB RAM); CryoSPARC v5.0.2; Nextflow DSL2; BioMate pipeline.
+=== REQUIRED SECTIONS ===
+1. ABSTRACT (150 words) — sample, num_micrographs, num_particles_nu, fsc_0143_resolution Å, software, cloud platform.
+2. STUDY OVERVIEW — Biological question; pixel size; voltage; symmetry.
+3. COMPUTATIONAL ENVIRONMENT — AWS Batch; g6.2xlarge; CryoSPARC v5.0.2; Nextflow DSL2.
+4. DATA ACQUISITION — num_micrographs; avg_total_motion_A Å; avg_defocus_A Å; avg_fit_quality; pixel_size_A; voltage_kv.
+5. METHODS — One paragraph per stage: Motion Correction, CTF Estimation, Particle Picking, Extraction, 2D Classification R1, 2D Classification R2, Ab-Initio, Homogeneous Refinement, NU Refinement, FSC Validation.
+6. PIPELINE EXECUTION — Wall time; cs_project_uid; steps completed.
+7. RESULTS — Particle yield table: picked → selected R1 → extracted R2 → final (num_particles_nu); FSC 0.143 = fsc_0143_resolution Å.
+8. CRYO-EM DATA QUALITY — FSC 0.143 resolution; B-factor; particle yield efficiency; preferred orientation.
+9. EMDB/PDB DEPOSITION NOTE — Map pixel size; symmetry; final particle count; software version.
+N. REFERENCES — CryoSPARC: PMID 28165473; CTFFIND4: PMID 26278980; MotionCor2: PMID 28250466; NU refinement: PMID 33257830; Local CTF: PMID 34282325.`;
 
-4. DATA ACQUISITION AND PREPROCESSING — num_micrographs; avg_total_motion_A (Å drift); avg_defocus_A (Å); avg_fit_quality; pixel_size_A Å/pixel; voltage_kv kV. Quality thresholds applied: motion < 10 Å, CTF fit > 0.5.
+        } else if (isADMET || isDrugDisc) {
+          SYSTEM = `You are a senior computational pharmacologist and toxicologist writing a submission-ready Methods and Results section for a pharmaceutical sciences journal (J Med Chem, Drug Metabolism and Disposition, Toxicological Sciences). Write in formal third-person scientific prose, past tense. Be specific and quantitative. Include all measured ADMET values and proper regulatory context (ICH guidelines, FDA DDI guidance). Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
 
-5. METHODS — One paragraph per stage:
-   5.1 Motion Correction (Patch Motion Correction, CryoSPARC v5.0.2, Punjani 2017)
-   5.2 CTF Estimation (Patch CTF, CTFFIND4 algorithm, Rohou 2015)
-   5.3 Particle Picking (blob picker diameter, then template picker from 2D classes)
-   5.4 Particle Extraction (box_size from params, Å box size)
-   5.5 2D Classification R1 (num_particles_r1 particles, num_classes_r1 classes → num_selected_r1 selected)
-   5.6 2D Classification R2 (template-guided, num_particles_r2 → num extracted_r2 selected)
-   5.7 Ab-Initio Reconstruction (symmetry, num_ab_initio_classes models)
-   5.8 Homogeneous Refinement (symmetry, num_particles_nu particles)
-   5.9 Post-Processing (local CTF refinement, Punjani 2021; NU refinement, Punjani 2020)
-   5.10 FSC Validation + Map Sharpening (gold-standard FSC; B-factor sharpening)
+          USER = `Generate a complete, publication-quality ADMET pharmacological assessment manuscript section. Use ONLY the numbers in EXTRACTED METRICS — do not invent values. For any metric marked MISSING, write: "[data not available]".
 
-6. PIPELINE EXECUTION — Wall time; CryoSPARC project cs_project_uid; steps_completed steps completed.
+${executionBlock}
+SOFTWARE: BioMate ADMET Pipeline (RDKit descriptors, MPNN architecture)
+DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metrics are MISSING
+${commonTail}
 
-7. RESULTS — Include this particle yield table with actual values (use MISSING for unavailable):
-   Blob picking → X particles
-   Junk filtering → X kept (X% yield)
-   2D classify R1: num_particles_r1 → num_selected_r1 selected (selection_ratio_r1)
-   Template picking → X candidates
-   Extract R2 → num_extracted_r2
-   2D classify R2 → X selected
-   Homogeneous refinement → num_particles_nu
-   NU refinement → num_particles_nu
-   FSC 0.143 resolution: fsc_0143_resolution Å
+=== REQUIRED SECTIONS ===
+1. ABSTRACT (120 words) — Number of compounds assessed, model type, key safety findings (hERG IC50, DILI risk), Ames mutagenicity result, cloud platform.
 
-8. DATA ANALYSIS AND SCIENTIFIC INTERPRETATION — Compare all metrics to field standards. For resolution: comment on what is achievable at this particle count. Note any MISSING metrics and what they would normally reveal.${cryoemSections}
+2. STUDY OVERVIEW — Biological objective (safety profiling); compounds assessed (use SMILES from smiles_input parameter); expected endpoints (cardiac, hepatic, genotoxic risk).
 
-${isCryoEM ? `REQUIRED CRYO-EM REFERENCES (always include with correct PMIDs):
-1. CryoSPARC: Punjani et al. (2017) Nature Methods 14:290-296. PMID: 28165473
-2. CTFFIND4: Rohou & Grigorieff (2015) JSB 192:216-221. PMID: 26278980
-3. MotionCor2: Zheng et al. (2017) Nature Methods 14:331-332. PMID: 28250466
-4. Non-uniform refinement: Punjani et al. (2020) Nature Methods 17:1214-1221. PMID: 33257830
-5. Local CTF refinement: Punjani & Fleet (2021) Nature Methods 18:860-869. PMID: 34282325
-6. DeepEMhancer (map sharpening): Sanchez-Garcia et al. (2021) Commun Biol 4:874. PMID: 34267316` : ''}
+3. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline; RDKit descriptor-based heuristics; MPNN model architecture; DeepPurpose library status.
 
-N. REFERENCES — Complete numbered reference list in Vancouver format with PMIDs.`;
+4. METHODS —
+   4.1 Input Preparation — SMILES standardization; descriptor calculation (logP, MW, TPSA).
+   4.2 hERG Cardiotoxicity Assessment — IC50 prediction; threshold (herg_ic50_min_uM µM vs 1 µM clinical safety threshold per ICH E14).
+   4.3 Drug-Induced Liver Injury (DILI) — Probability model; dili_probability_max; risk classification.
+   4.4 Ames Mutagenicity — Structural alert method (Kazius-Bursi dataset, kazius_structural_alerts); ames_positive result; ames_probability.
+   4.5 Lipophilicity and Druglikeness — Lipinski Rule of Five compliance; logP_range; mw_range.
+
+5. RESULTS — Per-compound ADMET table with actual values from EXTRACTED METRICS:
+   | Compound | SMILES (abbreviated) | logP | MW (Da) | hERG IC50 (µM) | DILI Risk | DILI Prob | Ames |
+
+6. SAFETY INTERPRETATION — Flag compounds exceeding safety thresholds: hERG IC50 < 1 µM (high cardiotoxicity risk), DILI probability > 0.5, Ames positive. Compare to approved drug benchmarks.
+
+7. PIPELINE EXECUTION — Wall time; cloud platform; software versions.
+
+8. LIMITATIONS AND NEXT STEPS — DeepPurpose availability; in vitro validation recommendation; ClinTox prediction gaps.
+
+N. REFERENCES — RDKit: PMID 19997329; Kazius-Bursi Ames alerts: PMID 15832503; Lipinski Rule of 5: PMID 11259830; hERG safety: ICH E14 guideline; DILI: PMID 31134006.`;
+
+        } else if (isRNAseq) {
+          SYSTEM = `You are a bioinformatician writing a submission-ready Methods section for a genomics journal (Genome Biology, Bioinformatics, Nature Communications). Write in formal third-person past tense. Include all tool versions and parameter values. Do NOT use markdown headers. Use numbered section headings in ALL CAPS.`;
+
+          USER = `Generate a publication-quality RNA-seq analysis manuscript section. Use ONLY the numbers in EXTRACTED METRICS.
+
+${executionBlock}
+${commonTail}
+
+=== REQUIRED SECTIONS ===
+1. ABSTRACT — Samples analyzed; aligner; DE tool; significant genes; platform.
+2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/rnaseq pipeline; software versions.
+3. DATA PROCESSING — Reference genome; STAR alignment parameters; read trimming.
+4. DIFFERENTIAL EXPRESSION — DESeq2/edgeR; FDR threshold; LFC cutoff; total_de_genes DE genes.
+5. RESULTS — Upregulated and downregulated gene counts; pathway enrichment summary.
+6. PIPELINE EXECUTION — Wall time; key parameters.
+N. REFERENCES — nf-core: PMID 32055031; STAR: PMID 23104886; DESeq2: PMID 25516281; trimgalore/fastp.`;
+
+        } else if (isVariant) {
+          SYSTEM = `You are a bioinformatician writing a submission-ready variant calling Methods section for a genetics journal. Write in formal third-person past tense. Do NOT use markdown headers. Use numbered section headings in ALL CAPS.`;
+
+          USER = `Generate a publication-quality variant calling manuscript section. Use ONLY the numbers in EXTRACTED METRICS.
+
+${executionBlock}
+${commonTail}
+
+=== REQUIRED SECTIONS ===
+1. ABSTRACT — Genome; caller; total variants (total_variants); SNPs vs indels.
+2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; nf-core/sarek pipeline.
+3. METHODS — Alignment (BWA-MEM2); variant calling (GATK HaplotypeCaller / ${params?.tools || 'GATK'}); VQSR/hard filtering.
+4. RESULTS — total_variants variants called; snps SNPs; indels indels.
+5. PIPELINE EXECUTION — Wall time; key parameters.
+N. REFERENCES — GATK: PMID 20644199; BWA-MEM2: PMID 31006120; nf-core/sarek: PMID 34044496.`;
+
+        } else {
+          // Generic domain-agnostic report
+          SYSTEM = `You are a computational biologist writing a complete Methods and Results section for a peer-reviewed journal submission. Write in formal third-person scientific prose, past tense. Include all parameter values and hardware specs. Do NOT use markdown headers. Use numbered section headings in ALL CAPS.`;
+
+          USER = `Generate a publication-quality methods section for a computational biology workflow. Use ONLY the numbers in EXTRACTED METRICS.
+
+${executionBlock}
+${commonTail}
+
+=== REQUIRED SECTIONS ===
+1. ABSTRACT — Brief summary of the analysis; key result; platform.
+2. COMPUTATIONAL ENVIRONMENT — AWS Batch; Nextflow DSL2; BioMate pipeline.
+3. INPUT AND PARAMETERS — All input parameters with values.
+4. METHODS — Step-by-step workflow description using workflowSteps.
+5. RESULTS — Key outputs and their scientific interpretation.
+6. PIPELINE EXECUTION — Wall time; status; output files.
+N. REFERENCES — Relevant tool citations with PMIDs.`;
+        }
 
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
