@@ -1167,6 +1167,65 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
         elif "WBcel" in result.get("genome", ""):
             result["macs_gsize"] = "ce"
 
+    # ── MD simulation: unit conversion (LLM unreliable at arithmetic) ────────
+    # "100 ns" + "2 fs timestep" → n_steps and dt
+    # Rule: n_steps = length_ns * 1e6 / timestep_fs  (ns→fs = ×1e6, then ÷ step)
+    #       dt = timestep_fs / 1000  (fs→ps for GROMACS)
+    import re as _re
+    _has_nsteps = "n_steps" in param_names
+    _has_dt = "dt" in param_names
+    if _has_nsteps or _has_dt:
+        _len_ns = None
+        _step_fs = None
+        _m_ns = _re.search(r'(\d+(?:\.\d+)?)\s*ns\b', text, _re.IGNORECASE)
+        _m_us = _re.search(r'(\d+(?:\.\d+)?)\s*[µu]s\b', text, _re.IGNORECASE)
+        _m_fs = _re.search(r'(\d+(?:\.\d+)?)\s*fs\b', text, _re.IGNORECASE)
+        _m_ps = _re.search(r'(\d+(?:\.\d+)?)\s*ps\b(?!\s*\d)', text, _re.IGNORECASE)
+        if _m_ns:
+            _len_ns = float(_m_ns.group(1))
+        elif _m_us:
+            _len_ns = float(_m_us.group(1)) * 1000
+        if _m_fs:
+            _step_fs = float(_m_fs.group(1))
+        elif _m_ps:
+            _step_fs = float(_m_ps.group(1)) * 1000  # ps → fs
+
+        if _len_ns is not None:
+            # Use extracted timestep or default 2 fs
+            _ts = _step_fs if _step_fs is not None else 2.0
+            if _has_nsteps and "n_steps" not in result:
+                result["n_steps"] = int(_len_ns * 1_000_000 / _ts)
+            if _has_dt and "dt" not in result and _step_fs is not None:
+                result["dt"] = round(_step_fs / 1000, 6)  # fs → ps
+
+    # ── Sequencing coverage (WGS/WES) ────────────────────────────────────────
+    if "genome_coverage" in param_names and "genome_coverage" not in result:
+        _m_cov = _re.search(r'(\d+)\s*[xX×]\s*(?:coverage|depth|sequencing)', text)
+        if not _m_cov:
+            _m_cov = _re.search(r'(?:coverage|depth)\s+(?:of\s+)?(\d+)\s*[xX×]?', text)
+        if _m_cov:
+            result["genome_coverage"] = int(_m_cov.group(1))
+
+    # ── Negation patterns: "remove X" / "no X" → keep_x=False ───────────────
+    if "keep_mito" in param_names and "keep_mito" not in result:
+        if _re.search(r'(?:remove|filter|exclude|strip|discard)\s+(?:mitochondrial|mito)\b', text, _re.IGNORECASE):
+            result["keep_mito"] = False
+        elif _re.search(r'(?:no|without)\s+(?:mitochondrial|mito)\b', text, _re.IGNORECASE):
+            result["keep_mito"] = False
+
+    # ── Library type: single-end / paired-end ────────────────────────────────
+    if "single_end" in param_names and "single_end" not in result:
+        if _re.search(r'\bsingle.end\b|\bSE\b|\bsingle\s+end\b', text, _re.IGNORECASE):
+            result["single_end"] = True
+        elif _re.search(r'\bpaired.end\b|\bPE\b|\bpaired\s+end\b', text, _re.IGNORECASE):
+            result["single_end"] = False
+
+    if "paired_end" in param_names and "paired_end" not in result:
+        if _re.search(r'\bpaired.end\b|\bPE\b|\bpaired\s+end\b', text, _re.IGNORECASE):
+            result["paired_end"] = True
+        elif _re.search(r'\bsingle.end\b|\bSE\b|\bsingle\s+end\b', text, _re.IGNORECASE):
+            result["paired_end"] = False
+
     return result
 
 

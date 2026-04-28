@@ -4555,21 +4555,36 @@ def _count_movies_on_cryosparc(movies_path: str, instance_ip: str, ssh_key: str,
 
 
 # Dataset-size → instance type table.
-# Rule: use the smallest instance that comfortably fits the dataset.
-# L4 GPU (Ada Lovelace, 31.2 TFLOPS FP32) outperforms V100 for compute-bound cryo-EM.
-# V100 (Volta, 900 GB/s HBM2) only wins for massive particle stacks (>1M particles, box>512px).
+#
+# Design principle: always use multi-GPU for real cryo-EM work.
+# The 3-5× speedup from 4× L4 lanes far outweighs the 1.75× cost difference
+# ($1.50/h g6.12xlarge vs $0.85/h g6.2xlarge). g6.2xlarge is reserved for
+# CI/mock-mode tests only (num_movies == 0 AND import_particles mode with <1K
+# particles, i.e. truly synthetic/test data).
+#
+# import_particles mode (num_movies=0): treated as 51 to land on g6.12xlarge
+# since particle pipelines are equally compute-bound as movie pipelines.
+#
+# L4 GPU (Ada Lovelace, 31.2 TFLOPS FP32) outperforms V100 for cryo-EM.
+# V100 (Volta, 900 GB/s HBM2) only wins for >1M particles, box>512px.
 _CRYOSPARC_FLEET: List[Dict[str, Any]] = [
-    {"max_movies": 50,   "instance_type": "g6.2xlarge",  "num_gpu": 1, "label": "dev/test (1× L4)"},
+    {"max_movies": 20,   "instance_type": "g6.2xlarge",  "num_gpu": 1, "label": "CI/test (1× L4, ≤20 movies)"},
     {"max_movies": 500,  "instance_type": "g6.12xlarge", "num_gpu": 4, "label": "standard (4× L4)"},
     {"max_movies": 2000, "instance_type": "g6.48xlarge", "num_gpu": 8, "label": "large campaign (8× L4)"},
     {"max_movies": 9999, "instance_type": "p3.16xlarge",  "num_gpu": 8, "label": "bandwidth-bound (8× V100 HBM2)"},
 ]
 
 
-def _select_cryosparc_instance(num_movies: int) -> Dict[str, Any]:
-    """Return fleet entry (instance_type, num_gpu, label) for the given movie count."""
+def _select_cryosparc_instance(num_movies: int, import_mode: str = "movies") -> Dict[str, Any]:
+    """Return fleet entry (instance_type, num_gpu, label) for the given movie count.
+
+    import_particles mode (num_movies=0) is treated as 51 so it lands on
+    g6.12xlarge — particle-stage jobs are equally GPU-bound as movie pipelines
+    and benefit from the same multi-lane parallelism.
+    """
+    effective = num_movies if num_movies > 0 else (51 if import_mode == "import_particles" else 0)
     for entry in _CRYOSPARC_FLEET:
-        if num_movies <= entry["max_movies"]:
+        if effective <= entry["max_movies"]:
             return entry
     return _CRYOSPARC_FLEET[-1]
 
@@ -4626,11 +4641,17 @@ def execute_cryosparc(
     else:
         _num_movies = 0
 
-    _fleet_entry = _select_cryosparc_instance(_num_movies)
+    _input_mode_early = params.get("mode", "movies")
+    _fleet_entry = _select_cryosparc_instance(_num_movies, import_mode=_input_mode_early)
     _selected_instance_type = params.get("instance_type") or _fleet_entry["instance_type"]
     _selected_num_gpu       = int(params.get("num_gpu", 0)) or _fleet_entry["num_gpu"]
-    log.info("[CryoSPARC] Dataset sizing: %d movies → instance=%s (%d GPU, %s)",
-             _num_movies, _selected_instance_type, _selected_num_gpu, _fleet_entry["label"])
+    # Auto-set num_cs_workers to match the GPU count unless caller overrides.
+    # This ensures multi-GPU instances always use all lanes for parallel execution.
+    if "num_cs_workers" not in params:
+        params["num_cs_workers"] = _selected_num_gpu
+    log.info("[CryoSPARC] Dataset sizing: %d movies (mode=%s) → instance=%s (%d GPU, %d workers, %s)",
+             _num_movies, _input_mode_early, _selected_instance_type, _selected_num_gpu,
+             params["num_cs_workers"], _fleet_entry["label"])
 
     # Override the module-level instance type so start_instance() launches the right size
     cs_exec.CRYOSPARC_INSTANCE_TYPE = _selected_instance_type
