@@ -85,7 +85,7 @@ These do not require heavy new code — they require documented processes and st
 - IQ (Installation Qualification): Document the AWS infrastructure, container versions, database schema, configuration files. Snapshot and version everything.
 - OQ (Operational Qualification): Write test protocols for every Part 11 control: audit trail entries appear on correct actions, electronic signatures verify correctly, MFA enforces on login, session expires at timeout, no user can delete audit trail entries.
 - PQ (Performance Qualification): Run OQ protocols in production with real users; document pass/fail; get sign-off.
-- Tool: Use **Vanta** (~$20K/year) to automate evidence collection and track compliance controls continuously. Vanta monitors your AWS environment and flags gaps automatically.
+- **Evidence collection: build internally (no Vanta needed)**. See section 9 below.
 - Effort: 1 compliance consultant (contract, ~$150/hr), 200–300 hours over 6 months
 
 **2.2 Core SOPs (20 priority SOPs)**
@@ -150,7 +150,7 @@ Effort: 1 regulatory writer (contract), 3–4 months part-time
 | WORM storage | S3 Object Lock | — | — |
 | MFA + password policy | — | AWS Cognito ($55/mo for 10K users) | — |
 | Electronic signature | AWS KMS | — | Thin wrapper in Python (1 week) |
-| Compliance monitoring | — | Vanta ($20K/yr) | — |
+| Compliance monitoring | AWS Config Rules + SNS alerts | — | `scripts/compliance/collect_evidence.py` (~200 lines) |
 | SOP management | — | Notion / Confluence | — |
 | Validation documentation | Existing eval/ framework | — | IQ/OQ/PQ docs from existing tests |
 | SOC 2 audit | AWS infrastructure certs | Drata + Big 4 auditor | — |
@@ -210,6 +210,97 @@ Target: by end of Phase 2 (9 months), a pharma customer can run ADMET + PBPK in 
 
 1. **Phase 1 (3 months, ~$40K)** — Start now? The immutable audit trail + Cognito migration are the highest-ROI changes and create the foundation everything else builds on.
 
-2. **Vanta subscription** — ~$20K/year, automates SOC 2 evidence collection and tracks compliance gaps. Worth starting early so the 12-month audit period begins sooner.
+2. **Internal evidence collection script** — build `scripts/compliance/collect_evidence.py` (~200 lines, 1 engineer week) to replace Vanta. Saves $20K/year. See section 9.
 
 3. **Regulatory affairs consultant** — Hire a contract regulatory writer for SOPs and IQ/OQ/PQ templates. FDA regulatory affairs consultants charge $150–250/hr; 200 hours = $30–50K. This can run in parallel with Phase 1.
+
+---
+
+## 9. Internal Evidence Collection (Replacing Vanta)
+
+### What Vanta actually does (and why we can build it)
+
+Vanta connects to AWS, queries service APIs, saves evidence files, and presents them to auditors in an organized portal. Every step is replicable:
+
+| Vanta feature | Our equivalent |
+|---|---|
+| AWS control checks | `collect_evidence.py` via boto3 |
+| Timestamped evidence files | JSON + timestamp saved to S3 `biomate-compliance-evidence` bucket |
+| Drift alerts | AWS Config Rules + SNS → email/Slack |
+| Auditor portal | Shared S3 folder or Google Drive with read-only auditor access |
+| Policy acceptance tracking | Google Form → spreadsheet, or Notion |
+| Access review log | Quarterly Cognito user export + spreadsheet sign-off |
+
+**Cost saved: $20K/year. Engineering effort: 1 week.**
+
+### Script design: `scripts/compliance/collect_evidence.py`
+
+```
+PURPOSE: Monthly SOC 2 evidence snapshot
+RUN: AWS Lambda (scheduled) or cron job on EC2
+OUTPUT: s3://biomate-compliance-evidence/YYYY-MM-DD/<control>.json
+
+Controls checked:
+  cloudtrail_all_regions_enabled
+  cloudtrail_log_file_validation
+  s3_output_bucket_object_lock_enabled
+  s3_output_bucket_versioning_enabled
+  s3_compliance_bucket_versioning_enabled
+  cognito_mfa_required
+  cognito_password_policy_complexity
+  kms_key_rotation_enabled
+  iam_no_root_access_keys
+  iam_mfa_enabled_for_all_users
+  cloudwatch_audit_log_alarm_active
+  aws_backup_plan_exists
+  rds_postgres_encrypted_at_rest
+  ec2_instances_no_public_ssh
+
+Each check returns:
+  { control, status: pass|fail|warn, evidence: {...raw API response},
+    checked_at: ISO8601, checker_version: "1.0" }
+```
+
+### AWS Config Rules (drift monitoring)
+
+Enable these Config Rules — they trigger an SNS alert if a control regresses:
+
+```
+cloudtrail-enabled
+s3-bucket-versioning-enabled
+s3-bucket-object-lock-enabled
+iam-root-access-key-check
+iam-user-mfa-enabled
+kms-cmk-not-scheduled-for-deletion
+encrypted-volumes
+```
+
+SNS topic → email to compliance owner. No manual polling needed.
+
+### Evidence folder structure for auditors
+
+```
+s3://biomate-compliance-evidence/
+  2026-05/
+    cloudtrail_enabled.json
+    s3_object_lock.json
+    cognito_mfa_enforced.json
+    kms_key_rotation.json
+    iam_access_review.json          ← quarterly Cognito user export
+    policy_acknowledgements.csv     ← from Google Form
+    incident_log.md                 ← manually updated
+  2026-06/
+    ...
+```
+
+At SOC 2 audit time: grant auditor read-only S3 access to this bucket. They can pull 12 months of evidence directly. No portal needed.
+
+### Manual tasks (4–6 hours/month total)
+
+| Task | Frequency | Time |
+|---|---|---|
+| Review `collect_evidence.py` output, resolve any `fail` | Monthly | 1–2 hr |
+| Quarterly Cognito access review (export users, confirm active employees only) | Quarterly | 2 hr |
+| Update incident log if any security event occurred | As needed | — |
+| Confirm policy acknowledgements from new team members | On hire | 30 min |
+| Annual DR test (restore from backup, document result) | Annual | 4 hr |
