@@ -6667,30 +6667,10 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
       } else if (localPath) {
         fileStream = createReadStream(localPath);
       } else if (s3Uri) {
-        // Stream directly via AWS SDK (same approach as step-file endpoint)
-        // Avoids redirect to Galaxy presign which may serve wrong Content-Type
-        const s3Match = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
-        if (!s3Match) return res.status(400).json({ error: 'Invalid S3 URI' });
-        const [, bucket, key] = s3Match;
-        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-        const s3 = new S3Client({
-          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
-          followRegionRedirects: true,
-        });
-        const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-        if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
-        const ctMap2: Record<string, string> = {
-          'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
-          'svg': 'image/svg+xml', 'gif': 'image/gif', 'pdf': 'application/pdf',
-          'html': 'text/html', 'htm': 'text/html',
-          'txt': 'text/plain', 'csv': 'text/csv', 'tsv': 'text/tab-separated-values',
-          'json': 'application/json',
-        };
-        const ext2 = (output.extension || '').toLowerCase();
-        res.setHeader('Content-Type', ctMap2[ext2] || 'application/octet-stream');
-        res.setHeader('Content-Disposition', 'inline');
-        (s3Obj.Body as any).pipe(res);
-        return;
+        // Redirect to a presigned download URL for S3 objects
+        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
+        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
+        return res.redirect(302, presignUrl);
       } else {
         return res.status(404).json({ error: "Output has no display source" });
       }
@@ -9408,87 +9388,6 @@ Respond ONLY with valid JSON (no markdown wrapper):
       res.status(404).json({ error: "Findings report not yet available" });
     }
   });
-
-  // Resource metrics for a completed run (parsed from Nextflow report.html)
-  // Returns per-task CPU/memory breakdown plus vCPU-hours / memory-GB-hours totals
-  app.get("/api/workflows/runs/:id/resource-metrics", optionalAuth, async (req, res) => {
-    const runId = req.params.id;
-    try {
-      const run = await storage.getExecutionRun(runId)
-        || await (storage as any).getExecutionRunByGalaxyId?.(runId);
-      if (!run) return res.status(404).json({ error: "Run not found" });
-
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const nfResp = await fetch(
-        `${galaxyUrl}/api/nextflow/status/${(run as any).execution?.nextflowRunId || runId}`,
-        { signal: AbortSignal.timeout(10_000) }
-      );
-      if (!nfResp.ok) return res.status(502).json({ error: "Could not reach Nextflow executor" });
-      const nfStatus = await nfResp.json() as any;
-
-      const resourceMetrics = nfStatus.resource_metrics || {};
-      const nfReportS3    = nfStatus.nf_report_s3    || "";
-      const nfTimelineS3  = nfStatus.nf_timeline_s3  || "";
-
-      // Build iframe-accessible proxy URLs for the Nextflow HTML reports
-      const reportProxyUrl   = nfReportS3   ? `/api/workflows/runs/${runId}/nf-report`   : null;
-      const timelineProxyUrl = nfTimelineS3 ? `/api/workflows/runs/${runId}/nf-timeline` : null;
-
-      res.json({
-        ...resourceMetrics,
-        nf_report_url:   reportProxyUrl,
-        nf_timeline_url: timelineProxyUrl,
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // Proxy Nextflow execution report.html from S3 (for iframe display)
-  app.get("/api/workflows/runs/:id/nf-report", optionalAuth, async (req, res) => {
-    await _proxyNfInfraReport(req, res, 'nf_report_s3');
-  });
-
-  // Proxy Nextflow timeline.html from S3 (for iframe display)
-  app.get("/api/workflows/runs/:id/nf-timeline", optionalAuth, async (req, res) => {
-    await _proxyNfInfraReport(req, res, 'nf_timeline_s3');
-  });
-
-  async function _proxyNfInfraReport(req: any, res: any, field: 'nf_report_s3' | 'nf_timeline_s3') {
-    const runId = req.params.id;
-    try {
-      const run = await storage.getExecutionRun(runId)
-        || await (storage as any).getExecutionRunByGalaxyId?.(runId);
-      if (!run) return res.status(404).send("Run not found");
-
-      const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-      const nfResp = await fetch(
-        `${galaxyUrl}/api/nextflow/status/${(run as any).execution?.nextflowRunId || runId}`,
-        { signal: AbortSignal.timeout(10_000) }
-      );
-      if (!nfResp.ok) return res.status(502).send("Executor unavailable");
-      const nfStatus = await nfResp.json() as any;
-      const s3Uri = nfStatus[field];
-      if (!s3Uri) return res.status(404).send("Report not available for this run");
-
-      const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-      const s3 = new S3Client({
-        region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
-        followRegionRedirects: true,
-      });
-      const s3Match = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
-      if (!s3Match) return res.status(400).send("Invalid S3 URI");
-      const [, bucket, key] = s3Match;
-      const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-      if (!s3Obj.Body) return res.status(404).send("Report empty");
-
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Content-Disposition', 'inline');
-      (s3Obj.Body as any).pipe(res);
-    } catch (err: any) {
-      res.status(500).send(`Error: ${err.message}`);
-    }
-  }
 
   // Proxy for internal analysis trigger (used by FindingsCard polling)
   app.post("/api/internal/analyze-outputs", optionalAuth, express.json(), async (req, res) => {
