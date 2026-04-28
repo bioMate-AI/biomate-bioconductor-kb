@@ -2542,7 +2542,7 @@ process LOCAL_CTF_REFINEMENT {
                 "particles": (particles_uid, "particles"),
                 "volume":    (volume_uid,    "volume"),
             },
-            params={},
+            params={"compute_use_ssd": False},
             timeout=14400,
             num_gpu=${params.num_gpu},
         )
