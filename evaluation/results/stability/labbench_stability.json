@@ -1,0 +1,17 @@
+{
+  "benchmark": "labbench",
+  "model": "biomate_claude_sonnet_4_6",
+  "n_tasks": 7,
+  "n_repeats": 3,
+  "sample_fraction": 0.2,
+  "consistency_rate": 1.0,
+  "flip_rate": 0.0,
+  "mean_score": 0.0,
+  "score_variance": 0.0,
+  "kappa": 1.0,
+  "mean_latency_sec": 0.0,
+  "latency_std_sec": 0.0,
+  "p95_latency_sec": 0.0,
+  "total_cost_usd": 0.0,
+  "mean_cost_per_task_usd": 0.0
+}

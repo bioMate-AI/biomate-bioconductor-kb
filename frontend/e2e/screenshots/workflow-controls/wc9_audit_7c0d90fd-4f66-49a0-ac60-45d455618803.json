@@ -1,0 +1,88 @@
+{
+  "testId": "WC-9",
+  "runId": "7c0d90fd-4f66-49a0-ac60-45d455618803",
+  "startTs": "2026-04-16T22:06:26.724Z",
+  "endTs": "2026-04-16T22:07:55.990Z",
+  "durationMs": 0,
+  "finalStatus": "completed",
+  "timing": {
+    "nfDurationS": 6,
+    "nfStartedAt": "2026-04-16T22:07:20.801Z",
+    "nfCompletedAt": "2026-04-16T22:07:27.759Z"
+  },
+  "billing": {
+    "llmInputTokens": null,
+    "llmOutputTokens": null,
+    "llmCostUsd": null
+  },
+  "assertions": [
+    {
+      "name": "execute-returned-runId",
+      "passed": true
+    },
+    {
+      "name": "audit-has-runId",
+      "passed": true
+    },
+    {
+      "name": "audit-has-startTs",
+      "passed": true
+    },
+    {
+      "name": "audit-has-finalStatus",
+      "passed": true
+    },
+    {
+      "name": "audit-has-screenshots",
+      "passed": true
+    },
+    {
+      "name": "status-field-runId",
+      "passed": true,
+      "note": "Status response must include \"runId\""
+    },
+    {
+      "name": "status-field-status",
+      "passed": true,
+      "note": "Status response must include \"status\""
+    },
+    {
+      "name": "status-field-progress",
+      "passed": true,
+      "note": "Status response must include \"progress\""
+    },
+    {
+      "name": "status-field-metrics",
+      "passed": true,
+      "note": "Status response must include \"metrics\""
+    },
+    {
+      "name": "status-field-nextflowStatus",
+      "passed": true,
+      "note": "Status response must include \"nextflowStatus\""
+    },
+    {
+      "name": "metrics-has-runtime",
+      "passed": true,
+      "note": "metrics.runtime must be present (populated from nextflowStatus timing)"
+    },
+    {
+      "name": "runtime-has-totalSeconds",
+      "passed": true,
+      "note": "metrics.runtime.totalSeconds must be set"
+    },
+    {
+      "name": "metrics-has-perStepLlmCost",
+      "passed": true,
+      "note": "metrics.perStepLlmCost must be present in status response"
+    },
+    {
+      "name": "perStepLlmCost-values-valid",
+      "passed": true,
+      "note": "perStepLlmCost values must be number | null"
+    }
+  ],
+  "screenshots": [
+    "wc9_01_final.png"
+  ]
+}

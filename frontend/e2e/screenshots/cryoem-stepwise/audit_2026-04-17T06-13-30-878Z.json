@@ -1,0 +1,34 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-17T06:13:30.879Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-13",
+      "runId": null,
+      "startTs": 1776406104181,
+      "endTs": 1776406410640,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "findings-unknown-run-returns-non-500",
+          "passed": true,
+          "note": "Expected 200 (pending) or 404, got 404"
+        },
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": false
+        }
+      ],
+      "screenshots": []
+    }
+  ]
+}

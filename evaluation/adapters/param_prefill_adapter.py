@@ -406,7 +406,16 @@ class ParamPrefillAdapter(BenchmarkAdapter):
             agent_response = ""
 
             try:
-                api_response = self._call_generation_endpoint(task.question)
+                # Prepend workflow name as a routing hint when known.
+                # This prevents ambiguous queries (e.g. "RNA-seq differential expression")
+                # from being mis-routed to pipeline chains instead of the target workflow.
+                # The param_prefill benchmark tests param extraction given correct routing,
+                # not routing itself (routing is tested in the routing benchmark).
+                workflow_hint = task.metadata.get("workflow", "")
+                query = task.question
+                if workflow_hint:
+                    query = f"Run {workflow_hint}: {task.question}"
+                api_response = self._call_generation_endpoint(query)
                 generated = self._extract_generated_params(api_response)
                 agent_response = str(generated)
                 must_not_fill: list[str] = task.metadata.get("must_not_fill", [])

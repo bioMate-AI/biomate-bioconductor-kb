@@ -1,0 +1,49 @@
+{
+  "query_drug": "Imatinib",
+  "target_gene": "BCR-ABL1",
+  "n_matches": 5,
+  "mock_mode": true,
+  "timestamp": "2026-03-22T14:42:32.853912Z",
+  "matches": [
+    {
+      "drug_name": "Bosutinib",
+      "target": "BCR-ABL1 / Src",
+      "similarity_score": 0.92,
+      "moa_annotation": "Dual ABL/Src kinase inhibitor",
+      "cell_line": "K562",
+      "cmap_perturbagen_id": "BRD-K49235197"
+    },
+    {
+      "drug_name": "Dasatinib",
+      "target": "BCR-ABL1 / Src",
+      "similarity_score": 0.88,
+      "moa_annotation": "ABL/Src kinase inhibitor (2nd gen TKI)",
+      "cell_line": "K562",
+      "cmap_perturbagen_id": "BRD-K35921493"
+    },
+    {
+      "drug_name": "Gleevec_analogue_1",
+      "target": "BCR-ABL1 / c-KIT",
+      "similarity_score": 0.81,
+      "moa_annotation": "Imatinib-class RTK inhibitor",
+      "cell_line": "HL60",
+      "cmap_perturbagen_id": "BRD-K84879362"
+    },
+    {
+      "drug_name": "Nilotinib",
+      "target": "BCR-ABL1",
+      "similarity_score": 0.74,
+      "moa_annotation": "Selective BCR-ABL1 inhibitor (2nd gen TKI)",
+      "cell_line": "K562",
+      "cmap_perturbagen_id": "BRD-K25443432"
+    },
+    {
+      "drug_name": "Ponatinib",
+      "target": "BCR-ABL1 T315I",
+      "similarity_score": 0.63,
+      "moa_annotation": "Pan-BCR-ABL1 inhibitor (3rd gen TKI)",
+      "cell_line": "K562",
+      "cmap_perturbagen_id": "BRD-K73919417"
+    }
+  ]
+}

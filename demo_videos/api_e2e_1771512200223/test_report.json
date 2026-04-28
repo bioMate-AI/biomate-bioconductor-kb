@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-02-19T14:43:20.253Z",
+  "duration": 29,
+  "tests": {
+    "total": 4,
+    "passed": 1,
+    "failed": 3
+  },
+  "results": [
+    {
+      "timestamp": "2026-02-19T14:43:20.224Z",
+      "level": "INFO",
+      "message": "Checking frontend availability..."
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.232Z",
+      "level": "INFO",
+      "message": "Response status: 301"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.232Z",
+      "level": "INFO",
+      "message": "Frontend redirects to HTTPS (expected for production mode)"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.232Z",
+      "level": "PASS",
+      "message": "✅ Frontend Health Check PASSED (8ms)"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.232Z",
+      "level": "INFO",
+      "message": "Sending chat message to /api/chat..."
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.232Z",
+      "level": "INFO",
+      "message": "Request: {\"message\":\"Model bacterial growth dynamics with initial population of 1000 cells and growth rate of 0.5\"}"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.252Z",
+      "level": "FAIL",
+      "message": "❌ Chat API - Generate Workflow FAILED: request to https://localhost:5000/api/chat failed, reason: write EPROTO 6096DCEA4DEB0000:error:0A00010B:SSL routines:ssl3_get_record:wrong version number:../ssl/record/ssl3_record.c:354:\n (20ms)"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.252Z",
+      "level": "INFO",
+      "message": "Reading generated workflow..."
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.253Z",
+      "level": "FAIL",
+      "message": "❌ Workflow Validation FAILED: ENOENT: no such file or directory, open '/home/yzhang/biomate/demo_videos/api_e2e_1771512200223/chat_response.json' (1ms)"
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.253Z",
+      "level": "INFO",
+      "message": "Checking if workflow execution endpoint is available..."
+    },
+    {
+      "timestamp": "2026-02-19T14:43:20.253Z",
+      "level": "FAIL",
+      "message": "❌ Workflow Execution API FAILED: ENOENT: no such file or directory, open '/home/yzhang/biomate/demo_videos/api_e2e_1771512200223/chat_response.json' (0ms)"
+    }
+  ]
+}

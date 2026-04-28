@@ -103,7 +103,7 @@ async function sendChat(page: Page, message: string): Promise<void> {
 }
 
 async function waitForWorkflowPanel(page: Page, timeout = 120000): Promise<boolean> {
-  return page.locator('[data-testid="workflow-panel"], [data-testid="nextflow-workflow-viewer"]').waitFor({ timeout }).then(() => true).catch(() => false);
+  return page.locator('[data-testid="workflow-right-panel"], [data-testid="workflow-artifact-panel"]').waitFor({ timeout }).then(() => true).catch(() => false);
 }
 
 async function screenshot(page: Page, name: string): Promise<void> {

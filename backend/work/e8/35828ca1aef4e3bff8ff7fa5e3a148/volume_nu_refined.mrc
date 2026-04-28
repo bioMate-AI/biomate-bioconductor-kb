@@ -1,0 +1,1 @@
+/home/yzhang/biomate/backend/work/c4/bf436c83aace98ab4c17e99fe3b9c7/volume_nu_refined.mrc

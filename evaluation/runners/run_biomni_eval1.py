@@ -33,6 +33,8 @@ def main():
                         help="Filter to one task type (e.g. gwas_variant_prioritization)")
     parser.add_argument("--dry-run", action="store_true",
                         help="List tasks without running them")
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Override max_parallel_tasks from config (e.g. 16)")
     args = parser.parse_args()
 
     config_path = Path(__file__).parent.parent / args.config
@@ -42,6 +44,8 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
     config["paths"]["results_db"] = str(output_dir / "eval_results.db")
+    if args.workers:
+        config.setdefault("concurrency", {})["max_parallel_tasks"] = args.workers
 
     adapter = BiomniEval1Adapter(config)
 
@@ -68,10 +72,19 @@ def main():
     store = ResultsStore(config["paths"]["results_db"])
     run_id = store.start_run("biomni_eval1", suite="standalone", config=config)
 
+    completed = [0]
+
+    def _on_result(r):
+        store.save_one(run_id, r)
+        completed[0] += 1
+        task_name = r.metadata.get("task_name", "?")
+        status = "✓" if r.score >= 1.0 else ("~" if r.score > 0 else "✗")
+        err = f" [ERR: {r.error[:40]}]" if r.error else ""
+        print(f"  [{completed[0]:>3}/{len(tasks)}] {status} {task_name:<38} "
+              f"score={r.score:.2f}  {r.latency_sec:.0f}s{err}", flush=True)
+
     t0 = time.time()
-    # Run the pre-filtered task list directly (adapter.run() reloads without filter)
-    results = adapter.run_tasks(client, tasks)
-    store.save(run_id, results)
+    results = adapter.run_tasks(client, tasks, on_result=_on_result)
     store.finish_run(run_id)
     elapsed = time.time() - t0
 

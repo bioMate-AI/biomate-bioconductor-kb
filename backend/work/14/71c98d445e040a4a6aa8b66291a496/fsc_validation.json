@@ -1,0 +1,64 @@
+{
+  "fsc_curve": [
+    {
+      "spatial_frequency": 0.001,
+      "resolution_angstroms": 1000.0,
+      "fsc": 0.99
+    },
+    {
+      "spatial_frequency": 0.01,
+      "resolution_angstroms": 100.0,
+      "fsc": 0.99
+    },
+    {
+      "spatial_frequency": 0.05,
+      "resolution_angstroms": 20.0,
+      "fsc": 0.6319
+    },
+    {
+      "spatial_frequency": 0.1,
+      "resolution_angstroms": 10.0,
+      "fsc": 0.2435
+    },
+    {
+      "spatial_frequency": 0.15,
+      "resolution_angstroms": 6.67,
+      "fsc": 0.31
+    },
+    {
+      "spatial_frequency": 0.2,
+      "resolution_angstroms": 5.0,
+      "fsc": 0.3433
+    },
+    {
+      "spatial_frequency": 0.25,
+      "resolution_angstroms": 4.0,
+      "fsc": 0.3632
+    },
+    {
+      "spatial_frequency": 0.3,
+      "resolution_angstroms": 3.33,
+      "fsc": 0.3765
+    },
+    {
+      "spatial_frequency": 0.35,
+      "resolution_angstroms": 2.86,
+      "fsc": 0.386
+    },
+    {
+      "spatial_frequency": 0.4,
+      "resolution_angstroms": 2.5,
+      "fsc": 0.3931
+    },
+    {
+      "spatial_frequency": 0.45,
+      "resolution_angstroms": 2.22,
+      "fsc": 0.3987
+    },
+    {
+      "spatial_frequency": 0.5,
+      "resolution_angstroms": 2.0,
+      "fsc": 0.4031
+    }
+  ]
+}

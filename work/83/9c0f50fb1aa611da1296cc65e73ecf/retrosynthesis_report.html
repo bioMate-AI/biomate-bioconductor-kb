@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AiZynthFinder Retrosynthesis Report — BioMate</title>
+  <style>
+    body{font-family:system-ui,sans-serif;margin:0;padding:24px;background:#f4f6f9;color:#2c3e50}
+    h1{color:#1a252f;border-bottom:3px solid #2980b9;padding-bottom:8px}
+    h2{color:#2980b9;margin-top:32px}
+    .meta{background:#fff;border-radius:8px;padding:16px 24px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+    .meta span{margin-right:24px;font-size:.9em;color:#555}
+    .stat-grid{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+    .stat-box{flex:1;min-width:140px;background:#fff;border-radius:8px;padding:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+    .stat-box .value{font-size:2em;font-weight:bold}
+    .stat-box .label{font-size:.85em;color:#777;margin-top:4px}
+    .pass-color{color:#27ae60}.warn-color{color:#f39c12}.fail-color{color:#e74c3c}.info-color{color:#2980b9}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+    th{background:#2980b9;color:#fff;padding:10px 12px;text-align:left;font-size:.9em}
+    td{padding:8px 12px;border-bottom:1px solid #ecf0f1;font-size:.9em}
+    tr:last-child td{border-bottom:none}
+    .hist-table td{padding:3px 8px;font-size:.9em}
+    .footer{margin-top:40px;font-size:.8em;color:#95a5a6;text-align:center}
+    .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.8em;font-weight:bold}
+    .badge-mock{background:#e8f4fd;color:#2980b9}
+    .badge-live{background:#e9f7ef;color:#27ae60}
+  </style>
+</head>
+<body>
+  <h1>AiZynthFinder Retrosynthesis Report</h1>
+  <div class="meta">
+    <span><b>Pipeline:</b> BioMate / AiZynthFinder</span>
+    <span><b>Mode:</b> <span class="badge badge-mock">MOCK</span></span>
+    <span><b>Generated:</b> 2026-03-22 15:04 UTC</span>
+    <span><b>Compounds:</b> 5</span>
+    <span><b>PASS threshold:</b> steps &le; 4 &amp; score &ge; 0.6</span>
+  </div>
+
+  <h2>Summary</h2>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="value info-color">5</div><div class="label">Total Compounds</div></div>
+    <div class="stat-box"><div class="value pass-color">5</div><div class="label">PASS (100.0%)</div></div>
+    <div class="stat-box"><div class="value warn-color">0</div><div class="label">WARN (0.0%)</div></div>
+    <div class="stat-box"><div class="value fail-color">0</div><div class="label">FAIL (0.0%)</div></div>
+    <div class="stat-box"><div class="value info-color">3.4</div><div class="label">Avg Best Steps</div></div>
+    <div class="stat-box"><div class="value info-color">3.43</div><div class="label">Avg SA Score</div></div>
+  </div>
+
+  <h2>Compound Results</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Compound ID</th><th>SMILES</th><th>Best Steps</th>
+        <th>Best Score</th><th>SA Score</th><th>N Routes</th><th>QC Status</th>
+      </tr>
+    </thead>
+    <tbody>
+<tr style="background:#eafaf1"><td><code>CPND0001</code></td><td style="font-size:0.85em;max-width:220px;overflow:hidden;white-space:nowrap">CC(=O)Oc1ccccc1C(=O)O</td><td style="text-align:center">3</td><td style="text-align:center">0.772</td><td style="text-align:center">4.04</td><td style="text-align:center">3</td><td style="text-align:center;font-weight:bold;color:#27ae60">PASS</td></tr>
+<tr style="background:#eafaf1"><td><code>CPND0002</code></td><td style="font-size:0.85em;max-width:220px;overflow:hidden;white-space:nowrap">CC(C)Cc1ccc(cc1)C(C)C(=O)O</td><td style="text-align:center">4</td><td style="text-align:center">0.780</td><td style="text-align:center">2.55</td><td style="text-align:center">3</td><td style="text-align:center;font-weight:bold;color:#27ae60">PASS</td></tr>
+<tr style="background:#eafaf1"><td><code>CPND0003</code></td><td style="font-size:0.85em;max-width:220px;overflow:hidden;white-space:nowrap">Cn1cnc2c1c(=O)n(c(=O)n2C)C</td><td style="text-align:center">3</td><td style="text-align:center">0.708</td><td style="text-align:center">4.36</td><td style="text-align:center">3</td><td style="text-align:center;font-weight:bold;color:#27ae60">PASS</td></tr>
+<tr style="background:#eafaf1"><td><code>CPND0004</code></td><td style="font-size:0.85em;max-width:220px;overflow:hidden;white-space:nowrap">CC(=O)Nc1ccc(O)cc1</td><td style="text-align:center">3</td><td style="text-align:center">0.717</td><td style="text-align:center">3.33</td><td style="text-align:center">3</td><td style="text-align:center;font-weight:bold;color:#27ae60">PASS</td></tr>
+<tr style="background:#eafaf1"><td><code>CPND0005</code></td><td style="font-size:0.85em;max-width:220px;overflow:hidden;white-space:nowrap">Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C</td><td style="text-align:center">4</td><td style="text-align:center">0.742</td><td style="text-align:center">2.86</td><td style="text-align:center">3</td><td style="text-align:center;font-weight:bold;color:#27ae60">PASS</td></tr>
+    </tbody>
+  </table>
+
+  <h2>SA Score Distribution</h2>
+  <p style="font-size:.9em;color:#666">
+    Synthetic Accessibility score: 1 = easy to synthesise, 10 = very difficult.
+    Lower values indicate more commercially viable routes.
+  </p>
+  <table class="hist-table" style="width:auto">
+    <thead><tr><th>SA Range</th><th>Distribution</th><th>Count</th></tr></thead>
+    <tbody>
+<tr><td style="font-family:monospace;padding:2px 8px">1.0-2.0</td><td style="font-family:monospace;color:#2980b9">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</td><td style="padding:2px 8px">0</td></tr>
+<tr><td style="font-family:monospace;padding:2px 8px">2.0-3.0</td><td style="font-family:monospace;color:#2980b9">██████████████████████████████</td><td style="padding:2px 8px">2</td></tr>
+<tr><td style="font-family:monospace;padding:2px 8px">3.0-4.0</td><td style="font-family:monospace;color:#2980b9">███████████████░░░░░░░░░░░░░░░</td><td style="padding:2px 8px">1</td></tr>
+<tr><td style="font-family:monospace;padding:2px 8px">4.0-5.0</td><td style="font-family:monospace;color:#2980b9">██████████████████████████████</td><td style="padding:2px 8px">2</td></tr>
+<tr><td style="font-family:monospace;padding:2px 8px">5.0+</td><td style="font-family:monospace;color:#2980b9">░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░</td><td style="padding:2px 8px">0</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    BioMate Platform &mdash; AiZynthFinder Retrosynthesis Pipeline &bull;
+    Genheden et al. J Cheminform 2020 &bull; 2026-03-22 15:04 UTC
+  </div>
+</body>
+</html>

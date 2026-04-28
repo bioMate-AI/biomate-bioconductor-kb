@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Drug MoA Report &mdash; Imatinib</title>
+<style>
+  body {font-family: Arial, sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px; color: #333;}
+  h1   {color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 8px;}
+  h2   {color: #34495e; margin-top: 32px;}
+  .info-grid {display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+               background: #f8f9fa; padding: 14px 18px; border-radius: 6px; margin-bottom: 18px;}
+  .info-item {padding: 3px 0;}
+  .info-label {font-weight: bold; color: #555;}
+  .qc-box {padding: 14px 20px; border-radius: 8px; color: white; font-size: 1.15em;
+             font-weight: bold; margin: 18px 0; background: #28a745;}
+  .hypothesis-box {background: #eaf3fb; border-left: 5px solid #3498db;
+                    padding: 14px 20px; border-radius: 0 6px 6px 0; margin: 18px 0;
+                    font-style: italic; line-height: 1.6;}
+  table {border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.93em;}
+  th    {background: #2c3e50; color: white; padding: 8px 12px; text-align: left;}
+  td    {padding: 6px 12px; border-bottom: 1px solid #dde;}
+  tr:nth-child(even) {background: #f9f9fb;}
+  tr:hover {background: #ebf5fb;}
+  .footer {color: #aaa; font-size: 0.83em; margin-top: 40px;
+             border-top: 1px solid #eee; padding-top: 10px;}
+</style>
+</head>
+<body>
+<h1>&#127995; Drug Mechanism-of-Action Report</h1>
+
+<div class="info-grid">
+  <div class="info-item"><span class="info-label">Drug:</span> Imatinib</div>
+  <div class="info-item"><span class="info-label">Target Gene:</span> BCR-ABL1</div>
+  <div class="info-item"><span class="info-label">Significant DE genes:</span> 51</div>
+  <div class="info-item"><span class="info-label">Enriched pathways:</span> 10</div>
+  <div class="info-item"><span class="info-label">Generated:</span> 2026-03-22 14:42 UTC</div>
+  <div class="info-item"><span class="info-label">Top CMap match:</span> Bosutinib (sim=0.92)</div>
+</div>
+
+<div class="qc-box">QC Status: PASS &mdash; 51 significant DE genes detected</div>
+
+<h2>&#128161; MoA Hypothesis</h2>
+<div class="hypothesis-box">Treatment with Imatinib induces activation of the HALLMARK_E2F_TARGETS pathway (NES=2.18), consistent with Bosutinib (CMap similarity=0.92), supporting BCR-ABL1 engagement.</div>
+
+<h2>&#128202; Top 20 Differentially Expressed Genes</h2>
+<table>
+  <tr><th>Gene</th><th>log2FC</th><th>padj</th><th>baseMean</th><th>Sig</th></tr>
+  <tr><td>GENE0082</td><td style='color:#2980b9;text-align:right'>-2.177</td><td style='text-align:right'>4.23e-04</td><td style='text-align:right'>2138.13</td><td> &#9733;</td></tr>
+<tr><td>CDK2</td><td style='color:#2980b9;text-align:right'>-4.085</td><td style='text-align:right'>1.21e-03</td><td style='text-align:right'>6024.23</td><td> &#9733;</td></tr>
+<tr><td>GENE0073</td><td style='color:#2980b9;text-align:right'>-2.891</td><td style='text-align:right'>2.05e-03</td><td style='text-align:right'>2360.52</td><td> &#9733;</td></tr>
+<tr><td>GENE0155</td><td style='color:#2980b9;text-align:right'>-2.104</td><td style='text-align:right'>4.28e-03</td><td style='text-align:right'>2977.16</td><td> &#9733;</td></tr>
+<tr><td>GENE0140</td><td style='color:#c0392b;text-align:right'>2.864</td><td style='text-align:right'>4.75e-03</td><td style='text-align:right'>2640.47</td><td> &#9733;</td></tr>
+<tr><td>GENE0157</td><td style='color:#2980b9;text-align:right'>-2.929</td><td style='text-align:right'>4.95e-03</td><td style='text-align:right'>125.75</td><td> &#9733;</td></tr>
+<tr><td>GENE0055</td><td style='color:#c0392b;text-align:right'>1.487</td><td style='text-align:right'>5.75e-03</td><td style='text-align:right'>1715.51</td><td> &#9733;</td></tr>
+<tr><td>GENE0011</td><td style='color:#2980b9;text-align:right'>-2.012</td><td style='text-align:right'>6.05e-03</td><td style='text-align:right'>1079.58</td><td> &#9733;</td></tr>
+<tr><td>EGFR</td><td style='color:#2980b9;text-align:right'>-3.040</td><td style='text-align:right'>6.45e-03</td><td style='text-align:right'>3123.66</td><td> &#9733;</td></tr>
+<tr><td>GENE0095</td><td style='color:#2980b9;text-align:right'>-2.061</td><td style='text-align:right'>8.81e-03</td><td style='text-align:right'>2339.87</td><td> &#9733;</td></tr>
+<tr><td>GENE0033</td><td style='color:#2980b9;text-align:right'>-2.557</td><td style='text-align:right'>9.93e-03</td><td style='text-align:right'>2422.12</td><td> &#9733;</td></tr>
+<tr><td>CDKN1A</td><td style='color:#c0392b;text-align:right'>3.765</td><td style='text-align:right'>1.08e-02</td><td style='text-align:right'>2928.29</td><td> &#9733;</td></tr>
+<tr><td>GENE0174</td><td style='color:#c0392b;text-align:right'>1.142</td><td style='text-align:right'>1.08e-02</td><td style='text-align:right'>2023.48</td><td> &#9733;</td></tr>
+<tr><td>GENE0014</td><td style='color:#2980b9;text-align:right'>-2.251</td><td style='text-align:right'>1.20e-02</td><td style='text-align:right'>289.5</td><td> &#9733;</td></tr>
+<tr><td>GENE0117</td><td style='color:#2980b9;text-align:right'>-2.971</td><td style='text-align:right'>1.20e-02</td><td style='text-align:right'>2363.01</td><td> &#9733;</td></tr>
+<tr><td>GENE0072</td><td style='color:#c0392b;text-align:right'>1.230</td><td style='text-align:right'>1.26e-02</td><td style='text-align:right'>717.17</td><td> &#9733;</td></tr>
+<tr><td>CCND1</td><td style='color:#c0392b;text-align:right'>1.741</td><td style='text-align:right'>1.48e-02</td><td style='text-align:right'>6209.22</td><td> &#9733;</td></tr>
+<tr><td>JAK2</td><td style='color:#2980b9;text-align:right'>-2.409</td><td style='text-align:right'>1.53e-02</td><td style='text-align:right'>6962.54</td><td> &#9733;</td></tr>
+<tr><td>KRAS</td><td style='color:#2980b9;text-align:right'>-2.083</td><td style='text-align:right'>1.70e-02</td><td style='text-align:right'>6437.46</td><td> &#9733;</td></tr>
+<tr><td>GENE0130</td><td style='color:#2980b9;text-align:right'>-2.219</td><td style='text-align:right'>1.73e-02</td><td style='text-align:right'>2065.25</td><td> &#9733;</td></tr>
+
+</table>
+
+<h2>&#127774; Top 10 Enriched Pathways (MSigDB Hallmark)</h2>
+<table>
+  <tr><th>Pathway</th><th>NES</th><th>padj</th><th>Leading Edge (truncated)</th></tr>
+  <tr><td>HALLMARK_E2F_TARGETS</td><td style='color:#c0392b;text-align:right'>2.176</td><td style='text-align:right'>0.0051</td><td style='font-size:0.82em'>GENE0125,GENE0145,GENE0129,GENE0102,SRC,GENE0155</td></tr>
+<tr><td>HALLMARK_G2M_CHECKPOINT</td><td style='color:#c0392b;text-align:right'>2.078</td><td style='text-align:right'>0.0168</td><td style='font-size:0.82em'>GENE0082,GENE0097,GENE0157,STAT3,GENE0125,GENE0140,BCL2,PIK3...</td></tr>
+<tr><td>HALLMARK_MYC_TARGETS_V1</td><td style='color:#c0392b;text-align:right'>2.072</td><td style='text-align:right'>0.0054</td><td style='font-size:0.82em'>GENE0097,GENE0020,MDM2,CCND1,GENE0090,GENE0073,GENE0130,GENE...</td></tr>
+<tr><td>HALLMARK_APOPTOSIS</td><td style='color:#2980b9;text-align:right'>-1.929</td><td style='text-align:right'>0.0194</td><td style='font-size:0.82em'>GENE0020,MTOR,GENE0102,CDK2,GENE0174,GENE0177,GENE0157,MYC,A...</td></tr>
+<tr><td>HALLMARK_P53_PATHWAY</td><td style='color:#2980b9;text-align:right'>-1.902</td><td style='text-align:right'>0.0463</td><td style='font-size:0.82em'>CDKN1A,GENE0095,GENE0145,GENE0133,GENE0125,GENE0062,GENE0073...</td></tr>
+<tr><td>HALLMARK_PI3K_AKT_MTOR_SIGNALING</td><td style='color:#c0392b;text-align:right'>1.813</td><td style='text-align:right'>0.0158</td><td style='font-size:0.82em'>GENE0134,GENE0145,MYC,GENE0091,STAT3,GENE0059,GENE0022,SRC,G...</td></tr>
+<tr><td>HALLMARK_INFLAMMATORY_RESPONSE</td><td style='color:#2980b9;text-align:right'>-1.626</td><td style='text-align:right'>0.0318</td><td style='font-size:0.82em'>EGFR,GENE0145,GENE0102,GENE0022,GENE0011,MYC,GENE0033,GENE01...</td></tr>
+<tr><td>HALLMARK_DNA_REPAIR</td><td style='color:#c0392b;text-align:right'>1.443</td><td style='text-align:right'>0.0342</td><td style='font-size:0.82em'>GENE0140,GENE0145,GENE0098,MYC,MAPK1,CDK2,PIK3CA,CCND1,MDM2,...</td></tr>
+<tr><td>HALLMARK_OXIDATIVE_PHOSPHORYLATION</td><td style='color:#2980b9;text-align:right'>-1.441</td><td style='text-align:right'>0.0419</td><td style='font-size:0.82em'>MYC,GENE0155,GENE0090,GENE0022,GENE0125,GENE0145,GENE0130</td></tr>
+<tr><td>HALLMARK_UNFOLDED_PROTEIN_RESPONSE</td><td style='color:#c0392b;text-align:right'>1.301</td><td style='text-align:right'>0.0358</td><td style='font-size:0.82em'>GENE0097,MTOR,CDK2,GENE0033,GENE0022,PIK3CA,TP53,RB1,GENE012...</td></tr>
+
+</table>
+
+<h2>&#128279; LINCS CMap Drug Similarity Matches</h2>
+<table>
+  <tr><th>Drug</th><th>Target</th><th>Similarity</th><th>MoA Annotation</th><th>Cell Line</th></tr>
+  <tr><td><b>Bosutinib</b></td><td>BCR-ABL1 / Src</td><td style='color:#28a745;text-align:right'>0.920</td><td>Dual ABL/Src kinase inhibitor</td><td>K562</td></tr>
+<tr><td><b>Dasatinib</b></td><td>BCR-ABL1 / Src</td><td style='color:#28a745;text-align:right'>0.880</td><td>ABL/Src kinase inhibitor (2nd gen TKI)</td><td>K562</td></tr>
+<tr><td><b>Gleevec_analogue_1</b></td><td>BCR-ABL1 / c-KIT</td><td style='color:#28a745;text-align:right'>0.810</td><td>Imatinib-class RTK inhibitor</td><td>HL60</td></tr>
+<tr><td><b>Nilotinib</b></td><td>BCR-ABL1</td><td style='color:#ffc107;text-align:right'>0.740</td><td>Selective BCR-ABL1 inhibitor (2nd gen TKI)</td><td>K562</td></tr>
+<tr><td><b>Ponatinib</b></td><td>BCR-ABL1 T315I</td><td style='color:#ffc107;text-align:right'>0.630</td><td>Pan-BCR-ABL1 inhibitor (3rd gen TKI)</td><td>K562</td></tr>
+
+</table>
+
+<div class="footer">
+  BioMate Drug MoA Pipeline &mdash; Gap 9 Drug Discovery Analysis &mdash;
+  Generated 2026-03-22T14:42:32.955387Z
+</div>
+</body>
+</html>

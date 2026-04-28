@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-04-14T11:40:35.347Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Real API Integration (no mocks)",
+  "tests": [
+    "Backend API Health",
+    "Real VCF Analysis",
+    "Real Workflow Generation",
+    "Chat Message Persistence"
+  ]
+}

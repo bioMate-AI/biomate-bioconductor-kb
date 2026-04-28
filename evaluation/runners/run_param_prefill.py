@@ -157,7 +157,22 @@ def main() -> None:
     print(f"  Output:   {args.output}")
     print()
 
-    client = BioMateEvalClient.from_config(config)
+    # Create authenticated client; fall back to a stub when port 5000 is down.
+    # ParamPrefillAdapter.prepare() will re-probe and switch to Galaxy backend.
+    try:
+        client = BioMateEvalClient.from_config(config)
+    except Exception as login_err:
+        import os
+        galaxy_url = os.environ.get("GALAXY_URL", "http://localhost:8081")
+        print(
+            f"  [WARN] BioMateEvalClient login failed ({type(login_err).__name__}); "
+            f"using stub client pointing at Galaxy backend ({galaxy_url})."
+        )
+        # Minimal stub — ParamPrefillAdapter.prepare() will replace _base_url/_session
+        client = BioMateEvalClient(
+            base_url=galaxy_url,
+            token="stub-token-no-auth-needed",
+        )
     store = ResultsStore(config["paths"]["results_db"])
     run_id = store.start_run("param_prefill", suite="standalone", config=config)
 

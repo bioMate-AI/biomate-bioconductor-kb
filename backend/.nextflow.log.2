@@ -1,0 +1,54 @@
+Apr-14 09:46:56.478 [main] DEBUG nextflow.cli.Launcher - $> nextflow run nfcore/rnaseq/main.nf -profile test --outdir /tmp/biomate_test_run
+Apr-14 09:46:56.549 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-14 09:46:56.558 [main] DEBUG nextflow.scm.ProviderConfig - Using SCM config path: /home/yzhang/.nextflow/scm
+Apr-14 09:46:56.588 [main] DEBUG nextflow.plugin.PluginsFacade - Using Default plugin manager
+Apr-14 09:46:56.592 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-14 09:46:56.593 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-14 09:46:56.594 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-14 09:46:56.606 [main] DEBUG nextflow.scm.RepositoryFactory - Found Git repository result: [RepositoryFactory]
+Apr-14 09:46:56.627 [main] INFO  nextflow.cli.CmdRun - Pulling nfcore/rnaseq ...
+Apr-14 09:46:56.629 [main] DEBUG nextflow.scm.RepositoryProvider - Request [credentials -:-] -> https://api.github.com/repos/nfcore/rnaseq/contents/main.nf
+Apr-14 09:46:57.001 [main] DEBUG nextflow.scm.RepositoryProvider - Response status: 404 -- [123, 34, 109, 101, 115, 115, 97, 103, 101, 34, 58, 34, 78, 111, 116, 32, 70, 111, 117, 110, 100, 34, 44, 34, 100, 111, 99, 117, 109, 101, 110, 116, 97, 116, 105, 111, 110, 95, 117, 114, 108, 34, 58, 34, 104, 116, 116, 112, 115, 58, 47, 47, 100, 111, 99, 115, 46, 103, 105, 116, 104, 117, 98, 46, 99, 111, 109, 47, 114, 101, 115, 116, 47, 114, 101, 112, 111, 115, 47, 99, 111, 110, 116, 101, 110, 116, 115, 35, 103, 101, 116, 45, 114, 101, 112, 111, 115, 105, 116, 111, 114, 121, 45, 99, 111, 110, 116, 101, 110, 116, 34, 44, 34, 115, 116, 97, 116, 117, 115, 34, 58, 34, 52, 48, 52, 34, 125]
+Apr-14 09:46:57.006 [main] DEBUG nextflow.cli.Launcher - Operation aborted
+nextflow.exception.AbortOperationException: Remote resource not found: https://api.github.com/repos/nfcore/rnaseq/contents/main.nf
+	at nextflow.scm.RepositoryProvider.checkResponse(RepositoryProvider.groovy:309)
+	at nextflow.scm.RepositoryProvider.invokeBytes(RepositoryProvider.groovy:255)
+	at nextflow.scm.RepositoryProvider.invoke(RepositoryProvider.groovy:238)
+	at nextflow.scm.RepositoryProvider.memoizedMethodPriv$invokeAndParseResponseString(RepositoryProvider.groovy:380)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at groovy.lang.MetaClassImpl.doInvokeMethod(MetaClassImpl.java:1339)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1094)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokePogoMethod(InvokerHelper.java:645)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethod(InvokerHelper.java:628)
+	at org.codehaus.groovy.runtime.InvokerHelper.invokeMethodSafe(InvokerHelper.java:82)
+	at nextflow.scm.RepositoryProvider$_closure3.doCall(RepositoryProvider.groovy)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:569)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:343)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:328)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:280)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1007)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at org.codehaus.groovy.runtime.memoize.Memoize$MemoizeFunction.lambda$call$0(Memoize.java:137)
+	at org.codehaus.groovy.runtime.memoize.ConcurrentCommonCache.getAndPut(ConcurrentCommonCache.java:137)
+	at org.codehaus.groovy.runtime.memoize.ConcurrentCommonCache.getAndPut(ConcurrentCommonCache.java:113)
+	at org.codehaus.groovy.runtime.memoize.Memoize$MemoizeFunction.call(Memoize.java:136)
+	at groovy.lang.Closure.call(Closure.java:422)
+	at nextflow.scm.RepositoryProvider.invokeAndParseResponse(RepositoryProvider.groovy)
+	at nextflow.scm.GithubRepositoryProvider.readBytes(GithubRepositoryProvider.groovy:116)
+	at nextflow.scm.RepositoryProvider.validateFor(RepositoryProvider.groovy:438)
+	at nextflow.scm.AssetManager.checkValidRemoteRepo(AssetManager.groovy:374)
+	at nextflow.scm.AssetManager.download(AssetManager.groovy:591)
+	at nextflow.cli.CmdRun.getScriptFile0(CmdRun.groovy:640)
+	at nextflow.cli.CmdRun.getScriptFile(CmdRun.groovy:573)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:327)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)

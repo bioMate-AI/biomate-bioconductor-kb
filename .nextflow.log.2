@@ -1,0 +1,115 @@
+Apr-17 06:37:45.985 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/main.nf --help
+Apr-17 06:37:46.062 [main] DEBUG nextflow.cli.CmdRun - N E X T F L O W  ~  version 25.10.0
+Apr-17 06:37:46.101 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/nextflow.config
+Apr-17 06:37:46.102 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/nextflow.config
+Apr-17 06:37:46.122 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `standard`
+Apr-17 06:37:46.540 [main] DEBUG nextflow.plugin.PluginsFacade - Setting up plugin manager > mode=prod; embedded=false; plugins-dir=/home/yzhang/.nextflow/plugins; core-plugins: nf-amazon@3.4.1,nf-azure@1.20.2,nf-cloudcache@0.5.0,nf-codecommit@0.5.0,nf-console@1.3.0,nf-google@1.23.3,nf-k8s@1.2.2,nf-tower@1.17.1,nf-wave@1.16.1
+Apr-17 06:37:46.555 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Enabled plugins: []
+Apr-17 06:37:46.556 [main] INFO  o.pf4j.DefaultPluginStatusProvider - Disabled plugins: []
+Apr-17 06:37:46.557 [main] INFO  org.pf4j.DefaultPluginManager - PF4J version 3.12.0 in 'deployment' mode
+Apr-17 06:37:46.567 [main] DEBUG nextflow.util.RetryConfig - Missing nextflow session - using default retry config
+Apr-17 06:37:46.642 [main] INFO  org.pf4j.AbstractPluginManager - No plugins
+Apr-17 06:37:46.643 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins default=[]
+Apr-17 06:37:46.643 [main] DEBUG nextflow.plugin.PluginsFacade - Plugins resolved requirement=[]
+Apr-17 06:37:46.651 [main] DEBUG n.secret.LocalSecretsProvider - Secrets store: /home/yzhang/.nextflow/secrets/store.json
+Apr-17 06:37:46.653 [main] DEBUG nextflow.secret.SecretsLoader - Discovered secrets providers: [nextflow.secret.LocalSecretsProvider@3fb9a67f] - activable => nextflow.secret.LocalSecretsProvider@3fb9a67f
+Apr-17 06:37:46.655 [main] DEBUG nextflow.cli.CmdRun - Applied DSL=2 from script declaration
+Apr-17 06:37:46.665 [main] DEBUG nextflow.cli.CmdRun - Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/main.nf` [clever_dijkstra] DSL2 - revision: 405ea8a357
+Apr-17 06:37:46.692 [main] DEBUG nextflow.Session - Session UUID: f7c5836c-4f64-4e17-9b66-82e930799c1d
+Apr-17 06:37:46.693 [main] DEBUG nextflow.Session - Run name: clever_dijkstra
+Apr-17 06:37:46.693 [main] DEBUG nextflow.Session - Executor pool size: 20
+Apr-17 06:37:46.698 [main] DEBUG nextflow.file.FilePorter - File porter settings maxRetries=3; maxTransfers=50; pollTimeout=null
+Apr-17 06:37:46.701 [main] DEBUG nextflow.util.ThreadPoolBuilder - Creating thread pool 'FileTransfer' minSize=10; maxSize=60; workQueue=LinkedBlockingQueue[-1]; allowCoreThreadTimeout=false
+Apr-17 06:37:46.713 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 25.10.0 build 10289
+  Created: 22-10-2025 16:26 UTC 
+  System: Linux 6.11.0-1016-nvidia
+  Runtime: Groovy 4.0.28 on OpenJDK 64-Bit Server VM 17.0.16+8-Ubuntu-0ubuntu124.04.1
+  Encoding: UTF-8 (UTF-8)
+  Process: 3693343@spark-d816 [127.0.0.1]
+  CPUs: 20 - Mem: 119.7 GB (40.7 GB) - Swap: 16 GB (160.5 MB)
+Apr-17 06:37:46.728 [main] DEBUG nextflow.Session - Work-dir: /home/yzhang/biomate/work [ext2/ext3]
+Apr-17 06:37:46.728 [main] DEBUG nextflow.Session - Script base path does not exist or is not a directory: /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/bin
+Apr-17 06:37:46.733 [main] DEBUG nextflow.executor.ExecutorFactory - Extension executors providers=[]
+Apr-17 06:37:46.738 [main] DEBUG nextflow.Session - Observer factory (v2): LinObserverFactory
+Apr-17 06:37:46.740 [main] DEBUG nextflow.Session - Observer factory (v2): DefaultObserverFactory
+Apr-17 06:37:46.770 [main] DEBUG nextflow.cache.CacheFactory - Using Nextflow cache factory: nextflow.cache.DefaultCacheFactory
+Apr-17 06:37:46.775 [main] DEBUG nextflow.util.CustomThreadPool - Creating default thread pool > poolSize: 21; maxThreads: 1000
+Apr-17 06:37:46.819 [main] DEBUG nextflow.Session - Session start
+Apr-17 06:37:46.823 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow started -- trace file: ./results/amber_pmemd_md/pipeline_info/trace.txt
+Apr-17 06:37:46.987 [main] DEBUG nextflow.script.ScriptRunner - Parsed script files:
+Apr-17 06:37:46.996 [main] DEBUG n.trace.WorkflowStatsObserver - Workflow completed > WorkflowStats[succeededCount=0; failedCount=0; ignoredCount=0; cachedCount=0; pendingCount=0; submittedCount=0; runningCount=0; retriesCount=0; abortedCount=0; succeedDuration=0ms; failedDuration=0ms; cachedDuration=0ms;loadCpus=0; loadMemory=0; peakRunning=0; peakCpus=0; peakMemory=0; ]
+Apr-17 06:37:47.023 [main] DEBUG nextflow.trace.ReportObserver - Workflow completed -- rendering execution report
+Apr-17 06:37:47.420 [main] DEBUG nextflow.trace.TimelineObserver - Workflow completed -- rendering execution timeline
+Apr-17 06:37:47.462 [main] DEBUG nextflow.trace.TraceFileObserver - Workflow completed -- saving trace file
+Apr-17 06:37:47.471 [main] ERROR nextflow.cli.Launcher - Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/main.nf
+- cause: token recognition error at: ' \\n            2>&1 | tee mmpbsa.log\n\n        python3 - << PYEOF\nimport json, re, sys\ndelta_g = None; std_dg = None; components = {}\ntry:\n    with open('mmgbsa_raw.dat') as fh:\n        for line in fh:\n            m = re.search(r'VDWAALS\s*=\s*([-\d' @ line 576, column 29.
+               -y ${trajectory} \
+                               ^
+
+1 error
+
+nextflow.exception.ScriptCompilationException: Script compilation error
+- file : /home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/drug_discovery/amber_pmemd_md/main.nf
+- cause: token recognition error at: ' \\n            2>&1 | tee mmpbsa.log\n\n        python3 - << PYEOF\nimport json, re, sys\ndelta_g = None; std_dg = None; components = {}\ntry:\n    with open('mmgbsa_raw.dat') as fh:\n        for line in fh:\n            m = re.search(r'VDWAALS\s*=\s*([-\d' @ line 576, column 29.
+               -y ${trajectory} \
+                               ^
+
+1 error
+
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:204)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy:215)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse(ScriptLoaderV1.groovy)
+	at nextflow.script.ScriptRunner.parseScript(ScriptRunner.groovy:232)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:137)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:428)
+	at nextflow.cli.Launcher.run(Launcher.groovy:515)
+	at nextflow.cli.Launcher.main(Launcher.groovy:675)
+Caused by: org.codehaus.groovy.control.MultipleCompilationErrorsException: startup failed:
+Script_10d0422ca881219b: 576: token recognition error at: ' \\n            2>&1 | tee mmpbsa.log\n\n        python3 - << PYEOF\nimport json, re, sys\ndelta_g = None; std_dg = None; components = {}\ntry:\n    with open('mmgbsa_raw.dat') as fh:\n        for line in fh:\n            m = re.search(r'VDWAALS\s*=\s*([-\d' @ line 576, column 29.
+               -y ${trajectory} \
+                               ^
+
+1 error
+
+	at org.codehaus.groovy.control.ErrorCollector.failIfErrors(ErrorCollector.java:292)
+	at org.codehaus.groovy.control.ErrorCollector.addFatalError(ErrorCollector.java:148)
+	at org.apache.groovy.parser.antlr4.AstBuilder.collectSyntaxError(AstBuilder.java:4739)
+	at org.apache.groovy.parser.antlr4.AstBuilder.access$100(AstBuilder.java:169)
+	at org.apache.groovy.parser.antlr4.AstBuilder$3.syntaxError(AstBuilder.java:4750)
+	at groovyjarjarantlr4.v4.runtime.ProxyErrorListener.syntaxError(ProxyErrorListener.java:44)
+	at groovyjarjarantlr4.v4.runtime.Lexer.notifyListeners(Lexer.java:381)
+	at groovyjarjarantlr4.v4.runtime.Lexer.nextToken(Lexer.java:145)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.fetch(BufferedTokenStream.java:170)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.sync(BufferedTokenStream.java:153)
+	at groovyjarjarantlr4.v4.runtime.BufferedTokenStream.consume(BufferedTokenStream.java:137)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.execDFA(ParserATNSimulator.java:562)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.adaptivePredict(ParserATNSimulator.java:400)
+	at groovyjarjarantlr4.v4.runtime.atn.ParserATNSimulator.adaptivePredict(ParserATNSimulator.java:355)
+	at org.apache.groovy.parser.antlr4.GroovyParser.commandExpression(GroovyParser.java:9702)
+	at org.apache.groovy.parser.antlr4.GroovyParser.statementExpression(GroovyParser.java:8233)
+	at org.apache.groovy.parser.antlr4.GroovyParser.statement(GroovyParser.java:7078)
+	at org.apache.groovy.parser.antlr4.GroovyParser.scriptStatement(GroovyParser.java:517)
+	at org.apache.groovy.parser.antlr4.GroovyParser.scriptStatements(GroovyParser.java:427)
+	at org.apache.groovy.parser.antlr4.GroovyParser.compilationUnit(GroovyParser.java:363)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:243)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildCST(AstBuilder.java:221)
+	at org.apache.groovy.parser.antlr4.AstBuilder.buildAST(AstBuilder.java:262)
+	at org.apache.groovy.parser.antlr4.Antlr4ParserPlugin.buildAST(Antlr4ParserPlugin.java:58)
+	at org.codehaus.groovy.control.SourceUnit.buildAST(SourceUnit.java:256)
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133)
+	at java.base/java.util.Spliterators$IteratorSpliterator.forEachRemaining(Spliterators.java:1845)
+	at java.base/java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:762)
+	at org.codehaus.groovy.control.CompilationUnit.compile(CompilationUnit.java:631)
+	at groovy.lang.GroovyClassLoader.doParseClass(GroovyClassLoader.java:365)
+	at groovy.lang.GroovyClassLoader.lambda$parseClass$2(GroovyClassLoader.java:314)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.compute(StampedCommonCache.java:163)
+	at org.codehaus.groovy.runtime.memoize.StampedCommonCache.getAndPut(StampedCommonCache.java:154)
+	at groovy.lang.GroovyClassLoader.parseClass(GroovyClassLoader.java:314)
+	at groovy.lang.GroovyShell.parseClass(GroovyShell.java:572)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:585)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:639)
+	at groovy.lang.GroovyShell.parse(GroovyShell.java:643)
+	at nextflow.script.parser.v1.ScriptLoaderV1.parse0(ScriptLoaderV1.groovy:183)
+	... 7 common frames omitted

@@ -72,6 +72,12 @@ def main():
 
     adapter = RoutingBenchmarkAdapter(config)
     tasks = adapter.load_tasks()
+    if args.domain:
+        tasks = [t for t in tasks if t.domain == args.domain]
+    if args.difficulty:
+        tasks = [t for t in tasks if t.difficulty == args.difficulty]
+    if args.adversarial_only:
+        tasks = [t for t in tasks if t.metadata.get("confusable_with")]
     if args.max_tasks:
         tasks = tasks[:args.max_tasks]
 
@@ -96,6 +102,12 @@ def main():
     run_id = store.start_run("cross_domain_routing", suite="standalone", config=config)
 
     tasks = adapter.load_tasks()
+    if args.domain:
+        tasks = [t for t in tasks if t.domain == args.domain]
+    if args.difficulty:
+        tasks = [t for t in tasks if t.difficulty == args.difficulty]
+    if args.adversarial_only:
+        tasks = [t for t in tasks if t.metadata.get("confusable_with")]
     if args.max_tasks:
         tasks = tasks[:args.max_tasks]
     total = len(tasks)
@@ -207,7 +219,62 @@ def main():
         print(f"  [{n_done:3d}/{total}] {status} {r.score:.1f}  {label:40s}  {r.task_id.replace('routing__','')}", flush=True)
 
     t0 = time.time()
-    results = adapter.run(client, max_tasks=args.max_tasks, on_result=on_result, workers=args.workers)
+    # Run using the pre-filtered tasks (adapter.run() would reload all tasks internally)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import copy as _copy
+
+    def _run_one(task):
+        thread_client = _copy.copy(client)
+        import requests as _req
+        thread_client._session = _req.Session()
+        thread_client._session.headers.update({
+            "Authorization": f"Bearer {client.token}",
+            "Content-Type": "application/json",
+        })
+        import time as _t
+        t_start = _t.time()
+        try:
+            resp = thread_client.ask(task.question)
+            score = adapter.score(task, resp.text, resp.workflow_card)
+            error = None
+            wf_type = (resp.workflow_card or {}).get("workflow_type", "")
+            if wf_type == "disambiguation":
+                candidates = (resp.workflow_card or {}).get("candidates") or []
+                top_name = candidates[0].get("name", "") if candidates else ""
+                routed = f"[disambig] {top_name}"
+            else:
+                routed = (resp.workflow_card or {}).get("name", "")
+            task.metadata["workflow_type"] = wf_type
+            response_text = f"[routed:{routed}] {resp.text}"
+        except Exception as exc:
+            score = 0.0
+            error = str(exc)
+            response_text = ""
+            routed = ""
+        from evaluation.core.base_adapter import BenchmarkResult
+        return BenchmarkResult(
+            task_id=task.task_id, benchmark=adapter.name, score=score,
+            agent_response=response_text, ground_truth=task.ground_truth,
+            latency_sec=_t.time() - t_start, metadata=task.metadata, error=error,
+        )
+
+    results_list = [None] * total
+    if args.workers <= 1:
+        for i, task in enumerate(tasks):
+            r = _run_one(task)
+            results_list[i] = r
+            on_result(r)
+    else:
+        future_to_idx = {}
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            for i, task in enumerate(tasks):
+                future_to_idx[executor.submit(_run_one, task)] = i
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                r = future.result()
+                results_list[idx] = r
+                on_result(r)
+    results = [r for r in results_list if r is not None]
     store.finish_run(run_id)
     elapsed = time.time() - t0
 

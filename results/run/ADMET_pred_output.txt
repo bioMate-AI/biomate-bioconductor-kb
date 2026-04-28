@@ -1,0 +1,7 @@
+Biomni: ADMET Safety Screening
+============================================================
+
+Estimation method: rdkit_descriptors
+
+
+hERG IC50 estimated from LogP (Aronov 2008). DILI risk from lipophilicity+MW model (Lammert 2010). Install DeepPurpose for ML-based ClinTox prediction.

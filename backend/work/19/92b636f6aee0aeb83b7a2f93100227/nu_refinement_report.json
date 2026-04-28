@@ -1,0 +1,8 @@
+{
+  "step": "21_non_uniform_refinement",
+  "timestamp": "2026-03-09T18:35:20.239282",
+  "num_particles": 5397,
+  "initial_resolution_angstroms": 4.97,
+  "final_resolution_angstroms": 4.13,
+  "resolution_improvement": 16.9
+}

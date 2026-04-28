@@ -1,0 +1,8 @@
+{
+  "step": "10_select_2d_round1",
+  "timestamp": "2026-03-09T18:35:42.525769",
+  "num_input_particles": 3603,
+  "num_selected_particles": 2486,
+  "selection_ratio": 0.69,
+  "num_good_classes": 35
+}

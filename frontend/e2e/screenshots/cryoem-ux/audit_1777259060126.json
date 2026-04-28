@@ -1,0 +1,77 @@
+[
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1777259060126,
+    "endTs": 1777259060126,
+    "finalStatus": "timeout",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to CryoSPARC SPA query",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC license key saved via credential UX",
+        "passed": true,
+        "note": "green checkmark shown"
+      },
+      {
+        "name": "Run controls panel visible",
+        "passed": true
+      },
+      {
+        "name": "Parameters panel visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "movies_path populated from S3 query param",
+        "passed": true,
+        "note": "value: s3://biomate-cryo-data/empiar-10028/Micrographs"
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "QC profile selector visible",
+        "passed": true,
+        "note": "profile chip: \"cryoem spa purified\", thresholds visible: true"
+      },
+      {
+        "name": "Run button clicked",
+        "passed": true
+      },
+      {
+        "name": "Cold-start banner check",
+        "passed": true,
+        "note": "not shown (local or fast)"
+      },
+      {
+        "name": "Run reached terminal state",
+        "passed": false,
+        "note": "timeout"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03b_credentials_saved.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_04_params_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_05_qc_settings.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_06_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_08_terminal_timeout.png"
+    ]
+  }
+]

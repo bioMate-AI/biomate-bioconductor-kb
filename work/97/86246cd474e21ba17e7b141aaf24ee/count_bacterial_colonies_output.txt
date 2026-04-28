@@ -1,0 +1,4 @@
+Biomni: Count Bacterial Colonies
+============================================================
+
+ERROR: No module named 'cv2'

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Computational Preclinical Development — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  a:hover { color:var(--accent); }
+  img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+</style>
+  <meta name="description" content="PBPK simulation, allometric scaling, toxicity prediction, and structured CRO submission export translate preclinical findings into IND-ready documentation." />
+  <meta name="keywords" content="BioMate AI, drug development, computational biology, biomedical AI, blog drug 4 preclinical" />
+  <link rel="canonical" href="https://biomate.ai/blog-drug-4-preclinical.html" />
+  <meta property="og:title" content="From Animal Studies to IND Filing: Computational Preclinical Development" />
+  <meta property="og:description" content="PBPK simulation, allometric scaling, toxicity prediction, and structured CRO submission export translate preclinical findings into IND-ready documentation." />
+  <meta property="og:url" content="https://biomate.ai/blog-drug-4-preclinical.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-drug-4-preclinical-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="From Animal Studies to IND Filing: Computational Preclinical Development" />
+  <meta name="twitter:description" content="PBPK simulation, allometric scaling, toxicity prediction, and structured CRO submission export translate preclinical findings into IND-ready documentation." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-drug-4-preclinical-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "From Animal Studies to IND Filing: Computational Preclinical Development",
+    "description": "PBPK simulation, allometric scaling, toxicity prediction, and structured CRO submission export translate preclinical findings into IND-ready documentation.",
+    "datePublished": "2026-04-18",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-drug-4-preclinical.html",
+    "image": "https://biomate.ai/images/blog-drug-4-preclinical-hero.png",
+    "articleSection": "Drug Development"
+  }
+  </script>
+</head>
+<body>
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="https://dev-public.biomate.ai/register" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<div class="article-hero">
+  <img src="images/blog-drug-4-preclinical-hero.png" alt="BioMate for Drug Discovery, Part 4: Preclinical Modeling and IND Preparation" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development</span>
+      <h1>From Animal Studies to IND Filing: Computational Preclinical Development</h1>
+      <div class="article-meta">
+        <span><strong>April 17, 2026</strong></span>
+        <span>9 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">The preclinical package must answer the questions regulators will ask when they review your IND: What dose is safe? How is the compound metabolized? Will the pharmacokinetics in rodents and dogs translate to humans? BioMate integrates the computational methods that address these questions — reducing the experimental burden and improving the quality of the regulatory documentation that comes out the other side.</p>
+
+      <h2>Translational PK: From Animal to Human</h2>
+      <p>Physiologically-based pharmacokinetic (PBPK) modeling simulates how a compound moves through, and is processed by, the body — as a function of the organism's physiology rather than empirical curve-fitting. A PBPK model parameterized with in vitro measurements and animal PK data can predict human PK ahead of clinical trials, estimate the effect of hepatic impairment or drug interactions on exposure, and simulate special populations whose inclusion in early trials is limited.</p>
+      <p>Allometric scaling provides a complementary, faster estimate of human dose based on body weight relationships across species. BioMate implements both, allowing teams to triangulate the predicted human dose and exposure from multiple methods — the regulatory expectation for a well-supported IND application.</p>
+
+      <h2>Toxicology Prediction</h2>
+      <p>Preclinical toxicology generates the safety data that defines the starting dose and dose escalation scheme for the first human study. BioMate integrates computational toxicology models for repeated-dose hepatotoxicity, developmental and reproductive toxicity (DART), and genotoxicity — not to replace GLP toxicology studies, but to identify likely liabilities early enough to address them structurally, and to inform the design of the definitive studies by predicting the dose range where signals are likely to emerge.</p>
+
+      <blockquote>"IND preparation is documentation-intensive by design. Regulators need to see that every prediction is supported by a method, every method by a reference, and every result by a QC record. BioMate generates all three."</blockquote>
+
+      <h2>CRO Submission and IND Assembly</h2>
+      <p>When preclinical studies are outsourced to contract research organizations, the data handoff is often a friction point — formatting compound data, writing assay specifications, attaching computational predictions in a form the CRO can act on. BioMate generates structured submission packages that consolidate compound records, assay requirements, predicted dose ranges, and relevant computational context in formats that major CROs consume directly.</p>
+      <p>For IND assembly, BioMate organizes the computational pharmacology and toxicology evidence into the section structure regulators expect. The audit trail attached to each analysis provides the method citations, parameter provenance, and QC records that reviewers require to assess the reliability of the predictions.</p>
+
+      <div class="callout">
+        <strong>What this means for preclinical teams</strong>
+        <p>Computational PK/PD modeling and toxicology prediction are no longer tasks that require a dedicated pharmacometrician or regulatory toxicologist. BioMate makes them accessible at the bench-scientist level — with the documentation quality the IND requires built in from the start.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-drug-1-target.html">BioMate for Drug Discovery, Part 1: Computational Target Discovery</a><div class="meta">April 22, 2026</div></li>
+<li><a href="blog-drug-2-hit.html">BioMate for Drug Discovery, Part 2: AI-Powered Hit Discovery</a><div class="meta">April 21, 2026</div></li>
+<li><a href="blog-drug-3-admet.html">BioMate for Drug Discovery, Part 3: ADMET and the Lead Optimization Loop</a><div class="meta">April 19, 2026</div></li>
+<li><a href="blog-drug-5-clinical.html">BioMate for Drug Discovery, Part 5: Supporting Clinical Development</a><div class="meta">April 15, 2026</div></li>
+<li><a href="blog-drug-6-postmarket.html">BioMate for Drug Discovery, Part 6: Post-Approval and Pharmacovigilance</a><div class="meta">April 13, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">PBPK</span><span class="topic-chip">Allometric Scaling</span><span class="topic-chip">Preclinical</span><span class="topic-chip">IND</span><span class="topic-chip">Toxicology</span><span class="topic-chip">CRO</span><span class="topic-chip">Regulatory</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Science</h4><ul>
+        <li><a href="index.html#approach">Our Approach</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#applications">Applications</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Company</h4><ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+      </ul></div>
+    </div>
+    <p class="footer-copy">&#169; 2026 BioMate AI &middot; All rights reserved</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,2 @@
+Docking Auto-Loop Run: 6572d4d5-1594-4496-a899-18bbe32ce5e8
+Phases passed: 1  escalated: 0

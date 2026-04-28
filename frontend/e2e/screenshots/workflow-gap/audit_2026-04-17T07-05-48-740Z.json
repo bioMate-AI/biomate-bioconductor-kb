@@ -1,0 +1,53 @@
+{
+  "suiteId": "workflow-gap-generalized",
+  "generatedAt": "2026-04-17T07:05:48.740Z",
+  "passed": 1,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "WG-5",
+      "workflow": "NCA PK Analysis",
+      "domain": "drug_discovery",
+      "startTs": 1776409500647,
+      "endTs": 1776409548619,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "NCA PK Analysis"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk overrideBtns=0"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"5.0\" or param \"input_csv\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"Nca Pknca\",\"description\":\"drug_discovery/nca_pknca Non-Compartmental Analysis (NCA) pharmacokinetics pipeline using the PKNCA R package. Pipeline Steps: 1. NCA_INPUT_VALIDATION  — Validate concentration-time CSV format and required columns (time, conc, subject_id, dose"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_04_execute.png"
+      ]
+    }
+  ]
+}

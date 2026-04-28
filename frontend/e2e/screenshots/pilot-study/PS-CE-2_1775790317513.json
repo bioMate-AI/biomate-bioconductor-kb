@@ -1,0 +1,72 @@
+{
+  "sessionId": "PS-CE-2",
+  "sessionName": "Helical SPA Pipeline",
+  "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_ce2_1775790142820@biomate.test",
+  "startTs": "2026-04-10T03:02:22.820Z",
+  "endTs": "2026-04-10T03:05:17.513Z",
+  "totalDurationMs": 174693,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Here is our cryo-EM structure of GLP-1R at 2.5 Å. Identify the druggable pockets.\n\nActually, I am working on actin filament structure determination.\nI have attached my cryo-EM movie file (actin_filaments.mrc) for helical SPA reconstruction.\n\nSample: F-actin filaments in ATP state\nAcquisition: Titan ",
+      "responseMs": 53156,
+      "cardMs": null,
+      "workflowName": null
+    },
+    {
+      "n": 2,
+      "query": "confirm",
+      "responseMs": 53260,
+      "cardMs": null,
+      "workflowName": null
+    }
+  ],
+  "runId": null,
+  "execStatus": "not_started",
+  "execDurationMs": 0,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-10T03:02:26.771Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-10T03:05:17.513Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": false,
+  "h2": false,
+  "h3": 0,
+  "h5": false,
+  "screenshots": [
+    "PS-CE-2_01_home.png",
+    "PS-CE-2_01b_file_attached.png",
+    "PS-CE-2_02_after_t1.png",
+    "PS-CE-2_02b.png",
+    "PS-CE-2_03_card.png"
+  ],
+  "notes": [],
+  "status": "fail"
+}

@@ -1,0 +1,42 @@
+{
+  "run_at": "2026-04-21T03:36:24.412Z",
+  "campaign_id": "cmp-croe2e-19dae1c31c5",
+  "tests": [
+    "DD-CRO-1",
+    "DD-CRO-2",
+    "DD-CRO-3",
+    "DD-CRO-4",
+    "DD-CRO-5",
+    "DD-CRO-6",
+    "DD-CRO-7"
+  ],
+  "screenshots": [
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_01_home_1776732326665.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_01_home_1776732675297.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_01_home_1776742577982.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_02_api_created_1776742578359.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_03_verified_1776742578484.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro2_01_api_response_1776732416490.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro2_01_api_response_1776732796422.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro2_01_api_response_1776742579720.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro2_02_done_1776742579795.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro3_01_audit_list_1776742580973.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro3_02_chain_verify_1776742581090.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro3_03_done_1776742581162.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro4_01_library_seeded_1776742582369.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro4_02_status_1776742582474.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro4_03_started_1776742582595.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro4_04_triggered_1776742584134.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro6_01_status_1776733441820.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-46-54-464Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-46-56-822Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-48-57-810Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-50-58-883Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-53-14-334Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-53-16-790Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-53-59-780Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-55-12-641Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T01-04-02-134Z.json",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T01-07-02-917Z.json"
+  ]
+}

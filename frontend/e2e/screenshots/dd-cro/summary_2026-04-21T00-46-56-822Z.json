@@ -1,0 +1,18 @@
+{
+  "run_at": "2026-04-21T00:46:56.821Z",
+  "campaign_id": "cmp-croe2e-19dad81246c",
+  "tests": [
+    "DD-CRO-1",
+    "DD-CRO-2",
+    "DD-CRO-3",
+    "DD-CRO-4",
+    "DD-CRO-5",
+    "DD-CRO-6",
+    "DD-CRO-7"
+  ],
+  "screenshots": [
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_01_home_1776732326665.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro2_01_api_response_1776732416490.png",
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/summary_2026-04-21T00-46-54-464Z.json"
+  ]
+}

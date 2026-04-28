@@ -1,0 +1,11 @@
+CYP-DDI Auto-Loop Run: cx16
+Generated: 2026-04-17T10:47:02+00:00 UTC
+
+Phase phase_2_ddi_risk  [PASS]  (1 attempt(s))
+  Attempt #1  outcome=pass
+    [OK ] clinical_study_isoforms          value=0  threshold=0
+    [OK ] investigate_isoforms             value=0  threshold=2
+    [OK ] tdi_concern                      value=0  threshold=0
+
+Phases passed: 1
+Phases escalated: 0

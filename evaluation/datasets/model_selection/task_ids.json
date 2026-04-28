@@ -1,0 +1,212 @@
+[
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__639",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"DRD2\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__1588",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"FGFR3\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__1135",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"BRAF\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__1475",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"XPO1\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__103",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"ADRA1A\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__gwas_causal_gene_pharmaprojects__687",
+    "benchmark": "biomni_eval1",
+    "subtask": "gwas_causal",
+    "ground_truth": "\"HTR4\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__14",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"Congenital Contractures of the Limbs and Face, Hypotonia, and Developmental Delay\\\", \\\"OMIM_ID\\\": \\\"616266\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__63",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"Arthrogryposis, Distal, Type 1A\\\", \\\"OMIM_ID\\\": \\\"108120\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__74",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"Scalp-ear-nipple syndrome\\\", \\\"OMIM_ID\\\": \\\"181270\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__1",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"Congenital Contractures of the Limbs and Face, Hypotonia, and Developmental Delay\\\", \\\"OMIM_ID\\\": \\\"616266\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__136",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"autism (disease)\\\", \\\"OMIM_ID\\\": \\\"209850\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__rare_disease_diagnosis__145",
+    "benchmark": "biomni_eval1",
+    "subtask": "rare_disease",
+    "ground_truth": "\"{\\\"disease_name\\\": \\\"Opitz Gbbb Syndrome, Type 1\\\", \\\"OMIM_ID\\\": \\\"300000\\\"}\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__217",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000170540\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__241",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000010404\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__43",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000197746\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__473",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000125378\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__319",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000102580\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "biomni_eval1__patient_gene_detection__259",
+    "benchmark": "biomni_eval1",
+    "subtask": "patient_gene",
+    "ground_truth": "\"ENSG00000081087\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__751ac767-1d34-4e26-b5fc-55b933623807",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"C\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__dc904e78-65ff-482e-b104-e89ebcfe1bc0",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"D\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__9eff2923-3836-4cbc-8f01-e45d38f7d706",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"A\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__0e442d2a-1ef5-47bb-bd74-c65f44c6c909",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"C\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__8c8bfe7d-0aa3-4c84-a573-e04f1e8fd92a",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"C\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__8cd98408-8672-4330-911e-57bff9ec334a",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"D\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__8e10fbe3-f669-4b1b-b6d5-cf3535a8ed8d",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"C\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__CloningScenarios__a8d80f58-a25e-4545-87a0-691c7352cfac",
+    "benchmark": "labbench",
+    "subtask": "CloningScenarios",
+    "ground_truth": "\"C\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__ProtocolQA__670f19cf-017f-47a0-8c39-16704458624b",
+    "benchmark": "labbench",
+    "subtask": "labbench",
+    "ground_truth": "\"D\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__LitQA2__b105af85-833e-48bc-ac78-48f73c9673fd",
+    "benchmark": "labbench",
+    "subtask": "labbench",
+    "ground_truth": "\"D\"",
+    "score_ref": 1.0
+  },
+  {
+    "task_id": "labbench__ProtocolQA__347e9fa7-8793-4cc5-a383-37b6c39b7bd8",
+    "benchmark": "labbench",
+    "subtask": "labbench",
+    "ground_truth": "\"B\"",
+    "score_ref": 0.0
+  },
+  {
+    "task_id": "labbench__LitQA2__983f1ef5-fc7d-4f4a-8f48-e704641eae12",
+    "benchmark": "labbench",
+    "subtask": "labbench",
+    "ground_truth": "\"B\"",
+    "score_ref": 0.0
+  }
+]

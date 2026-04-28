@@ -1,0 +1,155 @@
+[
+  {
+    "step": "STEP 1: Navigate to app",
+    "timestamp": "2026-04-14T10:28:46.446Z",
+    "elapsed_ms": 1
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.660Z",
+    "elapsed_ms": 215,
+    "data": "[ChatInterface] displayMessages count: 0"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.660Z",
+    "elapsed_ms": 215,
+    "data": "[ChatInterface] displayMessages IDs: []"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.667Z",
+    "elapsed_ms": 222,
+    "data": "[ChatInterface] displayMessages count: 0"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.667Z",
+    "elapsed_ms": 222,
+    "data": "[ChatInterface] displayMessages IDs: []"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.674Z",
+    "elapsed_ms": 228,
+    "data": "[ChatInterface] displayMessages count: 0"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:46.674Z",
+    "elapsed_ms": 229,
+    "data": "[ChatInterface] displayMessages IDs: []"
+  },
+  {
+    "step": "STEP 1: Navigation complete",
+    "timestamp": "2026-04-14T10:28:47.204Z",
+    "elapsed_ms": 759
+  },
+  {
+    "step": "STEP 2: Wait for chat interface",
+    "timestamp": "2026-04-14T10:28:47.204Z",
+    "elapsed_ms": 759
+  },
+  {
+    "step": "STEP 2: Chat input visible",
+    "timestamp": "2026-04-14T10:28:47.223Z",
+    "elapsed_ms": 778
+  },
+  {
+    "step": "STEP 3: Check initial state",
+    "timestamp": "2026-04-14T10:28:47.223Z",
+    "elapsed_ms": 778
+  },
+  {
+    "step": "STEP 3: Initial state",
+    "timestamp": "2026-04-14T10:28:47.233Z",
+    "elapsed_ms": 788,
+    "data": {
+      "typingIndicator": false,
+      "messageCount": 0
+    }
+  },
+  {
+    "step": "STEP 4: Fill message",
+    "timestamp": "2026-04-14T10:28:47.233Z",
+    "elapsed_ms": 788
+  },
+  {
+    "step": "STEP 4: Message filled",
+    "timestamp": "2026-04-14T10:28:47.244Z",
+    "elapsed_ms": 799
+  },
+  {
+    "step": "STEP 5: Press Enter to send",
+    "timestamp": "2026-04-14T10:28:47.244Z",
+    "elapsed_ms": 799
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:47.269Z",
+    "elapsed_ms": 824,
+    "data": "[ChatInterface] displayMessages count: 3"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:47.269Z",
+    "elapsed_ms": 824,
+    "data": "[ChatInterface] displayMessages IDs: [welcome, 1776162527254, assistant-stream-1776162527255]"
+  },
+  {
+    "step": "CONSOLE: log",
+    "timestamp": "2026-04-14T10:28:47.272Z",
+    "elapsed_ms": 827,
+    "data": "[ChatInterface] Token monitoring: {sessionId: chat-1776162527254-y5z9dzc5b, tokenCount: 0, percentage: 0.0%, messageCount: 3}"
+  },
+  {
+    "step": "REQUEST: /api/chat started",
+    "timestamp": "2026-04-14T10:28:47.273Z",
+    "elapsed_ms": 828,
+    "data": {
+      "method": "POST",
+      "url": "http://localhost:5000/api/chat/stream"
+    }
+  },
+  {
+    "step": "STEP 5: Enter pressed",
+    "timestamp": "2026-04-14T10:28:47.296Z",
+    "elapsed_ms": 851
+  },
+  {
+    "step": "STEP 6: Typing indicator after send",
+    "timestamp": "2026-04-14T10:28:47.408Z",
+    "elapsed_ms": 963,
+    "data": {
+      "visible": false
+    }
+  },
+  {
+    "step": "STEP 7: Begin waiting for response",
+    "timestamp": "2026-04-14T10:28:47.408Z",
+    "elapsed_ms": 963
+  },
+  {
+    "step": "STEP 7: Typing indicator disappeared",
+    "timestamp": "2026-04-14T10:28:48.428Z",
+    "elapsed_ms": 1983,
+    "data": {
+      "pollCount": 1
+    }
+  },
+  {
+    "step": "STEP 8: Check final state",
+    "timestamp": "2026-04-14T10:28:48.428Z",
+    "elapsed_ms": 1983
+  },
+  {
+    "step": "STEP 8: Final state",
+    "timestamp": "2026-04-14T10:28:48.454Z",
+    "elapsed_ms": 2009,
+    "data": {
+      "typingIndicator": false,
+      "assistantMessages": 1,
+      "hasResponse": true
+    }
+  }
+]

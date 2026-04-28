@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="386" style="background:white;font-family:Arial, Helvetica, sans-serif;">
+  <defs>    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#555"/></marker>    <marker id="dr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#888"/></marker>  </defs>
+  <text x="340" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Stage 1–2: Target Discovery &amp; Hit Identification</text>
+  <text x="40" y="48" font-size="9" fill="#2e7d32">✅ Internal</text>  <text x="130" y="48" font-size="9" fill="#5c3c8a">🔌 External API</text>  <text x="240" y="48" font-size="9" fill="#b85450">🔌🔌 External data</text>
+  <rect x="40" y="118" width="195" height="48" rx="8" ry="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+  <text x="137" y="134" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🔬 TARGET</text>
+  <text x="137" y="150" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">DISCOVERY &amp; VALIDATION</text>
+  <rect x="40" y="266" width="195" height="48" rx="8" ry="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+  <text x="137" y="290" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">💊 HIT DISCOVERY</text>
+  <line x1="137" y1="166" x2="137" y2="266" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="260" y="60" width="370" height="164" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="78" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ ProTrek protein search</text>
+  <text x="268" y="94" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Boltz-2/Chai-1 structure prediction</text>
+  <text x="268" y="110" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AlphaFold DB search</text>
+  <text x="268" y="126" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AutoSite pocket detection</text>
+  <text x="268" y="142" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pocket Druggability</text>
+  <text x="268" y="158" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CRISPR screen (MAGeCK)</text>
+  <text x="268" y="174" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Drug MoA RNAseq</text>
+  <text x="268" y="190" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ State Perturbation Prediction</text>
+  <text x="268" y="206" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ nf-core: sarek / rnaseq / atacseq</text>
+  <line x1="235" y1="142" x2="260" y2="142" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="240" width="370" height="100" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="258" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DrugCLIP virtual screening</text>
+  <text x="268" y="274" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AutoDock Vina / Glide / DiffDock</text>
+  <text x="268" y="290" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pharmacophore Filtering</text>
+  <text x="268" y="306" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Syncraft synthesizability (ext. API)</text>
+  <text x="268" y="322" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Predict ADMET (triage)</text>
+  <line x1="235" y1="290" x2="260" y2="290" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+</svg>

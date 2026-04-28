@@ -1,0 +1,59 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-08T23:39:56.955Z",
+  "totalTests": 1,
+  "passed": 1,
+  "failed": 0,
+  "totalWallTimeSec": 57.341,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-4",
+      "runId": "7b83c15e-1aaf-40f4-993c-d3c47f32c84f",
+      "startTs": 1775691539309,
+      "endTs": 1775691596650,
+      "durationMs": 57341,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "step-cards-found",
+          "passed": true,
+          "note": "At least one PhaseCard must render"
+        },
+        {
+          "name": "run-step-buttons-enabled-after-terminal",
+          "passed": true,
+          "note": "4/4 step buttons enabled"
+        },
+        {
+          "name": "multiple-steps-found",
+          "passed": true,
+          "note": "Germline workflow should have ≥2 steps"
+        },
+        {
+          "name": "step-controls-hint-visible",
+          "passed": true
+        },
+        {
+          "name": "step-rerun-api-200",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc4_01_terminal.png",
+        "wc4_02_step_clicked.png",
+        "wc4_03_done.png"
+      ]
+    }
+  ]
+}

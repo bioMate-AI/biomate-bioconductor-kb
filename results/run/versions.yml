@@ -1,0 +1,4 @@
+    "ANALYZE_BACTERIAL_GROWTH_CURVE_WORKFLOW:ANALYZE_BACTERIAL_GROWTH_CURVE":
+        python: 3.12.3
+        biomni_function: "analyze_bacterial_growth_curve"
+    END_VERSIONS

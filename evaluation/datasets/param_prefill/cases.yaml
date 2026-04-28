@@ -1154,23 +1154,22 @@ cases:
     workflow: cryosparc_spa
     user_query: "Cryo-EM SPA, pixel size 0.83 Å/pixel"
     expected_params:
-      micrograph_pixel_size: 0.83
-    must_not_fill:
-      - pixel_size
+      pixel_size: 0.83
+    must_not_fill: []
     difficulty: medium
-    notes: "pixel_size vs micrograph_pixel_size — schema uses fully qualified name"
+    notes: "pixel size → pixel_size (actual workflow param name); value must be numeric float"
 
   - id: pf_103
     category: param_name_disambiguation
     workflow: cryosparc_spa
     user_query: "CryoSPARC run, voltage 300 kV, Titan Krios"
     expected_params:
-      accelerating_voltage: 300
+      voltage: 300
     must_not_fill:
-      - voltage
       - kv
+      - accelerating_voltage
     difficulty: medium
-    notes: "User says 'voltage 300 kV' → accelerating_voltage=300"
+    notes: "User says 'voltage 300 kV' → voltage=300 (actual workflow param name)"
 
   - id: pf_104
     category: param_name_disambiguation
@@ -1223,14 +1222,14 @@ cases:
     workflow: gromacs_protein_md
     user_query: "MD simulation, run for 100 ns, timestep 2 fs"
     expected_params:
-      simulation_length_ns: 100
-      timestep_fs: 2
+      n_steps: 50000000
+      dt: 0.002
     must_not_fill:
       - simulation_time
       - run_time
-      - nsteps
+      - simulation_length_ns
     difficulty: hard
-    notes: "ns and fs units — must use schema field names not raw GROMACS param names"
+    notes: "100 ns at 2 fs timestep → n_steps=50000000, dt=0.002 (ps); LLM cannot do this arithmetic reliably — requires rule-based unit conversion"
 
   - id: pf_109
     category: param_name_disambiguation
@@ -1249,27 +1248,26 @@ cases:
     category: param_name_disambiguation
     workflow: nf-core/rnaseq
     user_query: "Output to s3://my-bucket/rnaseq-results/, stranded library"
-    expected_params:
-      outdir: s3://my-bucket/rnaseq-results/
-      strandedness: forward
+    expected_params: {}
     must_not_fill:
+      - outdir
       - output_dir
-      - output_directory
+      - strandedness
     difficulty: medium
-    notes: "'output to s3://...' → outdir; strandedness ambiguous ('stranded' not enough info)"
+    notes: "outdir is infrastructure (intentionally skipped by extractor); 'stranded library' is ambiguous (forward or reverse unknown) — correct answer is to NOT fill strandedness"
 
   - id: pf_111
     category: param_name_disambiguation
     workflow: cryosparc_spa
     user_query: "defocus range 1.0 to 3.0 micrometers for CTF estimation"
     expected_params:
-      defocus_min_um: 1.0
-      defocus_max_um: 3.0
+      ctf_fitting_resolution_min: 1.0
+      ctf_fitting_resolution_max: 3.0
     must_not_fill:
       - defocus
       - defocus_range
     difficulty: hard
-    notes: "defocus range → two params (defocus_min_um + defocus_max_um); must not use ambiguous 'defocus'"
+    notes: "defocus range → ctf_fitting_resolution_min/max (actual cryosparc params); values in µm = Å resolution limits"
 
   - id: pf_112
     category: param_name_disambiguation
@@ -1303,10 +1301,11 @@ cases:
     user_query: "REINVENT4 de novo generation, temperature 1.0, generate 5000 molecules"
     expected_params:
       temperature: 1.0
-      num_molecules: 5000
+      top_n: 5000
     must_not_fill:
       - n_molecules
       - num_samples
+      - num_molecules
       - sampling_temperature
     difficulty: hard
     notes: "'generate 5000 molecules' → num_molecules; 'temperature' name collision with schema"

@@ -13,6 +13,13 @@ from .workflow_generation_adapter import WorkflowGenerationAdapter
 from .param_prefill_adapter import ParamPrefillAdapter
 from .protocol_to_workflow_adapter import ProtocolToWorkflowAdapter
 from .memory_benchmark_adapter import MemoryBenchmarkAdapter
+from .labbench_adapter import LABBenchAdapter
+from .autoloop_benchmark_adapter import AutoLoopBenchmarkAdapter
+from .admet_benchmark_adapter import AdmetBenchmarkAdapter
+from .docking_benchmark_adapter import DockingBenchmarkAdapter
+from .pbpk_benchmark_adapter import PBPKBenchmarkAdapter
+from .boin_benchmark_adapter import BOINClinicalBenchmarkAdapter
+from .target_structure_adapter import TargetStructureAdapter
 
 __all__ = [
     "BiomniEval1Adapter",
@@ -30,4 +37,11 @@ __all__ = [
     "ParamPrefillAdapter",
     "ProtocolToWorkflowAdapter",
     "MemoryBenchmarkAdapter",
+    "LABBenchAdapter",
+    "AutoLoopBenchmarkAdapter",
+    "AdmetBenchmarkAdapter",
+    "DockingBenchmarkAdapter",
+    "PBPKBenchmarkAdapter",
+    "BOINClinicalBenchmarkAdapter",
+    "TargetStructureAdapter",
 ]

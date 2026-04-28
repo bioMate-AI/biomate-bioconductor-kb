@@ -1,0 +1,1 @@
+/home/yzhang/biomate/backend/work/68/0a3b395c1f332a90acaf7920ad1118/micrographs_denoised.cs

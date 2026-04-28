@@ -1,0 +1,310 @@
+{
+  "timestamp": "2026-04-10T03:11:06.567Z",
+  "sessions": 3,
+  "pass": 1,
+  "partial": 1,
+  "fail": 1,
+  "goldPassRate": "33.3%",
+  "h1Rate": "100.0%",
+  "h2Rate": "66.7%",
+  "totalLLMCostUsd": "0.0000",
+  "totalComputeCostUsd": "0.0000",
+  "sessions_detail": [
+    {
+      "sessionId": "PS-DD-1",
+      "sessionName": "ADMET Profiling",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd1_1775790013608@biomate.test",
+      "startTs": "2026-04-10T03:00:13.608Z",
+      "endTs": "2026-04-10T03:05:58.089Z",
+      "totalDurationMs": 344481,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Run ADMET profiling on these 15 BCR-ABL1 inhibitors.\nFlag hERG IC₅₀ below 10 μM or predicted DILI risk.\n\nCompound set (SMILES):\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nDasatinib: Cc1nc(Nc2ncc(F)c(Nc3cccc(C(=O)NC4CCN(CCO)CC4)c3)n2)cc(N2CCN(CCO)CC2)n1\nNilotinib: Cc1ccc(NC",
+          "responseMs": 53249,
+          "cardMs": 53249,
+          "workflowName": null
+        }
+      ],
+      "runId": "a175dfd3-f903-49d0-95b8-db23bb763758",
+      "execStatus": "completed",
+      "execDurationMs": 280860,
+      "outputFiles": [
+        {
+          "name": "ADMET_pred_output.txt",
+          "size": 333,
+          "type": "txt"
+        },
+        {
+          "name": "ADMET_pred_results.json",
+          "size": 762,
+          "type": "json"
+        },
+        {
+          "name": "toxicity_report.json",
+          "size": 596,
+          "type": "json"
+        },
+        {
+          "name": "versions.yml",
+          "size": 117,
+          "type": "yml"
+        }
+      ],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/a175dfd3-f903-49d0-95b8-db23bb763758/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/a175dfd3-f903-49d0-95b8-db23bb763758/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/a175dfd3-f903-49d0-95b8-db23bb763758/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "ADMET output file present",
+          "threshold": "≥1 CSV file",
+          "actual": "ADMET_pred_output.txt",
+          "pass": true
+        },
+        {
+          "criterion": "Column HERG present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column DILI present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column LOGP present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column MW present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "ADMET data rows present",
+          "threshold": "≥1 compound",
+          "actual": "-1 rows",
+          "pass": true
+        }
+      ],
+      "goldPass": true,
+      "billingBefore": {
+        "ts": "2026-04-10T03:00:17.613Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:05:58.089Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": false,
+      "screenshots": [
+        "PS-DD-1_01_home.png",
+        "PS-DD-1_02_after_t1.png",
+        "PS-DD-1_03_card.png",
+        "PS-DD-1_04_running.png",
+        "PS-DD-1_05_completed.png",
+        "PS-DD-1_06_output_viz.png",
+        "PS-DD-1_07_download_panel.png"
+      ],
+      "notes": [
+        "exec=completed dur=281s outputs=4"
+      ],
+      "status": "pass"
+    },
+    {
+      "sessionId": "PS-DD-2",
+      "sessionName": "Virtual Screening (AutoDock Vina)",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd2_1775790358464@biomate.test",
+      "startTs": "2026-04-10T03:05:58.464Z",
+      "endTs": "2026-04-10T03:08:08.822Z",
+      "totalDurationMs": 130358,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Dock the top 10 ADMET-passing BCR-ABL1 inhibitors against BCR-ABL1 kinase domain (PDB 1IEP).\nShow the best binding pose and docking score for each compound.\n\nReceptor: PDB:1IEP (BCR-ABL1, DFG-out conformation, imatinib co-crystal structure)\nDocking box: imatinib binding site, size 20×20×20 Å, exhaus",
+          "responseMs": 63319,
+          "cardMs": 63319,
+          "workflowName": null
+        }
+      ],
+      "runId": "e1d48d72-ad53-49ab-ba0a-d3b43be27888",
+      "execStatus": "failed",
+      "execDurationMs": 40131,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/e1d48d72-ad53-49ab-ba0a-d3b43be27888/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/e1d48d72-ad53-49ab-ba0a-d3b43be27888/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/e1d48d72-ad53-49ab-ba0a-d3b43be27888/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "Docking output file present",
+          "threshold": "≥1 ranked SDF/CSV",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Top pose RMSD ≤ 2.0 Å",
+          "threshold": "≤ 2.0 Å",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "Docking scores in output",
+          "threshold": "kcal/mol values",
+          "actual": "n/a (mock)",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-10T03:06:02.428Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:08:08.822Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "screenshots": [
+        "PS-DD-2_01_home.png",
+        "PS-DD-2_02_after_t1.png",
+        "PS-DD-2_03_card.png",
+        "PS-DD-2_04_running.png",
+        "PS-DD-2_05_failed.png",
+        "PS-DD-2_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-DD-3",
+      "sessionName": "GROMACS Protein MD",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd3_1775790489114@biomate.test",
+      "startTs": "2026-04-10T03:08:09.114Z",
+      "endTs": "2026-04-10T03:11:06.359Z",
+      "totalDurationMs": 177245,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Run a 10 ns molecular dynamics simulation for imatinib in the BCR-ABL1 binding site.\nI need RMSD stability and MM-GBSA binding free energy.\n\nReceptor: PDB:1IEP (BCR-ABL1 kinase domain, DFG-out)\nLigand SMILES (imatinib): Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nForce field: AMBER f",
+          "responseMs": 42177,
+          "cardMs": null,
+          "workflowName": null
+        },
+        {
+          "n": 2,
+          "query": "confirm",
+          "responseMs": 46732,
+          "cardMs": 46732,
+          "workflowName": null
+        }
+      ],
+      "runId": null,
+      "execStatus": "not_started",
+      "execDurationMs": 0,
+      "outputFiles": [],
+      "downloadCommands": {},
+      "goldStandard": [],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-10T03:08:12.938Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:08:09.114Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": false,
+      "h3": 0,
+      "h5": false,
+      "screenshots": [
+        "PS-DD-3_01_home.png",
+        "PS-DD-3_02_after_t1.png",
+        "PS-DD-3_02b.png",
+        "PS-DD-3_03_card.png",
+        "PS-DD-3_error.png"
+      ],
+      "notes": [],
+      "status": "fail",
+      "error": "page.waitForResponse: Timeout 60000ms exceeded while waiting for event \"response\""
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "generated": "2026-04-20T17:38:30.336Z",
+  "suiteStartedAt": "2026-04-20T17:29:30.408Z",
+  "pilotReference": "docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+  "testAccount": "e2e_pilot_drug_discovery@biomate.test",
+  "baseUrl": "http://localhost:5000",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-discovery-pilot",
+  "hypotheses": {
+    "H1": {
+      "target": "≥80% sessions generate workflow without manual correction",
+      "result": "1/1 (100%)",
+      "pass": true
+    },
+    "H2": {
+      "target": "≤120s per session time-to-workflow-card",
+      "result": "1/1 sessions within 120s",
+      "pass": true,
+      "avgFirstResponseMs": 46056
+    },
+    "H3": {
+      "target": "≥70% sessions rated ≥4/5 for scientific defensibility",
+      "result": "1/1 (100%)",
+      "pass": true,
+      "ratings": [
+        {
+          "session": "S1_ADMET",
+          "rating": 4
+        }
+      ]
+    },
+    "H5": {
+      "target": "0 hallucinations — all generated workflows exist in DB",
+      "result": "1/1 workflows verified",
+      "pass": true
+    }
+  },
+  "timingTable": [
+    {
+      "session": "S1_ADMET",
+      "name": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "turns": 1,
+      "firstResponseMs": 46056,
+      "firstWorkflowCardMs": 46056,
+      "totalSessionMs": 440623,
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "llm_input_tokens_delta": 167,
+      "llm_output_tokens_delta": 249,
+      "llm_cost_usd_delta": 0.0042360000000001286,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.0042360000000001286,
+      "execRunId": "f89e8a9d-9c62-45a1-ad21-e49500a1f676",
+      "execStatus": "completed",
+      "execDurationMs": 283488,
+      "outputFileCount": 0,
+      "phaseCount": 2,
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png",
+        "S1_ADMET_findings_card.png"
+      ],
+      "status": "pass"
+    }
+  ],
+  "billingTotals": {
+    "llm_input_tokens": 167,
+    "llm_output_tokens": 249,
+    "llm_cost_usd": 0.0042360000000001286,
+    "compute_cost_usd": 0,
+    "total_usd": 0.0042360000000001286,
+    "totalDurationMs": 440623,
+    "costPerSession": 0.0042360000000001286,
+    "finalLagoSnapshot": {
+      "ts": "2026-04-20T17:38:29.985Z",
+      "llm_input_tokens": 44633,
+      "llm_output_tokens": 90200,
+      "llm_cost_usd": 1.486899,
+      "compute_cost_usd": 0,
+      "storage_cost_usd": 0,
+      "total_usd": 1.486899,
+      "quota_pct": 3
+    }
+  },
+  "roiMetrics": {
+    "sessionsCompleted": 1,
+    "totalWallClockMs": 440623,
+    "avgSessionMs": 440623,
+    "maxSessionMs": 440623,
+    "totalLLMCost_usd": 0.0042360000000001286,
+    "totalComputeCost_usd": 0,
+    "totalCost_usd": 0.0042360000000001286,
+    "manualEquivalentHours": 24,
+    "bioMateWallClockHours": 0.12239527777777778,
+    "speedupFactor": 196.08599641870714,
+    "costPerWorkflowGeneration": 0.0042360000000001286,
+    "note": "Compute costs are $0 for mock-mode Nextflow runs. Real AWS Batch costs apply on cloud."
+  },
+  "sessions": [
+    {
+      "sessionId": "S1_ADMET",
+      "sessionName": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "pilotSession": "Session 1 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "predict_admet_properties",
+      "startTs": "2026-04-20T17:29:30.872Z",
+      "endTs": "2026-04-20T17:36:51.495Z",
+      "totalDurationMs": 440623,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Run ADMET toxicity screening on these BCR-ABL1 drug candidates. Predict hERG IC50 (cardiac safety), DILI risk score, and BBB penetration. All SMILES provided:\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3…",
+          "tSendMs": 1776706172664,
+          "tResponseMs": 1776706218720,
+          "tWorkflowCardMs": 1776706218720,
+          "responseTimeMs": 46056,
+          "workflowCardTimeMs": 46056,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "workflow is ready in the panel — check the steps and parameters, then click Confirm & Run.\nADMET Toxicity Screening — BCR-ABL1 Drug Candidates — Predicts cardiac safety (hERG IC₅₀), hepatotoxicity (DILI), BBB penetration, and 3 additional endpoints for all 5 compounds from SMILES.\n\nInput: 5 SMILES strings — Imatinib, Dasatinib, Nilotinib, Asciminib, and Terfenadine (positive hERG control reference)\nKey steps:\n\nSMILES parsing & standardization → validated molecular structures for all 5 compounds\npredict_admet_properties → 6-endpoint panel: hERG cardiac IC₅₀, DILI hepatotoxicity risk score, BBB penetration, Caco-2 permeability, aqueous solubility, Ames mutagenicity\n\n\nExpected output: admet_results.csv (per-compound scores across all 6 endpoints) + risk_summary.json (flagged compounds exceeding safety thresholds — e.g. hERG IC₅₀ < 1 μM = cardiac risk flag); Terfenadine will serve as the positive control benchmark for hERG liability validation\nAdmet PredReadyView"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-20T17:29:32.583Z",
+        "llm_input_tokens": 44338,
+        "llm_output_tokens": 89409,
+        "llm_cost_usd": 1.474149,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.474149,
+        "quota_pct": 2.9
+      },
+      "billingAfter": {
+        "ts": "2026-04-20T17:36:51.340Z",
+        "llm_input_tokens": 44505,
+        "llm_output_tokens": 89658,
+        "llm_cost_usd": 1.478385,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.478385,
+        "quota_pct": 3
+      },
+      "billingDelta": {
+        "llm_input_tokens": 167,
+        "llm_output_tokens": 249,
+        "llm_cost_usd": 0.0042360000000001286,
+        "compute_cost_usd": 0,
+        "total_usd": 0.0042360000000001286
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 4,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 46056ms card=true",
+        "runId=f89e8a9d-9c62-45a1-ad21-e49500a1f676 execStatus=completed execDuration=283.5s outputFiles=0",
+        "[S1_ADMET] No output files on first completed phase card (may be expected for short workflows)",
+        "[S1_ADMET] autoloop toggles=1 ✅",
+        "[S1_ADMET] findings-card ✅",
+        "[S1_ADMET] methods-report HTTP 200 ✅",
+        "[S1_ADMET] qc-audit-btn enabled ✅",
+        "S1: WARN — compute_cost_usd=0 (AWS Batch→Lambda→Lago pipeline may not be firing for this user)"
+      ],
+      "execution": {
+        "runId": "f89e8a9d-9c62-45a1-ad21-e49500a1f676",
+        "status": "completed",
+        "tStartMs": 1776706218903,
+        "tTerminalMs": 1776706502391,
+        "executionDurationMs": 283488,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/f89e8a9d-9c62-45a1-ad21-e49500a1f676/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/f89e8a9d-9c62-45a1-ad21-e49500a1f676/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/f89e8a9d-9c62-45a1-ad21-e49500a1f676/ ./work/"
+          }
+        },
+        "phaseCount": 2
+      },
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png",
+        "S1_ADMET_findings_card.png"
+      ],
+      "screenshot": "S1_ADMET_findings_card.png",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "pipeline": "aizynthfinder_retrosynthesis",
+  "mock_mode": true,
+  "n_compounds": 5,
+  "n_pass": 5,
+  "n_warn": 0,
+  "n_fail": 0,
+  "pass_rate_pct": 100.0,
+  "warn_rate_pct": 0.0,
+  "fail_rate_pct": 0.0,
+  "pass_threshold": "steps<=4 AND score>=0.6",
+  "avg_best_sa_score": 3.43,
+  "avg_best_steps": 3.4,
+  "compounds": [
+    {
+      "compound_id": "CPND0001",
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "qc_status": "PASS",
+      "best_route_steps": 3,
+      "best_route_score": 0.772,
+      "best_sa_score": 4.04,
+      "n_routes": 3
+    },
+    {
+      "compound_id": "CPND0002",
+      "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
+      "qc_status": "PASS",
+      "best_route_steps": 4,
+      "best_route_score": 0.78,
+      "best_sa_score": 2.55,
+      "n_routes": 3
+    },
+    {
+      "compound_id": "CPND0003",
+      "smiles": "Cn1cnc2c1c(=O)n(c(=O)n2C)C",
+      "qc_status": "PASS",
+      "best_route_steps": 3,
+      "best_route_score": 0.708,
+      "best_sa_score": 4.36,
+      "n_routes": 3
+    },
+    {
+      "compound_id": "CPND0004",
+      "smiles": "CC(=O)Nc1ccc(O)cc1",
+      "qc_status": "PASS",
+      "best_route_steps": 3,
+      "best_route_score": 0.717,
+      "best_sa_score": 3.33,
+      "n_routes": 3
+    },
+    {
+      "compound_id": "CPND0005",
+      "smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C",
+      "qc_status": "PASS",
+      "best_route_steps": 4,
+      "best_route_score": 0.742,
+      "best_sa_score": 2.86,
+      "n_routes": 3
+    }
+  ],
+  "timestamp": "2026-03-22T15:04:51.969370Z"
+}

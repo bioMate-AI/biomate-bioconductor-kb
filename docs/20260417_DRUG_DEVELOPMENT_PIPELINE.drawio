@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1"
+  connect="1" arrows="1" fold="1" page="1" pageScale="1"
+  pageWidth="1169" pageHeight="2085" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="S0" value="🔬 TARGET DISCOVERY&amp;#xa;&amp; VALIDATION" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="95" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="S1" value="💊 HIT DISCOVERY" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="269" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S0" target="S1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S2" value="🔗 HIT-TO-LEAD&amp;#xa;H2L" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="451" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S1" target="S2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S3" value="⚗️ LEAD OPTIMIZATION&amp;#xa;LO" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#ffe6cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="667" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S2" target="S3">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S4" value="🧪 PRECLINICAL&amp;#xa;DEVELOPMENT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="908" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S3" target="S4">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S5" value="📋 IND FILING" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1099" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S4" target="S5">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S6" value="👤 PHASE I&amp;#xa;FIH / Dose Escalation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1230" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S5" target="S6">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S7" value="📊 PHASE II&amp;#xa;PoC / Dose Finding" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1378" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S6" target="S7">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S8" value="🏥 PHASE III&amp;#xa;Pivotal Trials" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1509" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S7" target="S8">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S9" value="✅ APPROVAL&amp;#xa;NDA / BLA" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1614" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S8" target="S9">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="S10" value="📈 POST-MARKET&amp;#xa;Pharmacovigilance" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;align=center;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1737" width="190" height="50" as="geometry" />
+    </mxCell>
+    <mxCell id="ARR10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#555555;strokeWidth=2;" vertex="0" edge="1" parent="1" source="S9" target="S10">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T0" value="✅ ProTrek protein search&amp;#xa;✅ Boltz-2 / Chai-1 structure prediction&amp;#xa;✅ AlphaFold DB search&amp;#xa;✅ AutoSite pocket detection&amp;#xa;✅ Pocket Druggability scoring&amp;#xa;✅ CRISPR screen (MAGeCK)&amp;#xa;✅ Drug MoA RNAseq&amp;#xa;✅ State Perturbation Prediction&amp;#xa;✅ nf-core: sarek / rnaseq / atacseq" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="30" width="360" height="181" as="geometry" />
+    </mxCell>
+    <mxCell id="DE0" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S0" target="T0">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T1" value="✅ DrugCLIP virtual screening&amp;#xa;✅ AutoDock Vina / Glide docking&amp;#xa;✅ DiffDock (flexible docking)&amp;#xa;✅ Pharmacophore Filtering&amp;#xa;🔌 Syncraft synthesizability (ext. API)&amp;#xa;✅ Predict ADMET (triage)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="229" width="360" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="DE1" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S1" target="T1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T2" value="✅ Predict ADMET Properties&amp;#xa;✅ CYP450 DDI Panel&amp;#xa;✅ IVIVE Hepatic Clearance&amp;#xa;✅ BCS / Oral Absorption&amp;#xa;✅ CNS MPO Penetration&amp;#xa;✅ Membrane Permeability&amp;#xa;✅ Proteome Selectivity&amp;#xa;✅ Covalent Warhead Design&amp;#xa;✅ Target Engagement Kinetics&amp;#xa;✅ Metabolite Prediction" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="377" width="360" height="198" as="geometry" />
+    </mxCell>
+    <mxCell id="DE2" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S2" target="T2">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T3" value="✅ GROMACS Protein-Ligand MD&amp;#xa;✅ AMBER pmemd MD&amp;#xa;✅ OpenFE RBFE&amp;#xa;✅ REINVENT4 Generative Lead Design&amp;#xa;✅ Pharmacophore (iteration)&amp;#xa;✅ Transporter DDI&amp;#xa;✅ Repeated Dose Tox&amp;#xa;✅ DART Toxicity&amp;#xa;✅ LNP Formulation&amp;#xa;✅ ScFv Antibody Design" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="593" width="360" height="198" as="geometry" />
+    </mxCell>
+    <mxCell id="DE3" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S3" target="T3">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T4" value="✅ Allometric Scaling&amp;#xa;✅ PBPK Simulation&amp;#xa;✅ NP PK / Biodistribution&amp;#xa;✅ DART Toxicity (confirm)&amp;#xa;✅ Repeated Dose Tox (confirm)&amp;#xa;🔌 CRO Submission Export (WuXi/Pharmaron)&amp;#xa;🔌 Assay Ingestion (needs LIMS/CSV)&amp;#xa;✅ Bayesian Optimizer&amp;#xa;🔌🔌 nlmixr2 PopPK (needs in vivo data)&amp;#xa;🔌🔌 NCA PKNCA (needs in vivo PK data)&amp;#xa;🔌🔌 Xenograft TGI (needs in vivo data)&amp;#xa;🔌🔌 Western Blot (needs lab images)&amp;#xa;🔌🔌 LC-MS Proteomics (needs instrument data)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="809" width="360" height="249" as="geometry" />
+    </mxCell>
+    <mxCell id="DE4" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S4" target="T4">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T5" value="✅ PBPK (human prediction)&amp;#xa;✅ Allometric Scaling&amp;#xa;✅ Clinical Trial Simulation&amp;#xa;🔌🔌 PGx Report (needs patient diplotypes)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1076" width="360" height="96" as="geometry" />
+    </mxCell>
+    <mxCell id="DE5" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S5" target="T5">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T6" value="✅ Clinical Trial Simulation (BOIN)&amp;#xa;✅ PBPK (pop. variability)&amp;#xa;🔌🔌 nlmixr2 PopPK (needs trial PK data)&amp;#xa;🔌🔌 PGx Report (needs patient genotypes)&amp;#xa;✅ Apply VCOG Grade&amp;#xa;🔌 FDA Drug Label Info (DailyMed API)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1190" width="360" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="DE6" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S6" target="T6">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T7" value="✅ Clinical Trial Simulation (Phase II)&amp;#xa;🔌🔌 nlmixr2 PopPK (needs trial data)&amp;#xa;🔌🔌 PGx stratification (needs patient data)&amp;#xa;✅ Bayesian Optimizer (response)&amp;#xa;🔌 Check Drug Combination Safety (DDinter)&amp;#xa;🔌 Analyze FDA Safety Signals (FAERS)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1338" width="360" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="DE7" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S7" target="T7">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T8" value="✅ Clinical Trial Simulation (adaptive)&amp;#xa;🔌🔌 PGx Report (needs patient data)&amp;#xa;🔌 Check Drug Combination Safety (DDinter)&amp;#xa;🔌 Analyze FDA Safety Signals (FAERS)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1486" width="360" height="96" as="geometry" />
+    </mxCell>
+    <mxCell id="DE8" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S8" target="T8">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T9" value="🔌 FDA Drug Label Info (DailyMed API)&amp;#xa;🔌 Check FDA Drug Recalls (FDA API)&amp;#xa;🔌🔌 PGx Report (needs patient data)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1600" width="360" height="79" as="geometry" />
+    </mxCell>
+    <mxCell id="DE9" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S9" target="T9">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="T10" value="🔌 Analyze FDA Safety Signals (FAERS)&amp;#xa;✅ VCOG Adverse Event Grading&amp;#xa;🔌 Find Alternative Drugs (TxGNN KG)&amp;#xa;🔌 Check Drug Combination Safety (DDinter)&amp;#xa;✅ CYP DDI (new combinations)&amp;#xa;🔌🔌 PGx (real-world EHR data)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="270" y="1697" width="360" height="130" as="geometry" />
+    </mxCell>
+    <mxCell id="DE10" value="" style="edgeStyle=elbowEdgeStyle;elbow=vertical;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#888888;endArrow=open;endFill=0;" vertex="0" edge="1" parent="1" source="S10" target="T10">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="DMTA" value="♻️ DMTA FEEDBACK LOOP&amp;#xa;✅ Bayesian Optimizer (internal)&amp;#xa;🔌 Assay Ingestion (needs LIMS feed)&amp;#xa;🔌 CRO Submission Export (ext. CROs)&amp;#xa;🔌 Commercial Availability (PubChem API)" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;strokeWidth=2;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="660" y="528" width="280" height="113" as="geometry" />
+    </mxCell>
+    <mxCell id="DMTA_ARR2" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;strokeWidth=2;endArrow=open;startArrow=open;startFill=0;endFill=0;" vertex="0" edge="1" parent="1" source="S2" target="DMTA">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="DMTA_ARR3" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;strokeWidth=2;endArrow=open;startArrow=open;startFill=0;endFill=0;" vertex="0" edge="1" parent="1" source="S3" target="DMTA">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="DMTA_ARR4" value="" style="edgeStyle=orthogonalEdgeStyle;dashed=1;strokeColor=#d6b656;strokeWidth=2;endArrow=open;startArrow=open;startFill=0;endFill=0;" vertex="0" edge="1" parent="1" source="S4" target="DMTA">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="LEG" value="LEGEND&amp;#xa;✅ Internal — BioMate computes directly&amp;#xa;🔌 External — requires API / DB connection&amp;#xa;🔌🔌 External (data) — requires patient or proprietary instrument data" style="rounded=1;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=0;fontSize=10;arcSize=8;spacingLeft=6;spacingTop=4;dashed=1;dashPattern=8 4;" vertex="1" edge="0" parent="1">
+      <mxGeometry x="40" y="1934" width="580" height="101" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>

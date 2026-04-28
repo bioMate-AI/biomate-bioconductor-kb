@@ -1,0 +1,98 @@
+{
+  "drug_name": "Imatinib",
+  "target_gene": "BCR-ABL1",
+  "mock_mode": true,
+  "timestamp": "2026-03-22T14:42:32.850257Z",
+  "pathways": [
+    {
+      "pathway": "HALLMARK_E2F_TARGETS",
+      "description": "cell cycle / DNA replication",
+      "NES": 2.176,
+      "padj": 0.0051,
+      "pvalue": 0.014012,
+      "size": 135,
+      "leading_edge_genes": "GENE0125,GENE0145,GENE0129,GENE0102,SRC,GENE0155"
+    },
+    {
+      "pathway": "HALLMARK_G2M_CHECKPOINT",
+      "description": "G2/M cell cycle checkpoint",
+      "NES": 2.078,
+      "padj": 0.0168,
+      "pvalue": 0.04147,
+      "size": 205,
+      "leading_edge_genes": "GENE0082,GENE0097,GENE0157,STAT3,GENE0125,GENE0140,BCL2,PIK3CA,GENE0133,GENE0055"
+    },
+    {
+      "pathway": "HALLMARK_MYC_TARGETS_V1",
+      "description": "MYC transcriptional targets",
+      "NES": 2.072,
+      "padj": 0.0054,
+      "pvalue": 0.009397,
+      "size": 90,
+      "leading_edge_genes": "GENE0097,GENE0020,MDM2,CCND1,GENE0090,GENE0073,GENE0130,GENE0102,GENE0022,TP53,GENE0014,STAT3,GENE0091,MTOR"
+    },
+    {
+      "pathway": "HALLMARK_APOPTOSIS",
+      "description": "programmed cell death",
+      "NES": -1.929,
+      "padj": 0.0194,
+      "pvalue": 0.028683,
+      "size": 313,
+      "leading_edge_genes": "GENE0020,MTOR,GENE0102,CDK2,GENE0174,GENE0177,GENE0157,MYC,AKT1,GENE0082,GENE0171,GENE0117,MAPK1,GENE0145,RB1,GENE0155,KRAS"
+    },
+    {
+      "pathway": "HALLMARK_P53_PATHWAY",
+      "description": "TP53 tumour-suppressor pathway",
+      "NES": -1.902,
+      "padj": 0.0463,
+      "pvalue": 0.166401,
+      "size": 199,
+      "leading_edge_genes": "CDKN1A,GENE0095,GENE0145,GENE0133,GENE0125,GENE0062,GENE0073,GENE0082,EGFR,GENE0138,GENE0174,CDK2,CCND1,GENE0171,JAK2,GENE0097,GENE0162,GENE0134,GENE0055,GENE0140"
+    },
+    {
+      "pathway": "HALLMARK_PI3K_AKT_MTOR_SIGNALING",
+      "description": "PI3K/AKT/mTOR pathway",
+      "NES": 1.813,
+      "padj": 0.0158,
+      "pvalue": 0.04287,
+      "size": 342,
+      "leading_edge_genes": "GENE0134,GENE0145,MYC,GENE0091,STAT3,GENE0059,GENE0022,SRC,GENE0162,AKT1,RB1,GENE0073,CDKN1A,GENE0157,GENE0138,CCND1,GENE0033,GENE0102"
+    },
+    {
+      "pathway": "HALLMARK_INFLAMMATORY_RESPONSE",
+      "description": "innate immune / inflammatory response",
+      "NES": -1.626,
+      "padj": 0.0318,
+      "pvalue": 0.148828,
+      "size": 279,
+      "leading_edge_genes": "EGFR,GENE0145,GENE0102,GENE0022,GENE0011,MYC,GENE0033,GENE0177,GENE0125,GENE0097,GENE0155,BCL2,GENE0062,CDK2,GENE0171,GENE0133"
+    },
+    {
+      "pathway": "HALLMARK_DNA_REPAIR",
+      "description": "DNA damage response",
+      "NES": 1.443,
+      "padj": 0.0342,
+      "pvalue": 0.051814,
+      "size": 84,
+      "leading_edge_genes": "GENE0140,GENE0145,GENE0098,MYC,MAPK1,CDK2,PIK3CA,CCND1,MDM2,GENE0073,GENE0129,GENE0102,GENE0162,GENE0171,GENE0138,GENE0033,STAT3"
+    },
+    {
+      "pathway": "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+      "description": "mitochondrial oxidative phosphorylation",
+      "NES": -1.441,
+      "padj": 0.0419,
+      "pvalue": 0.073205,
+      "size": 200,
+      "leading_edge_genes": "MYC,GENE0155,GENE0090,GENE0022,GENE0125,GENE0145,GENE0130"
+    },
+    {
+      "pathway": "HALLMARK_UNFOLDED_PROTEIN_RESPONSE",
+      "description": "ER stress / unfolded protein response",
+      "NES": 1.301,
+      "padj": 0.0358,
+      "pvalue": 0.176339,
+      "size": 310,
+      "leading_edge_genes": "GENE0097,MTOR,CDK2,GENE0033,GENE0022,PIK3CA,TP53,RB1,GENE0129,EGFR,GENE0102,GENE0134,GENE0055,GENE0145"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+CYP-DDI Auto-Loop Run: c972bb0f-f973-4170-a2ef-44c3b8e4f2f0
+Generated: 2026-04-21T03:35:42+00:00 UTC
+
+Phase phase_2_ddi_risk  [ESCALATED]  (3 attempt(s))
+  Attempt #1  outcome=halt
+    [!!!] clinical_study_isoforms          value=3  threshold=0
+    [!!!] investigate_isoforms             value=4  threshold=2
+    [ADV] tdi_concern                      value=2  threshold=0
+    Remediation gate=clinical_study_isoforms: [('cmax_ss_uM', 0.5)]
+    Remediation gate=investigate_isoforms: [('cmax_ss_uM', 0.35)]
+  Attempt #2  outcome=halt
+    [!!!] clinical_study_isoforms          value=3  threshold=0
+    [!!!] investigate_isoforms             value=4  threshold=2
+    [ADV] tdi_concern                      value=2  threshold=0
+    Remediation gate=clinical_study_isoforms: [('cmax_ss_uM', 0.175)]
+    Remediation gate=investigate_isoforms: [('cmax_ss_uM', 0.122)]
+  Attempt #3  outcome=halt
+    [!!!] clinical_study_isoforms          value=3  threshold=0
+    [!!!] investigate_isoforms             value=4  threshold=2
+    [ADV] tdi_concern                      value=2  threshold=0
+    Remediation gate=clinical_study_isoforms: [('cmax_ss_uM', 0.061)]
+    Remediation gate=investigate_isoforms: [('cmax_ss_uM', 0.05)]
+
+Phases passed: 0
+Phases escalated: 1

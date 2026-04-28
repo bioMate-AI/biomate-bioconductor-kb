@@ -487,4 +487,35 @@ export const SIMULATED_USER_SCENARIOS = {
     initialQuery: "Predict the 3D structure of a human DYRK1A kinase using AlphaFold. I have the FASTA sequence ready. Template cutoff 2022-01-01.",
     context: { organism: "Homo sapiens", target: "DYRK1A kinase" },
   } as SimulatedUserConfig,
+
+  // ── Session 7: De Novo Drug Generation ──────────────────────────────────
+  de_novo_drug_generation: {
+    goal: "Generate novel PD-1 inhibitor molecules de novo using REINVENT4, starting from a known fragment scaffold",
+    persona: "medicinal chemist running AI-guided drug discovery",
+    domain: "drug_discovery",
+    initialQuery: "I want to generate new PD-1 inhibitor candidates de novo using REINVENT4. Starting scaffold SMILES: c1ccc(cc1)c2ccc(cc2)N. Run generative drug design to explore the chemical space around this scaffold, optimizing for drug-likeness (QED > 0.6) and predicted PD-1 binding.",
+    context: {
+      smiles: "c1ccc(cc1)c2ccc(cc2)N",
+      target: "PD-1",
+      mode: "de_novo",
+      optimization_goal: "QED > 0.6, PD-1 binding affinity",
+    },
+  } as SimulatedUserConfig,
+
+  // ── Session 7: Cryo-EM Knowledge System Validation ──────────────────────
+  cryoem_knowledge_validation: {
+    goal: "Validate that CryoSPARC SPA for a GPCR-saposin nanodisc complex triggers the full knowledge system (best practices, QC thresholds, RAG context)",
+    persona: "structural biologist studying GPCR signaling",
+    domain: "cryo_em",
+    initialQuery: "I need to run CryoSPARC single particle analysis for a GPCR-G protein complex. The complex is in a saposin nanodisc. Micrographs at s3://biomate-pilot/gpcr_gprotein/. Titan Krios, 300 kV, 0.83 Å/pixel (the complex is ~250 kDa), C1 symmetry. I need the best pixel size and defocus settings for this MW range.",
+    context: {
+      data_path: "s3://biomate-pilot/gpcr_gprotein/",
+      detector: "Krios",
+      voltage: "300 kV",
+      apix: "0.83",
+      sample_class: "gpcr",
+      complex_mw: "250 kDa",
+      nanodisc_type: "saposin",
+    },
+  } as SimulatedUserConfig,
 } as const;

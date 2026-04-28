@@ -29,6 +29,45 @@ Never ship a fix that only works locally — always verify on dev.
 
 ---
 
+## Benchmark-Driven Development
+
+**The purpose of all benchmarks is to improve BioMate's generalized capabilities for long-term use on rich real-world data — not to track a score for reporting.**
+
+Every benchmark measures a specific BioMate capability. When a benchmark scores poorly, the correct response is:
+
+1. **Diagnose the root cause** — is it a rule gap, a prompt gap, a data gap, or a benchmark design error?
+2. **Fix BioMate** — add rules, improve prompts, fix schema bugs. Never fix the benchmark to match BioMate's current (wrong) behavior.
+3. **Verify the fix improves the capability** — re-run the benchmark; the score improvement proves the fix is real.
+4. **Exception: benchmark design errors** — if the expected answer doesn't match the actual workflow schema (e.g., param name mismatch), fix the benchmark to be accurate. Document why.
+
+### Extraction approach: hybrid rule + LLM
+
+For parameter extraction and context interpretation, always use **rule-based inference first, LLM as fallback**:
+
+- **Rules** handle: unit conversions (ns→n_steps, fs→dt), negations (remove X → keep_x=false), boolean flags (single-end → single_end=true), canonical alias normalization (human → GRCh38, dUTP → reverse)
+- **LLM** handles: free-text values (SMILES, PDB IDs, gene names), ambiguous enum selection, multi-param inference from prose
+- **Validation (guardrail)**: after extraction, validate all values against schema allowed_values; drop or normalize values that violate constraints
+
+**Why**: LLMs are unreliable at arithmetic (unit conversion, exponents), deterministic boolean mapping, and schema-constrained enums. Rules are exact, zero-cost, and testable.
+
+### Benchmark coverage
+
+| Benchmark | Capability tested | Target |
+|---|---|---|
+| `param_prefill` | Context → workflow parameter extraction | ≥70% |
+| `routing` | Intent → correct workflow selection | ≥80% |
+| `biomni_eval1` | Biomedical knowledge recall | ≥70% |
+| `admet_benchmark` | ADMET prediction quality | ≥70% |
+| `pbpk_benchmark` | PK modeling accuracy | ≥60% |
+| `boin_benchmark` | Clinical dose escalation | ≥70% |
+| `stability` | Cross-run consistency | ≥90% |
+
+### Do not modify production workflow files for benchmark purposes
+
+Never add params to `nextflow_nfcore/subworkflows/**/*.nf` to match benchmark expectations. Those files are executed by Nextflow — all params must be used by the Groovy code. Only the nfcore stub files under `biomni_workflows/nfcore/` are safe to edit for param extraction purposes.
+
+---
+
 ## Documentation Rule
 
 **All session documents, findings, plans, and technical notes MUST go into `docs/` or a subfolder of `docs/`.**

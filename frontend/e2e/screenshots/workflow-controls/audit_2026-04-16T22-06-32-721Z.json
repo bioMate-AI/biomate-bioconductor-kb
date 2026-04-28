@@ -1,0 +1,253 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-16T22:06:32.722Z",
+  "totalTests": 4,
+  "passed": 3,
+  "failed": 1,
+  "totalWallTimeSec": 418.49600000000004,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-7",
+      "runId": null,
+      "startTs": 1776376771808,
+      "endTs": 1776377009447,
+      "durationMs": 237639,
+      "finalStatus": "n/a",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "run1-execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": []
+    },
+    {
+      "testId": "WC-8",
+      "runId": "9e303735-b9f3-4f5f-8e35-42ac3b933c83",
+      "startTs": 1776377010732,
+      "endTs": 1776377080654,
+      "durationMs": 69922,
+      "finalStatus": "completed",
+      "nfDurationS": 9,
+      "nfStartedAt": "2026-04-16T22:04:26.473Z",
+      "nfCompletedAt": "2026-04-16T22:04:36.177Z",
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "status-api-200",
+          "passed": true
+        },
+        {
+          "name": "status-has-duration_s-in-nextflowStatus",
+          "passed": true,
+          "note": "nextflowStatus.duration_s must be present after terminal run"
+        },
+        {
+          "name": "status-has-started_at-in-nextflowStatus",
+          "passed": true,
+          "note": "nextflowStatus.started_at must be present"
+        },
+        {
+          "name": "status-metrics-runtime-totalSeconds",
+          "passed": true,
+          "note": "metrics.runtime.totalSeconds must be populated from duration_s"
+        },
+        {
+          "name": "duration-s-positive",
+          "passed": true,
+          "note": "duration_s=9 must be > 0"
+        },
+        {
+          "name": "run-metrics-strip-visible",
+          "passed": true,
+          "note": "Metrics strip with timing should appear in viewer after terminal run"
+        },
+        {
+          "name": "duration-display-visible",
+          "passed": true
+        },
+        {
+          "name": "duration-display-non-empty",
+          "passed": true
+        },
+        {
+          "name": "started-at-display-visible",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc8_01_metrics_strip.png"
+      ]
+    },
+    {
+      "testId": "WC-9",
+      "runId": "885703bb-6258-420b-a0dc-1245c986d685",
+      "startTs": 1776377081020,
+      "endTs": 1776377142173,
+      "durationMs": 61153,
+      "finalStatus": "completed",
+      "nfDurationS": 8,
+      "nfStartedAt": "2026-04-16T22:05:31.774Z",
+      "nfCompletedAt": "2026-04-16T22:05:40.066Z",
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "audit-has-runId",
+          "passed": true
+        },
+        {
+          "name": "audit-has-startTs",
+          "passed": true
+        },
+        {
+          "name": "audit-has-finalStatus",
+          "passed": true
+        },
+        {
+          "name": "audit-has-screenshots",
+          "passed": true
+        },
+        {
+          "name": "status-field-runId",
+          "passed": true,
+          "note": "Status response must include \"runId\""
+        },
+        {
+          "name": "status-field-status",
+          "passed": true,
+          "note": "Status response must include \"status\""
+        },
+        {
+          "name": "status-field-progress",
+          "passed": true,
+          "note": "Status response must include \"progress\""
+        },
+        {
+          "name": "status-field-metrics",
+          "passed": true,
+          "note": "Status response must include \"metrics\""
+        },
+        {
+          "name": "status-field-nextflowStatus",
+          "passed": true,
+          "note": "Status response must include \"nextflowStatus\""
+        },
+        {
+          "name": "metrics-has-runtime",
+          "passed": true,
+          "note": "metrics.runtime must be present (populated from nextflowStatus timing)"
+        },
+        {
+          "name": "runtime-has-totalSeconds",
+          "passed": true,
+          "note": "metrics.runtime.totalSeconds must be set"
+        },
+        {
+          "name": "metrics-has-perStepLlmCost",
+          "passed": true,
+          "note": "metrics.perStepLlmCost must be present in status response"
+        },
+        {
+          "name": "perStepLlmCost-values-valid",
+          "passed": true,
+          "note": "perStepLlmCost values must be number | null"
+        }
+      ],
+      "screenshots": [
+        "wc9_01_final.png"
+      ]
+    },
+    {
+      "testId": "WC-10",
+      "runId": "611821bc-6b73-4eb0-b573-1a2de6ac666a",
+      "startTs": 1776377142574,
+      "endTs": 1776377192356,
+      "durationMs": 49782,
+      "finalStatus": "n/a",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "suite-has-records",
+          "passed": true,
+          "note": "SUITE_AUDIT must have at least one record from prior tests"
+        },
+        {
+          "name": "all-audit-records-schema-valid",
+          "passed": true,
+          "note": "0 schema violations found across 3 audit records"
+        },
+        {
+          "name": "assertion-types-valid",
+          "passed": true,
+          "note": "0 assertion entries have invalid type (name: string, passed: boolean required)"
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "status-api-200",
+          "passed": true
+        },
+        {
+          "name": "metrics-present",
+          "passed": true,
+          "note": "metrics must be in status response"
+        },
+        {
+          "name": "metrics-has-perStepLlmCost",
+          "passed": true,
+          "note": "metrics.perStepLlmCost must be present"
+        },
+        {
+          "name": "perStepLlmCost-schema-valid",
+          "passed": true,
+          "note": "all perStepLlmCost values must be number | null"
+        },
+        {
+          "name": "status-has-runId",
+          "passed": true
+        },
+        {
+          "name": "status-has-status",
+          "passed": true
+        },
+        {
+          "name": "status-has-progress",
+          "passed": true
+        },
+        {
+          "name": "status-has-metrics",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc10_01_status.png"
+      ]
+    }
+  ]
+}

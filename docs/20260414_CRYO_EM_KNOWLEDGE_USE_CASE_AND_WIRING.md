@@ -1,4 +1,4 @@
-# Cryo-EM Knowledge System — Use Case & E2E Wiring
+ # Cryo-EM Knowledge System — Use Case & E2E Wiring
 
 **Date:** 2026-04-14  
 **Context:** Documents how the two cryo-EM knowledge layers (expert JSON + RAG) are wired into BioMate from user query to rendered response.

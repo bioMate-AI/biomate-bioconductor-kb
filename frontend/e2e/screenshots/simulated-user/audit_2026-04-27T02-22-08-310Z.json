@@ -1,0 +1,16 @@
+{
+  "landing_title": "BioMate - Simplified Bioinformatics Workflows",
+  "registration": {
+    "email": "e2e_v2_reg_1777256444742@biomate.test",
+    "success": true
+  },
+  "logo_in_chat_welcome": true,
+  "starter_prompts_visible": 4,
+  "textarea_cleared_after_send": true,
+  "sidebar_chat_count": 0,
+  "V2_PASS": true,
+  "hist_session_id": "",
+  "hist_sidebar_items": 5,
+  "hist_restored_messages": 3,
+  "V2_HISTORY_PASS": true
+}

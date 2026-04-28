@@ -1,0 +1,9 @@
+{
+  "step": "05_blob_picker",
+  "timestamp": "2026-03-09T20:36:23.079552",
+  "num_particles": 4173,
+  "num_micrographs": 20,
+  "avg_particles_per_micrograph": 208.7,
+  "particle_diameter_angstroms": 150,
+  "mock_mode": true
+}

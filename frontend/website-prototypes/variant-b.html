@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stop Waiting for Your Bioinformatician | BioMate</title>
+  <meta name="description" content="BioMate lets any lab member run complex bioinformatics workflows from plain English. No configuration. No cloud setup. Results in 23 minutes, not 3 days." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/styles.css" />
+  <style>
+    /* ── Variant B: Product-Forward ── */
+    body { background: var(--b-bg); color: var(--b-text); }
+
+    /* Nav */
+    nav { background: rgba(255,255,255,0.92); border-color: var(--b-border); }
+    .logo { color: var(--b-text); }
+    .logo-mark { background: var(--b-accent); }
+    .nav-links a { color: var(--b-muted); }
+    .nav-links a:hover { color: var(--b-text); }
+
+    /* Hero */
+    .hero { background: var(--b-bg); padding: 6rem 0 4rem; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9999px;
+      color: var(--b-accent); font-size: 0.75rem; font-weight: 600;
+      padding: 0.3rem 1rem; margin-bottom: 1.5rem; letter-spacing: 0.04em;
+    }
+    .hero-headline { color: var(--b-text); margin-bottom: 1.25rem; }
+    .hero-headline .pain { color: #dc2626; }
+    .hero-sub { color: var(--b-muted); max-width: 44rem; margin-bottom: 2rem; }
+    .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .hero-social-proof { font-size: 0.8125rem; color: var(--b-muted); }
+    .hero-social-proof strong { color: var(--b-text); }
+
+    /* Stats row */
+    .stats-row { background: var(--b-surface); border-top: 1px solid var(--b-border); border-bottom: 1px solid var(--b-border); padding: 2rem 0; }
+    .stats-inner { display: flex; justify-content: center; gap: 4rem; flex-wrap: wrap; }
+    .stat-item { text-align: center; }
+    .stat-big { font-size: 2.25rem; font-weight: 800; color: var(--b-text); line-height: 1; }
+    .stat-big span { color: var(--b-accent); }
+    .stat-lbl { font-size: 0.8125rem; color: var(--b-muted); margin-top: 0.25rem; }
+
+    /* Pain section */
+    .pain-section { background: var(--b-bg); }
+    .pain-title { color: var(--b-text); }
+    .pain-sub { color: var(--b-muted); }
+
+    .pain-switcher { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .pain-btn {
+      padding: 0.5rem 1.25rem; border-radius: 9999px; border: 1.5px solid var(--b-border);
+      background: white; color: var(--b-muted); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .pain-btn.active, .pain-btn:hover { border-color: var(--b-accent); color: var(--b-accent); background: #eff6ff; }
+    .pain-panel { display: none; }
+    .pain-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    @media (max-width: 768px) { .pain-panel.active { grid-template-columns: 1fr; } }
+
+    .pain-block { background: #fff1f2; border: 1.5px solid #fecaca; border-radius: 16px; padding: 2rem; }
+    .pain-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; color: #dc2626; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .pain-headline { font-size: 1.375rem; font-weight: 700; color: var(--b-text); margin-bottom: 0.75rem; line-height: 1.3; }
+    .pain-body { color: #6b7280; font-size: 0.9375rem; line-height: 1.7; }
+    .pain-time { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-size: 0.875rem; color: #dc2626; font-weight: 500; }
+
+    .solution-block { background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 16px; padding: 2rem; }
+    .solution-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; color: var(--b-accent); text-transform: uppercase; margin-bottom: 0.75rem; }
+    .solution-headline { font-size: 1.375rem; font-weight: 700; color: var(--b-text); margin-bottom: 0.75rem; line-height: 1.3; }
+    .solution-body { color: #374151; font-size: 0.9375rem; line-height: 1.7; }
+    .solution-time { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-size: 0.875rem; color: var(--b-accent); font-weight: 500; }
+
+    /* How it works */
+    .how-section { background: var(--b-surface); }
+    .step-row { display: flex; flex-direction: column; gap: 1.5rem; }
+    .step-item { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .step-circle {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--b-accent);
+      color: white; font-weight: 700; font-size: 0.875rem;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .step-text-title { font-weight: 600; font-size: 1rem; color: var(--b-text); margin-bottom: 0.25rem; }
+    .step-text-desc { font-size: 0.9375rem; color: var(--b-muted); line-height: 1.6; }
+
+    .demo-window {
+      background: white; border: 1.5px solid var(--b-border); border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08); overflow: hidden;
+    }
+    .demo-bar {
+      background: var(--b-surface); border-bottom: 1px solid var(--b-border);
+      padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 1rem;
+    }
+    .demo-dots { display: flex; gap: 0.375rem; }
+    .demo-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--b-border); }
+    .demo-url { font-size: 0.75rem; color: var(--b-muted); font-family: var(--font-mono); }
+    .demo-body { padding: 1.5rem; }
+    .chat-bubble { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
+    .chat-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; flex-shrink: 0; margin-top: 0.25rem; }
+    .chat-user .chat-avatar { background: #dbeafe; color: var(--b-accent); }
+    .chat-ai .chat-avatar { background: var(--b-accent); color: white; }
+    .chat-msg { background: var(--b-surface); border: 1px solid var(--b-border); border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.875rem; color: var(--b-text); line-height: 1.6; }
+    .chat-user .chat-msg { background: #eff6ff; border-color: #bfdbfe; }
+    .workflow-card { background: white; border: 1.5px solid var(--b-border); border-radius: 10px; padding: 1rem; margin-top: 0.5rem; }
+    .wf-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .wf-icon { font-size: 1.25rem; }
+    .wf-title { font-weight: 600; font-size: 0.9375rem; }
+    .wf-badge { font-size: 0.6875rem; background: #dcfce7; color: #15803d; border-radius: 4px; padding: 0.15rem 0.5rem; font-weight: 600; }
+    .wf-params { font-size: 0.75rem; color: var(--b-muted); font-family: var(--font-mono); margin-bottom: 0.75rem; }
+    .run-btn { background: var(--b-accent); color: white; border: none; border-radius: 6px; padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+
+    /* Features grid */
+    .features-section { background: var(--b-bg); }
+    .feature-card { background: white; border: 1.5px solid var(--b-border); border-radius: 16px; padding: 1.5rem; }
+    .feature-card:hover { border-color: var(--b-accent); box-shadow: 0 8px 24px rgba(37,99,235,0.08); }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 1rem; }
+    .feature-title { font-weight: 700; font-size: 1rem; color: var(--b-text); margin-bottom: 0.5rem; }
+    .feature-desc { font-size: 0.875rem; color: var(--b-muted); line-height: 1.7; }
+
+    /* Pricing */
+    .pricing-section { background: var(--b-surface); }
+    .price-card { background: white; border: 1.5px solid var(--b-border); border-radius: 16px; padding: 2rem; }
+    .price-card.popular { border-color: var(--b-accent); box-shadow: 0 0 0 4px rgba(37,99,235,0.08); }
+    .popular-badge { background: var(--b-accent); color: white; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.75rem; border-radius: 9999px; display: inline-block; margin-bottom: 1rem; }
+    .price-name { font-weight: 700; font-size: 1.125rem; color: var(--b-text); margin-bottom: 0.25rem; }
+    .price-amount { font-size: 2.5rem; font-weight: 800; color: var(--b-text); line-height: 1; margin: 0.75rem 0; }
+    .price-amount span { font-size: 1rem; font-weight: 400; color: var(--b-muted); }
+    .price-desc { font-size: 0.875rem; color: var(--b-muted); margin-bottom: 1.5rem; }
+    .price-features { list-style: none; margin-bottom: 1.5rem; }
+    .price-features li { font-size: 0.875rem; padding: 0.375rem 0; color: var(--b-text); display: flex; gap: 0.5rem; }
+    .price-features li::before { content: '✓'; color: #10b981; font-weight: 700; flex-shrink: 0; }
+
+    /* Social proof bar */
+    .social-section { background: var(--b-bg); border-top: 1px solid var(--b-border); border-bottom: 1px solid var(--b-border); padding: 1.5rem 0; }
+
+    /* CTA */
+    .cta-section { background: var(--b-accent); }
+    .cta-section .h2 { color: white; }
+    .cta-section p { color: rgba(255,255,255,0.8); }
+
+    /* Footer */
+    footer { background: #0f172a; }
+    .footer-col-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 1rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { font-size: 0.875rem; color: #475569; text-decoration: none; }
+    .footer-links a:hover { color: #94a3b8; }
+    .footer-bottom { border-top: 1px solid #1e293b; padding: 1.5rem 0; margin-top: 3rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-bottom p { font-size: 0.8125rem; color: #334155; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">B</div>
+      BioMate
+    </a>
+    <div class="nav-links">
+      <a href="#">Workflows</a>
+      <a href="#">AI Research</a>
+      <a href="#">Solutions</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Resources</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#" class="btn btn-sm btn-outline-blue">Log in</a>
+      <a href="#" class="btn btn-sm btn-primary-blue">Start free →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4rem; align-items:center;">
+      <div>
+        <div class="hero-eyebrow">
+          ⚡ New: Boltz + Chai1 structure prediction now available
+        </div>
+        <h1 class="h1 hero-headline">
+          Stop waiting for<br>your <span class="pain">bioinformatician.</span>
+        </h1>
+        <p class="body-lg hero-sub">BioMate lets any lab member run complex bioinformatics workflows from a plain-English description. No configuration. No cloud setup. Results in 23 minutes, not 3 days.</p>
+        <div class="hero-cta">
+          <a href="#" class="btn btn-lg btn-primary-blue">Start free — no credit card →</a>
+          <a href="#" class="btn btn-lg btn-outline-blue">Watch 2-min demo</a>
+        </div>
+        <p class="hero-social-proof"><strong>87% of workflows</strong> complete without any manual parameter editing · <strong>5 research groups</strong> in pilot study · <strong>9/9 E2E tests passing</strong></p>
+      </div>
+      <div>
+        <!-- Demo window -->
+        <div class="demo-window">
+          <div class="demo-bar">
+            <div class="demo-dots">
+              <div class="demo-dot" style="background:#ef4444;"></div>
+              <div class="demo-dot" style="background:#f59e0b;"></div>
+              <div class="demo-dot" style="background:#22c55e;"></div>
+            </div>
+            <div class="demo-url">app.biomate.ai</div>
+          </div>
+          <div class="demo-body">
+            <div class="chat-bubble chat-user">
+              <div class="chat-avatar">YZ</div>
+              <div class="chat-msg">I need to run variant calling on our 24 WGS samples. We're looking for germline SNVs and indels, hg38 reference.</div>
+            </div>
+            <div class="chat-bubble chat-ai">
+              <div class="chat-avatar">B</div>
+              <div>
+                <div class="chat-msg">I'll route this to our GATK4 germline calling pipeline — it matches your description. Parameters are pre-filled from your query:</div>
+                <div class="workflow-card">
+                  <div class="wf-header">
+                    <span class="wf-icon">🧬</span>
+                    <span class="wf-title">WGS Germline — GATK4</span>
+                    <span class="wf-badge">READY</span>
+                  </div>
+                  <div class="wf-params">
+                    reference: hg38 · samples: 24 · caller: HaplotypeCaller<br>
+                    known_sites: dbSNP 155 + Mills + 1KG Gold
+                  </div>
+                  <button class="run-btn">▶ Run on AWS Batch</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS ROW -->
+<div class="stats-row">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-big"><span>87%</span></div>
+      <div class="stat-lbl">Workflows auto-configured, no edits needed</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-big">23 <span>min</span></div>
+      <div class="stat-lbl">Average time-to-result (Drug Discovery pilot)</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-big">78</div>
+      <div class="stat-lbl">Peer-validated workflows across 16 domains</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-big"><span>0</span></div>
+      <div class="stat-lbl">Hallucinated tool calls in 40 validation runs</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAIN SECTION -->
+<section class="section pain-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow" style="color:#dc2626; margin-bottom:0.75rem;">The problem</p>
+      <h2 class="h2 pain-title" style="margin-bottom:1rem;">Your drug discovery team is trying<br>to move faster, but can't</h2>
+      <p class="body pain-sub mx-auto max-w-2xl" style="margin-bottom:2rem;">Pick the bottleneck your lab hits most:</p>
+      <div class="pain-switcher" id="pain-tabs" style="justify-content:center;">
+        <button class="pain-btn active" data-pain="waiting">Waiting for bioinformatics</button>
+        <button class="pain-btn" data-pain="config">Pipeline configuration</button>
+        <button class="pain-btn" data-pain="qc">QC inconsistency</button>
+        <button class="pain-btn" data-pain="cloud">Cloud complexity</button>
+      </div>
+    </div>
+
+    <div id="pain-waiting" class="pain-panel active">
+      <div class="pain-block">
+        <div class="pain-label">Before BioMate</div>
+        <div class="pain-headline">"Our bioinformatician is swamped. The analysis will take 2 weeks."</div>
+        <div class="pain-body">Wet-lab researchers block on a single computational bottleneck. Postdocs, PIs, and lab managers all wait for the same overloaded specialist — while samples sit, grants expire, and papers slip.</div>
+        <div class="pain-time">⏱ Typical wait: 5–14 days per analysis request</div>
+      </div>
+      <div class="solution-block">
+        <div class="solution-label">With BioMate</div>
+        <div class="solution-headline">"I ran it myself this morning. Results are in the shared folder."</div>
+        <div class="solution-body">Any lab member can describe their analysis in plain English and get results. BioMate routes to the right workflow, fills parameters, submits to cloud, and delivers results — no specialist needed.</div>
+        <div class="solution-time">⚡ From query to result: 23 minutes average</div>
+      </div>
+    </div>
+
+    <div id="pain-config" class="pain-panel">
+      <div class="pain-block">
+        <div class="pain-label">Before BioMate</div>
+        <div class="pain-headline">"I spent 3 days configuring Nextflow before I ran a single sample."</div>
+        <div class="pain-body">Selecting tool versions, writing config files, debugging container pulls, setting memory limits — the overhead of just getting started is a full project in itself. And it's different for every pipeline.</div>
+        <div class="pain-time">⏱ Typical setup time: 2–5 days per new pipeline</div>
+      </div>
+      <div class="solution-block">
+        <div class="solution-label">With BioMate</div>
+        <div class="solution-headline">"BioMate asked me two questions and submitted the job in 3 minutes."</div>
+        <div class="solution-body">BioMate pre-fills domain-appropriate parameters from your query. Required fields are flagged. Optional fields have evidence-based defaults. You review, adjust, and run — no config files written.</div>
+        <div class="solution-time">⚡ Setup time: 3 minutes from query to submission</div>
+      </div>
+    </div>
+
+    <div id="pain-qc" class="pain-panel">
+      <div class="pain-block">
+        <div class="pain-label">Before BioMate</div>
+        <div class="pain-headline">"Different lab members use different QC cutoffs. Reviewer asked why."</div>
+        <div class="pain-body">Without a shared QC standard, analysis quality varies by person. One postdoc uses GATK defaults, another copies a 2019 paper's thresholds. Reviewers ask. Replication studies fail.</div>
+        <div class="pain-time">⏱ QC inconsistency catch rate: after peer review (too late)</div>
+      </div>
+      <div class="solution-block">
+        <div class="solution-label">With BioMate</div>
+        <div class="solution-headline">"Every run cites the same published standard. Reviewers never ask."</div>
+        <div class="solution-body">BioMate's QC profiles are sourced from published papers and consortium guidelines — same thresholds for every run, every person, every time. The audit log names the citation.</div>
+        <div class="solution-time">⚡ QC audit answers reviewer questions in one download</div>
+      </div>
+    </div>
+
+    <div id="pain-cloud" class="pain-panel">
+      <div class="pain-block">
+        <div class="pain-label">Before BioMate</div>
+        <div class="pain-headline">"AWS setup took a month. We still don't know what our jobs cost."</div>
+        <div class="pain-body">Cloud bioinformatics has a steep setup tax: IAM roles, VPCs, Batch compute environments, S3 buckets. Once running, costs are opaque until the bill arrives.</div>
+        <div class="pain-time">⏱ Cloud setup lead time: 2–6 weeks, cloud expertise required</div>
+      </div>
+      <div class="solution-block">
+        <div class="solution-label">With BioMate</div>
+        <div class="solution-headline">"We submitted to Batch on day one. Per-run cost shows in the UI."</div>
+        <div class="solution-body">BioMate handles cloud submission, Spot instance selection, and cost tracking. No IAM configuration, no VPC setup. See the estimated cost before you run and the actual cost after.</div>
+        <div class="solution-time">⚡ Day-one cloud execution, per-session cost dashboard</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section how-section">
+  <div class="container">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5rem; align-items:center;">
+      <div>
+        <p class="eyebrow" style="color:var(--b-accent); margin-bottom:0.75rem;">How it works</p>
+        <h2 class="h2" style="color:var(--b-text); margin-bottom:1rem;">From question to results.<br>No configuration required.</h2>
+        <p class="body" style="color:var(--b-muted); margin-bottom:2rem;">Three steps. Your analysis, running on cloud infrastructure, with publication-ready output — all from a plain-English description.</p>
+        <div class="step-row">
+          <div class="step-item">
+            <div class="step-circle">1</div>
+            <div>
+              <div class="step-text-title">Describe your analysis</div>
+              <div class="step-text-desc">Type your research question in plain English. BioMate understands domain context — no workflow names or parameter flags needed.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">2</div>
+            <div>
+              <div class="step-text-title">Review and run</div>
+              <div class="step-text-desc">BioMate routes to the right workflow, pre-fills parameters, and surfaces any required inputs. One click submits to AWS Batch.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-circle">3</div>
+            <div>
+              <div class="step-text-title">Download results and report</div>
+              <div class="step-text-desc">Results, QC summary, and a citation-complete methods section. Ready for your meeting, manuscript, or regulatory submission.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="demo-window">
+          <div class="demo-bar">
+            <div class="demo-dots">
+              <div class="demo-dot" style="background:#ef4444;"></div>
+              <div class="demo-dot" style="background:#f59e0b;"></div>
+              <div class="demo-dot" style="background:#22c55e;"></div>
+            </div>
+            <div class="demo-url">Run completed · ADMET Profiling</div>
+          </div>
+          <div class="demo-body" style="padding:1.25rem;">
+            <div style="font-size:0.8125rem; font-weight:600; color:var(--b-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:1rem;">Results summary</div>
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:1rem; margin-bottom:0.75rem;">
+              <div style="font-weight:600; font-size:0.9375rem; color:#15803d; margin-bottom:0.5rem;">✓ 24 / 42 compounds passed all filters</div>
+              <div style="font-size:0.8125rem; color:#166534;">hERG + CYP3A4 + Lipinski + PAINS — all 4 filters</div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem;">
+              <div style="background:var(--b-surface); border-radius:8px; padding:0.75rem; text-align:center;">
+                <div style="font-size:1.5rem; font-weight:800; color:var(--b-text);">31</div>
+                <div style="font-size:0.75rem; color:var(--b-muted);">Pass hERG</div>
+              </div>
+              <div style="background:var(--b-surface); border-radius:8px; padding:0.75rem; text-align:center;">
+                <div style="font-size:1.5rem; font-weight:800; color:var(--b-text);">27</div>
+                <div style="font-size:0.75rem; color:var(--b-muted);">Pass CYP3A4</div>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button style="flex:1; background:var(--b-accent); color:white; border:none; border-radius:8px; padding:0.6rem; font-size:0.8125rem; font-weight:600; cursor:pointer;">↓ Download results</button>
+              <button style="flex:1; background:var(--b-surface); border:1px solid var(--b-border); border-radius:8px; padding:0.6rem; font-size:0.8125rem; font-weight:500; cursor:pointer; color:var(--b-text);">↓ Methods report</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section features-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow" style="color:var(--b-accent); margin-bottom:0.75rem;">Features</p>
+      <h2 class="h2" style="color:var(--b-text); margin-bottom:1rem;">Everything your lab needs. Nothing it doesn't.</h2>
+    </div>
+    <div class="grid-3" style="margin-bottom:1.5rem;">
+      <div class="feature-card card-hover">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-title">AI Workflow Generation</div>
+        <div class="feature-desc">Describe your analysis in plain English. BioMate selects the right workflow from 78 options and pre-fills parameters using domain-aware AI — no bioinformatics training required.</div>
+      </div>
+      <div class="feature-card card-hover">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">One-Click Cloud Execution</div>
+        <div class="feature-desc">Jobs submit directly to AWS Batch with Spot instance optimization. No IAM configuration, no VPC setup, no CLI. Real-time progress and per-run cost tracking built in.</div>
+      </div>
+      <div class="feature-card card-hover">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Citation-Complete QC</div>
+        <div class="feature-desc">Every QC threshold traces back to a published paper or consortium guideline. Download the full audit log and a methods section ready for journal submission.</div>
+      </div>
+      <div class="feature-card card-hover">
+        <div class="feature-icon">🔁</div>
+        <div class="feature-title">Reproducible by Default</div>
+        <div class="feature-desc">Container digests pinned at submission. Parameters versioned. Re-run any analysis on new data with one command — results identical to the original run.</div>
+      </div>
+      <div class="feature-card card-hover">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-title">Enterprise Security</div>
+        <div class="feature-desc">SOC 2 Type II. Data processed in your AWS account — never in ours. Private deployment available. HIPAA-ready configuration for clinical research workflows.</div>
+      </div>
+      <div class="feature-card card-hover">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Results Dashboard</div>
+        <div class="feature-desc">Interactive result visualizations, QC metric summaries, and downloadable outputs. Share a run link with your PI or collaborator — no account required to view.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section pricing-section" id="pricing">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow" style="color:var(--b-accent); margin-bottom:0.75rem;">Pricing</p>
+      <h2 class="h2" style="color:var(--b-text); margin-bottom:1rem;">Start free. Scale when you need to.</h2>
+      <p class="body mx-auto max-w-2xl" style="color:var(--b-muted);">No credit card required for free tier. Cancel any time. Your workflows and results export freely — no lock-in.</p>
+    </div>
+    <div class="grid-3">
+      <div class="price-card">
+        <div class="price-name">Free</div>
+        <div class="price-amount">$0 <span>/ month</span></div>
+        <div class="price-desc">For individual researchers exploring BioMate</div>
+        <ul class="price-features">
+          <li>5 workflow runs per month</li>
+          <li>All 78 workflows available</li>
+          <li>Results export (CSV, JSON, FASTA)</li>
+          <li>QC audit log download</li>
+          <li>Community support</li>
+        </ul>
+        <a href="#" class="btn btn-outline-blue w-full" style="justify-content:center;">Start free</a>
+      </div>
+      <div class="price-card popular">
+        <div class="popular-badge">Most popular</div>
+        <div class="price-name">Lab</div>
+        <div class="price-amount">$199 <span>/ month</span></div>
+        <div class="price-desc">For active research labs and small teams</div>
+        <ul class="price-features">
+          <li>Unlimited workflow runs</li>
+          <li>Up to 10 team members</li>
+          <li>Priority AWS Batch queue</li>
+          <li>Methods report generation</li>
+          <li>Email + Slack notifications</li>
+          <li>Email support, 1-day SLA</li>
+        </ul>
+        <a href="#" class="btn btn-primary-blue w-full" style="justify-content:center;">Start Lab plan →</a>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Enterprise</div>
+        <div class="price-amount">Custom</div>
+        <div class="price-desc">For pharma, CROs, and clinical research groups</div>
+        <ul class="price-features">
+          <li>Unlimited runs + team members</li>
+          <li>Private deployment option</li>
+          <li>HIPAA-ready configuration</li>
+          <li>SSO / SAML integration</li>
+          <li>Dedicated support engineer</li>
+          <li>Custom workflow development</li>
+        </ul>
+        <a href="#" class="btn btn-outline-blue w-full" style="justify-content:center;">Contact sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container text-center">
+    <h2 class="h2" style="margin-bottom:1rem;">Hours not weeks.<br>30 minutes not 3 days.</h2>
+    <p class="body-lg mx-auto max-w-2xl" style="margin-bottom:2.5rem;">Join research labs at Zhejiang University, Texas Children's Hospital, and the Broad Institute running BioMate today.</p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <a href="#" class="btn btn-lg" style="background:white; color:var(--b-accent);">Start free — no credit card →</a>
+      <a href="#" class="btn btn-lg btn-outline-blue" style="border-color:rgba(255,255,255,0.3); color:white;">Schedule a demo</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container" style="padding-top:3rem;">
+    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:3rem; margin-bottom:2rem;">
+      <div>
+        <div class="logo" style="color:white; margin-bottom:1rem;">
+          <div class="logo-mark" style="background:var(--b-accent);">B</div>
+          BioMate
+        </div>
+        <p class="caption" style="color:#475569; max-width:280px; line-height:1.7;">AI-native bioinformatics. No configuration. No cloud setup. No waiting.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Product</div>
+        <ul class="footer-links">
+          <li><a href="#">Workflows</a></li>
+          <li><a href="#">AI Research</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Resources</div>
+        <ul class="footer-links">
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">ROI Calculator</a></li>
+          <li><a href="#">Case Studies</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul class="footer-links">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 BioMate. All rights reserved.</p>
+      <p>No configuration. No cloud setup. No waiting.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Pain section tabs
+  const painBtns = document.querySelectorAll('.pain-btn');
+  painBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.pain;
+      painBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.pain-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('pain-' + target).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

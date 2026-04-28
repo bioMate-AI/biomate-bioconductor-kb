@@ -1,0 +1,140 @@
+[
+  {
+    "testId": "CE-0",
+    "workflowName": "QC profiles API",
+    "runId": null,
+    "startTs": 1775761976988,
+    "endTs": 1775761976988,
+    "finalStatus": "passed",
+    "assertions": [
+      {
+        "name": "6 cryo-EM profiles present",
+        "passed": true
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1775762009090,
+    "endTs": 1775762009090,
+    "finalStatus": "skip_no_response",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to SPA query",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png"
+    ]
+  },
+  {
+    "testId": "CE-2",
+    "workflowName": "Helical SPA Pipeline",
+    "runId": null,
+    "startTs": 1775762054044,
+    "endTs": 1775762054044,
+    "finalStatus": "not_started",
+    "assertions": [
+      {
+        "name": "AI responded to helical query",
+        "passed": true
+      },
+      {
+        "name": "Helical workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "helical_rise_angstroms field present",
+        "passed": false,
+        "note": "not found"
+      },
+      {
+        "name": "helical_twist_deg field present",
+        "passed": false,
+        "note": "not found"
+      },
+      {
+        "name": "Run button clicked for helical SPA",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_03_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_04_params_and_qc.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_05_after_execute.png"
+    ]
+  },
+  {
+    "testId": "CE-3",
+    "workflowName": "QC Settings Controls",
+    "runId": null,
+    "startTs": 1775762081689,
+    "endTs": 1775762081689,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "AI response received",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01_after_query.png"
+    ]
+  },
+  {
+    "testId": "CE-4",
+    "workflowName": "Output Visualization",
+    "runId": null,
+    "startTs": 1775762109290,
+    "endTs": 1775762109290,
+    "finalStatus": "not_started",
+    "assertions": [
+      {
+        "name": "AI responded",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_01_query.png"
+    ]
+  },
+  {
+    "testId": "CE-5",
+    "workflowName": "Session Isolation",
+    "runId": null,
+    "startTs": 1775762158147,
+    "endTs": 1775762158147,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "First workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second card shows helical workflow",
+        "passed": false,
+        "note": "SPA or no card"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_01_first_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_02_second_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_03_both_cards.png"
+    ]
+  }
+]

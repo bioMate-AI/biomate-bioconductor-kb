@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pricing — BioMate AI</title>
+  <meta name="description" content="BioMate AI pricing. Free trial for individuals, Professional for labs, Enterprise for institutions with private deployment." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/site.css" />
+  <style>
+    /* ── Page Header ─────────────────────────────────────────────────────── */
+    .page-hero {
+      background: var(--bg-card);
+      padding: clamp(3rem,6vw,5rem) clamp(1rem,5vw,3rem);
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-hero .section-tag { display: block; margin-bottom: .75rem; }
+    .page-hero h1 { font-family: var(--font-head); font-size: clamp(2rem,5vw,3.2rem); font-weight:700; color:var(--text); margin-bottom:1rem; }
+    .page-hero p  { color: var(--text-muted); font-size: 1.1rem; max-width:580px; margin:0 auto; }
+
+    /* ── Billing Toggle ──────────────────────────────────────────────────── */
+    .billing-toggle {
+      display: flex; align-items: center; gap: 12px; justify-content: center;
+      margin: 2.5rem 0 3rem;
+    }
+    .billing-toggle span { font-size: .9rem; color: var(--text-muted); }
+    .billing-toggle span.active { color: var(--text); font-weight: 700; }
+    .toggle-track {
+      width: 48px; height: 26px;
+      background: var(--accent); border-radius: 50px;
+      cursor: pointer; position: relative; transition: background .2s;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute;
+      top: 3px; left: 3px;
+      width: 20px; height: 20px;
+      background: #fff; border-radius: 50%;
+      transition: transform .2s;
+    }
+    .save-badge {
+      background: rgba(16,185,129,.15); color: #059669;
+      border-radius: 50px; padding: 2px 10px; font-size: .72rem; font-weight: 700;
+    }
+
+    /* ── Plans Grid ──────────────────────────────────────────────────────── */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px; align-items: start;
+      max-width: 1080px; margin: 0 auto;
+    }
+
+    .plan-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 2rem;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .plan-card.featured {
+      background: var(--bg-dark);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 8px 32px rgba(74,122,138,.25);
+      position: relative;
+    }
+    .plan-card.featured .plan-price,
+    .plan-card.featured .plan-name { color: #fff; }
+    .plan-card.featured .plan-desc { color: rgba(255,255,255,.62); }
+    .plan-card.featured .feat-item { color: rgba(255,255,255,.85); }
+    .plan-card.featured .feat-item .check { color: #6fcfed; }
+    .plan-card.featured hr { border-color: rgba(255,255,255,.12); }
+
+    .plan-badge {
+      display: inline-block; self-align: start;
+      background: var(--accent); color: #fff;
+      font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 50px; margin-bottom: 1rem;
+    }
+
+    .plan-name {
+      font-family: var(--font-head); font-size: 1.5rem;
+      font-weight: 700; color: var(--text); margin-bottom: .25rem;
+    }
+    .plan-desc { font-size: .875rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5; }
+
+    .plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 1.75rem; }
+    .price-num { font-family: var(--font-head); font-size: 2.8rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .price-period { font-size: .875rem; color: var(--text-muted); }
+    .price-custom { font-family: var(--font-head); font-size: 1.9rem; font-weight: 700; color: var(--text); }
+
+    .plan-cta { width: 100%; text-align: center; margin-bottom: 1.75rem; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+    .feat-label { font-size: .72rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .75rem; }
+    .feat-list { display: flex; flex-direction: column; gap: 8px; }
+    .feat-item { display: flex; align-items: flex-start; gap: 8px; font-size: .875rem; color: var(--text-muted); }
+    .feat-item .check { color: var(--accent); font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .feat-item .dash  { color: var(--border); font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    @media (max-width: 760px) {
+      .plans-grid { grid-template-columns: 1fr; max-width: 480px; }
+    }
+
+    /* ── Comparison Table ────────────────────────────────────────────────── */
+    .compare-section { background: var(--bg); }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    .compare-table th {
+      background: var(--bg-card); padding: 1rem 1.25rem;
+      font-family: var(--font-head); font-size: 1.1rem; font-weight: 700;
+      color: var(--text); border-bottom: 2px solid var(--border); text-align: left;
+    }
+    .compare-table th:first-child { text-align: left; width: 38%; }
+    .compare-table th:not(:first-child) { text-align: center; }
+    .compare-table td { padding: .875rem 1.25rem; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .compare-table td:not(:first-child) { text-align: center; }
+    .compare-table tr:nth-child(even) td { background: rgba(236,231,216,.4); }
+    .compare-table .row-group td {
+      background: var(--bg-card2); color: var(--text); font-weight: 700;
+      font-size: .78rem; letter-spacing: .07em; text-transform: uppercase;
+      padding: .6rem 1.25rem;
+    }
+    .compare-table .check-yes { color: var(--accent); font-size: 1.1rem; }
+    .compare-table .check-no  { color: var(--border); font-size: 1.1rem; }
+
+    /* ── FAQ ─────────────────────────────────────────────────────────────── */
+    .faq-section { background: var(--bg-card); }
+    .faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 960px; }
+    .faq-item { padding: 1.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); }
+    .faq-q { font-weight: 700; color: var(--text); margin-bottom: .5rem; font-size: .95rem; }
+    .faq-a { color: var(--text-muted); font-size: .875rem; line-height: 1.6; }
+    @media (max-width: 640px) { .faq-grid { grid-template-columns: 1fr; } }
+
+    /* ── Enterprise strip ────────────────────────────────────────────────── */
+    .enterprise-strip {
+      background: var(--bg-dark); color: #fff;
+      padding: clamp(2.5rem,5vw,4rem) clamp(1rem,5vw,3rem);
+    }
+    .enterprise-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 2rem; flex-wrap: wrap;
+    }
+    .enterprise-inner h3 { font-family: var(--font-head); font-size: clamp(1.6rem,3.5vw,2.2rem); font-weight:700; margin-bottom:.5rem; }
+    .enterprise-inner p { color: rgba(255,255,255,.6); font-size: .95rem; max-width: 480px; }
+    .enterprise-inner .btn-outline-white { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<div class="site-header"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+<nav>
+  <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="BioMate AI" /></a>
+  <ul class="nav-links">
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="features.html">Features</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html" class="active">Pricing</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener" class="nav-login">Log In</a>
+    <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════ HERO ═══ -->
+<div class="page-hero">
+  <span class="section-tag">Pricing</span>
+  <h1>Simple, transparent pricing</h1>
+  <p>Start free. Scale to your lab's needs. Enterprise teams get private deployment and priority support.</p>
+
+  <div class="billing-toggle">
+    <span class="active">Monthly</span>
+    <div class="toggle-track" title="Toggle annual billing"></div>
+    <span>Annual</span>
+    <span class="save-badge">Save 20%</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════ PLANS ═══ -->
+<section style="background:var(--bg);">
+  <div class="section-inner">
+    <div class="plans-grid">
+
+      <!-- Pilot -->
+      <div class="plan-card">
+        <div class="plan-name">Pilot</div>
+        <div class="plan-desc">For individual researchers exploring AI-driven bioinformatics. Free to try, no credit card required.</div>
+        <div class="plan-price">
+          <span class="price-num">$0</span>
+          <span class="price-period">/ forever</span>
+        </div>
+        <div class="plan-cta">
+          <a class="btn btn-outline" style="width:100%; justify-content:center;" href="https://dev-public.biomate.ai/register" target="_blank">Start Free</a>
+        </div>
+        <div class="feat-label">What's included</div>
+        <div class="feat-list">
+          <div class="feat-item"><span class="check">✓</span>10 workflow runs / month</div>
+          <div class="feat-item"><span class="check">✓</span>Access to 20+ application domains</div>
+          <div class="feat-item"><span class="check">✓</span>AI-assisted parameter filling</div>
+          <div class="feat-item"><span class="check">✓</span>Output visualization &amp; download</div>
+          <div class="feat-item"><span class="check">✓</span>Community support</div>
+          <div class="feat-item"><span class="dash">—</span>AI findings summarization</div>
+          <div class="feat-item"><span class="dash">—</span>Priority queue</div>
+          <div class="feat-item"><span class="dash">—</span>Team collaboration</div>
+        </div>
+      </div>
+
+      <!-- Professional (featured) -->
+      <div class="plan-card featured">
+        <div class="plan-badge">Most Popular</div>
+        <div class="plan-name">Professional</div>
+        <div class="plan-desc">For active research labs running regular analyses. Full access to all workflows and AI features.</div>
+        <div class="plan-price">
+          <span class="price-num">$199</span>
+          <span class="price-period">/ month</span>
+        </div>
+        <div class="plan-cta">
+          <a class="btn btn-primary" style="width:100%; justify-content:center;" href="https://dev-public.biomate.ai/register" target="_blank">Start 14-Day Trial</a>
+        </div>
+        <div class="feat-label" style="color:rgba(255,255,255,.45);">Everything in Pilot, plus</div>
+        <div class="feat-list">
+          <div class="feat-item"><span class="check">✓</span>Unlimited workflow runs</div>
+          <div class="feat-item"><span class="check">✓</span>AI findings summarization &amp; citations</div>
+          <div class="feat-item"><span class="check">✓</span>Priority queue (GPU &amp; CPU)</div>
+          <div class="feat-item"><span class="check">✓</span>Up to 5 team members</div>
+          <div class="feat-item"><span class="check">✓</span>Full audit trail &amp; run history</div>
+          <div class="feat-item"><span class="check">✓</span>S3 data integration</div>
+          <div class="feat-item"><span class="check">✓</span>Email &amp; chat support</div>
+          <div class="feat-item"><span class="dash">—</span>Private deployment</div>
+          <div class="feat-item"><span class="dash">—</span>SSO / SAML</div>
+        </div>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-desc">For institutions, CROs, and pharma teams needing private infrastructure, SSO, and compliance controls.</div>
+        <div class="plan-price">
+          <span class="price-custom">Custom</span>
+        </div>
+        <div class="plan-cta">
+          <a class="btn btn-outline" style="width:100%; justify-content:center;" href="index.html#contact">Talk to Sales</a>
+        </div>
+        <div class="feat-label">Everything in Professional, plus</div>
+        <div class="feat-list">
+          <div class="feat-item"><span class="check">✓</span>Private AWS deployment (your VPC)</div>
+          <div class="feat-item"><span class="check">✓</span>SSO / SAML integration</div>
+          <div class="feat-item"><span class="check">✓</span>Unlimited team members</div>
+          <div class="feat-item"><span class="check">✓</span>Dedicated support engineer</div>
+          <div class="feat-item"><span class="check">✓</span>SLA with uptime guarantee</div>
+          <div class="feat-item"><span class="check">✓</span>Custom workflow development</div>
+          <div class="feat-item"><span class="check">✓</span>HIPAA / SOC2 compliance package</div>
+          <div class="feat-item"><span class="check">✓</span>On-site training &amp; onboarding</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ COMPARISON TABLE ═══ -->
+<section class="compare-section">
+  <div class="section-inner">
+    <span class="section-tag">Compare Plans</span>
+    <h2 class="section-title">Full feature comparison</h2>
+
+    <div style="overflow-x:auto;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Pilot</th>
+          <th>Professional</th>
+          <th>Enterprise</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-group"><td colspan="4">Workflows & Compute</td></tr>
+        <tr><td>Workflow runs / month</td><td>10</td><td>Unlimited</td><td>Unlimited</td></tr>
+        <tr><td>Application domains</td><td>20+</td><td>20+</td><td>20+ (custom)</td></tr>
+        <tr><td>Validated pipelines</td><td>60+</td><td>60+</td><td>60+ (custom)</td></tr>
+        <tr><td>GPU workflows (cryo-EM, MD)</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Priority compute queue</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Max runtime per run</td><td>2 hrs</td><td>24 hrs</td><td>Unlimited</td></tr>
+
+        <tr class="row-group"><td colspan="4">AI Features</td></tr>
+        <tr><td>AI intent recognition</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Smart parameter pre-fill</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>AI findings summarization</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Citation support</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Auto-error diagnosis &amp; fix</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+
+        <tr class="row-group"><td colspan="4">Data & Storage</td></tr>
+        <tr><td>Output storage</td><td>7 days</td><td>90 days</td><td>Custom</td></tr>
+        <tr><td>S3 data integration</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Audit trail &amp; run history</td><td>30 days</td><td>Full history</td><td>Full history</td></tr>
+        <tr><td>FAIR data compliance</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+
+        <tr class="row-group"><td colspan="4">Team & Security</td></tr>
+        <tr><td>Team seats</td><td>1</td><td>5</td><td>Unlimited</td></tr>
+        <tr><td>Private deployment</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+        <tr><td>SSO / SAML</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+        <tr><td>HIPAA compliance package</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+        <tr><td>Custom workflow development</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+
+        <tr class="row-group"><td colspan="4">Support</td></tr>
+        <tr><td>Community forum</td><td class="check-yes">✓</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Email &amp; chat support</td><td class="check-no">—</td><td class="check-yes">✓</td><td class="check-yes">✓</td></tr>
+        <tr><td>Dedicated support engineer</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+        <tr><td>SLA guarantee</td><td class="check-no">—</td><td class="check-no">—</td><td class="check-yes">✓</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ FAQ ═══ -->
+<section class="faq-section">
+  <div class="section-inner">
+    <span class="section-tag">FAQ</span>
+    <h2 class="section-title">Common questions</h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q">Do I need a credit card to start the free trial?</div>
+        <div class="faq-a">No. The Pilot plan is free forever and requires no credit card. The 14-day Professional trial also requires no card — we'll ask only when you choose to upgrade.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What happens to my data when a run completes?</div>
+        <div class="faq-a">Pilot outputs are stored for 7 days, Professional for 90 days. Enterprise has configurable retention. All data is encrypted at rest and in transit, and you can download outputs at any time.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I use my own AWS account for compute?</div>
+        <div class="faq-a">Enterprise deployments run in your own VPC and AWS account — you control the infrastructure and costs. Professional uses BioMate's managed AWS Batch environment.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How does pricing work for GPU-intensive workflows like cryo-EM or MD?</div>
+        <div class="faq-a">GPU workflows (cryo-EM SPA, Molecular Dynamics) consume more compute. Professional includes GPU access; heavy usage is metered. Enterprise customers negotiate flat-rate GPU pools.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is BioMate suitable for clinical / regulated environments?</div>
+        <div class="faq-a">Enterprise includes a compliance package with HIPAA-ready architecture, audit logs, and documentation for regulatory submissions. We can also support GxP validation projects.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can we add custom workflows not in the standard library?</div>
+        <div class="faq-a">Yes. Enterprise includes custom workflow development. Professional users can also bring Nextflow scripts — BioMate wraps them in the same AI-assisted UI and execution environment.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ ENTERPRISE STRIP ═══ -->
+<div class="enterprise-strip">
+  <div class="enterprise-inner">
+    <div>
+      <h3>Need a private deployment?</h3>
+      <p>BioMate Enterprise runs entirely inside your institution's AWS account — no data ever leaves your environment. HIPAA-ready, SOC2-aligned, and compliant with data sovereignty requirements.</p>
+    </div>
+    <a class="btn btn-outline-white" href="index.html#contact">Contact Sales →</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ FOOTER ═══ -->
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand">
+      <img src="images/logo.png" alt="BioMate AI" />
+      <p>AI-powered bioinformatics for every researcher — from PhD students to enterprise pharma teams.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai/register" target="_blank">Get Started</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="https://dev-public.biomate.ai" target="_blank">App Login</a></li>
+        <li><a href="index.html#contact">Support</a></li>
+        <li><a href="index.html#contact">Enterprise</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 BioMate AI · All rights reserved</p>
+    <div class="trust-badges"><span>HIPAA Ready</span><span>FAIR Data</span><span>nf-core Validated</span><span>AWS Batch</span></div>
+  </div>
+</footer>
+
+</body>
+</html>

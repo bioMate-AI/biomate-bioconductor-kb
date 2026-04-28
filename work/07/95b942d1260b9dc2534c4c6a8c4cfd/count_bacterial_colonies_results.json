@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "function": "count_bacterial_colonies",
+  "domain": "microbiology",
+  "error": "No module named 'cv2'"
+}

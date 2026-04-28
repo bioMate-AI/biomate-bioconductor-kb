@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>BioMate — Workflow Panel Redesign</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="src/tokens.css?v=4"/>
+<link rel="stylesheet" href="src/layout.css?v=4"/>
+<link rel="stylesheet" href="src/tour.css?v=1"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="src/data.js?v=2"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="src/Icon.jsx?v=5"></script>
+<script type="text/babel" src="src/Chrome.jsx?v=6"></script>
+<script type="text/babel" src="src/PhaseCard.jsx?v=5"></script>
+<script type="text/babel" src="src/AutoLoop.jsx?v=5"></script>
+<script type="text/babel" src="src/Modals.jsx?v=5"></script>
+<script type="text/babel" src="src/WorkflowPanel.jsx?v=6"></script>
+<script type="text/babel" src="src/Tour.jsx?v=1"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "scenario": "nfcore",
+  "runState": "running",
+  "speed": 900,
+  "panelWidth": 510,
+  "sidebarMode": "auto",
+  "qcHalt": false,
+  "licenseGate": false,
+  "blocked": false,
+  "disambig": false,
+  "watcherAttached": true
+}/*EDITMODE-END*/;
+
+function App() {
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('biomate-tweaks') || 'null'); } catch { return null; } })();
+  const initial = { ...TWEAK_DEFAULTS, ...(saved || {}) };
+
+  const [scenario, setScenario]       = useState(initial.scenario);
+  const [runState, setRunState]       = useState(initial.runState);
+  const [speed, setSpeed]             = useState(initial.speed);
+  const [panelWidth, setPanelWidth]   = useState(initial.panelWidth);
+  const [sidebarMode, setSidebarMode] = useState(initial.sidebarMode); // 'auto' | 'expanded' | 'hidden'
+  const [panelOpen, setPanelOpen]     = useState(true);
+  const [modal, setModal]             = useState(null);
+  const [tweaksVisible, setTweaksVisible] = useState(false);
+
+  const [qcHalt, setQcHalt]           = useState(initial.qcHalt);
+  const [licenseGate, setLicenseGate] = useState(initial.licenseGate);
+  const [blocked, setBlocked]         = useState(initial.blocked);
+  const [disambig, setDisambig]       = useState(initial.disambig);
+  const [watcherAttached, setWatcherAttached] = useState(initial.watcherAttached);
+
+  useEffect(() => {
+    localStorage.setItem('biomate-tweaks', JSON.stringify({
+      scenario, runState, speed, panelWidth, sidebarMode,
+      qcHalt, licenseGate, blocked, disambig, watcherAttached,
+    }));
+  }, [scenario, runState, speed, panelWidth, sidebarMode, qcHalt, licenseGate, blocked, disambig, watcherAttached]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--panel-w', panelWidth + 'px');
+  }, [panelWidth]);
+
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.type === '__activate_edit_mode')   setTweaksVisible(true);
+      if (e.data.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const setTweak = (patch) => {
+    if ('scenario'    in patch) setScenario(patch.scenario);
+    if ('runState'    in patch) setRunState(patch.runState);
+    if ('speed'       in patch) setSpeed(patch.speed);
+    if ('panelWidth'  in patch) setPanelWidth(patch.panelWidth);
+    if ('sidebarMode' in patch) setSidebarMode(patch.sidebarMode);
+    if ('qcHalt'      in patch) setQcHalt(patch.qcHalt);
+    if ('licenseGate' in patch) setLicenseGate(patch.licenseGate);
+    if ('blocked'     in patch) setBlocked(patch.blocked);
+    if ('disambig'    in patch) setDisambig(patch.disambig);
+    if ('watcherAttached' in patch) setWatcherAttached(patch.watcherAttached);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: patch }, '*');
+  };
+
+  const openModal  = (kind, payload) => setModal({ ...payload, kind });
+  const closeModal = () => setModal(null);
+
+  // Tutorial tour — uses setTweak to drive UI states across steps
+  const tour = useWFTour(
+    { scenario, runState, qcHalt, licenseGate, blocked, disambig, watcherAttached, sidebarMode },
+    (patch) => { setTweak(patch); if ('panelOpen' in patch) setPanelOpen(patch.panelOpen); }
+  );
+  // When tour starts, make sure the panel is open so targets exist
+  React.useEffect(() => { if (tour.active && !panelOpen) setPanelOpen(true); }, [tour.active]);
+
+  // Determine sidebar rail state based on panel open + sidebarMode
+  const sidebarClass =
+    sidebarMode === 'hidden'   ? 'sidebar-hidden' :
+    sidebarMode === 'expanded' ? '' :
+    panelOpen                  ? 'sidebar-rail' : '';
+  const appClass = 'app' + (sidebarClass ? ' ' + sidebarClass : '') + (panelOpen ? '' : ' panel-closed');
+
+  return (
+    <div className={appClass} data-screen-label="Main · Workflow console">
+      {sidebarMode !== 'hidden' && (
+        <Sidebar scenario={scenario} onScenarioChange={setScenario}
+          rail={sidebarClass === 'sidebar-rail'}/>
+      )}
+      {sidebarMode === 'hidden' && (
+        <button className="sidebar-reopen" onClick={() => setSidebarMode('auto')}
+          title="Show sidebar">
+          <Icon name="chevronRight" size={14}/>
+        </button>
+      )}
+
+      <ChatColumn
+        scenario={scenario}
+        panelOpen={panelOpen}
+        onReopenPanel={() => setPanelOpen(true)}
+        onTogglePanel={() => setPanelOpen(o => !o)}
+        onStartTour={tour.start}
+        showDisambig={disambig}/>
+
+      {panelOpen && (
+        <WorkflowPanel
+          scenario={scenario}
+          runState={runState}
+          setRunState={setRunState}
+          onOpenModal={openModal}
+          onClosePanel={() => setPanelOpen(false)}
+          watcherAttached={watcherAttached}
+          setWatcherAttached={setWatcherAttached}
+          tweaks={{ speed, qcHalt, licenseGate, blocked }}
+        />
+      )}
+
+      {modal?.kind === 'skip' && (
+        <SkipConfirmModal target={modal} onCancel={closeModal}
+          onConfirm={() => { modal.confirm && modal.confirm(); closeModal(); }}/>
+      )}
+      {modal?.kind === 'adjust'  && <AdjustModal  step={modal.step} onCancel={closeModal} onRerun={closeModal}/>}
+      {modal?.kind === 'preview' && <PreviewModal file={modal.file} onClose={closeModal}/>}
+
+      {tour.node}
+
+      {tweaksVisible && (
+        <div className="tweaks">
+          <div className="tweaks-head">
+            Tweaks
+            <button className="btn ghost sm" onClick={() => setTweaksVisible(false)}>
+              <Icon name="x" size={12}/>
+            </button>
+          </div>
+          <div className="tweaks-body">
+            <div className="group">
+              <div className="label">Workflow scenario</div>
+              <div className="options">
+                {[['cryosparc','CryoSPARC'],['gatk','GATK (8)'],['admet','ADMET (1)'],['nfcore','nf-core (4)']].map(([s, lbl]) => (
+                  <button key={s} className={'opt' + (scenario === s ? ' active' : '')}
+                    onClick={() => setTweak({ scenario: s })}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="group">
+              <div className="label">Execution state</div>
+              <div className="options">
+                {['idle','running','completed','failed'].map(s => (
+                  <button key={s} className={'opt' + (runState === s ? ' active' : '')}
+                    onClick={() => setTweak({ runState: s })}>{s}</button>
+                ))}
+              </div>
+            </div>
+            <div className="group">
+              <div className="label">Edge cases</div>
+              <div className="options">
+                <button className={'opt' + (qcHalt ? ' active' : '')}
+                  onClick={() => setTweak({ qcHalt: !qcHalt })}>QC halt + auto-loop</button>
+                <button className={'opt' + (licenseGate ? ' active' : '')}
+                  onClick={() => setTweak({ licenseGate: !licenseGate })}>License gate</button>
+                <button className={'opt' + (blocked ? ' active' : '')}
+                  onClick={() => setTweak({ blocked: !blocked })}>Blocked</button>
+                <button className={'opt' + (disambig ? ' active' : '')}
+                  onClick={() => setTweak({ disambig: !disambig })}>Disambiguation</button>
+                <button className={'opt' + (!watcherAttached ? ' active' : '')}
+                  onClick={() => setTweak({ watcherAttached: !watcherAttached })}>Detached watcher</button>
+                <button className={'opt' + (!panelOpen ? ' active' : '')}
+                  onClick={() => setPanelOpen(o => !o)}>Panel closed</button>
+              </div>
+            </div>
+            <div className="group">
+              <div className="label">Sidebar</div>
+              <div className="options">
+                {[['auto','Auto-collapse'],['expanded','Expanded'],['hidden','Hidden']].map(([v, lbl]) => (
+                  <button key={v} className={'opt' + (sidebarMode === v ? ' active' : '')}
+                    onClick={() => setTweak({ sidebarMode: v })}>{lbl}</button>
+                ))}
+              </div>
+            </div>
+            <div className="group">
+              <div className="label">Sim speed · {speed}ms/tick</div>
+              <input type="range" min="200" max="2000" step="100" value={speed}
+                onChange={e => setTweak({ speed: +e.target.value })} style={{width:'100%'}}/>
+            </div>
+            <div className="group">
+              <div className="label">Panel width · {panelWidth}px</div>
+              <input type="range" min="420" max="640" step="10" value={panelWidth}
+                onChange={e => setTweak({ panelWidth: +e.target.value })} style={{width:'100%'}}/>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

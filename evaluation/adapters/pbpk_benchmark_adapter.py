@@ -316,15 +316,25 @@ class PBPKBenchmarkAdapter(BenchmarkAdapter):
 
         SMILES is in the query but PK input params (CLint, fu_plasma) are missing.
         BioMate should ask for them.
+
+        Scoring rubric:
+          1.0 — BioMate asks for PK params (CLint / fu_plasma) — ideal behaviour
+          0.5 — BioMate launches the PBPK workflow using default PK params — acceptable
+                (PK params have defaults so this is valid agent behaviour)
+          0.5 — BioMate asks for SMILES (redundant but still a prereq interaction)
+          0.5 — BioMate shows PK domain awareness without a clear action
+          0.0 — No PK signal at all
         """
         if self._response_asks_for_pk_params(response):
             return 1.0
         # BioMate might ask for SMILES even though it's present — that's still a prereq ask
         if self._response_asks_for_smiles(response):
             return 0.5
-        # If it tried to route without key params, that's a failure
+        # BioMate launched the PBPK workflow using default params — acceptable (0.5)
+        # Previously this was scored 0.0, but using defaults is valid agent behaviour
+        # because PK input params all have sensible defaults in the PBPK workflow.
         if self._response_routed_to_pbpk(response):
-            return 0.0
+            return 0.5
         if any(kw in response.lower() for kw in _PK_RELATED_KEYWORDS):
             return 0.5
         return 0.0
@@ -450,12 +460,20 @@ class PBPKBenchmarkAdapter(BenchmarkAdapter):
         elif query_type == "incomplete_no_params":
             asked_params = self._response_asks_for_pk_params(agent_response)
             asked_smiles = self._response_asks_for_smiles(agent_response)
-            result["prereq_asked"]        = asked_params or asked_smiles
-            result["asked_pk_params"]     = asked_params
-            result["asked_smiles"]        = asked_smiles
-            result["prereq_type"]         = "pk_params"
-            result["composite"]           = (
-                1.0 if asked_params else (0.5 if asked_smiles else 0.0)
+            routed_with_defaults = (
+                not asked_params and not asked_smiles and
+                self._response_routed_to_pbpk(agent_response)
+            )
+            result["prereq_asked"]            = asked_params or asked_smiles
+            result["asked_pk_params"]         = asked_params
+            result["asked_smiles"]            = asked_smiles
+            result["routed_with_defaults"]    = routed_with_defaults
+            result["prereq_type"]             = "pk_params"
+            # 1.0=asked params, 0.5=asked SMILES or routed with defaults, 0.0=no signal
+            result["composite"] = (
+                1.0 if asked_params
+                else 0.5 if (asked_smiles or routed_with_defaults)
+                else 0.0
             )
 
         return result

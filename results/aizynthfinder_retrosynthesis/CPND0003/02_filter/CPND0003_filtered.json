@@ -1,0 +1,115 @@
+{
+  "compound_id": "CPND0003",
+  "smiles": "Cn1cnc2c1c(=O)n(c(=O)n2C)C",
+  "smiles_valid": true,
+  "qc_status": "PASS",
+  "qc_reason": "route_with_steps<=4_and_score>=0.6_found",
+  "best_route_steps": 3,
+  "best_route_score": 0.708,
+  "best_sa_score": 4.36,
+  "n_routes": 3,
+  "pass_max_steps": 4,
+  "pass_min_score": 0.6,
+  "warn_max_steps": 6,
+  "routes": [
+    {
+      "route_id": 1,
+      "score": 0.708,
+      "step_count": 3,
+      "sa_score": 4.36,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "c1ccccc1",
+          "yield_pct": 63.7
+        },
+        {
+          "step": 2,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "OC(=O)c1ccccc1",
+          "yield_pct": 68.3
+        },
+        {
+          "step": 3,
+          "reaction_class": "Hydrogenation",
+          "reagent": "H2 / Pd-C / EtOH",
+          "precursor_smiles": "NC(=O)O",
+          "yield_pct": 65.1
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    },
+    {
+      "route_id": 3,
+      "score": 0.562,
+      "step_count": 3,
+      "sa_score": 4.03,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Amide reduction",
+          "reagent": "LiAlH4 / THF",
+          "precursor_smiles": "OC(=O)c1ccccc1",
+          "yield_pct": 79.9
+        },
+        {
+          "step": 2,
+          "reaction_class": "Chlorination",
+          "reagent": "SOCl2 / pyridine",
+          "precursor_smiles": "CCOC(=O)CCl",
+          "yield_pct": 65.3
+        },
+        {
+          "step": 3,
+          "reaction_class": "Amide reduction",
+          "reagent": "LiAlH4 / THF",
+          "precursor_smiles": "OCC",
+          "yield_pct": 76.4
+        }
+      ],
+      "feasibility_tier": "MODERATE"
+    },
+    {
+      "route_id": 2,
+      "score": 0.523,
+      "step_count": 4,
+      "sa_score": 3.63,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Acetylation",
+          "reagent": "Ac2O / Et3N",
+          "precursor_smiles": "NC(=O)O",
+          "yield_pct": 84.9
+        },
+        {
+          "step": 2,
+          "reaction_class": "Hydrogenation",
+          "reagent": "H2 / Pd-C / EtOH",
+          "precursor_smiles": "OCC",
+          "yield_pct": 86.6
+        },
+        {
+          "step": 3,
+          "reaction_class": "Suzuki coupling",
+          "reagent": "Pd(OAc)2 / PPh3",
+          "precursor_smiles": "c1ccc(Br)cc1",
+          "yield_pct": 86.9
+        },
+        {
+          "step": 4,
+          "reaction_class": "Hydrogenation",
+          "reagent": "H2 / Pd-C / EtOH",
+          "precursor_smiles": "c1ccccc1",
+          "yield_pct": 61.8
+        }
+      ],
+      "feasibility_tier": "MODERATE"
+    }
+  ],
+  "timestamp": "2026-03-22T15:04:51.889058Z",
+  "mock_mode": true
+}

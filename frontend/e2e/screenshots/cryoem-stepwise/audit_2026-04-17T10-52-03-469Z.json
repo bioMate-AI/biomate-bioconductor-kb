@@ -1,0 +1,51 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-17T10:52:03.469Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-10",
+      "runId": "d7589271-b4e6-4836-af20-4548b00625c9",
+      "startTs": 1776423056699,
+      "endTs": 1776423123374,
+      "finalStatus": "failed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "execute-engine-is-cryosparc",
+          "passed": true,
+          "note": "Expected executionEngine=cryosparc, got: cryosparc"
+        },
+        {
+          "name": "run-reached-terminal",
+          "passed": true
+        },
+        {
+          "name": "run-completed-not-failed",
+          "passed": false,
+          "note": "Expected 'completed', got 'failed'"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_03_terminal.png"
+      ]
+    }
+  ]
+}

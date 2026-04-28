@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate and the Texas Medical Center — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  a:hover { color:var(--accent); }
+  img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="https://dev-public.biomate.ai/register" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<div class="article-hero">
+  <img src="images/2026-04-08-approach-scalable-computing.png" alt="Built at the World's Largest Medical Center: Why Location Shapes BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Platform Architecture
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Platform Architecture</span>
+      <h1>Built Where the Science Happens: BioMate and the Texas Medical Center</h1>
+      <div class="article-meta">
+        <span><strong>March 12, 2026</strong></span>
+        <span>7 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">The Texas Medical Center in Houston is the largest medical complex in the world — 60 member institutions, more than 100,000 employees, and a research enterprise that spans basic discovery, translational science, and clinical care simultaneously. BioMate is built inside that ecosystem, and it shows in the problems we prioritize.</p>
+
+      <h2>Why Location Shapes a Platform</h2>
+      <p>Software built in isolation from its users tends to optimize for what is technically interesting rather than what is practically necessary. A genomics platform built by people who rarely talk to the bench scientists using it will have different default QC thresholds, different parameter ranges, and different output formats than one tested daily against real research workflows at institutions with real patients and real deadlines.</p>
+      <p>Proximity to the TMC means we test BioMate against the actual research happening at member institutions — the variant calling pipelines, the cryo-EM data from core facility sessions, the drug screening assays, the multi-omics integration projects. When a workflow parameter does not match the practical needs of the researchers using it, we hear about it quickly and directly.</p>
+
+      <h2>What We Have Learned</h2>
+      <p>Six months of operation adjacent to TMC research has taught us several things that shaped BioMate's design. The bottleneck is rarely compute — it is the time between when a researcher gets results and when they understand what to do with them. The most common request is not a new workflow — it is better explanation of why a result looks the way it does. The most common failure mode is not technical — it is a mismatch between the QC thresholds the platform applies and the standards the relevant research community actually uses.</p>
+
+      <blockquote>"We are not optimizing for Silicon Valley demos. We are optimizing for the postdoc at a TMC cancer center who needs a variant call before a clinical tumor board meeting."</blockquote>
+
+      <h2>A Living Test Environment</h2>
+      <p>The TMC is not just an inspiration for the platform — it is a continuous source of the real-world edge cases that make bioinformatics software robust. FFPE-degraded tumor samples. Cryo-EM sessions that ran overnight with suboptimal ice quality. Drug screens that produced unexpected hit patterns. Low-coverage sequencing from resource-limited clinical studies. These are the conditions under which BioMate must work, and the proximity to institutions that generate them regularly is an advantage that cannot be replicated from a distance.</p>
+
+      <div class="callout">
+        <strong>What this means for our users</strong>
+        <p>BioMate's design decisions are shaped by real research workflows, not by synthetic benchmarks. The QC thresholds reflect what reviewers at real journals actually require. The output formats are what PIs at real institutions actually need. The failure modes that get fixed first are the ones that real researchers actually encounter.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-llm-core.html">The AI Layer in BioMate: Purpose-Built for Scientific Reasoning</a><div class="meta">April 22, 2026</div></li>
+<li><a href="blog-bioconductor.html">Unlocking Bioconductor: R-Based Statistical Methods, No R Required</a><div class="meta">April 20, 2026</div></li>
+<li><a href="blog-auto-discovery.html">A Platform That Never Stands Still: BioMate's Workflow Discovery Engine</a><div class="meta">April 18, 2026</div></li>
+<li><a href="blog-memory.html">A Platform That Learns Your Lab: BioMate's Hierarchical Memory Architecture</a><div class="meta">April 17, 2026</div></li>
+<li><a href="blog-workflow-routing.html">Finding the Right Workflow: BioMate's Hybrid Semantic Search</a><div class="meta">April 15, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">TMC</span><span class="topic-chip">Texas Medical Center</span><span class="topic-chip">Houston</span><span class="topic-chip">Research</span><span class="topic-chip">Clinical</span><span class="topic-chip">Academic Medical Center</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Science</h4><ul>
+        <li><a href="index.html#approach">Our Approach</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#applications">Applications</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Company</h4><ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+      </ul></div>
+    </div>
+    <p class="footer-copy">&#169; 2026 BioMate AI &middot; All rights reserved &middot; Houston, Texas</p>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "empiar_id": "10061",
+  "run_dir": "/home/yzhang/biomate/benchmark_results/empiar_10061/pipeline_results",
+  "extracted_at": "2026-04-16T20:10:55Z",
+  "wall_time_s": 28.0,
+  "gpu_hours": 0.0077777777777777776,
+  "n_micrographs_processed": 100,
+  "n_micrographs_total": 100,
+  "acceptance_rate_pct": 100.0,
+  "n_particles_picked": null,
+  "n_particles_2d": null,
+  "n_particles_final": 50000,
+  "fsc_resolution_A": 5.459638304347833,
+  "expected_resolution_A": 2.2,
+  "qc_gate_summary": {
+    "junk": "advisory"
+  },
+  "regressions": [
+    "FSC resolution 5.46 \u00c5 is worse than expected 2.20 \u00c5 by 3.26 \u00c5 (tolerance \u00b10.5 \u00c5)"
+  ],
+  "raw_events": [
+    {
+      "timestamp": "2026-04-16T20:10:39Z",
+      "gate": "motion",
+      "status": "pass",
+      "profile": "cryoem_spa_purified",
+      "value": 32.0,
+      "threshold": 50.0
+    },
+    {
+      "timestamp": "2026-04-16T20:10:39Z",
+      "gate": "ctf",
+      "status": "pass",
+      "profile": "cryoem_spa_purified",
+      "value": 0.82,
+      "threshold": 0.7
+    },
+    {
+      "timestamp": "2026-04-16T20:10:39Z",
+      "gate": "junk",
+      "status": "advisory",
+      "profile": "cryoem_spa_purified",
+      "value": 0.52,
+      "threshold": 0.7
+    },
+    {
+      "timestamp": "2026-04-16T20:10:39Z",
+      "gate": "fsc",
+      "status": "pass",
+      "profile": "cryoem_spa_purified"
+    }
+  ]
+}

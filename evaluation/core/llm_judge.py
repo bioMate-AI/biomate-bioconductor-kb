@@ -23,7 +23,7 @@ import anthropic
 _DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 _BINARY_JUDGE_PROMPT = """\
-You are an expert scientific evaluator.
+You are an expert scientific evaluator assessing benchmark answers.
 
 QUESTION:
 {question}
@@ -34,7 +34,14 @@ EXPECTED ANSWER:
 AGENT ANSWER:
 {agent_answer}
 
-Is the agent answer correct or equivalent to the expected answer?
+Scoring rules:
+1. For numerical answers: correct if within 1% relative error OR within 0.1 absolute for values <1.
+2. For text answers: correct if semantically equivalent (synonyms, different word order, abbreviations all count).
+3. For lists: correct if all required items are present (order doesn't matter, minor wording variation OK).
+4. For gene symbols / rsIDs / IDs: exact match required (case-insensitive).
+5. Ignore units mismatch if the value is clearly the same.
+
+Is the agent answer correct by the above rules?
 Respond with exactly one word: "correct" or "incorrect".
 Do not add any explanation."""
 

@@ -257,10 +257,10 @@ test('UI: workflow query produces workflow card with run button', async ({ page 
   if (workflowVisible) {
     console.log('[UI workflow] Workflow card appeared with run button');
 
-    // Check for validate environment button (C3)
-    const validateBtn = page.locator('[data-testid="button-validate-environment"]');
-    const hasValidateBtn = await validateBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    console.log('[UI validate-btn] Visible:', hasValidateBtn);
+    // Check for Tutorial button (replaces validate-environment in updated UX)
+    const tutBtn = page.locator('[data-testid="button-start-tour"]');
+    const hasTutBtn = await tutBtn.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log('[UI tutorial-btn] Visible:', hasTutBtn);
     await ss(page, '06_workflow_card');
 
     // Check run button is present
@@ -280,8 +280,9 @@ test('UI: workflow query produces workflow card with run button', async ({ page 
   }
 });
 
-test('UI: validate environment button triggers and shows status', async ({ page }) => {
-  await setupTestUser(page, 'validate');
+test('UI: tutorial tour button is present and starts tour overlay', async ({ page }) => {
+  test.setTimeout(180_000);
+  await setupTestUser(page, 'tutorial-tour');
   await page.waitForTimeout(1000);
 
   const chatInput = page.locator('textarea').first();
@@ -290,42 +291,35 @@ test('UI: validate environment button triggers and shows status', async ({ page 
   await chatInput.fill('run nf-core/rnaseq RNA-seq analysis');
   await chatInput.press('Enter');
 
-  // Wait for workflow card
-  let validateBtnFound = false;
+  // Wait for workflow panel
+  let tutBtnFound = false;
   for (let i = 0; i < 18; i++) {
     await page.waitForTimeout(5000);
-    const btn = page.locator('[data-testid="button-validate-environment"]');
+    const btn = page.locator('[data-testid="button-start-tour"]');
     if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      validateBtnFound = true;
+      tutBtnFound = true;
+      await ss(page, '10_tutorial_btn_visible');
 
-      await ss(page, '10_validate_btn_visible');
-
-      // Click the validate button
+      // Click the Tutorial button
       await btn.click();
-      console.log('[validate] Clicked validate environment button');
+      console.log('[tutorial] Clicked Tutorial button');
 
-      // Wait for validation to complete (up to 30s)
-      await page.waitForFunction(
-        () => {
-          const btn = document.querySelector('[data-testid="button-validate-environment"]');
-          if (!btn) return false;
-          const text = btn.textContent || '';
-          return text.includes('validated') || text.includes('failed') || text.includes('timed out');
-        },
-        { timeout: 35000 }
-      ).catch(() => {
-        console.log('[validate] Validation still running after 35s');
-      });
+      // Tour overlay must appear
+      await page.waitForSelector('.tour-callout', { state: 'visible', timeout: 8000 });
+      const metaText = await page.locator('.tour-step-n').first().textContent().catch(() => '');
+      console.log('[tutorial] Tour started —', metaText);
+      await ss(page, '11_tour_step1');
 
-      await ss(page, '11_validate_result');
-      const btnText = await page.locator('[data-testid="button-validate-environment"]').innerText().catch(() => '');
-      console.log('[validate] Button text after:', btnText);
+      // Skip tour immediately
+      await page.locator('.tour-skip').first().click();
+      await page.waitForSelector('.tour-callout', { state: 'hidden', timeout: 5000 });
+      console.log('[tutorial] Tour skipped OK');
       break;
     }
   }
 
-  if (!validateBtnFound) {
-    console.log('[validate] No validate button found — workflow card may not have appeared');
+  if (!tutBtnFound) {
+    console.log('[tutorial] Tutorial button not found — workflow card may not have appeared');
   }
 });
 

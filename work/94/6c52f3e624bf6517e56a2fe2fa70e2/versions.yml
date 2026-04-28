@@ -1,0 +1,5 @@
+    "AIZYNTHFINDER_RETROSYNTHESIS:AIZYNTHFINDER_PREDICT":
+        aizynthfinder: /home/yzhang/biomate/work/94/6c52f3e624bf6517e56a2fe2fa70e2/.command.sh: line 220: aizynthcli: command not found
+        python: 3.12.3
+        mock_mode: "true"
+    END_VERSIONS

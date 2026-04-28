@@ -1,0 +1,16 @@
+{
+  "workflow": "cryosparc_standard_spa",
+  "version": "1.0",
+  "completion_time": "2026-03-09T20:36:24.792926",
+  "sample_type": "unknown",
+  "pixel_size_angstroms": 1.05,
+  "voltage_kv": 300,
+  "symmetry": "C1",
+  "mock_mode": true,
+  "outputs": {
+    "final_map": "volume_sharpened.mrc",
+    "local_resolution_map": "local_resolution.mrc",
+    "fsc_validation": "fsc_validation.json"
+  },
+  "steps_completed": 23
+}

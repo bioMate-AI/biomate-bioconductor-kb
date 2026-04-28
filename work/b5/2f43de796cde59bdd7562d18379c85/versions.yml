@@ -1,0 +1,4 @@
+    "ADMET_PRED_WORKFLOW:ADMET_PRED":
+        python: 3.12.3
+        biomni_function: "ADMET_pred"
+    END_VERSIONS

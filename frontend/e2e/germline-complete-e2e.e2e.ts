@@ -1269,6 +1269,16 @@ test.describe("GC-7: Mid-conversation interruption — tangent then return", () 
 });
 
 // ===========================================================================
+// GC-8  Step-level rerun via Nextflow -resume  [RETIRED 2026-04-16]
+// ---------------------------------------------------------------------------
+// GC-8 was removed from this suite after 2026-04-09. Step-level rerun is now
+// covered by WC-3 (full-run rerun) and WC-4 (per-step PhaseCard rerun) in
+// e2e/workflow-controls-comprehensive.e2e.ts.  The audit JSONs from the
+// 2026-04-09 runs that include "GC-8 Step-level rerun via Nextflow -resume"
+// remain in e2e/screenshots/germline-complete/ as historical artifacts.
+// ===========================================================================
+
+// ===========================================================================
 // After all: write audit JSON
 // ===========================================================================
 

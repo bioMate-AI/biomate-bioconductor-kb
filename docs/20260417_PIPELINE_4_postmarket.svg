@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="222" style="background:white;font-family:Arial, Helvetica, sans-serif;">
+  <defs>    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#555"/></marker>    <marker id="dr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#888"/></marker>  </defs>
+  <text x="340" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Stage 10–11: Post-Market Pharmacovigilance</text>
+  <text x="40" y="48" font-size="9" fill="#2e7d32">✅ Internal</text>  <text x="130" y="48" font-size="9" fill="#5c3c8a">🔌 External API</text>  <text x="240" y="48" font-size="9" fill="#b85450">🔌🔌 External data</text>
+  <rect x="40" y="94" width="195" height="48" rx="8" ry="8" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+  <text x="137" y="110" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📈 POST-MARKET</text>
+  <text x="137" y="126" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">Pharmacovigilance</text>
+  <rect x="260" y="60" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="78" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <text x="268" y="94" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ VCOG Adverse Event Grading</text>
+  <text x="268" y="110" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Find Alternative Drugs (TxGNN)</text>
+  <text x="268" y="126" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="142" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CYP DDI (new combinations)</text>
+  <text x="268" y="158" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx (real-world EHR data)</text>
+  <line x1="235" y1="118" x2="260" y2="118" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+</svg>

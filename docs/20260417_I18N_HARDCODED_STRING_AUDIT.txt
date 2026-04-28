@@ -1,0 +1,109 @@
+Scanning: /home/yzhang/biomate/frontend/client/src
+
+=== Top files by hardcoded string count ===
+   32  pages/landing.tsx
+   28  components/save-workflow-dialog.tsx
+   27  components/settings-dialog.tsx
+   24  pages/admin/feedback-dashboard.tsx
+   21  components/nextflow-workflow-viewer.tsx
+   19  pages/privacy.tsx
+   19  pages/terms.tsx
+   18  pages/checkout.tsx
+   17  pages/contact.tsx
+   16  components/app-sidebar.tsx
+   16  components/dataset-attachment.tsx
+   15  pages/billing.tsx
+   15  pages/pilot-exit-survey.tsx
+   13  components/chat-message.tsx
+   13  pages/website-prototypes/variant-b-product.tsx
+
+=== Candidate strings by pattern ===
+
+[JSX text content] — 505 unique strings
+  "Show Sidebar"  (App.tsx:192)
+  "Quota exceeded"  (components/app-sidebar.tsx:197)
+  "Compute"  (components/app-sidebar.tsx:212)
+  "Storage"  (components/app-sidebar.tsx:217)
+  "No usage yet"  (components/app-sidebar.tsx:230)
+  "Bioinformatics Assistant"  (components/app-sidebar.tsx:353)
+  "Toggle Sidebar"  (components/app-sidebar.tsx:364)
+  "Projects"  (components/app-sidebar.tsx:390)
+  "Recent Chats"  (components/app-sidebar.tsx:439)
+  "Tool Categories"  (components/app-sidebar.tsx:505)
+  "Quick Actions"  (components/app-sidebar.tsx:578)
+  "Starred Workflows"  (components/app-sidebar.tsx:587)
+  "Recent Tools"  (components/app-sidebar.tsx:596)
+  "Settings"  (components/app-sidebar.tsx:614)
+  "Threshold"  (components/auto-loop-panel.tsx:251)
+  "Status"  (components/auto-loop-panel.tsx:252)
+  "Source Study"  (components/benchmark-evidence.tsx:175)
+  "Genomics"  (components/bio-hero.tsx:118)
+  "Analysis"  (components/bio-hero.tsx:122)
+  "Lab Tools"  (components/bio-hero.tsx:126)
+  ... and 485 more
+
+[title attribute] — 24 unique strings
+  "Workflow running"  (components/app-sidebar.tsx:471)
+  "Workflow failed — needs attention"  (components/app-sidebar.tsx:477)
+  "Workflow completed"  (components/app-sidebar.tsx:483)
+  "Preview file"  (components/chat-input.tsx:192)
+  "Stop reply"  (components/chat-input.tsx:323)
+  "View workflow in panel"  (components/chat-message.tsx:356)
+  "Copy response"  (components/chat-message.tsx:567)
+  "Save response as file"  (components/chat-message.tsx:578)
+  "Regenerate response"  (components/chat-message.tsx:614)
+  "Create workflow"  (components/chat-message.tsx:624)
+  "Copy workflow JSON"  (components/chat-message.tsx:635)
+  "Download outputs"  (components/chat-message.tsx:646)
+  "Refresh run list"  (components/chat-with-artifacts.tsx:852)
+  "Reset to default"  (components/nextflow-workflow-viewer.tsx:1905)
+  "Override AI-recommended value"  (components/parameter-group.tsx:164)
+  "Adjust parameters and rerun from this step"  (components/phase-card.tsx:209)
+  "Skip this step"  (components/phase-card.tsx:222)
+  "Edit step parameters"  (components/phase-card.tsx:248)
+  "Preview inline"  (components/phase-card.tsx:338)
+  "Download file"  (components/phase-card.tsx:358)
+  ... and 4 more
+
+[placeholder attribute] — 76 unique strings
+  "Other domain (e.g. spatial genomics, immunology) — separate with commas"  (components/chat-interface.tsx:202)
+  "Specific topics within this area — separate with commas"  (components/chat-interface.tsx:289)
+  "Search workflow or run id"  (components/chat-with-artifacts.tsx:969)
+  "Name your project"  (components/create-project-dialog.tsx:140)
+  "Describe your project, goals, subject, etc..."  (components/create-project-dialog.tsx:156)
+  "Select a category"  (components/create-project-dialog.tsx:185)
+  "Add tags..."  (components/create-project-dialog.tsx:203)
+  "dckr_pat_..."  (components/credential-modal.tsx:115)
+  "Paste your license key"  (components/credential-modal.tsx:130)
+  "Select column..."  (components/data-scope-config.tsx:334)
+  "e.g., Raw RNA-seq reads"  (components/dataset-attachment.tsx:101)
+  "Brief description of the dataset"  (components/dataset-attachment.tsx:123)
+  "datasets/rna-seq"  (components/dataset-attachment.tsx:177)
+  "AKIA..."  (components/dataset-attachment.tsx:237)
+  "••••••••"  (components/dataset-attachment.tsx:251)
+  "data/rna-seq/"  (components/dataset-attachment.tsx:265)
+  "Search datasets..."  (components/dataset-dialog.tsx:163)
+  "e.g. bcr_abl_v1"  (components/drug-discovery-action.tsx:100)
+  "Campaign ID (e.g. bcr_abl_v1)"  (components/drug-discovery-action.tsx:311)
+  "metric_key"  (components/execution-control-panel.tsx:503)
+  ... and 56 more
+
+[action button text] — 6 unique strings
+  "Next"  (components/chat-interface.tsx:77)
+  "Confirm"  (components/credential-modal.tsx:196)
+  "Submit"  (components/feedback/download-outcome-prompt.tsx:110)
+  "Skip"  (components/workflow-artifact.tsx:1240)
+  "Cancel"  (pages/pilot-exit-survey.tsx:539)
+  "Back"  (pages/pilot-exit-survey.tsx:539)
+
+[aria-label attribute] — 7 unique strings
+  "Helpful"  (components/feedback/inline-feedback-widget.tsx:111)
+  "Not helpful"  (components/feedback/inline-feedback-widget.tsx:123)
+  "Close"  (components/step-output-preview.tsx:234)
+  "Close preview"  (components/step-output-preview.tsx:351)
+  "Go to previous page"  (components/ui/pagination.tsx:67)
+  "Go to next page"  (components/ui/pagination.tsx:83)
+  "Dismiss"  (components/workflow-artifact.tsx:1078)
+
+Total unique candidate strings: 618
+Total files scanned: 205

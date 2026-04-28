@@ -89,6 +89,15 @@ class BaselineLLMClient:
         )
         return cls(model=model, api_key=api_key)
 
+    def clone(self) -> "BaselineLLMClient":
+        """Return a new client instance (Anthropic SDK is thread-safe but clone for consistency)."""
+        return BaselineLLMClient(
+            model=self.model,
+            system_prompt=self.system_prompt,
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+        )
+
     # ------------------------------------------------------------------
     # Public API  (mirrors BioMateEvalClient)
     # ------------------------------------------------------------------

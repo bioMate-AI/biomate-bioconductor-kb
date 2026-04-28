@@ -192,6 +192,43 @@ PATCHES = [
             "Performs QC and variant detection specialized for tuberculosis genomic surveillance and resistance profiling."
         ),
     },
+    # ── variant_calling domain: sarek vs wgs_germline_gatk disambiguation ────
+    {
+        "name_pattern": "nf-core/sarek",
+        "mode": "prepend",
+        "description": (
+            "For somatic and tumor-normal variant calling, cancer genomics, CNV/SV detection, "
+            "and multi-sample cohort analysis. "
+            "Use nf-core/raredisease for rare disease diagnosis. "
+        ),
+    },
+    {
+        "name_pattern": "wgs_germline_gatk",
+        "mode": "append",
+        "description": (
+            " Use for germline single-sample, family trio, or population genetics variant calling "
+            "of inherited disease. NOT for somatic/tumor samples — use nf-core/sarek for cancer."
+        ),
+    },
+    # ── atac_seq domain: atacseq vs cutandrun disambiguation ─────────────────
+    {
+        "name_pattern": "nf-core/atacseq",
+        "mode": "prepend",
+        "description": (
+            "Tn5-transposase-based open chromatin profiling (ATAC-seq). "
+            "Does NOT use antibodies. "
+            "For antibody-based chromatin profiling use nf-core/cutandrun. "
+        ),
+    },
+    {
+        "name_pattern": "nf-core/cutandrun",
+        "mode": "prepend",
+        "description": (
+            "Antibody-based targeted chromatin profiling: CUT&RUN, CUT&TAG, and SNAP-CUTANA. "
+            "Uses pA-Tn5 or pA-MNase with specific antibodies for histone marks "
+            "(H3K4me3, H3K27ac, H3K27me3) or TF binding. NOT ATAC-seq. "
+        ),
+    },
 ]
 
 

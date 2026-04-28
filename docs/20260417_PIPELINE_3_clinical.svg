@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="638" style="background:white;font-family:Arial, Helvetica, sans-serif;">
+  <defs>    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#555"/></marker>    <marker id="dr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#888"/></marker>  </defs>
+  <text x="340" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Stage 6–9: IND · Phase I · Phase II · Phase III · Approval</text>
+  <text x="40" y="48" font-size="9" fill="#2e7d32">✅ Internal</text>  <text x="130" y="48" font-size="9" fill="#5c3c8a">🔌 External API</text>  <text x="240" y="48" font-size="9" fill="#b85450">🔌🔌 External data</text>
+  <rect x="40" y="78" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="102" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📋 IND FILING</text>
+  <rect x="40" y="194" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="210" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">👤 PHASE I — FIH</text>
+  <text x="137" y="226" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">/ Dose Escalation</text>
+  <line x1="137" y1="126" x2="137" y2="194" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="40" y="326" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="342" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📊 PHASE II —</text>
+  <text x="137" y="358" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">PoC / Dose Finding</text>
+  <line x1="137" y1="242" x2="137" y2="326" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="40" y="442" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="466" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🏥 PHASE III — Pivotal Trials</text>
+  <line x1="137" y1="374" x2="137" y2="442" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="40" y="534" width="195" height="48" rx="8" ry="8" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+  <text x="137" y="558" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">✅ APPROVAL — NDA / BLA</text>
+  <line x1="137" y1="490" x2="137" y2="534" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="260" y="60" width="370" height="84" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="78" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK (human prediction)</text>
+  <text x="268" y="94" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Allometric Scaling</text>
+  <text x="268" y="110" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation</text>
+  <text x="268" y="126" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx Report (patient diplotypes)</text>
+  <line x1="235" y1="102" x2="260" y2="102" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="160" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="178" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (BOIN)</text>
+  <text x="268" y="194" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK (pop. variability)</text>
+  <text x="268" y="210" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 nlmixr2 PopPK (trial PK data)</text>
+  <text x="268" y="226" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx Report (patient genotypes)</text>
+  <text x="268" y="242" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Apply VCOG Grade</text>
+  <text x="268" y="258" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Drug Label Info (DailyMed)</text>
+  <line x1="235" y1="218" x2="260" y2="218" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="292" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="310" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (Phase II)</text>
+  <text x="268" y="326" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 nlmixr2 PopPK (trial data)</text>
+  <text x="268" y="342" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx stratification (patient data)</text>
+  <text x="268" y="358" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Bayesian Optimizer (response)</text>
+  <text x="268" y="374" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="390" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <line x1="235" y1="350" x2="260" y2="350" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="424" width="370" height="84" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="442" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (adaptive)</text>
+  <text x="268" y="458" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx Report (patient data)</text>
+  <text x="268" y="474" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="490" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <line x1="235" y1="466" x2="260" y2="466" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="524" width="370" height="68" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="542" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Drug Label Info (DailyMed)</text>
+  <text x="268" y="558" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Check FDA Drug Recalls (FDA API)</text>
+  <text x="268" y="574" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 PGx Report (patient data)</text>
+  <line x1="235" y1="558" x2="260" y2="558" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+</svg>

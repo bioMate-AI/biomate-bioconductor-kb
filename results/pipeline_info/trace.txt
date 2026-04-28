@@ -1,0 +1,2 @@
+task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
+1	97/86246c	3338009	COUNT_BACTERIAL_COLONIES_WORKFLOW:COUNT_BACTERIAL_COLONIES (run)	FAILED	1	2026-04-08 22:57:45.649	55ms	2ms	-	-	-	-	-

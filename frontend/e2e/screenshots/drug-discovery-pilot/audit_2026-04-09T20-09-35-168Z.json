@@ -1,0 +1,187 @@
+{
+  "generated": "2026-04-09T20:09:35.168Z",
+  "suiteStartedAt": "2026-04-09T20:03:17.257Z",
+  "pilotReference": "docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+  "testAccount": "e2e_pilot_drug_discovery@biomate.test",
+  "baseUrl": "https://dev-public.biomate.ai",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-discovery-pilot",
+  "hypotheses": {
+    "H1": {
+      "target": "≥80% sessions generate workflow without manual correction",
+      "result": "0/1 (0%)",
+      "pass": false
+    },
+    "H2": {
+      "target": "≤120s per session time-to-workflow-card",
+      "result": "1/1 sessions within 120s",
+      "pass": true,
+      "avgFirstResponseMs": 27905
+    },
+    "H3": {
+      "target": "≥70% sessions rated ≥4/5 for scientific defensibility",
+      "result": "0/1 (0%)",
+      "pass": false,
+      "ratings": [
+        {
+          "session": "S4_PHARMA",
+          "rating": 3
+        }
+      ]
+    },
+    "H5": {
+      "target": "0 hallucinations — all generated workflows exist in DB",
+      "result": "1/1 workflows verified",
+      "pass": true
+    }
+  },
+  "timingTable": [
+    {
+      "session": "S4_PHARMA",
+      "name": "Pharmacophore Filtering — ABL1 Selectivity Screen",
+      "turns": 2,
+      "firstResponseMs": 27905,
+      "firstWorkflowCardMs": null,
+      "totalSessionMs": 108635,
+      "h1": false,
+      "h2": true,
+      "h3": 3,
+      "h5": true,
+      "llm_input_tokens_delta": 0,
+      "llm_output_tokens_delta": 0,
+      "llm_cost_usd_delta": 0.011054999999999982,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.011054999999999982,
+      "execRunId": null,
+      "execStatus": "not_run",
+      "execDurationMs": null,
+      "outputFileCount": 0,
+      "phaseCount": 0,
+      "screenshots": [
+        "S4_PHARMA_00_start.png",
+        "S4_PHARMA_T1_response.png",
+        "S4_PHARMA_T2_forced.png"
+      ],
+      "status": "pass"
+    }
+  ],
+  "billingTotals": {
+    "llm_input_tokens": 0,
+    "llm_output_tokens": 0,
+    "llm_cost_usd": 0.011054999999999982,
+    "compute_cost_usd": 0,
+    "total_usd": 0.011054999999999982,
+    "totalDurationMs": 108635,
+    "costPerSession": 0.011054999999999982,
+    "finalLagoSnapshot": {
+      "ts": "2026-04-09T20:09:34.781Z",
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "llm_cost_usd": 0.207387,
+      "compute_cost_usd": 0,
+      "storage_cost_usd": 0,
+      "total_usd": 0.207387,
+      "quota_pct": 0
+    }
+  },
+  "roiMetrics": {
+    "sessionsCompleted": 1,
+    "totalWallClockMs": 108635,
+    "avgSessionMs": 108635,
+    "maxSessionMs": 108635,
+    "totalLLMCost_usd": 0.011054999999999982,
+    "totalComputeCost_usd": 0,
+    "totalCost_usd": 0.011054999999999982,
+    "manualEquivalentHours": 24,
+    "bioMateWallClockHours": 0.030176388888888888,
+    "speedupFactor": 795.3237906751967,
+    "costPerWorkflowGeneration": 0.011054999999999982,
+    "note": "Compute costs are $0 for mock-mode Nextflow runs. Real AWS Batch costs apply on cloud."
+  },
+  "sessions": [
+    {
+      "sessionId": "S4_PHARMA",
+      "sessionName": "Pharmacophore Filtering — ABL1 Selectivity Screen",
+      "pilotSession": "Session 4 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "pharmacophore_filtering",
+      "startTs": "2026-04-09T20:03:18.148Z",
+      "endTs": "2026-04-09T20:05:06.783Z",
+      "totalDurationMs": 108635,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Build a pharmacophore model from 4 known ABL1 kinase inhibitors and screen a compound library against it. Reference ABL1 inhibitors:\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)…",
+          "tSendMs": 1775764999803,
+          "tResponseMs": 1775765027708,
+          "tWorkflowCardMs": null,
+          "responseTimeMs": 27905,
+          "workflowCardTimeMs": null,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": false,
+          "responseText": "ABL1 Kinase Pharmacophore Modeling & Library Screening — Builds a consensus pharmacophore from 4 known ABL1 inhibitors and screens a 4-compound library against it in a single run.\n\nInput: 4 reference SMILES (Imatinib, Dasatinib, Bosutinib, Asciminib) as reference_smiles; 4 library SMILES (Gleevec-analog-1, Ponatinib, Terfenadine, Acetaminophen) as library_smiles; min_features = 3\nKey steps:\n\nRDKit MolVS + PharmacophoreModel → extracts shared H-bond donors/acceptors, hydrophobic centers, and aromatic rings from the 4 actives → consensus pharmacophore model (JSON + feature map)\nPharmacophore Screening Engine → scores each library compound against the consensus model, counting matched features (≥ min_features = 3 to pass)\n\n\nExpected output: pharmacophore_hits.csv (compound ID, matched features, pass/fail flag) + pharmacophore_model.json (feature definitions) + ranked HTML screening report\n\n\n✅ All 4 reference SMILES and all 4 library SMILES have been parsed and passed to the pharmacophore_filtering workflow. Click Run to execute — no additional input needed. Results will flag Gleevec-analog-1 and Ponatinib as likely hits (structurally similar to actives), while Terfenadine and Acetaminophen are expected to fail the ABL1 pharmacophore filter.\n"
+        },
+        {
+          "turn": 99,
+          "query": "Generate the pharmacophore_filtering ABL1 pharmacophore screening workflow now using the data I provided. Do not ask for clarification — all required parameters are already in my previous messages.",
+          "tSendMs": 1775765030864,
+          "tResponseMs": 1775765101014,
+          "tWorkflowCardMs": null,
+          "responseTimeMs": 70150,
+          "workflowCardTimeMs": null,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": false,
+          "responseText": "ABL1 Pharmacophore Build & Screen — Builds a consensus pharmacophore from 4 ABL1 inhibitor references and screens a 4-compound library, all parameters fully pre-loaded.\n\nInput:\n\nreference_smiles: Imatinib · Dasatinib · Bosutinib · Asciminib (4 SMILES)\nlibrary_smiles: Gleevec-analog-1 · Ponatinib · Terfenadine · Acetaminophen (4 SMILES)\nmin_features = 3\n\n\nKey steps:\n\nRDKit PharmacophoreModel → extracts consensus H-bond donors/acceptors, aromatic rings & hydrophobic centers from all 4 reference actives → pharmacophore_model.json\nPharmacophore Screening Engine → scores each library compound against the consensus model, applies min_features ≥ 3 cutoff → ranked hit list with per-feature match breakdown\n\n\nExpected output: pharmacophore_hits.csv (compound, features matched, pass/fail) + pharmacophore_model.json (feature definitions & thresholds) + pharmacophore_screening_report.html (ranked visual report)\n\n\n✅ All 8 SMILES strings and min_features = 3 are pre-loaded into the pharmacophore_filtering workflow. Based on structural similarity to the ABL1 actives, Gleevec-analog-1 and Ponatinib are predicted to PASS (≥3 matched features: HBA, aromatic rings, amide bond), while Terfenadine and Acetaminophen are predicted to FAIL the ABL1 pharmacophore filter. Click Run to execute and receive the full scored report.\n"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-09T20:03:19.707Z",
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.184905,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.184905,
+        "quota_pct": 0
+      },
+      "billingAfter": {
+        "ts": "2026-04-09T20:05:06.673Z",
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.19596,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.19596,
+        "quota_pct": 0
+      },
+      "billingDelta": {
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.011054999999999982,
+        "compute_cost_usd": 0,
+        "total_usd": 0.011054999999999982
+      },
+      "h1Pass": false,
+      "h2Pass": true,
+      "h3Rating": 3,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 27905ms card=false",
+        "H3=3: 2D pharmacophore non-selective (all drug-like hits HBD+HBA+Ar+Hydrophobic)",
+        "Production improvement: --generate_3d true for 3D distance constraints",
+        "No workflow card / run button — execution skipped"
+      ],
+      "execution": null,
+      "screenshots": [
+        "S4_PHARMA_00_start.png",
+        "S4_PHARMA_T1_response.png",
+        "S4_PHARMA_T2_forced.png"
+      ],
+      "screenshot": "S4_PHARMA_T2_forced.png",
+      "status": "pass"
+    }
+  ]
+}

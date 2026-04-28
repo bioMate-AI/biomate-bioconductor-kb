@@ -1,0 +1,85 @@
+{
+  "sessionId": "PS-DD-6",
+  "sessionName": "IVIVE Hepatic Clearance",
+  "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_dd6_1777233989214@biomate.test",
+  "startTs": "2026-04-26T20:06:29.214Z",
+  "endTs": "2026-04-26T20:13:03.429Z",
+  "totalDurationMs": 394215,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Run IVIVE (in vitro–in vivo extrapolation) hepatic clearance prediction for 4 BCR-ABL1 TKIs.\n\nMeasured in vitro data (human liver microsomes, CLint µL/min/mg protein):\nDasatinib: CLint=310, fu_plasma=0.034, MW=488\nBosutinib: CLint=85, fu_plasma=0.036, MW=530\nImatinib: CLint=28, fu_plasma=0.095, MW=4",
+      "responseMs": 121628,
+      "cardMs": 121628,
+      "workflowName": null
+    }
+  ],
+  "runId": "7856d075-2785-4f49-8e1b-4411d809ae71",
+  "execStatus": "completed",
+  "execDurationMs": 264602,
+  "outputFiles": [],
+  "downloadCommands": {
+    "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7856d075-2785-4f49-8e1b-4411d809ae71/ ./outputs/",
+    "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7856d075-2785-4f49-8e1b-4411d809ae71/ ./outputs/ --include '*.json' --exclude '*'",
+    "intermediate_files": {
+      "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/7856d075-2785-4f49-8e1b-4411d809ae71/ ./work/"
+    }
+  },
+  "goldStandard": [
+    {
+      "criterion": "IVIVE output file",
+      "threshold": "≥1 CSV",
+      "actual": "none",
+      "pass": false
+    },
+    {
+      "criterion": "Clearance ordering correct (Das>Bos>Ima>Nil)",
+      "threshold": "correct rank",
+      "actual": "n/a (mock)",
+      "pass": true
+    }
+  ],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-26T20:06:33.149Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-26T20:13:03.429Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": true,
+  "h3": 5,
+  "h5": true,
+  "screenshots": [
+    "PS-DD-6_01_home.png",
+    "PS-DD-6_02_after_t1.png",
+    "PS-DD-6_03_card.png",
+    "PS-DD-6_04_running.png",
+    "PS-DD-6_05_completed.png",
+    "PS-DD-6_06_output_viz.png"
+  ],
+  "notes": [],
+  "status": "partial"
+}

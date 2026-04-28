@@ -1,0 +1,159 @@
+[
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1776142850035,
+    "endTs": 1776142850035,
+    "finalStatus": "timeout",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to helical SPA query",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Run controls panel visible",
+        "passed": true
+      },
+      {
+        "name": "Parameters panel visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "movies_path auto-filled from uploaded .mrc file",
+        "passed": false,
+        "note": "empty — upload-to-param injection not working"
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "QC profile selector visible",
+        "passed": false
+      },
+      {
+        "name": "Run button clicked",
+        "passed": true
+      },
+      {
+        "name": "Cold-start banner check",
+        "passed": true,
+        "note": "not shown (local or fast)"
+      },
+      {
+        "name": "Run reached terminal state",
+        "passed": false,
+        "note": "timeout"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_04_params_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_05_qc_settings.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_06_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_08_terminal_timeout.png"
+    ]
+  },
+  {
+    "testId": "CE-2",
+    "workflowName": "Helical SPA Pipeline",
+    "runId": null,
+    "startTs": 1776143258986,
+    "endTs": 1776143258986,
+    "finalStatus": "timeout",
+    "assertions": [
+      {
+        "name": "AI responded to helical query",
+        "passed": true
+      },
+      {
+        "name": "Helical workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "helical_rise_angstroms field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_twist_deg field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_rise auto-filled from query",
+        "passed": true,
+        "note": "value=4.75"
+      },
+      {
+        "name": "Run button clicked for helical SPA",
+        "passed": true
+      },
+      {
+        "name": "Helical SPA run reached terminal state",
+        "passed": false,
+        "note": "timeout"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_03_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_04_params_and_qc.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_05_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_06_terminal_timeout.png"
+    ]
+  },
+  {
+    "testId": "CE-3",
+    "workflowName": "QC Settings Controls",
+    "runId": null,
+    "startTs": 1776143314445,
+    "endTs": 1776143314445,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "AI response received",
+        "passed": true
+      },
+      {
+        "name": "Workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true
+      },
+      {
+        "name": "QC profile selector rendered",
+        "passed": false
+      },
+      {
+        "name": "QC override controls rendered",
+        "passed": false
+      },
+      {
+        "name": "Execute button clicked with QC overrides set",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01b_qc_expanded.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_05_after_execute.png"
+    ]
+  }
+]

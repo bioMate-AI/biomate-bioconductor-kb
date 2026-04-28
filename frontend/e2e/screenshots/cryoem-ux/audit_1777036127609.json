@@ -1,0 +1,19 @@
+[
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1777036127608,
+    "endTs": 1777036127608,
+    "finalStatus": "error: locator.fill: Timeout 60000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea').first()\u001b[22m\n",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png"
+    ]
+  }
+]

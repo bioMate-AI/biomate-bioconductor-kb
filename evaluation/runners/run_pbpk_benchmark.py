@@ -143,12 +143,14 @@ def _compute_summary(
     no_smiles_total = max(1, len(by_qtype["incomplete_no_smiles"]))
 
     # Prereq detection — no_params
+    # Scoring: asks_pk_params=1.0, asks_smiles or routed_with_defaults=0.5, else=0.0
+    # For summary "correct" count we use weighted sum (0.5 counts as half-correct)
     no_params_correct = sum(
-        1 for r in by_qtype["incomplete_no_params"]
-        if (
-            adapter._response_asks_for_pk_params(r.agent_response) or
-            adapter._response_asks_for_smiles(r.agent_response)
-        )
+        (1.0 if adapter._response_asks_for_pk_params(r.agent_response)
+         else 0.5 if (adapter._response_asks_for_smiles(r.agent_response) or
+                      adapter._response_routed_to_pbpk(r.agent_response))
+         else 0.0)
+        for r in by_qtype["incomplete_no_params"]
     )
     no_params_total = max(1, len(by_qtype["incomplete_no_params"]))
 

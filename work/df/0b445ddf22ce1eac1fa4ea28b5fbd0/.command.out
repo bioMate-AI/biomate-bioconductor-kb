@@ -1,0 +1,4 @@
+AiZynthFinder predict (mock) [CPND0004]: 3 routes  smiles=CC(=O)Nc1ccc(O)cc1
+  Route 1: steps=3  score=0.717  sa_score=3.33
+  Route 3: steps=2  score=0.696  sa_score=2.41
+  Route 2: steps=2  score=0.58  sa_score=1.75

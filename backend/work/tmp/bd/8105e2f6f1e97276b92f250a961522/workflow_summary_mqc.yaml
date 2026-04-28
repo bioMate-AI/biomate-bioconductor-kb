@@ -1,0 +1,57 @@
+id: 'nf-core-rnaseq-summary'
+description: ' - this information is collected when the pipeline is started.'
+section_name: 'nf-core/rnaseq Workflow Summary'
+section_href: 'https://github.com/nf-core/rnaseq'
+plot_type: 'html'
+data: |
+    <p style="font-size:110%"><b>Input/output options</b></p>
+    <dl class="dl-horizontal">
+        <dt>input</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/samplesheet/v3.10/samplesheet_test.csv</samp></dd>
+        <dt>outdir</dt><dd><samp>/tmp/biomate_test_run</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Reference genome options</b></p>
+    <dl class="dl-horizontal">
+        <dt>additional_fasta</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/gfp.fa.gz</samp></dd>
+        <dt>fasta</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genome.fasta</samp></dd>
+        <dt>gff</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genes.gff.gz</samp></dd>
+        <dt>gtf</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/genes_with_empty_tid.gtf.gz</samp></dd>
+        <dt>hisat2_index</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/hisat2.tar.gz</samp></dd>
+        <dt>salmon_index</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/salmon.tar.gz</samp></dd>
+        <dt>transcript_fasta</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/transcriptome.fasta</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Read filtering options</b></p>
+    <dl class="dl-horizontal">
+        <dt>bbsplit_fasta_list</dt><dd><samp>https://raw.githubusercontent.com/nf-core/test-datasets/626c8fab639062eade4b10747e919341cbf9b41a/reference/bbsplit_fasta_list.txt</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>UMI options</b></p>
+    <dl class="dl-horizontal">
+        <dt>umi_discard_read</dt><dd><samp>0</samp></dd>
+        <dt>umitools_bc_pattern</dt><dd><samp>NNNN</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Alignment options</b></p>
+    <dl class="dl-horizontal">
+        <dt>pseudo_aligner</dt><dd><samp>salmon</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Process skipping options</b></p>
+    <dl class="dl-horizontal">
+        <dt>skip_bbsplit</dt><dd><samp>false</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Institutional config options</b></p>
+    <dl class="dl-horizontal">
+        <dt>config_profile_description</dt><dd><samp>Minimal test dataset to check pipeline function</samp></dd>
+        <dt>config_profile_name</dt><dd><samp>Test profile</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Generic options</b></p>
+    <dl class="dl-horizontal">
+        <dt>trace_report_suffix</dt><dd><samp>2026-03-24_22-25-58</samp></dd>
+    </dl>
+    <p style="font-size:110%"><b>Core Nextflow options</b></p>
+    <dl class="dl-horizontal">
+        <dt>configFiles</dt><dd><samp>/home/yzhang/biomate/backend/nf-core-workflows/rnaseq/nextflow.config</samp></dd>
+        <dt>launchDir</dt><dd><samp>/home/yzhang/biomate/backend</samp></dd>
+        <dt>profile</dt><dd><samp>test</samp></dd>
+        <dt>projectDir</dt><dd><samp>/home/yzhang/biomate/backend/nf-core-workflows/rnaseq</samp></dd>
+        <dt>runName</dt><dd><samp>angry_visvesvaraya</samp></dd>
+        <dt>userName</dt><dd><samp>yzhang</samp></dd>
+        <dt>workDir</dt><dd><samp>/home/yzhang/biomate/backend/work</samp></dd>
+    </dl>

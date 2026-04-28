@@ -1,0 +1,101 @@
+[
+  {
+    "testId": "CE-0",
+    "workflowName": "QC profiles API",
+    "runId": null,
+    "startTs": 1777304044239,
+    "endTs": 1777304044239,
+    "finalStatus": "passed",
+    "assertions": [
+      {
+        "name": "6 cryo-EM profiles present",
+        "passed": true
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "testId": "CE-3",
+    "workflowName": "QC Settings Controls",
+    "runId": null,
+    "startTs": 1777304146875,
+    "endTs": 1777304146875,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "AI response received",
+        "passed": true
+      },
+      {
+        "name": "Workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true
+      },
+      {
+        "name": "QC profile selector rendered",
+        "passed": true
+      },
+      {
+        "name": "cryoem profile selectable",
+        "passed": true,
+        "note": "selected: \"cryoem_spa_purified\", options: [Default, rnaseq polya standard, rnaseq ribodepleted, rnaseq ffpe, rnaseq single nucleus, rnaseq nonmodel organism, wgs germline standard, wgs germline lowpass, wgs somatic tumor only, wgs ffpe, wes research, wes clinical germline, scrna standard, scrna cardiac, scrna neuronal, scrna perturbation, metagenomics human gut, metagenomics soil, metagenomics marine, metagenomics clinical pathogen, cryoem spa purified, cryoem spa membrane, cryoem spa phase plate, cryoem spa standard, cryoem spa lowdose, cryoem tomo in situ, proteomics standard, proteomics phospho, proteomics plasma biomarker, proteomics chemoproteomics, compound druglike, compound natural product, compound peptidomimetic, pgx clinical, pgx research]"
+      },
+      {
+        "name": "QC override controls rendered",
+        "passed": true,
+        "note": "4 threshold rows"
+      },
+      {
+        "name": "threshold edit tracked as override",
+        "passed": true,
+        "note": "new=60"
+      },
+      {
+        "name": "Execute button clicked with QC overrides set",
+        "passed": true
+      },
+      {
+        "name": "QC override tag persists after execute click",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01b_qc_expanded.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_02_profile_selected.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_03_override_added.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_05_after_execute.png"
+    ]
+  },
+  {
+    "testId": "CE-5",
+    "workflowName": "Session Isolation",
+    "runId": null,
+    "startTs": 1777304337649,
+    "endTs": 1777304337649,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "First workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second card shows helical workflow",
+        "passed": true,
+        "note": "ok"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_01_first_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_02_second_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_03_both_cards.png"
+    ]
+  }
+]

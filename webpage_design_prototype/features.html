@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Features — BioMate AI</title>
+  <meta name="description" content="BioMate AI features: AI chat interface, 60+ validated workflows, real-time cloud execution, AI findings summarization, reproducibility and compliance." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/site.css" />
+  <style>
+    .page-hero {
+      background: var(--bg-dark);
+      padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,3rem);
+      text-align: center;
+    }
+    .page-hero .section-tag { color: #6fcfed; }
+    .page-hero h1 { font-family: var(--font-head); font-size: clamp(2.2rem,5.5vw,3.6rem); font-weight:700; color:#fff; margin-bottom:1rem; }
+    .page-hero p  { color: rgba(255,255,255,.65); font-size: 1.1rem; max-width:600px; margin:0 auto 2rem; }
+
+    /* Feature rows (alternating) */
+    .feature-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+      max-width: 1080px; margin: 0 auto;
+    }
+    .feature-row.reverse { direction: rtl; }
+    .feature-row.reverse > * { direction: ltr; }
+
+    .feature-visual {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden; min-height: 320px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feature-visual .mock {
+      padding: 2rem; width: 100%;
+    }
+    /* Chat mock */
+    .chat-bubble {
+      border-radius: 12px; padding: .75rem 1rem;
+      font-size: .82rem; margin-bottom: .75rem; max-width: 85%;
+    }
+    .chat-bubble.user { background: var(--accent); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+    .chat-bubble.ai   { background: var(--bg); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+    .chat-bubble.ai strong { color: var(--accent-light); }
+
+    /* Workflow card mock */
+    .wf-card-mock {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .wf-card-mock .wf-title { font-weight: 700; font-size: .9rem; color: var(--text); margin-bottom: .5rem; }
+    .wf-card-mock .wf-badge { display: inline-block; background: rgba(16,185,129,.15); color: #059669; font-size: .7rem; font-weight:700; padding: 2px 8px; border-radius: 50px; margin-bottom: .75rem; }
+    .wf-card-mock .param-row { display: flex; justify-content: space-between; font-size: .78rem; color: var(--text-muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .wf-card-mock .param-row:last-child { border-bottom: none; }
+    .wf-card-mock .param-row .val { color: var(--text); font-weight: 600; }
+
+    /* Findings mock */
+    .findings-mock { padding: 1.25rem; font-size: .82rem; }
+    .findings-section { margin-bottom: 1rem; }
+    .findings-section h6 { font-weight:700; color:var(--text); margin-bottom:.35rem; font-size:.8rem; }
+    .finding-item { display:flex; gap:8px; color:var(--text-muted); margin-bottom:.35rem; line-height:1.4; }
+    .finding-item::before { content:'▸'; color:var(--accent); flex-shrink:0; }
+    .citation-item { font-size:.72rem; color:var(--text-light); background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:4px 8px; margin-bottom:4px; }
+
+    @media (max-width: 780px) {
+      .feature-row { grid-template-columns: 1fr; gap: 2rem; }
+      .feature-row.reverse { direction: ltr; }
+    }
+
+    /* Workflow catalog */
+    #workflows { background: var(--bg-dark); }
+    .domain-tabs {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem;
+    }
+    .tab-btn {
+      padding: 6px 16px; border-radius: 50px;
+      font-size: .82rem; font-weight: 700; cursor: pointer;
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.55);
+      border: 1px solid rgba(255,255,255,.12); transition: all .2s;
+    }
+    .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .workflows-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 16px;
+    }
+    .wf-tile {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: var(--radius); padding: 1.25rem;
+      transition: border-color .2s, background .2s;
+    }
+    .wf-tile:hover { border-color: var(--accent); background: rgba(74,122,138,.15); }
+    .wf-tile h5 { font-size: .9rem; font-weight: 700; color: #e2eef2; margin-bottom: .35rem; }
+    .wf-tile p  { font-size: .78rem; color: rgba(255,255,255,.45); line-height: 1.5; }
+    .wf-tile .wf-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: .75rem; }
+    .wf-tile .wf-tag {
+      font-size: .65rem; font-weight:700; padding: 2px 7px; border-radius: 50px;
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.45);
+    }
+
+    /* Compliance section */
+    #compliance { background: var(--bg-card); }
+    .compliance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .compliance-card {
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem;
+    }
+    .compliance-card .icon { font-size: 2rem; margin-bottom: 1rem; }
+    .compliance-card h4 { font-family: var(--font-head); font-size: 1.2rem; color: var(--text); margin-bottom: .5rem; }
+    .compliance-card p { font-size: .875rem; color: var(--text-muted); line-height: 1.6; }
+    @media (max-width: 700px) { .compliance-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="site-header"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+<nav>
+  <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="BioMate AI" /></a>
+  <ul class="nav-links">
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="features.html" class="active">Features</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener" class="nav-login">Log In</a>
+    <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════ PAGE HERO ═══ -->
+<div class="page-hero">
+  <span class="section-tag">Platform Features</span>
+  <h1>Everything you need to run<br />reproducible biomedical research</h1>
+  <p>From a single conversation to a publication-ready findings report — BioMate handles the pipeline, the compute, and the analysis.</p>
+  <div class="cta-btns" style="justify-content:center;">
+    <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank">Start Free Trial</a>
+    <a class="btn btn-outline-white" href="pricing.html">View Pricing</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ FEATURE: AI CHAT ═══ -->
+<section style="background:var(--bg);">
+  <div class="section-inner">
+    <div class="feature-row">
+      <div>
+        <span class="section-tag">Feature 01</span>
+        <h2 class="section-title">AI that understands research intent</h2>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.7; margin-bottom:1.5rem;">
+          Describe your analysis in plain English. BioMate recognizes intent — not just keywords —
+          and routes your request to the right workflow from 60+ validated pipelines, across 20+ domains.
+        </p>
+        <ul style="display:flex; flex-direction:column; gap:10px; list-style:none;">
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Domain-aware routing — genomics, pharma, cryo-EM, multi-omics</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Personalized to your research profile and past sessions</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Multi-turn clarification when inputs are ambiguous</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Out-of-domain scope notices to keep your analysis on track</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="mock">
+          <div class="chat-bubble user">Run ADMET profiling on ibuprofen — SMILES: CC(C)Cc1ccc(cc1)C(C)C(=O)O. Check hERG and CYP3A4 inhibition.</div>
+          <div class="chat-bubble ai">
+            <strong>ADMET + CYP DDI Panel</strong> matched.<br /><br />
+            I've pre-filled 6 parameters from your description including the SMILES string, hERG and CYP3A4 targets. Ready to run on AWS Batch.<br /><br />
+            <em>Estimated time: ~8 minutes</em>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FEATURE: WORKFLOWS ═══ -->
+<section style="background:var(--bg-card);">
+  <div class="section-inner">
+    <div class="feature-row reverse">
+      <div>
+        <span class="section-tag">Feature 02</span>
+        <h2 class="section-title">Smart parameter pre-fill &amp; validation</h2>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.7; margin-bottom:1.5rem;">
+          BioMate extracts data from your message — SMILES strings, SRA accessions, genome builds, reference files —
+          and auto-fills workflow parameters. Required fields are validated before you can run.
+        </p>
+        <ul style="display:flex; flex-direction:column; gap:10px; list-style:none;">
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> SMILES, SRR accessions, FASTA/VCF paths auto-detected</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Genome builds (hg38, GRCh38, mm10) injected automatically</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> iGenomes S3 paths resolved for reference-genome workflows</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Prerequisite checks block launch until inputs are valid</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="mock">
+          <div class="wf-card-mock">
+            <div class="wf-title">WGS Germline Variant Calling — GATK4</div>
+            <div class="wf-badge">✓ All parameters valid — ready to run</div>
+            <div class="param-row"><span>Input reads</span><span class="val">SRR1518169 (SRA)</span></div>
+            <div class="param-row"><span>Reference genome</span><span class="val">hg38</span></div>
+            <div class="param-row"><span>Known sites</span><span class="val">dbSNP 138 (auto)</span></div>
+            <div class="param-row"><span>Max spots</span><span class="val">100</span></div>
+            <div class="param-row"><span>Compute</span><span class="val">AWS Batch (CPU)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════ FEATURE: FINDINGS ═══ -->
+<section style="background:var(--bg);" id="findings">
+  <div class="section-inner">
+    <div class="feature-row">
+      <div>
+        <span class="section-tag">Feature 03</span>
+        <h2 class="section-title">AI findings summarization with citations</h2>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.7; margin-bottom:1.5rem;">
+          When a run completes, BioMate reads your output files and generates a structured scientific
+          findings report — summary, key findings, quality assessment, next steps, and supporting citations.
+        </p>
+        <ul style="display:flex; flex-direction:column; gap:10px; list-style:none;">
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Reads VCF, CSV, TSV, FASTA, and JSON outputs automatically</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Structured: summary → key findings → QC → next steps</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Supporting literature citations for each key finding</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Quality flags, limitations, and recommended next analyses</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="mock findings-mock">
+          <div class="findings-section">
+            <h6>Summary</h6>
+            <p style="font-size:.78rem; color:var(--text-muted); line-height:1.5;">ADMET profiling of ibuprofen shows favorable oral bioavailability (F~80%) with moderate CYP2C9 inhibition (IC₅₀ 51 µM). hERG binding risk is low.</p>
+          </div>
+          <div class="findings-section">
+            <h6>Key Findings</h6>
+            <div class="finding-item">LogP = 3.97 — within Lipinski space; good permeability predicted</div>
+            <div class="finding-item">CYP2C9 inhibitor (moderate) — potential DDI with warfarin</div>
+            <div class="finding-item">hERG IC₅₀ > 100 µM — low cardiac liability</div>
+          </div>
+          <div class="findings-section">
+            <h6>Citations</h6>
+            <div class="citation-item">Daina A. et al. SwissADME (2017) · Sci Rep 7:42717</div>
+            <div class="citation-item">Lipinski CA et al. Adv Drug Deliv Rev (2001) · 46:3–26</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ FEATURE: REPRODUCIBILITY ═══ -->
+<section style="background:var(--bg-card);">
+  <div class="section-inner">
+    <div class="feature-row reverse">
+      <div>
+        <span class="section-tag">Feature 04</span>
+        <h2 class="section-title">Reproducibility &amp; audit trails built in</h2>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.7; margin-bottom:1.5rem;">
+          Every run is fully versioned — parameters, tool versions, container hashes, and data provenance.
+          Methods sections write themselves. Every result is traceable and sharable.
+        </p>
+        <ul style="display:flex; flex-direction:column; gap:10px; list-style:none;">
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Nextflow provenance and container version locking</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> FAIR data principle compliance out of the box</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> Shareable run links and downloadable methods reports</li>
+          <li style="display:flex; gap:10px; font-size:.9rem; color:var(--text-muted);"><span style="color:var(--accent); font-weight:700;">✓</span> nf-core pipeline standards — peer-reviewed and community-maintained</li>
+        </ul>
+      </div>
+      <div class="feature-visual" style="flex-direction:column; padding:1.75rem; gap:1rem; justify-content:flex-start; align-items:flex-start; min-height:300px;">
+        <div style="font-size:.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.08em;">Run Audit Trail</div>
+        <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+          <div style="display:flex; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted);">
+            <span style="color:#10b981; font-size:.85rem;">✓</span>
+            <span><strong style="color:var(--text);">nf-core/sarek v3.4.2</strong> — pipeline version locked</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted);">
+            <span style="color:#10b981; font-size:.85rem;">✓</span>
+            <span><strong style="color:var(--text);">GATK 4.6.2.0</strong> — container sha256:a3f8…</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted);">
+            <span style="color:#10b981; font-size:.85rem;">✓</span>
+            <span><strong style="color:var(--text);">hg38 GRCh38</strong> — iGenomes s3://ngi-igenomes/…</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted);">
+            <span style="color:#10b981; font-size:.85rem;">✓</span>
+            <span><strong style="color:var(--text);">Input</strong> — SRR1518169 (SRA, sha256:b2c1…)</span>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center; font-size:.8rem; color:var(--text-muted);">
+            <span style="color:#10b981; font-size:.85rem;">✓</span>
+            <span><strong style="color:var(--text);">Completed</strong> — 2026-04-13T14:32:17Z · 18m 44s</span>
+          </div>
+        </div>
+        <a class="btn btn-outline btn-sm" style="margin-top:auto;">Download Methods Report</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ WORKFLOW CATALOG ═══ -->
+<section id="workflows" style="background:var(--bg-dark);">
+  <div class="section-inner">
+    <span class="section-tag" style="color:#6fcfed;">Workflow Library</span>
+    <h2 class="section-title" style="color:#fff;">60+ validated workflows. One interface.</h2>
+    <p class="section-sub" style="color:rgba(255,255,255,.55);">Community-maintained nf-core pipelines and BioMate-native workflows for every domain.</p>
+
+    <div class="domain-tabs">
+      <button class="tab-btn active">Drug Discovery</button>
+      <button class="tab-btn">Genomics</button>
+      <button class="tab-btn">Structural Biology</button>
+      <button class="tab-btn">Multi-Omics</button>
+    </div>
+
+    <div class="workflows-grid">
+      <div class="wf-tile">
+        <h5>ADMET + CYP DDI Panel</h5>
+        <p>ADMET safety endpoints plus full CYP450 inhibition panel from SMILES input</p>
+        <div class="wf-tags"><span class="wf-tag">ADMET</span><span class="wf-tag">CYP</span><span class="wf-tag">hERG</span></div>
+      </div>
+      <div class="wf-tile">
+        <h5>AlphaFold DB Search</h5>
+        <p>Structure retrieval and similarity search against the AlphaFold protein structure database</p>
+        <div class="wf-tags"><span class="wf-tag">Protein</span><span class="wf-tag">Structure</span></div>
+      </div>
+      <div class="wf-tile">
+        <h5>GROMACS Protein MD</h5>
+        <p>Molecular dynamics — GAFF2 parameterization → EM → NVT → NPT → production MD → RMSD/RMSF → ΔGbind</p>
+        <div class="wf-tags"><span class="wf-tag">MD</span><span class="wf-tag">GROMACS</span><span class="wf-tag">MM-GBSA</span></div>
+      </div>
+      <div class="wf-tile">
+        <h5>DiffDock Docking</h5>
+        <p>Blind molecular docking with diffusion-model based DiffDock for pose generation</p>
+        <div class="wf-tags"><span class="wf-tag">Docking</span><span class="wf-tag">SMILES</span></div>
+      </div>
+      <div class="wf-tile">
+        <h5>REINVENT4 Lead Design</h5>
+        <p>Reinforcement learning de novo drug design — scaffold decoration, linker design, scaffold hopping</p>
+        <div class="wf-tags"><span class="wf-tag">Generative</span><span class="wf-tag">RL</span></div>
+      </div>
+      <div class="wf-tile">
+        <h5>Assay Ingestion &amp; Ranking</h5>
+        <p>Ingest bioassay CSV data and rank compounds by potency, selectivity, and ADMET profile</p>
+        <div class="wf-tags"><span class="wf-tag">Assay</span><span class="wf-tag">Ranking</span></div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:2.5rem;">
+      <a class="btn btn-outline-white" href="https://dev-public.biomate.ai/register" target="_blank">Browse all 60+ workflows →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ COMPLIANCE ═══ -->
+<section id="compliance" class="compliance-section">
+  <div class="section-inner">
+    <span class="section-tag">Security &amp; Compliance</span>
+    <h2 class="section-title">Built for institutional trust</h2>
+    <p class="section-sub">Whether you're in an academic lab, pharma company, or clinical environment, BioMate meets your compliance requirements.</p>
+
+    <div class="compliance-grid">
+      <div class="compliance-card">
+        <div class="icon">🔒</div>
+        <h4>HIPAA-Ready Architecture</h4>
+        <p>Data encryption at rest (AES-256) and in transit (TLS 1.3). Enterprise deployments run in your own VPC with no data leaving your environment.</p>
+      </div>
+      <div class="compliance-card">
+        <div class="icon">📋</div>
+        <h4>Full Audit Trails</h4>
+        <p>Every run, parameter change, and data access is logged. Complete provenance chain for regulatory submissions and publication reproducibility.</p>
+      </div>
+      <div class="compliance-card">
+        <div class="icon">🏛️</div>
+        <h4>Private Deployment</h4>
+        <p>Enterprise option: BioMate runs entirely inside your institution's AWS account. Your data never leaves. Supports on-premise hybrid configurations.</p>
+      </div>
+      <div class="compliance-card">
+        <div class="icon">🔁</div>
+        <h4>FAIR Data Principles</h4>
+        <p>Outputs are Findable, Accessible, Interoperable, and Reusable. Structured metadata, standard formats, and DOI-ready data packaging.</p>
+      </div>
+      <div class="compliance-card">
+        <div class="icon">⚙️</div>
+        <h4>nf-core Validated Pipelines</h4>
+        <p>Every workflow is based on community-reviewed nf-core pipelines — peer-validated, regularly updated, and standardized for reproducibility.</p>
+      </div>
+      <div class="compliance-card">
+        <div class="icon">🔑</div>
+        <h4>SSO &amp; Access Control</h4>
+        <p>Enterprise supports SAML 2.0 / SSO integration with your institution's identity provider. Role-based access controls for team environments.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════ CTA ═══ -->
+<section style="background:var(--bg);">
+  <div class="cta-banner">
+    <span class="section-tag">Get Started</span>
+    <h2>Try BioMate free today</h2>
+    <p>10 workflow runs per month, all 20+ domains, no credit card required.</p>
+    <div class="cta-btns">
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank">Start Free Trial</a>
+      <a class="btn btn-outline" href="pricing.html">Compare Plans</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand">
+      <img src="images/logo.png" alt="BioMate AI" />
+      <p>AI-powered bioinformatics for every researcher — from PhD students to enterprise pharma teams.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai/register" target="_blank">Get Started</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="https://dev-public.biomate.ai" target="_blank">App Login</a></li>
+        <li><a href="index.html#contact">Support</a></li>
+        <li><a href="index.html#contact">Enterprise</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 BioMate AI · All rights reserved</p>
+    <div class="trust-badges"><span>HIPAA Ready</span><span>FAIR Data</span><span>nf-core Validated</span><span>AWS Batch</span></div>
+  </div>
+</footer>
+</body>
+</html>

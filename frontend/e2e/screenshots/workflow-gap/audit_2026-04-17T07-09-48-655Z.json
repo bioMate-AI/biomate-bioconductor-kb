@@ -1,0 +1,209 @@
+{
+  "suiteId": "workflow-gap-generalized",
+  "generatedAt": "2026-04-17T07:09:48.655Z",
+  "passed": 5,
+  "total": 5,
+  "runs": [
+    {
+      "testId": "WG-1",
+      "workflow": "CryoSPARC Standard SPA",
+      "domain": "cryo_em",
+      "startTs": 1776409556059,
+      "endTs": 1776409618192,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "CryoSPARC Standard SPA"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg1_cryosparc overrideBtns=6"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg1_cryosparc"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg1_cryosparc"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"1.80\" or param \"project_name\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"CryoSPARC Standard Single-Particle Analysis\",\"description\":\"CryoSPARC Standard Single-Particle Analysis (SPA) pipeline for cryo-EM datasets. 23-step modular workflow: Import Movies → Patch Motion Correction → Patch CTF Estimation → Micrograph Denoiser → Blob Picker → J"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg1_cryosparc_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg1_cryosparc_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg1_cryosparc_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg1_cryosparc_04_execute.png"
+      ]
+    },
+    {
+      "testId": "WG-2",
+      "workflow": "Scaffold Hopping",
+      "domain": "drug_discovery",
+      "startTs": 1776409618366,
+      "endTs": 1776409675295,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "Scaffold Hopping"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg2_scaffold_hopping overrideBtns=0"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg2_scaffold_hopping"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg2_scaffold_hopping"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"20\" or param \"input_smiles\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"Scaffold Hopping\",\"description\":\"drug_discovery/scaffold_hopping RECAP Fragmentation + Matched Molecular Pair (MMP) scaffold hopping pipeline Pipeline Steps: 1. SCAFFOLD_INPUT_VALIDATION    — validate SMILES input file (one SMILES+ID per line) 2. RECAP_FRAGMENTATION   "
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg2_scaffold_hopping_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg2_scaffold_hopping_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg2_scaffold_hopping_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg2_scaffold_hopping_04_execute.png"
+      ]
+    },
+    {
+      "testId": "WG-3",
+      "workflow": "AlphaFold DB Search",
+      "domain": "protein_structure",
+      "startTs": 1776409675424,
+      "endTs": 1776409733355,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "AlphaFold DB Search"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search overrideBtns=0"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"20\" or param \"query_pdb\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"AlphaFold DB Search\",\"description\":\"Search a query protein structure against the AlphaFold Human Proteome database (~48k structures) using Foldseek (structural similarity, 3Di alphabet) and MMseqs2 (sequence homology). Returns ranked hits with e-values, alignment stats"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_04_execute.png"
+      ]
+    },
+    {
+      "testId": "WG-4",
+      "workflow": "ALL",
+      "domain": "generic",
+      "startTs": 1776409733504,
+      "endTs": 1776409737602,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "findings-unknown-run-non-500",
+          "passed": true,
+          "detail": "HTTP 404 — expected non-500 for unknown run_id"
+        },
+        {
+          "name": "findings-unknown-run-non-crash",
+          "passed": true,
+          "detail": "body: {\"error\":\"Run not found\"}"
+        }
+      ],
+      "screenshots": []
+    },
+    {
+      "testId": "WG-5",
+      "workflow": "NCA PK Analysis",
+      "domain": "drug_discovery",
+      "startTs": 1776409737709,
+      "endTs": 1776409788580,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "NCA PK Analysis"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk overrideBtns=0"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg4_nca_pk"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"5.0\" or param \"input_csv\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"Nca Pknca\",\"description\":\"drug_discovery/nca_pknca Non-Compartmental Analysis (NCA) pharmacokinetics pipeline using the PKNCA R package. Pipeline Steps: 1. NCA_INPUT_VALIDATION  — Validate concentration-time CSV format and required columns (time, conc, subject_id, dose"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg4_nca_pk_04_execute.png"
+      ]
+    }
+  ]
+}

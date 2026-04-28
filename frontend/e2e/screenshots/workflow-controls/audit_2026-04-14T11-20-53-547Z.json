@@ -1,0 +1,259 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-14T11:20:53.548Z",
+  "totalTests": 6,
+  "passed": 5,
+  "failed": 1,
+  "totalWallTimeSec": 639.175,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-1",
+      "runId": "ab3c6eea-0f20-434e-aa36-68c31cecf77a",
+      "startTs": 1776164992925,
+      "endTs": 1776165055808,
+      "durationMs": 62883,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "workflow-card-visible",
+          "passed": true,
+          "note": "Workflow card must appear"
+        },
+        {
+          "name": "confirm-btn-visible-before-run",
+          "passed": true
+        },
+        {
+          "name": "execute-api-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "cancel-btn-visible-during-run",
+          "passed": true,
+          "note": "Cancel button should be visible while run is in-progress"
+        },
+        {
+          "name": "rerun-btn-visible-after-terminal",
+          "passed": true,
+          "note": "Restart button should appear after run terminates"
+        },
+        {
+          "name": "run-step-buttons-found",
+          "passed": true,
+          "note": "At least one Run Step button must exist"
+        },
+        {
+          "name": "at-least-one-run-step-enabled",
+          "passed": true,
+          "note": "At least one Run Step button should be enabled after terminal run"
+        }
+      ],
+      "screenshots": [
+        "wc1_01_card.png",
+        "wc1_02_running.png",
+        "wc1_03_during_run.png",
+        "wc1_04_after_terminal.png"
+      ]
+    },
+    {
+      "testId": "WC-2",
+      "runId": "9c6d603d-28a0-41c3-8721-c0f06c6fcb3d",
+      "startTs": 1776165056086,
+      "endTs": 1776165114070,
+      "durationMs": 57984,
+      "finalStatus": "cancelled",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "cancel-btn-visible-during-run",
+          "passed": true
+        },
+        {
+          "name": "cancel-api-200",
+          "passed": true
+        },
+        {
+          "name": "status-cancelled-or-failed-after-cancel",
+          "passed": true,
+          "note": "Expected cancelled/failed, got cancelled"
+        }
+      ],
+      "screenshots": [
+        "wc2_01_running.png",
+        "wc2_02_cancel_clicked.png",
+        "wc2_03_after_cancel.png"
+      ]
+    },
+    {
+      "testId": "WC-3",
+      "runId": "44bf9752-2e2d-4029-be7d-c4a7daaf6945",
+      "startTs": 1776165114400,
+      "endTs": 1776165210486,
+      "durationMs": 96086,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "rerun-btn-visible",
+          "passed": true,
+          "note": "button-restart-workflow-panel must appear after terminal run"
+        },
+        {
+          "name": "restart-produced-new-card",
+          "passed": true,
+          "note": "Restart should produce activity"
+        }
+      ],
+      "screenshots": [
+        "wc3_01_terminal.png",
+        "wc3_02_rerun_clicked.png",
+        "wc3_03_after_rerun.png"
+      ]
+    },
+    {
+      "testId": "WC-4",
+      "runId": "51072ea8-f079-49f9-ba7a-163086ef249d",
+      "startTs": 1776165210788,
+      "endTs": 1776165302224,
+      "durationMs": 91436,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "step-cards-found",
+          "passed": true,
+          "note": "At least one PhaseCard must render"
+        },
+        {
+          "name": "run-step-buttons-enabled-after-terminal",
+          "passed": true,
+          "note": "14/14 step buttons enabled"
+        },
+        {
+          "name": "multiple-steps-found",
+          "passed": true,
+          "note": "Germline workflow should have ≥2 steps"
+        },
+        {
+          "name": "step-controls-hint-visible",
+          "passed": true
+        },
+        {
+          "name": "step-rerun-api-200",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc4_01_terminal.png",
+        "wc4_02_step_clicked.png",
+        "wc4_03_done.png"
+      ]
+    },
+    {
+      "testId": "WC-5",
+      "runId": "01041340-e497-422b-8112-833030b5eba1",
+      "startTs": 1776165302561,
+      "endTs": 1776165359923,
+      "durationMs": 57362,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "download-commands-api-200",
+          "passed": true
+        },
+        {
+          "name": "download-commands-field-present",
+          "passed": true
+        },
+        {
+          "name": "output-files-api-200",
+          "passed": true
+        },
+        {
+          "name": "output-files-array-present",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc5_01_outputs.png"
+      ]
+    },
+    {
+      "testId": "WC-6",
+      "runId": "27a75f96-9bec-49fc-94cb-71d6ae44b731",
+      "startTs": 1776165360239,
+      "endTs": 1776165633663,
+      "durationMs": 273424,
+      "finalStatus": "unknown",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "step-file-endpoint-reachable",
+          "passed": false,
+          "note": "step-file endpoint must respond to S3 path (200/403/404 all valid, 500 is not)"
+        },
+        {
+          "name": "html-output-file-present",
+          "passed": false,
+          "note": "html_output_test workflow must produce an HTML output file"
+        }
+      ],
+      "screenshots": [
+        "wc6_01_terminal.png"
+      ]
+    }
+  ]
+}

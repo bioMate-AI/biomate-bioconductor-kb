@@ -1,0 +1,16 @@
+{
+  "beta2ar": {
+    "n_residues": 442,
+    "n_prior": 500,
+    "n_clusters_total": 20,
+    "n_clusters_visible": 20,
+    "n_clusters_dropped": 0
+  },
+  "trpv1": {
+    "n_residues": 581,
+    "n_prior": 500,
+    "n_clusters_total": 20,
+    "n_clusters_visible": 20,
+    "n_clusters_dropped": 0
+  }
+}

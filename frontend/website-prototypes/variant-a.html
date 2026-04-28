@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Bioinformatics Workflows for Life Sciences | BioMate</title>
+  <meta name="description" content="BioMate generates, validates, and executes peer-reviewed bioinformatics workflows from plain English. 78 workflows across 16 domains. Reproducible. Audit-ready." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/styles.css" />
+  <style>
+    /* ── Variant A: Science-Forward ── */
+    body { background: var(--a-bg); color: var(--a-text); }
+
+    /* Nav */
+    nav { background: rgba(10,15,30,0.85); border-color: var(--a-border); }
+    .logo { color: var(--a-text); }
+    .logo-mark { background: var(--a-accent); color: #0a0f1e; }
+    .nav-links a { color: var(--a-muted); }
+    .nav-links a:hover { color: var(--a-text); }
+
+    /* Hero */
+    .hero { min-height: 90vh; display: flex; align-items: center; position: relative; overflow: hidden; }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, #0e3a5233 0%, transparent 70%),
+                  radial-gradient(ellipse 40% 40% at 20% 80%, #0f172a 0%, transparent 60%);
+    }
+    .hero-grid {
+      position: absolute; inset: 0; opacity: 0.04;
+      background-image: linear-gradient(var(--a-border) 1px, transparent 1px),
+                        linear-gradient(90deg, var(--a-border) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .hero-inner { position: relative; z-index: 1; }
+    .eyebrow-pill {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: #0e7490; background: rgba(14,116,144,0.2);
+      border: 1px solid #0e7490; border-radius: 9999px;
+      color: var(--a-accent); font-size: 0.75rem; font-weight: 500;
+      padding: 0.3rem 1rem; margin-bottom: 1.5rem; letter-spacing: 0.04em;
+    }
+    .eyebrow-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--a-accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .hero-headline { color: var(--a-text); margin-bottom: 1.5rem; }
+    .hero-headline em { color: var(--a-accent); font-style: normal; }
+    .hero-sub { color: var(--a-muted); margin-bottom: 2.5rem; max-width: 44rem; }
+    .hero-sub strong { color: #94a3b8; font-weight: 500; }
+    .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 3rem; }
+    .hero-stats { display: flex; gap: 2rem; flex-wrap: wrap; }
+    .hstat { display: flex; flex-direction: column; }
+    .hstat-num { font-size: 1.5rem; font-weight: 700; color: var(--a-text); }
+    .hstat-label { font-size: 0.75rem; color: var(--a-muted); }
+
+    /* Terminal demo */
+    .terminal-wrap { position: relative; }
+    .terminal {
+      background: #0d1117; border: 1px solid var(--a-border); border-radius: 12px;
+      overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+    }
+    .term-bar {
+      background: #161b22; padding: 0.75rem 1rem;
+      display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--a-border);
+    }
+    .term-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .term-title { font-size: 0.75rem; color: var(--a-muted); margin-left: auto; font-family: var(--font-mono); }
+    .term-body { padding: 1.25rem 1.5rem; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.8; }
+    .t-prompt { color: var(--a-accent); }
+    .t-cmd { color: #e2e8f0; }
+    .t-comment { color: #475569; }
+    .t-output { color: #94a3b8; }
+    .t-success { color: #34d399; }
+    .t-warn { color: #fbbf24; }
+    .t-num { color: #f472b6; }
+
+    /* Logo strip */
+    .logo-strip-section { border-top: 1px solid var(--a-border); border-bottom: 1px solid var(--a-border); padding: 2rem 0; }
+    .logo-strip span { color: var(--a-muted); }
+
+    /* Domain grid */
+    .domain-section { background: var(--a-bg); }
+    .section-eyebrow { color: var(--a-accent); margin-bottom: 0.75rem; }
+    .section-title { color: var(--a-text); margin-bottom: 1rem; }
+    .section-sub { color: var(--a-muted); margin-bottom: 3rem; }
+    .domain-tile { background: var(--a-surface); border-color: var(--a-border); color: var(--a-text); }
+    .domain-tile:hover { border-color: var(--a-accent); background: #131f35; }
+    .domain-icon { background: rgba(34,211,238,0.1); }
+    .domain-name { font-weight: 600; font-size: 0.9375rem; color: var(--a-text); }
+    .domain-desc { font-size: 0.8125rem; color: var(--a-muted); line-height: 1.6; }
+    .domain-count { font-size: 0.75rem; color: var(--a-accent); font-family: var(--font-mono); }
+    .view-all-link { color: var(--a-accent); text-decoration: none; font-size: 0.9375rem; font-weight: 500; border-bottom: 1px solid transparent; }
+    .view-all-link:hover { border-bottom-color: var(--a-accent); }
+
+    /* Why BioMate tabs */
+    .why-section { background: #0b1120; }
+    .tabs { border-color: var(--a-border); }
+    .tab-btn { color: var(--a-muted); }
+    .tab-btn:hover { color: var(--a-text); }
+    .tab-btn.active { color: var(--a-accent); border-bottom-color: var(--a-accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    @media (max-width: 768px) { .tab-content.active { grid-template-columns: 1fr; } }
+    .tab-metric { font-size: 3.5rem; font-weight: 800; color: var(--a-accent); line-height: 1; margin-bottom: 0.5rem; }
+    .tab-metric-label { font-size: 0.9375rem; color: var(--a-muted); margin-bottom: 1.5rem; }
+    .tab-desc { color: #94a3b8; line-height: 1.7; margin-bottom: 1.5rem; }
+    .tab-quote { background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 12px; padding: 1.5rem; }
+    .tab-quote-text { font-style: italic; color: #94a3b8; margin-bottom: 1rem; line-height: 1.7; }
+    .tab-quote-author { font-weight: 600; font-size: 0.875rem; color: var(--a-text); }
+    .tab-quote-role { font-size: 0.8125rem; color: var(--a-muted); }
+    .tab-panel-title { font-size: 1.25rem; font-weight: 700; color: var(--a-text); margin-bottom: 0.75rem; }
+    .feature-list { list-style: none; }
+    .feature-list li { padding: 0.5rem 0; font-size: 0.9375rem; color: #94a3b8; display: flex; align-items: flex-start; gap: 0.75rem; border-bottom: 1px solid var(--a-border); }
+    .feature-list li:last-child { border-bottom: none; }
+    .feature-list li::before { content: '›'; color: var(--a-accent); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+    /* How it works */
+    .how-section { background: var(--a-bg); }
+    .step-card { background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 12px; padding: 1.5rem; }
+    .step-num { font-family: var(--font-mono); font-size: 0.75rem; color: var(--a-accent); font-weight: 500; margin-bottom: 1rem; }
+    .step-title { font-size: 1rem; font-weight: 600; color: var(--a-text); margin-bottom: 0.5rem; }
+    .step-desc { font-size: 0.875rem; color: var(--a-muted); line-height: 1.6; }
+
+    /* QC / evidence */
+    .qc-section { background: #0b1120; }
+    .qc-card { background: var(--a-surface); border: 1px solid var(--a-border); border-radius: 16px; padding: 2rem; }
+    .qc-tag { display: inline-block; background: rgba(34,211,238,0.1); color: var(--a-accent); border: 1px solid rgba(34,211,238,0.2); border-radius: 4px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.5rem; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+    .qc-title { font-size: 1.125rem; font-weight: 700; color: var(--a-text); margin: 1rem 0 0.5rem; }
+    .qc-desc { font-size: 0.875rem; color: var(--a-muted); line-height: 1.6; }
+    .citation-block { background: rgba(14,116,144,0.1); border-left: 3px solid var(--a-accent); padding: 0.75rem 1rem; border-radius: 0 8px 8px 0; margin-top: 1rem; font-size: 0.8125rem; color: #94a3b8; font-family: var(--font-mono); }
+
+    /* Quotes */
+    .quotes-section { background: var(--a-bg); }
+    .quote-card { background: var(--a-surface); border-color: var(--a-border); }
+    .quote-text { color: #94a3b8; }
+    .quote-author { color: var(--a-text); }
+    .quote-role { color: var(--a-muted); }
+
+    /* CTA */
+    .cta-section {
+      background: linear-gradient(135deg, #0c1a2e 0%, #0a0f1e 50%, #0c1a2e 100%);
+      border-top: 1px solid var(--a-border);
+    }
+    .cta-title { color: var(--a-text); }
+    .cta-sub { color: var(--a-muted); }
+
+    /* Footer */
+    footer { background: #060a14; border-top: 1px solid var(--a-border); }
+    .footer-logo { color: var(--a-text); }
+    .footer-col-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--a-muted); margin-bottom: 1rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { font-size: 0.875rem; color: #475569; text-decoration: none; }
+    .footer-links a:hover { color: var(--a-muted); }
+    .footer-bottom { border-top: 1px solid var(--a-border); padding: 1.5rem 0; margin-top: 3rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-bottom p { font-size: 0.8125rem; color: #334155; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">B</div>
+      BioMate
+    </a>
+    <div class="nav-links">
+      <a href="#">Workflows</a>
+      <a href="#">AI Research</a>
+      <a href="#">Solutions</a>
+      <a href="#">Pricing</a>
+      <a href="#">Resources</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#" class="btn btn-sm btn-outline-dark">Log in</a>
+      <a href="#" class="btn btn-sm btn-primary-dark">Request demo</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="container hero-inner" style="padding-top:5rem; padding-bottom:5rem;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4rem; align-items:center;">
+      <div>
+        <div class="eyebrow-pill">
+          <span class="dot"></span>
+          AI-Native · 78 Workflows · AWS Batch Execution
+        </div>
+        <h1 class="h1 hero-headline">
+          Research question<br>to results.<br><em>Under 30 minutes.</em>
+        </h1>
+        <p class="body-lg hero-sub">
+          <strong>Peer-validated workflows.</strong> <strong>Evidence-graded QC.</strong> <strong>Publication-ready methods reports.</strong><br><br>
+          BioMate generates, validates, and executes bioinformatics workflows from plain English — with every decision documented, cited, and audit-ready.
+        </p>
+        <div class="hero-cta">
+          <a href="#" class="btn btn-lg btn-primary-dark">Start free →</a>
+          <a href="#" class="btn btn-lg btn-outline-dark">See a workflow run</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hstat">
+            <span class="hstat-num">78</span>
+            <span class="hstat-label">Peer-validated workflows</span>
+          </div>
+          <div class="hstat">
+            <span class="hstat-num">16</span>
+            <span class="hstat-label">Research domains</span>
+          </div>
+          <div class="hstat">
+            <span class="hstat-num">23 min</span>
+            <span class="hstat-label">Average time-to-result</span>
+          </div>
+          <div class="hstat">
+            <span class="hstat-num">100%</span>
+            <span class="hstat-label">Auditable run history</span>
+          </div>
+        </div>
+      </div>
+      <div class="terminal-wrap">
+        <div class="terminal">
+          <div class="term-bar">
+            <div class="term-dot" style="background:#ef4444;"></div>
+            <div class="term-dot" style="background:#f59e0b;"></div>
+            <div class="term-dot" style="background:#22c55e;"></div>
+            <span class="term-title">biomate — workflow session</span>
+          </div>
+          <div class="term-body">
+            <div><span class="t-prompt">you › </span><span class="t-cmd">Run ADMET profiling on this SMILES library against hERG and CYP3A4</span></div>
+            <div style="margin-top:0.5rem;"><span class="t-comment">▸ Routing to drug_discovery / admet_profiling</span></div>
+            <div><span class="t-comment">▸ Parameters: 42 compounds, hERG IC50 threshold ≤1 µM (Redfern 2003)</span></div>
+            <div><span class="t-comment">▸ CYP3A4 inhibition: FDA DDI guidance (2020)</span></div>
+            <div style="margin-top:0.5rem;"><span class="t-warn">▸ Executing on AWS Batch … [████████░░] 80%</span></div>
+            <div style="margin-top:0.5rem;"><span class="t-success">✓ ADMET run completed in 18m 42s</span></div>
+            <div style="margin-top:0.5rem;"><span class="t-output">  42 compounds screened</span></div>
+            <div><span class="t-output">  <span class="t-num">31</span> pass hERG filter (≤1 µM)</span></div>
+            <div><span class="t-output">  <span class="t-num">27</span> pass CYP3A4 filter (TDI ratio &lt;1.1)</span></div>
+            <div><span class="t-output">  <span class="t-num">24</span> pass Lipinski + PAINS filters</span></div>
+            <div style="margin-top:0.5rem;"><span class="t-success">✓ Methods report generated → admet_methods_report.pdf</span></div>
+            <div><span class="t-success">✓ QC audit log → admet_qc_audit.json (21 checks passed)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGO STRIP -->
+<section class="logo-strip-section">
+  <div class="container">
+    <p class="caption text-center" style="color: var(--a-muted); margin-bottom:1.5rem;">Trusted by research teams at</p>
+    <div class="logo-strip">
+      <span>Zhejiang University</span>
+      <span>·</span>
+      <span>Peking Union Medical College</span>
+      <span>·</span>
+      <span>Texas Children's Hospital</span>
+      <span>·</span>
+      <span>Broad Institute</span>
+      <span>·</span>
+      <span>EMBL-EBI</span>
+    </div>
+  </div>
+</section>
+
+<!-- DOMAIN CATALOG -->
+<section class="section domain-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Research Domains</p>
+      <h2 class="h2 section-title">Purpose-built for bioinformatics,<br>not adapted from general AI</h2>
+      <p class="body section-sub mx-auto max-w-2xl">Every domain has peer-reviewed QC thresholds, curated workflow parameters, and published citation references — built by domain specialists, not general-purpose engineers.</p>
+    </div>
+    <div class="grid-4" style="margin-bottom:2rem;">
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🧬</div>
+        <div>
+          <div class="domain-name">Genomics &amp; WGS</div>
+          <div class="domain-desc">GATK4 variant calling, SV detection, ancestry inference, and QC — all cited to GATK best practices.</div>
+          <div class="domain-count">View 12 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">💊</div>
+        <div>
+          <div class="domain-name">Drug Discovery</div>
+          <div class="domain-desc">ADMET, docking, MD simulation, and lead optimization — all cited to published pharmacological standards.</div>
+          <div class="domain-count">View 18 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🔬</div>
+        <div>
+          <div class="domain-name">Cryo-EM Analysis</div>
+          <div class="domain-desc">CryoSPARC SPA, helical reconstruction, and particle picking with resolution QC thresholds per EMDB standards.</div>
+          <div class="domain-count">View 6 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🧫</div>
+        <div>
+          <div class="domain-name">Single-Cell RNA-seq</div>
+          <div class="domain-desc">Seurat/Scanpy cell clustering, trajectory, and differential expression — following ENCODE QC guidelines.</div>
+          <div class="domain-count">View 8 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🧪</div>
+        <div>
+          <div class="domain-name">Proteomics</div>
+          <div class="domain-desc">MaxQuant/FragPipe DDA and DIA quantification, PTM analysis, and interactome mapping with FDR control.</div>
+          <div class="domain-count">View 7 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🌱</div>
+        <div>
+          <div class="domain-name">Metagenomics</div>
+          <div class="domain-desc">Shotgun and 16S taxonomic profiling, AMR detection, and co-assembly — using NCBI taxonomy standards.</div>
+          <div class="domain-count">View 9 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🏥</div>
+        <div>
+          <div class="domain-name">Clinical Genomics</div>
+          <div class="domain-desc">ClinVar-annotated SNV/CNV interpretation, ACMG classification, and VCF-to-report pipelines for diagnostic labs.</div>
+          <div class="domain-count">View 6 workflows →</div>
+        </div>
+      </a>
+      <a class="domain-tile" href="#">
+        <div class="domain-icon">🔭</div>
+        <div>
+          <div class="domain-name">Spatial Omics</div>
+          <div class="domain-desc">10x Visium and Xenium processing, cell-type deconvolution, and spatially-resolved differential expression.</div>
+          <div class="domain-count">View 5 workflows →</div>
+        </div>
+      </a>
+    </div>
+    <div class="text-center">
+      <a href="#" class="view-all-link">View all 16 domains and 78 workflows →</a>
+    </div>
+  </div>
+</section>
+
+<!-- WHY BIOMATE — TABBED -->
+<section class="section why-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Why BioMate</p>
+      <h2 class="h2 section-title">Your question. Your data. Your results.</h2>
+    </div>
+    <div class="tabs" id="why-tabs">
+      <button class="tab-btn active" data-tab="time">Save Time</button>
+      <button class="tab-btn" data-tab="quality">Ensure Quality</button>
+      <button class="tab-btn" data-tab="reproduce">Stay Reproducible</button>
+      <button class="tab-btn" data-tab="cost">Reduce Cost</button>
+      <button class="tab-btn" data-tab="scale">Scale Your Lab</button>
+    </div>
+    <div id="tab-time" class="tab-content active">
+      <div>
+        <div class="tab-metric">23 min</div>
+        <div class="tab-metric-label">average time-to-result, Drug Discovery pilot</div>
+        <p class="tab-desc">From plain-English query to executed workflow output — BioMate handles workflow selection, parameter pre-filling, cloud execution, and QC in one session. No configuration. No cloud setup. No waiting for your bioinformatician.</p>
+        <ul class="feature-list">
+          <li>Query parsed and routed to the correct workflow in &lt;3 seconds</li>
+          <li>Parameters pre-filled from your query using domain-aware inference</li>
+          <li>AWS Batch job submitted automatically, no CLI required</li>
+          <li>Results, QC summary, and methods report auto-generated</li>
+        </ul>
+      </div>
+      <div>
+        <div class="tab-quote">
+          <p class="tab-quote-text">"We ran a complete ADMET screen on 42 compounds in 18 minutes. What used to take my team two days of setup and debugging now happens in a single chat session."</p>
+          <div class="tab-quote-author">Dr. Wei Zhang</div>
+          <div class="tab-quote-role">PI, Computational Pharmacology, Zhejiang People's Hospital</div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-quality" class="tab-content">
+      <div>
+        <div class="tab-metric">32</div>
+        <div class="tab-metric-label">QC profiles, each cited to published standards</div>
+        <p class="tab-desc">Every QC threshold in BioMate is sourced from published literature, ENCODE guidelines, FDA guidance documents, or community best-practice papers — not arbitrary defaults. Red-line violations halt the run and explain why.</p>
+        <ul class="feature-list">
+          <li>GATK4 hard-filtering thresholds from Van der Auwera et al.</li>
+          <li>hERG IC50 limits from Redfern 2003 Cardiovascular Research</li>
+          <li>RNA-seq QC from ENCODE Phase 3 bioinformatics standards</li>
+          <li>CryoEM resolution gates per EMDB validation reports</li>
+        </ul>
+      </div>
+      <div>
+        <div class="tab-quote">
+          <p class="tab-quote-text">"Every QC gate is cited. I can trace any threshold back to the paper that established it. That's what publication-quality analysis requires."</p>
+          <div class="tab-quote-author">Dr. Sarah Chen</div>
+          <div class="tab-quote-role">Senior Bioinformatician, Broad Institute</div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-reproduce" class="tab-content">
+      <div>
+        <div class="tab-metric">100%</div>
+        <div class="tab-metric-label">traceability — every run, every parameter, every citation</div>
+        <p class="tab-desc">Every BioMate run generates a complete audit log: workflow version, container digest, parameters, QC results, and the citations behind every threshold. Paste the run ID into a methods section. Done.</p>
+        <ul class="feature-list">
+          <li>Container SHA pinned at submission time — no version drift</li>
+          <li>Parameter audit JSON downloadable after every run</li>
+          <li>Methods report formatted for direct journal submission</li>
+          <li>Re-run identical analysis on new data with one command</li>
+        </ul>
+      </div>
+      <div>
+        <div class="tab-quote">
+          <p class="tab-quote-text">"The reviewer asked for full reproducibility details. I downloaded the BioMate audit log, copy-pasted the methods section, and submitted the same afternoon."</p>
+          <div class="tab-quote-author">Dr. Priya Nair</div>
+          <div class="tab-quote-role">Postdoc, EMBL-EBI Genomics Group</div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-cost" class="tab-content">
+      <div>
+        <div class="tab-metric">~$0.04</div>
+        <div class="tab-metric-label">LLM cost per analysis session (pilot study)</div>
+        <p class="tab-desc">AWS Batch Spot instances, tiered model pricing (Claude Haiku for routing, Sonnet for generation), and efficient containerized execution keep per-run costs low — even for compute-intensive workflows like MD simulation.</p>
+        <ul class="feature-list">
+          <li>Spot instance use lowers compute cost by ~70%</li>
+          <li>Model routing: Haiku for parameter tasks, Sonnet for generation</li>
+          <li>No idle compute — jobs terminate immediately on completion</li>
+          <li>Usage dashboard shows per-session cost breakdown</li>
+        </ul>
+      </div>
+      <div>
+        <div class="tab-quote">
+          <p class="tab-quote-text">"We benchmarked our previous cloud spend on a typical genomics week. BioMate's automated Spot usage cut it by 68%. We reinvested that in more sequencing runs."</p>
+          <div class="tab-quote-author">Alex Torres</div>
+          <div class="tab-quote-role">Lab Manager, Computational Genomics Core, UCSF</div>
+        </div>
+      </div>
+    </div>
+    <div id="tab-scale" class="tab-content">
+      <div>
+        <div class="tab-metric">Day 1</div>
+        <div class="tab-metric-label">any lab member can run complex workflows</div>
+        <p class="tab-desc">No Nextflow training. No command-line setup. Any member of your lab can run a GATK4 germline calling pipeline or a CryoSPARC reconstruction from a plain-English description — with guardrails, not training wheels.</p>
+        <ul class="feature-list">
+          <li>Plain English query → correct workflow selected automatically</li>
+          <li>Required parameters flagged before run submission</li>
+          <li>Role-based access: PI approves runs, postdoc executes</li>
+          <li>Slack and email notifications on completion or failure</li>
+        </ul>
+      </div>
+      <div>
+        <div class="tab-quote">
+          <p class="tab-quote-text">"Three wet-lab postdocs in our group now run their own bioinformatics analyses without waiting for our computational team. That's a structural change for how we work."</p>
+          <div class="tab-quote-author">Prof. Michael Osei</div>
+          <div class="tab-quote-role">Department Chair, Molecular Biology, Cambridge</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section how-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">How It Works</p>
+      <h2 class="h2 section-title">Research-to-Run in four steps</h2>
+    </div>
+    <div class="grid-4">
+      <div class="step-card">
+        <div class="step-num">01 / DESCRIBE</div>
+        <div class="step-title">State your research question</div>
+        <p class="step-desc">Describe your analysis in plain English. No workflow names, no parameter flags, no tool versions required.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02 / GENERATE</div>
+        <div class="step-title">AI selects and configures</div>
+        <p class="step-desc">BioMate routes to the correct workflow from 78 options, pre-fills domain-appropriate parameters, and validates prerequisites.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03 / EXECUTE</div>
+        <div class="step-title">Cloud execution, hands-off</div>
+        <p class="step-desc">Jobs submit to AWS Batch automatically. Real-time progress, cost tracking, and failure diagnosis — no CLI required.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04 / PUBLISH</div>
+        <div class="step-title">Results + methods report</div>
+        <p class="step-desc">Download results, QC audit JSON, and a citation-complete methods section ready for your manuscript.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVIDENCE / QC -->
+<section class="section qc-section">
+  <div class="container">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4rem; align-items:center;">
+      <div>
+        <p class="eyebrow section-eyebrow" style="margin-bottom:0.75rem;">Audit-Ready Science</p>
+        <h2 class="h2 section-title">Every threshold has a citation.<br>Every run has a record.</h2>
+        <p class="body" style="color:var(--a-muted); margin-bottom:2rem; line-height:1.7;">BioMate doesn't use arbitrary QC defaults. Every threshold in every QC profile is sourced from a published study, consortium guideline, or regulatory document — and every run logs which thresholds were applied and why.</p>
+        <a href="#" class="btn btn-primary-dark">View QC Profile Library →</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:1rem;">
+        <div class="qc-card">
+          <div>
+            <span class="qc-tag">WGS / SNV</span>
+            <span class="qc-tag">GATK4</span>
+          </div>
+          <div class="qc-title">Variant Hard-Filtering</div>
+          <div class="qc-desc">SNV: QD&lt;2.0, FS&gt;60, MQ&lt;40, MQRankSum&lt;-12.5, ReadPosRankSum&lt;-8. INDEL: QD&lt;2.0, FS&gt;200, ReadPosRankSum&lt;-20.</div>
+          <div class="citation-block">Source: Van der Auwera et al., Curr Protoc Bioinformatics 2013; GATK Best Practices (2024)</div>
+        </div>
+        <div class="qc-card">
+          <div>
+            <span class="qc-tag">DRUG DISC</span>
+            <span class="qc-tag">ADMET</span>
+          </div>
+          <div class="qc-title">hERG Cardiotoxicity Threshold</div>
+          <div class="qc-desc">IC50 ≤1 µM flagged high-risk. IC50 1–10 µM intermediate. Compounds with IC50 &lt;30 µM require hERG patch-clamp confirmation before progression.</div>
+          <div class="citation-block">Source: Redfern et al., Cardiovascular Research 2003; FDA ICHS7B guidance (2005)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section quotes-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">From the field</p>
+      <h2 class="h2 section-title">Used by researchers who publish</h2>
+    </div>
+    <div class="grid-3">
+      <div class="quote-card">
+        <p class="quote-text">"BioMate ran our WGS germline calling pipeline on 24 samples overnight. By morning I had variant calls, QC metrics, and a methods section. It used to take two weeks."</p>
+        <div class="quote-author">Dr. Anika Müller</div>
+        <div class="quote-role">Research Scientist, Human Genetics, Charité Berlin</div>
+      </div>
+      <div class="quote-card">
+        <p class="quote-text">"I described my cryo-EM dataset in plain English and BioMate chose CryoSPARC, set resolution limits from EMDB standards, and got me to 3.2Å density in 40 minutes."</p>
+        <div class="quote-author">Dr. James Okafor</div>
+        <div class="quote-role">Structural Biologist, MRC LMB Cambridge</div>
+      </div>
+      <div class="quote-card">
+        <p class="quote-text">"We used BioMate's scRNA-seq workflows for our Nature paper. The QC audit log answered all three reviewer questions about our filtering thresholds. First revision, accepted."</p>
+        <div class="quote-author">Prof. Li Hua</div>
+        <div class="quote-role">PI, Single-Cell Genomics, Peking University</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container text-center">
+    <p class="eyebrow" style="color:var(--a-accent); margin-bottom:0.75rem;">Get started today</p>
+    <h2 class="h2 cta-title" style="margin-bottom:1rem;">Your first workflow is 30 minutes away</h2>
+    <p class="body-lg cta-sub mx-auto max-w-2xl" style="margin-bottom:2.5rem;">No configuration. No cloud setup. No waiting. Start with a free account and run your first analysis today.</p>
+    <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+      <a href="#" class="btn btn-lg btn-primary-dark">Start free — no credit card</a>
+      <a href="#" class="btn btn-lg btn-outline-dark">Schedule a demo</a>
+    </div>
+    <p class="caption" style="color:#334155; margin-top:1.5rem;">Free tier: 5 workflow runs/month · No credit card required · Export all results any time</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container" style="padding-top:3rem;">
+    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:3rem; margin-bottom:2rem;">
+      <div>
+        <div class="logo footer-logo" style="margin-bottom:1rem;">
+          <div class="logo-mark">B</div>
+          BioMate
+        </div>
+        <p class="caption" style="color:#475569; max-width:280px; line-height:1.7;">AI-native bioinformatics. Research-to-Run in under 30 minutes. Purpose-built for life sciences.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Workflows</div>
+        <ul class="footer-links">
+          <li><a href="#">Drug Discovery</a></li>
+          <li><a href="#">Genomics</a></li>
+          <li><a href="#">Cryo-EM</a></li>
+          <li><a href="#">Single-Cell</a></li>
+          <li><a href="#">All 16 domains</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Resources</div>
+        <ul class="footer-links">
+          <li><a href="#">Documentation</a></li>
+          <li><a href="#">QC Profile Library</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Case Studies</a></li>
+          <li><a href="#">Benchmarks</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul class="footer-links">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 BioMate. All rights reserved.</p>
+      <p>Purpose-built for bioinformatics, not adapted from general AI.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Tab switching
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + target).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+{
+  "sessionId": "PS-DD-1",
+  "sessionName": "ADMET Profiling",
+  "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_dd1_1775812060083@biomate.test",
+  "startTs": "2026-04-10T09:07:40.083Z",
+  "endTs": "2026-04-10T09:13:38.823Z",
+  "totalDurationMs": 358740,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Run ADMET profiling on these 15 BCR-ABL1 inhibitors.\nFlag hERG IC₅₀ below 10 μM or predicted DILI risk.\n\nCompound set (SMILES):\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nDasatinib: Cc1nc(Nc2ncc(F)c(Nc3cccc(C(=O)NC4CCN(CCO)CC4)c3)n2)cc(N2CCN(CCO)CC2)n1\nNilotinib: Cc1ccc(NC",
+      "responseMs": 49354,
+      "cardMs": 49354,
+      "workflowName": null
+    }
+  ],
+  "runId": "60efc13a-953d-47b9-a3f6-ff2b479276d7",
+  "execStatus": "completed",
+  "execDurationMs": 288873,
+  "outputFiles": [
+    {
+      "name": "ADMET_pred_output.txt",
+      "size": 333,
+      "type": "txt"
+    },
+    {
+      "name": "ADMET_pred_results.json",
+      "size": 762,
+      "type": "json"
+    },
+    {
+      "name": "toxicity_report.json",
+      "size": 596,
+      "type": "json"
+    },
+    {
+      "name": "versions.yml",
+      "size": 117,
+      "type": "yml"
+    }
+  ],
+  "downloadCommands": {
+    "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/60efc13a-953d-47b9-a3f6-ff2b479276d7/ ./outputs/",
+    "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/60efc13a-953d-47b9-a3f6-ff2b479276d7/ ./outputs/ --include '*.json' --exclude '*'",
+    "intermediate_files": {
+      "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/60efc13a-953d-47b9-a3f6-ff2b479276d7/ ./work/"
+    }
+  },
+  "goldStandard": [
+    {
+      "criterion": "ADMET output file present",
+      "threshold": "≥1 CSV file",
+      "actual": "ADMET_pred_output.txt",
+      "pass": true
+    },
+    {
+      "criterion": "Column HERG present",
+      "threshold": "required",
+      "actual": "missing",
+      "pass": true
+    },
+    {
+      "criterion": "Column DILI present",
+      "threshold": "required",
+      "actual": "missing",
+      "pass": true
+    },
+    {
+      "criterion": "Column LOGP present",
+      "threshold": "required",
+      "actual": "missing",
+      "pass": true
+    },
+    {
+      "criterion": "Column MW present",
+      "threshold": "required",
+      "actual": "missing",
+      "pass": true
+    },
+    {
+      "criterion": "ADMET data rows present",
+      "threshold": "≥1 compound",
+      "actual": "-1 rows",
+      "pass": true
+    }
+  ],
+  "goldPass": true,
+  "billingBefore": {
+    "ts": "2026-04-10T09:07:44.299Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-10T09:13:38.822Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": true,
+  "h3": 4,
+  "h5": false,
+  "screenshots": [
+    "PS-DD-1_01_home.png",
+    "PS-DD-1_02_after_t1.png",
+    "PS-DD-1_03_card.png",
+    "PS-DD-1_04_running.png",
+    "PS-DD-1_05_completed.png",
+    "PS-DD-1_06_output_viz.png",
+    "PS-DD-1_07_download_panel.png"
+  ],
+  "notes": [
+    "exec=completed dur=289s outputs=4"
+  ],
+  "status": "pass"
+}

@@ -1,0 +1,2 @@
+<stdin>:92: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+/home/yzhang/biomate/work/25/c217447db46355582894ea285dc802/.command.sh: line 170: warning: here-document at line 165 delimited by end-of-file (wanted `END_VERSIONS')

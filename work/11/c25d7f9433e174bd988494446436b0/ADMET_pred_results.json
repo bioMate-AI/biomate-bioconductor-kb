@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "function": "ADMET_pred",
+  "domain": "pharmacology",
+  "result": {
+    "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+    "toxicity": {
+      "herg_ic50_uM": 10.162,
+      "dili_risk": "low",
+      "dili_probability": 0.106,
+      "ames_positive": false,
+      "ames_probability": 0.1,
+      "ames_structural_alerts": [],
+      "ames_method": "kazius_structural_alerts"
+    },
+    "predictions": {
+      "herg_ic50_uM": 10.162,
+      "dili_risk": "low",
+      "dili_probability": 0.106
+    },
+    "estimation_method": "rdkit_descriptors",
+    "note": "hERG IC50 estimated from LogP (Aronov 2008). DILI risk from lipophilicity+MW model (Lammert 2010). Install DeepPurpose for ML-based ClinTox prediction."
+  }
+}

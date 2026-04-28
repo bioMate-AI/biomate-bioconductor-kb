@@ -1,0 +1,295 @@
+[
+  {
+    "testId": "CE-0",
+    "workflowName": "QC profiles API",
+    "runId": null,
+    "startTs": 1775771740048,
+    "endTs": 1775771740048,
+    "finalStatus": "passed",
+    "assertions": [
+      {
+        "name": "6 cryo-EM profiles present",
+        "passed": true
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1775771995712,
+    "endTs": 1775771995712,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to helical SPA query",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Run controls panel visible",
+        "passed": true
+      },
+      {
+        "name": "Parameters panel visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "movies_path auto-filled from uploaded .mrc file",
+        "passed": true,
+        "note": "value: /home/yzhang/biomate/frontend/data/uploads/f33b7704-9e00-457"
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "QC profile selector visible",
+        "passed": true
+      },
+      {
+        "name": "cryo-EM QC profile selectable",
+        "passed": true,
+        "note": "trigger shows: \"cryoem spa standard\""
+      },
+      {
+        "name": "Run button clicked",
+        "passed": true
+      },
+      {
+        "name": "Cold-start banner check",
+        "passed": true,
+        "note": "not shown (local or fast)"
+      },
+      {
+        "name": "Run reached terminal state",
+        "passed": true,
+        "note": "failed"
+      },
+      {
+        "name": "Triage/AutoFix panel shown on failure",
+        "passed": true,
+        "note": "ok"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02b_confirmation.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_04_params_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_05_qc_settings.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_06_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_08_terminal_failed.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_09_failure_triage.png"
+    ]
+  },
+  {
+    "testId": "CE-2",
+    "workflowName": "Helical SPA Pipeline",
+    "runId": null,
+    "startTs": 1775772244525,
+    "endTs": 1775772244525,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "AI responded to helical query",
+        "passed": true
+      },
+      {
+        "name": "Helical workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "helical_rise_angstroms field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_twist_deg field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_rise auto-filled from query",
+        "passed": true,
+        "note": "value=4.75"
+      },
+      {
+        "name": "Run button clicked for helical SPA",
+        "passed": true
+      },
+      {
+        "name": "Helical SPA run reached terminal state",
+        "passed": true,
+        "note": "failed"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02b_confirmation.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_03_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_04_params_and_qc.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_05_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_06_terminal_failed.png"
+    ]
+  },
+  {
+    "testId": "CE-3",
+    "workflowName": "QC Settings Controls",
+    "runId": null,
+    "startTs": 1775772299950,
+    "endTs": 1775772299950,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "AI response received",
+        "passed": true
+      },
+      {
+        "name": "Workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": true
+      },
+      {
+        "name": "QC profile selector rendered",
+        "passed": true
+      },
+      {
+        "name": "cryoem profile selectable",
+        "passed": true,
+        "note": "trigger: \"cryoem spa standard\""
+      },
+      {
+        "name": "QC override controls rendered",
+        "passed": true
+      },
+      {
+        "name": "total_drift_angstrom override added",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "fit_quality override added",
+        "passed": true,
+        "note": "text check"
+      },
+      {
+        "name": "Execute button clicked with QC overrides set",
+        "passed": true
+      },
+      {
+        "name": "QC override tag persists after execute click",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01b_qc_expanded.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_02_profile_selected.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_03_override_added.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_04_override_fit.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_05_after_execute.png"
+    ]
+  },
+  {
+    "testId": "CE-4",
+    "workflowName": "Output Visualization",
+    "runId": null,
+    "startTs": 1775772443290,
+    "endTs": 1775772443290,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "AI responded",
+        "passed": true
+      },
+      {
+        "name": "Workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Run started",
+        "passed": true
+      },
+      {
+        "name": "Run reached terminal state",
+        "passed": true,
+        "note": "failed"
+      },
+      {
+        "name": "Download commands panel visible",
+        "passed": true
+      },
+      {
+        "name": "Output file list visible",
+        "passed": false,
+        "note": "not found"
+      },
+      {
+        "name": "CSV table viewer rendered",
+        "passed": false,
+        "note": "none"
+      },
+      {
+        "name": "Image viewer for output images",
+        "passed": false,
+        "note": "none"
+      },
+      {
+        "name": "Run summary visible",
+        "passed": false,
+        "note": "none"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_01_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_02_running.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_03_terminal_failed.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_04_download_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE4_06_full_output_viz.png"
+    ]
+  },
+  {
+    "testId": "CE-5",
+    "workflowName": "Session Isolation",
+    "runId": null,
+    "startTs": 1775772508995,
+    "endTs": 1775772508995,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "First workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Second card shows helical workflow",
+        "passed": true,
+        "note": "ok"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_01_first_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_02_second_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE5_03_both_cards.png"
+    ]
+  }
+]

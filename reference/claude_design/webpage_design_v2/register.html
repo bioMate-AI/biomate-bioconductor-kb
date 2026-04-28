@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="refresh" content="0; url=https://dev-public.biomate.ai/register"/>
+  <title>Create account — BioMate AI</title>
+  <link rel="canonical" href="https://dev-public.biomate.ai/register"/>
+</head>
+<body>
+  <script>
+    // Preserve ?next= param so checkout flow still works
+    var next = new URLSearchParams(window.location.search).get('next');
+    var dest = "https://dev-public.biomate.ai/register";
+    if (next) dest += "?next=" + encodeURIComponent(next);
+    window.location.replace(dest);
+  </script>
+  <p>Redirecting to <a href="https://dev-public.biomate.ai/register">create your account</a>…</p>
+</body>
+</html>

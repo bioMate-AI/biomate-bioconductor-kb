@@ -1,0 +1,6 @@
+{
+  "compounds_assessed": 1,
+  "model_type": "rdkit_descriptors",
+  "estimation_method": "rdkit_descriptors",
+  "toxicity": {}
+}

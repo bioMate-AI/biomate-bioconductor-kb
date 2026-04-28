@@ -1,0 +1,22 @@
+{
+  "name": "biomate-i18n",
+  "version": "0.1.0",
+  "description": "BioMate multilingual side project — i18n foundation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "extract": "tsx scripts/extract-strings.ts"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1",
+    "@vitest/coverage-v8": "^1.6.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "i18next": "^23.11.5"
+  }
+}

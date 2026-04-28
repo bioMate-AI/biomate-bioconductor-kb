@@ -1,0 +1,10 @@
+{
+  "step": "17_homogeneous_refinement",
+  "timestamp": "2026-03-09T18:35:43.041045",
+  "num_particles": 4634,
+  "initial_resolution_angstroms": 24.39,
+  "final_resolution_angstroms": 14.24,
+  "resolution_improvement": 41.6,
+  "symmetry": "C1",
+  "orientation_anisotropy_ratio": 1.8
+}

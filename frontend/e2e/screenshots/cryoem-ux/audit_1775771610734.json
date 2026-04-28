@@ -1,0 +1,53 @@
+[
+  {
+    "testId": "CE-2",
+    "workflowName": "Helical SPA Pipeline",
+    "runId": null,
+    "startTs": 1775771610734,
+    "endTs": 1775771610734,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "AI responded to helical query",
+        "passed": true
+      },
+      {
+        "name": "Helical workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "helical_rise_angstroms field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_twist_deg field present",
+        "passed": true,
+        "note": "ok"
+      },
+      {
+        "name": "helical_rise auto-filled from query",
+        "passed": true,
+        "note": "value=4.75"
+      },
+      {
+        "name": "Run button clicked for helical SPA",
+        "passed": true
+      },
+      {
+        "name": "Helical SPA run reached terminal state",
+        "passed": true,
+        "note": "failed"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02b_confirmation.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_03_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_04_params_and_qc.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_05_after_execute.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_06_terminal_failed.png"
+    ]
+  }
+]

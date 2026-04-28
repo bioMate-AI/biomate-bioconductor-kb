@@ -1,0 +1,63 @@
+{
+  "timestamp": "2026-04-14T06:04:36.207Z",
+  "summary": {
+    "total": 2,
+    "pass": 1,
+    "tierA_pass": "0/1",
+    "tierB_pass": "1/1"
+  },
+  "results": [
+    {
+      "id": "DA4_AF_SEARCH",
+      "name": "AlphaFold DB Search (Foldseek/MMseqs2)",
+      "tier": "A",
+      "query": "Search the AlphaFold protein structure database for structural homologs of BCR-ABL1 kinase domain. Use UniProt ID P00519 (ABL1_HUMAN) as query. Find top-10 structural neighbors with TM-score > 0.7, identify off-target kinases. Generate the alphafold_db_search workflow now.",
+      "workflowId": "alphafold_db_search",
+      "h1Pass": true,
+      "h2Pass": true,
+      "executionStarted": true,
+      "runId": "515a95d7-4cc9-46c7-b50b-7c389bb78c30",
+      "terminalStatus": "failed",
+      "outputFilesHttp": 200,
+      "outputFileCount": 0,
+      "downloadCmdsHttp": 200,
+      "responseTimeMs": 50673,
+      "executionDurationMs": 6013,
+      "screenshots": [
+        "DA4_AF_SEARCH_00_login.png",
+        "DA4_AF_SEARCH_T1_response.png",
+        "DA4_AF_SEARCH_terminal.png"
+      ],
+      "notes": [
+        "runId=515a95d7-4cc9-46c7-b50b-7c389bb78c30 status=failed outputFiles=0 http=200"
+      ],
+      "pass": false
+    },
+    {
+      "id": "DB1_AIZYNTH",
+      "name": "AiZynthFinder Retrosynthesis",
+      "tier": "B",
+      "query": "Generate a retrosynthetic analysis for asciminib (SMILES: C[C@@H]1CN(c2ncnc3[nH]cc(-c4ccc(Cl)cc4F)c23)C[C@@H]1NC(=O)c1cnc(C(F)(F)F)cn1). Find top-3 synthetic routes with AiZynthFinder. Max depth 5 steps. Generate the aizynthfinder_retrosynthesis workflow now.",
+      "workflowId": "aizynthfinder_retrosynthesis",
+      "h1Pass": true,
+      "h2Pass": true,
+      "executionStarted": true,
+      "runId": "d1969c07-7af0-48c2-92d3-eaf13e69a729",
+      "terminalStatus": "failed",
+      "outputFilesHttp": 200,
+      "outputFileCount": 0,
+      "downloadCmdsHttp": 200,
+      "responseTimeMs": 45033,
+      "executionDurationMs": 5564,
+      "screenshots": [
+        "DB1_AIZYNTH_00_login.png",
+        "DB1_AIZYNTH_T1_response.png",
+        "DB1_AIZYNTH_terminal.png"
+      ],
+      "notes": [
+        "runId=d1969c07-7af0-48c2-92d3-eaf13e69a729 status=failed outputFiles=0 http=200"
+      ],
+      "pass": true
+    }
+  ]
+}

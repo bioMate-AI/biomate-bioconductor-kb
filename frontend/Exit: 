@@ -1,0 +1,74 @@
+
+Running 1 test using 1 worker
+
+[1A[2K[1/1] [chromium] › e2e/output-visualization.e2e.ts:60:3 › Output Visualization › ADMET run → output section auto-opens → JSON rendered as table
+[1A[2K[chromium] › e2e/output-visualization.e2e.ts:60:3 › Output Visualization › ADMET run → output section auto-opens → JSON rendered as table
+[Screenshot] 01_initial.png
+
+[1A[2K[VizTest] Query sent
+
+[1A[2K[Screenshot] 02_after_ai_response.png
+
+[1A[2K[Screenshot] 03_workflow_card.png
+
+[1A[2K[VizTest] Run ID: e8754eb4-6e77-41f5-a79d-a1f548c1c7fe
+
+[1A[2K[Screenshot] 04_execution_started.png
+
+[1A[2K[VizTest] Poll 0: status=running
+
+[1A[2K[VizTest] Terminal status: completed
+
+[1A[2K[Screenshot] 05_terminal_status.png
+
+[1A[2K[Screenshot] 06_modal_dismissed.png
+
+[1A[2K[VizTest] Completion banner: true
+
+[1A[2K[Screenshot] 07_completion_banner.png
+
+[1A[2K[VizTest] Output Results section auto-opened: true
+
+[1A[2K[Screenshot] 08_output_results_section.png
+
+[1A[2K[Screenshot] 09_output_section_scrolled.png
+
+[1A[2K[VizTest] API outputs count: 1
+
+[1A[2K  - nextflow_run_summary (fileType=text, ext=txt)
+
+[1A[2K[VizTest] Table outputs: 0
+
+[1A[2K  1) [chromium] › e2e/output-visualization.e2e.ts:60:3 › Output Visualization › ADMET run → output section auto-opens → JSON rendered as table 
+
+    Error: At least 1 JSON/table output must be registered after ADMET run
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0[39m
+    Received:   [31m0[39m
+
+      195 |     const tableOutputs = outputs.filter(o => o.fileType === 'table' || ['json', 'csv', 'tsv'].includes(o.extension));
+      196 |     console.log(`[VizTest] Table outputs: ${tableOutputs.length}`);
+    > 197 |     expect(tableOutputs.length, 'At least 1 JSON/table output must be registered after ADMET run').toBeGreaterThan(0);
+          |                                                                                                    ^
+      198 |
+      199 |     // ---- Assert 2: csv-table-viewer must be visible in the DOM (JSON outputs rendered inline) ----
+      200 |     // CsvTableViewer starts auto-expanded (defaultExpanded=true), so the card is visible immediately
+        at /home/yzhang/biomate/frontend/e2e/output-visualization.e2e.ts:197:100
+
+    Error: apiRequestContext._wrapApiCall: ENOENT: no such file or directory, open '/home/yzhang/biomate/frontend/e2e/test-results/.playwright-artifacts-0/traces/d55643d73b6680b50810-14cf69372d416c8b2e00.trace'
+
+    Error: ENOENT: no such file or directory, open '/home/yzhang/biomate/frontend/e2e/test-results/.playwright-artifacts-0/c6144002c8adf885e0cc0dcef6bdd302.zip'
+
+    [31mTest timeout of 600000ms exceeded.[39m
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/output-visualization.e2e.t-b7735-ns-→-JSON-rendered-as-table-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/output-visualization.e2e.t-b7735-ns-→-JSON-rendered-as-table-chromium/error-context.md
+
+
+[1A[2K  1 failed
+    [chromium] › e2e/output-visualization.e2e.ts:60:3 › Output Visualization › ADMET run → output section auto-opens → JSON rendered as table 

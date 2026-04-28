@@ -1,0 +1,8 @@
+{
+  "step": "08_extract_particles_round1",
+  "timestamp": "2026-03-09T20:36:23.312736",
+  "num_particles": 3561,
+  "box_size_pixels": 320,
+  "pixel_size_angstroms": 1.05,
+  "mock_mode": true
+}

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About — BioMate AI</title>
+  <meta name="description" content="BioMate AI — our mission, technology stack, and approach to democratizing AI-powered bioinformatics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/site.css" />
+  <style>
+    .page-hero {
+      background: var(--bg-card);
+      padding: clamp(3rem,6vw,5.5rem) clamp(1rem,5vw,3rem);
+      border-bottom: 1px solid var(--border);
+    }
+    .page-hero h1 { font-family:var(--font-head); font-size:clamp(2.2rem,5.5vw,3.6rem); font-weight:700; color:var(--text); margin-bottom:1rem; max-width:700px; }
+    .page-hero p  { color:var(--text-muted); font-size:1.1rem; max-width:640px; line-height:1.75; }
+
+    /* Mission */
+    .mission-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: center;
+    }
+    .mission-pull {
+      font-family: var(--font-head); font-style: italic;
+      font-size: clamp(1.4rem,3vw,2rem); color: var(--text); line-height: 1.4;
+      border-left: 3px solid var(--accent); padding-left: 1.5rem;
+    }
+    @media (max-width:680px) { .mission-grid { grid-template-columns:1fr; } }
+
+    /* Values */
+    .values-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+    .value-card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.75rem;
+    }
+    .value-card .icon { font-size:1.8rem; margin-bottom:1rem; }
+    .value-card h4 { font-family:var(--font-head); font-size:1.2rem; color:var(--text); margin-bottom:.5rem; }
+    .value-card p  { font-size:.875rem; color:var(--text-muted); line-height:1.6; }
+
+    /* Tech Stack */
+    #tech { background:var(--bg-dark); }
+    .tech-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+    .tech-card {
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      border-radius:var(--radius); padding:1.5rem;
+    }
+    .tech-card .tech-icon { font-size:1.5rem; margin-bottom:.75rem; }
+    .tech-card h5 { font-size:.9rem; font-weight:700; color:#e2eef2; margin-bottom:.35rem; }
+    .tech-card p  { font-size:.78rem; color:rgba(255,255,255,.45); line-height:1.5; }
+
+    /* Timeline */
+    .timeline { display:flex; flex-direction:column; gap:0; max-width:720px; }
+    .tl-item { display:flex; gap:1.5rem; padding-bottom:2rem; position:relative; }
+    .tl-item:not(:last-child)::after {
+      content:''; position:absolute; left:15px; top:32px; bottom:0; width:2px; background:var(--border);
+    }
+    .tl-dot {
+      width:32px; height:32px; border-radius:50%; background:var(--accent); flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; color:#fff; font-size:.8rem; font-weight:700;
+      position:relative; z-index:1;
+    }
+    .tl-content {}
+    .tl-date { font-size:.75rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.25rem; }
+    .tl-title { font-family:var(--font-head); font-size:1.1rem; font-weight:700; color:var(--text); margin-bottom:.35rem; }
+    .tl-body  { font-size:.875rem; color:var(--text-muted); line-height:1.6; }
+
+    /* Careers CTA */
+    #careers { background:var(--bg-card); }
+    .career-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; }
+    .career-card {
+      background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:1.75rem;
+      display:flex; flex-direction:column; gap:.75rem;
+    }
+    .career-card h4 { font-family:var(--font-head); font-size:1.2rem; color:var(--text); }
+    .career-card .career-tags { display:flex; gap:6px; flex-wrap:wrap; }
+    .career-card .career-tag {
+      font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:50px;
+      background:var(--accent-pale); color:var(--accent-light);
+    }
+    .career-card p { font-size:.875rem; color:var(--text-muted); line-height:1.55; flex:1; }
+  </style>
+</head>
+<body>
+
+<div class="site-header"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+<nav>
+  <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="BioMate AI" /></a>
+  <ul class="nav-links">
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="features.html">Features</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="about.html" class="active">About</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener" class="nav-login">Log In</a>
+    <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ═══════════ HERO ═══ -->
+<div class="page-hero">
+  <div class="section-inner">
+    <span class="section-tag">About BioMate</span>
+    <h1>Democratizing AI-powered bioinformatics for every researcher</h1>
+    <p>BioMate was built on a simple observation: the most powerful bioinformatics tools exist, but most researchers can't use them. We're changing that.</p>
+  </div>
+</div>
+
+<!-- ═══════════ MISSION ═══ -->
+<section style="background:var(--bg);">
+  <div class="section-inner">
+    <div class="mission-grid">
+      <div>
+        <span class="section-tag">Mission</span>
+        <h2 class="section-title">Science shouldn't require a bioinformatician</h2>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.75; margin-bottom:1.25rem;">
+          The gap between a biological question and a validated answer has never been about scientific ideas — it's been about access to computational infrastructure, bioinformatics expertise, and time.
+        </p>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.75; margin-bottom:1.25rem;">
+          BioMate collapses that gap. By combining large language model reasoning with a validated library of 60+ bioinformatics workflows, we let any researcher describe an analysis in plain English and receive a publication-ready result — without writing a single line of code.
+        </p>
+        <p style="color:var(--text-muted); font-size:1rem; line-height:1.75;">
+          We're particularly focused on making this accessible to labs in resource-limited environments, early-stage companies, and clinical researchers who have the questions but not always the computational team.
+        </p>
+      </div>
+      <div>
+        <p class="mission-pull">
+          "The question is always scientific. The barrier is always technical. We remove the barrier."
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ VALUES ═══ -->
+<section style="background:var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">Our Values</span>
+    <h2 class="section-title">What we believe</h2>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="icon">🔬</div>
+        <h4>Science first</h4>
+        <p>Every design decision starts with the researcher's workflow — not the software architecture. If it doesn't make the science easier, we don't build it.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🔁</div>
+        <h4>Reproducibility by default</h4>
+        <p>Reproducibility isn't a checkbox — it's baked into every run through version-locked containers, FAIR data, and full audit trails.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🌍</div>
+        <h4>Access for all</h4>
+        <p>The same analysis quality available to a well-funded pharma team should be available to a PhD student in any country. Cloud computing makes this possible.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🤝</div>
+        <h4>Community standards</h4>
+        <p>We build on nf-core, FAIR, and open-source tools rather than reinventing them. The community has done the hard work — we make it accessible.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🔒</div>
+        <h4>Trust through transparency</h4>
+        <p>Every tool we use, every parameter we set, every citation we surface is visible and verifiable. You should always be able to explain your results.</p>
+      </div>
+      <div class="value-card">
+        <div class="icon">⚡</div>
+        <h4>Speed without compromise</h4>
+        <p>Fast results only matter if they're correct results. We optimize for both — cloud compute reduces wall time; validated pipelines ensure scientific integrity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TECH STACK ═══ -->
+<section id="tech">
+  <div class="section-inner">
+    <span class="section-tag" style="color:#6fcfed;">Technology</span>
+    <h2 class="section-title" style="color:#fff;">Built on the best available science</h2>
+    <p class="section-sub" style="color:rgba(255,255,255,.55);">BioMate doesn't build proprietary black boxes — we integrate and orchestrate the best open-source and commercial tools in each domain.</p>
+
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon">🤖</div>
+        <h5>Claude AI (Anthropic)</h5>
+        <p>Intent recognition, parameter pre-fill, findings summarization, and error diagnosis powered by Claude Sonnet/Haiku.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">⚡</div>
+        <h5>Nextflow + nf-core</h5>
+        <p>All pipelines run on Nextflow. Community-validated nf-core workflows for germline, RNA-seq, single-cell, and more.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">☁️</div>
+        <h5>AWS Batch</h5>
+        <p>Elastic cloud compute auto-scales from small CPU runs to GPU-intensive cryo-EM and molecular dynamics.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🧬</div>
+        <h5>AlphaFold3 / Boltz-2</h5>
+        <p>Protein structure prediction integrated directly into the BioMate workflow library for structural biology queries.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">💊</div>
+        <h5>RDKit / AmberTools / GROMACS</h5>
+        <p>End-to-end drug discovery compute — ADMET profiling, GAFF2 parameterization, MD simulation, MM-GBSA ΔGbind.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔭</div>
+        <h5>CryoSPARC / RELION</h5>
+        <p>Cryo-EM single-particle analysis pipelines with GPU acceleration on AWS Batch for fast structure determination.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🐍</div>
+        <h5>Galaxy Platform</h5>
+        <p>BioMate extends Galaxy's tool ecosystem — hundreds of validated bioinformatics tools accessible through the AI interface.</p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📊</div>
+        <h5>GATK4 / BWA-MEM2 / STAR</h5>
+        <p>Industry-standard genomics tools for germline calling, RNA-seq quantification, and variant annotation — all version-locked.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ JOURNEY ═══ -->
+<section style="background:var(--bg);">
+  <div class="section-inner">
+    <span class="section-tag">Our Journey</span>
+    <h2 class="section-title">How we got here</h2>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-dot">1</div>
+        <div class="tl-content">
+          <div class="tl-date">Early 2025</div>
+          <div class="tl-title">BioMate founded</div>
+          <div class="tl-body">Originated from research into AI-assisted bioinformatics. First proof-of-concept connected a language model to nf-core pipeline routing — a 30-minute analysis that previously took 3 hours to configure.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">2</div>
+        <div class="tl-content">
+          <div class="tl-date">Mid 2025</div>
+          <div class="tl-title">Drug discovery workflows launched</div>
+          <div class="tl-body">18 drug discovery workflows deployed covering ADMET, docking, molecular dynamics, lead design, and assay analysis. First pharma pilot users onboarded.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">3</div>
+        <div class="tl-content">
+          <div class="tl-date">Late 2025</div>
+          <div class="tl-title">Genomics &amp; structural biology expansion</div>
+          <div class="tl-body">WGS germline variant calling, RNA-seq, single-cell, cryo-EM SPA, and AlphaFold integration added. AWS Batch GPU queue launched for compute-intensive workflows.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">4</div>
+        <div class="tl-content">
+          <div class="tl-date">2026</div>
+          <div class="tl-title">AI findings &amp; personalization</div>
+          <div class="tl-body">AI findings summarization with citations launched. Domain profile personalization added — BioMate now learns your research focus and routes queries accordingly. 60+ validated workflows across 20+ domains.</div>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot">→</div>
+        <div class="tl-content">
+          <div class="tl-date">Ahead</div>
+          <div class="tl-title">Enterprise &amp; institutional partnerships</div>
+          <div class="tl-body">Private deployment, MCP integration for external AI systems, instrument connections, and SOC2 certification. Building toward the AI lab manager of the future.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CAREERS ═══ -->
+<section id="careers" class="careers-section">
+  <div class="section-inner">
+    <span class="section-tag">Careers</span>
+    <h2 class="section-title">Join us</h2>
+    <p class="section-sub">We're a small, focused team building infrastructure for the next generation of biomedical research. We hire for scientific rigor, engineering depth, and genuine curiosity.</p>
+
+    <div class="career-grid">
+      <div class="career-card">
+        <h4>Bioinformatics Engineer</h4>
+        <div class="career-tags">
+          <span class="career-tag">Nextflow</span>
+          <span class="career-tag">Python</span>
+          <span class="career-tag">AWS</span>
+        </div>
+        <p>Build and maintain validated bioinformatics pipelines. Deep expertise in nf-core, containerization, and genomics/structural biology workflows preferred.</p>
+        <a class="btn btn-outline btn-sm" href="index.html#contact">Apply →</a>
+      </div>
+      <div class="career-card">
+        <h4>AI/ML Scientist</h4>
+        <div class="career-tags">
+          <span class="career-tag">LLM</span>
+          <span class="career-tag">Python</span>
+          <span class="career-tag">Retrieval</span>
+        </div>
+        <p>Work on intent recognition, workflow routing, parameter extraction, and findings generation. Experience with LLM orchestration and scientific text processing essential.</p>
+        <a class="btn btn-outline btn-sm" href="index.html#contact">Apply →</a>
+      </div>
+      <div class="career-card">
+        <h4>Full-Stack Engineer</h4>
+        <div class="career-tags">
+          <span class="career-tag">TypeScript</span>
+          <span class="career-tag">React</span>
+          <span class="career-tag">Node.js</span>
+        </div>
+        <p>Build the interfaces researchers use every day. Strong React and TypeScript skills, interest in scientific UX, and experience with real-time data streaming.</p>
+        <a class="btn btn-outline btn-sm" href="index.html#contact">Apply →</a>
+      </div>
+    </div>
+    <p style="margin-top:2rem; font-size:.875rem; color:var(--text-muted);">Don't see a match? We're always interested in exceptional people. <a href="index.html#contact">Send us a note →</a></p>
+  </div>
+</section>
+
+<!-- ═══════════ CTA ═══ -->
+<section style="background:var(--bg);">
+  <div class="cta-banner">
+    <span class="section-tag">Get Started</span>
+    <h2>Try BioMate for your research</h2>
+    <p>Free pilot access — no credit card, no commitment. See what your first AI-assisted analysis looks like.</p>
+    <div class="cta-btns">
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank">Start Free Trial</a>
+      <a class="btn btn-outline" href="index.html#contact">Talk to Us</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand">
+      <img src="images/logo.png" alt="BioMate AI" />
+      <p>AI-powered bioinformatics for every researcher — from PhD students to enterprise pharma teams.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai/register" target="_blank">Get Started</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="about.html#careers">Careers</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="https://dev-public.biomate.ai" target="_blank">App Login</a></li>
+        <li><a href="index.html#contact">Support</a></li>
+        <li><a href="index.html#contact">Enterprise</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 BioMate AI · All rights reserved</p>
+    <div class="trust-badges"><span>HIPAA Ready</span><span>FAIR Data</span><span>nf-core Validated</span><span>AWS Batch</span></div>
+  </div>
+</footer>
+</body>
+</html>

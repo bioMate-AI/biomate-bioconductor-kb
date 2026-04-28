@@ -1,0 +1,4 @@
+    "PREDICT_ADMET_PROPERTIES_WORKFLOW:PREDICT_ADMET_PROPERTIES":
+        python: 3.12.3
+        biomni_function: "predict_admet_properties"
+    END_VERSIONS

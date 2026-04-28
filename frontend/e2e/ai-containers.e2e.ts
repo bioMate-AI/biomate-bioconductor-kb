@@ -253,8 +253,8 @@ test("AI-7: ProTrek — text-based protein search for DNA repair kinases", async
   await setupTestUser(page, "ai7-protrek");
 
   const query =
-    'Run ProTrek protein search with text query "serine threonine kinase DNA damage response ATM ATR" ' +
-    "across UniProt and AlphaFold databases. Use text query mode, top_k=50.";
+    "Search for serine/threonine kinases involved in DNA damage response using ProTrek " +
+    "trimodal protein search. I want to search by function description across UniProt and AlphaFold databases.";
 
   console.log("[AI-7] Sending ProTrek protein search query...");
   const found = await sendAndWaitForWorkflow(page, query, 90_000);

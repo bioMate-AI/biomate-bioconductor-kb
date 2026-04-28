@@ -1,0 +1,6 @@
+{
+  "compounds_assessed": 2,
+  "model_type": "MPNN",
+  "estimation_method": "rdkit_descriptors",
+  "toxicity": {}
+}

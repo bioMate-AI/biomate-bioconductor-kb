@@ -1,0 +1,16 @@
+{
+  "run_at": "2026-04-21T00:46:54.463Z",
+  "campaign_id": "cmp-croe2e-19dad7fc49a",
+  "tests": [
+    "DD-CRO-1",
+    "DD-CRO-2",
+    "DD-CRO-3",
+    "DD-CRO-4",
+    "DD-CRO-5",
+    "DD-CRO-6",
+    "DD-CRO-7"
+  ],
+  "screenshots": [
+    "/home/yzhang/biomate/frontend/e2e/screenshots/dd-cro/cro1_01_home_1776732326665.png"
+  ]
+}

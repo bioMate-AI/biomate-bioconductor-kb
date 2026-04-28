@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Structured CRO Compound Packages — BioMate AI Blog</title>
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#f5f0e4; --bg-card:#ece7d8; --bg-card2:#e2dcc8;
+    --accent:#4a7a8a; --accent-light:#3a6878;
+    --text:#1c2b32; --text-muted:#5a7280; --border:#cec5ae;
+    --radius:10px; --font-body:'Open Sans',sans-serif; --font-head:'Crimson Text',serif; --nav-h:68px;
+  }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-body); font-weight:400; line-height:1.6; font-size:16px; }
+  a { color:var(--accent-light); text-decoration:none; transition:color .2s; }
+  a:hover { color:var(--accent); }
+  img { max-width:100%; display:block; }
+  .site-header { background:var(--bg); padding:1.25rem 1rem .75rem; text-align:center; border-bottom:1px solid var(--border); }
+  .site-header img { height:56px; width:auto; display:inline-block; }
+  nav { position:sticky; top:0; z-index:100; height:var(--nav-h); background:rgba(245,240,228,.97); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; padding:0 clamp(1rem,4vw,3rem); }
+  .nav-links { display:flex; align-items:center; gap:8px; list-style:none; flex-wrap:wrap; }
+  .nav-links a { color:var(--text-muted); font-size:.875rem; font-weight:400; padding:6px 12px; border-radius:6px; transition:background .2s,color .2s; }
+  .nav-links a:hover { color:var(--accent); background:rgba(74,122,138,.10); }
+  .nav-cta { background:var(--accent)!important; color:#fff!important; font-weight:700!important; padding:7px 18px!important; border-radius:6px!important; }
+  .nav-cta:hover { background:var(--accent-light)!important; }
+  .nav-login { border:1px solid var(--border)!important; color:var(--text)!important; }
+  .nav-login:hover { border-color:var(--accent)!important; color:var(--accent)!important; }
+
+  /* Article hero */
+  .article-hero { width:100%; max-height:420px; overflow:hidden; position:relative; }
+  .article-hero img { width:100%; height:420px; object-fit:cover; display:block; }
+  .article-hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(15,22,28,.35),rgba(15,22,28,.65)); }
+
+  /* Breadcrumb */
+  .breadcrumb { max-width:1100px; margin:0 auto; padding:1.25rem clamp(1rem,4vw,2rem) 0; font-size:.8rem; color:var(--text-muted); }
+  .breadcrumb a { color:var(--accent-light); }
+  .breadcrumb span { margin:0 .4rem; }
+
+  /* Article layout */
+  .article-outer { max-width:1100px; margin:0 auto; padding:2.5rem clamp(1rem,4vw,2rem) 4rem; display:grid; grid-template-columns:1fr 280px; gap:3.5rem; align-items:start; }
+  @media(max-width:860px){ .article-outer { grid-template-columns:1fr; } }
+
+  /* Article header */
+  .article-header { margin-bottom:2.5rem; }
+  .article-cat { font-size:.72rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--accent-light); margin-bottom:.5rem; display:block; }
+  .article-header h1 { font-family:var(--font-head); font-size:clamp(1.8rem,4vw,2.6rem); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:.75rem; }
+  .article-meta { font-size:.8rem; color:var(--text-muted); display:flex; gap:1rem; flex-wrap:wrap; }
+  .article-meta strong { color:var(--text); font-weight:600; }
+
+  /* Article body */
+  .article-body { font-size:.95rem; color:var(--text); line-height:1.75; }
+  .article-body p { margin-bottom:1.25rem; color:var(--text-muted); }
+  .article-body p.lead { font-size:1.08rem; color:var(--text); font-weight:400; margin-bottom:1.75rem; border-left:3px solid var(--accent); padding-left:1.1rem; }
+  .article-body h2 { font-family:var(--font-head); font-size:1.45rem; color:var(--text); margin:2.25rem 0 .75rem; }
+  .article-body blockquote { font-family:var(--font-head); font-size:1.2rem; color:var(--text); border-left:3px solid var(--accent); padding-left:1.25rem; margin:1.75rem 0; line-height:1.5; }
+  .article-body ul { margin:0 0 1.25rem 1.25rem; color:var(--text-muted); }
+  .article-body ul li { margin-bottom:.4rem; font-size:.92rem; }
+  .article-body .callout { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem 1.5rem; margin:1.75rem 0; }
+  .article-body .callout strong { color:var(--text); display:block; margin-bottom:.4rem; font-size:.88rem; text-transform:uppercase; letter-spacing:.06em; }
+  .article-body .callout p { margin:0; font-size:.88rem; }
+  .article-divider { border:none; border-top:1px solid var(--border); margin:2rem 0; }
+
+  /* Sidebar */
+  .sidebar-widget { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.4rem; margin-bottom:1.4rem; }
+  .sidebar-widget h3 { font-family:var(--font-head); font-size:1.05rem; color:var(--text); margin-bottom:.9rem; padding-bottom:.45rem; border-bottom:1px solid var(--border); }
+  .sidebar-list { list-style:none; display:flex; flex-direction:column; gap:.65rem; }
+  .sidebar-list li a { font-size:.84rem; color:var(--text); }
+  .sidebar-list li a:hover { color:var(--accent); }
+  .sidebar-list .meta { font-size:.73rem; color:var(--text-muted); margin-top:.15rem; }
+  .topic-chips { display:flex; flex-wrap:wrap; gap:5px; }
+  .topic-chip { background:var(--bg); border:1px solid var(--border); border-radius:4px; font-size:.73rem; color:var(--text-muted); padding:3px 8px; }
+
+  /* CTA */
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:11px 24px; border-radius:8px; font-family:var(--font-body); font-size:.9rem; font-weight:700; cursor:pointer; text-decoration:none; transition:all .2s; border:none; }
+  .btn-primary { background:var(--accent); color:#fff; width:100%; justify-content:center; }
+  .btn-primary:hover { background:var(--accent-light); color:#fff; }
+
+  /* Footer */
+  footer { background:var(--bg-card2); border-top:1px solid var(--border); padding:3rem clamp(1rem,5vw,3rem) 1.5rem; }
+  .footer-inner { max-width:1200px; margin:0 auto; }
+  .footer-grid { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:2.5rem; margin-bottom:2rem; }
+  .footer-brand img { height:36px; margin-bottom:1rem; }
+  .footer-brand p { color:var(--text-muted); font-size:.875rem; line-height:1.6; max-width:280px; }
+  .footer-col h4 { font-size:.8rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text); margin-bottom:.875rem; }
+  .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:.5rem; }
+  .footer-col ul a { font-size:.875rem; color:var(--text-muted); }
+  .footer-col ul a:hover { color:var(--accent); }
+  .footer-copy { color:var(--text-muted); font-size:.8rem; text-align:center; padding-top:1.25rem; border-top:1px solid var(--border); }
+  @media(max-width:720px){ .nav-links{display:none;} .footer-grid{grid-template-columns:1fr;} }
+</style>
+  <meta name="description" content="BioMate assembles complete compound submission packages in the formats that major CROs consume directly." />
+  <meta name="keywords" content="BioMate AI, drug development, computational biology, biomedical AI, blog cro submission" />
+  <link rel="canonical" href="https://biomate.ai/blog-cro-submission.html" />
+  <meta property="og:title" content="Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate" />
+  <meta property="og:description" content="BioMate assembles complete compound submission packages in the formats that major CROs consume directly." />
+  <meta property="og:url" content="https://biomate.ai/blog-cro-submission.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://biomate.ai/images/blog-cro-submission-hero.png" />
+  <meta property="og:site_name" content="BioMate AI" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate" />
+  <meta name="twitter:description" content="BioMate assembles complete compound submission packages in the formats that major CROs consume directly." />
+  <meta name="twitter:image" content="https://biomate.ai/images/blog-cro-submission-hero.png" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate",
+    "description": "BioMate assembles complete compound submission packages in the formats that major CROs consume directly.",
+    "datePublished": "2026-02-28",
+    "author": {"@type": "Organization", "name": "BioMate AI"},
+    "publisher": {"@type": "Organization", "name": "BioMate AI", "url": "https://biomate.ai"},
+    "url": "https://biomate.ai/blog-cro-submission.html",
+    "image": "https://biomate.ai/images/blog-cro-submission-hero.png",
+    "articleSection": "Drug Development"
+  }
+  </script>
+</head>
+<body>
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+<nav>
+  <ul class="nav-links">
+    <li><a href="index.html#how-it-works">How It Works</a></li>
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+    <li><a href="login.html" class="nav-login">Log In</a></li>
+    <li><a href="https://dev-public.biomate.ai/register" class="nav-cta">Get Started</a></li>
+  </ul>
+</nav>
+
+<div class="article-hero">
+  <img src="images/blog-cro-submission-hero.png" alt="CRO Submission Without the Spreadsheet: Structured Data Packages from BioMate" />
+  <div class="article-hero-overlay"></div>
+</div>
+
+<div class="breadcrumb">
+  <a href="blog.html">Blog</a><span>›</span>Drug Development
+</div>
+
+<div class="article-outer">
+  <article>
+    <div class="article-header">
+      <span class="article-cat">Drug Development</span>
+      <h1>Eliminating the CRO Handoff Bottleneck: Structured Compound Packages from BioMate</h1>
+      <div class="article-meta">
+        <span><strong>February 28, 2026</strong></span>
+        <span>5 min read</span>
+        <span>BioMate Team</span>
+      </div>
+    </div>
+    <div class="article-body">
+
+      <p class="lead">The handoff from a computational drug discovery team to a contract research organization is, in practice, surprisingly painful. Data that was clean and structured inside BioMate becomes a negotiation about file formats, a chain of email attachments, and a set of manual QC checks at the CRO's intake desk — adding days to a process that should take hours.</p>
+
+      <h2>The Hidden Cost of the CRO Handoff</h2>
+      <p>When a computational team finishes lead optimization and is ready to hand compounds to a CRO for in vitro or in vivo validation, they typically need to export compound structures as SDF files, ADMET predictions as PDFs or spreadsheets, assay specifications as a separate document, and QC records as yet another file. The CRO then reassembles these into its own internal format. Every translation step is an opportunity for error and a source of delay.</p>
+      <p>For organizations running multiple CRO relationships in parallel — a common pattern in drug discovery — the overhead multiplies. Each CRO has different intake requirements, different preferred formats, and different naming conventions. Managing this manually is a real cost that rarely shows up in project timelines but reliably delays them.</p>
+
+      <h2>What a Structured Package Looks Like</h2>
+      <p>BioMate generates CRO submission packages that consolidate everything a contract organization needs to begin work: compound records with structures in standard chemical formats, ADMET predictions with confidence assessments, target binding predictions with pose files, relevant QC records from the computational work, and assay specifications generated from the compound's predicted property profile. The full package is assembled in a format that major CROs consume directly — reducing or eliminating the reformatting step at intake.</p>
+
+      <blockquote>"A structured handoff is not just faster — it is more accurate. The data that enters the CRO is the same data that came out of BioMate, with no translation layer where information can be lost."</blockquote>
+
+      <h2>Audit Trail Included</h2>
+      <p>Every element of the submission package is traceable to its source in BioMate's audit trail. The ADMET predictions are linked to the model version and parameters used. The structural data is linked to the generative run that produced it. The QC records are linked to the thresholds that were applied. If a CRO result comes back inconsistent with the computational predictions and the question arises of what the original computational data said, the answer is always available and unambiguous.</p>
+
+      <div class="callout">
+        <strong>What this means for drug discovery organizations</strong>
+        <p>The CRO handoff becomes a file transfer rather than a project. Data that was structured inside BioMate stays structured all the way through intake at the CRO — with fewer errors, less delay, and a complete audit trail connecting the computational prediction to the experimental follow-up.</p>
+      </div>
+    </div>
+  </article>
+
+  <aside>
+    <div class="sidebar-widget">
+      <h3>Related Posts</h3>
+      <ul class="sidebar-list">
+        <li><a href="blog-drug-1-target.html">BioMate for Drug Discovery, Part 1: Computational Target Discovery</a><div class="meta">April 22, 2026</div></li>
+<li><a href="blog-drug-2-hit.html">BioMate for Drug Discovery, Part 2: AI-Powered Hit Discovery</a><div class="meta">April 21, 2026</div></li>
+<li><a href="blog-drug-3-admet.html">BioMate for Drug Discovery, Part 3: ADMET and the Lead Optimization Loop</a><div class="meta">April 19, 2026</div></li>
+<li><a href="blog-drug-4-preclinical.html">BioMate for Drug Discovery, Part 4: Preclinical Modeling and IND Preparation</a><div class="meta">April 17, 2026</div></li>
+<li><a href="blog-drug-5-clinical.html">BioMate for Drug Discovery, Part 5: Supporting Clinical Development</a><div class="meta">April 15, 2026</div></li>
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="topic-chips">
+        <span class="topic-chip">CRO</span><span class="topic-chip">CDMO</span><span class="topic-chip">CRO Submission</span><span class="topic-chip">Drug Discovery</span><span class="topic-chip">Handoff</span><span class="topic-chip">Compound Package</span><span class="topic-chip">Regulatory</span>
+      </div>
+    </div>
+    <div class="sidebar-widget">
+      <h3>Try BioMate</h3>
+      <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:1rem;">Everything described here runs live on the platform. Start free.</p>
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img src="images/logo.png" alt="BioMate AI" />
+        <p>AI-powered biomedical research platform. From drug discovery to structural biology — in plain English.</p>
+      </div>
+      <div class="footer-col"><h4>Product</h4><ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai" target="_blank" rel="noopener">Platform</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Science</h4><ul>
+        <li><a href="index.html#approach">Our Approach</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#applications">Applications</a></li>
+      </ul></div>
+      <div class="footer-col"><h4>Company</h4><ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="mailto:contact@biomate.ai">contact@biomate.ai</a></li>
+      </ul></div>
+    </div>
+    <p class="footer-copy">&#169; 2026 BioMate AI &middot; All rights reserved</p>
+  </div>
+</footer>
+</body>
+</html>

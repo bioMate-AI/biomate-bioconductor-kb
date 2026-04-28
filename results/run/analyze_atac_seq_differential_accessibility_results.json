@@ -1,0 +1,6 @@
+{
+  "success": true,
+  "function": "analyze_atac_seq_differential_accessibility",
+  "domain": "immunology",
+  "result": "ATAC-seq Analysis Log - 2026-04-08 17:57:38\n================================================================================\n\n** SIMULATION MODE: Running with simulated ATAC-seq data **\n\nStep 1: Peak calling on treatment sample (simulated)\nIdentified 22270 peaks in treatment sample.\n\nStep 2: Peak calling on control sample (simulated)\nIdentified 19603 peaks in control sample.\n\nStep 3: Differential accessibility analysis (simulated)\nFound 2360 regions with higher accessibility in treatment.\nFound 2294 regions with higher accessibility in control.\n\nStep 4: Analysis Summary\nTotal peaks in treatment: 22270\nTotal peaks in control: 19603\nDifferentially accessible regions: 4654\n  - Enriched in treatment: 2360\n  - Enriched in control: 2294\n\nOutput Files (simulated):\n  - Treatment peaks: ./atac_results/atac_treatment_peaks.narrowPeak\n  - Control peaks: ./atac_results/atac_control_peaks.narrowPeak\n  - Treatment-enriched regions: ./atac_results/atac_differential_cond1.bed\n  - Control-enriched regions: ./atac_results/atac_differential_cond2.bed\n"
+}

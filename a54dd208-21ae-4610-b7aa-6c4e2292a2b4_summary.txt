@@ -1,0 +1,63 @@
+======================================================================
+ADMET Auto-Loop Run: a54dd208-21ae-4610-b7aa-6c4e2292a2b4
+Generated: 2026-04-21T03:35:42+00:00 UTC
+======================================================================
+
+Phase phase_2_admet_prediction  [PASS]  (2 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=halt
+    Gate results:
+      [OK ] herg_ic50                         value=30  threshold=10
+      [OK ] dili_probability                  value=0.22  threshold=0.5
+      [OK ] dili_risk_level                   value=0  threshold=1
+      [!!!] ames_mutagenicity                 value=0.75  threshold=0.5
+      [OK ] logp                              value=2.8  threshold=5
+      [OK ] molecular_weight                  value=310  threshold=500
+    Remediations:
+      gate=ames_mutagenicity
+        ames_strict → True
+        num_candidates → 40
+        Rationale: Ames mutagenicity flag raised (probability
+                   0.750, threshold 0.50). Enabled
+                   ames_strict=True (Kazius structural alert pre-
+                   filter) and reduced num_candidates 50→40 to
+                   concentrate screening budget on structurally
+                   clean scaffolds.
+
+  Attempt #2  outcome=pass
+    Gate results:
+      [OK ] herg_ic50                         value=28  threshold=10
+      [OK ] dili_probability                  value=0.18  threshold=0.5
+      [OK ] dili_risk_level                   value=0  threshold=1
+      [OK ] ames_mutagenicity                 value=0.28  threshold=0.5
+      [OK ] logp                              value=2.5  threshold=5
+      [OK ] molecular_weight                  value=300  threshold=500
+
+  Phase final: pass after 2 attempt(s)
+
+Phase phase_3_herg_screen  [PASS]  (1 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=pass
+    Gate results:
+      [OK ] herg_ic50                         value=28  threshold=10
+
+  Phase final: pass after 1 attempt(s)
+
+Phase phase_4_dili_ames  [PASS]  (1 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=pass
+    Gate results:
+      [OK ] dili_probability                  value=0.18  threshold=0.5
+      [OK ] dili_risk_level                   value=0  threshold=1
+      [OK ] ames_mutagenicity                 value=0.28  threshold=0.5
+
+  Phase final: pass after 1 attempt(s)
+
+======================================================================
+Summary
+--------------------------------------------------
+  Phases passed:     3
+  Phases failed:     0
+  Phases escalated:  0
+  Total attempts:    5
+======================================================================

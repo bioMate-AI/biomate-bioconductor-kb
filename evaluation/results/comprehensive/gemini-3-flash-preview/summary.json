@@ -1,0 +1,19 @@
+{
+  "sgi_bench": {
+    "model": "gemini-3-flash-preview",
+    "benchmark": "sgi_bench",
+    "n_tasks": 17,
+    "run_id": "sgi_bench_20260427_092607",
+    "db_path": "/home/yzhang/biomate/evaluation/results/comprehensive/gemini-3-flash-preview/sgi_bench/eval_results.db",
+    "mean_score": 0.0,
+    "mean_latency_sec": 5.5,
+    "std_latency_sec": 1.98,
+    "p95_latency_sec": 7.86,
+    "total_cost_usd": 0.000401,
+    "mean_cost_per_task": 2.4e-05,
+    "n_grounded": 0,
+    "n_hallucinated": 0,
+    "n_unverifiable": 0,
+    "hallucination_rate": null
+  }
+}

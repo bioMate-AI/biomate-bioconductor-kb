@@ -1,0 +1,41 @@
+{
+  "drug_name": "Imatinib",
+  "target_gene": "BCR-ABL1",
+  "n_de_genes": 51,
+  "qc_status": "PASS",
+  "top_pathways": [
+    {
+      "name": "HALLMARK_E2F_TARGETS",
+      "NES": 2.176,
+      "padj": 0.0051
+    },
+    {
+      "name": "HALLMARK_G2M_CHECKPOINT",
+      "NES": 2.078,
+      "padj": 0.0168
+    },
+    {
+      "name": "HALLMARK_MYC_TARGETS_V1",
+      "NES": 2.072,
+      "padj": 0.0054
+    },
+    {
+      "name": "HALLMARK_APOPTOSIS",
+      "NES": -1.929,
+      "padj": 0.0194
+    },
+    {
+      "name": "HALLMARK_P53_PATHWAY",
+      "NES": -1.902,
+      "padj": 0.0463
+    }
+  ],
+  "cmap_top_match": {
+    "drug_name": "Bosutinib",
+    "similarity": 0.92,
+    "moa_annotation": "Dual ABL/Src kinase inhibitor"
+  },
+  "moa_hypothesis": "Treatment with Imatinib induces activation of the HALLMARK_E2F_TARGETS pathway (NES=2.18), consistent with Bosutinib (CMap similarity=0.92), supporting BCR-ABL1 engagement.",
+  "mock_mode": true,
+  "timestamp": "2026-03-22T14:42:32.955160Z"
+}

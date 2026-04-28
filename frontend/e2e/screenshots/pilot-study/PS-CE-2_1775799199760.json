@@ -1,0 +1,74 @@
+{
+  "sessionId": "PS-CE-2",
+  "sessionName": "Helical SPA Pipeline",
+  "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_ce2_1775799018985@biomate.test",
+  "startTs": "2026-04-10T05:30:18.985Z",
+  "endTs": "2026-04-10T05:33:19.760Z",
+  "totalDurationMs": 180775,
+  "turns": [
+    {
+      "n": 1,
+      "query": "I have F-actin cryo-EM movie data and want to run helical SPA reconstruction.\nI have attached the movie file (actin_filaments.mrc). Pixel size 1.08 Å/px.\nHelical rise: 27.5 Å, helical twist: -166.15 degrees.\nPlease run the helical SPA pipeline.",
+      "responseMs": 48386,
+      "cardMs": 48386,
+      "workflowName": null
+    }
+  ],
+  "runId": null,
+  "execStatus": "not_started",
+  "execDurationMs": 0,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [
+    {
+      "criterion": "movies_path from .mrc upload",
+      "threshold": "non-empty",
+      "actual": "empty",
+      "pass": false
+    }
+  ],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-10T05:30:23.011Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-10T05:30:18.985Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": false,
+  "h3": 0,
+  "h5": false,
+  "screenshots": [
+    "PS-CE-2_01_home.png",
+    "PS-CE-2_01b_file_attached.png",
+    "PS-CE-2_02_after_t1.png",
+    "PS-CE-2_03_card.png",
+    "PS-CE-2_03b_params.png",
+    "PS-CE-2_03c_params_filled.png",
+    "PS-CE-2_error.png"
+  ],
+  "notes": [],
+  "status": "fail",
+  "error": "page.waitForResponse: Timeout 60000ms exceeded while waiting for event \"response\""
+}

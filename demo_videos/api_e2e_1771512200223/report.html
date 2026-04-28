@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>BioMate E2E Test Report</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #2c3e50; }
+    .summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .pass { color: #27ae60; font-weight: bold; }
+    .fail { color: #e74c3c; font-weight: bold; }
+    .test-result { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #3498db; }
+    .test-result.passed { border-left-color: #27ae60; }
+    .test-result.failed { border-left-color: #e74c3c; }
+    pre { background: #ecf0f1; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    .timestamp { color: #7f8c8d; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>🎬 BioMate E2E Test Report</h1>
+
+  <div class="summary">
+    <h2>Summary</h2>
+    <p><strong>Timestamp:</strong> 2026-02-19T14:43:20.253Z</p>
+    <p><strong>Duration:</strong> 29ms (0.03s)</p>
+    <p><strong>Tests:</strong> 4</p>
+    <p><strong class="pass">Passed:</strong> 1</p>
+    <p><strong class="fail">Failed:</strong> 3</p>
+  </div>
+
+  
+
+  <h2>Test Results</h2>
+  
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.224Z</div>
+      <div><strong>INFO:</strong> Checking frontend availability...</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.232Z</div>
+      <div><strong>INFO:</strong> Response status: 301</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.232Z</div>
+      <div><strong>INFO:</strong> Frontend redirects to HTTPS (expected for production mode)</div>
+    </div>
+  
+
+    <div class="test-result passed">
+      <div class="timestamp">2026-02-19T14:43:20.232Z</div>
+      <div><strong>PASS:</strong> ✅ Frontend Health Check PASSED (8ms)</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.232Z</div>
+      <div><strong>INFO:</strong> Sending chat message to /api/chat...</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.232Z</div>
+      <div><strong>INFO:</strong> Request: {"message":"Model bacterial growth dynamics with initial population of 1000 cells and growth rate of 0.5"}</div>
+    </div>
+  
+
+    <div class="test-result failed">
+      <div class="timestamp">2026-02-19T14:43:20.252Z</div>
+      <div><strong>FAIL:</strong> ❌ Chat API - Generate Workflow FAILED: request to https://localhost:5000/api/chat failed, reason: write EPROTO 6096DCEA4DEB0000:error:0A00010B:SSL routines:ssl3_get_record:wrong version number:../ssl/record/ssl3_record.c:354:
+ (20ms)</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.252Z</div>
+      <div><strong>INFO:</strong> Reading generated workflow...</div>
+    </div>
+  
+
+    <div class="test-result failed">
+      <div class="timestamp">2026-02-19T14:43:20.253Z</div>
+      <div><strong>FAIL:</strong> ❌ Workflow Validation FAILED: ENOENT: no such file or directory, open '/home/yzhang/biomate/demo_videos/api_e2e_1771512200223/chat_response.json' (1ms)</div>
+    </div>
+  
+
+    <div class="test-result ">
+      <div class="timestamp">2026-02-19T14:43:20.253Z</div>
+      <div><strong>INFO:</strong> Checking if workflow execution endpoint is available...</div>
+    </div>
+  
+
+    <div class="test-result failed">
+      <div class="timestamp">2026-02-19T14:43:20.253Z</div>
+      <div><strong>FAIL:</strong> ❌ Workflow Execution API FAILED: ENOENT: no such file or directory, open '/home/yzhang/biomate/demo_videos/api_e2e_1771512200223/chat_response.json' (0ms)</div>
+    </div>
+  
+
+  <div class="summary">
+    <h2>Files Generated</h2>
+    <ul>
+      <li><a href="test_report.json">test_report.json</a> - Full test results</li>
+      <li><a href="chat_response.json">chat_response.json</a> - Workflow generation response</li>
+      <li><a href="execution_response.json">execution_response.json</a> - Execution response (if available)</li>
+      <li><a href="REPORT.md">REPORT.md</a> - Markdown report</li>
+    </ul>
+  </div>
+</body>
+</html>

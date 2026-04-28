@@ -1,0 +1,115 @@
+{
+  "compound_id": "CPND0005",
+  "smiles": "Cc1ccc(cc1Nc2nccc(n2)c3cccnc3)NC(=O)c4ccc(cc4)CN5CCN(CC5)C",
+  "smiles_valid": true,
+  "qc_status": "PASS",
+  "qc_reason": "route_with_steps<=4_and_score>=0.6_found",
+  "best_route_steps": 4,
+  "best_route_score": 0.742,
+  "best_sa_score": 2.86,
+  "n_routes": 3,
+  "pass_max_steps": 4,
+  "pass_min_score": 0.6,
+  "warn_max_steps": 6,
+  "routes": [
+    {
+      "route_id": 2,
+      "score": 0.742,
+      "step_count": 4,
+      "sa_score": 2.86,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Epoxidation",
+          "reagent": "m-CPBA / CH2Cl2",
+          "precursor_smiles": "c1ccccc1",
+          "yield_pct": 82.3
+        },
+        {
+          "step": 2,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "CC(=O)O",
+          "yield_pct": 71.0
+        },
+        {
+          "step": 3,
+          "reaction_class": "Acetylation",
+          "reagent": "Ac2O / Et3N",
+          "precursor_smiles": "c1ccc(Cl)cc1",
+          "yield_pct": 65.7
+        },
+        {
+          "step": 4,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "c1ccc(Cl)cc1",
+          "yield_pct": 80.7
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    },
+    {
+      "route_id": 1,
+      "score": 0.691,
+      "step_count": 2,
+      "sa_score": 4.19,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "NC(=O)O",
+          "yield_pct": 76.0
+        },
+        {
+          "step": 2,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "CC(C)=O",
+          "yield_pct": 85.9
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    },
+    {
+      "route_id": 3,
+      "score": 0.684,
+      "step_count": 4,
+      "sa_score": 3.29,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "c1ccc(Cl)cc1",
+          "yield_pct": 60.8
+        },
+        {
+          "step": 2,
+          "reaction_class": "N-alkylation",
+          "reagent": "K2CO3 / DMF",
+          "precursor_smiles": "c1ccc(N)cc1",
+          "yield_pct": 67.1
+        },
+        {
+          "step": 3,
+          "reaction_class": "Suzuki coupling",
+          "reagent": "Pd(OAc)2 / PPh3",
+          "precursor_smiles": "OCC",
+          "yield_pct": 87.5
+        },
+        {
+          "step": 4,
+          "reaction_class": "Hydrogenation",
+          "reagent": "H2 / Pd-C / EtOH",
+          "precursor_smiles": "OC(=O)c1ccccc1",
+          "yield_pct": 90.4
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    }
+  ],
+  "timestamp": "2026-03-22T15:04:51.868633Z",
+  "mock_mode": true
+}

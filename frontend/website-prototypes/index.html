@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BioMate — Website Design Prototypes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/styles.css" />
+  <style>
+    body { background: #0a0f1e; color: #f1f5f9; min-height: 100vh; padding: 3rem 0; }
+    .header { text-align: center; margin-bottom: 3rem; }
+    .dev-badge { display: inline-block; background: #78350f33; color: #fbbf24; border: 1px solid #92400e; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; margin-bottom: 1rem; }
+    h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .subtitle { color: #64748b; max-width: 600px; margin: 0 auto; font-size: 0.9375rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+    .proto-card { background: #111827; border: 1px solid #1e2a3d; border-radius: 16px; overflow: hidden; transition: border-color 0.15s; }
+    .proto-card:hover { border-color: #22d3ee; }
+    .card-preview { height: 180px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+    .card-body { padding: 1.5rem; }
+    .card-badge { display: inline-block; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 4px; margin-bottom: 0.75rem; }
+    .card-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .card-audience { font-size: 0.8125rem; color: #64748b; margin-bottom: 0.75rem; }
+    .card-hero-text { font-style: italic; color: #94a3b8; font-size: 0.875rem; margin-bottom: 1rem; border-left: 2px solid #1e2a3d; padding-left: 0.75rem; }
+    .pros { margin-bottom: 1rem; }
+    .pros li { list-style: none; font-size: 0.8125rem; color: #94a3b8; padding: 0.2rem 0; }
+    .pros li::before { content: '+'; color: #10b981; margin-right: 0.5rem; }
+    .open-btn { display: block; text-align: center; background: #1e2a3d; color: #22d3ee; border: 1px solid #1e3a52; padding: 0.75rem; border-radius: 8px; text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; }
+    .open-btn:hover { background: #0e3a52; border-color: #22d3ee; }
+    .footer { text-align: center; margin-top: 3rem; color: #334155; font-size: 0.8125rem; }
+    .footer code { background: #111827; padding: 0.125rem 0.5rem; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+  <div class="header container">
+    <div class="dev-badge">DEV ONLY — Not visible in production</div>
+    <h1>BioMate Website Design Prototypes</h1>
+    <p class="subtitle">Three standalone landing page variants. Each targets a different primary audience and tests a different messaging lead. Open each to evaluate. No build step required — pure HTML/CSS/JS.</p>
+  </div>
+
+  <div class="cards">
+    <!-- Variant A -->
+    <div class="proto-card">
+      <div class="card-preview" style="background: linear-gradient(135deg, #0a0f1e 0%, #0c1a2e 100%);">
+        <span>🔬</span>
+      </div>
+      <div class="card-body">
+        <span class="card-badge" style="background:#0e7490; color:#22d3ee;">Variant A</span>
+        <div class="card-title">Science-Forward</div>
+        <div class="card-audience">Target: PI / senior researcher</div>
+        <div class="card-hero-text">"Research question to results. Under 30 minutes."</div>
+        <ul class="pros">
+          <li>Leads with real workflow outputs, not marketing</li>
+          <li>Domain catalog with workflow counts builds trust</li>
+          <li>Dark theme signals technical depth</li>
+          <li>Citations and QC standards front and center</li>
+        </ul>
+        <a href="variant-a.html" class="open-btn">Open Variant A →</a>
+      </div>
+    </div>
+
+    <!-- Variant B -->
+    <div class="proto-card">
+      <div class="card-preview" style="background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);">
+        <span>⚡</span>
+      </div>
+      <div class="card-body">
+        <span class="card-badge" style="background:#1e40af22; color:#2563eb;">Variant B</span>
+        <div class="card-title">Product-Forward</div>
+        <div class="card-audience">Target: Lab manager / department head</div>
+        <div class="card-hero-text">"Stop waiting for your bioinformatician."</div>
+        <ul class="pros">
+          <li>Pain-led: resonates with bottlenecked labs</li>
+          <li>Interactive pain-point section creates engagement</li>
+          <li>Pricing visible — removes buyer evaluation friction</li>
+          <li>Stats row (87%, 23 min) provides scan-ready proof</li>
+        </ul>
+        <a href="variant-b.html" class="open-btn">Open Variant B →</a>
+      </div>
+    </div>
+
+    <!-- Variant C -->
+    <div class="proto-card">
+      <div class="card-preview" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+        <span>🛡️</span>
+      </div>
+      <div class="card-body">
+        <span class="card-badge" style="background:#05966920; color:#059669;">Variant C</span>
+        <div class="card-title">Trust &amp; Compliance-Forward</div>
+        <div class="card-audience">Target: IT / clinical research director / pharma</div>
+        <div class="card-hero-text">"AI bioinformatics your compliance team can approve."</div>
+        <ul class="pros">
+          <li>Directly addresses enterprise procurement blockers</li>
+          <li>Compliance checklist panel signals institutional readiness</li>
+          <li>FAQ section pre-empts security objections</li>
+          <li>Private deployment option differentiates from SaaS-only</li>
+        </ul>
+        <a href="variant-c.html" class="open-btn">Open Variant C →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer container">
+    <p>Analysis docs: <code>docs/20260412_BENCHLING_WEBSITE_ANALYSIS.md</code> · <code>docs/20260412_BIOMATE_WEBSITE_IMPROVEMENT_PROPOSAL.md</code></p>
+    <p style="margin-top:0.5rem;">Open any variant in a browser: <code>open frontend/website-prototypes/variant-a.html</code></p>
+  </div>
+</body>
+</html>

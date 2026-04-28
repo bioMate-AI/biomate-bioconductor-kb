@@ -1,0 +1,47 @@
+[
+  {
+    "step": 1,
+    "title": "BioMate Home Page",
+    "url": "http://localhost:5000",
+    "description": "Main interface with chat panel and workflow visualization",
+    "action": "Open homepage"
+  },
+  {
+    "step": 2,
+    "title": "Chat Workflow Generation",
+    "url": "http://localhost:5000",
+    "description": "Type: 'Model bacterial growth with initial population 1000'",
+    "action": "Send chat message",
+    "api_call": {
+      "endpoint": "/api/chat",
+      "method": "POST",
+      "body": {
+        "message": "Model bacterial growth dynamics with initial population of 1000 cells and growth rate of 0.5"
+      }
+    }
+  },
+  {
+    "step": 3,
+    "title": "Generated Workflow",
+    "description": "AI-generated workflow JSON with correct tool IDs and parameters",
+    "action": "Show workflow visualization"
+  },
+  {
+    "step": 4,
+    "title": "Workflow Execution",
+    "description": "Click Execute, choose execution mode (local/AWS/Slurm)",
+    "action": "Execute workflow"
+  },
+  {
+    "step": 5,
+    "title": "Real-time Monitoring",
+    "description": "SSE streaming shows real-time status updates",
+    "action": "Monitor execution"
+  },
+  {
+    "step": 6,
+    "title": "Results & Download",
+    "description": "Completed workflow with downloadable outputs",
+    "action": "View results"
+  }
+]

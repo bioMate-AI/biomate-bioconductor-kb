@@ -164,16 +164,36 @@ Ran `run_routing.py --ir-mode` twice:
 
 **Result: BGE is a regression.** P@1 dropped from 74% to 42%. RNA-seq domain collapsed to P@1=0.000 (15/15 wrong top-1). Transcriptomics also severely hurt.
 
-**Root cause**: The BGE bonus weight (5.0) is too large relative to FTS scores for common workflows like `nf-core/rnaseq`. BGE gives high similarity to semantically related but wrong workflows (e.g., `bulk_rnaseq_de_analysis`, `stringtie`) which then outscore the correct `nf-core/rnaseq` result.
+**Root cause (corrected after deeper analysis)**: The regression was caused by the **dense rescue block**, not the bonus weight. The rescue block injected semantically-similar-but-wrong workflows (e.g., `bulk_rnaseq_de_analysis`, `stringtie`) above correct results for every RNA-seq query.
 
-**Resolution**: Set `_WF_DENSE_BONUS_WEIGHT = 0.5`, `_WF_DENSE_MIN_SIM = 0.55`, rescue disabled (`if False`).
+**Standalone tuning analysis** (2026-04-15, `/tmp/bge_tune/test_bge_search.py`):
 
-At weight=0.5, max bonus = 0.5 — verified identical rankings to weight=0.0 on a 12-query sample covering all domains. BGE acts as a tiebreaker only, cannot invert any ranking where FTS scores differ by > 0.5 points. Dense rescue disabled because it was injecting semantically-similar-but-wrong workflows (e.g., `bulk_rnaseq_de_analysis` above `nf-core/rnaseq`).
+Ran a 120-query grid sweep with the dense rescue disabled to isolate the bonus effect:
 
-**Final status**: BGE active as tiebreaker (weight=0.5). FTS-only baseline preserved. No further tuning needed unless a specific use case requires stronger semantic lift.
+| weight | min_sim | MRR | P@1 | Hit@5 |
+|--------|---------|-----|-----|-------|
+| 0.0 | 0.55 | 0.8492 | 0.7750 | 0.9500 | ← FTS-only |
+| 0.5 | 0.55 | 0.8492 | 0.7750 | 0.9500 |
+| 1.0 | 0.55 | 0.8492 | 0.7750 | 0.9500 |
+| 2.0 | 0.55 | 0.8492 | 0.7750 | 0.9500 |
+| 5.0 | 0.30 | 0.8492 | 0.7750 | 0.9500 |
 
-## Pending
+**Finding: BGE bonus (with rescue disabled) is completely neutral at all tested weights.** Rankings do not change.
 
-- Run 9/9 AI container E2E suite to verify no regressions
-- Tune BGE bonus weight and rerun IR benchmark to achieve MRR > baseline
-- Tune `_WF_DENSE_BONUS_WEIGHT` if IR metrics show over/under-weighting
+**Root cause of neutrality**: Among the 34 failing queries, the BGE cosine similarity difference between correct and wrong workflows is typically 0.005–0.1, while FTS score gaps are 2–20 points. The weight needed to flip rankings ranges from 17 to 999+. The bonus acts as a true tiebreaker only, which is the intended design.
+
+**Resolution**: `_WF_DENSE_BONUS_WEIGHT = 0.5`, `_WF_DENSE_MIN_SIM = 0.55`, rescue disabled (`if False`).
+
+BGE acts as a tiebreaker only. Dense rescue disabled permanently — it injected wrong workflows for the entire RNA-seq and transcriptomics domains.
+
+**Final status**: BGE active as tiebreaker (weight=0.5). FTS-only IR performance preserved. Applied to production.
+
+## E2E Validation — 9/9 PASS (2026-04-15)
+
+Ran `PLAYWRIGHT_BASE_URL=https://dev-public.biomate.ai npx playwright test e2e/ai-containers.e2e.ts`:
+
+- **9/9 passed** (6.4 min)
+- AI-1 Boltz-2 ✓, AI-2 Chai-1 ✓, AI-3 DrugCLIP ✓, AI-4 SynCraft ✓, AI-5 STATE ✓, AI-6 scFv-PMPNN ✓, AI-7 ProTrek ✓, AI-8 ProFam-1 ✓, AI-SMOKE ✓
+- Previous AI-2 failure was transient (Galaxy still loading after first sync); re-run 47s later passed
+
+**Status: COMPLETE**

@@ -1,0 +1,7 @@
+{
+  "step": "07_inspect_picks_round1",
+  "timestamp": "2026-03-09T20:36:23.225135",
+  "num_particles": 3561,
+  "inspection_mode": "auto_pass",
+  "mock_mode": true
+}

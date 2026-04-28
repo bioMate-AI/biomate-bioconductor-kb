@@ -174,6 +174,524 @@ WORKFLOWS = [
         "step_count":  3,
         "tools_used":  "STATE",
     },
+    # ── 14 new gap-filling workflows (2026-04-17) ────────────────────────────
+    {
+        "name":        "allometric_scaling",
+        "filename":    "pharmacology/allometric_scaling/main.nf",
+        "description": (
+            "Scales pharmacokinetic parameters (CL, Vd, t½) from preclinical species to human "
+            "using allometric regression (power law), Rule of Exponents (Mahmood 2003), and MLP/brain-weight "
+            "correction factors. Predicts first-in-human dose (MABEL/MRSD) per FDA 2005 Guidance. "
+            "Input: JSON array of per-species PK data (rat/dog/monkey). Output: human PK prediction + FIH dose."
+        ),
+        "annotation":  "Allometric PK scaling + FIH dose prediction. Input: species PK JSON. Output: human_pk.json, fih_dose.json.",
+        "tags":        "allometric scaling,PK,pharmacokinetics,first-in-human,MABEL,MRSD,species translation,FIH dose,CL,Vd,half-life",
+        "domain":      "pharmacology",
+        "category":    "Pharmacokinetics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, SciPy, power-law regression, Rule of Exponents",
+    },
+    {
+        "name":        "cns_penetration_prediction",
+        "filename":    "pharmacology/cns_penetration_prediction/main.nf",
+        "description": (
+            "Predicts blood-brain barrier permeability and CNS drug exposure. "
+            "Computes CNS MPO score (6 RDKit descriptors per Wager et al. 2010), P-gp/BCRP efflux substrate status, "
+            "and Kp,uu,brain (unbound brain-to-plasma ratio). "
+            "Input: SMILES (single or batch). Output: cns_properties.csv, brain_penetration.csv with BBB class (HIGH/MEDIUM/LOW)."
+        ),
+        "annotation":  "CNS MPO + Kpuu brain + P-gp prediction. Input: SMILES. Output: cns_properties.csv, brain_penetration.csv.",
+        "tags":        "CNS,blood-brain barrier,BBB,brain penetration,CNS MPO,Kpuu,P-gp,BCRP,efflux ratio,central nervous system",
+        "domain":      "pharmacology",
+        "category":    "ADMET",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["csv", "json"],
+        "step_count":  2,
+        "tools_used":  "RDKit, CNS MPO (Wager 2010), Kpuu brain model (Friden 2011)",
+    },
+    {
+        "name":        "dart_toxicity_prediction",
+        "filename":    "pharmacology/dart_toxicity_prediction/main.nf",
+        "description": (
+            "Predicts Developmental And Reproductive Toxicity (DART) risk using structural alerts "
+            "(ICH S5/OECD QSAR library, 16 alert classes) and physicochemical placental transfer model. "
+            "Returns risk tier (HIGH/MEDIUM/LOW), triggered alerts, and regulatory recommendations (ICH S5A/B). "
+            "Input: SMILES. Output: dart_alerts.csv, placental_transfer.csv, dart_risk_tier.json."
+        ),
+        "annotation":  "DART structural alerts + placental transfer. Input: SMILES. Output: dart_risk_tier.json, dart_alerts.csv.",
+        "tags":        "DART,developmental toxicity,reproductive toxicity,teratogenicity,placental transfer,ICH S5,structural alerts,DMPK",
+        "domain":      "pharmacology",
+        "category":    "Toxicology",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, ICH S5 SMARTS alert library, placental transfer model",
+    },
+    {
+        "name":        "oral_absorption_bcs_model",
+        "filename":    "pharmacology/oral_absorption_bcs_model/main.nf",
+        "description": (
+            "BCS classification and oral absorption modeling. "
+            "Predicts solubility (ESOL model), Caco-2 permeability (QSAR), BCS class (I-IV), "
+            "dissolution profile (first-order kinetics, fed/fasted), and oral bioavailability (F%). "
+            "Recommends formulation strategy (ASD, lipid-based, HCl salt, standard). "
+            "Input: SMILES + dose_mg. Output: bcs_classification.json, dissolution_profile.csv, formulation_recommendation.json."
+        ),
+        "annotation":  "BCS classification + dissolution + F% prediction. Input: SMILES+dose. Output: bcs.json, dissolution.csv.",
+        "tags":        "BCS,oral absorption,bioavailability,dissolution,Caco-2,solubility,ESOL,formulation,BCS I II III IV,biopharmaceutics",
+        "domain":      "pharmacology",
+        "category":    "ADMET",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  3,
+        "tools_used":  "RDKit, ESOL (Delaney 2004), Caco-2 QSAR (Hou 2004), BCS FDA 2017",
+    },
+    {
+        "name":        "transporter_ddi_prediction",
+        "filename":    "pharmacology/transporter_ddi_prediction/main.nf",
+        "description": (
+            "Predicts substrate and inhibitor status for 8 FDA-mandated drug transporters "
+            "(OATP1B1, OATP1B3, P-gp, BCRP, MATE1, MATE2-K, OAT1, OCT2). "
+            "Calculates static DDI AUC ratios per FDA DDI Guidance 2020 basic model. "
+            "Flags transporters requiring in vitro mechanistic studies or clinical DDI studies. "
+            "Input: SMILES + Cmax_uM. Output: transporter_results.csv, regulatory_summary.json."
+        ),
+        "annotation":  "8-transporter DDI prediction + FDA static model. Input: SMILES+Cmax. Output: transporter_results.csv, regulatory_summary.json.",
+        "tags":        "transporter DDI,OATP1B1,OATP1B3,P-gp,BCRP,MATE1,OCT2,OAT1,drug-drug interaction,FDA DDI guidance,NDA",
+        "domain":      "pharmacology",
+        "category":    "Drug Interactions",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, FDA DDI Basic Model 2020, Karlgren et al. transporter rules",
+    },
+    {
+        "name":        "repeated_dose_tox_prediction",
+        "filename":    "pharmacology/repeated_dose_tox_prediction/main.nf",
+        "description": (
+            "Predicts organ-level toxicity from repeated dosing using a structural alert library "
+            "(>25 ICH M7 + OECD QSAR alerts) covering hepatotoxicity, nephrotoxicity, cardiotoxicity, "
+            "and bone marrow suppression. Estimates NOAEL from alert severity and safety margin vs projected Cmax. "
+            "Input: SMILES (batch), optional projected_Cmax_nM. Output: tox_alerts.csv, tox_summary.json, safety_margins.csv."
+        ),
+        "annotation":  "Structural alert-based repeated-dose tox. Input: SMILES. Output: tox_alerts.csv, tox_summary.json.",
+        "tags":        "repeated dose toxicity,hepatotoxicity,cardiotoxicity,nephrotoxicity,bone marrow,NOAEL,safety margin,structural alerts,IND-enabling",
+        "domain":      "pharmacology",
+        "category":    "Toxicology",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, ICH M7 alerts, OECD QSAR alerts, rdkit-toxicophore",
+    },
+    {
+        "name":        "nanoparticle_pk_biodistribution",
+        "filename":    "pharmacology/nanoparticle_pk_biodistribution/main.nf",
+        "description": (
+            "Models in vivo pharmacokinetics of nanoparticle-formulated drugs. "
+            "4-compartment ODE model (blood, tumor, liver/MPS, peripheral) with PEG stealth model "
+            "and EPR tumor accumulation (Wilhelm et al. 2016 meta-analysis). "
+            "Predicts circulation half-life, tumor EPR accumulation, MPS uptake at 24h. "
+            "Input: particle_diameter_nm, surface_chemistry, PEG_density. Output: pk_profile.csv, half_life_summary.json."
+        ),
+        "annotation":  "NP PK 4-compartment ODE + PEG stealth + EPR. Input: particle params. Output: pk_profile.csv, half_life_summary.json.",
+        "tags":        "nanoparticle,LNP,PK,biodistribution,EPR,MPS,PEG stealth,tumor accumulation,drug delivery,nanomedicine",
+        "domain":      "pharmacology",
+        "category":    "Drug Delivery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "SciPy ODE, EPR model (Wilhelm 2016), PEG stealth model (Arvizo 2011)",
+    },
+    {
+        "name":        "membrane_permeability_prediction",
+        "filename":    "pharmacology/membrane_permeability_prediction/main.nf",
+        "description": (
+            "Predicts apparent permeability across intestinal (Caco-2) and artificial (PAMPA) membranes. "
+            "Computes P-gp/BCRP efflux substrate status, efflux ratio, and BCS permeability class. "
+            "QSAR models from Hou et al. 2004 and Gao et al. 2008. "
+            "Input: SMILES. Output: permeability_results.csv with Papp A→B/B→A, efflux ratio, P-gp status."
+        ),
+        "annotation":  "Caco-2 + PAMPA + P-gp QSAR prediction. Input: SMILES. Output: permeability_results.csv.",
+        "tags":        "Caco-2,PAMPA,membrane permeability,P-gp,efflux ratio,BCS permeability,intestinal absorption,oral bioavailability",
+        "domain":      "pharmacology",
+        "category":    "ADMET",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["csv", "json"],
+        "step_count":  2,
+        "tools_used":  "RDKit, Caco-2 QSAR (Hou 2004), PAMPA QSAR (Gao 2008), P-gp Seelig model",
+    },
+    {
+        "name":        "lnp_formulation_optimization",
+        "filename":    "drug_discovery/lnp_formulation_optimization/main.nf",
+        "description": (
+            "Optimizes lipid nanoparticle (LNP) formulation for nucleic acid delivery (mRNA/siRNA/ASO/DNA). "
+            "Predicts ionizable lipid pKa (RDKit proxy), endosomal escape score (Henderson-Hasselbalch), "
+            "and tissue targeting score. Sweeps IL:helper:cholesterol:PEG-lipid molar ratios. "
+            "Input: ionizable_lipid_SMILES, cargo_type, target_tissue. Output: recommended_formulation.json."
+        ),
+        "annotation":  "LNP pKa + endosomal escape + ratio optimization. Input: lipid SMILES+cargo. Output: recommended_formulation.json.",
+        "tags":        "LNP,lipid nanoparticle,mRNA delivery,siRNA,ionizable lipid,pKa,endosomal escape,formulation,gene therapy,nucleic acid delivery",
+        "domain":      "drug_discovery",
+        "category":    "Drug Delivery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  3,
+        "tools_used":  "RDKit, Henderson-Hasselbalch, Kulkarni LNP model, Semple formulation data",
+    },
+    {
+        "name":        "target_engagement_kinetics",
+        "filename":    "drug_discovery/target_engagement_kinetics/main.nf",
+        "description": (
+            "Estimates drug-target binding kinetic rate constants (kon, koff) and residence time (RT = 1/koff). "
+            "Solves receptor occupancy ODE with time-varying drug concentration from 1-compartment PK model. "
+            "Determines whether residence time is adequate for QD/BID dosing. "
+            "Input: SMILES, optional IC50_nM and PK params. Output: kinetics_prediction.json, occupancy_profile.csv."
+        ),
+        "annotation":  "kon/koff estimation + occupancy ODE. Input: SMILES+IC50+PK. Output: kinetics.json, occupancy.csv.",
+        "tags":        "target engagement,residence time,kon,koff,receptor occupancy,kinetics,drug-target binding,RT,drug residence time",
+        "domain":      "drug_discovery",
+        "category":    "Drug Discovery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, SciPy ODE, Copeland kinetics model (2016)",
+    },
+    {
+        "name":        "proteome_selectivity_profiling",
+        "filename":    "drug_discovery/proteome_selectivity_profiling/main.nf",
+        "description": (
+            "Predicts binding affinity across kinase (468 kinome), GPCR, or nuclear receptor panels. "
+            "Uses ChEMBL REST API similarity search + Tanimoto-weighted activity transfer, "
+            "with descriptor-based fallback. Computes selectivity entropy and Gini index. "
+            "Input: SMILES + target_class. Output: selectivity_panel.csv, selectivity_metrics.json."
+        ),
+        "annotation":  "Kinome/GPCR selectivity profiling. Input: SMILES+target_class. Output: selectivity_panel.csv, selectivity_metrics.json.",
+        "tags":        "selectivity,kinome,GPCR,off-target,Gini index,selectivity entropy,kinase panel,proteome,CDK,EGFR,BTK",
+        "domain":      "drug_discovery",
+        "category":    "Drug Discovery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["csv", "json"],
+        "step_count":  3,
+        "tools_used":  "RDKit, ChEMBL REST API v3, Morgan fingerprints, Tanimoto kNN",
+    },
+    {
+        "name":        "covalent_warhead_design",
+        "filename":    "drug_discovery/covalent_warhead_design/main.nf",
+        "description": (
+            "Evaluates electrophilic warhead reactivity for targeted covalent inhibitors. "
+            "Classifies warhead type (acrylamide, chloroacetamide, vinyl sulfone, etc.) via SMARTS, "
+            "predicts GSH half-life from literature data, and estimates kinome cysteine selectivity. "
+            "Input: SMILES. Output: warhead_profile.json, cys_selectivity.csv, recommendation.json."
+        ),
+        "annotation":  "Warhead SMARTS + GSH t½ + Cys selectivity. Input: SMILES. Output: warhead_profile.json, recommendation.json.",
+        "tags":        "covalent inhibitor,warhead,acrylamide,chloroacetamide,GSH reactivity,targeted covalent,BTK,EGFR,KRAS G12C,cysteine",
+        "domain":      "drug_discovery",
+        "category":    "Drug Discovery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, CovPDB warhead library, Mah 2014 GSH reactivity data",
+    },
+    {
+        "name":        "pbpk_simulation",
+        "filename":    "drug_discovery/pbpk_simulation/main.nf",
+        "description": (
+            "8-compartment physiologically-based pharmacokinetic (PBPK) model (Rodgers/Rowland method). "
+            "Mechanistic organ-level PK: gut wall, liver (first-pass), blood, lung, kidney, peripheral tissues. "
+            "Supports healthy adult, pediatric, elderly, and hepatic impairment populations. "
+            "Input: physicochemical params + CLint + dose. Output: pk_profile.csv, nca_parameters.json."
+        ),
+        "annotation":  "8-compartment PBPK ODE model. Input: MW/logP/CLint/dose. Output: pk_profile.csv, nca_parameters.json.",
+        "tags":        "PBPK,physiologically-based,pharmacokinetics,organ PK,CLint,hepatic clearance,first-pass,population PK,hepatic impairment,pediatric dose",
+        "domain":      "drug_discovery",
+        "category":    "Pharmacokinetics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  3,
+        "tools_used":  "SciPy LSODA ODE, Rodgers/Rowland Kp model, Willmann physiology database",
+    },
+    {
+        "name":        "clinical_trial_simulation",
+        "filename":    "drug_discovery/clinical_trial_simulation/main.nf",
+        "description": (
+            "Simulates Phase I dose escalation and Phase II clinical trials. "
+            "Supports 3+3 and BOIN (Liu & Yuan 2015) designs. "
+            "Uses 1-compartment PopPK with log-normal IIV and Emax exposure-response model. "
+            "Computes MTD operating characteristics and Phase II response rate over n_simulations. "
+            "Input: dose levels + PK params + ER model. Output: dose_escalation_results.csv, operating_characteristics.json."
+        ),
+        "annotation":  "BOIN/3+3 dose escalation + PopPK Phase II simulation. Input: dose+PK+ER params. Output: OC.json, escalation.csv.",
+        "tags":        "clinical trial simulation,BOIN,dose escalation,MTD,Phase I,Phase II,PopPK,exposure response,IIV,DLT,oncology dose",
+        "domain":      "drug_discovery",
+        "category":    "Clinical Development",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  3,
+        "tools_used":  "SciPy, NumPy, BOIN algorithm (Liu & Yuan 2015), 1-cmt PopPK",
+    },
+    {
+        "name":        "metabolite_prediction_biotransformer",
+        "filename":    "pharmacology/metabolite_prediction_biotransformer/main.nf",
+        "description": (
+            "Predicts phase I and phase II metabolites of small molecules using "
+            "SMARTS-based transformation rules (BioTransformer 3.0 rule-derived). "
+            "Phase I: aliphatic/aromatic hydroxylation, N-/O-dealkylation, N-oxidation, "
+            "sulfoxidation, ester/amide hydrolysis, ketone reduction. "
+            "Phase II: UGT glucuronidation, SULT sulfation, NAT acetylation, "
+            "GST glutathione conjugation, COMT methylation. "
+            "Gut microbiota transformations (glucuronide hydrolysis, dehydroxylation). "
+            "Multi-cycle metabolism (up to 3 generations). "
+            "Output: metabolites.csv with SMILES, enzyme, confidence, generation; metabolite tree JSON."
+        ),
+        "annotation":  "Metabolite prediction (BioTransformer-style). Input: SMILES. Output: metabolites CSV, metabolite tree JSON.",
+        "tags":        "metabolite,metabolism,phase1,phase2,biotransformer,SMARTS,drug metabolism,ADME,CYP,UGT,gut microbiota",
+        "domain":      "pharmacology",
+        "category":    "Drug Metabolism",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles", "json"],
+        "output_types":["json", "csv"],
+        "step_count":  1,
+        "tools_used":  "RDKit AllChem, SMARTS reaction rules (BioTransformer3.0 rule-derived)",
+    },
+    {
+        "name":        "pharmacogenomics_pgx_report",
+        "filename":    "pharmacology/pharmacogenomics_pgx_report/main.nf",
+        "description": (
+            "Generates a pharmacogenomics (PGx) clinical report from diplotype data. "
+            "Accepts pre-called star alleles for CYP2D6, CYP2C19, CYP2C9, CYP3A5, "
+            "SLCO1B1, TPMT, DPYD, UGT1A1, VKORC1, CYP2B6, NUDT15. "
+            "Maps activity scores to CPIC phenotype (Poor/Intermediate/Normal/Ultrarapid Metabolizer). "
+            "Reports drug-specific dosing recommendations and contraindications per CPIC 2024 guidelines. "
+            "Flags actionable drug-gene pairs: dose reductions, contraindications, alternative recommendations. "
+            "Modeled after PharmCAT (Sangkuhl et al. 2021) report structure."
+        ),
+        "annotation":  "PGx clinical report from star allele diplotypes. Input: diplotype JSON. Output: CPIC drug recommendations CSV.",
+        "tags":        "pharmacogenomics,PGx,pharmCAT,CPIC,star allele,CYP2D6,CYP2C19,warfarin,clopidogrel,5-FU,diplotype,metabolizer status,drug-gene interaction",
+        "domain":      "pharmacology",
+        "category":    "Pharmacogenomics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  1,
+        "tools_used":  "CPIC 2024 guidelines, PharmGKB annotations, star allele activity scoring",
+    },
+    # ── P3: hERG / Cardiac Safety ────────────────────────────────────────────
+    {
+        "name":        "herg_cardiac_safety_qsar",
+        "filename":    "pharmacology/herg_cardiac_safety_qsar/main.nf",
+        "description": (
+            "Predicts hERG potassium channel inhibition IC50 (µM) and QTc prolongation risk "
+            "using a physicochemical QSAR model (Aronov 2005; Sanguinetti 2006). "
+            "Computes ICH E14/S7B safety margin (hERG IC50_free / Cmax_free) and risk tier "
+            "(HIGH/MEDIUM/LOW/MINIMAL). Scans for Nav1.5 structural alerts (class I "
+            "antiarrhythmic scaffolds) that compound cardiac liability. "
+            "Input: SMILES, optional measured_hERG_IC50_uM, dose_mg, fup. "
+            "Output: herg_risk.json, cardiac_safety_summary.csv, nav15_alerts.csv."
+        ),
+        "annotation":  "hERG IC50 QSAR + QTc safety margin + Nav1.5 alerts. Input: SMILES. Output: herg_risk.json.",
+        "tags":        "hERG,cardiac safety,QTc,ICH E14,ICH S7B,Nav1.5,safety pharmacology,arrhythmia,potassium channel,QSAR",
+        "domain":      "pharmacology",
+        "category":    "Safety Pharmacology",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, QSAR hERG model (Aronov 2005), ICH E14/S7B framework",
+    },
+    # ── P4: Genotoxicity / Ames ──────────────────────────────────────────────
+    {
+        "name":        "genotoxicity_ames_prediction",
+        "filename":    "pharmacology/genotoxicity_ames_prediction/main.nf",
+        "description": (
+            "Predicts Ames mutagenicity and genotoxicity potential using a structural alert "
+            "library derived from Derek Nexus rules and ICH S2(R1) guidance (Bailey 2005; "
+            "Kazius 2005). Covers 3 ICH categories: direct DNA reactants (Category A: nitro "
+            "aromatics, primary aromatic amines, nitrosamines, epoxides), indirect mutagens "
+            "via metabolic activation (Category B: PAHs, furans, Michael acceptors, azo dyes), "
+            "and clastogenic/aneugenic scaffolds (Category C: topo II inhibitors). "
+            "Recommends ICH S2(R1)-compliant genotoxicity battery for IND filing. "
+            "Input: SMILES. Output: ames_prediction.json, genotox_alerts.csv, ichs2_summary.json."
+        ),
+        "annotation":  "ICH S2(R1) Ames + genotoxicity structural alerts. Input: SMILES. Output: ames_prediction.json.",
+        "tags":        "Ames,genotoxicity,mutagenicity,ICH S2,nitroaromatic,PAH,aromatic amine,DNA damage,structural alert,DEREK,IND",
+        "domain":      "pharmacology",
+        "category":    "Safety Pharmacology",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "RDKit, Derek Nexus-derived SMARTS alerts, ICH S2(R1), Kazius 2005 QSAR",
+    },
+    # ── P9: Target Tractability ──────────────────────────────────────────────
+    {
+        "name":        "target_tractability_scorer",
+        "filename":    "drug_discovery/target_tractability_scorer/main.nf",
+        "description": (
+            "Scores a protein target's tractability for small molecule and biologic drug discovery. "
+            "Combines protein family tractability (kinase/GPCR/nuclear receptor = high; "
+            "PPI/transcription factor = low), pocket druggability (volume/hydrophobicity from "
+            "fpocket heuristics, Edfeldt 2011), ChEMBL data density (Target Development Level: "
+            "Tdark/Tbio/Tchem/Tclin, Oprea 2018), and OpenTargets disease association score. "
+            "Outputs separate SM and biologic tractability scores (0–1) with tier labels and "
+            "modality recommendation. "
+            "Input: target_name, protein_class, pocket_volume_A3, chembl_compound_count, "
+            "has_crystal_structure, disease_association_score. "
+            "Output: tractability_score.json, evidence_table.csv."
+        ),
+        "annotation":  "SM + biologic tractability scoring. Input: target metadata. Output: tractability_score.json.",
+        "tags":        "target tractability,druggability,TDL,Tdark,kinase,GPCR,PPI,pocket volume,OpenTargets,ChEMBL,Oprea 2018",
+        "domain":      "drug_discovery",
+        "category":    "Target Assessment",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "Oprea TDL 2018, OpenTargets tractability framework, Edfeldt 2011 pocket scoring",
+    },
+    # ── P5: Pediatric / Pregnancy PBPK ──────────────────────────────────────
+    {
+        "name":        "pbpk_pediatric_pregnancy",
+        "filename":    "pharmacology/pbpk_pediatric_pregnancy/main.nf",
+        "description": (
+            "Age-stratified PBPK simulation for pediatric dose prediction and pregnancy PK "
+            "changes. Applies CYP maturation Hill functions (CYP3A4/2D6/2C9/1A2) from Bjorkman "
+            "2005 and Johnson 2006, with WHO-based age-scaled organ volumes and cardiac output "
+            "across 10 age groups (neonate to adult). Simulates pregnancy trimester physiology: "
+            "plasma volume expansion (+45%), GFR increase (+50% T3), CYP3A4 induction (1.8x T3), "
+            "CYP2D6 induction (2x T3), CYP1A2 downregulation (0.5x T3) per Jeong 2012/Anger 2014. "
+            "Generates age-adjusted dose recommendations to match adult AUC target. "
+            "Input: physicochemical params (MW, logP, CLint, Vss, fup, CYP substrate). "
+            "Output: pediatric_pk.csv (10 age groups), pregnancy_pk.csv (5 trimesters), "
+            "dose_recommendation.json."
+        ),
+        "annotation":  "Pediatric CYP maturation PBPK + pregnancy PK changes. Input: drug params. Output: pediatric_pk.csv.",
+        "tags":        "pediatric PBPK,pregnancy PK,CYP maturation,dose adjustment,allometric scaling,neonatal,CYP3A4 induction,Bjorkman,Jeong 2012",
+        "domain":      "pharmacology",
+        "category":    "Pharmacokinetics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "SciPy ODE, Bjorkman 2005/Johnson 2006 maturation functions, WHO growth data, Jeong 2012",
+    },
+    # ── P7: Antibody Developability ──────────────────────────────────────────
+    {
+        "name":        "antibody_developability",
+        "filename":    "pharmacology/antibody_developability/main.nf",
+        "description": (
+            "In silico developability assessment for antibody and biologic drug candidates. "
+            "Predicts: (1) aggregation propensity using CamSol-inspired hydrophobicity patch "
+            "scoring (Sormanni 2015) over CDR sequences; (2) deamidation liabilities from "
+            "NG/NS/DG motifs in CDRs (Vlasak 2009; Yan 2009); (3) oxidation liabilities at "
+            "Met/Trp/Tyr residues (Houde 2011); (4) isoelectric point (pI) via "
+            "Henderson-Hasselbalch titration; (5) FcRn-predicted serum half-life from pI "
+            "(Deng 2012); (6) viscosity risk for SC formulation. "
+            "Input: full_sequence or CDR sequences (HCDR1/2/3, LCDR1/2/3), antibody_format "
+            "(IgG1/IgG4/scFv), target_indication. "
+            "Output: developability_scores.json, liability_scan.csv."
+        ),
+        "annotation":  "Antibody aggregation + deamidation + FcRn t½ + pI prediction. Input: CDRs/sequence. Output: developability_scores.json.",
+        "tags":        "antibody,developability,aggregation,deamidation,oxidation,FcRn,pI,CamSol,IgG,biologic,CDR,half-life",
+        "domain":      "pharmacology",
+        "category":    "Biologics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "CamSol proxy (Sormanni 2015), Vlasak 2009 deamidation, Deng 2012 FcRn model",
+    },
+    # ── P8: HTS Plate QC + Hit Calling ───────────────────────────────────────
+    {
+        "name":        "hts_plate_qc_hit_calling",
+        "filename":    "drug_discovery/hts_plate_qc_hit_calling/main.nf",
+        "description": (
+            "High-Throughput Screening (HTS) plate quality control and hit identification. "
+            "Computes Z-factor and Z'-factor (Zhang 1999) from positive/negative controls. "
+            "Normalizes raw signals to percent inhibition/activation. Applies configurable "
+            "hit threshold (default ≥50%) with n-sigma statistics. Fits 4-parameter logistic "
+            "(4PL/Hill equation) dose-response curves when replicate concentration data are "
+            "provided (Sebaugh 2011). "
+            "Accepts plate_data_json array of {well, compound_id, signal, is_pos_ctrl, "
+            "is_neg_ctrl, concentration_uM} or generates synthetic 96-well demo data. "
+            "Output: qc_metrics.json (Z', CV, signal window), hit_list.csv, dose_response_curves.csv."
+        ),
+        "annotation":  "HTS Z' QC + hit calling + 4PL dose-response fitting. Input: plate JSON. Output: qc_metrics.json, hit_list.csv.",
+        "tags":        "HTS,high-throughput screening,Z-factor,hit calling,dose response,4PL,Hill equation,plate QC,Z-prime,IC50",
+        "domain":      "drug_discovery",
+        "category":    "Hit Discovery",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "SciPy curve_fit, Zhang 1999 Z-factor, Sebaugh 2011 4PL",
+    },
+    # ── P10: Exposure-Response Modelling ─────────────────────────────────────
+    {
+        "name":        "exposure_response_modelling",
+        "filename":    "pharmacology/exposure_response_modelling/main.nf",
+        "description": (
+            "Fits Emax/Emin exposure-response (E-R) models to clinical or preclinical PK-PD "
+            "data. Supports Emax (sigmoid Hill equation), linear, and power-law E-R models. "
+            "Estimates EC50, Emax, Hill coefficient with confidence from SciPy curve_fit. "
+            "Computes E-R safety margin (TEC / EC50_target) and provides dose recommendations "
+            "to achieve E50, target effect %, and E90. Follows FDA E-R analysis guidance (2019) "
+            "for Phase I/II go/no-go decisions and benefit-risk assessment. "
+            "Input: er_data_json [{exposure_metric, effect, dose_mg}], er_model, "
+            "target_effect_pct, safety_exposure_uM. "
+            "Output: er_parameters.json (EC50, Emax, Hill, R²), er_curve.csv, dose_recommendation.json."
+        ),
+        "annotation":  "Emax Hill E-R model fit + EC50 + safety margin + dose recommendation. Input: PK-PD data. Output: er_parameters.json.",
+        "tags":        "exposure response,ER modelling,Emax,EC50,Hill equation,PK-PD,dose optimization,FDA ER guidance,Phase I,benefit-risk",
+        "domain":      "pharmacology",
+        "category":    "PK-PD",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "SciPy curve_fit, Mager & Jusko 2001, FDA E-R guidance 2019",
+    },
+    # ── P6: Adaptive Trial Design ─────────────────────────────────────────────
+    {
+        "name":        "adaptive_trial_design",
+        "filename":    "drug_discovery/adaptive_trial_design/main.nf",
+        "description": (
+            "Simulates adaptive clinical trial designs for Phase II/III. "
+            "Implements Response-Adaptive Randomization (RAR) via Thompson sampling "
+            "(Thall & Wathen 2007) and Multi-Arm Multi-Stage (MAMS) designs with interim "
+            "analyses (Royston 2011). Applies O'Brien-Fleming efficacy stopping boundaries "
+            "and Pocock futility stopping (Lan & DeMets 1983 alpha/beta spending). "
+            "Reports operating characteristics (power, correct arm selection %, early stop "
+            "rates, mean N enrolled) from Monte Carlo simulation (default 1000 trials). "
+            "Input: n_arms, true_response_rates, n_interim_analyses, alpha, power, n_simulations, "
+            "design_type (MAMS | RAR). "
+            "Output: adaptive_design.json (OC table), arm_allocation.csv, stopping_boundaries.csv."
+        ),
+        "annotation":  "MAMS/RAR adaptive trial design simulation. Input: design params. Output: adaptive_design.json (power, OC table).",
+        "tags":        "adaptive trial,MAMS,RAR,Thompson sampling,interim analysis,OBrien-Fleming,futility,Phase II,Phase III,dose escalation,operating characteristics",
+        "domain":      "drug_discovery",
+        "category":    "Clinical Development",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "csv"],
+        "step_count":  3,
+        "tools_used":  "SciPy, NumPy, Thall & Wathen 2007 RAR, Royston 2011 MAMS, Lan & DeMets 1983",
+    },
 ]
 
 
@@ -216,17 +734,17 @@ def register(db_path: Path, dry_run: bool = False) -> None:
         """, (
             wf["name"],
             wf["filename"],
-            wf["description"][:500],
+            wf["description"],
             wf["annotation"],
             wf["tags"],
             wf["domain"],
-            nf_content[:8000],          # store first 8K of main.nf
+            nf_content,                 # store full main.nf content
             wf["step_count"],
             wf["tools_used"],
             "nextflow",
             "nextflow",
             1,                           # executable
-            wf["docker_image"][:300],
+            wf["docker_image"],
             wf["category"],
             wf_hash,
             datetime.utcnow().isoformat(),
@@ -256,7 +774,7 @@ def main() -> None:
     if not db_path.exists():
         sys.exit(f"DB not found: {db_path}")
 
-    print(f"Registering 8 AI tool workflows into {db_path}")
+    print(f"Registering AI tool workflows into {db_path}")
     register(db_path, dry_run=args.dry_run)
 
 

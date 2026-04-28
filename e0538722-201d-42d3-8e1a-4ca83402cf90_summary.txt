@@ -1,0 +1,2 @@
+NCA-PK Auto-Loop Run: e0538722-201d-42d3-8e1a-4ca83402cf90
+Phases passed: 1  escalated: 0

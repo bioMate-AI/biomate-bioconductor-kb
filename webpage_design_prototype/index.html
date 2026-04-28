@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BioMate AI — A virtual lab that thinks</title>
+  <meta name="description" content="AI-powered biomedical research platform. 20+ domains, 60+ validated workflows — from drug discovery to structural biology. Results in plain English." />
+  <meta name="theme-color" content="#4a7a8a" />
+  <meta property="og:title" content="BioMate AI" />
+  <meta property="og:description" content="A virtual lab that thinks" />
+  <meta property="og:url" content="https://biomate.ai/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="images/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/site.css" />
+  <style>
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero {
+      min-height: calc(100vh - var(--nav-h));
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      padding: clamp(3rem, 8vw, 7rem) clamp(1rem, 5vw, 4rem);
+      background:
+        linear-gradient(to bottom, rgba(15,22,28,.62) 0%, rgba(15,22,28,.45) 50%, rgba(15,22,28,.68) 100%),
+        url('images/2026-04-08-hero-banner.png') center/cover no-repeat;
+    }
+    .hero-inner { max-width: 820px; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.22);
+      color: #d4e9f0;
+      font-size: .78rem; font-weight: 700;
+      letter-spacing: .09em; text-transform: uppercase;
+      padding: 5px 16px; border-radius: 50px;
+      margin-bottom: 2rem;
+    }
+    .hero-badge .dot {
+      width: 7px; height: 7px;
+      background: #6fcfed; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(1.5); }
+    }
+
+    .hero h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+      font-weight: 700; line-height: 1.12;
+      color: #fff; margin-bottom: 1.5rem;
+    }
+    .hero h1 em { font-style: italic; color: #8fd6ea; }
+
+    .hero-sub {
+      font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+      color: rgba(255,255,255,.72);
+      max-width: 640px; margin: 0 auto 2.5rem;
+      line-height: 1.65;
+    }
+
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Stats strip ─────────────────────────────────────────────────────── */
+    .stats-strip {
+      background: var(--bg-dark);
+      padding: 1.5rem clamp(1rem, 5vw, 3rem);
+    }
+    .stats-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+    }
+    .stat-item {
+      text-align: center; padding: 1.25rem 1rem;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: var(--font-head);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700; color: #8fd6ea;
+      line-height: 1.1; margin-bottom: .25rem;
+    }
+    .stat-label { font-size: .8rem; color: rgba(255,255,255,.52); letter-spacing: .04em; }
+
+    @media (max-width: 600px) {
+      .stats-inner { grid-template-columns: repeat(2, 1fr); }
+      .stat-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,.08); }
+      .stat-item:nth-child(odd) { border-right: 1px solid rgba(255,255,255,.08); }
+      .stat-item:last-child, .stat-item:nth-last-child(2) { border-bottom: none; }
+    }
+
+    /* ── How it works ────────────────────────────────────────────────────── */
+    #how-it-works { background: var(--bg-card); }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 44px; left: calc(16.67% + 1.5rem); right: calc(16.67% + 1.5rem);
+      height: 2px; background: var(--border);
+      pointer-events: none;
+    }
+
+    .step {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem 1.75rem;
+      transition: border-color .25s, box-shadow .25s;
+      position: relative;
+    }
+    .step:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+
+    .step-num {
+      width: 48px; height: 48px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+      position: relative; z-index: 1;
+    }
+    .step h4 {
+      font-family: var(--font-head); font-size: 1.25rem;
+      font-weight: 700; color: var(--text);
+      margin-bottom: .5rem;
+    }
+    .step p { font-size: .9rem; color: var(--text-muted); line-height: 1.6; }
+    .step .step-tag {
+      display: inline-block; margin-top: 1rem;
+      font-size: .75rem; font-weight: 700; color: var(--accent-light);
+    }
+
+    @media (max-width: 700px) {
+      .steps-grid { grid-template-columns: 1fr; }
+      .steps-grid::before { display: none; }
+    }
+
+    /* ── Applications ─────────────────────────────────────────────────────── */
+    #applications { background: var(--bg); }
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+    .app-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .app-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg-card2); }
+    .app-card-body { padding: 1.25rem 1.4rem 1.5rem; }
+    .app-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+    .app-card-body h4 { font-family: var(--font-head); font-size: 1.25rem; font-weight: 700; color: var(--text); }
+    .app-card-count {
+      font-size: .72rem; font-weight: 700; color: var(--accent-light);
+      background: var(--accent-pale); border-radius: 50px; padding: 2px 9px;
+      white-space: nowrap;
+    }
+    .app-card-body p { font-size: .875rem; color: var(--text-muted); line-height: 1.55; }
+    .app-card-body a.learn-more {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: .9rem; font-size: .8rem; font-weight: 700; color: var(--accent-light);
+    }
+    .app-card-body a.learn-more:hover { color: var(--accent); }
+
+    @media (max-width: 720px) { .apps-grid { grid-template-columns: 1fr; } }
+
+    /* ── Approach ─────────────────────────────────────────────────────────── */
+    #approach { background: var(--bg-card); }
+    .approach-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+    }
+    .approach-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden; display: flex; flex-direction: column;
+      transition: border-color .25s, transform .25s, box-shadow .25s;
+    }
+    .approach-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .approach-card-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--bg-card2); }
+    .approach-card-body { padding: 1.25rem 1.4rem 1.5rem; flex: 1; }
+    .approach-card-body h4 { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: .5rem; }
+    .approach-card-body p { font-size: .875rem; color: var(--text-muted); line-height: 1.55; }
+
+    @media (max-width: 720px) { .approach-grid { grid-template-columns: 1fr; } }
+
+    /* ── Social Proof / Trust strip ──────────────────────────────────────── */
+    #trust { background: var(--bg); }
+    .trust-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 3rem;
+    }
+    .trust-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.75rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    .trust-quote {
+      font-family: var(--font-head); font-style: italic;
+      font-size: 1.05rem; color: var(--text); line-height: 1.6;
+    }
+    .trust-quote::before { content: '"'; }
+    .trust-quote::after  { content: '"'; }
+    .trust-author { font-size: .82rem; color: var(--text-muted); }
+    .trust-author strong { color: var(--text); font-weight: 700; display: block; }
+
+    .trust-badges-row {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 3rem; justify-content: center;
+    }
+    .trust-badge-item {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: .75rem 1.25rem;
+      font-size: .82rem; color: var(--text-muted); font-weight: 600;
+    }
+    .trust-badge-item .icon { font-size: 1.1rem; }
+
+    @media (max-width: 760px) { .trust-grid { grid-template-columns: 1fr; } }
+
+    /* ── CTA section ─────────────────────────────────────────────────────── */
+    #cta { background: var(--bg-card); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ SITE HEADER === -->
+<div class="site-header">
+  <a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ NAV === -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="images/logo.png" alt="BioMate AI" />
+  </a>
+  <ul class="nav-links">
+    <li><a href="#applications">Applications</a></li>
+    <li><a href="features.html">Features</a></li>
+    <li><a href="#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="blog.html">Blog</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener" class="nav-login">Log In</a>
+    <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════════ HERO === -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      AI-Powered Biomedical Research
+    </div>
+    <h1>A virtual lab<br /><em>that thinks</em></h1>
+    <p class="hero-sub">
+      Describe your research in plain English. BioMate selects the right workflow,
+      fills in the parameters, and runs the analysis — start to publication-ready results
+      in under 30 minutes.
+    </p>
+    <div class="hero-btns">
+      <a class="btn btn-primary btn-lg" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+      <a class="btn btn-outline-white btn-lg" href="features.html">See How It Works</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ STATS === -->
+<div class="stats-strip">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">20+</div>
+      <div class="stat-label">Application Domains</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">60+</div>
+      <div class="stat-label">Validated Workflows</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;30 min</div>
+      <div class="stat-label">Avg. Analysis Time</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">AWS Batch</div>
+      <div class="stat-label">Elastic Cloud Compute</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ HOW IT WORKS === -->
+<section id="how-it-works">
+  <div class="section-inner">
+    <span class="section-tag">Workflow</span>
+    <h2 class="section-title">From question to results — in three steps</h2>
+    <p class="section-sub">No scripting. No infrastructure. No waiting for a bioinformatician.</p>
+
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Describe</h4>
+        <p>Type your research question in plain English — "run ADMET profiling on ibuprofen" or
+           "germline variant calling on SRR1518169 using GATK4". BioMate understands intent.</p>
+        <span class="step-tag">↗ AI intent recognition</span>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Review &amp; Configure</h4>
+        <p>BioMate selects the best-matched workflow from 60+ validated pipelines,
+           pre-fills parameters from your description, and flags any missing inputs.
+           You review, adjust, and approve.</p>
+        <span class="step-tag">↗ Smart parameter pre-fill</span>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Run &amp; Analyze</h4>
+        <p>The pipeline executes on AWS Batch with real-time progress tracking.
+           When complete, AI-generated findings report with citations, QC assessment,
+           and recommended next steps.</p>
+        <span class="step-tag">↗ AI findings summarization</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════ APPLICATIONS === -->
+<section id="applications">
+  <div class="section-inner">
+    <span class="section-tag">Application Domains</span>
+    <h2 class="section-title">20+ Domains. One Platform.</h2>
+    <p class="section-sub">
+      From small-molecule drug design to single-cell genomics, BioMate integrates
+      best-in-class tools across every major biomedical domain.
+    </p>
+
+    <div class="apps-grid">
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-pharmaceutical.png"
+             alt="Pharmaceutical research" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Pharmaceutical</h4>
+            <span class="app-card-count">18 workflows</span>
+          </div>
+          <p>End-to-end drug lifecycle management — ADMET prediction, metabolite profiling,
+             CYP DDI panel, stability testing, and impurity analysis — powered by curated biomedical AI.</p>
+          <a href="features.html#pharma" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-precision-medicine.png"
+             alt="Precision medicine" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Precision Medicine</h4>
+            <span class="app-card-count">12 workflows</span>
+          </div>
+          <p>Individualized treatment approaches from biomarker discovery through clinical
+             decision support, integrating multi-modal patient data at scale.</p>
+          <a href="features.html#genomics" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-synthetic-biology.png"
+             alt="Synthetic biology" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Synthetic Biology</h4>
+            <span class="app-card-count">6 workflows</span>
+          </div>
+          <p>Computational design of genetic circuits and metabolic pathways, with AI-assisted
+             part selection, circuit simulation, and wet-lab protocol generation.</p>
+          <a href="features.html#synbio" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-structure-biology.png"
+             alt="Structural biology" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Structural Biology</h4>
+            <span class="app-card-count">8 workflows</span>
+          </div>
+          <p>Cryo-EM data processing, protein fold prediction with AlphaFold3 / Boltz-2,
+             and structure-based drug design in a single integrated workflow.</p>
+          <a href="features.html#structural" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-multi-omics.png"
+             alt="Multi-omics" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Multi-Omics</h4>
+            <span class="app-card-count">9 workflows</span>
+          </div>
+          <p>Integrated analysis across genomics, transcriptomics, proteomics, and metabolomics —
+             uncovering system-level biological mechanisms from your data.</p>
+          <a href="features.html#multiomics" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <img class="app-card-img" src="images/2026-04-08-domain-virtual-cell.png"
+             alt="Virtual cell" loading="lazy" />
+        <div class="app-card-body">
+          <div class="app-card-header">
+            <h4>Virtual Cell</h4>
+            <span class="app-card-count">5 workflows</span>
+          </div>
+          <p>Mechanistic and data-driven cell simulation — model signaling cascades, gene regulatory
+             networks, and metabolic flux to predict phenotypes before any experiment.</p>
+          <a href="features.html#virtual-cell" class="learn-more">Explore workflows →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ APPROACH === -->
+<section id="approach">
+  <div class="section-inner">
+    <span class="section-tag">How We Work</span>
+    <h2 class="section-title">Built on six principles</h2>
+    <p class="section-sub">
+      Every analysis on BioMate — from raw data to publication-ready results —
+      is grounded in the same six commitments.
+    </p>
+
+    <div class="approach-grid">
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-data-foundation.png"
+             alt="Data foundation" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Data Foundation</h4>
+          <p>Curated, versioned biomedical databases with semantic natural language search —
+             so the right data is always one question away.</p>
+        </div>
+      </div>
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-intelligent-design.png"
+             alt="Intelligent design" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Intelligent Design</h4>
+          <p>AI-driven experimental design with context-aware protocol recommendations —
+             optimized for your data type, sample size, and research goal.</p>
+        </div>
+      </div>
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-no-code-workflows.png"
+             alt="No-code workflows" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>No-Code Workflows</h4>
+          <p>Complex bioinformatics pipelines built through natural conversation.
+             No scripting required — just describe your analysis and run.</p>
+        </div>
+      </div>
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-reproducible-science.png"
+             alt="Reproducible science" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Reproducible Science</h4>
+          <p>Automated parameter tracking, versioned environments, and full audit trails —
+             making every result traceable, shareable, and compliant.</p>
+        </div>
+      </div>
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-best-practices.png"
+             alt="Best practices" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Best Practices</h4>
+          <p>Workflows built on community-validated nf-core pipelines and FAIR data principles —
+             ensuring your science meets the highest standards.</p>
+        </div>
+      </div>
+      <div class="approach-card">
+        <img class="approach-card-img" src="images/2026-04-08-approach-scalable-computing.png"
+             alt="Scalable computing" loading="lazy" />
+        <div class="approach-card-body">
+          <h4>Scalable Computing</h4>
+          <p>AWS Batch auto-scaling with containerized tools — analyses that took days
+             now finish in minutes, at any scale, with no infrastructure overhead.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ TRUST / SOCIAL PROOF === -->
+<section id="trust">
+  <div class="section-inner">
+    <span class="section-tag">Trusted Research</span>
+    <h2 class="section-title">Science you can publish</h2>
+    <p class="section-sub">
+      BioMate integrates community-validated tools, provides full parameter audit trails,
+      and formats outputs for direct inclusion in methods sections.
+    </p>
+
+    <div class="trust-grid">
+      <div class="trust-card">
+        <p class="trust-quote">
+          Being able to describe an ADMET analysis in plain English and get a complete
+          CYP inhibition report in under 30 minutes changes how we screen candidates.
+        </p>
+        <div class="trust-author">
+          <strong>Computational Medicinal Chemist</strong>
+          Pharma research laboratory
+        </div>
+      </div>
+      <div class="trust-card">
+        <p class="trust-quote">
+          The germline variant calling pipeline matched our in-house nf-core setup exactly —
+          except BioMate handled the infrastructure and produced the findings summary automatically.
+        </p>
+        <div class="trust-author">
+          <strong>Bioinformatics Lead</strong>
+          Academic genomics center
+        </div>
+      </div>
+      <div class="trust-card">
+        <p class="trust-quote">
+          Cryo-EM processing used to take a week to configure and run. With BioMate
+          it's a conversation and a queue submission. The SPA results look identical.
+        </p>
+        <div class="trust-author">
+          <strong>Structural Biologist</strong>
+          Research institute
+        </div>
+      </div>
+    </div>
+
+    <div class="trust-badges-row">
+      <div class="trust-badge-item"><span class="icon">🔒</span> HIPAA-Ready Architecture</div>
+      <div class="trust-badge-item"><span class="icon">📋</span> Full Audit Trails</div>
+      <div class="trust-badge-item"><span class="icon">🔁</span> FAIR Data Principles</div>
+      <div class="trust-badge-item"><span class="icon">⚙️</span> nf-core Validated Pipelines</div>
+      <div class="trust-badge-item"><span class="icon">☁️</span> AWS Batch Infrastructure</div>
+      <div class="trust-badge-item"><span class="icon">🏛️</span> Private Deployment Option</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ CTA === -->
+<section id="cta">
+  <div class="cta-banner">
+    <span class="section-tag">Get Started</span>
+    <h2>Ready to accelerate your research?</h2>
+    <p>Join researchers at leading institutions running analyses faster, more reproducibly,
+       and with less infrastructure overhead. Free trial — no credit card required.</p>
+    <div class="cta-btns">
+      <a class="btn btn-primary" href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener">Start Free Trial</a>
+      <a class="btn btn-outline" href="#contact">Talk to Us</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════ SUBSCRIBE === -->
+<div class="subscribe-strip">
+  <span>Stay updated with BioMate news and new workflow integrations</span>
+  <form class="subscribe-form" onsubmit="return false;">
+    <input type="email" placeholder="your@email.com" aria-label="Email address" />
+    <button class="btn btn-primary" style="padding:8px 18px; font-size:.875rem;">Subscribe</button>
+  </form>
+</div>
+
+<!-- ════════════════════════════════════════════════════════ CONTACT === -->
+<section id="contact" style="background:var(--bg-card);">
+  <div class="section-inner">
+    <span class="section-tag">Get In Touch</span>
+    <h2 class="section-title">Drop us a line</h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem; max-width:900px;">
+
+      <div>
+        <h3 style="font-family:var(--font-head); font-size:1.4rem; color:var(--text); margin-bottom:1rem;">BioMate AI</h3>
+        <address style="color:var(--text-muted); font-size:.9rem; line-height:1.7; font-style:normal;">
+          We'd love to connect — whether you have a research question, partnership inquiry,
+          or want to discuss a private deployment.<br /><br />
+          <strong style="color:var(--text);">Email</strong><br />
+          <a href="mailto:contact@biomate.ai">contact@biomate.ai</a>
+        </address>
+        <div style="margin-top:1.25rem;">
+          <strong style="color:var(--text); font-size:.9rem;">Hours</strong>
+          <p style="margin-top:.4rem; color:var(--text-muted); font-size:.9rem;">Monday – Friday: 9 am – 5 pm</p>
+        </div>
+        <div style="margin-top:1.75rem; display:flex; flex-direction:column; gap:8px;">
+          <a href="pricing.html" style="font-size:.875rem; color:var(--accent-light); font-weight:600;">→ View pricing plans</a>
+          <a href="about.html" style="font-size:.875rem; color:var(--accent-light); font-weight:600;">→ About BioMate</a>
+          <a href="features.html" style="font-size:.875rem; color:var(--accent-light); font-weight:600;">→ Explore all features</a>
+        </div>
+      </div>
+
+      <form style="display:flex; flex-direction:column; gap:12px;" onsubmit="return false;">
+        <input class="form-input" type="text"  placeholder="Name"    required />
+        <input class="form-input" type="email" placeholder="Email"   required />
+        <input class="form-input" type="text"  placeholder="Subject" />
+        <textarea class="form-input" placeholder="Your message…" style="min-height:130px;"></textarea>
+        <button class="btn btn-primary" type="submit" style="align-self:flex-start;">Send Message</button>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ FOOTER === -->
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand">
+      <img src="images/logo.png" alt="BioMate AI" />
+      <p>AI-powered bioinformatics for every researcher — from PhD students to enterprise pharma teams.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="features.html#workflows">Workflows</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai/register" target="_blank">Get Started</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="#contact">Contact</a></li>
+        <li><a href="about.html#careers">Careers</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="https://dev-public.biomate.ai" target="_blank">App</a></li>
+        <li><a href="blog.html">Documentation</a></li>
+        <li><a href="#contact">Support</a></li>
+        <li><a href="#contact">Enterprise</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 BioMate AI · All rights reserved</p>
+    <div class="trust-badges">
+      <span>HIPAA Ready</span>
+      <span>FAIR Data</span>
+      <span>nf-core Validated</span>
+      <span>AWS Batch</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

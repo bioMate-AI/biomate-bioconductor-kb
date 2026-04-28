@@ -1,0 +1,841 @@
+{
+  "generated": "2026-04-10T03:35:59.891Z",
+  "suiteStartedAt": "2026-04-10T03:14:27.156Z",
+  "pilotReference": "docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+  "testAccount": "e2e_pilot_drug_discovery@biomate.test",
+  "baseUrl": "http://localhost:5000",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-discovery-pilot",
+  "hypotheses": {
+    "H1": {
+      "target": "≥80% sessions generate workflow without manual correction",
+      "result": "6/6 (100%)",
+      "pass": true
+    },
+    "H2": {
+      "target": "≤120s per session time-to-workflow-card",
+      "result": "6/6 sessions within 120s",
+      "pass": true,
+      "avgFirstResponseMs": 51594.666666666664
+    },
+    "H3": {
+      "target": "≥70% sessions rated ≥4/5 for scientific defensibility",
+      "result": "5/6 (83%)",
+      "pass": true,
+      "ratings": [
+        {
+          "session": "S1_ADMET",
+          "rating": 4
+        },
+        {
+          "session": "S2_IVIVE",
+          "rating": 5
+        },
+        {
+          "session": "S3_POCKET",
+          "rating": 5
+        },
+        {
+          "session": "S4_PHARMA",
+          "rating": 3
+        },
+        {
+          "session": "S5_RANKING",
+          "rating": 5
+        },
+        {
+          "session": "S6_CRO",
+          "rating": 5
+        }
+      ]
+    },
+    "H5": {
+      "target": "0 hallucinations — all generated workflows exist in DB",
+      "result": "6/6 workflows verified",
+      "pass": true
+    }
+  },
+  "timingTable": [
+    {
+      "session": "S1_ADMET",
+      "name": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "turns": 1,
+      "firstResponseMs": 50557,
+      "firstWorkflowCardMs": 50557,
+      "totalSessionMs": 329590,
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "llm_input_tokens_delta": 167,
+      "llm_output_tokens_delta": 361,
+      "llm_cost_usd_delta": 0.005916000000000032,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.005916000000000032,
+      "execRunId": "7cc17de8-54e2-4217-8f61-150ba9ba6287",
+      "execStatus": "completed",
+      "execDurationMs": 272447,
+      "outputFileCount": 4,
+      "phaseCount": 4,
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png"
+      ],
+      "status": "pass"
+    },
+    {
+      "session": "S2_IVIVE",
+      "name": "IVIVE Hepatic Clearance — 4 TKIs",
+      "turns": 2,
+      "firstResponseMs": 46046,
+      "firstWorkflowCardMs": 46046,
+      "totalSessionMs": 351002,
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "llm_input_tokens_delta": 128,
+      "llm_output_tokens_delta": 490,
+      "llm_cost_usd_delta": 0.00773400000000013,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.00773400000000013,
+      "execRunId": "1ca64d63-63cb-4f73-816d-fbbf89729c76",
+      "execStatus": "completed",
+      "execDurationMs": 252550,
+      "outputFileCount": 3,
+      "phaseCount": 8,
+      "screenshots": [
+        "S2_IVIVE_00_start.png",
+        "S2_IVIVE_T1_response.png",
+        "S2_IVIVE_T2_response.png",
+        "S2_IVIVE_running.png",
+        "S2_IVIVE_completed.png"
+      ],
+      "status": "pass"
+    },
+    {
+      "session": "S3_POCKET",
+      "name": "Pocket Detection — BCR-ABL1 1IEP",
+      "turns": 1,
+      "firstResponseMs": 52565,
+      "firstWorkflowCardMs": 52565,
+      "totalSessionMs": 71744,
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "llm_input_tokens_delta": 33111,
+      "llm_output_tokens_delta": 67237,
+      "llm_cost_usd_delta": 1.107888,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 1.107888,
+      "execRunId": "4f0e5a91-c438-44a8-a36b-0c139120826d",
+      "execStatus": "failed",
+      "execDurationMs": 11938,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S3_POCKET_00_start.png",
+        "S3_POCKET_T1_response.png",
+        "S3_POCKET_running.png",
+        "S3_POCKET_completed.png"
+      ],
+      "status": "pass"
+    },
+    {
+      "session": "S4_PHARMA",
+      "name": "Pharmacophore Filtering — ABL1 Selectivity Screen",
+      "turns": 1,
+      "firstResponseMs": 51662,
+      "firstWorkflowCardMs": 51662,
+      "totalSessionMs": 70775,
+      "h1": true,
+      "h2": true,
+      "h3": 3,
+      "h5": true,
+      "llm_input_tokens_delta": 225,
+      "llm_output_tokens_delta": 293,
+      "llm_cost_usd_delta": 0.005069999999999908,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.005069999999999908,
+      "execRunId": "1a8388c5-60cb-455c-8716-31ea3aadbcd2",
+      "execStatus": "failed",
+      "execDurationMs": 11737,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S4_PHARMA_00_start.png",
+        "S4_PHARMA_T1_response.png",
+        "S4_PHARMA_running.png",
+        "S4_PHARMA_completed.png"
+      ],
+      "status": "pass"
+    },
+    {
+      "session": "S5_RANKING",
+      "name": "Assay Upload + Integrated Ranking — 15 Compounds",
+      "turns": 1,
+      "firstResponseMs": 55132,
+      "firstWorkflowCardMs": 55132,
+      "totalSessionMs": 349523,
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "llm_input_tokens_delta": 373,
+      "llm_output_tokens_delta": 380,
+      "llm_cost_usd_delta": 0.0068190000000001305,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.0068190000000001305,
+      "execRunId": "ae215c82-f7fc-4675-8551-3e7fe2494469",
+      "execStatus": "failed",
+      "execDurationMs": 287347,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S5_RANKING_00_start.png",
+        "S5_RANKING_T1_response.png",
+        "S5_RANKING_running.png",
+        "S5_RANKING_completed.png"
+      ],
+      "status": "pass"
+    },
+    {
+      "session": "S6_CRO",
+      "name": "CRO Export — Top 5 for WuXi AppTec",
+      "turns": 1,
+      "firstResponseMs": 53606,
+      "firstWorkflowCardMs": 53606,
+      "totalSessionMs": 116938,
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "llm_input_tokens_delta": 218,
+      "llm_output_tokens_delta": 369,
+      "llm_cost_usd_delta": 0.006189,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.006189,
+      "execRunId": "154e58ed-867a-4017-8f1c-4f24f6bdd143",
+      "execStatus": "failed",
+      "execDurationMs": 51298,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S6_CRO_00_start.png",
+        "S6_CRO_T1_response.png",
+        "S6_CRO_running.png",
+        "S6_CRO_completed.png"
+      ],
+      "status": "pass"
+    }
+  ],
+  "billingTotals": {
+    "llm_input_tokens": 34222,
+    "llm_output_tokens": 69130,
+    "llm_cost_usd": 1.1396160000000002,
+    "compute_cost_usd": 0,
+    "total_usd": 1.1396160000000002,
+    "totalDurationMs": 1289572,
+    "costPerSession": 0.18993600000000002,
+    "finalLagoSnapshot": {
+      "ts": "2026-04-10T03:35:59.560Z",
+      "llm_input_tokens": 33927,
+      "llm_output_tokens": 68279,
+      "llm_cost_usd": 1.125966,
+      "compute_cost_usd": 0,
+      "storage_cost_usd": 0,
+      "total_usd": 1.125966,
+      "quota_pct": 2.3
+    }
+  },
+  "roiMetrics": {
+    "sessionsCompleted": 6,
+    "totalWallClockMs": 1289572,
+    "avgSessionMs": 214928.66666666666,
+    "maxSessionMs": 351002,
+    "totalLLMCost_usd": 1.1396160000000002,
+    "totalComputeCost_usd": 0,
+    "totalCost_usd": 1.1396160000000002,
+    "manualEquivalentHours": 24,
+    "bioMateWallClockHours": 0.35821444444444445,
+    "speedupFactor": 66.99897330277022,
+    "costPerWorkflowGeneration": 0.18993600000000002,
+    "note": "Compute costs are $0 for mock-mode Nextflow runs. Real AWS Batch costs apply on cloud."
+  },
+  "sessions": [
+    {
+      "sessionId": "S1_ADMET",
+      "sessionName": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "pilotSession": "Session 1 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "predict_admet_properties",
+      "startTs": "2026-04-10T03:14:27.605Z",
+      "endTs": "2026-04-10T03:19:57.195Z",
+      "totalDurationMs": 329590,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Run ADMET toxicity screening on these BCR-ABL1 drug candidates. Predict hERG IC50 (cardiac safety), DILI risk score, and BBB penetration. All SMILES provided:\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3…",
+          "tSendMs": 1775790869304,
+          "tResponseMs": 1775790919861,
+          "tWorkflowCardMs": 1775790919861,
+          "responseTimeMs": 50557,
+          "workflowCardTimeMs": 50557,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "ADMET Toxicity Screening — BCR-ABL1 Drug Candidates — Predicts cardiac safety, hepatotoxicity risk, and CNS penetration for 5 kinase inhibitors from SMILES input.\n\nInput: 5 compounds (Imatinib, Dasatinib, Nilotinib, Asciminib, Terfenadine-ref) as SMILES strings passed to smiles_input\nKey steps:\n\nSMILES validation & featurization → molecular descriptors + fingerprints per compound\npredict_admet_properties → 6-endpoint panel: hERG cardiac IC₅₀, DILI hepatotoxicity score, Caco-2 permeability, BBB penetration, aqueous solubility, Ames mutagenicity\nRisk aggregation → risk_summary.json with per-compound flag (Pass / Warn / Fail) across all endpoints\n\n\nExpected output: admet_results.csv (numerical predictions per compound × endpoint) + risk_summary.json (traffic-light safety flags per compound)\n\nDecision gate: Flag any compound with predicted hERG IC₅₀ < 1 μM (high cardiac risk) or DILI score > 0.5 (hepatotoxic) for immediate deprioritization — Terfenadine-ref is included as a known hERG blocker positive control and should trigger a Fail flag, validating model calibration.\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nAdmet PredIDLEParametersWorkflow Parameters1 parameterSmilesOverrideWorkflow parameter: SmilesValidate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 10:15:18 PMRun contextRun ID: n/aInvocation ID: n/aNextflow run ID: n/aExecution evidenceRun ID: n/aInvocation ID: n/aRuntime status: idleExecution triageStatus: idleNext action"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:14:29.260Z",
+        "llm_input_tokens": 32745,
+        "llm_output_tokens": 65996,
+        "llm_cost_usd": 1.088175,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.088175,
+        "quota_pct": 2.2
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:19:57.129Z",
+        "llm_input_tokens": 32912,
+        "llm_output_tokens": 66357,
+        "llm_cost_usd": 1.094091,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.094091,
+        "quota_pct": 2.2
+      },
+      "billingDelta": {
+        "llm_input_tokens": 167,
+        "llm_output_tokens": 361,
+        "llm_cost_usd": 0.005916000000000032,
+        "compute_cost_usd": 0,
+        "total_usd": 0.005916000000000032
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 4,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 50557ms card=true",
+        "runId=7cc17de8-54e2-4217-8f61-150ba9ba6287 execStatus=completed execDuration=272.4s outputFiles=4 phases=4"
+      ],
+      "execution": {
+        "runId": "7cc17de8-54e2-4217-8f61-150ba9ba6287",
+        "status": "completed",
+        "tStartMs": 1775790920034,
+        "tTerminalMs": 1775791192481,
+        "executionDurationMs": 272447,
+        "outputFiles": [
+          {
+            "name": "ADMET_pred_output.txt",
+            "type": "txt",
+            "size": 332
+          },
+          {
+            "name": "ADMET_pred_results.json",
+            "type": "json",
+            "size": 758
+          },
+          {
+            "name": "toxicity_report.json",
+            "type": "json",
+            "size": 592
+          },
+          {
+            "name": "versions.yml",
+            "type": "yml",
+            "size": 117
+          }
+        ],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7cc17de8-54e2-4217-8f61-150ba9ba6287/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7cc17de8-54e2-4217-8f61-150ba9ba6287/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/7cc17de8-54e2-4217-8f61-150ba9ba6287/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png"
+      ],
+      "screenshot": "S1_ADMET_completed.png",
+      "status": "pass"
+    },
+    {
+      "sessionId": "S2_IVIVE",
+      "sessionName": "IVIVE Hepatic Clearance — 4 TKIs",
+      "pilotSession": "Session 2 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "ivive_hepatic_clearance",
+      "startTs": "2026-04-10T03:19:57.504Z",
+      "endTs": "2026-04-10T03:25:48.506Z",
+      "totalDurationMs": 351002,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "I need in vitro to in vivo extrapolation (IVIVE) for hepatic clearance for 4 BCR-ABL1 TKIs. I want predicted CLh (hepatic clearance mL/min/kg) and extraction ratio for each compound.",
+          "tSendMs": 1775791199232,
+          "tResponseMs": 1775791245278,
+          "tWorkflowCardMs": 1775791245278,
+          "responseTimeMs": 46046,
+          "workflowCardTimeMs": 46046,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "IVIVE Hepatic Clearance — Scales in vitro microsomal CLint to predicted human hepatic clearance for 4 BCR-ABL1 TKIs using well-stirred and parallel-tube models.\n\nInput: Compound data CSV with 4 BCR-ABL1 TKIs (compound_id / CLint_uL_per_min_mg / molecular_weight columns)\nKey steps:\n\nPKNCA + well-stirred & parallel-tube models → CLint_microsomal scaled to CLhep (mL/min/kg)\nHepatic extraction ratio (EH) computed per compound → classified as low / intermediate / high extraction\n\n\nExpected output: ivive_results.csv (CLh mL/min/kg + EH per compound) + clearance_summary.json (model comparison + scaling factors)\n\nDecision gate: EH > 0.7 = high extraction (first-pass dominated, dose-sensitive); EH < 0.3 = low extraction (protein-binding sensitive) — flags which TKIs carry highest metabolic liability risk for lead prioritization.\n✅ I've generated a workflow for you based on your request.Ivive Hepatic ClearanceIDLEParametersWorkflow Parameters7 parametersClint In VitroBrowseWorkflow parameter: Clint In VitroAssay TypeOverrideWorkflow parameter: Assay TypeFu PlasmaBrowseWorkflow parameter: Fu PlasmaFu IncBrowseWorkflow parameter: Fu IncSpeciesOverrideWorkflow parameter: SpeciesScaling ModelOverrideWorkflow parameter: Scaling ModelSmilesWorkflow parameter: SmilesValidate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 10:20:44 PMRun contextRun ID: n/aInvocation ID: n/aNextflow run ID: n/aExecution evidenceRun ID: n/aInvocation ID: n/aRuntime status: idleExecution triageStatus: idleNext action: Configure parameters and prerequisites, then run the workflow.Logs: No runtime logs are available yet.Outputs: Outputs are not available until execution starts.Run single steps for targeted checks. Finished o"
+        },
+        {
+          "turn": 2,
+          "query": "Here are the measured CLint and fu_plasma values:\nDasatinib: CLint=220 μL/min/mg, fu_plasma=0.04\nBosutinib: CLint=60 μL/min/mg, fu_plasma=0.03\nImatinib: CLint=25 μL/min/mg, fu_plasma=0.04\nNilotinib: C…",
+          "tSendMs": 1775791245400,
+          "tResponseMs": 1775791291102,
+          "tWorkflowCardMs": 1775791291102,
+          "responseTimeMs": 45702,
+          "workflowCardTimeMs": 45702,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "IVIVE Hepatic Clearance — BCR-ABL1 TKI Panel — Scales measured microsomal CLint to predicted human hepatic clearance (CLh) and extraction ratio (EH) for 4 TKIs using the well-stirred liver model.\n\nInput: 4 BCR-ABL1 TKIs — Dasatinib (CLint=220, fu_plasma=0.04), Bosutinib (CLint=60, fu_plasma=0.03), Imatinib (CLint=25, fu_plasma=0.04), Nilotinib (CLint=12, fu_plasma=0.01); Qh=20.7 mL/min/kg, fu_mic=1.0\nKey steps:\n\nCLint scaling (microsomal protein × liver weight factors) → intrinsic CLint per compound\nWell-stirred model: CLh = Qh × (fu_plasma × CLint_scaled) / (Qh + fu_plasma × CLint_scaled) → CLh (mL/min/kg) + EH per compound\n\n\nExpected output: ivive_results.csv (CLh mL/min/kg + EH per compound, ranked by metabolic liability) + clearance_summary.json (scaling factors, model parameters, compound-level flags)\n\nDecision gate: EH > 0.7 = high extraction (Dasatinib expected) → first-pass dominated, high dose-sensitivity risk; EH < 0.3 = low extraction (Nilotinib expected) → protein-binding sensitive, safer metabolic profile for lead advancement.\n✅ I've generated a workflow for you based on your request.Ivive Hepatic ClearanceIDLEParametersWorkflow Parameters7 parametersClint In VitroBrowseWorkflow parameter: Clint In VitroAssay TypeOverrideWorkflow parameter: Assay TypeFu PlasmaBrowseWorkflow parameter: Fu PlasmaFu IncBrowseWorkflow parameter: Fu IncSpeciesWorkflow parameter: SpeciesScaling ModelOverrideWorkflow parameter: Scaling ModelSmilesWorkflow parameter: SmilesValidate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 10:21:29 PMRun contextRun ID: n/aInvocation ID: n/aNextflow run ID: n/aExecution evidenceRun ID: n/aInvocation ID: n/aRuntime status: idleExecution triageStatus: idleNext "
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:19:59.182Z",
+        "llm_input_tokens": 32912,
+        "llm_output_tokens": 66357,
+        "llm_cost_usd": 1.094091,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.094091,
+        "quota_pct": 2.2
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:25:48.443Z",
+        "llm_input_tokens": 33040,
+        "llm_output_tokens": 66847,
+        "llm_cost_usd": 1.101825,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.101825,
+        "quota_pct": 2.2
+      },
+      "billingDelta": {
+        "llm_input_tokens": 128,
+        "llm_output_tokens": 490,
+        "llm_cost_usd": 0.00773400000000013,
+        "compute_cost_usd": 0,
+        "total_usd": 0.00773400000000013
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 5,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 46046ms card=true",
+        "T2 response: 45702ms card=true",
+        "Expected ordering: Dasatinib(33%) > Bosutinib(9%) > Imatinib(5%) > Nilotinib(0.7%)",
+        "runId=1ca64d63-63cb-4f73-816d-fbbf89729c76 execStatus=completed execDuration=252.6s outputFiles=3 phases=8"
+      ],
+      "execution": {
+        "runId": "1ca64d63-63cb-4f73-816d-fbbf89729c76",
+        "status": "completed",
+        "tStartMs": 1775791291237,
+        "tTerminalMs": 1775791543787,
+        "executionDurationMs": 252550,
+        "outputFiles": [
+          {
+            "name": "ivive_output.txt",
+            "type": "txt",
+            "size": 717
+          },
+          {
+            "name": "ivive_results.json",
+            "type": "json",
+            "size": 801
+          },
+          {
+            "name": "versions.yml",
+            "type": "yml",
+            "size": 156
+          }
+        ],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/1ca64d63-63cb-4f73-816d-fbbf89729c76/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/1ca64d63-63cb-4f73-816d-fbbf89729c76/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/1ca64d63-63cb-4f73-816d-fbbf89729c76/ ./work/"
+          }
+        },
+        "phaseCount": 8
+      },
+      "screenshots": [
+        "S2_IVIVE_00_start.png",
+        "S2_IVIVE_T1_response.png",
+        "S2_IVIVE_T2_response.png",
+        "S2_IVIVE_running.png",
+        "S2_IVIVE_completed.png"
+      ],
+      "screenshot": "S2_IVIVE_completed.png",
+      "status": "pass"
+    },
+    {
+      "sessionId": "S3_POCKET",
+      "sessionName": "Pocket Detection — BCR-ABL1 1IEP",
+      "pilotSession": "Session 3 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "pocket_detection_druggability",
+      "startTs": "2026-04-10T03:25:48.863Z",
+      "endTs": "2026-04-10T03:27:00.607Z",
+      "totalDurationMs": 71744,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Run pocket detection and druggability assessment on BCR-ABL1 kinase structure PDB:1IEP. I need the top 10 binding pockets ranked by druggability score and volume. BCR-ABL1 is in DFG-out conformation; …",
+          "tSendMs": 1775791550503,
+          "tResponseMs": 1775791603068,
+          "tWorkflowCardMs": 1775791603068,
+          "responseTimeMs": 52565,
+          "workflowCardTimeMs": 52565,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "Pocket Detection & Druggability Assessment — BCR-ABL1 (1IEP) — Identifies and ranks all binding pockets on the BCR-ABL1 DFG-out kinase structure using fpocket, with focus on the imatinib allosteric site.\n\n\nInput: PDB ID 1IEP (BCR-ABL1 kinase, DFG-out conformation, imatinib-bound)\n\n\nKey steps:\n\nFetch & validate PDB 1IEP → cleaned structure file ready for pocket detection\nfpocket → per-pocket druggability scores, volumes, hydrophobicity, and alpha-sphere density across all detected cavities\nRank & filter top 10 pockets by druggability score + volume → annotated pocket summary\n\n\n\nExpected output: pocket_summary.csv (top 10 pockets ranked by druggability score + volume) · druggability_scores.json (raw fpocket metrics per pocket) · ranked HTML report with 3D pocket visualization overlaid on 1IEP structure\n\n\nDecision gate: Imatinib binding site (DFG-out allosteric pocket) should rank #1 with fpocket druggability score > 0.5 and volume > 400 Å³ — pockets below this threshold are unlikely to support high-affinity small-molecule binding.\n\n\nWorkflow phases\n\nTarget/assay context and data intake\nCore analysis phase (e.g., docking, ADMET, or PK/NCA)\nQC/safety review and report handoff\n\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nPocket Detection DruggabilityIDLEParametersInput/output options1 required · 0 optionalPdb Input*BrowsePDB file or 4-letter PDB ID (e.g. '1IEP'). If a PDB ID is given, the structure is fetched from the RCSB.Analysis parameters3 parametersFill in all required fields (*) before running.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired pa"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:25:50.487Z",
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "http_502"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:27:00.354Z",
+        "llm_input_tokens": 33111,
+        "llm_output_tokens": 67237,
+        "llm_cost_usd": 1.107888,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.107888,
+        "quota_pct": 2.2
+      },
+      "billingDelta": {
+        "llm_input_tokens": 33111,
+        "llm_output_tokens": 67237,
+        "llm_cost_usd": 1.107888,
+        "compute_cost_usd": 0,
+        "total_usd": 1.107888
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 5,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 52565ms card=true",
+        "Expected: ≥5 pockets, top druggability ≥0.40, top volume ≥500 Å³",
+        "Pilot result: 10 pockets, druggability=0.567, volume=879 Å³",
+        "runId=4f0e5a91-c438-44a8-a36b-0c139120826d execStatus=failed execDuration=11.9s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "4f0e5a91-c438-44a8-a36b-0c139120826d",
+        "status": "failed",
+        "tStartMs": 1775791603770,
+        "tTerminalMs": 1775791615708,
+        "executionDurationMs": 11938,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/4f0e5a91-c438-44a8-a36b-0c139120826d/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/4f0e5a91-c438-44a8-a36b-0c139120826d/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/4f0e5a91-c438-44a8-a36b-0c139120826d/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S3_POCKET_00_start.png",
+        "S3_POCKET_T1_response.png",
+        "S3_POCKET_running.png",
+        "S3_POCKET_completed.png"
+      ],
+      "screenshot": "S3_POCKET_completed.png",
+      "status": "pass"
+    },
+    {
+      "sessionId": "S4_PHARMA",
+      "sessionName": "Pharmacophore Filtering — ABL1 Selectivity Screen",
+      "pilotSession": "Session 4 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "pharmacophore_filtering",
+      "startTs": "2026-04-10T03:27:00.966Z",
+      "endTs": "2026-04-10T03:28:11.741Z",
+      "totalDurationMs": 70775,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Build a pharmacophore model from 4 known ABL1 kinase inhibitors and screen a compound library against it. Reference ABL1 inhibitors:\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)…",
+          "tSendMs": 1775791622658,
+          "tResponseMs": 1775791674320,
+          "tWorkflowCardMs": 1775791674320,
+          "responseTimeMs": 51662,
+          "workflowCardTimeMs": 51662,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "ABL1 Pharmacophore Build & Screen — Derives a consensus pharmacophore model from 4 known ABL1 kinase inhibitors and scores a 4-compound library against it in a single workflow.\n\nInput: Reference SMILES — Imatinib, Dasatinib, Bosutinib, Asciminib; Library SMILES — Gleevec-analog-1, Ponatinib, Terfenadine, Acetaminophen; min_features = 3\nKey steps:\n\nPharmacophore → consensus feature model (H-bond donors/acceptors, hydrophobic centers, aromatic rings) derived from the 4 ABL1 inhibitor reference set\nPharmacophore Alignment → each library compound aligned and scored against the model; compounds matching ≥ 3 pharmacophoric features are retained as hits\n\n\nExpected output: Filtered hit list (ranked by feature-match score) + per-compound feature-match report (CSV) + pharmacophore model file (.json / .pml)\n\nDecision gate: Retain compounds matching ≥ 3 pharmacophoric features with an alignment score above the reference inhibitor baseline — Terfenadine and Acetaminophen are expected to fall below threshold given their structural divergence from the ABL1 inhibitor scaffold, while Gleevec-analog-1 and Ponatinib are predicted to pass.Pharmacophore FilteringIDLEParametersInput/output options2 required · 0 optionalReference Actives*BrowseSMILES file of known active compounds (one per line) used to derive the pharmacophore model.Compound Library*BrowseSMILES or SDF file of compounds to screen against the pharmacophore.Analysis parameters2 parametersFill in all required fields (*) before running.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 10:27:53 PMRun contextRun ID: n/aInvocation ID: n/aNextflow run ID: n/aExecution evidenceRun ID: n/aInvocation ID: n/aRuntime status: idleExecution triageS"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:27:02.602Z",
+        "llm_input_tokens": 33111,
+        "llm_output_tokens": 67237,
+        "llm_cost_usd": 1.107888,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.107888,
+        "quota_pct": 2.2
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:28:11.694Z",
+        "llm_input_tokens": 33336,
+        "llm_output_tokens": 67530,
+        "llm_cost_usd": 1.112958,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.112958,
+        "quota_pct": 2.2
+      },
+      "billingDelta": {
+        "llm_input_tokens": 225,
+        "llm_output_tokens": 293,
+        "llm_cost_usd": 0.005069999999999908,
+        "compute_cost_usd": 0,
+        "total_usd": 0.005069999999999908
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 3,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 51662ms card=true",
+        "H3=3: 2D pharmacophore non-selective (all drug-like hits HBD+HBA+Ar+Hydrophobic)",
+        "Production improvement: --generate_3d true for 3D distance constraints",
+        "runId=1a8388c5-60cb-455c-8716-31ea3aadbcd2 execStatus=failed execDuration=11.7s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "1a8388c5-60cb-455c-8716-31ea3aadbcd2",
+        "status": "failed",
+        "tStartMs": 1775791675261,
+        "tTerminalMs": 1775791686998,
+        "executionDurationMs": 11737,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/1a8388c5-60cb-455c-8716-31ea3aadbcd2/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/1a8388c5-60cb-455c-8716-31ea3aadbcd2/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/1a8388c5-60cb-455c-8716-31ea3aadbcd2/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S4_PHARMA_00_start.png",
+        "S4_PHARMA_T1_response.png",
+        "S4_PHARMA_running.png",
+        "S4_PHARMA_completed.png"
+      ],
+      "screenshot": "S4_PHARMA_completed.png",
+      "status": "pass"
+    },
+    {
+      "sessionId": "S5_RANKING",
+      "sessionName": "Assay Upload + Integrated Ranking — 15 Compounds",
+      "pilotSession": "Session 5 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "assay_ingestion_and_ranking",
+      "startTs": "2026-04-10T03:28:12.095Z",
+      "endTs": "2026-04-10T03:34:01.618Z",
+      "totalDurationMs": 349523,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "I have measured BCR-ABL1 kinase IC50 and hERG IC50 assay data for 15 compounds. Ingest this data and produce a composite safety-potency ranking. Generate the workflow now.\n\ncompound_id,assay_type,valu…",
+          "tSendMs": 1775791693744,
+          "tResponseMs": 1775791748876,
+          "tWorkflowCardMs": 1775791748876,
+          "responseTimeMs": 55132,
+          "workflowCardTimeMs": 55132,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "BCR-ABL1 Campaign Safety-Potency Ranking — Ingests dual-assay IC50 data for 15 compounds and produces a composite score ranking potency against BCR-ABL1 kinase alongside hERG cardiac safety.\n\nInput: 30-row assay CSV (15 compounds × 2 assay types: IC50_BCR_ABL1 in nM + hERG_IC50 in µM, dated 2026-03-15)\nKey steps:\n\nCSV parser → normalizes units, pivots to wide format, flags hERG risk tier (HIGH: < 1 µM, MODERATE: 1–10 µM, LOW: > 10 µM)\nComposite scorer → log-transforms IC50 values, applies weighted rank (BCR-ABL1 potency 60% / hERG safety 40%), computes selectivity window (hERG IC50 ÷ BCR-ABL1 IC50)\nReport generator → ranked compound table + HTML dashboard with potency-safety scatter plot\n\n\nExpected output: ranked_compounds.csv (composite score, individual ranks, hERG risk tier, selectivity ratio) + HTML report (interactive scatter plot) + ranking_summary.json (top hits + flagged compounds)\n\nDecision gate: Promote compounds with BCR-ABL1 IC50 < 10 nM AND hERG IC50 > 10 µM (selectivity window > 1,000×). CPD009 (hERG 0.08 µM) and CPD010 (hERG 0.05 µM) are auto-flagged as HIGH cardiac risk and will rank last regardless of BCR-ABL1 potency.\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nAssay Ingestion And RankingIDLEParametersInput/output options1 required · 0 optionalAssay Csv*BrowseCSV file with assay data. Must include compound_id and activity columns.Analysis parameters5 parametersFill in all required fields (*) before running.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDown"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:28:13.708Z",
+        "llm_input_tokens": 33336,
+        "llm_output_tokens": 67530,
+        "llm_cost_usd": 1.112958,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.112958,
+        "quota_pct": 2.2
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:34:01.551Z",
+        "llm_input_tokens": 33709,
+        "llm_output_tokens": 67910,
+        "llm_cost_usd": 1.119777,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.119777,
+        "quota_pct": 2.2
+      },
+      "billingDelta": {
+        "llm_input_tokens": 373,
+        "llm_output_tokens": 380,
+        "llm_cost_usd": 0.0068190000000001305,
+        "compute_cost_usd": 0,
+        "total_usd": 0.0068190000000001305
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 5,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 55132ms card=true",
+        "Expected rank: Asciminib #1 (score=0.6498), Terfenadine last (withdrawn)",
+        "runId=ae215c82-f7fc-4675-8551-3e7fe2494469 execStatus=failed execDuration=287.3s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "ae215c82-f7fc-4675-8551-3e7fe2494469",
+        "status": "failed",
+        "tStartMs": 1775791749553,
+        "tTerminalMs": 1775792036900,
+        "executionDurationMs": 287347,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/ae215c82-f7fc-4675-8551-3e7fe2494469/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/ae215c82-f7fc-4675-8551-3e7fe2494469/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/ae215c82-f7fc-4675-8551-3e7fe2494469/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S5_RANKING_00_start.png",
+        "S5_RANKING_T1_response.png",
+        "S5_RANKING_running.png",
+        "S5_RANKING_completed.png"
+      ],
+      "screenshot": "S5_RANKING_completed.png",
+      "status": "pass"
+    },
+    {
+      "sessionId": "S6_CRO",
+      "sessionName": "CRO Export — Top 5 for WuXi AppTec",
+      "pilotSession": "Session 6 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "cro_submission_export",
+      "startTs": "2026-04-10T03:34:01.967Z",
+      "endTs": "2026-04-10T03:35:58.905Z",
+      "totalDurationMs": 116938,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Based on our BCR-ABL1 campaign ranking (Asciminib #1, Bosutinib #2, Imatinib #3, Gleevec-analog-2 #4, Gleevec-analog-1 #5), generate a CRO submission export for WuXi AppTec. Include: compound ID, SMIL…",
+          "tSendMs": 1775792048629,
+          "tResponseMs": 1775792102235,
+          "tWorkflowCardMs": 1775792102235,
+          "responseTimeMs": 53606,
+          "workflowCardTimeMs": 53606,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "BCR-ABL1 CRO Submission Export (WuXi AppTec) — Validates cardiac safety and formats all 5 ranked BCR-ABL1 compounds into a WuXi-ready CSV export.\n\n\nInput: 5 compounds with SMILES, campaign ranking (Asciminib #1 → Gleevec-analog-1 #5), IC50 (nM), hERG IC50 (μM), and composite score from BCR-ABL1 campaign\n\n\nKey steps:\n\nhERG safety gate (RDKit + hERG model) → flag any compound with hERG IC50 ≤ 1 μM as cardiac-unsafe and block from export\nWuXi AppTec column formatter → maps compound_id, SMILES, IC50_nM, hERG_IC50_uM, composite_score to CRO-standard schema + computes MW/LogP via RDKit\nCSV export → generates wuxiapptec_submission.csv + metadata JSON with campaign provenance\n\n\n\nExpected output: wuxiapptec_submission.csv (WuXi-formatted, 5 compounds if all pass cardiac gate), submission_metadata.json (compound count, safety flags, export timestamp, campaign ID), and a rejection log if any compound fails hERG screening\n\n\nDecision gate: All 5 compounds must clear hERG IC50 > 1 μM — any compound failing this threshold is automatically excluded from the CRO export and logged in the rejection report before submission.\n\n\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nCro Submission ExportIDLEParametersInput/output options1 required · 0 optionalCompound Csv*BrowseCSV with columns: compound_id, smiles, potency (IC50 nM), safety (hERG IC50 μM), composite_score.Analysis parameters5 parametersFill in all required fields (*) before running.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Continue in chat →Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Me"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-10T03:34:08.561Z",
+        "llm_input_tokens": 33709,
+        "llm_output_tokens": 67910,
+        "llm_cost_usd": 1.119777,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.119777,
+        "quota_pct": 2.2
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T03:35:58.861Z",
+        "llm_input_tokens": 33927,
+        "llm_output_tokens": 68279,
+        "llm_cost_usd": 1.125966,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 1.125966,
+        "quota_pct": 2.3
+      },
+      "billingDelta": {
+        "llm_input_tokens": 218,
+        "llm_output_tokens": 369,
+        "llm_cost_usd": 0.006189,
+        "compute_cost_usd": 0,
+        "total_usd": 0.006189
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 5,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 53606ms card=true",
+        "Expected: 5 compounds, all hERG IC50 > 1μM, no safety failures",
+        "Pilot result: Asciminib(30μM), Bosutinib(30μM), Imatinib(30μM), analogs(30μM)",
+        "runId=154e58ed-867a-4017-8f1c-4f24f6bdd143 execStatus=failed execDuration=51.3s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "154e58ed-867a-4017-8f1c-4f24f6bdd143",
+        "status": "failed",
+        "tStartMs": 1775792102898,
+        "tTerminalMs": 1775792154196,
+        "executionDurationMs": 51298,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/154e58ed-867a-4017-8f1c-4f24f6bdd143/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/154e58ed-867a-4017-8f1c-4f24f6bdd143/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/154e58ed-867a-4017-8f1c-4f24f6bdd143/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S6_CRO_00_start.png",
+        "S6_CRO_T1_response.png",
+        "S6_CRO_running.png",
+        "S6_CRO_completed.png"
+      ],
+      "screenshot": "S6_CRO_completed.png",
+      "status": "pass"
+    }
+  ]
+}

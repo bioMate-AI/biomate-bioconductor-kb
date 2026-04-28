@@ -1,0 +1,4 @@
+{"timestamp": "2026-04-16T20:10:39Z", "gate": "motion", "status": "pass", "profile": "cryoem_spa_purified", "value": 32.0, "threshold": 50.0}
+{"timestamp": "2026-04-16T20:10:39Z", "gate": "ctf", "status": "pass", "profile": "cryoem_spa_purified", "value": 0.82, "threshold": 0.7}
+{"timestamp": "2026-04-16T20:10:39Z", "gate": "junk", "status": "advisory", "profile": "cryoem_spa_purified", "value": 0.52, "threshold": 0.7}
+{"timestamp": "2026-04-16T20:10:39Z", "gate": "fsc", "status": "pass", "profile": "cryoem_spa_purified"}

@@ -1,0 +1,150 @@
+{
+  "beta2ar": {
+    "lambda_star": 10.0,
+    "ess_at_lambda_star": 233.0341317398283,
+    "prior_gap_fraction": 0.1,
+    "posterior_gap_fraction": 2.154010023245756e-31,
+    "gap_redistribution": -0.1,
+    "mean_pairwise_rmsd_prior": 0.6904129981994629,
+    "mean_pairwise_rmsd_posterior": 0.34737756848335266,
+    "lambda_scan": [
+      {
+        "lambda": 0.0,
+        "ess": 500.0,
+        "ess_frac": 1.0,
+        "posterior_gap_fraction": 0.1,
+        "chi2_mean": 1.9429369941321508
+      },
+      {
+        "lambda": 0.05,
+        "ess": 486.2059758709199,
+        "ess_frac": 0.9724119517418397,
+        "posterior_gap_fraction": 0.05118181284720789,
+        "chi2_mean": 1.120904983313606
+      },
+      {
+        "lambda": 0.1,
+        "ess": 471.3485494576445,
+        "ess_frac": 0.942697098915289,
+        "posterior_gap_fraction": 0.027288119122463494,
+        "chi2_mean": 0.7583925700113344
+      },
+      {
+        "lambda": 0.2,
+        "ess": 457.27754565566545,
+        "ess_frac": 0.914555091311331,
+        "posterior_gap_fraction": 0.008850003917818042,
+        "chi2_mean": 0.5106184485122203
+      },
+      {
+        "lambda": 0.5,
+        "ess": 449.546421509107,
+        "ess_frac": 0.899092843018214,
+        "posterior_gap_fraction": 0.000595183356869749,
+        "chi2_mean": 0.4193377404278416
+      },
+      {
+        "lambda": 1.0,
+        "ess": 446.4132019871158,
+        "ess_frac": 0.8928264039742316,
+        "posterior_gap_fraction": 1.3989154052322278e-05,
+        "chi2_mean": 0.4104704686176993
+      },
+      {
+        "lambda": 2.0,
+        "ess": 437.27883217253157,
+        "ess_frac": 0.8745576643450631,
+        "posterior_gap_fraction": 1.4252083484241742e-08,
+        "chi2_mean": 0.4029375326252935
+      },
+      {
+        "lambda": 5.0,
+        "ess": 381.7489960621119,
+        "ess_frac": 0.7634979921242239,
+        "posterior_gap_fraction": 3.5160425159976935e-17,
+        "chi2_mean": 0.38344178743250995
+      },
+      {
+        "lambda": 10.0,
+        "ess": 233.0341317398283,
+        "ess_frac": 0.4660682634796566,
+        "posterior_gap_fraction": 2.154010023245756e-31,
+        "chi2_mean": 0.35039930756032384
+      }
+    ]
+  },
+  "trpv1": {
+    "lambda_star": 10.0,
+    "ess_at_lambda_star": 250.00007908979393,
+    "prior_gap_fraction": 0.1,
+    "posterior_gap_fraction": 5.452703267089627e-27,
+    "gap_redistribution": -0.1,
+    "mean_pairwise_rmsd_prior": 0.7653105854988098,
+    "mean_pairwise_rmsd_posterior": 0.3273015320301056,
+    "lambda_scan": [
+      {
+        "lambda": 0.0,
+        "ess": 500.0,
+        "ess_frac": 1.0,
+        "posterior_gap_fraction": 0.1,
+        "chi2_mean": 1.657532626929732
+      },
+      {
+        "lambda": 0.05,
+        "ess": 489.6594812112367,
+        "ess_frac": 0.9793189624224734,
+        "posterior_gap_fraction": 0.05770515772371236,
+        "chi2_mean": 1.091480713702223
+      },
+      {
+        "lambda": 0.1,
+        "ess": 476.06229043383115,
+        "ess_frac": 0.9521245808676623,
+        "posterior_gap_fraction": 0.03381135595703278,
+        "chi2_mean": 0.7928300813711628
+      },
+      {
+        "lambda": 0.2,
+        "ess": 460.24811979394434,
+        "ess_frac": 0.9204962395878887,
+        "posterior_gap_fraction": 0.01235328409799021,
+        "chi2_mean": 0.5454569490298254
+      },
+      {
+        "lambda": 0.5,
+        "ess": 450.1714898212314,
+        "ess_frac": 0.9003429796424628,
+        "posterior_gap_fraction": 0.0009520564642810686,
+        "chi2_mean": 0.4303794219431005
+      },
+      {
+        "lambda": 1.0,
+        "ess": 447.39540437054234,
+        "ess_frac": 0.8947908087410846,
+        "posterior_gap_fraction": 3.148484403633399e-05,
+        "chi2_mean": 0.42034432475525263
+      },
+      {
+        "lambda": 2.0,
+        "ess": 439.6712151417513,
+        "ess_frac": 0.8793424302835026,
+        "posterior_gap_fraction": 8.717268686331941e-08,
+        "chi2_mean": 0.414353288458463
+      },
+      {
+        "lambda": 5.0,
+        "ess": 386.9974102986346,
+        "ess_frac": 0.7739948205972692,
+        "posterior_gap_fraction": 4.986995213882081e-15,
+        "chi2_mean": 0.3967669777492291
+      },
+      {
+        "lambda": 10.0,
+        "ess": 250.00007908979393,
+        "ess_frac": 0.5000001581795879,
+        "posterior_gap_fraction": 5.452703267089627e-27,
+        "chi2_mean": 0.3655891446105962
+      }
+    ]
+  }
+}

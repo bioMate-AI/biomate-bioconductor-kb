@@ -1,0 +1,24 @@
+{
+  "compounds_assessed": 1,
+  "model_type": "rdkit_descriptors",
+  "estimation_method": "rdkit_descriptors",
+  "toxicity": {
+    "herg_ic50_uM": 10.162,
+    "dili_risk": "low",
+    "dili_probability": 0.106,
+    "ames_positive": false,
+    "ames_probability": 0.1,
+    "ames_structural_alerts": [],
+    "ames_method": "kazius_structural_alerts"
+  },
+  "per_compound": [
+    {
+      "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+      "logP": 1.31,
+      "mw": 180.2,
+      "herg_ic50_uM": 10.162,
+      "dili_risk": "low",
+      "dili_probability": 0.106
+    }
+  ]
+}

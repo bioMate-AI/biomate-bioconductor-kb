@@ -1,0 +1,30 @@
+Biomni: Analyze Atac Seq Differential Accessibility
+============================================================
+
+ATAC-seq Analysis Log - 2026-04-08 17:57:38
+================================================================================
+
+** SIMULATION MODE: Running with simulated ATAC-seq data **
+
+Step 1: Peak calling on treatment sample (simulated)
+Identified 22270 peaks in treatment sample.
+
+Step 2: Peak calling on control sample (simulated)
+Identified 19603 peaks in control sample.
+
+Step 3: Differential accessibility analysis (simulated)
+Found 2360 regions with higher accessibility in treatment.
+Found 2294 regions with higher accessibility in control.
+
+Step 4: Analysis Summary
+Total peaks in treatment: 22270
+Total peaks in control: 19603
+Differentially accessible regions: 4654
+  - Enriched in treatment: 2360
+  - Enriched in control: 2294
+
+Output Files (simulated):
+  - Treatment peaks: ./atac_results/atac_treatment_peaks.narrowPeak
+  - Control peaks: ./atac_results/atac_control_peaks.narrowPeak
+  - Treatment-enriched regions: ./atac_results/atac_differential_cond1.bed
+  - Control-enriched regions: ./atac_results/atac_differential_cond2.bed

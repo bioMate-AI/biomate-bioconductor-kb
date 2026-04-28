@@ -1,0 +1,2 @@
+NCA-PK Auto-Loop Run: nx18
+Phases passed: 1  escalated: 0

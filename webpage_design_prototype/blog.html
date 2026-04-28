@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog — BioMate AI</title>
+  <meta name="description" content="BioMate AI blog — tutorials, workflow deep-dives, and bioinformatics insights." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,700;1,400&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/site.css" />
+  <style>
+    .page-hero {
+      background: var(--bg-card); padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,3rem);
+      border-bottom: 1px solid var(--border);
+    }
+    .page-hero h1 { font-family:var(--font-head); font-size:clamp(2rem,5vw,3.2rem); font-weight:700; color:var(--text); margin-bottom:.5rem; }
+    .page-hero p  { color:var(--text-muted); font-size:1rem; }
+
+    /* Filter tabs */
+    .filter-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:2rem 0; }
+    .filter-tab {
+      padding:5px 16px; border-radius:50px; font-size:.82rem; font-weight:700;
+      background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted);
+      cursor:pointer; transition:all .2s; text-decoration:none;
+    }
+    .filter-tab.active, .filter-tab:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+    /* Posts grid */
+    .posts-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:28px; }
+
+    .post-card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg);
+      overflow:hidden; display:flex; flex-direction:column;
+      transition:border-color .25s, transform .25s, box-shadow .25s;
+      text-decoration:none; color:inherit;
+    }
+    .post-card:hover { border-color:var(--accent); transform:translateY(-3px); box-shadow:var(--shadow-md); color:inherit; }
+
+    .post-card-img {
+      width:100%; aspect-ratio:16/9; background:var(--bg-card2);
+      display:flex; align-items:center; justify-content:center;
+      font-size:3rem; border-bottom:1px solid var(--border);
+    }
+
+    .post-card-body { padding:1.5rem; flex:1; display:flex; flex-direction:column; gap:.75rem; }
+
+    .post-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .post-tag {
+      font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+      padding:2px 9px; border-radius:50px; background:var(--accent-pale); color:var(--accent-light);
+    }
+    .post-date { font-size:.78rem; color:var(--text-light); }
+
+    .post-title {
+      font-family:var(--font-head); font-size:1.25rem; font-weight:700;
+      color:var(--text); line-height:1.3;
+    }
+    .post-excerpt { font-size:.875rem; color:var(--text-muted); line-height:1.6; flex:1; }
+    .post-read-more {
+      display:inline-flex; align-items:center; gap:4px;
+      font-size:.8rem; font-weight:700; color:var(--accent-light); margin-top:.5rem;
+    }
+
+    /* Featured post */
+    .post-card.featured {
+      grid-column: 1 / -1;
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    .post-card.featured .post-card-img {
+      aspect-ratio: unset; min-height: 280px;
+      border-bottom: none; border-right: 1px solid var(--border);
+    }
+    .post-card.featured .post-title { font-size:1.6rem; }
+    .post-card.featured .post-excerpt { font-size:.95rem; }
+
+    @media (max-width:640px) {
+      .post-card.featured { grid-template-columns:1fr; }
+      .post-card.featured .post-card-img { aspect-ratio:16/9; border-right:none; border-bottom:1px solid var(--border); }
+      .posts-grid { grid-template-columns:1fr; }
+    }
+
+    /* Sidebar-style newsletter */
+    .blog-layout { display:grid; grid-template-columns:1fr 300px; gap:3rem; align-items:start; }
+    .blog-sidebar {}
+    .sidebar-card {
+      background:var(--bg-card2); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem;
+      margin-bottom:1.5rem;
+    }
+    .sidebar-card h5 { font-family:var(--font-head); font-size:1.1rem; color:var(--text); margin-bottom:.75rem; }
+    .sidebar-card p  { font-size:.82rem; color:var(--text-muted); margin-bottom:1rem; line-height:1.5; }
+    .sidebar-topics { display:flex; flex-direction:column; gap:6px; }
+    .sidebar-topic {
+      display:flex; justify-content:space-between; align-items:center;
+      font-size:.85rem; color:var(--text-muted); padding:6px 0;
+      border-bottom:1px solid var(--border); text-decoration:none;
+    }
+    .sidebar-topic:last-child { border-bottom:none; }
+    .sidebar-topic:hover { color:var(--accent); }
+    .sidebar-topic .count {
+      font-size:.72rem; background:var(--bg-card); border:1px solid var(--border);
+      border-radius:50px; padding:1px 7px; color:var(--text-light);
+    }
+
+    @media (max-width:900px) { .blog-layout { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="site-header"><a href="index.html"><img src="images/logo.png" alt="BioMate AI" /></a></div>
+<nav>
+  <a href="index.html" class="nav-logo"><img src="images/logo.png" alt="BioMate AI" /></a>
+  <ul class="nav-links">
+    <li><a href="index.html#applications">Applications</a></li>
+    <li><a href="features.html">Features</a></li>
+    <li><a href="index.html#approach">Our Approach</a></li>
+    <li><a href="pricing.html">Pricing</a></li>
+    <li><a href="blog.html" class="active">Blog</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="https://dev-public.biomate.ai/login" target="_blank" rel="noopener" class="nav-login">Log In</a>
+    <a href="https://dev-public.biomate.ai/register" target="_blank" rel="noopener" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- ═══════════ HERO ═══ -->
+<div class="page-hero">
+  <div class="section-inner">
+    <span class="section-tag">BioMate Blog</span>
+    <h1>Insights for biomedical researchers</h1>
+    <p>Workflow tutorials, bioinformatics deep-dives, and platform updates.</p>
+  </div>
+</div>
+
+<!-- ═══════════ POSTS ═══ -->
+<section style="background:var(--bg);">
+  <div class="section-inner">
+    <div class="filter-tabs">
+      <a href="#" class="filter-tab active">All</a>
+      <a href="#" class="filter-tab">Drug Discovery</a>
+      <a href="#" class="filter-tab">Genomics</a>
+      <a href="#" class="filter-tab">Structural Biology</a>
+      <a href="#" class="filter-tab">Platform Updates</a>
+      <a href="#" class="filter-tab">Tutorials</a>
+    </div>
+
+    <div class="blog-layout">
+      <div>
+        <div class="posts-grid">
+
+          <!-- Featured -->
+          <a href="#" class="post-card featured">
+            <div class="post-card-img">🧬</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Tutorial</span>
+                <span class="post-date">April 10, 2026</span>
+              </div>
+              <div class="post-title">WGS germline variant calling in 30 minutes — a BioMate walkthrough</div>
+              <p class="post-excerpt">
+                We walk through a complete germline variant calling analysis on a public SRA dataset using GATK4 best practices — from a natural language query to a QC-validated VCF with AI-generated findings summary.
+                No Nextflow knowledge required.
+              </p>
+              <span class="post-read-more">Read full article →</span>
+            </div>
+          </a>
+
+          <!-- Post 2 -->
+          <a href="#" class="post-card">
+            <div class="post-card-img">💊</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Drug Discovery</span>
+                <span class="post-date">April 8, 2026</span>
+              </div>
+              <div class="post-title">ADMET profiling at scale: how BioMate handles multi-compound screening</div>
+              <p class="post-excerpt">
+                Running ADMET on 50 compounds used to mean 50 separate tool invocations. BioMate batches them through the CYP DDI Panel pipeline with a single query and aggregated output.
+              </p>
+              <span class="post-read-more">Read article →</span>
+            </div>
+          </a>
+
+          <!-- Post 3 -->
+          <a href="#" class="post-card">
+            <div class="post-card-img">🔬</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Structural Biology</span>
+                <span class="post-date">April 5, 2026</span>
+              </div>
+              <div class="post-title">CryoSPARC standard SPA on EMPIAR data — from query to reconstruction</div>
+              <p class="post-excerpt">
+                A step-by-step record of processing the EMPIAR-10025 beta-galactosidase dataset through BioMate's CryoSPARC SPA pipeline — GPU-accelerated on AWS Batch, 3.4 Å final map.
+              </p>
+              <span class="post-read-more">Read article →</span>
+            </div>
+          </a>
+
+          <!-- Post 4 -->
+          <a href="#" class="post-card">
+            <div class="post-card-img">🧪</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Multi-Omics</span>
+                <span class="post-date">March 28, 2026</span>
+              </div>
+              <div class="post-title">Integrating scRNA-seq and proteomics in a single BioMate session</div>
+              <p class="post-excerpt">
+                Multi-omics integration is notoriously setup-heavy. We show how BioMate's intent recognition links a scRNA-seq run to a downstream proteomics correlation analysis through natural conversation.
+              </p>
+              <span class="post-read-more">Read article →</span>
+            </div>
+          </a>
+
+          <!-- Post 5 -->
+          <a href="#" class="post-card">
+            <div class="post-card-img">⚙️</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Platform Update</span>
+                <span class="post-date">March 22, 2026</span>
+              </div>
+              <div class="post-title">AI findings summarization: what it reads, how it cites, and when it flags uncertainty</div>
+              <p class="post-excerpt">
+                Our new AI findings engine reads your output files and generates a structured scientific report — summary, key findings, citations, and quality assessment. Here's how it works under the hood.
+              </p>
+              <span class="post-read-more">Read article →</span>
+            </div>
+          </a>
+
+          <!-- Post 6 -->
+          <a href="#" class="post-card">
+            <div class="post-card-img">🧫</div>
+            <div class="post-card-body">
+              <div class="post-meta">
+                <span class="post-tag">Tutorial</span>
+                <span class="post-date">March 15, 2026</span>
+              </div>
+              <div class="post-title">GROMACS molecular dynamics on AWS Batch: what to expect from a 10 ns production run</div>
+              <p class="post-excerpt">
+                We submit a GAFF2-parameterized ligand–protein system through BioMate's GROMACS pipeline — covering EM, NVT equilibration, NPT, production MD, and MM-GBSA ΔGbind estimation.
+              </p>
+              <span class="post-read-more">Read article →</span>
+            </div>
+          </a>
+
+        </div>
+
+        <div style="text-align:center; margin-top:3rem;">
+          <a class="btn btn-outline" href="#">Load more articles</a>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="blog-sidebar">
+        <div class="sidebar-card">
+          <h5>Stay updated</h5>
+          <p>New workflows, platform updates, and bioinformatics tutorials — delivered monthly.</p>
+          <input class="form-input" type="email" placeholder="your@email.com" style="margin-bottom:8px;" />
+          <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;">Subscribe</button>
+        </div>
+
+        <div class="sidebar-card">
+          <h5>Topics</h5>
+          <div class="sidebar-topics">
+            <a href="#" class="sidebar-topic">Drug Discovery <span class="count">12</span></a>
+            <a href="#" class="sidebar-topic">Genomics <span class="count">9</span></a>
+            <a href="#" class="sidebar-topic">Structural Biology <span class="count">7</span></a>
+            <a href="#" class="sidebar-topic">Multi-Omics <span class="count">5</span></a>
+            <a href="#" class="sidebar-topic">Synthetic Biology <span class="count">4</span></a>
+            <a href="#" class="sidebar-topic">Tutorials <span class="count">11</span></a>
+            <a href="#" class="sidebar-topic">Platform Updates <span class="count">8</span></a>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <h5>Try BioMate</h5>
+          <p>Run your own analysis — 10 free workflow runs per month, no credit card.</p>
+          <a class="btn btn-primary btn-sm" style="width:100%; justify-content:center; display:flex;"
+             href="https://dev-public.biomate.ai/register" target="_blank">Start Free →</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-main">
+    <div class="footer-brand">
+      <img src="images/logo.png" alt="BioMate AI" />
+      <p>AI-powered bioinformatics for every researcher — from PhD students to enterprise pharma teams.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="pricing.html">Pricing</a></li>
+        <li><a href="https://dev-public.biomate.ai/register" target="_blank">Get Started</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Company</h5>
+      <ul>
+        <li><a href="about.html">About</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h5>Resources</h5>
+      <ul>
+        <li><a href="https://dev-public.biomate.ai" target="_blank">App Login</a></li>
+        <li><a href="index.html#contact">Support</a></li>
+        <li><a href="index.html#contact">Enterprise</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 BioMate AI · All rights reserved</p>
+    <div class="trust-badges"><span>HIPAA Ready</span><span>FAIR Data</span><span>nf-core Validated</span><span>AWS Batch</span></div>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "step": "16_ab_initio",
+  "timestamp": "2026-03-09T18:35:42.999248",
+  "num_particles": 4634,
+  "num_classes": 3,
+  "symmetry": "C1",
+  "best_volume_idx": 1,
+  "best_resolution_angstroms": 24.39
+}

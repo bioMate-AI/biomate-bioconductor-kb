@@ -1,0 +1,84 @@
+# Candidate starter queries for BioMate onboarding welcome screen.
+# Run verify_queries.py to test these against the live routing API.
+# Format: domain, query text, expected_workflow (nf-core pipeline name or DB name)
+
+queries:
+  - domain: genomics
+    query: "Run whole-genome variant calling on my paired-end FASTQ files"
+    expected_workflow: wgs_germline_gatk
+    expected_keywords: [variant, calling, gatk, wgs]
+
+  - domain: genomics
+    query: "I have WES data from matched tumor/normal pairs — find somatic mutations"
+    expected_workflow: sarek
+    expected_keywords: [somatic, tumor, variant, sarek]
+
+  - domain: transcriptomics
+    query: "Run differential expression analysis on my bulk RNA-seq count matrix"
+    expected_workflow: differentialabundance
+    expected_keywords: [differential, rna-seq, expression]
+
+  - domain: transcriptomics
+    query: "Process my RNA-seq FASTQ files end-to-end with nf-core rnaseq"
+    expected_workflow: rnaseq
+    expected_keywords: [rna-seq, rnaseq, fastq]
+
+  - domain: single_cell
+    query: "Cluster my 10x Chromium scRNA-seq data and annotate cell types"
+    expected_workflow: scdownstream
+    expected_keywords: [scrna-seq, single cell, cluster]
+
+  - domain: epigenomics
+    query: "Call ChIP-seq peaks and find differential binding between conditions"
+    expected_workflow: chipseq
+    expected_keywords: [chip-seq, peaks, binding]
+
+  - domain: proteomics
+    query: "Analyze my DIA-NN output for differential protein abundance"
+    expected_workflow: diaproteomics
+    expected_keywords: [dia, proteomics, diann]
+
+  - domain: proteomics
+    query: "Run label-free quantification on my DDA mass spec data"
+    expected_workflow: proteomicslfq
+    expected_keywords: [label-free, lfq, proteomics]
+
+  - domain: metagenomics
+    query: "Run 16S amplicon sequencing analysis to characterize gut microbiome"
+    expected_workflow: ampliseq
+    expected_keywords: [16s, amplicon, microbiome]
+
+  - domain: structural_biology
+    query: "Predict the 3D structure of my protein sequence using AlphaFold"
+    expected_workflow: alphafold_db_search
+    expected_keywords: [alphafold, structure, protein]
+
+  - domain: structural_biology
+    query: "Set up and run a GROMACS molecular dynamics simulation for my protein"
+    expected_workflow: gromacs_protein_md
+    expected_keywords: [gromacs, md, molecular dynamics]
+
+  - domain: drug_discovery
+    query: "Predict ADMET properties for my lead compound CC(=O)Nc1ccc(O)cc1"
+    expected_workflow: admet_prediction
+    expected_keywords: [admet, toxicity, permeability]
+
+  - domain: drug_discovery
+    query: "Run molecular docking of my ligand SMILES against a KRAS receptor"
+    expected_workflow: diffdock_docking
+    expected_keywords: [docking, diffdock, ligand]
+
+  - domain: cryo_em
+    query: "Process my cryo-EM micrographs through the full CryoSPARC SPA pipeline"
+    expected_workflow: cryosparc_standard_spa
+    expected_keywords: [cryosparc, spa, micrograph]
+
+  - domain: pharmacology
+    query: "Run IVIVE to translate my in-vitro clearance data to predicted human PK"
+    expected_workflow: ivive_pk_prediction
+    expected_keywords: [ivive, pk, clearance]
+
+  - domain: bioimaging
+    query: "Segment cells and measure morphological features in my fluorescence images"
+    expected_workflow: mcmicro
+    expected_keywords: [cell, segment, microscopy]

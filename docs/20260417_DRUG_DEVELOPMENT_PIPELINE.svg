@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="730" height="1842"
+     style="background:white;font-family:Arial, Helvetica, sans-serif;">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#555"/>
+    </marker>
+    <marker id="darrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#888"/>
+    </marker>
+  </defs>
+  <rect x="40" y="88" width="195" height="48" rx="8" ry="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+  <text x="137" y="104" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🔬 TARGET</text>
+  <text x="137" y="120" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">DISCOVERY &amp; VALIDATION</text>
+  <rect x="40" y="236" width="195" height="48" rx="8" ry="8" fill="#dae8fc" stroke="#6c8ebf" stroke-width="2"/>
+  <text x="137" y="260" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">💊 HIT DISCOVERY</text>
+  <line x1="137" y1="136" x2="137" y2="236" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="392" width="195" height="48" rx="8" ry="8" fill="#ffe6cc" stroke="#d6b656" stroke-width="2"/>
+  <text x="137" y="408" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🔗 HIT-TO-LEAD</text>
+  <text x="137" y="424" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">(H2L)</text>
+  <line x1="137" y1="284" x2="137" y2="392" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="588" width="195" height="48" rx="8" ry="8" fill="#ffe6cc" stroke="#d6b656" stroke-width="2"/>
+  <text x="137" y="604" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">⚗ LEAD OPTIMIZATION</text>
+  <text x="137" y="620" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">(LO)</text>
+  <line x1="137" y1="440" x2="137" y2="588" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="808" width="195" height="48" rx="8" ry="8" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+  <text x="137" y="832" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🧪 PRECLINICAL DEVELOPMENT</text>
+  <line x1="137" y1="636" x2="137" y2="808" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="980" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="1004" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📋 IND FILING</text>
+  <line x1="137" y1="856" x2="137" y2="980" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="1096" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="1112" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">👤 PHASE I — FIH</text>
+  <text x="137" y="1128" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">/ Dose Escalation</text>
+  <line x1="137" y1="1028" x2="137" y2="1096" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="1228" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="1244" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📊 PHASE II —</text>
+  <text x="137" y="1260" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">PoC / Dose Finding</text>
+  <line x1="137" y1="1144" x2="137" y2="1228" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="1344" width="195" height="48" rx="8" ry="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="2"/>
+  <text x="137" y="1368" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🏥 PHASE III — Pivotal Trials</text>
+  <line x1="137" y1="1276" x2="137" y2="1344" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="1436" width="195" height="48" rx="8" ry="8" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+  <text x="137" y="1460" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">✅ APPROVAL — NDA / BLA</text>
+  <line x1="137" y1="1392" x2="137" y2="1436" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="40" y="1544" width="195" height="48" rx="8" ry="8" fill="#d5e8d4" stroke="#82b366" stroke-width="2"/>
+  <text x="137" y="1560" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">📈 POST-MARKET</text>
+  <text x="137" y="1576" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">Pharmacovigilance</text>
+  <line x1="137" y1="1484" x2="137" y2="1544" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="260" y="30" width="370" height="164" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="48" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ ProTrek protein search</text>
+  <text x="268" y="64" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Boltz-2/Chai-1 structure prediction</text>
+  <text x="268" y="80" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AlphaFold DB search</text>
+  <text x="268" y="96" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AutoSite pocket detection</text>
+  <text x="268" y="112" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pocket Druggability</text>
+  <text x="268" y="128" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CRISPR screen (MAGeCK)</text>
+  <text x="268" y="144" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Drug MoA RNAseq</text>
+  <text x="268" y="160" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ State Perturbation Prediction</text>
+  <text x="268" y="176" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ nf-core: sarek / rnaseq / atacseq</text>
+  <line x1="235" y1="112" x2="260" y2="112" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="210" width="370" height="100" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="228" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DrugCLIP virtual screening</text>
+  <text x="268" y="244" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AutoDock Vina / Glide / DiffDock</text>
+  <text x="268" y="260" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pharmacophore Filtering</text>
+  <text x="268" y="276" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Syncraft synthesizability (ext. API)</text>
+  <text x="268" y="292" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Predict ADMET (triage)</text>
+  <line x1="235" y1="260" x2="260" y2="260" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="326" width="370" height="180" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="344" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Predict ADMET Properties</text>
+  <text x="268" y="360" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CYP450 DDI Panel</text>
+  <text x="268" y="376" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ IVIVE Hepatic Clearance</text>
+  <text x="268" y="392" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ BCS / Oral Absorption</text>
+  <text x="268" y="408" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CNS MPO Penetration</text>
+  <text x="268" y="424" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Membrane Permeability</text>
+  <text x="268" y="440" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Proteome Selectivity</text>
+  <text x="268" y="456" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Covalent Warhead Design</text>
+  <text x="268" y="472" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Target Engagement Kinetics</text>
+  <text x="268" y="488" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Metabolite Prediction</text>
+  <line x1="235" y1="416" x2="260" y2="416" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="522" width="370" height="180" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="540" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ GROMACS Protein-Ligand MD</text>
+  <text x="268" y="556" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AMBER pmemd MD</text>
+  <text x="268" y="572" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ OpenFE RBFE</text>
+  <text x="268" y="588" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ REINVENT4 Generative Lead Design</text>
+  <text x="268" y="604" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pharmacophore (iteration)</text>
+  <text x="268" y="620" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Transporter DDI</text>
+  <text x="268" y="636" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Repeated Dose Tox</text>
+  <text x="268" y="652" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DART Toxicity</text>
+  <text x="268" y="668" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ LNP Formulation</text>
+  <text x="268" y="684" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ ScFv Antibody Design</text>
+  <line x1="235" y1="612" x2="260" y2="612" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="718" width="370" height="228" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="736" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Allometric Scaling</text>
+  <text x="268" y="752" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK Simulation</text>
+  <text x="268" y="768" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ NP PK / Biodistribution</text>
+  <text x="268" y="784" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DART Toxicity (confirm)</text>
+  <text x="268" y="800" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Repeated Dose Tox (confirm)</text>
+  <text x="268" y="816" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 CRO Submission Export (WuXi/Pharmaron)</text>
+  <text x="268" y="832" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Assay Ingestion (needs LIMS/CSV)</text>
+  <text x="268" y="848" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Bayesian Optimizer</text>
+  <text x="268" y="864" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 nlmixr2 PopPK (needs in vivo data)</text>
+  <text x="268" y="880" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 NCA PKNCA (needs in vivo PK data)</text>
+  <text x="268" y="896" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 Xenograft TGI</text>
+  <text x="268" y="912" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 Western Blot (lab images)</text>
+  <text x="268" y="928" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 LC-MS Proteomics (instrument data)</text>
+  <line x1="235" y1="832" x2="260" y2="832" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="962" width="370" height="84" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="980" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK (human prediction)</text>
+  <text x="268" y="996" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Allometric Scaling</text>
+  <text x="268" y="1012" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation</text>
+  <text x="268" y="1028" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx Report (patient diplotypes)</text>
+  <line x1="235" y1="1004" x2="260" y2="1004" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="1062" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="1080" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (BOIN)</text>
+  <text x="268" y="1096" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK (pop. variability)</text>
+  <text x="268" y="1112" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 nlmixr2 PopPK (trial PK data)</text>
+  <text x="268" y="1128" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx Report (patient genotypes)</text>
+  <text x="268" y="1144" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Apply VCOG Grade</text>
+  <text x="268" y="1160" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Drug Label Info (DailyMed)</text>
+  <line x1="235" y1="1120" x2="260" y2="1120" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="1194" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="1212" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (Phase II)</text>
+  <text x="268" y="1228" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 nlmixr2 PopPK (trial data)</text>
+  <text x="268" y="1244" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx stratification (patient data)</text>
+  <text x="268" y="1260" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Bayesian Optimizer (response)</text>
+  <text x="268" y="1276" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="1292" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <line x1="235" y1="1252" x2="260" y2="1252" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="1326" width="370" height="84" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="1344" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Clinical Trial Simulation (adaptive)</text>
+  <text x="268" y="1360" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx Report (patient data)</text>
+  <text x="268" y="1376" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="1392" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <line x1="235" y1="1368" x2="260" y2="1368" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="1426" width="370" height="68" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="1444" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Drug Label Info (DailyMed)</text>
+  <text x="268" y="1460" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Check FDA Drug Recalls (FDA API)</text>
+  <text x="268" y="1476" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx Report (patient data)</text>
+  <line x1="235" y1="1460" x2="260" y2="1460" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="260" y="1510" width="370" height="116" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="1528" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 FDA Safety Signals (FAERS)</text>
+  <text x="268" y="1544" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ VCOG Adverse Event Grading</text>
+  <text x="268" y="1560" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Find Alternative Drugs (TxGNN)</text>
+  <text x="268" y="1576" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Drug Combination Safety (DDinter)</text>
+  <text x="268" y="1592" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CYP DDI (new combinations)</text>
+  <text x="268" y="1608" dominant-baseline="middle" font-size="10.5" fill="#e65100">🔌🔌 PGx (real-world EHR data)</text>
+  <line x1="235" y1="1568" x2="260" y2="1568" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#darrow)"/>
+  <rect x="650" y="574" width="70" height="100" rx="6" ry="6" fill="#fff9db" stroke="#d6b656" stroke-width="2"/>
+  <text x="658" y="592" dominant-baseline="middle" font-size="10.5" font-weight="bold" fill="#7a6000">♻ DMTA FEEDBACK LOOP</text>
+  <text x="658" y="608" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#2e7d32">✅ Bayesian Optimizer (internal)</text>
+  <text x="658" y="624" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#5c3c8a">🔌 Assay Ingestion (needs LIMS feed)</text>
+  <text x="658" y="640" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#5c3c8a">🔌 CRO Submission Export (ext. CROs)</text>
+  <text x="658" y="656" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#5c3c8a">🔌 Commercial Availability (PubChem)</text>
+  <line x1="235" y1="416" x2="650" y2="624" stroke="#d6b656" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="235" y1="612" x2="650" y2="624" stroke="#d6b656" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <line x1="235" y1="832" x2="650" y2="624" stroke="#d6b656" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <rect x="40" y="1738" width="440" height="90" rx="6" ry="6" fill="#f5f5f5" stroke="#999" stroke-width="1.2" stroke-dasharray="6,3"/>
+  <text x="48" y="1756" dominant-baseline="middle" font-size="10.5" font-weight="bold" fill="#333">LEGEND</text>
+  <text x="48" y="1772" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#2e7d32">✅ Internal — BioMate computes directly</text>
+  <text x="48" y="1788" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#5c3c8a">🔌 External — requires API / DB connection</text>
+  <text x="48" y="1804" dominant-baseline="middle" font-size="10.5" font-weight="normal" fill="#5c3c8a">🔌🔌 External (data) — requires patient or proprietary data</text>
+</svg>

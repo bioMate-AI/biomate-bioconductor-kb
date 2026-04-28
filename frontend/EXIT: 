@@ -1,0 +1,129 @@
+
+Running 6 tests using 1 worker
+
+[Screenshot] gc1_01_initial.png
+[GC1] Waiting for AI response...
+[Screenshot] gc1_02_after_first_query.png
+[GC1] Step 1 — askedClarification=false panelVisible=false workflowContent=false askedForDataset=false
+[GC1] Response snippet: Workflow Generation Failed — Let's Recover! 🔧
+The workflow couldn't be generated due to an internal data-loading error (a null reference was encountered before the workflow builder could initialize).
+[GC-Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/germline-complete/audit_2026-03-19T16-35-51-549Z.json
+[GC-Audit] Estimated API cost: $n/a USD
+  ✘  1 [chromium] › e2e/germline-complete-e2e.e2e.ts:300:3 › GC-1: Disambiguation → germline workflow → execute › ambiguous query → AI clarification → germline answer → correct workflow → AWAITING REVIEW → execute API accepts (1.3m)
+[Screenshot] gc2_01_initial.png
+[GC2] Waiting for AI response...
+[GC2] Workflow card appeared (1 total)
+[Screenshot] gc2_02_workflow_card.png
+[GC2] cardFound=true snippet: Germline Variant Calling with GATK HaplotypeCaller
+Your workflow for identifying inherited SNPs and indels has been generated and is ready to execute. Here's what it covers:
+
+Workflow Overview
+Input: Single patient WGS BAM/CRAM file (aligned to a reference genome)
+Steps:
+
+
+Pre-processing & Validatio
+[GC2] Asked redundant clarification: false
+[GC2] Germline content: true
+[GC2] Run button disabled (prereqs missing)
+[Screenshot] gc2_03_after_run_click.png
+[GC2] INFO — Run button disabled (MISSING prereqs). Workflow content is germline-correct; execution skipped without real data.
+[GC2] Germline tool names in UI: true
+  ✓  2 [chromium] › e2e/germline-complete-e2e.e2e.ts:490:3 › GC-2: Direct mock germline execution → outputs → download › explicit germline+mock query → no redundant clarification → Confirm & Run → terminal state → output_files API → download_commands API (1.6m)
+[GC3] Waiting for AI response...
+[GC3] Workflow card appeared (1 total)
+[Screenshot] gc3_01_workflow_card.png
+[GC3] Run button disabled (prereqs missing)
+[Screenshot] gc3_02_after_run.png
+[GC3] Run button disabled — verifying UI consistency without execution
+[GC3] Workflow content visible: [33mtrue[39m
+[GC3] ✓ Workflow panel state verified (button disabled — no data is expected)
+  ✓  3 [chromium] › e2e/germline-complete-e2e.e2e.ts:712:3 › GC-3: Information-flow audit — API connectivity › after germline disambiguation + execution start: status / output_files / download_commands / invocations endpoints all respond correctly (1.8m)
+[GC4] Waiting for AI response...
+[GC4] Workflow card appeared (1 total)
+[Screenshot] gc4_01_workflow_card.png
+[GC4] Run button disabled (prereqs missing)
+[GC4] Run button disabled (prereqs missing) — verifying panel rendered correctly
+[GC4] QC Settings section visible: false (informational)
+[GC4] ✓ Panel rendered correctly
+  ✓  4 [chromium] › e2e/germline-complete-e2e.e2e.ts:878:3 › GC-4: QC summary section — wired after execution › germline workflow: QC summary section present + methods text non-empty after run (1.6m)
+[Screenshot] gc5_01_initial.png
+[GC5] Waiting for AI response...
+[Screenshot] gc5_02_response.png
+[GC5] Classify text (first 200): Germline Variant Calling Workflow for NA12878 (SRR1518169)
+Your workflow has been generated and is ready to execute! Here's what it will do:
+
+📋 Workflow Overview
+Input: SRA accession SRR1518169 (NA12
+[GC5] Asked for data again: false
+[GC5] Mentioned accession: true, Generated workflow: true
+[GC5] Workflow card appeared (1 total)
+[Screenshot] gc5_03_workflow_card.png
+[GC5] Workflow card found: true
+[GC5] ✓ Inline data provision test complete
+  ✓  5 [chromium] › e2e/germline-complete-e2e.e2e.ts:991:3 › GC-5: Inline data provision — SRR accession in query › germline query with SRR accession → workflow uses accession, no data request (1.6m)
+[Screenshot] gc6_01_initial.png
+[GC6] Waiting for AI response...
+[Screenshot] gc6_02_turn1_response.png
+[GC6] Turn1 text (first 200): Germline Variant Calling with GATK HaplotypeCaller
+Great choice for rare disease diagnosis! Here's an overview of the generated workflow:
+
+📋 Workflow Overview
+Input: Aligned BAM/CRAM file(s) + refere
+[GC6] Turn1 — askedForData=false generatedWorkflow=true
+[GC6] Waiting for AI response...
+[Screenshot] gc6_03_turn2_response.png
+[GC6] Turn2 text (first 200): Germline Variant Calling Workflow for SRR1518169
+Great — NA12878 is a well-characterized reference sample (Genome in a Bottle), making it excellent for benchmarking your pipeline. Let me generate the 
+[GC6] Turn2 — generatedWorkflow=true mentionedAccession=true
+[GC6] Workflow card appeared (1 total)
+[Screenshot] gc6_04_workflow_card.png
+[GC6] Workflow card visible: true
+[GC6] Workflow is germline: true
+[GC6] ✓ Two-turn data provision test complete
+[GC-Audit] Summary → /home/yzhang/biomate/frontend/e2e/screenshots/germline-complete/audit_2026-03-19T16-44-16-359Z.json
+[GC-Audit] Estimated API cost: $n/a USD
+  ✓  6 [chromium] › e2e/germline-complete-e2e.e2e.ts:1060:3 › GC-6: Two-turn data provision — ask then provide › germline query without data → BioMate asks → user provides SRR → workflow configured (1.7m)
+
+
+  1) [chromium] › e2e/germline-complete-e2e.e2e.ts:300:3 › GC-1: Disambiguation → germline workflow → execute › ambiguous query → AI clarification → germline answer → correct workflow → AWAITING REVIEW → execute API accepts 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      364 |       expect(
+      365 |         askedClarification || generatedWorkflow || panelVisible || askedForDataset
+    > 366 |       ).toBe(true);
+          |         ^
+      367 |
+      368 |       // -----------------------------------------------------------------------
+      369 |       // Step 2: Answer with germline intent to route to nf-core/sarek
+        at /home/yzhang/biomate/frontend/e2e/germline-complete-e2e.e2e.ts:366:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/error-context.md
+
+    attachment #4: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #5: trace (application/zip) ─────────────────────────────────────────────────────────
+    e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace e2e/test-results/germline-complete-e2e.e2e.-d9bca-EVIEW-→-execute-API-accepts-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/germline-complete-e2e.e2e.ts:300:3 › GC-1: Disambiguation → germline workflow → execute › ambiguous query → AI clarification → germline answer → correct workflow → AWAITING REVIEW → execute API accepts 
+  5 passed (9.8m)

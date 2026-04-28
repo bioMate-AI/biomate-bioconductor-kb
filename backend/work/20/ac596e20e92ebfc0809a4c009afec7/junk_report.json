@@ -1,0 +1,9 @@
+{
+  "step": "06_junk_2d_detector",
+  "timestamp": "2026-03-09T18:37:59.025837",
+  "num_input_particles": 4424,
+  "num_output_particles": 3777,
+  "num_rejected": 647,
+  "rejection_rate": 0.146,
+  "mock_mode": true
+}

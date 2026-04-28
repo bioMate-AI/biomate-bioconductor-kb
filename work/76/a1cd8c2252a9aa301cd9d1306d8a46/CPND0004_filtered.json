@@ -1,0 +1,94 @@
+{
+  "compound_id": "CPND0004",
+  "smiles": "CC(=O)Nc1ccc(O)cc1",
+  "smiles_valid": true,
+  "qc_status": "PASS",
+  "qc_reason": "route_with_steps<=4_and_score>=0.6_found",
+  "best_route_steps": 3,
+  "best_route_score": 0.717,
+  "best_sa_score": 3.33,
+  "n_routes": 3,
+  "pass_max_steps": 4,
+  "pass_min_score": 0.6,
+  "warn_max_steps": 6,
+  "routes": [
+    {
+      "route_id": 1,
+      "score": 0.717,
+      "step_count": 3,
+      "sa_score": 3.33,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Epoxidation",
+          "reagent": "m-CPBA / CH2Cl2",
+          "precursor_smiles": "c1ccc(Br)cc1",
+          "yield_pct": 76.6
+        },
+        {
+          "step": 2,
+          "reaction_class": "Hydrogenation",
+          "reagent": "H2 / Pd-C / EtOH",
+          "precursor_smiles": "c1ccc(Cl)cc1",
+          "yield_pct": 60.8
+        },
+        {
+          "step": 3,
+          "reaction_class": "Acetylation",
+          "reagent": "Ac2O / Et3N",
+          "precursor_smiles": "OC(=O)c1ccccc1",
+          "yield_pct": 69.5
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    },
+    {
+      "route_id": 3,
+      "score": 0.696,
+      "step_count": 2,
+      "sa_score": 2.41,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "NC(=O)O",
+          "yield_pct": 81.2
+        },
+        {
+          "step": 2,
+          "reaction_class": "Amide reduction",
+          "reagent": "LiAlH4 / THF",
+          "precursor_smiles": "c1ccc(Br)cc1",
+          "yield_pct": 70.5
+        }
+      ],
+      "feasibility_tier": "EXCELLENT"
+    },
+    {
+      "route_id": 2,
+      "score": 0.58,
+      "step_count": 2,
+      "sa_score": 1.75,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "c1ccc(Br)cc1",
+          "yield_pct": 68.3
+        },
+        {
+          "step": 2,
+          "reaction_class": "Acetylation",
+          "reagent": "Ac2O / Et3N",
+          "precursor_smiles": "c1ccccc1",
+          "yield_pct": 94.8
+        }
+      ],
+      "feasibility_tier": "MODERATE"
+    }
+  ],
+  "timestamp": "2026-03-22T14:49:05.270287Z",
+  "mock_mode": true
+}

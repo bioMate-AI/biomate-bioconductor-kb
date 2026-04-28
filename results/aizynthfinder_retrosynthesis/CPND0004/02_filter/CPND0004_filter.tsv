@@ -1,0 +1,2 @@
+compound_id	smiles	best_route_steps	best_route_score	best_sa_score	n_routes	qc_status	qc_reason
+CPND0004	CC(=O)Nc1ccc(O)cc1	3	0.717	3.33	3	PASS	route_with_steps<=4_and_score>=0.6_found

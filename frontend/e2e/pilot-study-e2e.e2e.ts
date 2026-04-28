@@ -402,19 +402,7 @@ async function fillMoviesPathIfEmpty(page: Page, label: string): Promise<boolean
     }
 
     if (!filePath) {
-      // Try Use button anyway (might work if session-dataset-panel has data)
-      const useBtn = page.locator('[data-testid="session-dataset-panel"] button:has-text("Use")').first();
-      const useBtnVisible = await useBtn.isVisible({ timeout: 5000 }).catch(() => false);
-      if (useBtnVisible) {
-        await useBtn.click();
-        await openParamAccordions(page);
-        await page.waitForTimeout(600);
-        const val = await moviesInput.inputValue().catch(() => '');
-        if (val && !/^[0-9a-f-]{36}$/i.test(val)) {
-          console.log(`[${label}] Use button → movies_path: ${val.slice(0, 60)}`);
-          return true;
-        }
-      }
+      // session-dataset-panel removed from UI; rely solely on API file_path above
       console.warn(`[${label}] no MRC file_path in session — cannot fill movies_path`);
       return false;
     }

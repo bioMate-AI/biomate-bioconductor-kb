@@ -1,0 +1,49 @@
+[
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1775762162530,
+    "endTs": 1775762162530,
+    "finalStatus": "skip_no_run_btn",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to SPA query",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "Run controls panel visible",
+        "passed": false
+      },
+      {
+        "name": "Parameters panel visible",
+        "passed": false,
+        "note": "not found"
+      },
+      {
+        "name": "QC settings section visible",
+        "passed": false,
+        "note": "not found"
+      },
+      {
+        "name": "Run button clicked",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_04_params_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_06_after_execute.png"
+    ]
+  }
+]

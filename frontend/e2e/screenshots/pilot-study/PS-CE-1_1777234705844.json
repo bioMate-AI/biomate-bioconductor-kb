@@ -1,0 +1,72 @@
+{
+  "sessionId": "PS-CE-1",
+  "sessionName": "CryoSPARC Standard SPA",
+  "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_ce1_1777234385051@biomate.test",
+  "startTs": "2026-04-26T20:13:05.051Z",
+  "endTs": "2026-04-26T20:18:25.844Z",
+  "totalDurationMs": 320793,
+  "turns": [
+    {
+      "n": 1,
+      "query": "I want to reconstruct a protein structure from cryo-EM movie data.\nI have attached my movie file (beta_gal_movies.mrc). Pixel size 1.275 angstroms/px.\nPlease run the helical SPA pipeline for single-particle analysis.",
+      "responseMs": 121618,
+      "cardMs": null,
+      "workflowName": null
+    },
+    {
+      "n": 2,
+      "query": "confirm",
+      "responseMs": 91592,
+      "cardMs": null,
+      "workflowName": null
+    }
+  ],
+  "runId": null,
+  "execStatus": "not_started",
+  "execDurationMs": 0,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-26T20:13:08.986Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-26T20:18:25.844Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": false,
+  "h2": false,
+  "h3": 0,
+  "h5": false,
+  "screenshots": [
+    "PS-CE-1_01_home.png",
+    "PS-CE-1_01b_file_attached.png",
+    "PS-CE-1_02_after_t1.png",
+    "PS-CE-1_02b.png",
+    "PS-CE-1_03_card.png"
+  ],
+  "notes": [],
+  "status": "fail"
+}

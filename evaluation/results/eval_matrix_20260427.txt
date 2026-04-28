@@ -1,0 +1,31 @@
+==================================================================================================================================
+  BioMate Evaluation Matrix — 2026-04-27
+==================================================================================================================================
+  Benchmark                  n       Score (mean±SE)     95% Wilson CI               Time/task             Cost/task       Hallucination  Published baseline
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  BiomniEval1              223        64.6% ±3.2% SE    [58.1%, 70.6%]        40s ±26s p95=86s  $0.0019/task  ($0.434 total)      16.6% (25/151)  Biomni-R0-32B: 70%+
+  LABBench                  33        93.9% ±4.2% SE    [80.4%, 98.3%]          9s ±3s p95=15s  $0.0012/task  ($0.040 total)     partial (33/33)  Human: 60%; GPT-4o: 55%
+  Routing                  120        94.6% ±2.1% SE    [89.0%, 97.4%]         41s ±5s p95=50s  $0.0036/task  ($0.427 total)      44.9% (48/107)  No published comparator
+  BixBench                  30        26.7% ±8.1% SE    [14.2%, 44.4%]         15s ±1s p95=18s  $0.0002/task  ($0.006 total)          0.0% (0/4)  GPT-4o: 9%; Claude-3.5: 17%
+  SGI-Bench                367        21.0% ±2.1% SE    [17.1%, 25.4%]        49s ±36s p95=94s  $0.0105/task  ($3.871 total)      25.5% (55/216)  GPT-4o: 18%; Claude-3.5: 13%
+  License Gating            54        98.1% ±1.8% SE    [90.2%, 99.7%]        39s ±11s p95=52s  $0.0043/task  ($0.234 total)        pending (54)  BioMate-unique
+  Prereq Recovery           80        97.5% ±1.7% SE    [91.3%, 99.3%]         41s ±5s p95=51s  $0.0031/task  ($0.247 total)        pending (80)  BioMate-unique
+  Autofix                   40        92.3% ±4.2% SE    [79.9%, 97.3%]        31s ±10s p95=47s  $0.0058/task  ($0.234 total)        pending (40)  BioMate-unique
+  Protocol→Workflow         70        83.5% ±4.4% SE    [73.1%, 90.4%]         68s ±7s p95=78s                     —        pending (70)  BioMate-unique
+  Param Prefill              —                BROKEN                 —                       —                     —                   —  BFCL API: 89.4% (different domain)
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  STABILITY (multi-run consistency):
+    BiomniEval1 v18 (single-run, no repeats yet): stability run pending — launching after v21 completes
+    Routing (single-run): stability run pending — launching after v21 completes
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NOTES:
+  • Performance: Wilson 95% CI (correct for binary proportions, replaces ±σ Bernoulli)
+  • Time: wall-clock latency per task via BioMate API (includes routing + LLM + context injection)
+  • Cost: Claude Sonnet 4.6 API token cost only; AWS Batch not applicable for knowledge benchmarks
+  • Hallucination: Claude Haiku judge; grounded/hallucinated/unverifiable; rate = hallucinated/(grounded+hallucinated)
+  • SGI-Bench hallucination rate 25.5% is UNRELIABLE (judge had no question text) — DO NOT CITE
+  • Param Prefill: all 0.0 — runner bug (adapter timeout); task & dataset valid, needs fix
+  • Routing hallucination 44.9% flagged: judge is scoring 'workflow selection' — may be miscategorised
+==================================================================================================================================

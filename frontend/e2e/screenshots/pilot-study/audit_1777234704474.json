@@ -1,0 +1,593 @@
+{
+  "timestamp": "2026-04-26T20:18:24.474Z",
+  "sessions": 7,
+  "pass": 0,
+  "partial": 4,
+  "fail": 3,
+  "goldPassRate": "0.0%",
+  "h1Rate": "85.7%",
+  "h2Rate": "57.1%",
+  "totalLLMCostUsd": "0.0000",
+  "totalComputeCostUsd": "0.0000",
+  "sessions_detail": [
+    {
+      "sessionId": "PS-DD-1",
+      "sessionName": "ADMET Profiling",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd1_1777232529753@biomate.test",
+      "startTs": "2026-04-26T19:42:09.752Z",
+      "endTs": "2026-04-26T19:47:32.986Z",
+      "totalDurationMs": 323234,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Run ADMET profiling on these 15 BCR-ABL1 inhibitors.\nFlag hERG IC₅₀ below 10 μM or predicted DILI risk.\n\nCompound set (SMILES):\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nDasatinib: Cc1nc(Nc2ncc(F)c(Nc3cccc(C(=O)NC4CCN(CCO)CC4)c3)n2)cc(N2CCN(CCO)CC2)n1\nNilotinib: Cc1ccc(NC",
+          "responseMs": 121662,
+          "cardMs": 121662,
+          "workflowName": null
+        }
+      ],
+      "runId": "3e6c3692-7e59-450b-bf11-25d1d8bd7359",
+      "execStatus": "completed",
+      "execDurationMs": 180291,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/3e6c3692-7e59-450b-bf11-25d1d8bd7359/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/3e6c3692-7e59-450b-bf11-25d1d8bd7359/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/3e6c3692-7e59-450b-bf11-25d1d8bd7359/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "ADMET output file present",
+          "threshold": "≥1 CSV file",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Column HERG present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column DILI present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column LOGP present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "Column MW present",
+          "threshold": "required",
+          "actual": "missing",
+          "pass": true
+        },
+        {
+          "criterion": "ADMET data rows present",
+          "threshold": "≥1 compound",
+          "actual": "-1 rows",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T19:42:14.677Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T19:47:32.986Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": false,
+      "screenshots": [
+        "PS-DD-1_01_home.png",
+        "PS-DD-1_02_after_t1.png",
+        "PS-DD-1_03_card.png",
+        "PS-DD-1_04_running.png",
+        "PS-DD-1_05_completed.png",
+        "PS-DD-1_06_output_viz.png",
+        "PS-DD-1_07_download_panel.png"
+      ],
+      "notes": [
+        "exec=completed dur=180s outputs=0"
+      ],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-DD-2",
+      "sessionName": "Virtual Screening (AutoDock Vina)",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd2_1777232853140@biomate.test",
+      "startTs": "2026-04-26T19:47:33.140Z",
+      "endTs": "2026-04-26T19:50:11.386Z",
+      "totalDurationMs": 158246,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Dock the top 10 ADMET-passing BCR-ABL1 inhibitors against BCR-ABL1 kinase domain (PDB 1IEP).\nShow the best binding pose and docking score for each compound.\n\nReceptor: PDB:1IEP (BCR-ABL1, DFG-out conformation, imatinib co-crystal structure)\nDocking box: imatinib binding site, size 20×20×20 Å, exhaus",
+          "responseMs": 121624,
+          "cardMs": 121624,
+          "workflowName": null
+        }
+      ],
+      "runId": "b255ab34-daaa-4373-bb6e-410c4de3262a",
+      "execStatus": "completed",
+      "execDurationMs": 8820,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/b255ab34-daaa-4373-bb6e-410c4de3262a/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/b255ab34-daaa-4373-bb6e-410c4de3262a/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/b255ab34-daaa-4373-bb6e-410c4de3262a/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "Docking output file present",
+          "threshold": "≥1 ranked SDF/CSV",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Top pose RMSD ≤ 2.0 Å",
+          "threshold": "≤ 2.0 Å",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "Docking scores in output",
+          "threshold": "kcal/mol values",
+          "actual": "n/a (mock)",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T19:47:37.136Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T19:50:11.385Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "screenshots": [
+        "PS-DD-2_01_home.png",
+        "PS-DD-2_02_after_t1.png",
+        "PS-DD-2_03_card.png",
+        "PS-DD-2_04_running.png",
+        "PS-DD-2_05_completed.png",
+        "PS-DD-2_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-DD-3",
+      "sessionName": "GROMACS Protein MD",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd3_1777233011550@biomate.test",
+      "startTs": "2026-04-26T19:50:11.550Z",
+      "endTs": "2026-04-26T19:57:43.969Z",
+      "totalDurationMs": 452419,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Run a 10 ns molecular dynamics simulation for imatinib in the BCR-ABL1 binding site.\nI need RMSD stability and MM-GBSA binding free energy.\n\nReceptor: PDB:1IEP (BCR-ABL1 kinase domain, DFG-out)\nLigand SMILES (imatinib): Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nForce field: AMBER f",
+          "responseMs": 121643,
+          "cardMs": 121643,
+          "workflowName": null
+        }
+      ],
+      "runId": null,
+      "execStatus": "not_started",
+      "execDurationMs": 0,
+      "outputFiles": [],
+      "downloadCommands": {},
+      "goldStandard": [],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T19:50:15.531Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T19:50:11.550Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": false,
+      "h3": 0,
+      "h5": false,
+      "screenshots": [
+        "PS-DD-3_01_home.png",
+        "PS-DD-3_02_after_t1.png",
+        "PS-DD-3_03_card.png",
+        "PS-DD-3_error.png"
+      ],
+      "notes": [],
+      "status": "fail",
+      "error": "page.waitForResponse: Timeout 60000ms exceeded while waiting for event \"response\""
+    },
+    {
+      "sessionId": "PS-DD-4",
+      "sessionName": "REINVENT4 Lead Design",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd4_1777233464112@biomate.test",
+      "startTs": "2026-04-26T19:57:44.112Z",
+      "endTs": "2026-04-26T20:00:58.003Z",
+      "totalDurationMs": 193891,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Generate 20 analogues of imatinib with improved binding to BCR-ABL1 and better oral bioavailability.\nCheck synthetic routes for the top 5 candidates.\n\nSeed SMILES (imatinib): Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nMode: scaffold_decoration\nOptimisation objectives: docking score ",
+          "responseMs": 121651,
+          "cardMs": 121651,
+          "workflowName": null
+        }
+      ],
+      "runId": null,
+      "execStatus": "not_started",
+      "execDurationMs": 0,
+      "outputFiles": [],
+      "downloadCommands": {},
+      "goldStandard": [],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T19:57:48.012Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T19:57:44.112Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": false,
+      "h3": 0,
+      "h5": false,
+      "screenshots": [
+        "PS-DD-4_01_home.png",
+        "PS-DD-4_02_after_t1.png",
+        "PS-DD-4_03_card.png",
+        "PS-DD-4_error.png"
+      ],
+      "notes": [],
+      "status": "fail",
+      "error": "page.waitForResponse: Timeout 60000ms exceeded while waiting for event \"response\""
+    },
+    {
+      "sessionId": "PS-DD-5",
+      "sessionName": "PK/PD Simulation",
+      "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd5_1777233658146@biomate.test",
+      "startTs": "2026-04-26T20:00:58.146Z",
+      "endTs": "2026-04-26T20:06:29.097Z",
+      "totalDurationMs": 330951,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Predict oral Cmax and estimated body weight effect at 12 weeks for the top 3 BCR-ABL1 hits at a 100 mg dose.\n\nADMET and MD results for the top 3 compounds:\nCompound A (imatinib): oral_F=0.98 logP=2.4 t_half=18h MW=493 IC50_BCR_ABL1=0.25nM ΔGbind=-13.1kcal/mol\nCompound B (dasatinib): oral_F=0.79 logP",
+          "responseMs": 121641,
+          "cardMs": 121641,
+          "workflowName": null
+        }
+      ],
+      "runId": "65b4ff8f-0a0f-4e35-995b-b691133a9101",
+      "execStatus": "completed",
+      "execDurationMs": 201197,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/65b4ff8f-0a0f-4e35-995b-b691133a9101/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/65b4ff8f-0a0f-4e35-995b-b691133a9101/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/65b4ff8f-0a0f-4e35-995b-b691133a9101/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "PK/PD output file",
+          "threshold": "≥1 report",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Cmax value in output",
+          "threshold": "ng/mL value",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "Weight loss −3…−6 kg at 30 wk",
+          "threshold": "−3 to −6 kg",
+          "actual": "n/a (mock)",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T20:01:02.078Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T20:06:29.097Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "screenshots": [
+        "PS-DD-5_01_home.png",
+        "PS-DD-5_02_after_t1.png",
+        "PS-DD-5_03_card.png",
+        "PS-DD-5_04_running.png",
+        "PS-DD-5_05_completed.png",
+        "PS-DD-5_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-DD-6",
+      "sessionName": "IVIVE Hepatic Clearance",
+      "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_dd6_1777233989214@biomate.test",
+      "startTs": "2026-04-26T20:06:29.214Z",
+      "endTs": "2026-04-26T20:13:03.429Z",
+      "totalDurationMs": 394215,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Run IVIVE (in vitro–in vivo extrapolation) hepatic clearance prediction for 4 BCR-ABL1 TKIs.\n\nMeasured in vitro data (human liver microsomes, CLint µL/min/mg protein):\nDasatinib: CLint=310, fu_plasma=0.034, MW=488\nBosutinib: CLint=85, fu_plasma=0.036, MW=530\nImatinib: CLint=28, fu_plasma=0.095, MW=4",
+          "responseMs": 121628,
+          "cardMs": 121628,
+          "workflowName": null
+        }
+      ],
+      "runId": "7856d075-2785-4f49-8e1b-4411d809ae71",
+      "execStatus": "completed",
+      "execDurationMs": 264602,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7856d075-2785-4f49-8e1b-4411d809ae71/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7856d075-2785-4f49-8e1b-4411d809ae71/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/7856d075-2785-4f49-8e1b-4411d809ae71/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "IVIVE output file",
+          "threshold": "≥1 CSV",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Clearance ordering correct (Das>Bos>Ima>Nil)",
+          "threshold": "correct rank",
+          "actual": "n/a (mock)",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T20:06:33.149Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T20:13:03.429Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "screenshots": [
+        "PS-DD-6_01_home.png",
+        "PS-DD-6_02_after_t1.png",
+        "PS-DD-6_03_card.png",
+        "PS-DD-6_04_running.png",
+        "PS-DD-6_05_completed.png",
+        "PS-DD-6_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-CE-1",
+      "sessionName": "CryoSPARC Standard SPA",
+      "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_ce1_1777234383588@biomate.test",
+      "startTs": "2026-04-26T20:13:03.588Z",
+      "endTs": "2026-04-26T20:18:24.333Z",
+      "totalDurationMs": 320745,
+      "turns": [
+        {
+          "n": 1,
+          "query": "I want to reconstruct a protein structure from cryo-EM movie data.\nI have attached my movie file (beta_gal_movies.mrc). Pixel size 1.275 angstroms/px.\nPlease run the helical SPA pipeline for single-particle analysis.",
+          "responseMs": 121630,
+          "cardMs": null,
+          "workflowName": null
+        },
+        {
+          "n": 2,
+          "query": "confirm",
+          "responseMs": 91615,
+          "cardMs": null,
+          "workflowName": null
+        }
+      ],
+      "runId": null,
+      "execStatus": "not_started",
+      "execDurationMs": 0,
+      "outputFiles": [],
+      "downloadCommands": {},
+      "goldStandard": [],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-26T20:13:07.505Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-26T20:18:24.333Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": false,
+      "h2": false,
+      "h3": 0,
+      "h5": false,
+      "screenshots": [
+        "PS-CE-1_01_home.png",
+        "PS-CE-1_01b_file_attached.png",
+        "PS-CE-1_02_after_t1.png",
+        "PS-CE-1_02b.png",
+        "PS-CE-1_03_card.png"
+      ],
+      "notes": [],
+      "status": "fail"
+    }
+  ]
+}

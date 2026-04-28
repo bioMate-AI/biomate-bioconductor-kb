@@ -1,0 +1,16 @@
+CYP-DDI Auto-Loop Run: 86aee763-5e67-436b-b306-58a9f1b5353d
+Generated: 2026-04-21T03:34:32+00:00 UTC
+
+Phase phase_2_ddi_risk  [PASS]  (2 attempt(s))
+  Attempt #1  outcome=halt
+    [!!!] clinical_study_isoforms          value=1  threshold=0
+    [ADV] investigate_isoforms             value=2  threshold=2
+    [ADV] tdi_concern                      value=1  threshold=0
+    Remediation gate=clinical_study_isoforms: [('cmax_ss_uM', 0.5)]
+  Attempt #2  outcome=pass
+    [OK ] clinical_study_isoforms          value=0  threshold=0
+    [OK ] investigate_isoforms             value=1  threshold=2
+    [OK ] tdi_concern                      value=0  threshold=0
+
+Phases passed: 1
+Phases escalated: 0

@@ -1,0 +1,83 @@
+{
+  "testId": "WC-9",
+  "runId": "a91777d5-b157-4974-94e0-d91bfaea30bd",
+  "startTs": "2026-04-14T11:23:55.880Z",
+  "endTs": "2026-04-14T11:24:49.754Z",
+  "durationMs": 0,
+  "finalStatus": "failed",
+  "timing": {
+    "nfDurationS": 5,
+    "nfStartedAt": "2026-04-14T11:24:44.492Z",
+    "nfCompletedAt": null
+  },
+  "billing": {
+    "llmInputTokens": null,
+    "llmOutputTokens": null,
+    "llmCostUsd": null
+  },
+  "assertions": [
+    {
+      "name": "execute-returned-runId",
+      "passed": true
+    },
+    {
+      "name": "audit-has-runId",
+      "passed": true
+    },
+    {
+      "name": "audit-has-startTs",
+      "passed": true
+    },
+    {
+      "name": "audit-has-finalStatus",
+      "passed": true
+    },
+    {
+      "name": "audit-has-screenshots",
+      "passed": true
+    },
+    {
+      "name": "status-field-runId",
+      "passed": true,
+      "note": "Status response must include \"runId\""
+    },
+    {
+      "name": "status-field-status",
+      "passed": true,
+      "note": "Status response must include \"status\""
+    },
+    {
+      "name": "status-field-progress",
+      "passed": true,
+      "note": "Status response must include \"progress\""
+    },
+    {
+      "name": "status-field-metrics",
+      "passed": true,
+      "note": "Status response must include \"metrics\""
+    },
+    {
+      "name": "status-field-nextflowStatus",
+      "passed": true,
+      "note": "Status response must include \"nextflowStatus\""
+    },
+    {
+      "name": "metrics-has-runtime",
+      "passed": true,
+      "note": "metrics.runtime must be present (populated from nextflowStatus timing)"
+    },
+    {
+      "name": "runtime-has-totalSeconds",
+      "passed": true,
+      "note": "metrics.runtime.totalSeconds must be set"
+    },
+    {
+      "name": "metrics-has-perStepLlmCost",
+      "passed": false,
+      "note": "metrics.perStepLlmCost must be present in status response"
+    }
+  ],
+  "screenshots": [
+    "wc9_01_final.png"
+  ]
+}

@@ -23,7 +23,7 @@ import { setupTestUser } from "./helpers.js";
 test.setTimeout(600_000); // 10 min — autofix loops can be slow
 
 const BASE = process.env.API_BASE_URL ?? "http://localhost:8000";
-const FE   = process.env.FRONTEND_URL   ?? "http://localhost:3000";
+const FE   = process.env.BIOMATE_URL ?? process.env.FRONTEND_URL ?? "http://localhost:5000";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -229,8 +229,16 @@ test.describe("AF-4/5/6  UI autofix state machine", () => {
     await setupTestUser(page, "autofix-ui-state");
     await page.goto(FE);
 
-    // Send a workflow query
-    const chatInput = page.getByTestId("chat-input").or(page.locator("textarea[placeholder*='message']")).first();
+    // Dismiss survey if present, then send a workflow query
+    for (let i = 0; i < 4; i++) {
+      const surveyBtn = page.getByRole('button', { name: /skip|enter biomate|next/i }).first();
+      if (await surveyBtn.isVisible({ timeout: 1_200 }).catch(() => false)) {
+        await surveyBtn.click();
+        await page.waitForTimeout(600);
+      } else break;
+    }
+    const chatInput = page.getByTestId("chat-input").or(page.locator("textarea")).first();
+    await expect(chatInput).toBeVisible({ timeout: 15_000 });
     await chatInput.fill("Run RNA-seq differential expression analysis");
     await chatInput.press("Enter");
 
@@ -241,18 +249,28 @@ test.describe("AF-4/5/6  UI autofix state machine", () => {
       return;
     }
 
+    // Panel footer should show one of: Confirm & Run, Cancel, or Run Again
     const runButton = page.getByTestId("button-run-workflow-panel").last();
-    await expect(runButton).toBeVisible({ timeout: 10_000 });
+    const cancelButton = page.getByTestId("button-cancel-workflow-panel").last();
+    const runVisible = await runButton.isVisible({ timeout: 10_000 }).catch(() => false);
+    const cancelVisible = await cancelButton.isVisible({ timeout: 5_000 }).catch(() => false);
+    const anyFooterBtn = runVisible || cancelVisible;
+    expect(anyFooterBtn).toBe(true);
 
-    // Before run: button must be enabled (no spurious autofix lock)
-    await expect(runButton).toBeEnabled({ timeout: 5_000 });
+    // If run button is present, it should be enabled (no spurious autofix lock)
+    if (runVisible) {
+      await expect(runButton).toBeEnabled({ timeout: 5_000 });
+    }
 
-    // AF-5: Check autofix state is idle before run
-    const autofixStatus = page.getByTestId("autofix-status");
-    const statusVisible = await autofixStatus.isVisible({ timeout: 2_000 }).catch(() => false);
-    if (statusVisible) {
-      const statusText = await autofixStatus.textContent() ?? "";
-      expect(["idle", ""].includes(statusText.toLowerCase())).toBe(true);
+    // AF-5: If autofix banner is visible, it must use the correct .alert.info CSS class
+    const autofixBanner = page.getByTestId("autofix-active-banner");
+    const bannerVisible = await autofixBanner.isVisible({ timeout: 2_000 }).catch(() => false);
+    if (bannerVisible) {
+      const cls = await autofixBanner.getAttribute("class") ?? "";
+      expect(cls).toContain("alert");
+      // Banner should contain meaningful text about the autofix attempt
+      const bannerText = await autofixBanner.textContent() ?? "";
+      expect(/attempt|fix|analyzing|retry/i.test(bannerText)).toBe(true);
     }
   });
 

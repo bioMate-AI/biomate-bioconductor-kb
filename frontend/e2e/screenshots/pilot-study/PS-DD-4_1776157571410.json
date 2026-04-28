@@ -1,0 +1,64 @@
+{
+  "sessionId": "PS-DD-4",
+  "sessionName": "REINVENT4 Lead Design",
+  "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_dd4_1776157449250@biomate.test",
+  "startTs": "2026-04-14T09:04:09.250Z",
+  "endTs": "2026-04-14T09:06:11.410Z",
+  "totalDurationMs": 122160,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Generate 20 analogues of imatinib with improved binding to BCR-ABL1 and better oral bioavailability.\nCheck synthetic routes for the top 5 candidates.\n\nSeed SMILES (imatinib): Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nMode: scaffold_decoration\nOptimisation objectives: docking score ",
+      "responseMs": 49835,
+      "cardMs": 49835,
+      "workflowName": null
+    }
+  ],
+  "runId": null,
+  "execStatus": "not_started",
+  "execDurationMs": 0,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-14T09:04:13.146Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-14T09:04:09.250Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": false,
+  "h3": 0,
+  "h5": false,
+  "screenshots": [
+    "PS-DD-4_01_home.png",
+    "PS-DD-4_02_after_t1.png",
+    "PS-DD-4_03_card.png",
+    "PS-DD-4_error.png"
+  ],
+  "notes": [],
+  "status": "fail",
+  "error": "page.waitForResponse: Timeout 60000ms exceeded while waiting for event \"response\""
+}

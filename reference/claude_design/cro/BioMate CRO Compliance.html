@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BioMate CRO Compliance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="cro/tokens-cro.css">
+  <link rel="stylesheet" href="cro/tour.css">
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="cro/data-cro.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="cro/CroIcon.jsx"></script>
+  <script type="text/babel" src="cro/primitives.jsx"></script>
+  <script type="text/babel" src="cro/Surface1_CampaignDashboard.jsx"></script>
+  <script type="text/babel" src="cro/Surface2_ValidationPanel.jsx"></script>
+  <script type="text/babel" src="cro/Surface3_AuditTrail.jsx"></script>
+  <script type="text/babel" src="cro/Surface4_AutoRetrain.jsx"></script>
+  <script type="text/babel" src="cro/Surface5_EsigModal.jsx"></script>
+  <script type="text/babel" src="cro/Surface6_IndAssembly.jsx"></script>
+  <script type="text/babel" src="cro/Surface7_CampaignWizard.jsx"></script>
+  <script type="text/babel" src="cro/DrugDiscoveryAction.jsx"></script>
+  <script type="text/babel" src="cro/Tweaks.jsx"></script>
+  <script type="text/babel" src="cro/Tour.jsx"></script>
+
+  <script type="text/babel">
+    const DEFAULT_KNOBS = /*EDITMODE-BEGIN*/{
+      "tab": "dashboard",
+      "show": "tabs",
+      "auditState": "valid",
+      "loopState": "running",
+      "validationState": "pass",
+      "indState": "generated",
+      "esigEnrolled": true,
+      "modal": null
+    }/*EDITMODE-END*/;
+
+    const STORAGE_KEY = 'biomate_cro_knobs_v1';
+
+    function App() {
+      const [knobs, setKnobsRaw] = React.useState(() => {
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          return s ? { ...DEFAULT_KNOBS, ...JSON.parse(s) } : DEFAULT_KNOBS;
+        } catch { return DEFAULT_KNOBS; }
+      });
+      const setKnobs = (k) => {
+        setKnobsRaw(k);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(k)); } catch {}
+      };
+      const [toast, setToast] = React.useState(null);
+      const [tweaksEnabled, setTweaksEnabled] = React.useState(false);
+
+      // Tutorial tour — triggered only by the Tutorial button in the top nav.
+      // Intentionally does NOT auto-launch; this is for recording demos, not onboarding.
+      const tour = useTour(knobs, setKnobs);
+
+      // Tweaks host integration
+      React.useEffect(() => {
+        const onMessage = (e) => {
+          if (!e.data || typeof e.data !== 'object') return;
+          if (e.data.type === '__activate_edit_mode') setTweaksEnabled(true);
+          if (e.data.type === '__deactivate_edit_mode') setTweaksEnabled(false);
+        };
+        window.addEventListener('message', onMessage);
+        try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch {}
+        return () => window.removeEventListener('message', onMessage);
+      }, []);
+
+      const modal = knobs.modal;
+      const closeModal = () => setKnobs({ ...knobs, modal: null });
+      const [pendingAction, setPendingAction] = React.useState(null);
+
+      // Gated action: if enrolled → open sign modal; otherwise → enroll modal
+      // After successful sign, pendingAction.onSigned() runs (e.g. actually generate IND)
+      const onGatedAction = (action, onSigned) => {
+        if (!knobs.esigEnrolled) {
+          setPendingAction({ action, onSigned });
+          setKnobs({ ...knobs, modal: 'esig-enroll' });
+          return;
+        }
+        setPendingAction({ action, onSigned });
+        setKnobs({ ...knobs, modal: 'esig-sign' });
+      };
+
+      return (
+        <div className="page" data-screen-label={`CRO · ${knobs.show === 'new-campaign' ? 'New Campaign' : knobs.tab}`}>
+          <div className="top-nav">
+            <div className="brand">
+              <div className="brand-mark">B</div>
+              <span className="brand-name">BioMate</span>
+            </div>
+            <div className="crumb">
+              <span>Drug Discovery</span>
+              <span className="sep">/</span>
+              <span>{MOCK_CAMPAIGN.molecule_name}</span>
+              <span className="sep">/</span>
+              <span style={{ color: 'var(--text)' }}>
+                {knobs.show === 'new-campaign' ? 'New Campaign'
+                  : knobs.tab === 'dashboard' ? 'Dashboard'
+                  : knobs.tab === 'validation' ? 'Validation'
+                  : knobs.tab === 'audit' ? 'Audit Trail'
+                  : knobs.tab === 'auto-retrain' ? 'Auto-Retrain'
+                  : knobs.tab === 'ind-assembly' ? 'IND Assembly'
+                  : 'CRO'}
+              </span>
+            </div>
+            <div className="spacer"/>
+            <div className="nav-meta">
+              <button className="tut-btn" onClick={tour.start} title="Replay the tutorial">
+                <span style={{ fontSize: 11 }}>▶</span> Tutorial
+              </button>
+              <RegChip variant="indigo">21 CFR Part 11</RegChip>
+              <RegChip>ICH M4</RegChip>
+              <span style={{ color: 'var(--text-dim)' }}>·</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 22, height: 22, borderRadius: 999,
+                  background: 'oklch(0.85 0.05 60)', color: 'oklch(0.35 0.08 60)',
+                  display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 600 }}>A</div>
+                <span>alice@biotech.com</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="shell">
+            <div className="preamble">
+              <div className="who">BioMate Assistant</div>
+              <div className="text">
+                I've loaded the CRO compliance workspace for <code>{MOCK_CAMPAIGN.campaign_id}</code>.
+                Every action you take here—ingest assay data, validate the model, propose new rounds,
+                export to a CRO—is recorded in the audit trail. Use the tabs below to review the model
+                validation report, inspect the audit chain, or generate your IND §2.6.1 package.
+              </div>
+            </div>
+
+            <DrugDiscoveryAction knobs={knobs} setKnobs={setKnobs} onToast={setToast} onGatedAction={onGatedAction}/>
+
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', textAlign: 'center', marginTop: 6 }}>
+              Prototype · All values are mocked · See HANDOFF.md for the port-to-production checklist
+            </div>
+          </div>
+
+          {modal === 'esig-sign' && (
+            <EsigSignModal
+              onClose={() => {
+                // Note: onClose is called both on cancel AND after successful sign (via onSigned chain).
+                // We don't clear pendingAction here because onSigned reads it. Clear it on explicit cancel only.
+                closeModal();
+              }}
+              onToast={setToast}
+              action={pendingAction?.action || 'EXPORT_CRO_ORDER'}
+              target={
+                pendingAction?.action === 'GENERATE_IND' ? 'IND §2.6.1 package'
+                  : pendingAction?.action === 'INGEST_ASSAY' ? 'PBPK v2 model update'
+                  : 'WuXi AppTec · 10 compounds'
+              }
+              onSigned={() => {
+                const cb = pendingAction?.onSigned;
+                setPendingAction(null);
+                if (cb) cb();
+              }}
+            />
+          )}
+          {modal === 'esig-enroll' && (
+            <EsigEnrollModal
+              onClose={() => {
+                // Plain close: user cancelled enrollment — clear pending action
+                setPendingAction(null);
+                closeModal();
+              }}
+              onEnrolled={() => {
+                // Successful enroll. If there's a pending action, chain into sign.
+                const pa = pendingAction;
+                if (pa) {
+                  setPendingAction(null);
+                  setKnobs({ ...knobs, esigEnrolled: true, modal: null });
+                  setTimeout(() => {
+                    setPendingAction(pa);
+                    setKnobs({ ...knobs, esigEnrolled: true, modal: 'esig-sign' });
+                  }, 250);
+                } else {
+                  setKnobs({ ...knobs, esigEnrolled: true, modal: null });
+                }
+              }}
+              onToast={setToast}
+            />
+          )}
+
+          {toast && <Toast text={toast} onDone={() => setToast(null)}/>}
+
+          {tweaksEnabled && <CroTweaks knobs={knobs} setKnobs={setKnobs}/>}
+          {tour.node}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

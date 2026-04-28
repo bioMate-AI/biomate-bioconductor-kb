@@ -1,0 +1,79 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-14T11:25:44.160Z",
+  "totalTests": 1,
+  "passed": 0,
+  "failed": 1,
+  "totalWallTimeSec": 47.366,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-10",
+      "runId": "d62912d2-ea5a-4008-9662-1b21ae95a7c4",
+      "startTs": 1776165895183,
+      "endTs": 1776165942549,
+      "durationMs": 47366,
+      "finalStatus": "n/a",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "suite-has-records",
+          "passed": false,
+          "note": "SUITE_AUDIT must have at least one record from prior tests"
+        },
+        {
+          "name": "all-audit-records-schema-valid",
+          "passed": true,
+          "note": "0 schema violations found across 0 audit records"
+        },
+        {
+          "name": "assertion-types-valid",
+          "passed": true,
+          "note": "0 assertion entries have invalid type (name: string, passed: boolean required)"
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "status-api-200",
+          "passed": true
+        },
+        {
+          "name": "metrics-present",
+          "passed": true,
+          "note": "metrics must be in status response"
+        },
+        {
+          "name": "metrics-has-perStepLlmCost",
+          "passed": false,
+          "note": "metrics.perStepLlmCost must be present"
+        },
+        {
+          "name": "status-has-runId",
+          "passed": true
+        },
+        {
+          "name": "status-has-status",
+          "passed": true
+        },
+        {
+          "name": "status-has-progress",
+          "passed": true
+        },
+        {
+          "name": "status-has-metrics",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc10_01_status.png"
+      ]
+    }
+  ]
+}

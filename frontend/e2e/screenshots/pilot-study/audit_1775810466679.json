@@ -1,0 +1,327 @@
+{
+  "timestamp": "2026-04-10T08:41:06.679Z",
+  "sessions": 3,
+  "pass": 1,
+  "partial": 2,
+  "fail": 0,
+  "goldPassRate": "33.3%",
+  "h1Rate": "100.0%",
+  "h2Rate": "100.0%",
+  "totalLLMCostUsd": "0.0000",
+  "totalComputeCostUsd": "0.0000",
+  "sessions_detail": [
+    {
+      "sessionId": "PS-CE-1",
+      "sessionName": "CryoSPARC Standard SPA",
+      "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_ce1_1775810065397@biomate.test",
+      "startTs": "2026-04-10T08:34:25.396Z",
+      "endTs": "2026-04-10T08:35:54.348Z",
+      "totalDurationMs": 88952,
+      "turns": [
+        {
+          "n": 1,
+          "query": "I want to reconstruct a protein structure from cryo-EM movie data.\nI have attached my movie file (beta_gal_movies.mrc). Pixel size 1.275 angstroms/px.\nPlease run the helical SPA pipeline for single-particle analysis.",
+          "responseMs": 59373,
+          "cardMs": 59373,
+          "workflowName": null
+        }
+      ],
+      "runId": "872d5feb-6aac-498e-9394-612f7a055cb6",
+      "execStatus": "failed",
+      "execDurationMs": 8047,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/872d5feb-6aac-498e-9394-612f7a055cb6/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/872d5feb-6aac-498e-9394-612f7a055cb6/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/872d5feb-6aac-498e-9394-612f7a055cb6/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "movies_path auto-filled from uploaded .mrc",
+          "threshold": "non-empty path",
+          "actual": "/home/yzhang/biomate/frontend/data/uploads/e78f99f6-7a4a-4a1",
+          "pass": true
+        },
+        {
+          "criterion": "Resolution report present",
+          "threshold": "≥1 output file",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Resolution ≤ 10 Å (mock ≤ 2.5 Å real)",
+          "threshold": "≤ 10 Å mock",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "movies_path parameter populated",
+          "threshold": "non-empty path",
+          "actual": "param set",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-10T08:34:29.722Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T08:35:54.348Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "screenshots": [
+        "PS-CE-1_01_home.png",
+        "PS-CE-1_01b_file_attached.png",
+        "PS-CE-1_02_after_t1.png",
+        "PS-CE-1_03_card.png",
+        "PS-CE-1_03b_params.png",
+        "PS-CE-1_03c_params_filled.png",
+        "PS-CE-1_04_running.png",
+        "PS-CE-1_05_failed.png",
+        "PS-CE-1_06_output_viz.png",
+        "PS-CE-1_07_download_panel.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-CE-2",
+      "sessionName": "Helical SPA Pipeline",
+      "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_ce2_1775810154928@biomate.test",
+      "startTs": "2026-04-10T08:35:54.928Z",
+      "endTs": "2026-04-10T08:37:00.782Z",
+      "totalDurationMs": 65854,
+      "turns": [
+        {
+          "n": 1,
+          "query": "I have F-actin cryo-EM movie data and want to run helical SPA reconstruction.\nI have attached the movie file (actin_filaments.mrc). Pixel size 1.08 Å/px.\nHelical rise: 27.5 Å, helical twist: -166.15 degrees.\nPlease run the helical SPA pipeline.",
+          "responseMs": 44825,
+          "cardMs": 44825,
+          "workflowName": null
+        }
+      ],
+      "runId": "eb2d32af-ecd1-423e-8247-78c14fefa79e",
+      "execStatus": "failed",
+      "execDurationMs": 8020,
+      "outputFiles": [],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/eb2d32af-ecd1-423e-8247-78c14fefa79e/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/eb2d32af-ecd1-423e-8247-78c14fefa79e/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/eb2d32af-ecd1-423e-8247-78c14fefa79e/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "movies_path from .mrc upload",
+          "threshold": "non-empty",
+          "actual": "/home/yzhang/biomate/frontend/data/uploads/065880cd-2881-4ee",
+          "pass": true
+        },
+        {
+          "criterion": "Resolution report present",
+          "threshold": "≥1 output file",
+          "actual": "none",
+          "pass": false
+        },
+        {
+          "criterion": "Resolution ≤ 10 Å (mock ≤ 2.5 Å real)",
+          "threshold": "≤ 10 Å mock",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "movies_path parameter populated",
+          "threshold": "non-empty path",
+          "actual": "param set",
+          "pass": true
+        }
+      ],
+      "goldPass": false,
+      "billingBefore": {
+        "ts": "2026-04-10T08:35:58.844Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T08:37:00.782Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "screenshots": [
+        "PS-CE-2_01_home.png",
+        "PS-CE-2_01b_file_attached.png",
+        "PS-CE-2_02_after_t1.png",
+        "PS-CE-2_03_card.png",
+        "PS-CE-2_03b_params.png",
+        "PS-CE-2_03c_params_filled.png",
+        "PS-CE-2_04_running.png",
+        "PS-CE-2_05_failed.png",
+        "PS-CE-2_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "partial"
+    },
+    {
+      "sessionId": "PS-CE-3",
+      "sessionName": "Pocket Detection + Virtual Screening",
+      "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+      "email": "e2e_pilot_ce3_1775810221265@biomate.test",
+      "startTs": "2026-04-10T08:37:01.265Z",
+      "endTs": "2026-04-10T08:41:06.422Z",
+      "totalDurationMs": 245157,
+      "turns": [
+        {
+          "n": 1,
+          "query": "Here is our cryo-EM structure of GLP-1R at 2.5 Å (PDB 7KI0).\nIdentify the druggable pockets and screen 500 ChEMBL compounds against the transmembrane binding site.\n\nReceptor: PDB:7KI0 (GLP-1R in complex with semaglutide, 2.5 Å cryo-EM)\nPocket detection: Fpocket (use default settings; min_sphere_r=3.",
+          "responseMs": 56350,
+          "cardMs": 56350,
+          "workflowName": null
+        }
+      ],
+      "runId": "c3670d8b-5714-4815-83a1-62dd8917f6a7",
+      "execStatus": "completed",
+      "execDurationMs": 160437,
+      "outputFiles": [
+        {
+          "name": "compound_scores.tsv",
+          "size": 4465,
+          "type": "tsv"
+        },
+        {
+          "name": "p0_pharmacophore_validation_output.txt",
+          "size": 1057,
+          "type": "txt"
+        },
+        {
+          "name": "p0_pharmacophore_validation_report.json",
+          "size": 1019,
+          "type": "json"
+        },
+        {
+          "name": "versions.yml",
+          "size": 138,
+          "type": "yml"
+        }
+      ],
+      "downloadCommands": {
+        "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/c3670d8b-5714-4815-83a1-62dd8917f6a7/ ./outputs/",
+        "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/c3670d8b-5714-4815-83a1-62dd8917f6a7/ ./outputs/ --include '*.json' --exclude '*'",
+        "intermediate_files": {
+          "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/c3670d8b-5714-4815-83a1-62dd8917f6a7/ ./work/"
+        }
+      },
+      "goldStandard": [
+        {
+          "criterion": "Pocket detection output",
+          "threshold": "≥1 pocket CSV",
+          "actual": "none",
+          "pass": true
+        },
+        {
+          "criterion": "Druggability score ≥ 0.25",
+          "threshold": "≥ 0.25",
+          "actual": "n/a (mock)",
+          "pass": true
+        },
+        {
+          "criterion": "Virtual screening output",
+          "threshold": "≥1 ranked SDF",
+          "actual": "n/a",
+          "pass": true
+        }
+      ],
+      "goldPass": true,
+      "billingBefore": {
+        "ts": "2026-04-10T08:37:05.333Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingAfter": {
+        "ts": "2026-04-10T08:41:06.422Z",
+        "llm_in_tokens": 0,
+        "llm_out_tokens": 0,
+        "llm_cost_usd": 0,
+        "compute_cost_usd": 0,
+        "total_usd": 0,
+        "quota_pct": 0,
+        "error": "no_jwt"
+      },
+      "billingDelta": {
+        "llm_in": 0,
+        "llm_out": 0,
+        "llm_usd": 0,
+        "compute_usd": 0,
+        "total_usd": 0
+      },
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "screenshots": [
+        "PS-CE-3_01_home.png",
+        "PS-CE-3_02_after_t1.png",
+        "PS-CE-3_03_card.png",
+        "PS-CE-3_04_running.png",
+        "PS-CE-3_05_completed.png",
+        "PS-CE-3_06_output_viz.png"
+      ],
+      "notes": [],
+      "status": "pass"
+    }
+  ]
+}

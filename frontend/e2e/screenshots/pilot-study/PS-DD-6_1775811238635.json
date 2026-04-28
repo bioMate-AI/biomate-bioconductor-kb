@@ -1,0 +1,65 @@
+{
+  "sessionId": "PS-DD-6",
+  "sessionName": "IVIVE Hepatic Clearance",
+  "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_dd6_1775810938480@biomate.test",
+  "startTs": "2026-04-10T08:48:58.479Z",
+  "endTs": "2026-04-10T08:53:58.635Z",
+  "totalDurationMs": 300156,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Run IVIVE (in vitro–in vivo extrapolation) hepatic clearance prediction for 4 BCR-ABL1 TKIs.\n\nMeasured in vitro data (human liver microsomes, CLint µL/min/mg protein):\nDasatinib: CLint=310, fu_plasma=0.034, MW=488\nBosutinib: CLint=85, fu_plasma=0.036, MW=530\nImatinib: CLint=28, fu_plasma=0.095, MW=4",
+      "responseMs": 48364,
+      "cardMs": 48364,
+      "workflowName": null
+    }
+  ],
+  "runId": null,
+  "execStatus": "not_started",
+  "execDurationMs": 0,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-10T08:49:02.457Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-10T08:48:58.480Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": false,
+  "h3": 0,
+  "h5": false,
+  "screenshots": [
+    "PS-DD-6_01_home.png",
+    "PS-DD-6_02_after_t1.png",
+    "PS-DD-6_03_card.png",
+    "PS-DD-6_04_running.png",
+    ""
+  ],
+  "notes": [],
+  "status": "fail",
+  "error": "page.waitForTimeout: Test ended."
+}

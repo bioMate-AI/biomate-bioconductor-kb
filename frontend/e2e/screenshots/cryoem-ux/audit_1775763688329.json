@@ -1,0 +1,91 @@
+[
+  {
+    "testId": "CE-0",
+    "workflowName": "QC profiles API",
+    "runId": null,
+    "startTs": 1775763231918,
+    "endTs": 1775763231918,
+    "finalStatus": "passed",
+    "assertions": [
+      {
+        "name": "6 cryo-EM profiles present",
+        "passed": true
+      }
+    ],
+    "screenshots": []
+  },
+  {
+    "testId": "CE-1",
+    "workflowName": "CryoSPARC Standard SPA",
+    "runId": null,
+    "startTs": 1775763376330,
+    "endTs": 1775763376330,
+    "finalStatus": "skip_no_card",
+    "assertions": [
+      {
+        "name": "Registration and home page loaded",
+        "passed": true
+      },
+      {
+        "name": "AI returned response to helical SPA query",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC workflow card appeared",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_02b_confirmation.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE1_03_workflow_card.png"
+    ]
+  },
+  {
+    "testId": "CE-2",
+    "workflowName": "Helical SPA Pipeline",
+    "runId": null,
+    "startTs": 1775763540126,
+    "endTs": 1775763540126,
+    "finalStatus": "skip_no_card",
+    "assertions": [
+      {
+        "name": "AI responded to helical query",
+        "passed": true
+      },
+      {
+        "name": "Helical workflow card appeared",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_02b_confirmation.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE2_03_card.png"
+    ]
+  },
+  {
+    "testId": "CE-3",
+    "workflowName": "QC Settings Controls",
+    "runId": null,
+    "startTs": 1775763688328,
+    "endTs": 1775763688328,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "AI response received",
+        "passed": true
+      },
+      {
+        "name": "Workflow card appeared",
+        "passed": false,
+        "note": "skip"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-ux/CE3_01_after_query.png"
+    ]
+  }
+]

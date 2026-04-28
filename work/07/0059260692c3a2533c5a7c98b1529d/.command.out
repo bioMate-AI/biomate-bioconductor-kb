@@ -1,0 +1,5 @@
+MoA Report complete for Imatinib / BCR-ABL1
+  QC status:   PASS  (51 significant DE genes)
+  Top pathway: HALLMARK_E2F_TARGETS  NES=2.18
+  CMap top:    Bosutinib  similarity=0.92
+  Hypothesis:  Treatment with Imatinib induces activation of the HALLMARK_E2F_TARGETS pathway (NES=2.18), consistent with Bosutinib (CMap similarity=0.92), supporting BCR-ABL1 engagement.

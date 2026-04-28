@@ -1,0 +1,34 @@
+{
+  "run_at": "2026-04-17T20:53:57.723530",
+  "api_url": "http://localhost:8081",
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "dry_run": false,
+  "workflows": [
+    {
+      "id": 12861,
+      "name": "allometric_scaling",
+      "domain": "pharmacology",
+      "started_at": "2026-04-17T20:43:55.942758",
+      "run_id": "d031781b-dffb-4e2b-8a30-0983649941ad",
+      "submit_status": "running",
+      "outdir": "",
+      "final_status": "timeout",
+      "poll_data": {
+        "status": "timeout",
+        "run_id": "d031781b-dffb-4e2b-8a30-0983649941ad"
+      },
+      "finished_at": "2026-04-17T20:53:57.723122",
+      "passed": false,
+      "outputs": {
+        "checked": false,
+        "found": [],
+        "missing": [
+          "allometric_scaling_results.json",
+          "allometric_plot_data.csv"
+        ]
+      }
+    }
+  ]
+}

@@ -34,6 +34,12 @@ class ChatResponse:
     missing_items: List[str] = field(default_factory=list)
     run_id: Optional[str] = None
     raw: Optional[Dict[str, Any]] = None
+    # Cost/token data extracted from llm_usage metadata in the final SSE event
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cost_usd: Optional[float] = None
+    model: Optional[str] = None
+    duration_ms: Optional[int] = None
 
 
 @dataclass
@@ -63,9 +69,11 @@ class BioMateEvalClient:
         self.chat_timeout = chat_timeout
         self.workflow_timeout = workflow_timeout
         self._session = requests.Session()
+        e2e_token = os.environ.get("E2E_TEST_TOKEN", "biomate-e2e-bypass-token-dev-only")
         self._session.headers.update({
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
+            "X-E2E-Test-Token": e2e_token,
         })
 
     # ------------------------------------------------------------------
@@ -75,7 +83,7 @@ class BioMateEvalClient:
     @classmethod
     def from_config(cls, config: Dict[str, Any]) -> "BioMateEvalClient":
         """Log in and return an authenticated client."""
-        base_url = config["biomate"]["base_url"]
+        base_url = os.environ.get("BIOMATE_BASE_URL") or config["biomate"]["base_url"]
         email = config["biomate"]["eval_user_email"]
         password = (
             os.environ.get("BIOMATE_EVAL_PASSWORD")
@@ -105,6 +113,15 @@ class BioMateEvalClient:
         resp.raise_for_status()
         return resp.json()["token"]
 
+    def clone(self) -> "BioMateEvalClient":
+        """Return a new client with the same auth but its own HTTP session (for threading)."""
+        return BioMateEvalClient(
+            base_url=self.base_url,
+            token=self.token,
+            chat_timeout=self.chat_timeout,
+            workflow_timeout=self.workflow_timeout,
+        )
+
     # ------------------------------------------------------------------
     # Single-turn chat
     # ------------------------------------------------------------------
@@ -131,9 +148,11 @@ class BioMateEvalClient:
                 time.sleep(wait)
                 # Fresh session clears stale keep-alive connections
                 self._session = requests.Session()
+                e2e_token = os.environ.get("E2E_TEST_TOKEN", "biomate-e2e-bypass-token-dev-only")
                 self._session.headers.update({
                     "Authorization": f"Bearer {self.token}",
                     "Content-Type": "application/json",
+                    "X-E2E-Test-Token": e2e_token,
                 })
 
             try:
@@ -154,6 +173,7 @@ class BioMateEvalClient:
             run_id = None
             needs_input_fired = False
             missing_from_event: List[str] = []
+            llm_usage: Dict[str, Any] = {}
 
             deadline = time.time() + self.chat_timeout
             current_event = "message"
@@ -215,6 +235,9 @@ class BioMateEvalClient:
                         workflow_card = meta["workflow_card"]
                     if meta.get("run_id"):
                         run_id = meta["run_id"]
+                    # Extract cost/token data from llm_usage metadata (final event only)
+                    if meta.get("llm_usage"):
+                        llm_usage = meta["llm_usage"]
                     if workflow_card is None:
                         wf = chunk.get("workflow")
                         if wf and isinstance(wf, dict):
@@ -242,13 +265,20 @@ class BioMateEvalClient:
             # All retries exhausted
             raise last_exc or RuntimeError("ask() failed after all retries")
 
-        return ChatResponse(
+        chat_resp = ChatResponse(
             text="".join(text_parts),
             workflow_card=workflow_card,
             needs_input=needs_input_fired,
             missing_items=missing_from_event,
             run_id=run_id,
+            input_tokens=llm_usage.get("input_tokens"),
+            output_tokens=llm_usage.get("output_tokens"),
+            cost_usd=llm_usage.get("cost_usd"),
+            model=llm_usage.get("model"),
+            duration_ms=llm_usage.get("duration_ms"),
         )
+        self._emit_eval_cost_to_lago(chat_resp)
+        return chat_resp
 
     # ------------------------------------------------------------------
     # Multi-turn chat (session-based)
@@ -338,6 +368,42 @@ class BioMateEvalClient:
             return resp.json().get("files", []) if resp.status_code == 200 else []
         except Exception:
             return []
+
+    def _emit_eval_cost_to_lago(self, resp: "ChatResponse") -> None:
+        """Fire-and-forget: record eval LLM cost to Galaxy billing backend → Lago.
+
+        Uses EVAL_LAGO_USER_ID env var (default 'eval_internal') so eval costs are
+        attributed to a dedicated Lago customer, separate from production users.
+        Requires BILLING_INTERNAL_KEY env var; silently skips if absent.
+        """
+        key = os.environ.get("BILLING_INTERNAL_KEY", "")
+        if not key or resp.input_tokens is None:
+            return
+        galaxy_url = os.environ.get("GALAXY_URL", "http://localhost:8081")
+        eval_user_id = os.environ.get("EVAL_LAGO_USER_ID", "eval_internal")
+        import threading
+        def _post() -> None:
+            try:
+                import requests as _req
+                _req.post(
+                    f"{galaxy_url}/internal/billing/llm_cost",
+                    json={
+                        "user_id": eval_user_id,
+                        "session_id": f"eval-{int(time.time())}",
+                        "model": resp.model or "claude-sonnet-4-6",
+                        "input_tokens": resp.input_tokens,
+                        "output_tokens": resp.output_tokens or 0,
+                        "duration_ms": resp.duration_ms or 0,
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Internal-Key": key,
+                    },
+                    timeout=5,
+                )
+            except Exception:
+                pass  # non-fatal; eval must not fail due to billing errors
+        threading.Thread(target=_post, daemon=True).start()
 
     def _get_cost(self, run_id: str) -> Optional[float]:
         try:

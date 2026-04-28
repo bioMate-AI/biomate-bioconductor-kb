@@ -1,0 +1,6 @@
+drug_name	target	similarity_score	moa_annotation	cell_line	cmap_perturbagen_id
+Bosutinib	BCR-ABL1 / Src	0.92	Dual ABL/Src kinase inhibitor	K562	BRD-K49235197
+Dasatinib	BCR-ABL1 / Src	0.88	ABL/Src kinase inhibitor (2nd gen TKI)	K562	BRD-K35921493
+Gleevec_analogue_1	BCR-ABL1 / c-KIT	0.81	Imatinib-class RTK inhibitor	HL60	BRD-K84879362
+Nilotinib	BCR-ABL1	0.74	Selective BCR-ABL1 inhibitor (2nd gen TKI)	K562	BRD-K25443432
+Ponatinib	BCR-ABL1 T315I	0.63	Pan-BCR-ABL1 inhibitor (3rd gen TKI)	K562	BRD-K73919417

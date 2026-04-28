@@ -15,36 +15,100 @@ export const BASE_URL = process.env.BIOMATE_URL || "http://localhost:5000";
 // Auth helpers
 // ---------------------------------------------------------------------------
 
-/** Register a fresh user and navigate to the main app. */
+/**
+ * Register a fresh user via in-browser fetch (bypasses the IP rate limiter)
+ * and navigate to the app.
+ *
+ * Strategy: call fetch('/api/auth/register') from page.evaluate() so the
+ * browser stores the httpOnly Set-Cookie directly in its own cookie jar —
+ * identical to a real form submission, but with the X-E2E-Test-Token header
+ * so the registerLimiter (max:3 per hour per IP) is skipped.
+ */
 export async function setupTestUser(
   page: Page,
   prefix = "test"
 ): Promise<{ email: string; password: string }> {
   const email = `e2e_${prefix}_${Date.now()}@biomate.test`;
   const password = "TestPass123!";
+  const e2eToken = process.env.E2E_TEST_TOKEN || "test-e2e-token-12345";
 
-  await page.goto(`${BASE_URL}/register`);
-  await page.waitForLoadState("load");
-
-  try {
-    await page.waitForSelector("#name", { state: "visible", timeout: 10000 });
-    await page.fill("#name", `E2E ${prefix}`);
-    await page.fill("#email", email);
-    await page.fill("#password", password);
-    await page.fill("#confirmPassword", password);
-    const terms = page.locator("#terms");
-    if (await terms.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await terms.click();
-    }
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(2000);
-  } catch {
-    // Already logged in or form structure different — proceed
-  }
-
+  // Must navigate to the app first so fetch() has the correct origin
   await page.goto(BASE_URL);
   await page.waitForLoadState("load");
-  await page.waitForTimeout(1500);
+
+  // Register via fetch inside the browser context so the httpOnly cookie is
+  // stored natively in the browser's jar (page.request.post would use a
+  // separate cookie jar that doesn't propagate to page navigations).
+  const result = await page.evaluate(
+    async ({
+      baseUrl,
+      email,
+      password,
+      name,
+      token,
+    }: {
+      baseUrl: string;
+      email: string;
+      password: string;
+      name: string;
+      token: string;
+    }) => {
+      try {
+        const r = await fetch(`${baseUrl}/api/auth/register`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-E2E-Test-Token": token,
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            terms_accepted: true,
+          }),
+        });
+        const body = await r.json().catch(() => ({}));
+        return { ok: r.ok, status: r.status, body };
+      } catch (e: any) {
+        return { ok: false, status: 0, body: {}, error: String(e) };
+      }
+    },
+    { baseUrl: BASE_URL, email, password, name: `E2E ${prefix}`, token: e2eToken }
+  );
+
+  if (!result.ok) {
+    console.error(
+      `[setupTestUser] Registration failed: status=${result.status}`,
+      result.body
+    );
+    // Fallback: try login in case the user was already created (e.g. from a
+    // prior partial run).
+    await page.evaluate(
+      async ({ baseUrl, email, password, token }: { baseUrl: string; email: string; password: string; token: string }) => {
+        await fetch(`${baseUrl}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-E2E-Test-Token": token,
+          },
+          credentials: "include",
+          body: JSON.stringify({ email, password }),
+        });
+      },
+      { baseUrl: BASE_URL, email, password, token: e2eToken }
+    );
+  }
+
+  // Navigate to the app root so auth-context.tsx can read /api/auth/me
+  await page.goto(BASE_URL);
+  await page.waitForLoadState("load");
+
+  // Wait for the chat UI to confirm auth resolved
+  const chatInput = page.locator('[data-testid="chat-input"]').first();
+  await chatInput.isVisible({ timeout: 10000 }).catch(() => null);
+  await page.waitForTimeout(500);
+
   return { email, password };
 }
 

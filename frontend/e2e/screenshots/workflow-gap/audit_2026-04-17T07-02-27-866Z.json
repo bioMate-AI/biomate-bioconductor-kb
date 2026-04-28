@@ -1,0 +1,53 @@
+{
+  "suiteId": "workflow-gap-generalized",
+  "generatedAt": "2026-04-17T07:02:27.867Z",
+  "passed": 1,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "WG-3",
+      "workflow": "AlphaFold DB Search",
+      "domain": "protein_structure",
+      "startTs": 1776409291704,
+      "endTs": 1776409347753,
+      "finalStatus": "completed",
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true,
+          "detail": "AlphaFold DB Search"
+        },
+        {
+          "name": "param-override-applied",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search overrideBtns=0"
+        },
+        {
+          "name": "run-button-clicked",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search"
+        },
+        {
+          "name": "execute-request-captured",
+          "passed": true,
+          "detail": "cfg=wg3_alphafold_db_search"
+        },
+        {
+          "name": "execute-payload-contains-override",
+          "passed": true,
+          "detail": "Looking for \"20\" or param \"query_pdb\". Payload[0:300]: {\"workflowDefinition\":{\"name\":\"AlphaFold DB Search\",\"description\":\"Search a query protein structure against the AlphaFold Human Proteome database (~48k structures) using Foldseek (structural similarity, 3Di alphabet) and MMseqs2 (sequence homology). Returns ranked hits with e-values, alignment stats"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_01_query.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_02_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_03_override.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/workflow-gap/wg3_alphafold_db_search_04_execute.png"
+      ]
+    }
+  ]
+}

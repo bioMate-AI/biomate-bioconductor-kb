@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-04-09T12:31:09.960Z",
+  "suiteStartedAt": "2026-04-09T12:31:09.376Z",
+  "baseUrl": "http://localhost:5000",
+  "testType": "Full E2E — no mocks — real AI + real execution",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/full-e2e",
+  "billingCost": {
+    "error": "apiRequestContext.get: connect ECONNREFUSED 127.0.0.1:5000\nCall log:\n\u001b[2m  - → GET http://localhost:5000/api/telemetry/cost-summary?from=2026-04-09T12%3A31%3A09.376Z&to=2026-04-09T12%3A31%3A09.941Z\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.7499.4 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - X-E2E-Test-Token: biomate-e2e-bypass-token-dev-only\u001b[22m\n"
+  },
+  "scenarios": [
+    {
+      "name": "ADMET Full Execution Flow",
+      "asserts": [
+        "AWAITING REVIEW badge visible",
+        "Confirm & Run button present + enabled",
+        "Workflow completion banner appears",
+        "Results section auto-opens",
+        "Download All button enabled after completion",
+        "CSV preview API responds with data"
+      ]
+    },
+    {
+      "name": "AWAITING REVIEW UX",
+      "asserts": [
+        "pending_review state shows AWAITING REVIEW badge",
+        "Scientific Rationale panel present",
+        "No raw Python dict params displayed"
+      ]
+    }
+  ],
+  "notes": [
+    "Tests use real server at http://localhost:5000",
+    "AI responses are live — not mocked",
+    "Execution uses real Nextflow/Galaxy backend",
+    "Screenshots capture actual UI state",
+    "billingCost.totalEstimatedCostUsd is heuristic from token counting"
+  ]
+}

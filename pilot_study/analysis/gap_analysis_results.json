@@ -1,0 +1,76 @@
+{
+  "beta2ar": {
+    "n_prior": 500,
+    "n_cryodrgn_clusters": 20,
+    "gap_threshold_angstrom": 1.5,
+    "gap_fraction": 0.1,
+    "captured_count": 450,
+    "gap_count": 50,
+    "type_breakdown": {
+      "local": {
+        "count": 300,
+        "gap_fraction": 0.0,
+        "mean_min_rmsd": 0.5110160112380981,
+        "max_min_rmsd": 0.5410764813423157
+      },
+      "domain": {
+        "count": 150,
+        "gap_fraction": 0.0,
+        "mean_min_rmsd": 0.40039774775505066,
+        "max_min_rmsd": 0.7065354585647583
+      },
+      "rare": {
+        "count": 50,
+        "gap_fraction": 1.0,
+        "mean_min_rmsd": 3.7300047874450684,
+        "max_min_rmsd": 6.012609958648682
+      }
+    },
+    "cluster_coverage": 1.0,
+    "rmsd_percentiles": {
+      "p25": 0.49343622475862503,
+      "p50": 0.5159972012042999,
+      "p75": 0.5262742340564728,
+      "p90": 0.8858679413795879,
+      "p95": 3.804714977741239,
+      "p99": 4.4585475349426265
+    }
+  },
+  "trpv1": {
+    "n_prior": 500,
+    "n_cryodrgn_clusters": 20,
+    "gap_threshold_angstrom": 1.5,
+    "gap_fraction": 0.1,
+    "captured_count": 450,
+    "gap_count": 50,
+    "type_breakdown": {
+      "local": {
+        "count": 300,
+        "gap_fraction": 0.0,
+        "mean_min_rmsd": 0.5051950216293335,
+        "max_min_rmsd": 0.5414512753486633
+      },
+      "domain": {
+        "count": 150,
+        "gap_fraction": 0.0,
+        "mean_min_rmsd": 0.3721475601196289,
+        "max_min_rmsd": 0.8824609518051147
+      },
+      "rare": {
+        "count": 50,
+        "gap_fraction": 1.0,
+        "mean_min_rmsd": 3.388401985168457,
+        "max_min_rmsd": 4.626924991607666
+      }
+    },
+    "cluster_coverage": 1.0,
+    "rmsd_percentiles": {
+      "p25": 0.4573803022503853,
+      "p50": 0.5159000158309937,
+      "p75": 0.5257718116044998,
+      "p90": 1.0301433682442047,
+      "p95": 3.3275812506675697,
+      "p99": 4.081703028678893
+    }
+  }
+}

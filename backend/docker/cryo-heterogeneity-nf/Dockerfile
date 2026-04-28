@@ -38,13 +38,6 @@ RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# ── Verify key installations ──────────────────────────────────────────────────
-RUN python -c "import cryodrgn; print('cryoDRGN:', cryodrgn.__version__)" && \
-    python -c "import torch; print('PyTorch:', torch.__version__)" && \
-    python -c "import mrcfile; print('mrcfile OK')" && \
-    python -c "import starfile; print('starfile OK')" && \
-    (fpocket --version 2>/dev/null || fpocket -h 2>&1 | head -1 || echo "fpocket installed")
-
 ENV PATH="/opt/aws-cli/bin:${PATH}"
 
 WORKDIR /workspace

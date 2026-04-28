@@ -1,0 +1,1 @@
+/home/yzhang/biomate/backend/work/1c/39d39a9965a0953382654e80279b6a/volume_sharpened.mrc

@@ -1,0 +1,212 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-14T11:24:51.919Z",
+  "totalTests": 3,
+  "passed": 1,
+  "failed": 2,
+  "totalWallTimeSec": 208.709,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-7",
+      "runId": "5b98c9bb-6ee5-4533-963d-1fe68ac34c5b",
+      "startTs": 1776165680395,
+      "endTs": 1776165781930,
+      "durationMs": 101535,
+      "finalStatus": "failed",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "run1-execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "run1-status-api-200",
+          "passed": true
+        },
+        {
+          "name": "run1-has-metrics-field",
+          "passed": true
+        },
+        {
+          "name": "run2-execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "compare-api-200",
+          "passed": true
+        },
+        {
+          "name": "compare-has-runA",
+          "passed": true
+        },
+        {
+          "name": "compare-has-runB",
+          "passed": true
+        },
+        {
+          "name": "compare-has-comparison-block",
+          "passed": true
+        },
+        {
+          "name": "compare-has-parameterDifferences",
+          "passed": false,
+          "note": "max_spots differs between runs — expect ≥1 param difference"
+        }
+      ],
+      "screenshots": [
+        "wc7_01_run1_terminal.png",
+        "wc7_02_run2_terminal.png",
+        "wc7_03_done.png"
+      ]
+    },
+    {
+      "testId": "WC-8",
+      "runId": "1ab608dd-77f1-4861-9f9a-64799299c62c",
+      "startTs": 1776165782281,
+      "endTs": 1776165835580,
+      "durationMs": 53299,
+      "finalStatus": "failed",
+      "nfDurationS": 5,
+      "nfStartedAt": "2026-04-14T11:23:48.330Z",
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "status-api-200",
+          "passed": true
+        },
+        {
+          "name": "status-has-duration_s-in-nextflowStatus",
+          "passed": true,
+          "note": "nextflowStatus.duration_s must be present after terminal run"
+        },
+        {
+          "name": "status-has-started_at-in-nextflowStatus",
+          "passed": true,
+          "note": "nextflowStatus.started_at must be present"
+        },
+        {
+          "name": "status-metrics-runtime-totalSeconds",
+          "passed": true,
+          "note": "metrics.runtime.totalSeconds must be populated from duration_s"
+        },
+        {
+          "name": "duration-s-positive",
+          "passed": true,
+          "note": "duration_s=5 must be > 0"
+        },
+        {
+          "name": "run-metrics-strip-visible",
+          "passed": true,
+          "note": "Metrics strip with timing should appear in viewer after terminal run"
+        },
+        {
+          "name": "duration-display-visible",
+          "passed": true
+        },
+        {
+          "name": "duration-display-non-empty",
+          "passed": true
+        },
+        {
+          "name": "started-at-display-visible",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "wc8_01_metrics_strip.png"
+      ]
+    },
+    {
+      "testId": "WC-9",
+      "runId": "a91777d5-b157-4974-94e0-d91bfaea30bd",
+      "startTs": 1776165835880,
+      "endTs": 1776165889755,
+      "durationMs": 53875,
+      "finalStatus": "failed",
+      "nfDurationS": 5,
+      "nfStartedAt": "2026-04-14T11:24:44.492Z",
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "audit-has-runId",
+          "passed": true
+        },
+        {
+          "name": "audit-has-startTs",
+          "passed": true
+        },
+        {
+          "name": "audit-has-finalStatus",
+          "passed": true
+        },
+        {
+          "name": "audit-has-screenshots",
+          "passed": true
+        },
+        {
+          "name": "status-field-runId",
+          "passed": true,
+          "note": "Status response must include \"runId\""
+        },
+        {
+          "name": "status-field-status",
+          "passed": true,
+          "note": "Status response must include \"status\""
+        },
+        {
+          "name": "status-field-progress",
+          "passed": true,
+          "note": "Status response must include \"progress\""
+        },
+        {
+          "name": "status-field-metrics",
+          "passed": true,
+          "note": "Status response must include \"metrics\""
+        },
+        {
+          "name": "status-field-nextflowStatus",
+          "passed": true,
+          "note": "Status response must include \"nextflowStatus\""
+        },
+        {
+          "name": "metrics-has-runtime",
+          "passed": true,
+          "note": "metrics.runtime must be present (populated from nextflowStatus timing)"
+        },
+        {
+          "name": "runtime-has-totalSeconds",
+          "passed": true,
+          "note": "metrics.runtime.totalSeconds must be set"
+        },
+        {
+          "name": "metrics-has-perStepLlmCost",
+          "passed": false,
+          "note": "metrics.perStepLlmCost must be present in status response"
+        }
+      ],
+      "screenshots": [
+        "wc9_01_final.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-03-05T21:01:06.141Z",
+  "frontendUrl": "http://localhost:5407",
+  "demoPrompt": "Build a cryo-EM single-particle analysis workflow from movies through refinement and resolution/QC checks.",
+  "recoveryPromptUsed": true,
+  "runCapture": {
+    "runId": "6b250104-c6ea-4850-a14f-f9d208e065db",
+    "invocationId": null,
+    "executeResponse": {
+      "runId": "6b250104-c6ea-4850-a14f-f9d208e065db",
+      "galaxyInvocationId": "815d1c56-c01a-4403-9441-608d6e6927b0",
+      "galaxyHistoryId": "e1a34e8a9807a4ae",
+      "executionEngine": "nextflow",
+      "nextflowRunId": "bf13b2bb-6cb4-4c15-ac3f-218a5f50418f",
+      "status": "running",
+      "message": "Nextflow workflow queued (run_id: bf13b2bb-6cb4-4c15-ac3f-218a5f50418f)",
+      "outputs": {
+        "outdir": "/tmp/nextflow_runs/bf13b2bb-6cb4-4c15-ac3f-218a5f50418f/output"
+      }
+    }
+  },
+  "runStatus": {
+    "runId": "6b250104-c6ea-4850-a14f-f9d208e065db",
+    "status": "completed",
+    "progress": {
+      "totalSteps": 0,
+      "completedSteps": 0,
+      "percentComplete": 0
+    },
+    "metrics": {
+      "runtime": {
+        "totalSeconds": 0,
+        "perStepSeconds": {}
+      },
+      "resources": {
+        "peakMemoryGB": 0,
+        "avgCpuPercent": 0,
+        "diskUsedGB": 0
+      },
+      "quality": {},
+      "outputs": {
+        "fileCount": 0,
+        "totalSizeBytes": 0,
+        "byType": {},
+        "bySize": {}
+      }
+    },
+    "steps": [],
+    "nextflowStatus": {
+      "run_id": "bf13b2bb-6cb4-4c15-ac3f-218a5f50418f",
+      "invocation_id": "815d1c56-c01a-4403-9441-608d6e6927b0",
+      "status": "succeeded",
+      "returncode": 0,
+      "outdir": "/tmp/nextflow_runs/bf13b2bb-6cb4-4c15-ac3f-218a5f50418f/output",
+      "log_tail": [
+        "Downloading nextflow dependencies. It may require a few seconds, please wait ..",
+        "\u001b[KNextflow 25.10.4 is available - Please consider updating your version to it",
+        "N E X T F L O W  ~  version 25.10.0",
+        "Launching `/home/yzhang/biomate/backend/biomni_workflows/nextflow_nfcore/subworkflows/genomics/get_rna_seq_archs4/main.nf` [deadly_wing] DSL2 - revision: 952e42ef3e",
+        "[55/6eb8d9] Submitted process > GET_RNA_SEQ_ARCHS4_WORKFLOW:GET_RNA_SEQ_ARCHS4 (run)",
+        "Output: [[id:run], /tmp/nextflow_runs/bf13b2bb-6cb4-4c15-ac3f-218a5f50418f/work/55/6eb8d91d5891bc4be73c680b357132/get_rna_seq_archs4_output.txt]",
+        "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info."
+      ]
+    },
+    "artifactReadiness": {
+      "hasOutputs": true,
+      "visualizableCount": 1,
+      "downloadableCount": 1,
+      "totalOutputs": 1,
+      "meetsContract": true
+    }
+  }
+}

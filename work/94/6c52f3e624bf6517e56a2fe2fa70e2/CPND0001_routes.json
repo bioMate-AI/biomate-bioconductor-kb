@@ -1,0 +1,106 @@
+{
+  "compound_id": "CPND0001",
+  "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+  "smiles_valid": true,
+  "n_routes": 3,
+  "routes": [
+    {
+      "route_id": 3,
+      "score": 0.772,
+      "step_count": 3,
+      "sa_score": 4.04,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Suzuki coupling",
+          "reagent": "Pd(OAc)2 / PPh3",
+          "precursor_smiles": "c1ccc(N)cc1",
+          "yield_pct": 82.1
+        },
+        {
+          "step": 2,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "CC(C)=O",
+          "yield_pct": 88.5
+        },
+        {
+          "step": 3,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "OCC",
+          "yield_pct": 62.8
+        }
+      ]
+    },
+    {
+      "route_id": 1,
+      "score": 0.67,
+      "step_count": 2,
+      "sa_score": 3.71,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Epoxidation",
+          "reagent": "m-CPBA / CH2Cl2",
+          "precursor_smiles": "c1ccccc1",
+          "yield_pct": 83.0
+        },
+        {
+          "step": 2,
+          "reaction_class": "Acetylation",
+          "reagent": "Ac2O / Et3N",
+          "precursor_smiles": "c1ccc(Cl)cc1",
+          "yield_pct": 66.7
+        }
+      ]
+    },
+    {
+      "route_id": 2,
+      "score": 0.53,
+      "step_count": 4,
+      "sa_score": 2.56,
+      "steps": [
+        {
+          "step": 1,
+          "reaction_class": "Suzuki coupling",
+          "reagent": "Pd(OAc)2 / PPh3",
+          "precursor_smiles": "c1ccc(N)cc1",
+          "yield_pct": 82.2
+        },
+        {
+          "step": 2,
+          "reaction_class": "N-alkylation",
+          "reagent": "K2CO3 / DMF",
+          "precursor_smiles": "OCC",
+          "yield_pct": 69.3
+        },
+        {
+          "step": 3,
+          "reaction_class": "Carbonyl reduction",
+          "reagent": "NaBH4 / MeOH",
+          "precursor_smiles": "c1ccc(Br)cc1",
+          "yield_pct": 87.8
+        },
+        {
+          "step": 4,
+          "reaction_class": "Amide coupling",
+          "reagent": "EDCI / HOBt / DMF",
+          "precursor_smiles": "CC(C)=O",
+          "yield_pct": 83.9
+        }
+      ]
+    }
+  ],
+  "feasibility_rank": [
+    3,
+    1,
+    2
+  ],
+  "max_routes": 5,
+  "max_depth": 6,
+  "tool": "aizynthfinder",
+  "version": "3.7.0-mock",
+  "timestamp": "2026-03-22T14:49:05.170923Z",
+  "mock_mode": true
+}

@@ -1,0 +1,190 @@
+{
+  "generated": "2026-04-09T12:10:58.669Z",
+  "suiteStartedAt": "2026-04-09T12:09:17.268Z",
+  "pilotReference": "docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+  "testAccount": "e2e_pilot_drug_discovery@biomate.test",
+  "baseUrl": "http://localhost:5000",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-discovery-pilot",
+  "hypotheses": {
+    "H1": {
+      "target": "≥80% sessions generate workflow without manual correction",
+      "result": "1/1 (100%)",
+      "pass": true
+    },
+    "H2": {
+      "target": "≤120s per session time-to-workflow-card",
+      "result": "1/1 sessions within 120s",
+      "pass": true,
+      "avgFirstResponseMs": 46554
+    },
+    "H3": {
+      "target": "≥70% sessions rated ≥4/5 for scientific defensibility",
+      "result": "1/1 (100%)",
+      "pass": true,
+      "ratings": [
+        {
+          "session": "S6_CRO",
+          "rating": 5
+        }
+      ]
+    },
+    "H5": {
+      "target": "0 hallucinations — all generated workflows exist in DB",
+      "result": "1/1 workflows verified",
+      "pass": true
+    }
+  },
+  "timingTable": [
+    {
+      "session": "S6_CRO",
+      "name": "CRO Export — Top 5 for WuXi AppTec",
+      "turns": 1,
+      "firstResponseMs": 46554,
+      "firstWorkflowCardMs": 46554,
+      "totalSessionMs": 99881,
+      "h1": true,
+      "h2": true,
+      "h3": 5,
+      "h5": true,
+      "llm_input_tokens_delta": 218,
+      "llm_output_tokens_delta": 362,
+      "llm_cost_usd_delta": 0.006083999999999978,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.006083999999999978,
+      "execRunId": "7dca00c3-9d77-48fa-9a6d-fe11b9112c1f",
+      "execStatus": "failed",
+      "execDurationMs": 41276,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S6_CRO_00_start.png",
+        "S6_CRO_T1_response.png",
+        "S6_CRO_running.png",
+        "S6_CRO_completed.png"
+      ],
+      "status": "pass"
+    }
+  ],
+  "billingTotals": {
+    "llm_input_tokens": 218,
+    "llm_output_tokens": 362,
+    "llm_cost_usd": 0.006083999999999978,
+    "compute_cost_usd": 0,
+    "total_usd": 0.006083999999999978,
+    "totalDurationMs": 99881,
+    "costPerSession": 0.006083999999999978,
+    "finalLagoSnapshot": {
+      "ts": "2026-04-09T12:10:58.373Z",
+      "llm_input_tokens": 22676,
+      "llm_output_tokens": 44809,
+      "llm_cost_usd": 0.740163,
+      "compute_cost_usd": 0,
+      "storage_cost_usd": 0,
+      "total_usd": 0.740163,
+      "quota_pct": 1.5
+    }
+  },
+  "roiMetrics": {
+    "sessionsCompleted": 1,
+    "totalWallClockMs": 99881,
+    "avgSessionMs": 99881,
+    "maxSessionMs": 99881,
+    "totalLLMCost_usd": 0.006083999999999978,
+    "totalComputeCost_usd": 0,
+    "totalCost_usd": 0.006083999999999978,
+    "manualEquivalentHours": 24,
+    "bioMateWallClockHours": 0.027744722222222223,
+    "speedupFactor": 865.029384968112,
+    "costPerWorkflowGeneration": 0.006083999999999978,
+    "note": "Compute costs are $0 for mock-mode Nextflow runs. Real AWS Batch costs apply on cloud."
+  },
+  "sessions": [
+    {
+      "sessionId": "S6_CRO",
+      "sessionName": "CRO Export — Top 5 for WuXi AppTec",
+      "pilotSession": "Session 6 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "cro_submission_export",
+      "startTs": "2026-04-09T12:09:17.777Z",
+      "endTs": "2026-04-09T12:10:57.658Z",
+      "totalDurationMs": 99881,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Based on our BCR-ABL1 campaign ranking (Asciminib #1, Bosutinib #2, Imatinib #3, Gleevec-analog-2 #4, Gleevec-analog-1 #5), generate a CRO submission export for WuXi AppTec. Include: compound ID, SMIL…",
+          "tSendMs": 1775736564454,
+          "tResponseMs": 1775736611008,
+          "tWorkflowCardMs": 1775736611008,
+          "responseTimeMs": 46554,
+          "workflowCardTimeMs": 46554,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "CRO Submission Export — WuXi AppTec (BCR-ABL1 Campaign) — Validates cardiac safety, computes physicochemical properties, and formats all 5 ranked compounds into a WuXi-ready submission CSV.\n\nInput: 5 compounds with SMILES, IC50 (nM), hERG IC50 (μM), and composite scores — Asciminib (#1), Bosutinib (#2), Imatinib (#3), Gleevec-analog-2 (#4), Gleevec-analog-1 (#5)\nKey steps:\n\nhERG safety validation → flags any compound with hERG IC50 ≤ 1 μM as cardiac-unsafe (all 5 must pass)\nRDKit MW/LogP computation → appends physicochemical descriptors to compound records\nWuXi AppTec column formatter → exports wuxiapptec_submission.csv with standardized fields (compound_id, SMILES, IC50_nM, hERG_IC50_uM, composite_score, MW, LogP)\n\n\nExpected output: wuxiapptec_submission.csv (5-compound ranked table, WuXi-ready) + submission_metadata.json (campaign summary, safety gate status, export timestamp)\n\nDecision gate: All 5 compounds must clear hERG IC50 > 1 μM before export is finalized — any compound failing this threshold will be flagged and excluded from the submission package automatically.\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nCro Submission ExportIDLEParametersInput/output options1 required · 0 optionalCompound Csv*BrowseCSV with columns: compound_id, smiles, potency (IC50 nM), safety (hERG IC50 μM), composite_score.Analysis parameters5 parametersFill in all required fields (*) before running.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 7:10:10 AMR"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-09T12:09:24.386Z",
+        "llm_input_tokens": 22458,
+        "llm_output_tokens": 44447,
+        "llm_cost_usd": 0.734079,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.734079,
+        "quota_pct": 1.5
+      },
+      "billingAfter": {
+        "ts": "2026-04-09T12:10:57.607Z",
+        "llm_input_tokens": 22676,
+        "llm_output_tokens": 44809,
+        "llm_cost_usd": 0.740163,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.740163,
+        "quota_pct": 1.5
+      },
+      "billingDelta": {
+        "llm_input_tokens": 218,
+        "llm_output_tokens": 362,
+        "llm_cost_usd": 0.006083999999999978,
+        "compute_cost_usd": 0,
+        "total_usd": 0.006083999999999978
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 5,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 46554ms card=true",
+        "Expected: 5 compounds, all hERG IC50 > 1μM, no safety failures",
+        "Pilot result: Asciminib(30μM), Bosutinib(30μM), Imatinib(30μM), analogs(30μM)",
+        "runId=7dca00c3-9d77-48fa-9a6d-fe11b9112c1f execStatus=failed execDuration=41.3s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "7dca00c3-9d77-48fa-9a6d-fe11b9112c1f",
+        "status": "failed",
+        "tStartMs": 1775736611670,
+        "tTerminalMs": 1775736652946,
+        "executionDurationMs": 41276,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7dca00c3-9d77-48fa-9a6d-fe11b9112c1f/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/7dca00c3-9d77-48fa-9a6d-fe11b9112c1f/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/7dca00c3-9d77-48fa-9a6d-fe11b9112c1f/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S6_CRO_00_start.png",
+        "S6_CRO_T1_response.png",
+        "S6_CRO_running.png",
+        "S6_CRO_completed.png"
+      ],
+      "screenshot": "S6_CRO_completed.png",
+      "status": "pass"
+    }
+  ]
+}

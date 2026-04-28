@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="726" style="background:white;font-family:Arial, Helvetica, sans-serif;">
+  <defs>    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#555"/></marker>    <marker id="dr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">      <path d="M0,0 L0,6 L8,3 z" fill="#888"/></marker>  </defs>
+  <text x="340" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#1a1a1a">Stage 3–5: Hit-to-Lead · Lead Optimization · Preclinical</text>
+  <text x="40" y="48" font-size="9" fill="#2e7d32">✅ Internal</text>  <text x="130" y="48" font-size="9" fill="#5c3c8a">🔌 External API</text>  <text x="240" y="48" font-size="9" fill="#b85450">🔌🔌 External data</text>
+  <rect x="40" y="126" width="195" height="48" rx="8" ry="8" fill="#ffe6cc" stroke="#d6b656" stroke-width="2"/>
+  <text x="137" y="142" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🔗 HIT-TO-LEAD</text>
+  <text x="137" y="158" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">(H2L)</text>
+  <rect x="40" y="322" width="195" height="48" rx="8" ry="8" fill="#ffe6cc" stroke="#d6b656" stroke-width="2"/>
+  <text x="137" y="338" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">⚗ LEAD OPTIMIZATION</text>
+  <text x="137" y="354" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">(LO)</text>
+  <line x1="137" y1="174" x2="137" y2="322" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="40" y="542" width="195" height="48" rx="8" ry="8" fill="#f8cecc" stroke="#b85450" stroke-width="2"/>
+  <text x="137" y="566" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="bold" fill="#1a1a1a">🧪 PRECLINICAL DEVELOPMENT</text>
+  <line x1="137" y1="370" x2="137" y2="542" stroke="#555" stroke-width="2" marker-end="url(#ar)"/>
+  <rect x="260" y="60" width="370" height="180" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="78" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Predict ADMET Properties</text>
+  <text x="268" y="94" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CYP450 DDI Panel</text>
+  <text x="268" y="110" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ IVIVE Hepatic Clearance</text>
+  <text x="268" y="126" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ BCS / Oral Absorption</text>
+  <text x="268" y="142" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ CNS MPO Penetration</text>
+  <text x="268" y="158" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Membrane Permeability</text>
+  <text x="268" y="174" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Proteome Selectivity</text>
+  <text x="268" y="190" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Covalent Warhead Design</text>
+  <text x="268" y="206" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Target Engagement Kinetics</text>
+  <text x="268" y="222" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Metabolite Prediction</text>
+  <line x1="235" y1="150" x2="260" y2="150" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="256" width="370" height="180" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="274" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ GROMACS Protein-Ligand MD</text>
+  <text x="268" y="290" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ AMBER pmemd MD</text>
+  <text x="268" y="306" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ OpenFE RBFE</text>
+  <text x="268" y="322" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ REINVENT4 Generative Lead Design</text>
+  <text x="268" y="338" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Pharmacophore (iteration)</text>
+  <text x="268" y="354" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Transporter DDI</text>
+  <text x="268" y="370" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Repeated Dose Tox</text>
+  <text x="268" y="386" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DART Toxicity</text>
+  <text x="268" y="402" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ LNP Formulation</text>
+  <text x="268" y="418" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ ScFv Antibody Design</text>
+  <line x1="235" y1="346" x2="260" y2="346" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+  <rect x="260" y="452" width="370" height="228" rx="6" ry="6" fill="#f9f9f9" stroke="#aaaaaa" stroke-width="1.2"/>
+  <text x="268" y="470" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Allometric Scaling</text>
+  <text x="268" y="486" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ PBPK Simulation</text>
+  <text x="268" y="502" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ NP PK / Biodistribution</text>
+  <text x="268" y="518" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ DART Toxicity (confirm)</text>
+  <text x="268" y="534" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Repeated Dose Tox (confirm)</text>
+  <text x="268" y="550" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 CRO Submission Export (WuXi/Pharmaron)</text>
+  <text x="268" y="566" dominant-baseline="middle" font-size="10.5" fill="#5c3c8a">🔌 Assay Ingestion (needs LIMS/CSV)</text>
+  <text x="268" y="582" dominant-baseline="middle" font-size="10.5" fill="#2e7d32">✅ Bayesian Optimizer</text>
+  <text x="268" y="598" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 nlmixr2 PopPK (needs in vivo data)</text>
+  <text x="268" y="614" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 NCA PKNCA (needs in vivo PK data)</text>
+  <text x="268" y="630" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 Xenograft TGI</text>
+  <text x="268" y="646" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 Western Blot (lab images)</text>
+  <text x="268" y="662" dominant-baseline="middle" font-size="10.5" fill="#b85450">🔌🔌 LC-MS Proteomics (instrument data)</text>
+  <line x1="235" y1="566" x2="260" y2="566" stroke="#999" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#dr)"/>
+</svg>

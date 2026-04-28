@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-04-01T15:35:13.310704",
+  "total_tests": 3,
+  "successful_tests": 3,
+  "results": [
+    {
+      "scenario": "High Confidence - RNA-seq",
+      "success": true,
+      "source": "chain_lookup",
+      "confidence": 9,
+      "datasets_assigned": false,
+      "validation": null
+    },
+    {
+      "scenario": "Medium Confidence - Variant Calling",
+      "success": true,
+      "source": "template_reuse",
+      "confidence": 57,
+      "datasets_assigned": false,
+      "validation": {
+        "valid": false,
+        "errors": [
+          "Missing 'a_galaxy_workflow' marker",
+          "Missing required field: format-version"
+        ],
+        "num_steps": 0,
+        "has_workflow_marker": false
+      }
+    },
+    {
+      "scenario": "Low Confidence - Novel Analysis",
+      "success": true,
+      "source": "template_reuse",
+      "confidence": 37,
+      "datasets_assigned": false,
+      "validation": {
+        "valid": false,
+        "errors": [
+          "Missing 'a_galaxy_workflow' marker",
+          "Missing required field: format-version"
+        ],
+        "num_steps": 0,
+        "has_workflow_marker": false
+      }
+    }
+  ]
+}

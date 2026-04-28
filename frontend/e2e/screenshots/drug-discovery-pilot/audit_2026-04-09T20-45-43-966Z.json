@@ -1,0 +1,188 @@
+{
+  "generated": "2026-04-09T20:45:43.965Z",
+  "suiteStartedAt": "2026-04-09T20:44:00.953Z",
+  "pilotReference": "docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+  "testAccount": "e2e_pilot_drug_discovery@biomate.test",
+  "baseUrl": "https://dev-public.biomate.ai",
+  "screenshotDir": "/home/yzhang/biomate/frontend/e2e/screenshots/drug-discovery-pilot",
+  "hypotheses": {
+    "H1": {
+      "target": "≥80% sessions generate workflow without manual correction",
+      "result": "1/1 (100%)",
+      "pass": true
+    },
+    "H2": {
+      "target": "≤120s per session time-to-workflow-card",
+      "result": "1/1 sessions within 120s",
+      "pass": true,
+      "avgFirstResponseMs": 47990
+    },
+    "H3": {
+      "target": "≥70% sessions rated ≥4/5 for scientific defensibility",
+      "result": "1/1 (100%)",
+      "pass": true,
+      "ratings": [
+        {
+          "session": "S1_ADMET",
+          "rating": 4
+        }
+      ]
+    },
+    "H5": {
+      "target": "0 hallucinations — all generated workflows exist in DB",
+      "result": "1/1 workflows verified",
+      "pass": true
+    }
+  },
+  "timingTable": [
+    {
+      "session": "S1_ADMET",
+      "name": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "turns": 1,
+      "firstResponseMs": 47990,
+      "firstWorkflowCardMs": 47990,
+      "totalSessionMs": 60268,
+      "h1": true,
+      "h2": true,
+      "h3": 4,
+      "h5": true,
+      "llm_input_tokens_delta": 0,
+      "llm_output_tokens_delta": 0,
+      "llm_cost_usd_delta": 0.011504999999999987,
+      "compute_cost_usd_delta": 0,
+      "total_cost_usd_delta": 0.011504999999999987,
+      "execRunId": "52f01d0a-5a0c-42c8-8c2b-2edeb39c0191",
+      "execStatus": "failed",
+      "execDurationMs": 5515,
+      "outputFileCount": 0,
+      "phaseCount": 4,
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png"
+      ],
+      "status": "pass"
+    }
+  ],
+  "billingTotals": {
+    "llm_input_tokens": 0,
+    "llm_output_tokens": 0,
+    "llm_cost_usd": 0.011504999999999987,
+    "compute_cost_usd": 0,
+    "total_usd": 0.011504999999999987,
+    "totalDurationMs": 60268,
+    "costPerSession": 0.011504999999999987,
+    "finalLagoSnapshot": {
+      "ts": "2026-04-09T20:45:43.571Z",
+      "llm_input_tokens": 0,
+      "llm_output_tokens": 0,
+      "llm_cost_usd": 0.45867,
+      "compute_cost_usd": 0,
+      "storage_cost_usd": 0,
+      "total_usd": 0.45867,
+      "quota_pct": 0
+    }
+  },
+  "roiMetrics": {
+    "sessionsCompleted": 1,
+    "totalWallClockMs": 60268,
+    "avgSessionMs": 60268,
+    "maxSessionMs": 60268,
+    "totalLLMCost_usd": 0.011504999999999987,
+    "totalComputeCost_usd": 0,
+    "totalCost_usd": 0.011504999999999987,
+    "manualEquivalentHours": 24,
+    "bioMateWallClockHours": 0.01674111111111111,
+    "speedupFactor": 1433.596601845092,
+    "costPerWorkflowGeneration": 0.011504999999999987,
+    "note": "Compute costs are $0 for mock-mode Nextflow runs. Real AWS Batch costs apply on cloud."
+  },
+  "sessions": [
+    {
+      "sessionId": "S1_ADMET",
+      "sessionName": "ADMET Profiling — 15 BCR-ABL1 Compounds",
+      "pilotSession": "Session 1 — docs/pilot_study/20260325_INTERNAL_PILOT_VALIDATION_RUN_REPORT.md",
+      "workflowId": "predict_admet_properties",
+      "startTs": "2026-04-09T20:44:01.815Z",
+      "endTs": "2026-04-09T20:45:02.083Z",
+      "totalDurationMs": 60268,
+      "turns": [
+        {
+          "turn": 1,
+          "query": "Run ADMET toxicity screening on these BCR-ABL1 drug candidates. Predict hERG IC50 (cardiac safety), DILI risk score, and BBB penetration. All SMILES provided:\nImatinib: Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3…",
+          "tSendMs": 1775767443545,
+          "tResponseMs": 1775767491535,
+          "tWorkflowCardMs": 1775767491535,
+          "responseTimeMs": 47990,
+          "workflowCardTimeMs": 47990,
+          "workflowName": null,
+          "workflowPath": null,
+          "intentType": null,
+          "hasRunButton": true,
+          "responseText": "ADMET Toxicity Screening — BCR-ABL1 Drug Candidates — Predicts cardiac safety, hepatotoxicity risk, and CNS penetration for 5 kinase inhibitors from SMILES input.\n\nInput: 5 SMILES strings — Imatinib, Dasatinib, Nilotinib, Asciminib, and Terfenadine (positive hERG control reference)\nKey steps:\n\npredict_admet_properties ingests all 5 SMILES → computes 6 endpoints per compound: hERG cardiac IC₅₀, DILI hepatotoxicity score, Caco-2 permeability, BBB penetration, aqueous solubility, Ames mutagenicity\nEndpoint results aggregated → admet_results.csv + risk_summary.json with per-compound safety flags\n\n\nExpected output: admet_results.csv (full 6-endpoint table across all 5 compounds) + risk_summary.json (binary risk flags and confidence scores per compound) — Terfenadine will serve as a hERG-positive benchmark to validate model sensitivity\n\nDecision gate: Flag any compound with predicted hERG IC₅₀ < 1 μM as a cardiac liability; DILI score > 0.5 triggers hepatotoxicity review; BBB penetration ratio > 0.1 indicates CNS exposure risk.\nRequired inputs\n\nInput data files (e.g., structures/SMILES, assay data, or concentration-time table)\nBasic study metadata (condition, units, and endpoint definitions)\n\nNext step\n\nConfirm the intended analysis priority and upload the required inputs so I can produce a runnable, decision-ready workflow.\nAdmet PredIDLEParametersNo editable parameters detected for this workflow.Validate EnvironmentRun WorkflowPauseResumeRestartCancelQC SettingsExecution checklistWarningsInput datawarningNo input data detected yet.Upload or select your data files.Required parametersokRequired parameters are satisfied.View ResultsDownload AllDownload QC Audit LogDownload Methods ReportExecution ProgressLast update: 3:44:50 PMRun contextRun ID: n/aInvocation ID: n/aNextflow run ID: n/aExecution evidenceRun ID: n/aInvocation ID: n/aRuntime status: idleExecution triageStatus: idleNext action: Configure parameters and prerequisites, then run the workflow.Logs: No runtime log"
+        }
+      ],
+      "billingBefore": {
+        "ts": "2026-04-09T20:44:03.404Z",
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.444909,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.444909,
+        "quota_pct": 0
+      },
+      "billingAfter": {
+        "ts": "2026-04-09T20:45:01.980Z",
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.456414,
+        "compute_cost_usd": 0,
+        "storage_cost_usd": 0,
+        "total_usd": 0.456414,
+        "quota_pct": 0
+      },
+      "billingDelta": {
+        "llm_input_tokens": 0,
+        "llm_output_tokens": 0,
+        "llm_cost_usd": 0.011504999999999987,
+        "compute_cost_usd": 0,
+        "total_usd": 0.011504999999999987
+      },
+      "h1Pass": true,
+      "h2Pass": true,
+      "h3Rating": 4,
+      "h5Pass": true,
+      "workflowExists": true,
+      "notes": [
+        "T1 response: 47990ms card=true",
+        "runId=52f01d0a-5a0c-42c8-8c2b-2edeb39c0191 execStatus=failed execDuration=5.5s outputFiles=0 phases=4"
+      ],
+      "execution": {
+        "runId": "52f01d0a-5a0c-42c8-8c2b-2edeb39c0191",
+        "status": "failed",
+        "tStartMs": 1775767491674,
+        "tTerminalMs": 1775767497189,
+        "executionDurationMs": 5515,
+        "outputFiles": [],
+        "downloadCommands": {
+          "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/52f01d0a-5a0c-42c8-8c2b-2edeb39c0191/ ./outputs/",
+          "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/52f01d0a-5a0c-42c8-8c2b-2edeb39c0191/ ./outputs/ --include '*.json' --exclude '*'",
+          "intermediate_files": {
+            "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/52f01d0a-5a0c-42c8-8c2b-2edeb39c0191/ ./work/"
+          }
+        },
+        "phaseCount": 4
+      },
+      "screenshots": [
+        "S1_ADMET_00_start.png",
+        "S1_ADMET_T1_response.png",
+        "S1_ADMET_running.png",
+        "S1_ADMET_completed.png"
+      ],
+      "screenshot": "S1_ADMET_completed.png",
+      "status": "pass"
+    }
+  ]
+}

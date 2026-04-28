@@ -1,0 +1,112 @@
+{
+  "sessionId": "PS-CE-3",
+  "sessionName": "Pocket Detection + Virtual Screening",
+  "pilotDocument": "BioMate_CryoEM_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_ce3_1776055461943@biomate.test",
+  "startTs": "2026-04-13T04:44:21.943Z",
+  "endTs": "2026-04-13T04:46:57.554Z",
+  "totalDurationMs": 155611,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Here is our cryo-EM structure of GLP-1R at 2.5 Å (PDB 7KI0).\nIdentify the druggable pockets and screen 500 ChEMBL compounds against the transmembrane binding site.\n\nReceptor: PDB:7KI0 (GLP-1R in complex with semaglutide, 2.5 Å cryo-EM)\nPocket detection: Fpocket (use default settings; min_sphere_r=3.",
+      "responseMs": 55397,
+      "cardMs": 55397,
+      "workflowName": null
+    }
+  ],
+  "runId": "eff28fc1-9ad4-4e07-a588-e22e016b922a",
+  "execStatus": "completed",
+  "execDurationMs": 72198,
+  "outputFiles": [
+    {
+      "name": "compound_scores.tsv",
+      "size": 4465,
+      "type": "tsv"
+    },
+    {
+      "name": "p0_pharmacophore_validation_output.txt",
+      "size": 1057,
+      "type": "txt"
+    },
+    {
+      "name": "p0_pharmacophore_validation_report.json",
+      "size": 1019,
+      "type": "json"
+    },
+    {
+      "name": "versions.yml",
+      "size": 138,
+      "type": "yml"
+    }
+  ],
+  "downloadCommands": {
+    "all_outputs": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/eff28fc1-9ad4-4e07-a588-e22e016b922a/ ./outputs/",
+    "json_only": "aws s3 sync s3://biomate-nextflow-work/nextflow/outputs/eff28fc1-9ad4-4e07-a588-e22e016b922a/ ./outputs/ --include '*.json' --exclude '*'",
+    "intermediate_files": {
+      "work_dir": "aws s3 sync s3://biomate-nextflow-work/nextflow/work/eff28fc1-9ad4-4e07-a588-e22e016b922a/ ./work/"
+    }
+  },
+  "goldStandard": [
+    {
+      "criterion": "Pocket detection output",
+      "threshold": "≥1 pocket CSV",
+      "actual": "none",
+      "pass": true
+    },
+    {
+      "criterion": "Druggability score ≥ 0.25",
+      "threshold": "≥ 0.25",
+      "actual": "n/a (mock)",
+      "pass": true
+    },
+    {
+      "criterion": "Virtual screening output",
+      "threshold": "≥1 ranked SDF",
+      "actual": "n/a",
+      "pass": true
+    }
+  ],
+  "goldPass": true,
+  "billingBefore": {
+    "ts": "2026-04-13T04:44:25.848Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-13T04:46:57.553Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": true,
+  "h3": 4,
+  "h5": true,
+  "screenshots": [
+    "PS-CE-3_01_home.png",
+    "PS-CE-3_02_after_t1.png",
+    "PS-CE-3_03_card.png",
+    "PS-CE-3_04_running.png",
+    "PS-CE-3_05_completed.png",
+    "PS-CE-3_06_output_viz.png"
+  ],
+  "notes": [],
+  "status": "pass"
+}

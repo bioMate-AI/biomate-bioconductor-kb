@@ -28,7 +28,13 @@ class BiomniEval1:
             dataset_path: Path to the merged dataset parquet file
         """
 
-        self.df = pd.read_parquet("hf://datasets/biomni/Eval1/biomni_eval1_dataset.parquet")
+        import os
+        _LOCAL = os.path.expanduser(
+            "~/.cache/huggingface/hub/datasets--biomni--Eval1/snapshots/"
+            "51f97feb9e377fac7384faae49046bc067283c38/biomni_eval1_dataset.parquet"
+        )
+        _src = _LOCAL if os.path.exists(_LOCAL) else "hf://datasets/biomni/Eval1/biomni_eval1_dataset.parquet"
+        self.df = pd.read_parquet(_src)
 
         # Create index mapping for fast lookup using task_instance_id
         self.instance_map = {}

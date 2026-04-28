@@ -1,0 +1,85 @@
+{
+  "sessionId": "PS-DD-4",
+  "sessionName": "REINVENT4 Lead Design",
+  "pilotDocument": "BioMate_DrugDiscovery_Pilot_Study_Proposal_v2.docx",
+  "email": "e2e_pilot_dd4_1775790013557@biomate.test",
+  "startTs": "2026-04-10T03:00:13.557Z",
+  "endTs": "2026-04-10T03:01:38.658Z",
+  "totalDurationMs": 85101,
+  "turns": [
+    {
+      "n": 1,
+      "query": "Generate 20 analogues of imatinib with improved binding to BCR-ABL1 and better oral bioavailability.\nCheck synthetic routes for the top 5 candidates.\n\nSeed SMILES (imatinib): Cc1ccc(NC(=O)c2ccc(CN3CCN(C)CC3)cc2)cc1Nc1nccc(-c2cccnc2)n1\nMode: scaffold_decoration\nOptimisation objectives: docking score ",
+      "responseMs": 51748,
+      "cardMs": 51748,
+      "workflowName": null
+    }
+  ],
+  "runId": "chain:chain_1775790077_3523b6",
+  "execStatus": "failed",
+  "execDurationMs": 16042,
+  "outputFiles": [],
+  "downloadCommands": {},
+  "goldStandard": [
+    {
+      "criterion": "Analogue output file",
+      "threshold": "≥1 SMILES file",
+      "actual": "none",
+      "pass": false
+    },
+    {
+      "criterion": "≥10 analogues generated",
+      "threshold": "≥10 compounds",
+      "actual": "0 compounds",
+      "pass": true
+    },
+    {
+      "criterion": "Lipinski filter applied",
+      "threshold": "MW<500 filter",
+      "actual": "n/a (mock)",
+      "pass": true
+    }
+  ],
+  "goldPass": false,
+  "billingBefore": {
+    "ts": "2026-04-10T03:00:17.576Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingAfter": {
+    "ts": "2026-04-10T03:01:38.658Z",
+    "llm_in_tokens": 0,
+    "llm_out_tokens": 0,
+    "llm_cost_usd": 0,
+    "compute_cost_usd": 0,
+    "total_usd": 0,
+    "quota_pct": 0,
+    "error": "no_jwt"
+  },
+  "billingDelta": {
+    "llm_in": 0,
+    "llm_out": 0,
+    "llm_usd": 0,
+    "compute_usd": 0,
+    "total_usd": 0
+  },
+  "h1": true,
+  "h2": true,
+  "h3": 4,
+  "h5": true,
+  "screenshots": [
+    "PS-DD-4_01_home.png",
+    "PS-DD-4_02_after_t1.png",
+    "PS-DD-4_03_card.png",
+    "PS-DD-4_04_running.png",
+    "PS-DD-4_05_failed.png",
+    "PS-DD-4_06_output_viz.png"
+  ],
+  "notes": [],
+  "status": "partial"
+}

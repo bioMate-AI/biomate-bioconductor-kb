@@ -1,0 +1,93 @@
+======================================================================
+ADMET Auto-Loop Run: 5930c52b-19c5-4209-a064-132aaf9cc3a4
+Generated: 2026-04-21T03:35:42+00:00 UTC
+======================================================================
+
+Phase phase_2_admet_prediction  [PASS]  (3 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=halt
+    Gate results:
+      [!!!] herg_ic50                         value=1  threshold=10
+      [!!!] dili_probability                  value=0.82  threshold=0.5
+      [!!!] dili_risk_level                   value=2  threshold=1
+      [OK ] ames_mutagenicity                 value=0.31  threshold=0.5
+      [OK ] logp                              value=5  threshold=5
+      [ADV] molecular_weight                  value=510  threshold=500
+    Remediations:
+      gate=herg_ic50
+        logp_max → 4.5
+        mw_max_da → 450.0
+        Rationale: hERG IC50 1.00 µM below safety threshold 10 µM.
+                   Reduced logp_max 5.0→4.5 (−0.5); mw_max_da
+                   500→450 Da (−10%). Per Aronov 2008, lower logP
+                   compounds have weaker hERG channel affinity
+                   (≈+41% IC50 improvement per 0.5 logP unit
+                   reduction).
+      gate=dili_probability
+        logp_max → 4.0
+        mw_max_da → 400.0
+        Rationale: DILI probability 0.820 exceeds threshold 0.50.
+                   Set logp_max=4.0, mw_max_da=400 to stay below
+                   the Lammert 2010 high-risk zone (logP>4.0 AND
+                   MW>400 Da).
+      gate=dili_risk_level
+        logp_max → 4.0
+        Rationale: DILI risk level 'dili_risk_level' exceeds
+                   allowed maximum. Capping logp_max at 4.0 to
+                   remain below the Lammert logP > 4.0 high-risk
+                   boundary.
+
+  Attempt #2  outcome=halt
+    Gate results:
+      [!!!] herg_ic50                         value=7.5  threshold=10
+      [ADV] dili_probability                  value=0.44  threshold=0.5
+      [ADV] dili_risk_level                   value=1  threshold=1
+      [OK ] ames_mutagenicity                 value=0.22  threshold=0.5
+      [OK ] logp                              value=4.2  threshold=5
+      [OK ] molecular_weight                  value=430  threshold=500
+    Remediations:
+      gate=herg_ic50
+        logp_max → 3.5
+        Rationale: hERG IC50 7.50 µM below safety threshold 10 µM.
+                   Reduced logp_max 4.0→3.5 (−0.5). Per Aronov
+                   2008, lower logP compounds have weaker hERG
+                   channel affinity (≈+41% IC50 improvement per
+                   0.5 logP unit reduction).
+
+  Attempt #3  outcome=pass
+    Gate results:
+      [OK ] herg_ic50                         value=14  threshold=10
+      [OK ] dili_probability                  value=0.28  threshold=0.5
+      [OK ] dili_risk_level                   value=0  threshold=1
+      [OK ] ames_mutagenicity                 value=0.15  threshold=0.5
+      [OK ] logp                              value=3.1  threshold=5
+      [OK ] molecular_weight                  value=380  threshold=500
+
+  Phase final: pass after 3 attempt(s)
+
+Phase phase_3_herg_screen  [PASS]  (1 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=pass
+    Gate results:
+      [OK ] herg_ic50                         value=14  threshold=10
+
+  Phase final: pass after 1 attempt(s)
+
+Phase phase_4_dili_ames  [PASS]  (1 attempt(s))
+--------------------------------------------------
+  Attempt #1  outcome=pass
+    Gate results:
+      [OK ] dili_probability                  value=0.28  threshold=0.5
+      [OK ] dili_risk_level                   value=0  threshold=1
+      [OK ] ames_mutagenicity                 value=0.15  threshold=0.5
+
+  Phase final: pass after 1 attempt(s)
+
+======================================================================
+Summary
+--------------------------------------------------
+  Phases passed:     3
+  Phases failed:     0
+  Phases escalated:  0
+  Total attempts:    8
+======================================================================

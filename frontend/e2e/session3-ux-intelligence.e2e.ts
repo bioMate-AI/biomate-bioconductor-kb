@@ -67,7 +67,7 @@ test("S3-1: Pre-execution summary appears before workflow panel", async ({ page 
 
   const hasWorkflow = await sendMessageAndWaitForResponse(
     page,
-    "Run ADMET property prediction for compound CHEMBL123456"
+    "Run ADMET property prediction for CC(=O)Oc1ccccc1C(=O)O"
   );
   await ss(page, "s3a1-01-response");
 
@@ -375,7 +375,7 @@ test("S3-10: Suggest step button pre-fills chat input", async ({ page }) => {
 
   const hasWorkflow = await sendMessageAndWaitForResponse(
     page,
-    "Run ADMET property prediction for CHEMBL123456"
+    "Run ADMET property prediction for CC(=O)Oc1ccccc1C(=O)O"
   );
   await ss(page, "s3c10-01-response");
 
@@ -531,7 +531,7 @@ test("S3-15: Full Session 3 smoke — workflow → panel → hint → suggest st
   console.log("[S3-15] Step 1: Send workflow request");
   const hasWorkflow = await sendMessageAndWaitForResponse(
     page,
-    "Run ADMET property prediction for CHEMBL123456"
+    "Run ADMET property prediction for CC(=O)Oc1ccccc1C(=O)O"
   );
   await ss(page, "s3smoke-01-response");
 
@@ -693,7 +693,7 @@ test("S3-17: FindingsCard renders inside workflow viewer output section", async 
 
   const hasWorkflow = await sendMessageAndWaitForResponse(
     page,
-    "Run ADMET property prediction for CHEMBL654321"
+    "Run ADMET property prediction for CC(=O)Oc1ccccc1C(=O)O"
   );
   await ss(page, "s3d17-01-workflow");
   expect(hasWorkflow, "Workflow card must appear").toBe(true);

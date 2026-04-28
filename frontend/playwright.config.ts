@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { config as dotenvConfig } from 'dotenv';
+
+// Load .env so E2E_TEST_TOKEN (and other server env vars) are available to tests
+dotenvConfig();
 
 /**
  * Playwright configuration for BioMate E2E tests
@@ -19,22 +23,24 @@ export default defineConfig({
     ['list'],
   ],
 
-  // Per-test timeout: 10 minutes. Drug-dev workflows use the full AI pipeline (~30-180s each).
-  timeout: 600000,
+  // Per-test timeout: 10 minutes for most tests; CryoEM real-run tests override via test.setTimeout().
+  // Playwright uses the MINIMUM of global timeout and test.setTimeout, so set global high enough
+  // to not interfere with CryoEM's 45-min real CryoSPARC runs.
+  timeout: 2_700_000,
 
   use: {
     baseURL: process.env.BIOMATE_URL || 'http://localhost:5000',
     trace: 'retain-on-failure',
     screenshot: 'on', // Capture screenshots for every test — audit trail
     video: {
-      mode: 'on', // Record video for every test — audit trail
+      mode: 'off', // Disabled — video recording causes OOM during long-running cryo-EM tests
       size: { width: 1920, height: 1080 },
     },
     actionTimeout: 60000,
     navigationTimeout: 90000,
     // Bypass global rate limiter for all browser-initiated requests
     extraHTTPHeaders: {
-      'X-E2E-Test-Token': process.env.E2E_TEST_TOKEN || 'biomate-e2e-bypass-token-dev-only',
+      'X-E2E-Test-Token': process.env.E2E_TEST_TOKEN || 'test-e2e-token-12345',
     },
   },
 
@@ -47,6 +53,19 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },
+      },
+    },
+    {
+      name: 'demo',
+      testMatch: '**/*.demo.ts',
+      outputDir: 'e2e/demo-artifacts',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1920, height: 1080 },
+        video: {
+          mode: 'on',
+          size: { width: 1920, height: 1080 },
+        },
       },
     },
     // Optionally add Firefox for cross-browser testing

@@ -1,0 +1,117 @@
+{
+  "run_at": "2026-04-20T04:57:32.209374",
+  "api_url": "http://localhost:8081",
+  "total": 1,
+  "passed": 1,
+  "failed": 0,
+  "dry_run": false,
+  "workflows": [
+    {
+      "id": 12873,
+      "name": "pbpk_simulation",
+      "domain": "drug_discovery",
+      "started_at": "2026-04-20T04:56:29.989151",
+      "run_id": "dd5a4066-a2c3-49ad-9395-147b58a373c4",
+      "submit_status": "running",
+      "outdir": "",
+      "final_status": "succeeded",
+      "poll_data": {
+        "run_id": "dd5a4066-a2c3-49ad-9395-147b58a373c4",
+        "invocation_id": "a2e5c0a4-7308-42cf-9094-fe50fa1c3bc8",
+        "status": "succeeded",
+        "returncode": 0,
+        "outdir": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637",
+        "work_dir": "s3://biomate-nextflow-work/nextflow/work/test-drug-dev-batch/dd5a4066-a2c3-49ad-9395-147b58a373c4",
+        "log_tail": [
+          "\u001b[2m[\u001b[0;34m-        \u001b[0;2m] \u001b[0;2mPBPK_WORKFLOW:\u001b[mPBPK_SIMULATION -\u001b[K",
+          "\u001b[2A",
+          "\u001b[2m[\u001b[0;34m-        \u001b[0;2m] \u001b[0;2mPBPK_WORKFLOW:\u001b[mPBPK_SIMULATION\u001b[2m |\u001b[m 0 of 1\u001b[K",
+          "\u001b[2A",
+          "\u001b[2mexecutor >  awsbatch (1)\u001b[m\u001b[K",
+          "\u001b[2m[\u001b[0;34m5a/64140b\u001b[0;2m] \u001b[0;2m\u001b[mPBP\u2026PBPK_SIMULATION\u001b[33;2m (\u001b[0;33mpbpk_run\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K",
+          "\u001b[3A",
+          "\u001b[2mexecutor >  awsbatch (1)\u001b[m\u001b[K",
+          "\u001b[2m[\u001b[0;34m5a/64140b\u001b[0;2m] \u001b[0;2m\u001b[mPBP\u2026PBPK_SIMULATION\u001b[33;2m (\u001b[0;33mpbpk_run\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[K",
+          "\u001b[3A",
+          "\u001b[2mexecutor >  awsbatch (1)\u001b[m\u001b[K",
+          "\u001b[2m[\u001b[0;34m5a/64140b\u001b[0;2m] \u001b[0;2m\u001b[mPBP\u2026PBPK_SIMULATION\u001b[33;2m (\u001b[0;33mpbpk_run\u001b[2m)\u001b[m\u001b[2m |\u001b[m 0 of 1\u001b[32m \u2714\u001b[m\u001b[K",
+          "\u001b[3A",
+          "\u001b[2mexecutor >  awsbatch (1)\u001b[m\u001b[K",
+          "\u001b[2m[\u001b[0;34m5a/64140b\u001b[0;2m] \u001b[0;2m\u001b[mPBP\u2026PBPK_SIMULATION\u001b[33;2m (\u001b[0;33mpbpk_run\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K",
+          "\u001b[3A",
+          "\u001b[2mexecutor >  awsbatch (1)\u001b[m\u001b[K",
+          "\u001b[2m[\u001b[0;34m5a/64140b\u001b[0;2m] \u001b[0;2m\u001b[mPBP\u2026PBPK_SIMULATION\u001b[33;2m (\u001b[0;33mpbpk_run\u001b[2m)\u001b[m\u001b[2m |\u001b[m 1 of 1\u001b[32m \u2714\u001b[m\u001b[K",
+          "WARN: Graphviz is required to render the execution DAG in the given format -- See http://www.graphviz.org for more info.",
+          ""
+        ],
+        "is_batch": true,
+        "s3_output_files": [
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/ddi_fold_change.json",
+            "name": "ddi_fold_change.json",
+            "size": 165,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/nca_parameters.json",
+            "name": "nca_parameters.json",
+            "size": 187,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/pbpk_output.txt",
+            "name": "pbpk_output.txt",
+            "size": 335,
+            "extension": "txt"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/pbpk_results.json",
+            "name": "pbpk_results.json",
+            "size": 225,
+            "extension": "json"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/pk_profile.csv",
+            "name": "pk_profile.csv",
+            "size": 6910,
+            "extension": "csv"
+          },
+          {
+            "s3_uri": "s3://biomate-nextflow-work/nextflow/outputs/test-drug-dev-batch/ee35c637/pbpk_run/versions.yml",
+            "name": "versions.yml",
+            "size": 90,
+            "extension": "yml"
+          }
+        ],
+        "started_at": 1776660991.9313226,
+        "completed_at": 1776661051.7760034,
+        "duration_s": 59,
+        "completedTasks": 1,
+        "failedTasks": 0,
+        "runningTasks": 0,
+        "totalTasks": 1,
+        "progressPercent": 100,
+        "processes": [
+          {
+            "id": "1",
+            "name": "PBPK_WORKFLOW:PBPK_SIMULATION (pbpk_run)",
+            "status": "COMPLETED",
+            "work_dir": "",
+            "task_files": [],
+            "outputs": []
+          }
+        ]
+      },
+      "finished_at": "2026-04-20T04:57:32.208946",
+      "outputs": {
+        "checked": true,
+        "found": [
+          "pbpk_results.json",
+          "pk_profile.csv"
+        ],
+        "missing": []
+      },
+      "passed": true
+    }
+  ]
+}

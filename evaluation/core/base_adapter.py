@@ -45,6 +45,11 @@ class BenchmarkResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
     timestamp: float = field(default_factory=time.time)
+    # Cost tracking (filled by BioMateEvalClient when server returns token counts)
+    input_tokens: Optional[int] = None
+    output_tokens: Optional[int] = None
+    cost_usd: Optional[float] = None
+    model: Optional[str] = None
 
 
 class BenchmarkAdapter(abc.ABC):
@@ -89,14 +94,23 @@ class BenchmarkAdapter(abc.ABC):
         self.prepare(client)
         results: List[BenchmarkResult] = []
 
+        import threading
         concurrency = self.config.get("concurrency", {}).get("max_parallel_tasks", 4)
+        _thread_local = threading.local()
+
+        def _get_thread_client():
+            if not hasattr(_thread_local, "client"):
+                _thread_local.client = client.clone() if hasattr(client, "clone") else client
+            return _thread_local.client
 
         def _run_one(task: BenchmarkTask) -> BenchmarkResult:
             t0 = time.time()
             error = None
             response_text = ""
+            response = None
+            tc = _get_thread_client()
             try:
-                response = client.ask(self.task_prompt(task))
+                response = tc.ask(self.task_prompt(task))
                 response_text = response.text
             except Exception as exc:
                 error = str(exc)
@@ -117,6 +131,10 @@ class BenchmarkAdapter(abc.ABC):
                 latency_sec=time.time() - t0,
                 metadata=task.metadata,
                 error=error,
+                input_tokens=response.input_tokens if response else None,
+                output_tokens=response.output_tokens if response else None,
+                cost_usd=response.cost_usd if response else None,
+                model=response.model if response else None,
             )
 
         with ThreadPoolExecutor(max_workers=concurrency) as pool:
@@ -127,24 +145,41 @@ class BenchmarkAdapter(abc.ABC):
         self.teardown(client)
         return results
 
-    def run_tasks(self, client, tasks: List[BenchmarkTask]) -> List[BenchmarkResult]:
+    def run_tasks(self, client, tasks: List[BenchmarkTask],
+                  on_result=None) -> List[BenchmarkResult]:
         """
         Execute a pre-filtered task list. Avoids reloading via load_tasks().
+        Each worker thread gets its own BioMateEvalClient to avoid session contention.
+        on_result: optional callback(BenchmarkResult) called immediately as each task finishes.
         """
         from concurrent.futures import ThreadPoolExecutor, as_completed
+        import threading
 
         self.prepare(client)
         results: List[BenchmarkResult] = []
 
         concurrency = self.config.get("concurrency", {}).get("max_parallel_tasks", 4)
 
+        # Thread-local storage: each thread creates its own client clone
+        _thread_local = threading.local()
+
+        def _get_thread_client():
+            if not hasattr(_thread_local, "client"):
+                _thread_local.client = client.clone() if hasattr(client, "clone") else client
+            return _thread_local.client
+
         def _run_one(task: BenchmarkTask) -> BenchmarkResult:
             t0 = time.time()
             error = None
             response_text = ""
+            tc = _get_thread_client()
             try:
-                response = client.ask(self.task_prompt(task))
-                response_text = response.text
+                # Use ask_task() if the adapter defines it (supports per-task retry logic)
+                if hasattr(self, "ask_task"):
+                    response_text = self.ask_task(tc, task)
+                else:
+                    response = tc.ask(self.task_prompt(task))
+                    response_text = response.text
             except Exception as exc:
                 error = str(exc)
 
@@ -169,7 +204,13 @@ class BenchmarkAdapter(abc.ABC):
         with ThreadPoolExecutor(max_workers=concurrency) as pool:
             futures = {pool.submit(_run_one, t): t for t in tasks}
             for future in as_completed(futures):
-                results.append(future.result())
+                result = future.result()
+                results.append(result)
+                if on_result:
+                    try:
+                        on_result(result)
+                    except Exception:
+                        pass
 
         self.teardown(client)
         return results

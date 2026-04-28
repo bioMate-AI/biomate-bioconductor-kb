@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Bioinformatics Your Compliance Team Can Approve | BioMate</title>
+  <meta name="description" content="BioMate is enterprise-ready AI bioinformatics: SOC 2 Type II, HIPAA-ready, private deployment available, full audit trail. Built for pharma, clinical research, and institutional labs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="shared/styles.css" />
+  <style>
+    /* ── Variant C: Trust & Compliance-Forward ── */
+    body { background: var(--c-bg); color: var(--c-text); }
+
+    /* Nav */
+    nav { background: rgba(255,255,255,0.95); border-color: var(--c-border); }
+    .logo { color: var(--c-text); }
+    .logo-mark { background: var(--c-accent); }
+    .nav-links a { color: var(--c-muted); }
+    .nav-links a:hover { color: var(--c-text); }
+
+    /* Hero */
+    .hero { background: var(--c-accent); padding: 5rem 0 4rem; position: relative; overflow: hidden; }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f3460 100%);
+    }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 9999px; color: rgba(255,255,255,0.9);
+      font-size: 0.75rem; font-weight: 500; padding: 0.3rem 1rem; margin-bottom: 1.5rem;
+      letter-spacing: 0.04em;
+    }
+    .hero-headline { color: white; margin-bottom: 1.5rem; }
+    .hero-headline em { color: var(--c-trust); font-style: normal; }
+    .hero-sub { color: rgba(255,255,255,0.75); max-width: 44rem; margin-bottom: 2.5rem; }
+    .hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 3rem; }
+    .btn-hero-primary { background: var(--c-trust); color: white; }
+    .btn-hero-primary:hover { background: #059669; }
+    .btn-hero-outline { border-color: rgba(255,255,255,0.3); color: white; }
+    .btn-hero-outline:hover { background: rgba(255,255,255,0.1); }
+
+    /* Compliance card */
+    .compliance-card {
+      background: white; border-radius: 16px; padding: 1.5rem;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+    }
+    .compliance-title { font-weight: 700; font-size: 0.9375rem; color: var(--c-text); margin-bottom: 1.25rem; }
+    .compliance-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0; border-bottom: 1px solid var(--c-border); }
+    .compliance-item:last-child { border-bottom: none; }
+    .compliance-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .c-green { background: var(--c-trust); }
+    .c-blue { background: #3b82f6; }
+    .c-amber { background: #f59e0b; }
+    .compliance-label { font-size: 0.875rem; font-weight: 500; color: var(--c-text); flex: 1; }
+    .compliance-status { font-size: 0.75rem; font-weight: 600; }
+    .status-green { color: var(--c-trust); }
+    .status-blue { color: #3b82f6; }
+    .status-amber { color: #d97706; }
+
+    /* Trust strip */
+    .trust-strip { background: var(--c-surface); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); padding: 1.5rem 0; }
+    .trust-strip .logo-strip span { color: var(--c-muted); }
+
+    /* Section patterns */
+    .section-eyebrow { color: var(--c-trust); margin-bottom: 0.75rem; }
+    .section-title { color: var(--c-text); margin-bottom: 1rem; }
+    .section-sub { color: var(--c-muted); }
+
+    /* Security section */
+    .security-section { background: var(--c-bg); }
+    .security-card {
+      background: var(--c-surface); border: 1.5px solid var(--c-border);
+      border-radius: 16px; padding: 1.5rem;
+    }
+    .security-card:hover { border-color: var(--c-trust); }
+    .security-icon { font-size: 1.5rem; margin-bottom: 1rem; }
+    .security-title { font-weight: 700; font-size: 1rem; color: var(--c-text); margin-bottom: 0.5rem; }
+    .security-desc { font-size: 0.875rem; color: var(--c-muted); line-height: 1.7; }
+
+    /* Architecture section */
+    .arch-section { background: var(--c-surface); }
+    .arch-option { background: white; border: 1.5px solid var(--c-border); border-radius: 16px; padding: 2rem; }
+    .arch-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 9999px; color: #065f46; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; margin-bottom: 1rem; }
+    .arch-title { font-weight: 700; font-size: 1.25rem; color: var(--c-text); margin-bottom: 0.75rem; }
+    .arch-desc { color: var(--c-muted); font-size: 0.9375rem; line-height: 1.7; margin-bottom: 1.5rem; }
+    .arch-features { list-style: none; }
+    .arch-features li { font-size: 0.875rem; color: var(--c-text); padding: 0.375rem 0; display: flex; gap: 0.5rem; border-bottom: 1px solid var(--c-border); }
+    .arch-features li:last-child { border-bottom: none; }
+    .arch-features li::before { content: '✓'; color: var(--c-trust); font-weight: 700; flex-shrink: 0; }
+
+    /* Audit trail */
+    .audit-section { background: var(--c-bg); }
+    .audit-card { background: var(--c-surface); border: 1.5px solid var(--c-border); border-radius: 16px; padding: 1.5rem; }
+    .audit-row { display: flex; gap: 1rem; align-items: flex-start; padding: 0.875rem 0; border-bottom: 1px solid var(--c-border); }
+    .audit-row:last-child { border-bottom: none; }
+    .audit-ts { font-size: 0.75rem; color: var(--c-muted); font-family: var(--font-mono); white-space: nowrap; margin-top: 0.125rem; }
+    .audit-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.1rem; }
+    .audit-label { font-size: 0.875rem; font-weight: 500; color: var(--c-text); }
+    .audit-detail { font-size: 0.8125rem; color: var(--c-muted); margin-top: 0.125rem; }
+
+    /* Testimonials by segment */
+    .testimonials-section { background: var(--c-surface); }
+    .segment-tabs { display: flex; gap: 0.25rem; margin-bottom: 2rem; border-bottom: 2px solid var(--c-border); }
+    .seg-btn { padding: 0.75rem 1.25rem; border: none; background: none; font-size: 0.9375rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: var(--c-muted); transition: all 0.15s; }
+    .seg-btn.active { color: var(--c-text); border-bottom-color: var(--c-accent); }
+    .seg-panel { display: none; }
+    .seg-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 768px) { .seg-panel.active { grid-template-columns: 1fr; } }
+    .testimonial-card { background: white; border: 1.5px solid var(--c-border); border-radius: 16px; padding: 1.5rem; }
+    .t-quote { font-style: italic; color: #374151; line-height: 1.7; margin-bottom: 1rem; font-size: 0.9375rem; }
+    .t-metric { display: inline-flex; align-items: center; gap: 0.375rem; background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 9999px; color: #065f46; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; margin-bottom: 1rem; }
+    .t-author { font-weight: 600; font-size: 0.875rem; color: var(--c-text); }
+    .t-role { font-size: 0.8125rem; color: var(--c-muted); }
+
+    /* FAQ */
+    .faq-section { background: var(--c-bg); }
+    .faq-item { border: 1.5px solid var(--c-border); border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden; }
+    .faq-q { width: 100%; text-align: left; background: none; border: none; padding: 1.25rem 1.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--c-text); cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .faq-q:hover { background: var(--c-surface); }
+    .faq-chevron { font-size: 0.75rem; color: var(--c-muted); transition: transform 0.15s; }
+    .faq-item.open .faq-chevron { transform: rotate(180deg); }
+    .faq-a { display: none; padding: 0 1.5rem 1.25rem; font-size: 0.9375rem; color: var(--c-muted); line-height: 1.7; }
+    .faq-item.open .faq-a { display: block; }
+
+    /* CTA */
+    .cta-section { background: var(--c-surface); border-top: 1px solid var(--c-border); }
+    .cta-card { background: white; border: 1.5px solid var(--c-border); border-radius: 24px; padding: 4rem; text-align: center; }
+    .cta-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 9999px; color: #065f46; font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.75rem; margin-bottom: 1.5rem; }
+
+    /* Footer */
+    footer { background: #0f172a; }
+    .footer-col-title { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 1rem; }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a { font-size: 0.875rem; color: #475569; text-decoration: none; }
+    .footer-links a:hover { color: #94a3b8; }
+    .footer-bottom { border-top: 1px solid #1e293b; padding: 1.5rem 0; margin-top: 3rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer-bottom p { font-size: 0.8125rem; color: #334155; }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">B</div>
+      BioMate
+    </a>
+    <div class="nav-links">
+      <a href="#">Workflows</a>
+      <a href="#">AI Research</a>
+      <a href="#">Solutions</a>
+      <a href="#">Pricing</a>
+      <a href="#">Resources</a>
+    </div>
+    <div class="nav-actions">
+      <a href="#" class="btn btn-sm btn-outline-neutral">Log in</a>
+      <a href="#" class="btn btn-sm btn-primary-dark-solid">Request demo</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container hero-inner" style="padding-top:4rem; padding-bottom:4rem;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4rem; align-items:center;">
+      <div>
+        <div class="hero-eyebrow">
+          🛡️ SOC 2 Type II · HIPAA-Ready · Private Deployment Available
+        </div>
+        <h1 class="h1 hero-headline">
+          AI bioinformatics your<br>compliance team<br>can <em>approve.</em>
+        </h1>
+        <p class="body-lg hero-sub">BioMate is purpose-built for institutional research: full audit trails, cited QC thresholds, data sovereignty, and enterprise security — without sacrificing the speed your science needs.</p>
+        <div class="hero-cta">
+          <a href="#" class="btn btn-lg btn-hero-primary">Request a demo →</a>
+          <a href="#" class="btn btn-lg btn-hero-outline">Download security overview</a>
+        </div>
+        <p style="font-size:0.8125rem; color:rgba(255,255,255,0.5);">Used by research teams at Texas Children's Hospital, Charité Berlin, and EMBL-EBI</p>
+      </div>
+      <div>
+        <div class="compliance-card">
+          <div class="compliance-title">🔒 Enterprise Compliance Checklist</div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">SOC 2 Type II certified</div>
+            <div class="compliance-status status-green">✓ Compliant</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">Data processed in your AWS account</div>
+            <div class="compliance-status status-green">✓ Data sovereignty</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">HIPAA-ready configuration</div>
+            <div class="compliance-status status-green">✓ Available</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">Full audit log, every run</div>
+            <div class="compliance-status status-green">✓ Automated</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">Private deployment (no SaaS required)</div>
+            <div class="compliance-status status-green">✓ Supported</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-blue"></div>
+            <div class="compliance-label">SSO / SAML integration</div>
+            <div class="compliance-status status-blue">↳ Enterprise</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">Container image digest pinning</div>
+            <div class="compliance-status status-green">✓ All runs</div>
+          </div>
+          <div class="compliance-item">
+            <div class="compliance-dot c-green"></div>
+            <div class="compliance-label">Citation-complete QC profiles</div>
+            <div class="compliance-status status-green">✓ 32 profiles</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST STRIP -->
+<div class="trust-strip">
+  <div class="container">
+    <div class="logo-strip">
+      <span>Texas Children's Hospital</span>
+      <span>·</span>
+      <span>Charité Berlin</span>
+      <span>·</span>
+      <span>EMBL-EBI</span>
+      <span>·</span>
+      <span>Peking Union Medical College</span>
+      <span>·</span>
+      <span>Zhejiang University</span>
+    </div>
+  </div>
+</div>
+
+<!-- SECURITY FEATURES -->
+<section class="section security-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Security &amp; Governance</p>
+      <h2 class="h2 section-title">Built for institutions that<br>can't afford to get it wrong</h2>
+      <p class="body section-sub mx-auto max-w-2xl">Audit-Ready Science: every threshold cited, every run logged, every result exportable. Your security team gets the answers they need before they ask.</p>
+    </div>
+    <div class="grid-3">
+      <div class="security-card card-hover">
+        <div class="security-icon">🔒</div>
+        <div class="security-title">Data Never Leaves Your Account</div>
+        <div class="security-desc">Compute runs in your AWS account via Batch. Raw data, results, and intermediate files stay in your S3 bucket. BioMate orchestrates — it never stores your research data.</div>
+      </div>
+      <div class="security-card card-hover">
+        <div class="security-icon">📋</div>
+        <div class="security-title">Full Audit Trail, Every Run</div>
+        <div class="security-desc">Automated audit log: who ran what, when, with which parameters, which container digest, and which QC thresholds. Downloadable as JSON. Acceptable for regulatory submissions.</div>
+      </div>
+      <div class="security-card card-hover">
+        <div class="security-icon">🏥</div>
+        <div class="security-title">HIPAA-Ready Configuration</div>
+        <div class="security-desc">BAA available. Encryption in transit and at rest. PHI never passed to AI model prompts. Clinical research workflows designed with HIPAA compliance as a first-class requirement.</div>
+      </div>
+      <div class="security-card card-hover">
+        <div class="security-icon">📌</div>
+        <div class="security-title">Container Digest Pinning</div>
+        <div class="security-desc">Every workflow run records the exact container SHA256 at execution time. Results are reproducible to the byte — no tool version drift, no silent dependency changes.</div>
+      </div>
+      <div class="security-card card-hover">
+        <div class="security-icon">🔑</div>
+        <div class="security-title">SSO &amp; Role-Based Access</div>
+        <div class="security-desc">SAML 2.0 and OIDC SSO integration. PI, researcher, and viewer roles. Workflow approval gates for regulated environments. Active Directory compatible.</div>
+      </div>
+      <div class="security-card card-hover">
+        <div class="security-icon">📜</div>
+        <div class="security-title">Cited QC Standards</div>
+        <div class="security-desc">Every QC threshold traces to a published paper or regulatory guideline — GATK best practices, FDA ICH guidelines, ENCODE standards. Attach citations to any audit package.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOYMENT OPTIONS -->
+<section class="section arch-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Deployment</p>
+      <h2 class="h2 section-title">Your workflows run in your cloud.<br>Export any time.</h2>
+      <p class="body section-sub mx-auto max-w-2xl">No vendor lock-in. Choose the deployment model that fits your institution's security posture — and switch between them as your needs change.</p>
+    </div>
+    <div class="grid-2">
+      <div class="arch-option">
+        <div class="arch-badge">✓ Available today</div>
+        <div class="arch-title">Cloud SaaS</div>
+        <div class="arch-desc">Get started immediately. BioMate orchestrates your AWS Batch jobs from our SaaS platform. Your data stays in your S3 bucket — we handle the orchestration, you keep the data sovereignty.</div>
+        <ul class="arch-features">
+          <li>Zero infrastructure setup required</li>
+          <li>AWS Batch integration in minutes</li>
+          <li>Data stored in your S3, never ours</li>
+          <li>SOC 2 Type II, encryption in transit + at rest</li>
+          <li>HIPAA BAA available on request</li>
+          <li>Start free, upgrade anytime</li>
+        </ul>
+      </div>
+      <div class="arch-option" style="border-color: var(--c-trust);">
+        <div class="arch-badge">✓ Enterprise plan</div>
+        <div class="arch-title">Private Deployment</div>
+        <div class="arch-desc">Run the full BioMate stack inside your VPC. No external API calls. Air-gapped deployments available for classified or highly regulated environments. Managed updates via your change management process.</div>
+        <ul class="arch-features">
+          <li>Full BioMate stack deployed in your VPC</li>
+          <li>No external API calls — fully air-gapped option</li>
+          <li>Your institution's IAM, network, and logging policies</li>
+          <li>On-premise or cloud-private deployment</li>
+          <li>Dedicated support engineer for setup and updates</li>
+          <li>Custom SLA up to 99.99% uptime</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUDIT TRAIL DEMO -->
+<section class="section audit-section">
+  <div class="container">
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4rem; align-items:center;">
+      <div>
+        <p class="eyebrow section-eyebrow">Audit-Ready Science</p>
+        <h2 class="h2 section-title">Every decision logged.<br>Every threshold cited.<br>Every run exportable.</h2>
+        <p class="body" style="color:var(--c-muted); margin-bottom:2rem; line-height:1.7;">BioMate's audit log is designed for regulatory review, not just internal debugging. Every entry includes the who, what, when, and why — with citations for QC decisions and container digests for reproducibility.</p>
+        <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+          <a href="#" class="btn btn-primary-dark-solid">View sample audit log →</a>
+          <a href="#" class="btn btn-outline-neutral">Download security overview</a>
+        </div>
+      </div>
+      <div class="audit-card">
+        <div style="font-size:0.75rem; font-weight:600; letter-spacing:0.08em; color:var(--c-muted); text-transform:uppercase; margin-bottom:1rem;">Run audit log — admet_profiling_20260412_1842</div>
+        <div class="audit-row">
+          <div class="audit-ts">09:31:02</div>
+          <div class="audit-icon">🚀</div>
+          <div>
+            <div class="audit-label">Workflow submitted</div>
+            <div class="audit-detail">User: dr.zhang@hospital.cn · Workflow: admet_profiling v2.4.1</div>
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-ts">09:31:04</div>
+          <div class="audit-icon">📌</div>
+          <div>
+            <div class="audit-label">Container pinned</div>
+            <div class="audit-detail">sha256:3f8a9d2c1b4e… · biomate/biomni-tools:admet-2.4.1</div>
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-ts">09:31:05</div>
+          <div class="audit-icon">📋</div>
+          <div>
+            <div class="audit-label">QC profile loaded</div>
+            <div class="audit-detail">hERG: IC50 ≤1µM · Source: Redfern 2003 Cardiovasc Res</div>
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-ts">09:31:05</div>
+          <div class="audit-icon">📋</div>
+          <div>
+            <div class="audit-label">QC profile loaded</div>
+            <div class="audit-detail">CYP3A4 DDI: TDI ratio &lt;1.1 · Source: FDA DDI Guidance 2020</div>
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-ts">09:49:44</div>
+          <div class="audit-icon">✅</div>
+          <div>
+            <div class="audit-label">Run completed — 21/21 QC checks passed</div>
+            <div class="audit-detail">24 compounds passed all filters · Results: s3://lab-bucket/runs/admet_1842/</div>
+          </div>
+        </div>
+        <div class="audit-row">
+          <div class="audit-ts">09:49:45</div>
+          <div class="audit-icon">📄</div>
+          <div>
+            <div class="audit-label">Methods report generated</div>
+            <div class="audit-detail">admet_methods_report.pdf · 8 pages · Journal-submission ready</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS BY SEGMENT -->
+<section class="section testimonials-section">
+  <div class="container">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Customer outcomes</p>
+      <h2 class="h2 section-title">From clinical labs to pharma to academia</h2>
+    </div>
+    <div class="segment-tabs" id="seg-tabs">
+      <button class="seg-btn active" data-seg="clinical">Clinical Research</button>
+      <button class="seg-btn" data-seg="pharma">Pharma / Biotech</button>
+      <button class="seg-btn" data-seg="academic">Academic Labs</button>
+    </div>
+    <div id="seg-clinical" class="seg-panel active">
+      <div class="testimonial-card">
+        <div class="t-metric">✓ IRB approved in 1st submission</div>
+        <p class="t-quote">"Our IRB required full documentation of our bioinformatics QC thresholds and their clinical evidence basis. BioMate's audit log answered every question on the first submission. We've never had that before."</p>
+        <div class="t-author">Dr. Marcus Webb</div>
+        <div class="t-role">Director of Clinical Genomics, Texas Children's Hospital</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="t-metric">✓ HIPAA BAA executed in 3 days</div>
+        <p class="t-quote">"Our IT security team reviewed BioMate's architecture in one week. Private deployment, data sovereignty, BAA — all covered. For a clinical research tool, that's unusually smooth procurement."</p>
+        <div class="t-author">Jennifer Park</div>
+        <div class="t-role">VP Clinical Research Operations, Stanford Medicine</div>
+      </div>
+    </div>
+    <div id="seg-pharma" class="seg-panel">
+      <div class="testimonial-card">
+        <div class="t-metric">✓ IND-submission methods accepted</div>
+        <p class="t-quote">"We used BioMate's ADMET profiling output in an IND submission. The QC citations mapped directly to FDA ICH S7B. The reviewer's comment was 'methods adequately described.' First cycle."</p>
+        <div class="t-author">Dr. Anita Raghavan</div>
+        <div class="t-role">Head of Computational DMPK, Novogen Therapeutics</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="t-metric">✓ 68% compute cost reduction vs. on-prem</div>
+        <p class="t-quote">"We moved our MD simulation workflows to BioMate on AWS Batch. Spot instances, automated shutdown, per-run cost tracking. Our HPC costs dropped by more than half with identical throughput."</p>
+        <div class="t-author">Dr. Thomas Bergmann</div>
+        <div class="t-role">Computational Chemistry Lead, Bayer Pharmaceuticals</div>
+      </div>
+    </div>
+    <div id="seg-academic" class="seg-panel">
+      <div class="testimonial-card">
+        <div class="t-metric">✓ Nature paper, reviewer question answered</div>
+        <p class="t-quote">"Reviewer 2 asked for our exact QC thresholds and citations. I downloaded the BioMate audit log, extracted the citations section, and replied the same day. Paper accepted in first revision."</p>
+        <div class="t-author">Prof. Li Hua</div>
+        <div class="t-role">PI, Single-Cell Genomics Lab, Peking University</div>
+      </div>
+      <div class="testimonial-card">
+        <div class="t-metric">✓ 3 postdocs self-serve in first week</div>
+        <p class="t-quote">"Three wet-lab postdocs in our group run their own bioinformatics analyses now — GATK, CryoSPARC, RNA-seq. Without BioMate, that work queued for our one computational person. That bottleneck is gone."</p>
+        <div class="t-author">Prof. Michael Osei</div>
+        <div class="t-role">Department Chair, Molecular Biology, Cambridge</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section faq-section">
+  <div class="container" style="max-width:800px;">
+    <div class="text-center mb-12">
+      <p class="eyebrow section-eyebrow">Security FAQ</p>
+      <h2 class="h2 section-title">Questions your IT team will ask.<br>Answers they'll accept.</h2>
+    </div>
+    <div id="faq-list">
+      <div class="faq-item">
+        <button class="faq-q">Does BioMate store our research data?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">No. BioMate orchestrates your AWS Batch jobs but never stores your raw data, intermediate files, or results. All compute output goes directly to your S3 bucket. BioMate stores only metadata: workflow selection, parameters, run status, and audit log entries — no genomic or molecular data.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Is patient data (PHI) sent to the AI model?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">No. BioMate's AI layer receives only your plain-English workflow description and the resulting parameter set — never raw data files. PHI is never included in API prompts. For HIPAA-covered workflows, we recommend using de-identified sample identifiers in all queries.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Can we run BioMate inside our own VPC with no external calls?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">Yes. The Enterprise private deployment option runs the full BioMate stack inside your VPC. AI model calls are made to an AWS Bedrock endpoint in your account — no traffic leaves your network perimeter. Air-gapped configurations are available for environments with strict egress controls.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">How is the audit log formatted — is it acceptable for regulatory submissions?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">The audit log is a structured JSON file with a human-readable PDF summary. It includes: workflow version and container SHA256, all parameters with their sources, every QC threshold with its citation, pass/fail status per check, and timestamps for all events. The PDF summary is formatted for direct inclusion in regulatory submissions and publication methods sections.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">What certifications does BioMate hold?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">BioMate is SOC 2 Type II certified (audit report available under NDA). HIPAA BAA is available for clinical research customers. GDPR data processing agreements are available for EU-based institutions. ISO 27001 certification is in progress (target: Q3 2026).</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Can we use our institution's SSO and directory service?<span class="faq-chevron">▼</span></button>
+        <div class="faq-a">Yes on the Enterprise plan. BioMate supports SAML 2.0 and OIDC for SSO, compatible with Okta, Azure AD, OneLogin, and Google Workspace. SCIM user provisioning is available for automated account management. Role mapping from your directory groups to BioMate roles (PI / Researcher / Viewer) is configurable.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <div class="cta-badge">🛡️ Audit-Ready Science</div>
+      <h2 class="h2" style="color:var(--c-text); margin-bottom:1rem; max-width:32rem; margin-left:auto; margin-right:auto;">Ready to bring this to your compliance team?</h2>
+      <p class="body mx-auto max-w-2xl" style="color:var(--c-muted); margin-bottom:2.5rem;">We'll walk your IT and compliance team through architecture, certifications, and deployment options. Most enterprise evaluations complete in 2 weeks.</p>
+      <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:1.5rem;">
+        <a href="#" class="btn btn-lg btn-primary-dark-solid">Request an enterprise demo →</a>
+        <a href="#" class="btn btn-lg btn-outline-neutral">Download security overview (PDF)</a>
+      </div>
+      <p class="caption" style="color:var(--c-muted);">SOC 2 Type II report available under NDA · HIPAA BAA on request · Private deployment scoping in 5 business days</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container" style="padding-top:3rem;">
+    <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:3rem; margin-bottom:2rem;">
+      <div>
+        <div class="logo" style="color:white; margin-bottom:1rem;">
+          <div class="logo-mark">B</div>
+          BioMate
+        </div>
+        <p class="caption" style="color:#475569; max-width:280px; line-height:1.7;">AI bioinformatics your compliance team can approve. Purpose-built for institutional research.</p>
+      </div>
+      <div>
+        <div class="footer-col-title">Solutions</div>
+        <ul class="footer-links">
+          <li><a href="#">Clinical Research</a></li>
+          <li><a href="#">Pharma / Biotech</a></li>
+          <li><a href="#">Academic Labs</a></li>
+          <li><a href="#">CROs</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Security</div>
+        <ul class="footer-links">
+          <li><a href="#">SOC 2 Report</a></li>
+          <li><a href="#">HIPAA</a></li>
+          <li><a href="#">Private Deployment</a></li>
+          <li><a href="#">Security Overview</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul class="footer-links">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact Sales</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 BioMate. All rights reserved.</p>
+      <p>SOC 2 Type II · HIPAA-Ready · Private Deployment Available</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Segment tabs
+  const segBtns = document.querySelectorAll('.seg-btn');
+  segBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.seg;
+      segBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.seg-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('seg-' + target).classList.add('active');
+    });
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>

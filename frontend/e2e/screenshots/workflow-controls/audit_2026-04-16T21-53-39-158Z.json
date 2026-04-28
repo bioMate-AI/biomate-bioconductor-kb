@@ -1,0 +1,44 @@
+{
+  "suiteId": "workflow-controls-comprehensive",
+  "generatedAt": "2026-04-16T21:53:39.158Z",
+  "totalTests": 1,
+  "passed": 0,
+  "failed": 1,
+  "totalWallTimeSec": 217.435,
+  "totalLlmCostUsd": 0,
+  "runs": [
+    {
+      "testId": "WC-1",
+      "runId": null,
+      "startTs": 1776376201589,
+      "endTs": 1776376419024,
+      "durationMs": 217435,
+      "finalStatus": "n/a",
+      "nfDurationS": null,
+      "nfStartedAt": null,
+      "nfCompletedAt": null,
+      "llmInputTokens": null,
+      "llmOutputTokens": null,
+      "llmCostUsd": null,
+      "assertions": [
+        {
+          "name": "workflow-card-visible",
+          "passed": false,
+          "note": "Workflow card must appear"
+        },
+        {
+          "name": "confirm-btn-visible-before-run",
+          "passed": false
+        },
+        {
+          "name": "execute-api-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "wc1_01_card.png",
+        "wc1_02_running.png"
+      ]
+    }
+  ]
+}

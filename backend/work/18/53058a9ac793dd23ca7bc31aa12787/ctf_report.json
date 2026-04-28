@@ -1,0 +1,11 @@
+{
+  "step": "03_patch_ctf_estimation",
+  "timestamp": "2026-03-09T20:36:22.957164",
+  "num_micrographs": 20,
+  "avg_defocus_angstroms": 24693.6,
+  "avg_fit_resolution_angstroms": 5.6,
+  "voltage_kv": 300,
+  "spherical_aberration_mm": 2.7,
+  "phase_plate": false,
+  "mock_mode": true
+}

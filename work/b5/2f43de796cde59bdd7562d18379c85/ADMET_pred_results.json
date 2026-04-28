@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "function": "ADMET_pred",
+  "domain": "pharmacology",
+  "result": {
+    "smiles": "OC(CCCN1CCC(CC1)C(O)(c1ccccc1)c1ccccc1)(c1ccc(cc1)C(C)(C)C)CC",
+    "toxicity": {},
+    "predictions": {
+      "herg_ic50_uM": null,
+      "dili_risk": null,
+      "dili_probability": null
+    },
+    "estimation_method": "rdkit_descriptors",
+    "note": "hERG IC50 estimated from LogP (Aronov 2008). DILI risk from lipophilicity+MW model (Lammert 2010). Install DeepPurpose for ML-based ClinTox prediction."
+  }
+}

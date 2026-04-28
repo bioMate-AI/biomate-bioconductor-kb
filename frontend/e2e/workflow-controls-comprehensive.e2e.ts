@@ -714,6 +714,7 @@ test("WC-6: MultiQC HTML iframe — step-output-preview renders HTML in sandboxe
   await sendMessage(page, "Run the html output test workflow to generate a MultiQC HTML report");
   await waitForAIResponse(page, "WC-6");
   await waitForWorkflowCard(page, "WC-6");
+  await dismissSurveyDialog(page); // dismiss any lingering survey before clicking run
 
   const runId = await confirmAndRun(page, "WC-6");
   audit.runId = runId;
@@ -803,6 +804,7 @@ test("WC-7: parameter-varied rerun → two runs with different max_spots → com
   await sendMessage(page, "Run a germline variant calling workflow for SRR1518169 max_spots=50");
   await waitForAIResponse(page, "WC-7");
   await waitForWorkflowCard(page, "WC-7");
+  await dismissSurveyDialog(page); // dismiss any lingering survey before clicking run
   const runId1 = await confirmAndRun(page, "WC-7-run1");
   assert(audit, "run1-execute-returned-runId", !!runId1);
   console.log(`[WC-7] Run 1 ID: ${runId1}`);
