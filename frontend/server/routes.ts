@@ -47,6 +47,7 @@ import passport from "passport";
 import { oauthService } from "./oauth-service";
 import { stripeService } from "./stripe-service";
 import { auditService, auditMiddleware } from "./audit-service";
+import { decryptField } from "./field-encrypt";
 import { checkSafety, hashMessage } from "./safety-guardrails";
 import { conversationStateManager, createEmptyState, type ConversationState } from "./conversation-state";
 import {
@@ -76,7 +77,8 @@ const tokenCounter = new TokenCounter();
  * (e.g. existing users provisioned before this feature, or when Galaxy is unreachable).
  */
 function userProxy(req: express.Request): GalaxyAPIProxy {
-  const userApiKey = (req.user as any)?.galaxyApiKey as string | null | undefined;
+  const rawApiKey = (req.user as any)?.galaxyApiKey as string | null | undefined;
+  const userApiKey = rawApiKey ? decryptField(rawApiKey) : rawApiKey;
   return galaxyAPIBackend.forUser(userApiKey);
 }
 
@@ -3633,7 +3635,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fullPath = `${targetPath}${queryStr}`;
 
       // Forward with user's Galaxy API key if available
-      const apiKey = (req as any).user?.galaxyApiKey || process.env.GALAXY_API_KEY || '';
+      const _rawKey3636 = (req as any).user?.galaxyApiKey as string | undefined;
+      const apiKey = (_rawKey3636 ? decryptField(_rawKey3636) : null) || process.env.GALAXY_API_KEY || '';
       const headers: Record<string, string> = {
         'Content-Type': req.headers['content-type'] || 'application/json',
         'X-API-Key': apiKey,
@@ -7265,7 +7268,8 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc (instance configured)');
 
         // Require user's own CryoSPARC license key — fetched from the existing credential store
-        const userGalaxyKey = (req.user as any)?.galaxyApiKey || '';
+        const _rawKey7268 = (req.user as any)?.galaxyApiKey as string | undefined;
+        const userGalaxyKey = _rawKey7268 ? decryptField(_rawKey7268) : '';
         const credResp = await fetch(
           `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/users/credentials/cryosparc/value`,
           { headers: { 'X-API-Key': userGalaxyKey } }

@@ -8,6 +8,7 @@ import type { User, SafeUser, InviteCode } from '../shared/schema';
 import { emailService } from './email-service';
 import { billingPlanForTier } from './plan-config';
 import { GalaxyAPIProxy } from './galaxy-api-proxy';
+import { encryptField, decryptField } from './field-encrypt';
 
 const GALAXY_URL = process.env.GALAXY_URL ?? 'http://localhost:8081';
 const BILLING_INTERNAL_KEY = process.env.BILLING_INTERNAL_KEY ?? 'dev-insecure-key';
@@ -198,9 +199,11 @@ export class AuthService {
       try {
         const { galaxyUserId, galaxyApiKey, galaxyUsername } =
           await adminProxy.provisionGalaxyUser(biomateUserId, email);
+        // Encrypt the API key before persisting to PostgreSQL (AES-256-GCM)
+        const encryptedApiKey = galaxyApiKey ? encryptField(galaxyApiKey) : galaxyApiKey;
         await db
           .update(users)
-          .set({ galaxyUserId, galaxyApiKey, galaxyUsername })
+          .set({ galaxyUserId, galaxyApiKey: encryptedApiKey, galaxyUsername })
           .where(eq(users.id, biomateUserId));
         console.log(`[auth] Galaxy user provisioned for ${email}: ${galaxyUsername}`);
       } catch (err: any) {

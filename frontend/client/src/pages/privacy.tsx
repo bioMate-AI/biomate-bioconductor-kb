@@ -6,7 +6,7 @@ export default function PrivacyPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: October 17, 2025</p>
+          <p className="text-muted-foreground">Last updated: April 28, 2026</p>
         </div>
 
         <div className="prose prose-lg dark:prose-invert max-w-none space-y-8">
@@ -92,7 +92,8 @@ export default function PrivacyPage() {
                 We implement industry-standard security measures to protect your information:
               </p>
               <ul className="list-disc pl-6 mt-2 space-y-1">
-                <li>Encryption in transit (TLS 1.3) and at rest (AES-256)</li>
+                <li>Encryption in transit (TLS 1.2+) and at rest (AES-256)</li>
+                <li>PHI detection and automatic stripping before AI processing</li>
                 <li>Regular security audits and penetration testing</li>
                 <li>Access controls and authentication mechanisms</li>
                 <li>Secure data centers with physical security measures</li>
@@ -143,11 +144,28 @@ export default function PrivacyPage() {
             <CardHeader>
               <CardTitle>7. HIPAA Compliance</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
-                For Enterprise customers handling protected health information (PHI), we provide HIPAA-compliant infrastructure
-                and will execute a Business Associate Agreement (BAA). Contact our sales team for more information.
+                BioMate is designed to support HIPAA-compliant research workflows. Our platform incorporates the
+                following safeguards regardless of customer tier:
               </p>
+              <ul className="list-disc pl-6 mt-2 space-y-1">
+                <li>
+                  <strong>PHI detection and stripping:</strong> All messages are scanned for protected health
+                  information using pattern matching (names, dates, MRNs, SSNs, phone numbers, and other
+                  HIPAA-defined identifiers) before reaching AI systems. Detected PHI is automatically
+                  redacted to prevent inadvertent disclosure.
+                </li>
+                <li>
+                  <strong>Audit logging:</strong> Access to PHI and sensitive resources is logged per
+                  HIPAA §164.312, with tamper-evident records of who accessed what and when.
+                </li>
+                <li>
+                  <strong>Business Associate Agreement (BAA):</strong> Enterprise customers handling PHI
+                  may request a BAA. Contact our sales team to initiate a BAA and receive access to
+                  dedicated HIPAA-compliant infrastructure.
+                </li>
+              </ul>
             </CardContent>
           </Card>
 

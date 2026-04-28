@@ -3318,6 +3318,7 @@ def get_nextflow_status(
         "is_batch": info.get("is_batch", False),
         "s3_output_files": s3_files,
         "qc_report": qc_report,
+        "qc_gates": info.get("qc_gates", []),  # gate failures from S3 post-run evaluation
         "started_at": started_at,
         "completed_at": completed_at,
         "duration_s": duration_s,
