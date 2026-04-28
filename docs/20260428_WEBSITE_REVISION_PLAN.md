@@ -59,7 +59,7 @@ Competitors (Benchling, Dotmatics, Veeva) completed this 10–15 years ago and c
 - About BioMate
 - How It Works
 - Platform Features (moves features.html content here)
-- Team
+- ~~Team~~ *(commented out for now)*
 
 ### Notes
 - Pricing stays as top-level link (no dropdown)
@@ -88,13 +88,79 @@ Style: cream background `#f6efde`, navy text `#14283a`, accent CTA button `#2a55
 
 ### `services.html`
 Hero: "What BioMate does."
-Content sections:
-1. **Drug Discovery** — target discovery, hit screening, ADMET/DMPK, lead optimization, PBPK, clinical pharmacology, pharmacovigilance. Outputs: scored ligands, ADMET panels, PK profiles, methods drafts.
-2. **Genomics & Multi-Omics** — WGS, WES, RNA-seq, scRNA-seq, ATAC-seq, ChIP-seq, proteomics, metabolomics, metagenomics. Outputs: annotated VCF, differential expression, pathway analysis, QC reports.
-3. **Structural Biology** — cryo-EM SPA (CryoSPARC), protein structure (AlphaFold3), molecular dynamics (GROMACS), docking (AutoDock Vina, DiffDock). Outputs: refined maps, structures, binding scores.
-4. **Cross-Service Capabilities** — audit trail on every run, evidence-graded QC (Gold/Silver/Bronze), AI-generated Methods section, GPU cloud execution, 2,000+ validated workflows.
+Stats bar: 2,000+ workflows · 20+ biomedical domains · Evidence-graded QC on every result
 
-NOT included: Regulatory Compliance (per gap analysis)
+---
+
+#### Service 1 — Drug Discovery
+Sub-categories (each is a named card with tools + outputs):
+
+| Sub-category | Key tools/pipelines | Outputs |
+|---|---|---|
+| **Target Discovery** | CRISPR essentiality, functional genomics, pocket druggability scoring, genetic support scoring | Ranked target list, druggability report |
+| **Virtual Screening & Hit Discovery** | AutoDock Vina, DiffDock, pharmacophore filtering, fragment-based screening | Top-scored hits, pose clusters, binding affinity table |
+| **ADMET & Lead Optimization** | Full ADMET panel (hERG, DILI, Ames, Ro5), CYP450 DDI, GROMACS MD, REINVENT4 generative design | ADMET report, Gold/Silver/Bronze QC grade, redesigned scaffold suggestions |
+| **Preclinical Development** | PBPK simulation, allometric scaling, toxicity prediction, CRO package assembly | PK profiles, species scaling tables, CRO submission package |
+| **Clinical Pharmacology** | PopPK modeling, dose-escalation simulation, pharmacogenomics, drug-drug interaction | PK/PD projections, MTD estimate, DDI risk report |
+| **Pharmacovigilance** | Post-market signal detection, adverse event analysis, disproportionality scoring | Signal detection report, FAERS analysis |
+
+---
+
+#### Service 2 — Genomics & Multi-Omics
+Sub-categories (DB: transcriptomics 865 workflows, genomics 369, epigenomics 133, proteomics 113):
+
+| Sub-category | Key tools/pipelines | Outputs |
+|---|---|---|
+| **Whole Genome & Exome Sequencing** | nf-core/sarek, GATK Best Practices, DeepVariant, Strelka2 | Annotated VCF, ACMG-classified variants, QC report |
+| **Transcriptomics** | nf-core/rnaseq (bulk), nf-core/scrnaseq (10x), differential expression, pathway enrichment | DEG tables, volcano plots, GSEA, cell-type annotations |
+| **Epigenomics** | nf-core/atacseq, nf-core/chipseq, nf-core/cutandrun, bisulfite methylation | Peak calls, differential accessibility, motif enrichment, DMR maps |
+| **Proteomics** | DIA-NN, nf-core/proteomicslfq (LFQ), TMT multiplexing, PTM analysis | Protein quantification tables, differential abundance, pathway maps |
+| **Metabolomics** | Untargeted/targeted metabolomics, XCMS, pathway enrichment | Feature tables, metabolite IDs, enriched pathways |
+| **Metagenomics** | Shotgun metagenomics, 16S rRNA (QIIME2), taxonomic profiling, functional annotation | Taxonomic composition, alpha/beta diversity, functional profiles |
+| **Multi-Omics Integration** | MOFA+, iCluster, cross-omics correlation, integrative pathway analysis | Multi-omics factor loadings, integrated pathway report |
+
+---
+
+#### Service 3 — Structural Biology
+Sub-categories (DB: cryo_em 10+ workflows, protein_structure domain):
+
+| Sub-category | Key tools/pipelines | Outputs |
+|---|---|---|
+| **Cryo-EM Single Particle Analysis** | CryoSPARC SPA (full pipeline: import → CTF → picking → 2D/3D → refinement → validation) | Refined density map (near-atomic resolution), FSC curves, EMDB-ready package |
+| **Protein Structure Prediction** | AlphaFold3 (monomer & multimer), ESMFold, structure validation (MolProbity) | PDB structure file, pLDDT/PAE plots, Ramachandran report |
+| **Molecular Dynamics** | GROMACS, AmberTools, protein-ligand MD, free energy perturbation (FEP) | Trajectory files, RMSD/RMSF plots, binding free energy (ΔG) |
+| **Molecular Docking** | AutoDock Vina, DiffDock, Glide (via REINVENT4), binding pose clustering | Top-ranked poses, binding affinity scores, interaction fingerprint |
+
+---
+
+#### Cross-service capabilities (shown at bottom of services.html)
+- Audit trail on every run (timestamped, exportable)
+- Evidence-graded QC — Gold (FDA/ICH consensus), Silver (community standard), Bronze (field heuristic) — with cited source for each threshold
+- AI-generated Methods section ready to paste into a regulatory filing or paper
+- GPU-backed cloud execution — minutes, not days
+- 2,000+ validated workflows across 20+ biomedical domains
+
+#### IND Nonclinical Package (cross-service feature, shown prominently)
+BioMate covers ~60–70% of the in silico sections of IND Module 2.6 today:
+
+| IND Section | Status |
+|---|---|
+| §2.6.1 Introduction | ✅ Already built (LLM narrative, download endpoint live) |
+| §2.6.2 Pharmacology summary | ✅ From docking + target discovery + hERG |
+| §2.6.3 Pharmacology tables | ✅ From ADMET panel |
+| §2.6.4 PK written summary | ✅ From PBPK + NCA-PK + ADME |
+| §2.6.5 PK tables | ✅ From PK runs |
+| §2.6.6 Toxicology summary | ~Partial (Ames, DILI, hERG; missing in vivo) |
+| §2.6.7 Toxicology tables | ~Partial |
+
+**Positioning**: "IND Nonclinical Package — the in silico sections of §2.6.1–2.6.7, CTD-formatted, audit-ready, structured for your RA team."
+Wet-lab sections remain as placeholders. BioMate does not overclaim.
+Roadmap: §2.6.6 tox expansion (6 mo) → Veeva Vault API push (12–18 mo).
+
+Add to services.html: "IND Nonclinical Package" as named output under Drug Discovery → Preclinical Development.
+Add to cross-service capabilities bar: "IND §2.6 nonclinical package — computational sections, CTD-formatted, audit-ready"
+
+NOT included: Regulatory Compliance as a standalone service (per gap analysis — 24–36 month roadmap, $1.1–1.9M investment)
 
 ### `contact.html`
 - Email: contact@biomate.ai

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Services &mdash; BioMate AI</title>
+  <meta name="description" content="BioMate AI services: drug discovery (target to IND), genomics and multi-omics, and structural biology — 2,000+ validated workflows with evidence-graded QC." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Services page local styles ── */
+    .bm-svc-hero { padding: clamp(3.5rem,7vw,6rem) clamp(1rem,5vw,2.5rem) clamp(2rem,4vw,3.5rem); }
+    .bm-svc-hero-inner { max-width: var(--maxw); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem,5vw,4rem); align-items: center; }
+    @media(max-width:760px){ .bm-svc-hero-inner { grid-template-columns:1fr; } }
+    .bm-svc-hero-stats { display: flex; flex-direction: column; gap: 1.25rem; }
+    .bm-svc-stat { background: var(--bg-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1.5rem; }
+    .bm-svc-stat-num { font-family: var(--font-head); font-size: 2rem; font-weight: 600; color: var(--accent-2); line-height: 1; }
+    .bm-svc-stat-label { font-size: .88rem; color: var(--text-muted); margin-top: .35rem; }
+
+    /* ── Service section ── */
+    .bm-svc-section { padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem); }
+    .bm-svc-section:nth-child(even) { background: var(--bg-2); }
+    .bm-svc-inner { max-width: var(--maxw); margin: 0 auto; }
+    .bm-svc-head { margin-bottom: clamp(1.75rem,3vw,2.75rem); }
+    .bm-svc-head .bm-eyebrow { margin-bottom: .75rem; }
+    .bm-svc-head h2 { margin-bottom: .75rem; }
+    .bm-svc-head p { max-width: 680px; color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; }
+
+    /* ── Sub-category grid ── */
+    .bm-subcat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 1.25rem; margin-top: .5rem; }
+    @media(max-width:680px){ .bm-subcat-grid { grid-template-columns:1fr; } }
+
+    .bm-subcat-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem;
+      transition: box-shadow .18s, border-color .18s;
+    }
+    .bm-svc-section:nth-child(even) .bm-subcat-card { background: var(--bg); }
+    .bm-subcat-card:hover { box-shadow: var(--shadow-md); border-color: var(--accent-tint2); }
+    .bm-subcat-icon {
+      width: 38px; height: 38px; border-radius: 9px;
+      background: var(--accent-tint); display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .bm-subcat-icon svg { width: 20px; height: 20px; stroke: var(--accent-2); }
+    .bm-subcat-card h3 { font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: .5rem; }
+    .bm-subcat-card p { font-size: .9rem; color: var(--text-muted); line-height: 1.55; margin-bottom: .85rem; }
+    .bm-subcat-tools { display: flex; flex-wrap: wrap; gap: .35rem; }
+    .bm-tool-tag {
+      font-size: .72rem; font-weight: 600; font-family: var(--font-mono);
+      padding: 3px 8px; border-radius: 4px;
+      background: var(--accent-tint); color: var(--accent-2);
+      border: 1px solid var(--accent-tint2);
+    }
+    .bm-subcat-outputs { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border-soft); }
+    .bm-subcat-outputs-label { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); margin-bottom: .4rem; }
+    .bm-subcat-outputs p { font-size: .85rem; color: var(--text-muted); margin-bottom: 0; }
+
+    /* ── IND highlight card ── */
+    .bm-ind-card {
+      margin-top: 1.5rem;
+      background: linear-gradient(135deg, var(--accent-tint) 0%, rgba(42,85,130,.04) 100%);
+      border: 1px solid var(--accent-tint2);
+      border-radius: 14px; padding: 1.75rem 2rem;
+      display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center;
+    }
+    @media(max-width:600px){ .bm-ind-card { grid-template-columns:1fr; } }
+    .bm-ind-card h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent-2); margin-bottom: .4rem; }
+    .bm-ind-card p { font-size: .92rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 0; }
+    .bm-ind-coverage { display: flex; flex-direction: column; gap: .35rem; min-width: 200px; }
+    .bm-ind-row { display: flex; align-items: center; gap: .5rem; font-size: .82rem; }
+    .bm-ind-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .bm-ind-row .dot.green { background: var(--leaf); }
+    .bm-ind-row .dot.amber { background: var(--warm); }
+    .bm-ind-row span { color: var(--text-muted); }
+
+    /* ── Cross-service capabilities ── */
+    .bm-cross-caps { padding: clamp(2.5rem,5vw,4.5rem) clamp(1rem,5vw,2.5rem); background: var(--bg-ink); }
+    .bm-cross-inner { max-width: var(--maxw); margin: 0 auto; }
+    .bm-cross-caps .bm-eyebrow { color: var(--warm); }
+    .bm-cross-caps .bm-eyebrow::before { background: var(--warm); }
+    .bm-cross-caps h2 { color: var(--on-ink); margin-bottom: 2.5rem; }
+    .bm-caps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 1.25rem; }
+    .bm-cap-card {
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px; padding: 1.5rem;
+    }
+    .bm-cap-card h4 { color: var(--on-ink); font-size: 1rem; font-weight: 600; margin-bottom: .5rem; }
+    .bm-cap-card p { color: var(--on-ink-mute); font-size: .88rem; line-height: 1.55; margin-bottom: 0; }
+    .bm-cap-icon { width: 32px; height: 32px; margin-bottom: .85rem; color: var(--warm); }
+    .bm-cap-icon svg { width: 32px; height: 32px; stroke: currentColor; }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <!-- ════ Hero ════ -->
+  <section class="bm-svc-hero">
+    <div class="bm-svc-hero-inner">
+      <div class="bm-anim-up">
+        <span class="bm-eyebrow">What BioMate does</span>
+        <h1 class="bm-display" style="margin-top:1rem;margin-bottom:1.25rem;">
+          Computational biology,<br /><em class="bm-em-accent">end to end.</em>
+        </h1>
+        <p class="bm-lead" style="max-width:520px;">
+          From the first target hypothesis to the IND nonclinical package — BioMate handles the computational work that used to take weeks and cost hundreds of thousands of dollars in CRO fees.
+        </p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:2rem;">
+          <a href="https://dev-public.biomate.ai/register" class="bm-btn bm-btn-primary bm-btn-lg">Start free <span class="bm-btn-arrow">&rarr;</span></a>
+          <a href="contact.html" class="bm-btn bm-btn-outline bm-btn-lg">Talk to us</a>
+        </div>
+      </div>
+      <div class="bm-svc-hero-stats bm-anim-up-d1">
+        <div class="bm-svc-stat">
+          <div class="bm-svc-stat-num">2,000<small style="font-size:1.2rem">+</small></div>
+          <div class="bm-svc-stat-label">validated workflows across 20+ biomedical domains</div>
+        </div>
+        <div class="bm-svc-stat">
+          <div class="bm-svc-stat-num">32</div>
+          <div class="bm-svc-stat-label">named QC profiles — each threshold cited to a published standard</div>
+        </div>
+        <div class="bm-svc-stat">
+          <div class="bm-svc-stat-num">&lt;30 min</div>
+          <div class="bm-svc-stat-label">average time from question to QC-graded, audit-ready result</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════ Drug Discovery ════ -->
+  <section class="bm-svc-section" id="drug-discovery">
+    <div class="bm-svc-inner">
+      <div class="bm-svc-head">
+        <span class="bm-eyebrow">Drug Discovery</span>
+        <h2 class="bm-h2">Target to IND — entirely computational.</h2>
+        <p>BioMate covers the full small-molecule drug development arc. Start with a target, work through hit discovery, ADMET, lead optimization, and preclinical development, and finish with an IND-ready nonclinical summary — all in one platform.</p>
+      </div>
+
+      <div class="bm-subcat-grid">
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+          </div>
+          <h3>Target Discovery</h3>
+          <p>Rank therapeutic targets by genetic support, tissue expression, known safety liabilities, and pocket druggability. Prioritize with confidence before committing to a scaffold.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">CRISPR essentiality</span>
+            <span class="bm-tool-tag">pocket druggability</span>
+            <span class="bm-tool-tag">functional genomics</span>
+            <span class="bm-tool-tag">genetic support scoring</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Ranked target list &middot; Druggability report &middot; Evidence summary</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3>Virtual Screening &amp; Hit Discovery</h3>
+          <p>Screen large compound libraries against your target structure. Prioritize hits by binding pose, pharmacophore match, and synthetic accessibility. Filter for ADMET liability before wet-lab synthesis.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">AutoDock Vina</span>
+            <span class="bm-tool-tag">DiffDock</span>
+            <span class="bm-tool-tag">pharmacophore filtering</span>
+            <span class="bm-tool-tag">fragment screening</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Top-scored hits &middot; Binding pose clusters &middot; Affinity table &middot; 3D structure overlays</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+          </div>
+          <h3>ADMET &amp; Lead Optimization</h3>
+          <p>Run a full ADMET panel in minutes. QC-gated results flag hERG, DILI, Ames, and Lipinski violations with Gold/Silver/Bronze evidence grades. REINVENT4 generative design proposes optimized scaffolds that pass your gates.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">hERG / DILI / Ames</span>
+            <span class="bm-tool-tag">CYP450 DDI</span>
+            <span class="bm-tool-tag">GROMACS MD</span>
+            <span class="bm-tool-tag">REINVENT4</span>
+            <span class="bm-tool-tag">Ro5 / ADME</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>ADMET report &middot; QC grade per metric &middot; Cited thresholds &middot; Redesigned scaffold suggestions</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Preclinical Development</h3>
+          <p>Simulate PK across species with PBPK modelling. Scale animal doses to human via allometric methods. Predict toxicity. Assemble CRO submission packages with a draft Methods section ready for regulatory review.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">PBPK simulation</span>
+            <span class="bm-tool-tag">allometric scaling</span>
+            <span class="bm-tool-tag">toxicity prediction</span>
+            <span class="bm-tool-tag">CRO package assembly</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>PK profiles &middot; Species scaling tables &middot; CRO submission package &middot; Draft Methods section</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12l4-4 4 3 5-6"/></svg>
+          </div>
+          <h3>Clinical Pharmacology</h3>
+          <p>Model population PK, simulate dose-escalation, assess pharmacogenomics interactions, and quantify drug-drug interaction risk — producing outputs that map directly to FDA guidance for first-in-human trials.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">PopPK modeling</span>
+            <span class="bm-tool-tag">dose-escalation simulation</span>
+            <span class="bm-tool-tag">pharmacogenomics</span>
+            <span class="bm-tool-tag">DDI</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>PK/PD projections &middot; MTD estimate &middot; DDI risk report &middot; Clinical pharmacology summary</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Pharmacovigilance</h3>
+          <p>Detect post-market safety signals from FAERS and published adverse event databases. Disproportionality scoring (ROR, PRR) surfaces emerging risks early with full audit trail.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">FAERS analysis</span>
+            <span class="bm-tool-tag">disproportionality scoring</span>
+            <span class="bm-tool-tag">signal detection</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Signal detection report &middot; ROR / PRR tables &middot; Narrative summary</p>
+          </div>
+        </div>
+
+      </div><!-- /subcat-grid -->
+
+      <!-- IND nonclinical package highlight -->
+      <div class="bm-ind-card">
+        <div>
+          <span class="bm-eyebrow" style="margin-bottom:.5rem;">IND Nonclinical Package</span>
+          <h3>From ADMET run to §2.6 narrative — automatically.</h3>
+          <p>BioMate generates the computational sections of your IND Module 2.6 (§2.6.1–2.6.7) as a CTD-formatted DOCX: introduction, pharmacology summary, PK written summary, toxicology summary, and tabulated data. Wet-lab sections are clearly marked as placeholders for your RA team to complete. Every narrative cites the underlying run data and QC grade.</p>
+        </div>
+        <div class="bm-ind-coverage">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-bottom:.35rem;">Coverage today</div>
+          <div class="bm-ind-row"><span class="dot green"></span><span>§2.6.1 Introduction</span></div>
+          <div class="bm-ind-row"><span class="dot green"></span><span>§2.6.2 Pharmacology summary</span></div>
+          <div class="bm-ind-row"><span class="dot green"></span><span>§2.6.3 Pharmacology tables</span></div>
+          <div class="bm-ind-row"><span class="dot green"></span><span>§2.6.4 PK written summary</span></div>
+          <div class="bm-ind-row"><span class="dot green"></span><span>§2.6.5 PK tables</span></div>
+          <div class="bm-ind-row"><span class="dot amber"></span><span>§2.6.6 Toxicology summary</span></div>
+          <div class="bm-ind-row"><span class="dot amber"></span><span>§2.6.7 Toxicology tables</span></div>
+          <div style="font-size:.75rem;color:var(--text-faint);margin-top:.35rem;">&#9679; complete &nbsp;&#9679; partial (in silico only)</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ════ Genomics & Multi-Omics ════ -->
+  <section class="bm-svc-section" id="genomics">
+    <div class="bm-svc-inner">
+      <div class="bm-svc-head">
+        <span class="bm-eyebrow">Genomics &amp; Multi-Omics</span>
+        <h2 class="bm-h2">Every sequencing modality. One platform.</h2>
+        <p>From whole-genome variant calling to single-cell transcriptomics to multi-omics integration — BioMate runs validated, nf-core-based pipelines on GPU-backed cloud compute and returns QC-graded, publication-ready results.</p>
+      </div>
+
+      <div class="bm-subcat-grid">
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          </div>
+          <h3>Whole Genome &amp; Exome Sequencing</h3>
+          <p>Germline and somatic variant calling from WGS and WES data. GATK Best Practices and DeepVariant pipelines with ACMG/AMP variant classification and comprehensive QC.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">nf-core/sarek</span>
+            <span class="bm-tool-tag">GATK HaplotypeCaller</span>
+            <span class="bm-tool-tag">DeepVariant</span>
+            <span class="bm-tool-tag">Strelka2</span>
+            <span class="bm-tool-tag">VEP / ANNOVAR</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Annotated VCF &middot; ACMG-classified variants &middot; CNV calls &middot; QC report (coverage, TS/TV)</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </div>
+          <h3>Transcriptomics</h3>
+          <p>Bulk RNA-seq differential expression with DESeq2 and edgeR. Single-cell RNA-seq (10x Genomics) with clustering, marker identification, trajectory analysis, and cell-type annotation.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">nf-core/rnaseq</span>
+            <span class="bm-tool-tag">nf-core/scrnaseq</span>
+            <span class="bm-tool-tag">DESeq2 / edgeR</span>
+            <span class="bm-tool-tag">Seurat / Scanpy</span>
+            <span class="bm-tool-tag">GSEA</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>DEG tables &middot; Volcano / MA plots &middot; GSEA enrichment &middot; UMAP with cell-type labels</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <h3>Epigenomics</h3>
+          <p>Chromatin accessibility (ATAC-seq), transcription factor binding (ChIP-seq / CUT&amp;RUN), and DNA methylation profiling. All pipelines follow ENCODE4 standards with motif enrichment analysis.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">nf-core/atacseq</span>
+            <span class="bm-tool-tag">nf-core/chipseq</span>
+            <span class="bm-tool-tag">nf-core/cutandrun</span>
+            <span class="bm-tool-tag">bisulfite methylation</span>
+            <span class="bm-tool-tag">MACS3</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Peak calls (BED/BigWig) &middot; Differential accessibility &middot; Motif enrichment &middot; DMR maps</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          </div>
+          <h3>Proteomics</h3>
+          <p>Data-independent acquisition (DIA-NN), label-free quantification, and TMT multiplexing. Differential protein abundance with volcano plots, pathway enrichment, and post-translational modification analysis.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">DIA-NN</span>
+            <span class="bm-tool-tag">nf-core/proteomicslfq</span>
+            <span class="bm-tool-tag">TMT multiplexing</span>
+            <span class="bm-tool-tag">MaxQuant</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Protein quant tables &middot; Differential abundance &middot; PTM maps &middot; Pathway enrichment</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <h3>Metabolomics</h3>
+          <p>Untargeted and targeted metabolomics from LC-MS and GC-MS data. Feature detection, alignment, annotation, and pathway enrichment to link metabolic changes to biological mechanisms.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">XCMS</span>
+            <span class="bm-tool-tag">MZmine</span>
+            <span class="bm-tool-tag">HMDB / KEGG annotation</span>
+            <span class="bm-tool-tag">MetaboAnalyst</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Feature tables &middot; Metabolite IDs &middot; Enriched pathways &middot; Heatmaps</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/></svg>
+          </div>
+          <h3>Metagenomics</h3>
+          <p>Shotgun metagenomics taxonomic and functional profiling alongside 16S rRNA amplicon analysis. Alpha/beta diversity, differential abundance, and metabolic pathway reconstruction.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">Kraken2 / Bracken</span>
+            <span class="bm-tool-tag">MetaPhlAn4</span>
+            <span class="bm-tool-tag">QIIME2 (16S)</span>
+            <span class="bm-tool-tag">HUMAnN3</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Taxonomic composition &middot; Alpha/beta diversity &middot; Functional profiles &middot; Phylogenetic trees</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card" style="border-color:var(--accent-tint2);background:var(--accent-tint);">
+          <div class="bm-subcat-icon" style="background:rgba(255,255,255,.5);">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <h3>Multi-Omics Integration</h3>
+          <p>Integrate genomics, transcriptomics, proteomics, and metabolomics into a unified view. Identify cross-layer biomarkers, regulatory relationships, and mechanistic hypotheses across modalities.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">MOFA+</span>
+            <span class="bm-tool-tag">iCluster</span>
+            <span class="bm-tool-tag">mixOmics</span>
+            <span class="bm-tool-tag">OmicsNet</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Multi-omics factor loadings &middot; Cross-layer network &middot; Integrated pathway report</p>
+          </div>
+        </div>
+
+      </div><!-- /subcat-grid -->
+    </div>
+  </section>
+
+  <!-- ════ Structural Biology ════ -->
+  <section class="bm-svc-section" id="structural-biology">
+    <div class="bm-svc-inner">
+      <div class="bm-svc-head">
+        <span class="bm-eyebrow">Structural Biology</span>
+        <h2 class="bm-h2">From raw micrographs to atomic-resolution insight.</h2>
+        <p>Cryo-EM single particle analysis, protein structure prediction, molecular dynamics, and docking — fully automated pipelines with GPU-accelerated cloud execution and QC at every step.</p>
+      </div>
+
+      <div class="bm-subcat-grid">
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+          </div>
+          <h3>Cryo-EM Single Particle Analysis</h3>
+          <p>Full CryoSPARC SPA pipeline from raw micrographs to near-atomic resolution map: import, motion correction, CTF estimation, particle picking (TOPAZ/blob), 2D/3D classification, homogeneous refinement, and map validation.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">CryoSPARC SPA</span>
+            <span class="bm-tool-tag">TOPAZ picking</span>
+            <span class="bm-tool-tag">CTF estimation</span>
+            <span class="bm-tool-tag">3D refinement</span>
+            <span class="bm-tool-tag">FSC validation</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Refined density map &middot; FSC / B-factor curves &middot; EMDB-ready package &middot; Resolution report</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3>Protein Structure Prediction</h3>
+          <p>Predict 3D structures for monomers and multimers with AlphaFold3 and ESMFold. Validate with MolProbity, assess binding interfaces, and cross-reference against experimental structures in the PDB.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">AlphaFold3</span>
+            <span class="bm-tool-tag">ESMFold</span>
+            <span class="bm-tool-tag">MolProbity validation</span>
+            <span class="bm-tool-tag">interface scoring</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>PDB structure file &middot; pLDDT / PAE plots &middot; Ramachandran report &middot; Interface contacts</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-9 6-3 9-7s6 4 9-2"/></svg>
+          </div>
+          <h3>Molecular Dynamics</h3>
+          <p>Run GPU-accelerated MD simulations with GROMACS and AmberTools. Study protein conformational dynamics, ligand binding stability, and binding free energy (FEP). Parameterization with ACPYPE for small molecules.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">GROMACS</span>
+            <span class="bm-tool-tag">AmberTools / AMBER</span>
+            <span class="bm-tool-tag">ACPYPE</span>
+            <span class="bm-tool-tag">FEP / MMPBSA</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Trajectory files &middot; RMSD / RMSF plots &middot; Binding free energy (&Delta;G) &middot; Contact maps</p>
+          </div>
+        </div>
+
+        <div class="bm-subcat-card">
+          <div class="bm-subcat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <h3>Molecular Docking</h3>
+          <p>Rigid and flexible docking of small molecules into target structures. Blind docking with DiffDock for cases without a defined binding site. Binding pose clustering and interaction fingerprint analysis for structure-activity guidance.</p>
+          <div class="bm-subcat-tools">
+            <span class="bm-tool-tag">AutoDock Vina</span>
+            <span class="bm-tool-tag">DiffDock</span>
+            <span class="bm-tool-tag">Glide (REINVENT4)</span>
+            <span class="bm-tool-tag">pose clustering</span>
+          </div>
+          <div class="bm-subcat-outputs">
+            <div class="bm-subcat-outputs-label">Outputs</div>
+            <p>Top-ranked poses &middot; Binding affinity scores &middot; Interaction fingerprint &middot; SAR guidance</p>
+          </div>
+        </div>
+
+      </div><!-- /subcat-grid -->
+    </div>
+  </section>
+
+  <!-- ════ Cross-service capabilities ════ -->
+  <section class="bm-cross-caps">
+    <div class="bm-cross-inner">
+      <span class="bm-eyebrow">Across every service</span>
+      <h2 class="bm-h2" style="max-width:640px;margin-top:.75rem;">Built for results that hold up.</h2>
+      <div class="bm-caps-grid">
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h4>Evidence-graded QC</h4>
+          <p>Gold (FDA/ICH consensus), Silver (community standard), Bronze (benchmark literature) — every threshold is cited to a primary source, not guessed.</p>
+        </div>
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+          <h4>IND §2.6 nonclinical package</h4>
+          <p>CTD-formatted DOCX covering all in silico sections of Modules 2.6.1–2.6.7, automatically generated from your run data. Ready for your RA team to complete with wet-lab data.</p>
+        </div>
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.11"/></svg></div>
+          <h4>Reproducibility by design</h4>
+          <p>Every run records tool versions, container hashes, parameters, and QC decisions. Re-run any analysis identically — the result resolves to the same methods and sources.</p>
+        </div>
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg></div>
+          <h4>Audit trail on every run</h4>
+          <p>Timestamped, exportable audit trail covering every parameter decision, QC outcome, and output file. Designed to support regulatory submissions and internal review.</p>
+        </div>
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h4>GPU-backed cloud execution</h4>
+          <p>Workflows run on AWS Batch with GPU instances where needed. No infrastructure to manage — submit a job, get results in minutes, not days.</p>
+        </div>
+
+        <div class="bm-cap-card">
+          <div class="bm-cap-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <h4>Plain-language interface</h4>
+          <p>Describe your objective in plain English. BioMate selects the right workflow, pre-fills parameters from context, and confirms before running. No code, no queue management.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({ active: 'services', cta: false });</script>
+
+</body>
+</html>
