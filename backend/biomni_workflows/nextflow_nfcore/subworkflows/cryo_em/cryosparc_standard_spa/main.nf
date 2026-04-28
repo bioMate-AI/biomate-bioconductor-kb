@@ -45,12 +45,17 @@ params.gain_ref = null                       // Optional gain reference
 params.outdir = './results/cryosparc_spa'
 params.project_name = 'biomate_spa'
 
-// Acquisition parameters
-params.pixel_size = 1.05                     // Angstroms per pixel
-params.voltage = 300                         // kV
-params.spherical_aberration = 2.7            // mm
-params.total_dose = 50.0                     // e-/A^2
-params.dose_per_frame = null                 // Auto-calculated if null
+// Acquisition parameters — user-facing names
+params.micrograph_pixel_size    = null       // Pixel size in Å/pixel (e.g. 0.83 | 1.05 | 1.2)
+params.accelerating_voltage     = 300        // Accelerating voltage in kV: 300 | 200 | 120
+params.defocus_min_um           = 1.0        // Minimum defocus for CTF search (µm)
+params.defocus_max_um           = 3.0        // Maximum defocus for CTF search (µm)
+params.spherical_aberration     = 2.7        // Cs in mm (2.7 for Titan Krios | 2.0 for Glacios)
+params.total_dose               = 50.0       // Total electron dose in e-/Å²
+params.dose_per_frame           = null       // e-/Å²/frame (auto-calculated if null)
+// Legacy aliases
+params.pixel_size               = 1.05       // Angstroms per pixel (alias for micrograph_pixel_size)
+params.voltage                  = 300        // kV (alias for accelerating_voltage)
 
 // Sample parameters (for context-aware recommendations)
 params.sample_type = 'unknown'               // 'membrane_protein', 'virus', 'ribosome', 'small_protein', 'unknown'

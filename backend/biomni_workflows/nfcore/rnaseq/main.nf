@@ -7,6 +7,8 @@ params.genome           = null          // Reference genome: GRCh38 | GRCm39 | G
 params.strandedness     = 'auto'        // Library strandedness: reverse | forward | unstranded | auto
 params.aligner          = 'star_salmon' // Alignment tool: star_salmon | hisat2 | star_rsem
 params.pseudo_aligner   = null          // Pseudo-aligner: salmon | kallisto (skips genome alignment)
+params.single_end       = false         // Single-end library (false = paired-end)
+params.read_length      = null          // Read length in bp (e.g. 75 | 100 | 150)
 params.skip_trimming    = false         // Skip adapter trimming (Trim Galore)
 params.skip_fastqc      = false         // Skip FastQC quality control
 params.skip_multiqc     = false         // Skip MultiQC report generation

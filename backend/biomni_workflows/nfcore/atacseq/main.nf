@@ -4,7 +4,10 @@
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,replicate)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6
 params.macs_gsize       = null          // MACS2 genome size: hs | mm | ce | dm (or numeric)
+params.paired_end       = true          // Paired-end library (true | false)
 params.narrow_peak      = false         // Call narrow peaks (default: broad peaks for ATAC)
+params.keep_mito        = false         // Keep mitochondrial reads (false = remove them)
+params.max_fragment_size = 200          // Maximum fragment size to retain (bp)
 params.skip_peak_qc     = false         // Skip peak QC with deepTools
 params.skip_ataqv       = false         // Skip ataqv QC
 params.skip_preseq      = true          // Skip library complexity (preseq)

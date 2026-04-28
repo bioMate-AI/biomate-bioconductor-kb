@@ -54,8 +54,10 @@ params.temperature          = 300        // K (NVT/NPT equilibration + productio
 params.pressure             = 1.0        // bar (NPT)
 
 // Production run
-params.n_steps              = 5000000    // MD steps (2 fs dt -> 10 ns default)
-params.dt                   = 0.002      // ps (2 fs timestep)
+params.simulation_length_ns = 10         // Simulation length in nanoseconds (e.g. 10 | 100 | 500)
+params.timestep_fs          = 2          // Integration timestep in femtoseconds (e.g. 2 | 1)
+params.n_steps              = 5000000    // MD steps (alias: use simulation_length_ns instead)
+params.dt                   = 0.002      // ps timestep (alias: use timestep_fs instead)
 params.nstxout_compressed   = 5000       // write trajectory frame every 10 ps
 
 // MM-GBSA

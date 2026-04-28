@@ -55,11 +55,12 @@ params.receptor             = null       // path to receptor.pdb (required for d
 params.docking_ref_ligand   = null       // reference ligand for docking box center
 
 // RL training config
+params.num_molecules        = 1000       // Total molecules to generate (e.g. 1000 | 5000 | 10000)
 params.n_steps              = 500        // RL epochs (500 = ~15 min GPU, 200 = quick demo)
 params.batch_size           = 128        // molecules sampled per epoch
 params.sigma                = 120        // RL sigma (sharpness of reward signal)
 params.learning_rate        = 0.0001     // Adam learning rate for policy network
-params.temperature          = 1.0        // sampling temperature (1.0 = nominal, <1 = conservative)
+params.temperature          = 1.0        // Sampling temperature (1.0 = nominal, <1 = conservative)
 
 // Filtering
 params.top_n                = 50         // top molecules to report in SDF
