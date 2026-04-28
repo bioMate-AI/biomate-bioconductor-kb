@@ -1339,6 +1339,77 @@ def _parse_trace_progress(trace_path: Path) -> dict:
     }
 
 
+def _evaluate_qc_from_s3(
+    run_id: str,
+    s3_output_files: list,
+    workflow_domain: str,
+    qc_overrides: dict,
+) -> list:
+    """
+    Evaluate QC gates for completed AWS Batch runs by reading output files from S3.
+    Returns a list of gate failure dicts (empty = all clear).
+    Called once at run completion when local work dirs don't have output files.
+    """
+    try:
+        import json as _json, io as _io, subprocess as _sub
+        from galaxy.jobs.qc_trace_monitor import NextflowQCGateHandler, QC_RED_LINES
+
+        domain_upper = workflow_domain.upper()
+        is_admet = any(k in domain_upper for k in ("ADMET", "PHARMACOL", "DRUG_DISC", "TOXICITY"))
+        is_admet_files = any(
+            f.get("filename", "").endswith("toxicity_report.json") or
+            "predict_admet_properties" in f.get("filename", "")
+            for f in s3_output_files
+        )
+        if not (is_admet or is_admet_files):
+            return []  # Only S3 QC for ADMET domain currently
+
+        # Build a dummy handler just to reuse _check_qc_thresholds
+        handler = NextflowQCGateHandler(
+            invocation_id=run_id,
+            work_dir=Path("/tmp"),
+            sse_callback=lambda *a: None,
+            app=None,
+            workflow_domain=workflow_domain,
+            qc_overrides=qc_overrides,
+        )
+
+        # Read toxicity_report.json from S3
+        metrics: Dict[str, Any] = {}
+        for f in s3_output_files:
+            s3_uri = f.get("s3_uri", "")
+            filename = f.get("filename", "")
+            if not (filename == "toxicity_report.json" or s3_uri.endswith("/toxicity_report.json")):
+                continue
+            try:
+                result = _sub.run(
+                    ["aws", "s3", "cp", s3_uri, "-"],
+                    capture_output=True, timeout=15
+                )
+                if result.returncode == 0:
+                    data = _json.loads(result.stdout)
+                    tox = data.get("toxicity", data)
+                    for key in ("herg_ic50_uM", "dili_risk", "dili_probability",
+                                "ames_positive", "ames_probability", "clintox_probability"):
+                        if key in tox:
+                            metrics[key] = tox[key]
+                    break
+            except Exception as _e:
+                log.warning("[QC S3] Failed to read %s: %s", s3_uri, _e)
+
+        if not metrics:
+            return []
+
+        _, all_failures = handler._check_qc_thresholds(
+            "PREDICT_ADMET_PROPERTIES", metrics
+        )
+        return all_failures
+
+    except Exception as _exc:
+        log.warning("[QC S3] Gate evaluation failed for %s: %s", run_id, _exc)
+        return []
+
+
 def _start_qc_monitor(
     invocation_id: str,
     work_dir: Path,
@@ -1815,6 +1886,16 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     outdir = _runs[run_id].get("outdir", "")
                     if str(outdir).startswith("s3://"):
                         _runs[run_id]["s3_output_files"] = _list_s3_output_files(outdir)
+                        # Evaluate QC gates from S3 output files (Batch runs have no local work dir)
+                        _qc_gates_s3 = _evaluate_qc_from_s3(
+                            run_id=run_id,
+                            s3_output_files=_runs[run_id]["s3_output_files"],
+                            workflow_domain=_runs[run_id].get("workflow_domain", ""),
+                            qc_overrides=_runs[run_id].get("qc_overrides", {}),
+                        )
+                        if _qc_gates_s3:
+                            _runs[run_id]["qc_gates"] = _qc_gates_s3
+                            log.info("[QC Gate] S3 evaluation for %s: %d gate(s)", run_id, len(_qc_gates_s3))
                 run_meta = dict(_runs[run_id])
         log.info("[Nextflow run %s] finished — status=%s returncode=%d", run_id, final_status, returncode)
 
