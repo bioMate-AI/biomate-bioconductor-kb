@@ -802,8 +802,25 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             # Label: use comment or prettify key
             label = comment if comment else name.replace("_", " ").title()
 
+            # Extract allowed values from pipe-separated options in comment.
+            # Pattern: "Description: opt1 | opt2 | opt3" or "opt1 | opt2 | opt3"
+            # The options section follows a colon or is the whole comment when it has pipes.
+            allowed_values: List[str] = []
+            if comment and "|" in comment:
+                # Take the part after the last colon (or whole comment if no colon)
+                options_part = comment.split(":")[-1] if ":" in comment else comment
+                # Only treat as enum if all tokens look like option values (short, no spaces or simple words)
+                raw_opts = [o.strip() for o in options_part.split("|") if o.strip()]
+                # Filter: options must be short and not contain long prose
+                if raw_opts and all(len(o) <= 40 and " " not in o.split("(")[0].strip() for o in raw_opts):
+                    # Strip parenthetical suffixes like "(skips genome alignment)"
+                    allowed_values = [o.split("(")[0].strip() for o in raw_opts]
+
             parameters[name] = val
-            parameter_metadata[name] = {"type": ptype, "label": label, "level": level}
+            meta: Dict[str, Any] = {"type": ptype, "label": label, "level": level}
+            if allowed_values:
+                meta["allowed_values"] = allowed_values
+            parameter_metadata[name] = meta
 
     except Exception as exc:
         log.warning(f"[NextflowParams] Failed to parse params from {nf_filename}: {exc}")
@@ -998,6 +1015,97 @@ def _build_cryoem_rationale(user_intent: str) -> Dict[str, Any]:
     }
 
 
+def _validate_extracted_params(
+    extracted: Dict[str, Any],
+    all_params: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Schema-level guardrail: reject or normalize param values that violate the workflow schema.
+
+    For each extracted param:
+    - If the schema has allowed_values (parsed from pipe-separated comment options),
+      validate the extracted value against that list (case-insensitive).
+    - If the value is not in the allowed set, drop it and log a warning.
+    - If the value matches case-insensitively but uses wrong casing, correct it.
+
+    Special-cases genome and strandedness via canonical alias maps even when
+    the schema has no explicit allowed_values list (e.g., external tools).
+    """
+    # Build lookup: param_name → allowed_values list from schema
+    allowed_map: Dict[str, List[str]] = {}
+    for p in all_params:
+        av = p.get("allowed_values", [])
+        if av:
+            allowed_map[p["name"]] = av
+
+    # Always apply genome and strandedness canonical maps regardless of schema
+    # (these are so common that hallucinations are very likely without them)
+    _genome_canonical: Dict[str, str] = {}
+    for canonical, aliases in {
+        "GRCh38": {"hg38", "human", "homo_sapiens", "homo sapiens", "grch38", "grch38.p14", "homo_sapiens_grch38", "GRCh38"},
+        "GRCh37": {"hg19", "grch37", "GRCh37"},
+        "GRCm39": {"mm39", "mouse", "mus_musculus", "mus musculus", "grcm39", "mus_musculus_grcm39", "GRCm39"},
+        "GRCm38": {"mm10", "grcm38", "GRCm38"},
+        "Rnor_6.0": {"rnor6", "rnor_6.0", "rat", "rattus_norvegicus", "rattus norvegicus", "Rnor_6.0"},
+        "GRCz11": {"grcz11", "zebrafish", "danio_rerio", "danio rerio", "GRCz11"},
+        "BDGP6": {"bdgp6", "drosophila", "dm6", "drosophila_melanogaster", "drosophila melanogaster", "BDGP6"},
+        "WBcel235": {"wbcel235", "c. elegans", "c.elegans", "caenorhabditis_elegans", "caenorhabditis elegans", "WBcel235"},
+        "R64-1-1": {"r64-1-1", "r64", "saccharomyces_cerevisiae", "s. cerevisiae", "yeast", "s288c", "R64-1-1"},
+        "TAIR10": {"tair10", "arabidopsis", "arabidopsis_thaliana", "arabidopsis thaliana", "at", "TAIR10"},
+    }.items():
+        _genome_canonical[canonical.lower()] = canonical
+        for a in aliases:
+            _genome_canonical[a.lower()] = canonical
+
+    _strand_canonical: Dict[str, str] = {
+        "reverse": "reverse", "rf": "reverse", "dutp": "reverse", "dUTP": "reverse",
+        "forward": "forward", "fr": "forward", "ligation": "forward",
+        "unstranded": "unstranded", "none": "unstranded", "no": "unstranded",
+        "auto": "auto",
+    }
+
+    validated: Dict[str, Any] = {}
+    for name, value in extracted.items():
+        v_str = str(value).strip()
+
+        # Genome: always normalize via canonical map
+        if name == "genome":
+            canonical = _genome_canonical.get(v_str.lower())
+            if canonical:
+                validated[name] = canonical
+            else:
+                log.warning("[ParamGuardrail] genome=%r not in canonical list — dropping", v_str)
+                # Don't include unknown genome values — they will cause workflow failures
+            continue
+
+        # Strandedness: always normalize
+        if name == "strandedness":
+            canonical = _strand_canonical.get(v_str.lower())
+            if canonical:
+                validated[name] = canonical
+            else:
+                log.warning("[ParamGuardrail] strandedness=%r not recognized — dropping", v_str)
+            continue
+
+        # Schema-declared allowed values
+        allowed = allowed_map.get(name, [])
+        if allowed:
+            match = next((a for a in allowed if a.lower() == v_str.lower()), None)
+            if match:
+                validated[name] = match  # use canonical casing from schema
+            else:
+                log.warning(
+                    "[ParamGuardrail] %s=%r not in allowed values %s — dropping",
+                    name, v_str, allowed,
+                )
+            continue
+
+        # No schema constraint — keep as-is
+        validated[name] = value
+
+    return validated
+
+
 def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Deterministic pre-inference for common biological parameters.
@@ -1155,10 +1263,11 @@ Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)
             # Merge: LLM result takes precedence for params it explicitly extracted;
             # rule-based result fills in the rest.
             result.update(llm_result)
-            return result
     except Exception as exc:
         log.debug("_infer_params_from_intent_llm failed (%s) — no pre-fill", exc)
-    return result  # return rule-based results even if LLM fails
+    # Guardrail: validate all extracted values against schema allowed_values and
+    # canonical alias maps. Drops or normalizes values that would cause workflow failures.
+    return _validate_extracted_params(result, all_params)
 
 
 class RankedSearchRequest(BaseModel):

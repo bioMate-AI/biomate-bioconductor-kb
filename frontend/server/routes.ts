@@ -9260,20 +9260,43 @@ Rules:
             return;
           }
 
-          const fileContext = outputSamples.length > 0
-            ? outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n')
-            : '(No readable output files found — provide general guidance based on workflow type.)';
+          // Guardrail: if no output files were found, skip LLM entirely.
+          // Generating key_results without real file content = hallucination.
+          if (outputSamples.length === 0) {
+            _findingsCache.set(runId, {
+              summary: `${workflowName} completed. Output files are not yet readable — check the Outputs tab for results.`,
+              key_results: [],
+              next_steps: ['Open the Outputs tab to view and download result files.'],
+              caveats: ['Findings analysis requires readable output files. Re-check when outputs are available.'],
+            });
+            return;
+          }
+
+          const fileContext = outputSamples.map(f => `### File: ${f.name}\n\`\`\`\n${f.content}\n\`\`\``).join('\n\n');
+
+          // Collect all numeric tokens from output files for post-generation validation
+          const outputNumbers = new Set<string>();
+          for (const f of outputSamples) {
+            for (const m of f.content.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)) {
+              outputNumbers.add(m[1]);
+            }
+          }
 
           const SYSTEM = `You are a senior bioinformatics scientist interpreting results from a completed computational biology workflow.
-Respond ONLY with valid JSON:
+
+STRICT GROUNDING RULES — violations will be rejected:
+1. Every numeric value in key_results MUST appear verbatim in the provided output files.
+2. Do NOT invent, estimate, or round values not present in the files.
+3. Do NOT include citations — omit the citations field entirely.
+4. If a metric cannot be read from the files, omit it from key_results.
+
+Respond ONLY with valid JSON (no markdown wrapper):
 {
-  "summary": "<2-3 sentence executive summary>",
-  "key_results": [{"metric": "<name>", "value": "<value>", "interpretation": "<meaning>"}],
+  "summary": "<2-3 sentence executive summary citing only observed results>",
+  "key_results": [{"metric": "<name>", "value": "<exact value from file>", "interpretation": "<meaning>"}],
   "next_steps": ["<action 1>", "<action 2>"],
-  "caveats": ["<caveat 1>"],
-  "citations": [{"pmid": "", "title": "<tool/paper>", "year": "<year>", "relevance": "<why relevant>"}]
-}
-Respond with ONLY the JSON object, no markdown wrapper.`;
+  "caveats": ["<caveat 1>"]
+}`;
 
           const rawText = await callGeminiFlash({
             messages: [{ role: 'user', content: `Workflow: ${workflowName}\n\nOutput files:\n${fileContext}` }],
@@ -9298,6 +9321,21 @@ Respond with ONLY the JSON object, no markdown wrapper.`;
               }
               break;
             }
+
+            // Guardrail: cross-check each key_result value against numbers in output files.
+            // Drop any key_result whose value contains a number not found in the actual output.
+            if (Array.isArray(parsed.key_results) && outputNumbers.size > 0) {
+              parsed.key_results = (parsed.key_results as Array<{metric: string; value: string; interpretation: string}>).filter(kr => {
+                const valueStr = String(kr.value || '');
+                const numbersInValue = [...valueStr.matchAll(/\b(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g)].map(m => m[1]);
+                // If value contains numbers, at least one must appear in the output files
+                if (numbersInValue.length === 0) return true; // no numbers — textual label, keep it
+                return numbersInValue.some(n => outputNumbers.has(n));
+              });
+            }
+            // Remove fabricated citations if the model included them despite instruction
+            delete parsed.citations;
+
             _findingsCache.set(runId, parsed);
           } catch {
             // Fallback: treat rawText as plain summary
