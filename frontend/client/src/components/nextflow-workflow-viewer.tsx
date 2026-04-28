@@ -5,7 +5,7 @@ import { PhaseCard } from "./phase-card";
 import { ParameterGroup } from "./parameter-group";
 import { StepOutputPreview } from "./step-output-preview";
 import { StepAdjustModal } from "./step-adjust-modal";
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, AlertTriangle, Download, RotateCcw, Square, ChevronRight, Settings2, ShieldCheck, Activity, Clock, SkipForward, Cpu, ExternalLink } from "lucide-react";
 import { ReportConfusionButton } from "./feedback/report-confusion-button";
 import { DownloadOutcomePrompt } from "./feedback/download-outcome-prompt";
 import { ChatOutputAttachments } from "./chat-output-attachments";
@@ -651,6 +651,190 @@ function PhaseGroupSection({
                 }}
               >View phase outputs</button>
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Resource Metrics Panel
+// Shows per-task CPU/memory breakdown parsed from Nextflow report.html
+// Includes links to view the full Nextflow execution report and timeline
+// ─────────────────────────────────────────────────────────────────────────────
+
+function fmtDur(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 3_600_000) return `${(ms / 60_000).toFixed(1)}m`;
+  return `${(ms / 3_600_000).toFixed(2)}h`;
+}
+
+function fmtBytes(b: number): string {
+  if (!b || b <= 0) return '—';
+  const gb = b / 1_073_741_824;
+  if (gb >= 1) return `${gb.toFixed(2)} GB`;
+  const mb = b / 1_048_576;
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  return `${(b / 1024).toFixed(0)} KB`;
+}
+
+function ResourceMetricsPanel({ runId }: { runId: string }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [iframeTarget, setIframeTarget] = useState<{ url: string; title: string } | null>(null);
+
+  useEffect(() => {
+    if (!open || data) return;
+    setLoading(true);
+    fetch(`/api/workflows/runs/${encodeURIComponent(runId)}/resource-metrics`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [open, runId, data]);
+
+  const summary = data?.summary;
+  const tasks: any[] = data?.tasks ?? [];
+  const reportUrl = data?.nf_report_url;
+  const timelineUrl = data?.nf_timeline_url;
+
+  return (
+    <div className="findings-card" data-testid="resource-metrics-panel">
+      <div
+        className="f-h"
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+        onClick={() => setOpen(o => !o)}
+      >
+        <Cpu className="h-3.5 w-3.5" style={{ flexShrink: 0 }} />
+        Resource Usage
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {summary ? `${summary.total_tasks} tasks · ${fmtDur(summary.total_wall_ms)} wall` : 'click to load'}
+          <ChevronRight className="h-3 w-3" style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }} />
+        </span>
+      </div>
+
+      {open && (
+        <div className="f-body" style={{ padding: 0 }}>
+          {loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', fontSize: 12 }}>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading resource data…
+            </div>
+          )}
+
+          {!loading && !data && (
+            <div style={{ padding: '8px 14px', fontSize: 12, color: 'var(--text-muted)' }}>
+              Resource report not available for this run (only generated for AWS Batch runs).
+            </div>
+          )}
+
+          {summary && (
+            <>
+              {/* Summary row */}
+              <div className="f-section" style={{ paddingBottom: 0 }}>
+                <div className="f-section-lbl">Run Summary</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px', fontSize: 11.5 }}>
+                  <div><b>Wall time:</b> {fmtDur(summary.total_wall_ms)}</div>
+                  <div><b>vCPU-hours:</b> {summary.vcpu_hours.toFixed(3)}</div>
+                  <div><b>Mem-GB-hours:</b> {summary.mem_gb_hours.toFixed(3)}</div>
+                  <div><b>Peak RSS:</b> {fmtBytes(summary.peak_rss_bytes)}</div>
+                  <div><b>Tasks:</b> {summary.completed} completed{summary.failed > 0 ? `, ${summary.failed} failed` : ''}</div>
+                </div>
+              </div>
+
+              {/* Per-task table */}
+              {tasks.length > 0 && (
+                <div className="f-section">
+                  <div className="f-section-lbl">Per-Task Breakdown</div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                          <th style={{ textAlign: 'left', padding: '2px 6px', fontWeight: 500 }}>Process</th>
+                          <th style={{ textAlign: 'right', padding: '2px 6px', fontWeight: 500 }}>Duration</th>
+                          <th style={{ textAlign: 'right', padding: '2px 6px', fontWeight: 500 }}>CPU%</th>
+                          <th style={{ textAlign: 'right', padding: '2px 6px', fontWeight: 500 }}>RSS</th>
+                          <th style={{ textAlign: 'right', padding: '2px 6px', fontWeight: 500 }}>Alloc CPUs</th>
+                          <th style={{ textAlign: 'left', padding: '2px 6px', fontWeight: 500 }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tasks.map((t: any, i: number) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border-subtle, #eee)' }}>
+                            <td style={{ padding: '2px 6px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.process}>{t.process}</td>
+                            <td style={{ padding: '2px 6px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtDur(t.duration_ms)}</td>
+                            <td style={{ padding: '2px 6px', textAlign: 'right' }}>{t.cpu_pct}</td>
+                            <td style={{ padding: '2px 6px', textAlign: 'right' }}>{fmtBytes(t.rss_bytes)}</td>
+                            <td style={{ padding: '2px 6px', textAlign: 'right' }}>{t.alloc_cpus}</td>
+                            <td style={{ padding: '2px 6px' }}>
+                              <span style={{ color: t.status === 'COMPLETED' ? 'var(--success, green)' : t.status === 'FAILED' ? 'var(--destructive, red)' : 'var(--text-muted)' }}>
+                                {t.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Links to Nextflow infrastructure reports */}
+              {(reportUrl || timelineUrl) && (
+                <div className="f-section">
+                  <div className="f-section-lbl">Nextflow Execution Reports</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {reportUrl && (
+                      <button
+                        className="iconbtn"
+                        style={{ fontSize: 11, gap: 4, padding: '3px 8px' }}
+                        onClick={() => setIframeTarget({ url: reportUrl, title: 'Execution Report' })}
+                      >
+                        <Activity className="h-3 w-3" /> Execution Report
+                      </button>
+                    )}
+                    {timelineUrl && (
+                      <button
+                        className="iconbtn"
+                        style={{ fontSize: 11, gap: 4, padding: '3px 8px' }}
+                        onClick={() => setIframeTarget({ url: timelineUrl, title: 'Task Timeline' })}
+                      >
+                        <Clock className="h-3 w-3" /> Timeline
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Full-screen iframe modal for Nextflow HTML reports */}
+      {iframeTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column' }}
+          onClick={() => setIframeTarget(null)}
+        >
+          <div
+            style={{ background: 'var(--background, white)', flex: 1, margin: 32, borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+              <Activity className="h-4 w-4" />
+              <b>{iframeTarget.title}</b>
+              <a href={iframeTarget.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--primary)' }}>
+                <ExternalLink className="h-3 w-3" /> Open in new tab
+              </a>
+              <button className="iconbtn" style={{ marginLeft: 8 }} onClick={() => setIframeTarget(null)}>✕</button>
+            </div>
+            <iframe
+              src={iframeTarget.url}
+              style={{ flex: 1, border: 'none', width: '100%' }}
+              sandbox="allow-scripts allow-same-origin"
+              title={iframeTarget.title}
+            />
           </div>
         </div>
       )}
@@ -2399,6 +2583,9 @@ export function NextflowWorkflowViewer({
                   runId={activeRunId}
                   onContinueAnalysis={onAdjustViaChat}
                 />
+              )}
+              {activeRunId && status === 'completed' && (
+                <ResourceMetricsPanel runId={activeRunId} />
               )}
             </div>
           )}

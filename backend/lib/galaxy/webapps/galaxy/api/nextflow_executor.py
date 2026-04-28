@@ -1339,6 +1339,176 @@ def _parse_trace_progress(trace_path: Path) -> dict:
     }
 
 
+def _find_nf_infra_reports(outdir: str):
+    """
+    Locate Nextflow execution report.html and timeline.html in S3 under
+    the pipeline_info/ subdirectory.  Returns (report_uri, timeline_uri).
+    """
+    try:
+        import boto3 as _boto3
+        parts = outdir[len("s3://"):].split("/", 1)
+        bucket = parts[0]
+        prefix = (parts[1] if len(parts) > 1 else "").rstrip("/") + "/pipeline_info/"
+        s3 = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+        paginator = s3.get_paginator("list_objects_v2")
+        report_uri = None
+        timeline_uri = None
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                name = key.split("/")[-1].lower()
+                if name == "report.html":
+                    report_uri = f"s3://{bucket}/{key}"
+                elif name == "timeline.html":
+                    timeline_uri = f"s3://{bucket}/{key}"
+        return report_uri, timeline_uri
+    except Exception as exc:
+        log.debug("[Resource] _find_nf_infra_reports failed: %s", exc)
+        return None, None
+
+
+def _parse_nf_resource_metrics(report_s3_uri: str) -> dict:
+    """
+    Download Nextflow report.html from S3 and extract per-task resource usage.
+
+    Parses the embedded window.data.trace JSON containing:
+      task_id, process, status, duration (ms), realtime (ms), %cpu,
+      %mem, rss (bytes), vmem (bytes), peak_rss, read_bytes, write_bytes,
+      cpus (allocated), memory (allocated bytes), queue, cpu_model
+
+    Returns a dict with:
+      tasks:        list of per-task resource dicts
+      summary:      {total_tasks, completed, failed, total_wall_ms,
+                     total_vcpu_hours, total_mem_gb_hours, peak_rss_bytes}
+      parsed_from:  S3 URI of report.html
+    """
+    try:
+        import re as _re, json as _json, subprocess as _sub
+        result = _sub.run(
+            ["aws", "s3", "cp", report_s3_uri, "-"],
+            capture_output=True, timeout=30
+        )
+        if result.returncode != 0:
+            return {}
+        html = result.stdout.decode("utf-8", errors="replace")
+
+        # Extract window.data = { ... } — injected at bottom of file
+        idx = html.find("window.data = {")
+        if idx < 0:
+            return {}
+        start = idx + len("window.data = ")
+        depth = 0
+        end = start
+        for i in range(start, min(len(html), start + 500_000)):
+            if html[i] == "{":
+                depth += 1
+            elif html[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+
+        raw = html[start:end]
+        raw = raw.replace("\\/", "/")
+        # Strip shell script content from task records (contains unescaped chars)
+        for field in ("script", "env", "stdout", "stderr"):
+            raw = _re.sub(
+                f'"{field}":"(?:[^"\\\\]|\\\\.)*"', f'"{field}":""',
+                raw, flags=_re.DOTALL
+            )
+
+        data = _json.loads(raw)
+        tasks_raw = data.get("trace", [])
+
+        tasks = []
+        total_wall_ms = 0
+        total_vcpu_ms = 0.0
+        total_mem_ms = 0.0
+        peak_rss = 0
+        completed = 0
+        failed = 0
+
+        for t in tasks_raw:
+            dur = int(t.get("duration", 0))
+            cpu_pct = t.get("%cpu", "-")
+            rss_bytes = t.get("rss", 0)
+            alloc_cpus = int(t.get("cpus", 1))
+            alloc_mem = int(t.get("memory", 0))  # bytes
+            status = t.get("status", "")
+
+            try:
+                cpu_frac = float(str(cpu_pct).replace("%", "")) / 100.0
+            except (ValueError, TypeError):
+                cpu_frac = 0.0
+
+            total_wall_ms += dur
+            total_vcpu_ms += cpu_frac * dur / 1000.0 * 1000  # ms of CPU time
+            if rss_bytes and rss_bytes != "-":
+                try:
+                    total_mem_ms += int(rss_bytes) * dur
+                    peak_rss = max(peak_rss, int(rss_bytes))
+                except (ValueError, TypeError):
+                    pass
+            if status == "COMPLETED":
+                completed += 1
+            elif status in ("FAILED", "ABORTED"):
+                failed += 1
+
+            tasks.append({
+                "task_id": t.get("task_id"),
+                "process": t.get("process", ""),
+                "name": t.get("name", ""),
+                "status": status,
+                "queue": t.get("queue", ""),
+                "container": t.get("container", ""),
+                "duration_ms": dur,
+                "realtime_ms": int(t.get("realtime", 0)),
+                "cpu_pct": cpu_pct,
+                "mem_pct": t.get("%mem", "-"),
+                "rss_bytes": rss_bytes,
+                "peak_rss_bytes": t.get("peak_rss", 0),
+                "alloc_cpus": alloc_cpus,
+                "alloc_mem_bytes": alloc_mem,
+                "read_bytes": t.get("read_bytes", 0),
+                "write_bytes": t.get("write_bytes", 0),
+                "cpu_model": t.get("cpu_model", ""),
+            })
+
+        # vCPU-hours = sum(cpu_fraction × duration_hours)
+        vcpu_hours = sum(
+            (float(str(t.get("cpu_pct", "0")).replace("%", "")) / 100.0)
+            * (int(t.get("duration", 0)) / 3_600_000)
+            for t in tasks_raw
+            if str(t.get("cpu_pct", "-")) != "-"
+        )
+        # Memory-GB-hours = sum(rss_GB × duration_hours)
+        mem_gb_hours = 0.0
+        for t in tasks_raw:
+            rss = t.get("rss", 0)
+            dur = int(t.get("duration", 0))
+            try:
+                mem_gb_hours += (int(rss) / 1_073_741_824) * (dur / 3_600_000)
+            except (ValueError, TypeError):
+                pass
+
+        return {
+            "tasks": tasks,
+            "summary": {
+                "total_tasks": len(tasks),
+                "completed": completed,
+                "failed": failed,
+                "total_wall_ms": total_wall_ms,
+                "vcpu_hours": round(vcpu_hours, 4),
+                "mem_gb_hours": round(mem_gb_hours, 4),
+                "peak_rss_bytes": peak_rss,
+            },
+            "parsed_from": report_s3_uri,
+        }
+    except Exception as exc:
+        log.warning("[Resource] _parse_nf_resource_metrics failed for %s: %s", report_s3_uri, exc)
+        return {}
+
+
 def _evaluate_qc_from_s3(
     run_id: str,
     s3_output_files: list,
@@ -1886,6 +2056,17 @@ def _stream_logs(process: subprocess.Popen, run_id: str, log_path: Path):
                     outdir = _runs[run_id].get("outdir", "")
                     if str(outdir).startswith("s3://"):
                         _runs[run_id]["s3_output_files"] = _list_s3_output_files(outdir)
+                        # Parse Nextflow execution report for resource/cost audit metrics
+                        _report_uri, _timeline_uri = _find_nf_infra_reports(outdir)
+                        if _report_uri:
+                            _runs[run_id]["nf_report_s3"] = _report_uri
+                        if _timeline_uri:
+                            _runs[run_id]["nf_timeline_s3"] = _timeline_uri
+                        _res_metrics = _parse_nf_resource_metrics(_report_uri) if _report_uri else {}
+                        if _res_metrics:
+                            _runs[run_id]["resource_metrics"] = _res_metrics
+                            log.info("[Resource] Parsed %d task records from report.html for %s",
+                                     len(_res_metrics.get("tasks", [])), run_id)
                         # Evaluate QC gates from S3 output files (Batch runs have no local work dir)
                         _qc_gates_s3 = _evaluate_qc_from_s3(
                             run_id=run_id,
@@ -3319,6 +3500,9 @@ def get_nextflow_status(
         "s3_output_files": s3_files,
         "qc_report": qc_report,
         "qc_gates": info.get("qc_gates", []),  # gate failures from S3 post-run evaluation
+        "resource_metrics": info.get("resource_metrics", {}),  # per-task CPU/mem from report.html
+        "nf_report_s3": info.get("nf_report_s3", ""),   # S3 URI of Nextflow execution report.html
+        "nf_timeline_s3": info.get("nf_timeline_s3", ""),  # S3 URI of Nextflow timeline.html
         "started_at": started_at,
         "completed_at": completed_at,
         "duration_s": duration_s,
