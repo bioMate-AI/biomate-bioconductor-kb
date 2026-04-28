@@ -17,6 +17,7 @@ import {
   Dna,
   Layers,
   Network,
+  ChartBar,
 } from "lucide-react"
 import type { OutputDataset } from "@shared/schema"
 import { VCFViewer, SequenceViewer, AnnotationViewer, InteractiveToolLauncher } from "./viewers"
@@ -128,7 +129,13 @@ export function ChatOutputAttachments({
   }
 
   // Group outputs by type for better organization
-  const visualizations = visibleOutputs.filter(o => o.fileType === 'image' || o.fileType === 'interactive')
+  const qcReports = visibleOutputs.filter(o =>
+    o.fileType === 'interactive' && /multiqc|qc.report|fastqc|fastp/i.test(o.name)
+  )
+  const visualizations = visibleOutputs.filter(o =>
+    (o.fileType === 'image') ||
+    (o.fileType === 'interactive' && !/multiqc|qc.report|fastqc|fastp/i.test(o.name))
+  )
   const tables = visibleOutputs.filter(o => o.fileType === 'table')
   const sequences = visibleOutputs.filter(o => o.fileType === 'sequence')
   const variants = visibleOutputs.filter(o => o.fileType === 'variants')
@@ -205,6 +212,20 @@ export function ChatOutputAttachments({
       </div>
       {/* Interactive Tool Launcher */}
       <InteractiveToolLauncher outputs={visibleOutputs} />
+
+      {/* QC Reports Section (MultiQC / FastQC HTML dashboards) */}
+      {qcReports.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ChartBar className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-medium">QC Reports</h4>
+            <Badge variant="secondary">{qcReports.length}</Badge>
+          </div>
+          {qcReports.map(output => (
+            <OutputRenderer key={output.id} output={output} invocationId={invocationId} onDownload={handleDownloadWithFeedback} />
+          ))}
+        </div>
+      )}
 
       {/* Visualizations Section */}
       {visualizations.length > 0 && (
@@ -463,6 +484,10 @@ function InteractiveOutput({ output, invocationId, onDownload }: OutputRendererP
   const [iframeError, setIframeError] = useState(false)
   const [iframeLoading, setIframeLoading] = useState(true)
 
+  const isQcReport = /multiqc|qc.report|fastqc|fastp/i.test(output.name)
+  const iframeHeight = isQcReport ? 'h-[600px]' : 'h-96'
+  const label = isQcReport ? 'QC Report' : 'Interactive Visualization'
+
   return (
     <Card>
       <CardHeader>
@@ -470,7 +495,7 @@ function InteractiveOutput({ output, invocationId, onDownload }: OutputRendererP
           <div className="flex-1 min-w-0">
             <CardTitle className="text-base truncate">{output.name}</CardTitle>
             <CardDescription className="text-xs">
-              Interactive Visualization • {formatBytes(output.size)}
+              {label} • {formatBytes(output.size)}
             </CardDescription>
           </div>
           <Button
@@ -522,7 +547,7 @@ function InteractiveOutput({ output, invocationId, onDownload }: OutputRendererP
             ) : (
               <iframe
                 src={`/api/outputs/${output.id}/display`}
-                className="w-full h-96 rounded"
+                className={`w-full ${iframeHeight} rounded`}
                 sandbox="allow-scripts allow-same-origin"
                 title={output.name}
                 onLoad={() => setIframeLoading(false)}

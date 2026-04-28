@@ -6667,10 +6667,30 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
       } else if (localPath) {
         fileStream = createReadStream(localPath);
       } else if (s3Uri) {
-        // Redirect to a presigned download URL for S3 objects
-        const galaxyUrl = process.env.GALAXY_URL || "http://localhost:8081";
-        const presignUrl = `${galaxyUrl}/api/nextflow/outputs/download?s3_uri=${encodeURIComponent(s3Uri)}&run_id=direct`;
-        return res.redirect(302, presignUrl);
+        // Stream directly via AWS SDK (same approach as step-file endpoint)
+        // Avoids redirect to Galaxy presign which may serve wrong Content-Type
+        const s3Match = s3Uri.match(/^s3:\/\/([^/]+)\/(.+)$/);
+        if (!s3Match) return res.status(400).json({ error: 'Invalid S3 URI' });
+        const [, bucket, key] = s3Match;
+        const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const s3 = new S3Client({
+          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
+          followRegionRedirects: true,
+        });
+        const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+        if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
+        const ctMap2: Record<string, string> = {
+          'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+          'svg': 'image/svg+xml', 'gif': 'image/gif', 'pdf': 'application/pdf',
+          'html': 'text/html', 'htm': 'text/html',
+          'txt': 'text/plain', 'csv': 'text/csv', 'tsv': 'text/tab-separated-values',
+          'json': 'application/json',
+        };
+        const ext2 = (output.extension || '').toLowerCase();
+        res.setHeader('Content-Type', ctMap2[ext2] || 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'inline');
+        (s3Obj.Body as any).pipe(res);
+        return;
       } else {
         return res.status(404).json({ error: "Output has no display source" });
       }
