@@ -1149,12 +1149,61 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
     # ── Strandedness ─────────────────────────────────────────────────────────
     if "strandedness" in param_names:
         import re as _re
-        if _re.search(r'\b(reverse|rf|dUTP|dutp|reverse.strand)\b', text, _re.IGNORECASE):
-            result["strandedness"] = "reverse"
-        elif _re.search(r'\b(forward|fr|ligation|forward.strand)\b', text, _re.IGNORECASE):
-            result["strandedness"] = "forward"
-        elif _re.search(r'\b(unstranded|no.strand|strand.unknown|non-stranded)\b', text, _re.IGNORECASE):
-            result["strandedness"] = "unstranded"
+        # Library prep kit → strandedness mapping (checked BEFORE generic terms)
+        # These are well-established mappings in the field:
+        _KIT_REVERSE = [
+            r'TruSeq\s+Stranded',          # Illumina TruSeq Stranded mRNA/Total RNA = dUTP = reverse
+            r'KAPA\s+Stranded',             # KAPA Stranded RNA-Seq = reverse
+            r'NEBNext.*?Ultra.*?II.*?Direct', # NEBNext Ultra II Directional = reverse
+            r'ribo-?zero.*?stranded',
+            r'stranded.*?ribo-?zero',
+            r'Lexogen.*?SENSE',             # Lexogen SENSE = reverse
+            r'SMARTer.*?Stranded',          # SMARTer Stranded = reverse
+        ]
+        _KIT_FORWARD = [
+            r'ScriptSeq',                   # Epicentre ScriptSeq = forward
+            r'Ovation\s+SoLo',              # Ovation SoLo = forward
+            r'Ion\s+Total\s+RNA',           # Ion RNA library = forward
+            r'Lexogen\s+CORALL',            # CORALL = forward
+            r'NextFlex\s+Rapid\s+Directional', # NextFlex Directional = forward
+            r'Directagen\s+forward',
+        ]
+        _KIT_UNSTRANDED = [
+            r'SMART-?seq\s*(?:2|v2|v3|v4|Ultra|plate)',  # SMARTseq = unstranded (full-length)
+            r'SMART-?seq\s+full',
+            r'Clontech\s+SMARTer.*?PCR',
+            r'TeloPrime',
+            r'VN-seq',
+            r'CEL-?seq',                    # CEL-seq = unstranded
+            r'Drop-?seq',                   # Drop-seq = unstranded
+            r'10[Xx]\s+Chromium.*?RNA',     # 10X Chromium = unstranded (scRNA-seq)
+        ]
+        _strand_found = False
+        for pat in _KIT_REVERSE:
+            if _re.search(pat, user_intent, _re.IGNORECASE):
+                result["strandedness"] = "reverse"
+                _strand_found = True
+                break
+        if not _strand_found:
+            for pat in _KIT_FORWARD:
+                if _re.search(pat, user_intent, _re.IGNORECASE):
+                    result["strandedness"] = "forward"
+                    _strand_found = True
+                    break
+        if not _strand_found:
+            for pat in _KIT_UNSTRANDED:
+                if _re.search(pat, user_intent, _re.IGNORECASE):
+                    result["strandedness"] = "unstranded"
+                    _strand_found = True
+                    break
+        if not _strand_found:
+            # Fallback: generic terms
+            if _re.search(r'\b(reverse|rf|dUTP|dutp|reverse.strand)\b', text, _re.IGNORECASE):
+                result["strandedness"] = "reverse"
+            elif _re.search(r'\b(forward|fr|ligation|forward.strand)\b', text, _re.IGNORECASE):
+                result["strandedness"] = "forward"
+            elif _re.search(r'\b(unstranded|no.strand|strand.unknown|non-stranded|full.length.*single.cell)\b', text, _re.IGNORECASE):
+                result["strandedness"] = "unstranded"
 
     # ── MACS genome size ─────────────────────────────────────────────────────
     if "macs_gsize" in param_names:
