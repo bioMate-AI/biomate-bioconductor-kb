@@ -69,6 +69,24 @@ LICENSE_REGISTRY: Dict[str, Dict[str, Any]] = {
         "open_alternatives": [],
     },
     # ------------------------------------------------------------------
+    # AWS S3 user credentials — for private bucket access during workflows
+    # ------------------------------------------------------------------
+    "s3": {
+        "display_name": "Amazon S3",
+        "vendor": "Amazon Web Services",
+        "type": "aws_credentials",       # credential shape: {aws_access_key_id, aws_secret_access_key, aws_region, s3_bucket}
+        "registration_url": "https://aws.amazon.com/iam/",
+        "approval_time": "instant (IAM console)",
+        "cost": "standard AWS S3 pricing",
+        "container_patterns": [],        # not a container tool — platform-level credential
+        "user_must_provide": True,       # each user provides their own IAM credentials
+        "env_key_access": "AWS_ACCESS_KEY_ID",
+        "env_key_secret": "AWS_SECRET_ACCESS_KEY",
+        "env_key_region": "AWS_DEFAULT_REGION",
+        "open_alternatives": [],
+        "description": "Your AWS Access Key ID and Secret Access Key for accessing private S3 buckets. Create a read-only IAM user with s3:GetObject and s3:ListBucket permissions on your data bucket.",
+    },
+    # ------------------------------------------------------------------
     # Phase 3: licensed MD / drug-discovery tools
     # ------------------------------------------------------------------
     "amber": {

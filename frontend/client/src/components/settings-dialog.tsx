@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useLocation } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -15,23 +15,128 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { userSettingsService } from "@/lib/user-settings"
 import type { UserSettings } from "@shared/schema"
-import { 
-  User, 
-  Settings, 
-  Palette, 
-  MessageSquare, 
-  Database, 
-  Bell, 
-  Shield, 
-  Code, 
-  Download, 
-  Upload, 
+import {
+  User,
+  Settings,
+  Palette,
+  MessageSquare,
+  Database,
+  Bell,
+  Shield,
+  Code,
+  Download,
+  Upload,
   RotateCcw,
   HelpCircle,
   ExternalLink,
   LogOut,
-  Languages
+  Languages,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react"
+
+// ---------------------------------------------------------------------------
+// S3 credential state
+// ---------------------------------------------------------------------------
+interface S3Creds {
+  aws_access_key_id: string;
+  aws_secret_access_key: string;
+  aws_region: string;
+  s3_bucket: string;
+}
+type S3VerifyStatus = 'idle' | 'saving' | 'verifying' | 'ok' | 'error';
+
+function useS3Credentials(open: boolean) {
+  const [creds, setCreds] = useState<S3Creds>({ aws_access_key_id: '', aws_secret_access_key: '', aws_region: 'us-east-1', s3_bucket: '' });
+  const [status, setStatus] = useState<S3VerifyStatus>('idle');
+  const [statusMsg, setStatusMsg] = useState('');
+  const [hasSaved, setHasSaved] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+
+  // Load whether credentials were previously saved (we can't read the secret back)
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/users/credentials/s3', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.has_credential) setHasSaved(true); })
+      .catch(() => {});
+  }, [open]);
+
+  const update = (field: keyof S3Creds) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCreds(c => ({ ...c, [field]: e.target.value }));
+    setStatus('idle');
+  };
+
+  const save = useCallback(async () => {
+    if (!creds.aws_access_key_id || !creds.aws_secret_access_key || !creds.s3_bucket) {
+      setStatus('error');
+      setStatusMsg('Access Key ID, Secret Access Key, and bucket name are required.');
+      return;
+    }
+    setStatus('saving');
+    setStatusMsg('');
+    try {
+      const r = await fetch('/api/users/credentials', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 's3', data: { ...creds } }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.detail || e.error || `HTTP ${r.status}`);
+      }
+      setHasSaved(true);
+      setStatus('ok');
+      setStatusMsg('Credentials saved.');
+    } catch (err: any) {
+      setStatus('error');
+      setStatusMsg(err.message);
+    }
+  }, [creds]);
+
+  const verify = useCallback(async () => {
+    if (!creds.aws_access_key_id || !creds.aws_secret_access_key || !creds.s3_bucket) {
+      setStatus('error');
+      setStatusMsg('Fill in all fields before verifying.');
+      return;
+    }
+    setStatus('verifying');
+    setStatusMsg('');
+    try {
+      const r = await fetch('/api/users/credentials/s3/verify', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...creds }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setStatus('ok');
+        setStatusMsg(`Connected — bucket "${d.bucket}" is accessible (region: ${d.region})`);
+      } else {
+        setStatus('error');
+        setStatusMsg(d.error || 'Connection failed');
+      }
+    } catch (err: any) {
+      setStatus('error');
+      setStatusMsg(err.message);
+    }
+  }, [creds]);
+
+  const clear = useCallback(async () => {
+    setCreds({ aws_access_key_id: '', aws_secret_access_key: '', aws_region: 'us-east-1', s3_bucket: '' });
+    setHasSaved(false);
+    setStatus('idle');
+    setStatusMsg('');
+    await fetch('/api/users/credentials/s3', { method: 'DELETE', credentials: 'include' }).catch(() => {});
+  }, []);
+
+  return { creds, update, save, verify, clear, status, statusMsg, hasSaved, showSecret, setShowSecret };
+}
 
 interface SettingsDialogProps {
   open: boolean
@@ -43,6 +148,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [, setLocation] = useLocation()
   const [settings, setSettings] = useState<UserSettings>(userSettingsService.getSettings())
   const [activeTab, setActiveTab] = useState("profile")
+  const s3 = useS3Credentials(open)
 
   const handleLogout = async () => {
     onOpenChange(false)
@@ -374,13 +480,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
               {/* Data Tab */}
               <TabsContent value="data" className="space-y-6 m-0">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Data Management</h3>
-                  
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Data Management</h3>
+
+                  {/* Storage type */}
                   <Card>
-                    <CardContent className="space-y-6 pt-6">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Default Storage</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="default-storage">Default Storage Type</Label>
+                        <Label htmlFor="default-storage">Storage Type</Label>
                         <Select value={settings.defaultStorageType} onValueChange={(value: any) => updateSetting('defaultStorageType', value)}>
                           <SelectTrigger data-testid="select-default-storage">
                             <SelectValue />
@@ -392,32 +502,144 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                           </SelectContent>
                         </Select>
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                           <Label>Auto-delete Temporary Files</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Automatically clean up temporary workflow files
-                          </p>
+                          <p className="text-xs text-muted-foreground">Clean up temporary workflow files automatically</p>
                         </div>
-                        <Switch
-                          checked={settings.autoDeleteTempFiles}
-                          onCheckedChange={(checked) => updateSetting('autoDeleteTempFiles', checked)}
-                          data-testid="switch-auto-delete-temp"
-                        />
+                        <Switch checked={settings.autoDeleteTempFiles} onCheckedChange={(v) => updateSetting('autoDeleteTempFiles', v)} data-testid="switch-auto-delete-temp" />
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="retention-days">Data Retention (Days)</Label>
-                        <Input
-                          id="retention-days"
-                          type="number"
-                          value={settings.dataRetentionDays}
-                          onChange={(e) => updateSetting('dataRetentionDays', parseInt(e.target.value) || 30)}
-                          data-testid="input-retention-days"
-                        />
+                        <Input id="retention-days" type="number" value={settings.dataRetentionDays} onChange={(e) => updateSetting('dataRetentionDays', parseInt(e.target.value) || 30)} data-testid="input-retention-days" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* AWS S3 credentials — always visible so users can set up their bucket */}
+                  <Card data-testid="s3-credentials-card">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            Amazon S3 Credentials
+                            {s3.hasSaved && s3.status !== 'error' && (
+                              <Badge variant="secondary" className="text-xs font-normal gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                Saved
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription className="text-xs mt-1">
+                            Provide your own AWS credentials to access private S3 buckets during workflow execution.
+                            Create a read-only IAM user with <code className="bg-muted px-1 rounded text-[11px]">s3:GetObject</code> and <code className="bg-muted px-1 rounded text-[11px]">s3:ListBucket</code> on your data bucket.
+                          </CardDescription>
+                        </div>
+                        {s3.hasSaved && (
+                          <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={s3.clear} data-testid="button-s3-clear">
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="aws-access-key-id" className="text-xs">Access Key ID</Label>
+                          <Input
+                            id="aws-access-key-id"
+                            placeholder="AKIAIOSFODNN7EXAMPLE"
+                            value={s3.creds.aws_access_key_id}
+                            onChange={s3.update('aws_access_key_id')}
+                            autoComplete="off"
+                            data-testid="input-aws-access-key-id"
+                            className="font-mono text-xs h-8"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="aws-secret-access-key" className="text-xs">Secret Access Key</Label>
+                          <div className="relative">
+                            <Input
+                              id="aws-secret-access-key"
+                              type={s3.showSecret ? 'text' : 'password'}
+                              placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+                              value={s3.creds.aws_secret_access_key}
+                              onChange={s3.update('aws_secret_access_key')}
+                              autoComplete="new-password"
+                              data-testid="input-aws-secret-access-key"
+                              className="font-mono text-xs h-8 pr-8"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              onClick={() => s3.setShowSecret(!s3.showSecret)}
+                              data-testid="button-toggle-secret-visibility"
+                              tabIndex={-1}
+                            >
+                              {s3.showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="aws-region" className="text-xs">Region</Label>
+                          <Input
+                            id="aws-region"
+                            placeholder="us-east-1"
+                            value={s3.creds.aws_region}
+                            onChange={s3.update('aws_region')}
+                            data-testid="input-aws-region"
+                            className="font-mono text-xs h-8"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="s3-bucket" className="text-xs">Bucket Name</Label>
+                          <Input
+                            id="s3-bucket"
+                            placeholder="my-cryo-data-bucket"
+                            value={s3.creds.s3_bucket}
+                            onChange={s3.update('s3_bucket')}
+                            data-testid="input-s3-bucket"
+                            className="font-mono text-xs h-8"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Status message */}
+                      {s3.statusMsg && (
+                        <div className={`flex items-start gap-2 text-xs rounded p-2 ${s3.status === 'ok' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-destructive/10 text-destructive'}`} data-testid="s3-status-message">
+                          {s3.status === 'ok'
+                            ? <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                            : <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />}
+                          <span>{s3.statusMsg}</span>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs gap-1.5"
+                          onClick={s3.save}
+                          disabled={s3.status === 'saving' || s3.status === 'verifying'}
+                          data-testid="button-save-s3-credentials"
+                        >
+                          {s3.status === 'saving' && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Save credentials
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1.5"
+                          onClick={s3.verify}
+                          disabled={s3.status === 'saving' || s3.status === 'verifying'}
+                          data-testid="button-verify-s3-credentials"
+                        >
+                          {s3.status === 'verifying' && <Loader2 className="h-3 w-3 animate-spin" />}
+                          Test connection
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

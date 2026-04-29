@@ -4989,6 +4989,42 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
     }
   });
 
+  // Verify S3 credentials by listing the specified bucket
+  app.post("/api/users/credentials/s3/verify", optionalAuth, express.json(), async (req, res) => {
+    try {
+      const { aws_access_key_id, aws_secret_access_key, aws_region, s3_bucket } = req.body ?? {};
+      if (!aws_access_key_id || !aws_secret_access_key || !s3_bucket) {
+        return res.status(400).json({ ok: false, error: "Missing required fields: aws_access_key_id, aws_secret_access_key, s3_bucket" });
+      }
+      const { S3Client, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+      const client = new S3Client({
+        region: aws_region || 'us-east-1',
+        credentials: { accessKeyId: aws_access_key_id, secretAccessKey: aws_secret_access_key },
+        followRegionRedirects: true,
+      });
+      const resp = await client.send(new ListObjectsV2Command({ Bucket: s3_bucket, MaxKeys: 1 }));
+      res.json({ ok: true, bucket: s3_bucket, region: aws_region || 'us-east-1', object_count_sample: resp.KeyCount ?? 0 });
+    } catch (err: any) {
+      const msg = err.message || String(err);
+      const code = /NoSuchBucket/.test(msg) ? 'bucket_not_found'
+                 : /InvalidAccessKeyId|SignatureDoesNotMatch/.test(msg) ? 'invalid_credentials'
+                 : /AccessDenied|AllAccessDisabled/.test(msg) ? 'access_denied'
+                 : 'error';
+      res.status(400).json({ ok: false, code, error: msg.slice(0, 200) });
+    }
+  });
+
+  // Retrieve stored S3 credentials for the current user (returns masked values)
+  app.get("/api/users/credentials/s3", optionalAuth, async (req, res) => {
+    try {
+      const proxy = userProxy(req);
+      const response = await proxy.client.get('/api/users/credentials', { params: { tool: 's3' } });
+      res.json(response.data);
+    } catch (error: any) {
+      res.status(error.response?.status || 500).json(error.response?.data || { error: error.message });
+    }
+  });
+
   app.get("/api/workflows/license-requirements", optionalAuth, async (req, res) => {
     try {
       const proxy = userProxy(req);
