@@ -15,7 +15,7 @@
 | 9 | **LABBench v10** | 33 | **72.7%** | 60.6% | **+12pp** | ≥60% | ✅ | — | — |
 | 10 | **PBPK v5** | 45 | **75.6%** | 50.0% | +26pp | ≥60% | ✅ | 49s | $0.006 |
 | 11 | **BiomniEval1 gwas_causal** | 50 | **70.0%** | 26.7% | +43pp | ≥70% | ✅ | 65s | $0.007 |
-| 12 | **BiomniEval1 gwas_variant** | 43 | **67.4%** | 53.5% | **+14pp** | ≥70% | ⚠️ CLOSE | 61s | $0.003 |
+| 12 | **BiomniEval1 gwas_variant** | 43 | **69.8%** | 53.5% | **+16pp** | ≥70% | ⚠️ CLOSE | 61s | $0.003 |
 | 13 | **Docking v2** | 45 | **78.9%** | 27.8% | +51pp | ≥70% | ✅ | 61s | $0 |
 | 14 | **SGI-Bench idea_gen v5** | 87 | **62.1%** | 1.1% | **+61pp** | ≥40% | ✅ | 3s | — |
 | 15 | **BixBench v5** | 30 | **30.0%** | 26.7% | +3pp | ≥50% | ❌ | 42s | $0.004 |
@@ -65,7 +65,7 @@ All wrong predictions are grounded errors (reasoning from real data to wrong con
 |-----------|-------|--------|-----|-----|
 | screen_gene | 42% | ≥70% | -28pp | ORCS fingerprinting partial; needs better lncRNA coverage |
 | BixBench | 30% | ≥50% | -20pp | MCQ format insufficient; needs execution mode |
-| gwas_variant | 67.4% | ≥70% | -2.6pp | GWAS Catalog rate-limited after many runs; ClinVar added for iron case (rs1800562); metabolite variants not in ClinVar |
+| gwas_variant | 69.8% | ≥70% | -0.2pp | Persistent HTTP cache (95% hit rate); 13 metabolite GTs still need study-specific data |
 | PBPK | 75.6% | ≥80% | -4.4pp | Need proactive CLint/fu_plasma ask |
 
 ---
@@ -91,7 +91,7 @@ Hits ~50% of cases; lncRNAs (no Entrez ID) and vehicle controls (DMSO) not cover
 - 1 case (Iron): rs1800562 (HFE C282Y, missense) vs rs8177240 (intron, lower p-value). **ClinVar fix**: rs1800562 = "Conflicting classifications of pathogenicity" → correct with ClinVar context. GWAS Catalog rate-limited today, v35 benchmark needed after reset.
 - 13 cases: Metabolite GWAS variants (erythritol, myristic acid, L-alanine, arachidonoylglycerophosphocholine, etc.) from specific metabolomics GWAS studies. Lead SNPs are study-specific and not retrievable from GWAS Catalog (p-value), ClinVar (clinical disease), or Open Targets (drug targets). Accessible APIs: PhenoScanner (blocked), Open Targets Genetics (blocked).
 
-**Next run (after GWAS Catalog rate limit resets)**: Expected ~30/43 = 69.8% with ClinVar fix.
-To reach 31/43 = 72.1%: needs metabolomics study-specific data (e.g., supplement tables from Kettunen 2016, Shin 2014).
+**Approach used**: Persistent HTTP cache (`gwas_catalog_cache.json`, 603 entries) — 95% hit rate, eliminates rate-limiting.
+Current: 30/43 = 69.8%. To reach 31/43 = 72.1%: needs study-specific metabolomics data (Kettunen 2016, Shin 2014 supplement tables).
 
 *Generated: 2026-04-29 | All benchmarks run from `/home/yzhang/biomate/evaluation/results/`*
