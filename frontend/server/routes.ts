@@ -4018,51 +4018,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } while (continuationToken);
 
 
-          for (const key of allKeys) {
-            const fname = key.split('/').pop() || key;
-            if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
-            allOutputFiles.push(fname);
-            if (TEXT_EXTS.test(fname) && textOutputSamples.length < 15) {
-              try {
-                const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: key });
-                const getResp = await s3Client.send(getCmd);
-                const chunks: Buffer[] = [];
-                const stream = getResp.Body as any;
-                await new Promise<void>((res, rej) => {
-                  stream.on('data', (c: Buffer) => chunks.push(c));
-                  stream.on('end', res);
-                  stream.on('error', rej);
-                });
-                const fc = Buffer.concat(chunks).toString('utf-8');
-                if (fc.trim()) textOutputSamples.push({ name: fname, content: fc.slice(0, 6000) });
-              } catch (cpErr: any) {
-                console.warn(`[MethodsReport] S3 get failed for ${fname}:`, cpErr.message?.slice(0, 100));
-              }
-            }
-          }
-          // After scan, ensure key CryoEM files are fetched even if beyond position 15
+          // Build allOutputFiles inventory and collect text keys to fetch in parallel
           const PRIORITY_FILES = [
             'workflow_summary.json', 'fsc_validation.json', 'nu_refinement_report.json',
             'extract_report.json', 'selection_report.json',
           ];
-          const fetchedNames = new Set(textOutputSamples.map(s => s.name));
-          for (const pname of PRIORITY_FILES) {
-            if (fetchedNames.has(pname)) continue;
-            const pkey = allKeys.find(k => k.endsWith('/' + pname));
-            if (!pkey) continue;
-            try {
-              const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: pkey });
-              const getResp = await s3Client.send(getCmd);
-              const chunks: Buffer[] = [];
-              const stream = getResp.Body as any;
-              await new Promise<void>((res, rej) => {
-                stream.on('data', (c: Buffer) => chunks.push(c));
-                stream.on('end', res);
-                stream.on('error', rej);
-              });
-              const fc = Buffer.concat(chunks).toString('utf-8');
-              if (fc.trim()) { textOutputSamples.push({ name: pname, content: fc.slice(0, 6000) }); fetchedNames.add(pname); }
-            } catch { /* skip */ }
+          const textKeysToFetch: Array<{ key: string; fname: string; priority: boolean }> = [];
+          for (const key of allKeys) {
+            const fname = key.split('/').pop() || key;
+            if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
+            allOutputFiles.push(fname);
+            if (TEXT_EXTS.test(fname)) {
+              const isPriority = PRIORITY_FILES.some(p => fname === p);
+              textKeysToFetch.push({ key, fname, priority: isPriority });
+            }
+          }
+          // Sort: priority first, then rest; cap total reads at 15
+          textKeysToFetch.sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
+          const keysToRead = textKeysToFetch.slice(0, 15);
+
+          // Parallel S3 reads
+          const readResults = await Promise.allSettled(keysToRead.map(async ({ key, fname }) => {
+            const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: key });
+            const getResp = await s3Client.send(getCmd);
+            const chunks: Buffer[] = [];
+            const stream = getResp.Body as any;
+            await new Promise<void>((res, rej) => {
+              stream.on('data', (c: Buffer) => chunks.push(c));
+              stream.on('end', res);
+              stream.on('error', rej);
+            });
+            return { fname, content: Buffer.concat(chunks).toString('utf-8').slice(0, 6000) };
+          }));
+          for (const r of readResults) {
+            if (r.status === 'fulfilled' && r.value.content.trim()) {
+              textOutputSamples.push(r.value);
+            } else if (r.status === 'rejected') {
+              console.warn(`[MethodsReport] S3 get failed:`, String(r.reason).slice(0, 100));
+            }
           }
         } catch (s3Err: any) {
           console.warn('[MethodsReport] S3 scan failed:', s3Err.message?.slice(0, 200));
