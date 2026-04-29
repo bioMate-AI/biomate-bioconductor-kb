@@ -16,7 +16,7 @@ process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.4'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
 
     input:
     tuple val(meta), path(pdb_or_fasta)
@@ -35,12 +35,11 @@ process BIOEMU_SAMPLE {
     echo "[BIOEMU_SAMPLE] Input: ${pdb_or_fasta}  n_samples: ${n_samp}"
 
     # -- Run BioEmu conformational sampling ------------------------------------
-    # BioEmu exposes both a Python API and the CLI entry point bioemu-sample.
-    # We prefer the CLI so the process is self-contained.
+    # BioEmu 1.3.1 API: bioemu.sample.main(sequence, num_samples, output_dir)
+    # Takes FASTA or amino acid sequence (not PDB). Extract from PDB if needed.
     python3 << 'PYEOF'
 import os
 import sys
-import subprocess
 import glob
 import numpy as np
 
@@ -52,66 +51,98 @@ os.makedirs("ensemble_pdbs", exist_ok=True)
 
 bioemu_ok = False
 
-# Attempt BioEmu CLI (raises FileNotFoundError if not installed, not returncode!=0)
-try:
-    cli_result = subprocess.run(
-        ["bioemu-sample",
-         "--input",     input_file,
-         "--n_samples", str(n_samples),
-         "--output_dir", "ensemble_pdbs"],
-        capture_output=True, text=True
-    )
-    if cli_result.returncode == 0:
-        bioemu_ok = True
-        print("[BIOEMU_SAMPLE] BioEmu CLI succeeded", flush=True)
-        print(cli_result.stdout, flush=True)
-    else:
-        print("[BIOEMU_SAMPLE] BioEmu CLI non-zero exit — trying Python API", flush=True)
-        print(cli_result.stderr[:300], flush=True)
-except (FileNotFoundError, OSError):
-    print("[BIOEMU_SAMPLE] bioemu-sample not found — trying Python API", flush=True)
-
-if not bioemu_ok:
+# -- Extract FASTA from PDB if input is a PDB file ---------------------------
+ext = os.path.splitext(input_file)[1].lower()
+fasta_file = input_file
+if ext in (".pdb", ".ent"):
     try:
-        from bioemu.sample import sample_conformations
-        sample_conformations(
-            input_path=input_file,
-            n_samples=n_samples,
-            output_dir="ensemble_pdbs",
-        )
-        bioemu_ok = True
-    except ImportError:
-        print("[BIOEMU_SAMPLE] bioemu not installed — using MDAnalysis fallback", flush=True)
+        import MDAnalysis as mda
+        u = mda.Universe(input_file)
+        # Use standard 3-letter to 1-letter conversion
+        aa3to1 = {'ALA':'A','ARG':'R','ASN':'N','ASP':'D','CYS':'C','GLN':'Q',
+                  'GLU':'E','GLY':'G','HIS':'H','ILE':'I','LEU':'L','LYS':'K',
+                  'MET':'M','PHE':'F','PRO':'P','SER':'S','THR':'T','TRP':'W',
+                  'TYR':'Y','VAL':'V','MSE':'M','SEC':'U'}
+        protein = u.select_atoms("protein")
+        residues = protein.residues
+        seq = ''.join(aa3to1.get(r.resname.strip(), 'X') for r in residues)
+        fasta_file = f"{prefix}.fasta"
+        with open(fasta_file, "w") as f:
+            f.write(f">{prefix}\\n{seq}\\n")
+        print(f"[BIOEMU_SAMPLE] Extracted {len(seq)} aa sequence → {fasta_file}", flush=True)
     except Exception as ex:
-        print(f"[BIOEMU_SAMPLE] bioemu API error: {ex} — using MDAnalysis fallback", flush=True)
+        print(f"[BIOEMU_SAMPLE] FASTA extraction error: {ex}", flush=True)
+        fasta_file = input_file
+
+# -- Try BioEmu 1.3.1 Python API: bioemu.sample.main() -----------------------
+try:
+    from bioemu.sample import main as bioemu_main
+    print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
+    print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file}", flush=True)
+    bioemu_main(
+        sequence=fasta_file,
+        num_samples=n_samples,
+        output_dir="bioemu_output",
+    )
+    # BioEmu writes .xtc + topology .pdb — convert to individual PDBs
+    import glob as g
+    traj_files = g.glob("bioemu_output/*.xtc")
+    top_files  = g.glob("bioemu_output/*.pdb")
+    if traj_files and top_files:
+        import MDAnalysis as mda
+        u = mda.Universe(top_files[0], traj_files[0])
+        n_frames = len(u.trajectory)
+        print(f"[BIOEMU_SAMPLE] BioEmu wrote {n_frames} frames", flush=True)
+        for i, ts in enumerate(u.trajectory):
+            if i >= n_samples:
+                break
+            with mda.Writer(f"ensemble_pdbs/conf_{i:04d}.pdb", u.atoms.n_atoms) as w:
+                w.write(u.atoms)
+        bioemu_ok = True
+        print(f"[BIOEMU_SAMPLE] BioEmu: {min(n_frames, n_samples)} conformers written", flush=True)
+    else:
+        # BioEmu may write directly as PDBs
+        pdbs_out = g.glob("bioemu_output/*.pdb")
+        if pdbs_out:
+            import shutil
+            for j, p in enumerate(sorted(pdbs_out)[:n_samples]):
+                shutil.copy(p, f"ensemble_pdbs/conf_{j:04d}.pdb")
+            bioemu_ok = True
+            print(f"[BIOEMU_SAMPLE] BioEmu: {len(pdbs_out)} PDB conformers written", flush=True)
+        else:
+            print("[BIOEMU_SAMPLE] BioEmu finished but no output files found", flush=True)
+except ImportError as e:
+    print(f"[BIOEMU_SAMPLE] BioEmu import error: {e} — using MDAnalysis fallback", flush=True)
+except Exception as ex:
+    print(f"[BIOEMU_SAMPLE] BioEmu error: {ex} — using MDAnalysis fallback", flush=True)
 
 if not bioemu_ok:
-        # MDAnalysis fallback: generate Gaussian-perturbed conformations (~0.5 Å sigma)
-        # approximates thermal backbone fluctuations for ordered proteins at 300 K
-        ext = os.path.splitext(input_file)[1].lower()
-        if ext in (".fasta", ".fa", ".fas"):
-            print("[BIOEMU_SAMPLE] ERROR: MDAnalysis fallback requires PDB input, not FASTA", file=sys.stderr)
-            sys.exit(1)
+    # MDAnalysis fallback: generate Gaussian-perturbed conformations (~0.5 Å sigma)
+    # approximates thermal backbone fluctuations for ordered proteins at 300 K
+    pdb_file = input_file if ext in (".pdb", ".ent") else None
+    if pdb_file is None:
+        print("[BIOEMU_SAMPLE] ERROR: MDAnalysis fallback requires PDB input", file=sys.stderr)
+        sys.exit(1)
 
-        import MDAnalysis as mda
+    import MDAnalysis as mda
 
-        print(f"[BIOEMU_SAMPLE] Loading {input_file} with MDAnalysis...", flush=True)
-        u = mda.Universe(input_file)
-        n_atoms = len(u.atoms)
-        print(f"[BIOEMU_SAMPLE] {n_atoms} atoms loaded — generating {n_samples} perturbed conformers", flush=True)
+    print(f"[BIOEMU_SAMPLE] Loading {pdb_file} with MDAnalysis...", flush=True)
+    u = mda.Universe(pdb_file)
+    n_atoms = len(u.atoms)
+    print(f"[BIOEMU_SAMPLE] {n_atoms} atoms loaded — generating {n_samples} perturbed conformers", flush=True)
 
-        ref_positions = u.atoms.positions.copy()
-        rng = np.random.default_rng(42)
-        sigma = 0.5  # Å — typical Cα RMSF for ordered regions
+    ref_positions = u.atoms.positions.copy()
+    rng = np.random.default_rng(42)
+    sigma = 0.5  # Å — typical Cα RMSF for ordered regions
 
-        for i in range(n_samples):
-            u.atoms.positions = ref_positions + rng.normal(0, sigma, ref_positions.shape).astype("float32")
-            out_pdb = f"ensemble_pdbs/conf_{i:04d}.pdb"
-            with mda.Writer(out_pdb, n_atoms) as writer:
-                writer.write(u.atoms)
+    for i in range(n_samples):
+        u.atoms.positions = ref_positions + rng.normal(0, sigma, ref_positions.shape).astype("float32")
+        out_pdb = f"ensemble_pdbs/conf_{i:04d}.pdb"
+        with mda.Writer(out_pdb, n_atoms) as writer:
+            writer.write(u.atoms)
 
-        u.atoms.positions = ref_positions
-        print(f"[BIOEMU_SAMPLE] MDAnalysis fallback: {n_samples} conformers written", flush=True)
+    u.atoms.positions = ref_positions
+    print(f"[BIOEMU_SAMPLE] MDAnalysis fallback: {n_samples} conformers written", flush=True)
 
 # Verify output
 pdbs = sorted(glob.glob("ensemble_pdbs/*.pdb"))
@@ -153,7 +184,7 @@ process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.4'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
 
     input:
     tuple val(meta), path(ensemble_tgz)
@@ -321,7 +352,7 @@ process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.4'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
 
     input:
     tuple val(meta), path(ensemble_tgz)
