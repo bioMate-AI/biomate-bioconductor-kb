@@ -1,17 +1,19 @@
 biomate:
   base_url: http://localhost:5000
-  eval_user_email: eval@biomate.test
+  eval_user_email: evaltest3@biomate.test
   eval_user_password: ''
   host: http://localhost:5000
   eval_user:
-    email: eval@biomate.test
-    password: EvalBenchmark2026!
+    email: evaltest3@biomate.test
+    password: Test123456!
 llm_judge:
   model: claude-sonnet-4-6  # upgraded from Haiku for more reliable scoring on borderline answers
   max_tokens: 50
   temperature: 0.0
   # Set ANTHROPIC_API_KEY env var, or put the key here:
   # api_key: sk-ant-api03-...
+external_apis:
+  biogrid_orcs_key: 5bec3884b8d8deddaab64c6743ed4cff
 paths:
   sgi_bench_datasets: /home/yzhang/biomate/research/benchmark_evaluation/sgi_bench_datasets
   sgi_bench_adapter: /home/yzhang/biomate/backend/lib/galaxy/ai/test_harness

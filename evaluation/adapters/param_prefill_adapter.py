@@ -178,44 +178,24 @@ class ParamPrefillAdapter(BenchmarkAdapter):
 
     def prepare(self, client) -> None:
         """
-        Extract connection details from an authenticated BioMateEvalClient.
+        Set up direct connection to Galaxy backend (port 8081).
 
-        Bug 1 fix: probe port 5000 (Node.js proxy); fall back to Galaxy backend
-        on port 8081 when the proxy is not reachable.  This makes the benchmark
-        runnable even when only the Galaxy backend is up.
+        Always uses the Galaxy backend directly via search_nextflow_workflow
+        with skip_chains=True so param extraction is not hijacked by chain routing.
+        Port 8081 has no auth middleware on this endpoint.
         """
         import os
         import requests as _requests
 
-        client_url = client.base_url.rstrip("/")
         self._token = client.token
 
-        # Try the client URL first (may be port 5000 proxy or remote host)
-        probe_ok = False
-        try:
-            r = _requests.get(f"{client_url}/api/version", timeout=5)
-            probe_ok = r.status_code < 500
-        except Exception:
-            probe_ok = False
-
-        if probe_ok:
-            self._base_url = client_url
-            self._session = client._session
-        else:
-            # Fall back to Galaxy backend directly
-            galaxy_url = (
-                os.environ.get("GALAXY_URL", "").rstrip("/")
-                or "http://localhost:8081"
-            )
-            self._base_url = galaxy_url
-            # Create a new bare session — Galaxy backend doesn't need JWT auth
-            # for this endpoint when called directly (no auth middleware on port 8081)
-            self._session = _requests.Session()
-            self._session.headers.update({"Content-Type": "application/json"})
-            print(
-                f"  [ParamPrefillAdapter] Port 5000 unavailable; "
-                f"falling back to Galaxy backend at {galaxy_url}"
-            )
+        galaxy_url = (
+            os.environ.get("GALAXY_URL", "").rstrip("/")
+            or "http://localhost:8081"
+        )
+        self._base_url = galaxy_url
+        self._session = _requests.Session()
+        self._session.headers.update({"Content-Type": "application/json"})
 
     # ------------------------------------------------------------------
     # Task loading
@@ -250,26 +230,21 @@ class ParamPrefillAdapter(BenchmarkAdapter):
     # Core API call
     # ------------------------------------------------------------------
 
-    def _call_generation_endpoint(self, query: str) -> dict:
+    def _call_generation_endpoint(self, query: str, workflow_name: str = "") -> dict:
         """
-        POST to the workflow search endpoint and return the JSON body.
+        POST to Galaxy's search_nextflow_workflow endpoint with skip_chains=True
+        and force_workflow_name so param extraction always uses the correct workflow.
 
-        Port 5000 (Node.js proxy): POST /api/workflows/search  {"query": "..."}
-        Port 8081 (Galaxy direct): POST /api/ai_assistant/search_nextflow_workflow  {"user_intent": "..."}
-
-        Returns an empty dict with success=False on any error.
+        Returns an empty dict on any error.
         """
         if self._session is None:
             raise RuntimeError(
                 "ParamPrefillAdapter.prepare(client) must be called before run()"
             )
-        # Use the right path and payload format depending on which server we're talking to
-        if ":5000" in self._base_url or "localhost:5000" in self._base_url:
-            url     = f"{self._base_url}/api/workflows/search"
-            payload = {"query": query}
-        else:
-            url     = f"{self._base_url}/api/ai_assistant/search_nextflow_workflow"
-            payload = {"user_intent": query}
+        url = f"{self._base_url}/api/ai_assistant/search_nextflow_workflow"
+        payload: dict = {"user_intent": query, "skip_chains": True}
+        if workflow_name:
+            payload["force_workflow_name"] = workflow_name
 
         resp = self._session.post(url, json=payload, timeout=180)
         resp.raise_for_status()
@@ -411,11 +386,9 @@ class ParamPrefillAdapter(BenchmarkAdapter):
                 # from being mis-routed to pipeline chains instead of the target workflow.
                 # The param_prefill benchmark tests param extraction given correct routing,
                 # not routing itself (routing is tested in the routing benchmark).
-                workflow_hint = task.metadata.get("workflow", "")
+                workflow_name = task.metadata.get("workflow", "")
                 query = task.question
-                if workflow_hint:
-                    query = f"Run {workflow_hint}: {task.question}"
-                api_response = self._call_generation_endpoint(query)
+                api_response = self._call_generation_endpoint(query, workflow_name=workflow_name)
                 generated = self._extract_generated_params(api_response)
                 agent_response = str(generated)
                 must_not_fill: list[str] = task.metadata.get("must_not_fill", [])

@@ -67,6 +67,12 @@ class SGIBenchRunner(BenchmarkAdapter):
         self._judge = LLMJudge(model=self.config["llm_judge"]["model"], api_key=self.config.get("llm_judge",{}).get("api_key"))
 
     def load_tasks(self) -> List[BenchmarkTask]:
+        # Support pre-filtered task list injected by runner (for --task-type filtering)
+        if hasattr(self, "_prefiltered_tasks") and self._prefiltered_tasks is not None:
+            tasks = self._prefiltered_tasks
+            self._prefiltered_tasks = None  # consume once
+            return tasks
+
         if self._loader is None:
             self.prepare(None)
 
@@ -136,12 +142,18 @@ class SGIBenchRunner(BenchmarkAdapter):
                 "Give a direct, structured answer showing your reasoning."
             ),
             "idea_generation": (
-                "IMPORTANT: The context describes related works leading up to a SPECIFIC published paper.\n"
-                "Your task is to IDENTIFY and DESCRIBE that specific paper's core contribution.\n"
-                "DO NOT generate an entirely new idea — infer and recall the real published breakthrough\n"
-                "that logically follows from the related work citations provided.\n"
-                "Describe: (1) the core method/architecture, (2) the key technical innovations,\n"
-                "(3) the performance/results achieved. Be specific and precise."
+                "CRITICAL OVERRIDE: Although the question says 'generate a novel proposal', you must NOT invent new ideas.\n"
+                "Instead, IDENTIFY the specific REAL published paper that was actually published to address these challenges.\n"
+                "The context (related work, challenges, limitations, keywords) points to ONE specific well-known paper.\n"
+                "Use the keywords and domain context to recognize and NAME that paper.\n\n"
+                "Your response MUST follow this exact format:\n"
+                "Paper: [Author(s), Year] — [Paper Title]\n"
+                "Core idea: [2-3 sentences describing the actual method/architecture this paper introduced]\n"
+                "Key innovation: [1-2 sentences on what made it novel over prior work]\n"
+                "Results: [1 sentence on performance/outcome]\n\n"
+                "Common recognized papers in SGI-Bench: AlphaFold (Jumper et al. 2021), RoseTTAFold (Baek et al. 2021),\n"
+                "ESMFold (Lin et al. 2023), ProteinMPNN (Dauparas et al. 2022), DiffDock (Corso et al. 2023),\n"
+                "Genie (Lin & AlQuraishi 2023), etc. Match the context to the correct paper."
             ),
             "dry_experiment": (
                 "Describe what the experiment would produce or what the expected result is.\n"

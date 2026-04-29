@@ -344,21 +344,21 @@ class BixBenchAdapter(BenchmarkAdapter):
             return self._biomate_exec_prompt(task)
         if self.mode == "local_exec":
             return task.question  # local_exec is not sent to BioMate
-        # hf_mcq
+        # hf_mcq — add explicit reasoning step before letter selection
         return (
-            "SCIENTIFIC KNOWLEDGE TEST — MULTIPLE CHOICE\n"
-            "============================================\n"
-            "IMPORTANT: This is a CLOSED-BOOK exam. All information needed is IN the question.\n"
-            "You MUST respond with a single letter: A, B, C, or D.\n"
+            "COMPUTATIONAL BIOLOGY MULTIPLE-CHOICE QUESTION\n"
+            "================================================\n"
+            "For computational biology / statistics questions: estimate the correct value from\n"
+            "domain knowledge, then match your estimate against each choice.\n"
             "Rules:\n"
-            "- DO NOT ask for data files, accessions, or uploaded datasets\n"
-            "- DO NOT suggest running a workflow or writing code\n"
-            "- DO NOT say you cannot answer without data — all info is in the question\n"
-            "- DO select the best answer from your training knowledge\n"
-            "- If the question involves a computation you cannot do, STILL pick the most plausible letter\n"
-            "- EVEN IF UNCERTAIN, you MUST end your response with a single letter (A, B, C, or D)\n\n"
+            "- DO NOT ask for data files or uploaded datasets — reason from your knowledge\n"
+            "- DO NOT suggest workflows — answer directly\n"
+            "- For numeric/statistical questions: compute or estimate the answer, then pick the closest choice\n"
+            "- For range answers: identify which range your computed value falls in\n"
+            "- ALWAYS pick A, B, C, or D — never refuse\n\n"
             + task.question
-            + "\n\n[REQUIRED] Final answer letter (A/B/C/D): "
+            + "\n\nReasoning (1-2 sentences explaining your approach): "
+            "\n\nFinal answer (single letter A/B/C/D): "
         )
 
     def _biomate_exec_prompt(self, task: BenchmarkTask) -> str:

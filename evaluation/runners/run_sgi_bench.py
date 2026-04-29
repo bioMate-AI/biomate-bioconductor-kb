@@ -41,6 +41,8 @@ def main():
                         help="Filter to a single domain")
     parser.add_argument("--difficulty", choices=DIFFICULTIES, default=None,
                         help="Filter to a difficulty level")
+    parser.add_argument("--task-type", choices=["deep_research","idea_generation","dry_experiment","wet_experiment","reasoning"], default=None,
+                        help="Filter to a specific task type")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -60,6 +62,8 @@ def main():
 
     adapter = SGIBenchRunner(config)
     tasks = adapter.load_tasks()
+    if args.task_type:
+        tasks = [t for t in tasks if t.metadata.get("task_type") == args.task_type]
     if args.skip:
         tasks = tasks[args.skip:]
     if args.max_tasks:
@@ -91,8 +95,11 @@ def main():
     store = ResultsStore(config["paths"]["results_db"])
     run_id = store.start_run("sgi_bench", suite="standalone", config=config)
 
+    # Inject pre-filtered tasks into adapter so run() uses the filtered list
+    adapter._prefiltered_tasks = tasks
+
     t0 = time.time()
-    results = adapter.run(client, max_tasks=args.max_tasks, skip=args.skip)
+    results = adapter.run(client)
     store.save(run_id, results)
     store.finish_run(run_id)
     elapsed = time.time() - t0

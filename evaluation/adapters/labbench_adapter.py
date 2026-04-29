@@ -302,6 +302,63 @@ def _deduplicate_cut_positions(positions: List[int], pattern_len: int) -> List[i
     return merged
 
 
+def _simulate_golden_gate_assembly(sequences: List[str], enzyme: str = "BsaI") -> Optional[str]:
+    """
+    Simulate a Golden Gate assembly from multiple linearized or circular inputs.
+
+    Algorithm:
+    1. For each sequence, compute TypeIIS cut sites and their 4-nt overhangs.
+    2. Identify the backbone (sequence with 2 BsaI sites) and inserts (sequences with 2 sites).
+    3. Match overhangs to determine assembly order.
+    4. Return the assembled sequence with stuffer regions removed.
+
+    Returns the assembled sequence string, or None if assembly cannot be determined.
+    """
+    if len(sequences) < 2:
+        return None
+
+    # Step 1: Cut each sequence at BsaI sites to get fragments + overhangs
+    cut_parts = []  # List of (left_oh, insert_seq, right_oh) tuples
+    for seq in sequences:
+        overhangs = _compute_typeIIS_overhangs(seq, enzyme)
+        if len(overhangs) < 2:
+            continue  # Not a standard Golden Gate part (need 2 cut sites)
+        # Sort by cut position
+        overhangs_sorted = sorted(overhangs, key=lambda h: h["cut_at"])
+        # For a backbone: take the sequence OUTSIDE the two cut sites
+        # For an insert: take the sequence BETWEEN the two cut sites
+        o1, o2 = overhangs_sorted[0], overhangs_sorted[1]
+        cut1, cut2 = o1["cut_at"] - 1, o2["cut_at"] - 1  # 0-indexed
+        oh1 = o1["overhang_seq"]
+        oh2 = o2["overhang_seq"]
+        # Insert = sequence between cuts (stuffer removed, insert kept)
+        insert = seq[cut1:cut2] if cut1 < cut2 else seq[cut2:cut1]
+        cut_parts.append({"oh_left": oh1, "oh_right": oh2, "insert": insert, "len": len(insert)})
+
+    if len(cut_parts) < 2:
+        return None
+
+    # Step 2: Greedy assembly — match right overhang of one part to left of another
+    # Start with the longest part (backbone)
+    assembled = max(cut_parts, key=lambda p: p["len"])
+    used = {assembled["insert"]}
+    result = assembled["insert"]
+    current_oh = assembled["oh_right"]
+
+    for _ in range(len(cut_parts)):
+        next_part = next(
+            (p for p in cut_parts if p["insert"] not in used and p["oh_left"] == current_oh),
+            None,
+        )
+        if next_part is None:
+            break
+        result += next_part["insert"]
+        used.add(next_part["insert"])
+        current_oh = next_part["oh_right"]
+
+    return result if len(used) > 1 else None
+
+
 def _calculate_fragments(seq: str, enzyme: str, circular: bool = False) -> List[int]:
     """Calculate restriction digest fragment sizes (single enzyme).
 
@@ -1634,6 +1691,43 @@ def _build_cloning_context(question: str, choices: Dict[str, str]) -> str:
         if grna_lines:
             parts.append("[CRISPR gRNA Spacer — pre-extracted]")
             parts.extend(grna_lines)
+
+    # ── Golden Gate assembly simulation (3+ sequences) ───────────────────────
+    # When multiple sequences with BsaI/BsmBI sites are present, simulate assembly
+    # and pre-compute restriction digests of the ASSEMBLED product so the model
+    # can answer questions about post-assembly fragment patterns.
+    if len(seqs_to_analyze) >= 3:
+        gg_enzyme = None
+        for enz in ("BsaI", "BsmBI", "BbsI", "SapI"):
+            if any(_compute_typeIIS_overhangs(sq, enz) for _, sq in seqs_to_analyze):
+                gg_enzyme = enz
+                break
+        if gg_enzyme:
+            seq_list = [sq for _, sq in seqs_to_analyze]
+            assembled_seq = _simulate_golden_gate_assembly(seq_list, gg_enzyme)
+            if assembled_seq and len(assembled_seq) > 100:
+                parts.append(f"[Golden Gate Assembly Simulation — {gg_enzyme}]")
+                parts.append(f"  Simulated assembled product: {len(assembled_seq)} bp")
+                asm_upper = assembled_seq.upper()
+                asm_sites = _find_restriction_sites(asm_upper)
+                cutting_in_asm = [e for e in mentioned_enzymes if e in asm_sites]
+                if cutting_in_asm:
+                    parts.append(f"  Restriction sites in assembled product: {', '.join(cutting_in_asm)}")
+                    for enz in cutting_in_asm:
+                        frags = _calculate_fragments(asm_upper, enz, circular=True)
+                        if frags:
+                            frags_str = ", ".join(str(f) for f in sorted(frags, reverse=True))
+                            parts.append(f"    {enz} digest of assembled → [{frags_str}] bp")
+                    # Multi-enzyme combos
+                    for ii in range(len(cutting_in_asm)):
+                        for jj in range(ii + 1, min(ii + 3, len(cutting_in_asm))):
+                            combo = cutting_in_asm[ii:jj+1]
+                            combo_frags = _compute_multi_enzyme_fragments(asm_upper, combo, circular=True)
+                            if combo_frags and len(combo_frags) > 1:
+                                frags_str = ", ".join(str(f) for f in sorted(combo_frags, reverse=True))
+                                parts.append(f"    {'+'.join(combo)} digest of assembled → [{frags_str}] bp")
+                else:
+                    parts.append(f"  No mentioned restriction sites cut assembled product")
 
     return "\n".join(parts)
 

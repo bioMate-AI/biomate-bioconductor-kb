@@ -538,11 +538,11 @@ cases:
     workflow: nf-core/quantms
     user_query: "DDA data-dependent MaxQuant with SILAC stable isotope labeling"
     expected_params:
-      quantification_method: SILAC
+      lib: SILAC
     must_not_fill:
       - input
     difficulty: hard
-    notes: "SILAC labeling explicitly stated for quantification"
+    notes: "SILAC labeling explicitly stated; quantms uses 'lib' param for labeling type"
 
   - id: pf_049
     category: tool_flag_selection
@@ -737,22 +737,22 @@ cases:
     workflow: nf-core/scrnaseq
     user_query: "10x Genomics Chromium v3.1 chemistry single-cell RNA-seq"
     expected_params:
-      chemistry: 10xv3
+      protocol: 10XV3
     must_not_fill:
       - input
     difficulty: easy
-    notes: "10x v3.1 = 10xv3 chemistry code"
+    notes: "nf-core/scrnaseq uses 'protocol' param (not 'chemistry'); 10x v3.1 = 10XV3"
 
   - id: pf_067
     category: reference_file_selection
     workflow: nf-core/scrnaseq
     user_query: "10x Genomics v2 chemistry 3-prime gene expression library"
     expected_params:
-      chemistry: 10xv2
+      protocol: 10XV2
     must_not_fill:
       - input
     difficulty: easy
-    notes: "10x v2 = 10xv2 chemistry code"
+    notes: "nf-core/scrnaseq uses 'protocol' param (not 'chemistry'); 10x v2 = 10XV2"
 
   - id: pf_068
     category: reference_file_selection
@@ -913,13 +913,13 @@ cases:
     workflow: nf-core/scrnaseq
     user_query: "10x Genomics 3-prime v3 single-cell RNA-seq human PBMC, expect 8000 cells"
     expected_params:
-      chemistry: 10xv3
+      protocol: 10XV3
       genome: GRCh38
       expected_cells: 8000
     must_not_fill:
       - input
     difficulty: easy
-    notes: "Three params all explicitly stated or clearly inferable"
+    notes: "Three params; scrnaseq uses 'protocol' not 'chemistry'; human=GRCh38; 8000 cells explicit"
 
   - id: pf_083
     category: multi_param_inference
@@ -1011,12 +1011,12 @@ cases:
     workflow: nf-core/scrnaseq
     user_query: "scRNA-seq 10x Chromium v3 with hashtag oligos HTO cell hashing demultiplexing"
     expected_params:
-      chemistry: 10xv3
+      protocol: 10XV3
       genome: GRCh38
     must_not_fill:
       - input
     difficulty: hard
-    notes: "10x v3 + human assumed for PBMC HTO; demux flag if supported"
+    notes: "scrnaseq 'protocol' (not chemistry); 10XV3; human assumed for HTO PBMC context"
 
   # ── Category 7: negative_cases (10 cases) ───────────────────────────────
   # BioMate should NOT fill any params for these vague queries
@@ -1261,13 +1261,13 @@ cases:
     workflow: cryosparc_spa
     user_query: "defocus range 1.0 to 3.0 micrometers for CTF estimation"
     expected_params:
-      ctf_fitting_resolution_min: 1.0
-      ctf_fitting_resolution_max: 3.0
+      defocus_min_um: 1.0
+      defocus_max_um: 3.0
     must_not_fill:
-      - defocus
-      - defocus_range
+      - ctf_fitting_resolution_min
+      - ctf_fitting_resolution_max
     difficulty: hard
-    notes: "defocus range → ctf_fitting_resolution_min/max (actual cryosparc params); values in µm = Å resolution limits"
+    notes: "defocus range in µm → defocus_min_um/defocus_max_um (actual cryosparc DB params)"
 
   - id: pf_112
     category: param_name_disambiguation
