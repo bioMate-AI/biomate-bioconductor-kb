@@ -9511,22 +9511,24 @@ Rules:
 
       const runAsync = async () => {
         try {
-          // Gather output files (local or S3) via the outputs endpoint
+          // Gather output files (local or S3) via the output_files endpoint
+          // (output_files returns s3_uri fields for AWS Batch runs; invocations/outputs returns empty)
           let outputSamples: Array<{ name: string; content: string }> = [];
           try {
             const selfPort = process.env.PORT || 5000;
-            const outRes = await fetch(`http://localhost:${selfPort}/api/invocations/${runId}/outputs`, {
-              headers: { Authorization: req.headers.authorization || '' },
+            const outRes = await fetch(`http://localhost:${selfPort}/api/workflows/runs/${runId}/output_files`, {
+              headers: { Authorization: req.headers.authorization || '', 'x-e2e-test-token': req.headers['x-e2e-test-token'] as string || '' },
               signal: AbortSignal.timeout(10_000),
             });
             if (outRes.ok) {
               const outData = await outRes.json() as any;
-              const outputs: any[] = Array.isArray(outData) ? outData : (Array.isArray(outData?.outputs) ? outData.outputs : []);
+              const outputs: any[] = outData.output_files || outData.outputs || (Array.isArray(outData) ? outData : []);
               const TEXT_EXTS = /\.(txt|log|csv|tsv|json|vcf|fasta|fa|fastq|fq|md|bed|gff|gtf)$/i;
               const fsImport = await import('fs/promises');
               for (const out of outputs.slice(0, 30)) {
-                const filePath: string = out.file_path || out.path || '';
-                const fileName: string = out.name || out.file_name || filePath.split('/').pop() || 'output';
+                // Support both s3_uri (Batch runs) and file_path (local runs)
+                const filePath: string = out.s3_uri || out.file_path || out.path || '';
+                const fileName: string = out.filename || out.name || out.file_name || filePath.split('/').pop() || 'output';
                 if (!fileName || !TEXT_EXTS.test(fileName)) continue;
                 try {
                   let content = '';
