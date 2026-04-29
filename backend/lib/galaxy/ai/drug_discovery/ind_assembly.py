@@ -232,6 +232,8 @@ class AssemblyResult:
     pandoc_available: bool
     generated_at: str
     warnings: list[str]
+    audit_findings: list         # list of AuditFinding from RegulatoryAuditor
+    audit_score: dict            # {"CRITICAL": n, "MAJOR": n, "MINOR": n, "INFO": n}
 
 
 # ---------------------------------------------------------------------------
@@ -341,11 +343,14 @@ class INDSectionAssembler:
         markdown = "\n\n".join(p for p in parts if p)
 
         # Write Markdown
-        md_path = str(Path(output_dir) / f"{campaign_id}_CTD_2.6.1.md")
+        md_path = str(Path(output_dir) / f"{campaign_id}_CTD_Module2.6.md")
         Path(md_path).write_text(markdown, encoding="utf-8")
 
         # Convert to DOCX via pandoc
         docx_path, pandoc_ok = self._pandoc_convert(md_path, output_dir, campaign_id, warnings)
+
+        # Run regulatory audit
+        audit_findings, audit_score = self._run_audit(markdown, ctx, region)
 
         return AssemblyResult(
             campaign_id=campaign_id,
@@ -355,6 +360,8 @@ class INDSectionAssembler:
             pandoc_available=pandoc_ok,
             generated_at=ts,
             warnings=warnings,
+            audit_findings=audit_findings,
+            audit_score=audit_score,
         )
 
     # ------------------------------------------------------------------
@@ -1211,6 +1218,25 @@ The hERG IC50 threshold for concern is 10 µM (30× margin over anticipated ther
 
 *A hERG-based QTc liability assessment (in vitro hERG patch clamp) is required before first-in-human
 dosing per ICH S7B. The in silico screen presented here supports early candidate triage only.*"""
+
+    # ------------------------------------------------------------------
+    # Regulatory audit
+    # ------------------------------------------------------------------
+
+    def _run_audit(self, markdown: str, ctx: dict, region: str) -> tuple[list, dict]:
+        """Run the regulatory auditor and return (findings, score_summary)."""
+        try:
+            from .regulatory_auditor import RegulatoryAuditor
+            auditor = RegulatoryAuditor(region=region)
+            findings = auditor.audit(markdown, ctx)
+            score = {"CRITICAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0}
+            for f in findings:
+                score[f.severity] = score.get(f.severity, 0) + 1
+            log.info("[regulatory_audit] region=%s findings: %s", region, score)
+            return findings, score
+        except Exception as exc:
+            log.warning("[regulatory_audit] Audit failed: %s", exc)
+            return [], {"CRITICAL": 0, "MAJOR": 0, "MINOR": 0, "INFO": 0, "error": str(exc)}
 
     # ------------------------------------------------------------------
     # Pandoc conversion

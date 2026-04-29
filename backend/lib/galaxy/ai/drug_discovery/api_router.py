@@ -888,6 +888,20 @@ async def assemble_ind_section(
         "markdown_content": markdown_content,
     }
 
+    # Serialize audit findings
+    audit_findings_json = []
+    for f in result.audit_findings:
+        audit_findings_json.append({
+            "severity": f.severity,
+            "section": f.section,
+            "guideline_id": f.guideline_id,
+            "region": f.region,
+            "code": f.code,
+            "description": f.description,
+            "suggestion": f.suggestion,
+            "evidence": f.evidence,
+        })
+
     return {
         "campaign_id": campaign_id,
         "sections": result.sections,
@@ -895,6 +909,8 @@ async def assemble_ind_section(
         "docx_generated": result.docx_path is not None,
         "generated_at": result.generated_at,
         "warnings": result.warnings,
+        "audit_findings": audit_findings_json,
+        "audit_score": result.audit_score,
         "markdown_preview": markdown_content[:2000],
         "markdown_content": markdown_content,
         "markdown_path": result.markdown_path,
