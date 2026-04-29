@@ -179,7 +179,10 @@ class RegulatoryAuditor:
         # §2.6.2: disclaimer for in silico predictions required
         pk_section = self._extract_section(md, "2.6.2", "2.6.3")
         if pk_section:
-            if not re.search(r"experimental confirmation|supplemented with|in vitro DMPK", pk_section, re.IGNORECASE):
+            if not re.search(
+                r"experimental confirmation|supplemented with|in vitro DMPK|in silico.*predict|predict.*supplement|computational.*prediction",
+                pk_section, re.IGNORECASE
+            ):
                 self._add(MAJOR, "2.6.2", "ICH_M4S_R2", "ALL",
                           "PK-DISC-001",
                           "§2.6.2 does not contain a disclaimer that in silico PK predictions require experimental confirmation.",

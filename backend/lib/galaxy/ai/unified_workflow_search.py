@@ -1302,6 +1302,15 @@ class UnifiedWorkflowSearch:
                     elif (user_types & self._RAW_TYPES) and (wf_types & self._PROCESSED_TYPES):
                         score -= 4.0  # user has raw data but workflow needs processed input
 
+        # 9. Preferred/legacy tag scoring — steer generic queries toward the AI-backed version
+        tags_lower = [t.lower() for t in (tags or [])]
+        if "preferred" in tags_lower:
+            score += 4.0  # AI/ML version always ranked above legacy equivalents
+        if "legacy" in tags_lower:
+            # Only penalise if the user isn't explicitly asking for the old version by name
+            if "legacy" not in query_lower and "admet_pred" not in query_lower.replace(" ", "_"):
+                score -= 6.0
+
         return round(score, 2)
 
     def _classify_match(self, score: float) -> str:
