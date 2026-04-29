@@ -740,37 +740,59 @@ process PATCH_MOTION_CORRECTION_BATCH {
         # Extract QC metrics from CryoSPARC job output for QC gate + display
         try:
             import numpy as np
-            if micrographs_out is not None and len(micrographs_out) > 0:
+            # CryoSPARC v5 Dataset objects may not support len() — use num_items attr or try/except
+            _n = 0
+            try:
+                _n = len(micrographs_out) if micrographs_out is not None else 0
+            except Exception:
+                _n = getattr(micrographs_out, 'num_items', 0) if micrographs_out is not None else 0
+            if micrographs_out is not None and _n >= 0:
                 _data = micrographs_out.data if hasattr(micrographs_out, 'data') else micrographs_out
-                _all_fields = list(_data.dtype.names) if hasattr(_data, 'dtype') else []
+                _all_fields = []
+                try:
+                    _all_fields = list(_data.dtype.names) if hasattr(_data, 'dtype') else list(vars(_data).keys()) if hasattr(_data, '__dict__') else []
+                except Exception:
+                    pass
                 print(f"[QC] micrographs output fields: {_all_fields[:20]}", flush=True)
                 report["cs_output_fields"] = _all_fields[:30]
-                # CryoSPARC v4/v5 field names for total motion (Å)
-                for _field in ("total_motion_A", "micrograph/total_motion_A", "motion_global_a",
-                               "patch_motion/total_motion_A", "motion_total_a", "drift_total_A"):
+                report["cs_output_count"]  = _n
+                # CryoSPARC v4/v5 field names for total motion (Å) — try slashed + unslashed variants
+                _motion_candidates = ("total_motion_A", "micrograph/total_motion_A",
+                                      "patch_motion/total_motion_A", "motion_global_a",
+                                      "motion_total_a", "drift_total_A", "global_shift_A",
+                                      "micrograph_total_motion", "total_drift")
+                _found_motion = False
+                for _field in _motion_candidates:
                     if _field in _all_fields:
-                        _vals = np.asarray(_data[_field], dtype=float)
-                        _valid = _vals[np.isfinite(_vals)]
-                        if len(_valid) > 0:
-                            report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
-                            report["min_total_motion_A"] = round(float(np.nanmin(_valid)), 2)
-                            report["max_total_motion_A"] = round(float(np.nanmax(_valid)), 2)
-                            report["num_accepted"] = int(len(_valid))
-                            report["motion_field_used"] = _field
-                            break
-                else:
-                    # Try any field containing 'motion' as fallback
-                    _motion_fields = [f for f in _all_fields if 'motion' in f.lower() or 'drift' in f.lower()]
-                    print(f"[QC] No standard motion field found. Motion-related: {_motion_fields}", flush=True)
-                    if _motion_fields:
-                        _field = _motion_fields[0]
-                        _vals = np.asarray(_data[_field], dtype=float)
-                        _valid = _vals[np.isfinite(_vals)]
-                        if len(_valid) > 0:
-                            report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
-                            report["motion_field_used"] = f"{_field} (fallback)"
+                        try:
+                            _vals = np.asarray(_data[_field], dtype=float)
+                            _valid = _vals[np.isfinite(_vals)]
+                            if len(_valid) > 0:
+                                report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
+                                report["min_total_motion_A"] = round(float(np.nanmin(_valid)), 2)
+                                report["max_total_motion_A"] = round(float(np.nanmax(_valid)), 2)
+                                report["num_accepted"] = int(len(_valid))
+                                report["motion_field_used"] = _field
+                                _found_motion = True
+                                break
+                        except Exception as _fe:
+                            print(f"[QC] field {_field} read error: {_fe}", flush=True)
+                if not _found_motion:
+                    # Broad fallback: any field with 'motion' or 'drift' in name
+                    _motion_fields = [f for f in _all_fields if 'motion' in f.lower() or 'drift' in f.lower() or 'shift' in f.lower()]
+                    print(f"[QC] No standard motion field found. Candidates: {_motion_fields}", flush=True)
+                    for _field in _motion_fields:
+                        try:
+                            _vals = np.asarray(_data[_field], dtype=float)
+                            _valid = _vals[np.isfinite(_vals) & (_vals > 0)]
+                            if len(_valid) > 0:
+                                report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
+                                report["motion_field_used"] = f"{_field} (fallback)"
+                                break
+                        except Exception:
+                            pass
         except Exception as _qc_err:
-            print(f"[QC] motion metrics extraction error: {_qc_err}", flush=True)
+            print(f"[QC] motion metrics extraction error: {type(_qc_err).__name__}: {_qc_err}", flush=True)
     else:
         # Mock mode
         num_mics = 10
@@ -1998,10 +2020,8 @@ process SELECT_2D_R1 {
 
     if use_real and particles_data.get('cs_mode') == 'real':
         # Real mode: CryoSPARC classify_2D already ran and selected classes.
-        # The num_items from extracted_cs reflects the actual particle count.
-        # Selection is handled by CryoSPARC internally (job outputs use the
-        # classify_2D job_uid for template picking).
-        num_input   = particles_data.get('num_items', 0)
+        # num_items from the merged .cs file reflects the actual particle count.
+        num_input = particles_data.get('num_items', 0)
         # Use a 70% selection ratio as a conservative estimate; actual
         # selection is based on CryoSPARC's class quality scoring.
         num_selected = int(num_input * 0.70)
