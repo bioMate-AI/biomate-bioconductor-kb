@@ -1766,6 +1766,20 @@ Rules:
       }
     }
 
+    // PBPK intent override:
+    // If the query mentions PBPK/pharmacokinetics concepts but was classified as research_question
+    // or direct_computation, force workflow_generation so the PBPK prereq gate can fire and
+    // ask for any missing SMILES or PK params before routing to the pbpk_simulation workflow.
+    if (!actions.needsWorkflowGeneration) {
+      const _isPbpkIntentEarly = /\b(pbpk|physiologically[- ]based|full[- ]?pk|human[- ]pk|predict.{0,20}pharmacokinetics?|organ[- ]level[- ]pk|mechanistic[- ]pk|pk[- ]simulation|pk[- ]profile|pharmacokinetic[- ]simulation|whole[- ]body[- ]pk|pk[- ]model|human[- ]pharmacokinetics?|pharmacokinetics?\s+of)\b/i.test(message)
+        || (/\bphysiol/i.test(message) && /\bpk\b/i.test(message));
+      if (_isPbpkIntentEarly) {
+        log('PBPK intent override: forcing needsWorkflowGeneration=true for prereq gate');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     // HPO + ENSG candidate gene override:
     // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
     // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate
