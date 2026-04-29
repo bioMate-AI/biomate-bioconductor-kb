@@ -21,6 +21,9 @@ import { Loader2, X, FileText, Download, ZoomIn, ChevronDown, ChevronUp } from "
 import { Button } from "@/components/ui/button";
 import { cn, stripAnsi } from "@/lib/utils";
 import { DensityMapViewer } from "./viewers/density-map-viewer";
+import { FscCurveChart } from "./viewers/fsc-curve-chart";
+import { MotionHistogramChart } from "./viewers/motion-histogram-chart";
+import { CtfQualityChart } from "./viewers/ctf-quality-chart";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -361,6 +364,46 @@ function DensityPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   );
 }
 
+/** Detect special CryoEM JSON report filenames and render dedicated chart viewers */
+function resolveCryoChartViewer(fileName: string): 'fsc-curve' | 'motion-histogram' | 'ctf-quality' | null {
+  const n = fileName.toLowerCase();
+  if (n.includes('fsc_validation'))  return 'fsc-curve';
+  if (n.includes('motion_report'))   return 'motion-histogram';
+  if (n.includes('ctf_report'))      return 'ctf-quality';
+  return null;
+}
+
+/** Fetches JSON from step-file and renders a CryoEM chart component */
+function CryoChartPreview({ runId, file, onClose, chartType }: StepOutputPreviewProps & {
+  chartType: 'fsc-curve' | 'motion-histogram' | 'ctf-quality'
+}) {
+  const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const stepFileUrl = `/api/workflows/runs/${runId}/step-file?path=${encodeURIComponent(file.path)}&name=${encodeURIComponent(file.name)}`;
+
+  useEffect(() => {
+    fetch(stepFileUrl)
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(setData)
+      .catch(e => setError(String(e)));
+  }, [stepFileUrl]);
+
+  return (
+    <div className="mt-2">
+      <div className="flex items-center justify-between mb-2 gap-2 px-1">
+        <span className="text-xs font-mono font-medium truncate">{file.name}</span>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={onClose}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      {data && chartType === 'fsc-curve'         && <FscCurveChart data={data} />}
+      {data && chartType === 'motion-histogram'  && <MotionHistogramChart data={data} />}
+      {data && chartType === 'ctf-quality'       && <CtfQualityChart data={data} />}
+    </div>
+  );
+}
+
 export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewProps) {
   const ext = file.extension.toLowerCase().replace(/^\./, '');
   const viewer = resolveViewer(ext);
@@ -368,6 +411,14 @@ export function StepOutputPreview({ runId, file, onClose }: StepOutputPreviewPro
   // Route density files to a separate component (avoids hook-after-conditional).
   if (SELF_FETCHING.includes(viewer)) {
     return <DensityPreview runId={runId} file={file} onClose={onClose} />;
+  }
+
+  // Route special CryoEM JSON reports to dedicated chart viewers.
+  if (ext === 'json') {
+    const chartType = resolveCryoChartViewer(file.name);
+    if (chartType) {
+      return <CryoChartPreview runId={runId} file={file} onClose={onClose} chartType={chartType} />;
+    }
   }
 
   return <FetchingPreview runId={runId} file={file} onClose={onClose} viewer={viewer} ext={ext} />;
