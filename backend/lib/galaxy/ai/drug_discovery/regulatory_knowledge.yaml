@@ -1,0 +1,427 @@
+# Regulatory Knowledge Database — BioMate IND/CTA Assembly
+#
+# Purpose: Authoritative, versioned source of regulatory guideline citations,
+#          acceptance criteria, and section requirements used in IND document
+#          generation. Avoids repeated web fetches; update this file when
+#          guidelines are revised.
+#
+# Versioning: Each entry has `version`, `effective_date`, `supersedes`.
+# Usage: Loaded by INDSectionAssembler; queried by region and section.
+#
+# Regions: FDA (USA), EMA (Europe), NMPA (China), PMDA (Japan), ALL (ICH harmonized)
+#
+# Last reviewed: 2026-04-29
+# Reviewer: BioMate Regulatory Affairs
+# Next review: 2027-01-01 (or upon new guideline publication)
+
+schema_version: "1.0"
+last_updated: "2026-04-29"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ICH Harmonized Guidelines (apply to ALL regions unless superseded)
+# ─────────────────────────────────────────────────────────────────────────────
+
+guidelines:
+
+  ICH_M4S_R2:
+    id: ICH_M4S_R2
+    title: "The Common Technical Document for the Registration of Pharmaceuticals for Human Use: Safety"
+    short_name: "ICH M4S(R2)"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "R2"
+    effective_date: "2002-11"
+    supersedes: "ICH M4S"
+    revision_status: "Revision project active (M4S(R3) draft under preparation as of 2024)"
+    url: "https://www.ich.org/page/safety-guidelines"
+    ctd_sections: ["2.6.1", "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6", "2.6.7"]
+    biomate_implementation: "sections 2.6.1–2.6.3 fully generated; 2.6.4–2.6.7 require wet-lab data"
+    notes: "R3 not yet finalized; R2 remains operative for all regional IND submissions"
+
+  ICH_S7A:
+    id: ICH_S7A
+    title: "Safety Pharmacology Studies for Human Pharmaceuticals"
+    short_name: "ICH S7A"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "current"
+    effective_date: "2000-11"
+    ctd_section: "2.6.3.7"
+    key_requirement: "Core battery: cardiovascular (hERG/QTc), CNS, respiratory before Phase I"
+    biomate_implementation: "§2.6.3.7 cites S7A core battery requirement"
+
+  ICH_S7B:
+    id: ICH_S7B
+    title: "Safety Pharmacology Studies for Assessing the Potential for Delayed Ventricular Repolarization (QT Interval Prolongation) by Human Pharmaceuticals"
+    short_name: "ICH S7B"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "current"
+    effective_date: "2005-11"
+    revision_status: "S7B(R1) revision in progress — Step 2 consultation 2025; draft incorporates in silico hERG as valid screening"
+    ctd_section: "2.6.3.7"
+    thresholds:
+      hERG_IC50_flag_uM: 10.0
+      safety_margin_recommended: 30.0   # 30× Cmax before concern
+      action_on_flag: "flag compound; recommend in vitro IKr patch clamp before FIH"
+    reference_compounds:
+      - name: Dofetilide
+        hERG_IC50_uM: 0.005
+        role: "positive control (IKr blocker)"
+      - name: Cisapride
+        hERG_IC50_uM: 0.014
+        role: "positive control (withdrawn)"
+      - name: Quinidine
+        hERG_IC50_uM: 0.9
+        role: "reference"
+      - name: Verapamil
+        hERG_IC50_uM: 0.14
+        role: "reference (L-type Ca2+ blocker, QT-neutral)"
+      - name: Ondansetron
+        hERG_IC50_uM: 0.16
+        role: "reference"
+    biomate_implementation: "10 µM threshold applied; S7B cited in §2.6.3.7 narrative; in vitro follow-up caveat present"
+
+  ICH_S2_R1:
+    id: ICH_S2_R1
+    title: "Guidance on Genotoxicity Testing and Data Interpretation for Pharmaceuticals Intended for Human Use"
+    short_name: "ICH S2(R1)"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "R1"
+    effective_date: "2012-11"
+    supersedes: "ICH S2A, ICH S2B"
+    ctd_section: "2.6.3.3"
+    required_battery_before_FIH:
+      - "in vitro bacterial reverse mutation (Ames) — TA98, TA100, TA102, TA1535 ± S9"
+      - "in vitro chromosomal aberration OR micronucleus (mammalian cells)"
+      - "in vivo micronucleus (rodent bone marrow, if both in vitro tests positive)"
+    in_silico_status: "Accepted for candidate screening; does not replace GLP in vitro battery"
+    biomate_implementation: "§2.6.3.3 cites S2(R1); structural-alert Ames prediction noted as in silico screening; in vitro follow-up required before FIH"
+
+  ICH_E5:
+    id: ICH_E5
+    title: "Ethnic Factors in the Acceptability of Foreign Clinical Data"
+    short_name: "ICH E5"
+    regions: [NMPA, PMDA]
+    version: "current"
+    effective_date: "1998-02"
+    ctd_section: "2.6.2"
+    key_requirement: "Ethnic bridging study or waiver if PK expected to differ in target population"
+    relevant_enzymes: ["CYP2C19 (20% PM in East Asian vs 3% Western)", "CYP2D6", "OATP1B1"]
+    biomate_implementation: "GAP — ethnic bridging note not implemented; required for NMPA/PMDA submissions"
+    gap_priority: "HIGH for NMPA; MEDIUM for PMDA"
+
+  ICH_M3_R2:
+    id: ICH_M3_R2
+    title: "Nonclinical Safety Studies for the Conduct of Human Clinical Trials and Marketing Authorization for Pharmaceuticals"
+    short_name: "ICH M3(R2)"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "R2"
+    effective_date: "2010-06"
+    key_requirement: "Minimum nonclinical package at IND stage; single-dose tox + safety pharmacology core battery + genotoxicity screening before Phase I"
+    biomate_implementation: "§2.6.3.1 (single-dose) and §2.6.3.2 (repeat-dose) correctly note in vivo data gaps; §2.6.3 correctly states M3(R2) requirements in structure"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FDA-Specific Guidelines
+# ─────────────────────────────────────────────────────────────────────────────
+
+  FDA_PBPK_2018:
+    id: FDA_PBPK_2018
+    title: "Physiologically Based Pharmacokinetic Analyses — Format and Content (Guidance for Industry)"
+    short_name: "FDA PBPK Guidance 2018"
+    regions: [FDA]
+    version: "September 2018"
+    effective_date: "2018-09"
+    url: "https://www.fda.gov/media/113725/download"
+    ctd_section: "2.6.2"
+    required_tables:
+      - name: "Table 1: Model parameters and sources"
+        fields: ["Parameter", "Value", "Source", "Method of determination"]
+      - name: "Table 2: Model assumptions and limitations"
+        fields: ["Assumption/Limitation", "Justification or Impact"]
+      - name: "Table 3: Model verification — predicted vs observed"
+        fields: ["Drug", "Obs Cmax", "Pred Cmax", "Fold error", "Within 2-fold"]
+    sensitivity_analysis_required: true
+    sensitivity_threshold_pct: 10  # parameters driving >10% change in Cmax or AUC
+    acceptance_criterion: "Not specified as % within-2-fold; FDA uses qualitative adequacy plus bias/precision metrics"
+    biomate_implementation:
+      table_3: "Implemented in §2.6.1.2 (PBPK per-compound table)"
+      table_2: "GAP — Model Assumptions & Limitations table not implemented"
+      sensitivity: "GAP — sensitivity analysis not implemented"
+    gap_priority: "HIGH for FDA submissions"
+
+  FDA_21CFR_PART11:
+    id: FDA_21CFR_PART11
+    title: "Electronic Records; Electronic Signatures (21 CFR Part 11)"
+    short_name: "21 CFR Part 11"
+    regions: [FDA]
+    version: "current (1997, last amended 2003)"
+    ctd_section: "2.6.1.6"
+    key_requirements:
+      - "11.10(e): Computer-generated time-stamped audit trail"
+      - "11.10(d): Limiting system access to authorized individuals"
+      - "11.70: Electronic signatures linked to respective records"
+      - "11.50: Signature manifestations (name, date, meaning)"
+    biomate_implementation:
+      audit_trail: "SHA-256 hash-chained log; ASSEMBLE_IND action recorded ✅"
+      esig_linkage: "GENERATE_IND eSig linked to audit record ✅"
+      access_control: "JWT auth + MFA (via mfa-service.ts) ✅"
+
+  FDA_21CFR_312:
+    id: FDA_21CFR_312
+    title: "Investigational New Drug Application (21 CFR Part 312)"
+    short_name: "21 CFR 312"
+    regions: [FDA]
+    version: "current"
+    ctd_section: "all"
+    key_requirement: "§312.23(a)(8): Nonclinical pharmacology and toxicology section required"
+    biomate_implementation: "IND context stated in title page; disclaimer references FDA submission intent"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EMA-Specific Guidelines
+# ─────────────────────────────────────────────────────────────────────────────
+
+  EMA_PBPK_2018:
+    id: EMA_PBPK_2018
+    title: "Guideline on the Reporting of Physiologically Based Pharmacokinetic (PBPK) Modelling and Simulation"
+    short_name: "EMA/CHMP/EWP/37498/2011 Rev1"
+    regions: [EMA]
+    version: "Rev1"
+    effective_date: "2018-07"
+    supersedes: "EMA/CHMP/EWP/37498/2011 (Rev0, 2016)"
+    url: "https://www.ema.europa.eu/en/reporting-physiologically-based-pharmacokinetic-pbpk-modelling-simulation-scientific-guideline"
+    ctd_section: "2.6.2"
+    acceptance_criterion:
+      metric: "within_2fold_fraction"
+      threshold: 0.67
+      applies_to: ["Cmax", "AUC"]
+      description: "≥67% of individual drug/study Cmax AND AUC predictions within 2-fold of observed"
+    required_metrics: ["AFE", "AAFE", "R2", "within_2fold_Cmax", "within_2fold_AUC", "within_3fold_Cmax", "within_3fold_AUC"]
+    biomate_implementation:
+      criterion_check: "_EMA_MIN_FRACTION_IN_FOLD = 0.67 ✅"
+      metrics_table: "All 7 metrics reported in §2.6.1.2 ✅"
+      narrative: "EMA criterion result in LLM narrative ✅"
+      current_result: "Cmax=73.3% (PASS), AUC=100.0% (PASS) — 30 reference drugs"
+
+  EMA_DILI_2021:
+    id: EMA_DILI_2021
+    title: "Reflection Paper on Drug-Induced Liver Injury"
+    short_name: "EMA DILI Reflection Paper (2021 update)"
+    regions: [EMA]
+    version: "2021 update"
+    effective_date: "2021"
+    document_id: "EMA/CHMP/HMPC/700003/2012"
+    ctd_section: "2.6.3.2"
+    applicability: "Drugs with hepatic CL fraction > 50%"
+    required_assessment_tiers:
+      tier_1: "Binary DILI flag (positive/negative) — BioMate implements this"
+      tier_2: "Reactive metabolite structural alerts (Michael acceptors, quinones, epoxides)"
+      tier_3: "In vitro covalent binding + mitochondrial liability (experimental)"
+    biomate_implementation:
+      tier_1: "Binary DILI flag from DILIrank — implemented ✅"
+      tier_2: "GAP — reactive metabolite structural alerts not implemented"
+      tier_3: "Out of scope (requires experimental data)"
+    gap_priority: "HIGH for EMA submissions of hepatically-cleared drugs"
+    proposed_fix: "Add RDKit SMARTS library for reactive metabolite alerts (Jensen 2014); ~20 structural filters"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NMPA/CDE (China) Guidelines
+# ─────────────────────────────────────────────────────────────────────────────
+
+  NMPA_ANNOUNCEMENT_35:
+    id: NMPA_ANNOUNCEMENT_35
+    title: "Announcement on Requiring New Drug Registration in CTD Format"
+    short_name: "NMPA Announcement No. 35 (2019)"
+    regions: [NMPA]
+    version: "2019"
+    effective_date: "2019"
+    ctd_section: "all"
+    key_requirements:
+      - "CTD Module 2–5 format mandatory for new drug CTAs (INDs)"
+      - "GLP declaration required: foreign GLP accepted since 2018 with NMPA facility recognition statement"
+    glp_declaration_template: "All nonclinical studies were conducted under GLP-compliant conditions at [Facility Name], a facility recognized under [FDA/EMA/OECD GLP]. NMPA GLP mutual recognition status: [N/A — NMPA Announcement No. [X]/[Year]]."
+    biomate_implementation: "GAP — GLP declaration field not in INDAssemblyRequest"
+    gap_priority: "HIGH for NMPA submissions"
+
+  CDE_PBPK_2021:
+    id: CDE_PBPK_2021
+    title: "Technical Guideline on Physiologically Based Pharmacokinetic Modelling in Drug Development"
+    short_name: "CDE PBPK Technical Guideline (January 2021)"
+    regions: [NMPA]
+    version: "January 2021"
+    effective_date: "2021-01"
+    ctd_section: "2.6.2"
+    acceptance_criterion:
+      metric: "within_2fold_fraction"
+      threshold: 0.67
+      description: "Mirrors EMA/CHMP/EWP/37498/2011 Rev1 criterion"
+    biomate_implementation: "Same implementation as EMA_PBPK_2018 — compliant ✅"
+    notes: "CDE adopted EMA criterion verbatim; no separate China-specific PBPK acceptance threshold"
+
+  CDE_NONCLIN_2021:
+    id: CDE_NONCLIN_2021
+    title: "Technical Guidelines for Nonclinical Safety Assessment for Drug Clinical Trial Applications"
+    short_name: "CDE Nonclinical CTA Guideline (August 2021)"
+    regions: [NMPA]
+    version: "August 2021"
+    effective_date: "2021-08"
+    ctd_section: "2.6"
+    key_requirements:
+      - "Same ICH M3(R2) nonclinical package required at CTA stage"
+      - "Ethnic bridging: CDE may require additional PK study in Chinese subjects if E5 factors identified"
+      - "Species-specific PK bridging if Western animal data lack Chinese Sprague-Dawley rat data"
+      - "GLP origin declaration per NMPA Announcement No. 35"
+    ethnic_bridging_trigger_enzymes: ["CYP2C19", "CYP2D6", "OATP1B1", "UGT1A1"]
+    biomate_implementation: "GAP — no ethnic bridging section; no GLP declaration"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PMDA (Japan) Guidelines
+# ─────────────────────────────────────────────────────────────────────────────
+
+  PMDA_ELD_2003:
+    id: PMDA_ELD_2003
+    title: "Notification on Implementation of ICH M4 CTD for Drug Applications"
+    short_name: "PFSB/ELD Notification No. 0601-1 (2003)"
+    regions: [PMDA]
+    version: "June 2003"
+    effective_date: "2003-06"
+    ctd_section: "all"
+    key_requirement: "ICH M4S(R2) CTD format mandatory for J-NDA and J-IND applications"
+    pbpk_guideline: "No PMDA-specific PBPK guideline; EMA/CHMP/EWP/37498/2011 Rev1 used by analogy"
+    ethnic_sensitivity: "ICH E5 + E7 apply; Japan-specific PK bridging expected when CYP2C19 or CYP2D6 metabolism is significant"
+    biomate_implementation: "Structural compliance — document format accepted; ethnic bridging GAP"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Safety Thresholds by Region (for code validation)
+# ─────────────────────────────────────────────────────────────────────────────
+
+safety_thresholds:
+  hERG:
+    value_uM: 10.0
+    metric: "IC50 inhibition of IKr current"
+    guideline: ICH_S7B
+    regions: [FDA, EMA, NMPA, PMDA]
+    flag_action: "Compound flagged; in vitro patch clamp required before FIH"
+    safety_margin_recommendation: "30× over unbound Cmax (ICH S7B Section 3.1)"
+    note: "S7B(R1) in preparation may allow validated in silico hERG as FIH-enabling under defined conditions"
+
+  Ames_positivity:
+    value: 1.0  # binary: 1=positive
+    metric: "Salmonella typhimurium reverse mutation"
+    guideline: ICH_S2_R1
+    strains: ["TA98", "TA100", "TA102", "TA1535"]
+    s9_metabolic_activation: true
+    regions: [FDA, EMA, NMPA, PMDA]
+    flag_action: "In vitro Ames test required before FIH (not waivable)"
+
+  DILI_binary:
+    value: 1.0  # binary: 1=positive
+    source: "DILIrank (Chen 2016)"
+    guideline: EMA_DILI_2021
+    regions: [FDA, EMA, NMPA, PMDA]
+    flag_action_EMA: "Mechanistic tier assessment required for hepatically-cleared drugs"
+    flag_action_other: "Binary flag sufficient as screening; monitoring in clinical protocol"
+
+  PBPK_within_2fold:
+    value: 0.67  # fraction
+    metric: "Fraction of predictions within 2-fold of observed"
+    applies_to: ["Cmax", "AUC"]
+    guideline: EMA_PBPK_2018
+    regions: [EMA, NMPA]  # FDA uses different assessment approach
+    current_biomate_result:
+      Cmax: 0.733  # 73.3% — PASS
+      AUC: 1.000   # 100% — PASS
+
+  PPBR_Lobell_accuracy:
+    metric: "MAE on TDC PPBR_AZ test set"
+    current_value_pct: 19.35
+    baseline_chemprop_pct: 8.4
+    target_pct: 10.0
+    gap_pct: 10.95
+    proposed_fix: "ADMET-AI Chemprop-RDKit (MAE ~8.6%)"
+    guideline_relevance: "Affects fu_plasma accuracy in §2.6.2 DMPK table; no formal threshold but should match baseline performance"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Compliance Matrix (for assembly region selection)
+# ─────────────────────────────────────────────────────────────────────────────
+
+compliance_matrix:
+  FDA:
+    status: "mostly_compliant"
+    gaps:
+      - gap_id: FDA_GAP_1
+        section: "2.6.2"
+        description: "Model Assumptions & Limitations table (FDA PBPK 2018 Table 2)"
+        priority: HIGH
+        effort_hours: 2
+      - gap_id: FDA_GAP_2
+        section: "2.6.2"
+        description: "Sensitivity analysis (top 3 parameters, >10% Cmax/AUC impact)"
+        priority: MEDIUM
+        effort_hours: 40
+    compliant_items: ["§2.6.1 structure", "§2.6.2 PBPK metrics", "§2.6.3 S7A/S7B/S2(R1)", "21 CFR Part 11 audit", "eSig"]
+
+  EMA:
+    status: "mostly_compliant"
+    gaps:
+      - gap_id: EMA_GAP_1
+        section: "2.6.3.2"
+        description: "Mechanistic DILI tier assessment for hepatically-cleared drugs"
+        guideline: EMA_DILI_2021
+        priority: HIGH
+        effort_hours: 8
+    compliant_items: ["§2.6.1–2.6.3 structure", "EMA PBPK criterion (73.3%/100%)", "AFE/AAFE/R² table", "S7B/S2(R1) caveats"]
+
+  NMPA:
+    status: "partially_compliant"
+    gaps:
+      - gap_id: NMPA_GAP_1
+        section: "2.6.1"
+        description: "GLP facility origin declaration"
+        guideline: NMPA_ANNOUNCEMENT_35
+        priority: HIGH
+        effort_hours: 1
+      - gap_id: NMPA_GAP_2
+        section: "2.6.2"
+        description: "Ethnic bridging statement (ICH E5, CYP2C19/2D6)"
+        guideline: CDE_NONCLIN_2021
+        priority: HIGH
+        effort_hours: 2
+    compliant_items: ["CTD format", "EMA PBPK criterion (CDE adopts same)", "S7B/S2(R1)"]
+
+  PMDA:
+    status: "mostly_compliant"
+    gaps:
+      - gap_id: PMDA_GAP_1
+        section: "2.6.2"
+        description: "Ethnic sensitivity statement (ICH E5/E7)"
+        guideline: ICH_E5
+        priority: MEDIUM
+        effort_hours: 2
+    compliant_items: ["CTD format", "PBPK metrics", "S7B/S2(R1)"]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Future Watch Items
+# ─────────────────────────────────────────────────────────────────────────────
+
+watch_items:
+  - id: ICH_M4S_R3
+    description: "ICH M4S revision project — R3 draft in preparation as of 2024"
+    action: "Subscribe to ICH safety guidelines newsletter; update schema_version when R3 published"
+    monitoring_url: "https://www.ich.org/page/safety-guidelines"
+
+  - id: ICH_S7B_R1
+    description: "ICH S7B(R1) — Step 2 consultation 2025; may validate in silico hERG as FIH-enabling"
+    action: "Update hERG threshold section if S7B(R1) changes criteria"
+    impact: "BioMate's structural-alert Ames prediction may become formally acceptable under updated S7B"
+
+  - id: FDA_AI_GUIDANCE
+    description: "FDA/EMA Joint Guidance on Good AI Practice (Jan 2026) — AI disclosure in submissions"
+    action: "Add 'AI-assisted draft — human reviewed and approved [DATE] by [NAME]' footer to documents"
+    monitoring_url: "https://www.fda.gov/science-research/artificial-intelligence-drug-development"
+
+  - id: EMA_M4S_UPDATE
+    description: "EMA will update PBPK guideline if ICH M4S(R3) changes §2.6.2 scope"
+    action: "Re-review EMA/CHMP/EWP/37498/2011 when M4S(R3) is finalized"
+
+  - id: NMPA_BIOSIMILAR_EXPANSION
+    description: "CDE expanding PBPK requirements for biosimilars (draft 2025)"
+    action: "Monitor CDE technical guidelines page quarterly"
+    monitoring_url: "https://www.cde.org.cn/main/news/listpage/listpage/7"

@@ -821,7 +821,10 @@ class INDAssemblyRequest(BaseModel):
     sponsor: str = "Sponsor"
     indication: str = "Investigational indication"
     target_name: str = "Investigational target"
-    pk_summary: Optional[dict] = None  # pk_summary.json from predict_admet_properties run
+    pk_summary: Optional[dict] = None      # pk_summary.json from predict_admet_properties run
+    region: str = "ALL"                    # FDA | EMA | NMPA | PMDA | ALL
+    glp_facility: str = ""                 # NMPA/CDE: GLP facility name for declaration
+    glp_recognition: str = ""             # NMPA/CDE: GLP recognition statement
 
 
 @router.post("/{campaign_id}/ind-assembly")
@@ -867,6 +870,9 @@ async def assemble_ind_section(
             indication=body.indication,
             target_name=body.target_name,
             pk_summary=body.pk_summary,
+            region=body.region,
+            glp_facility=body.glp_facility,
+            glp_recognition=body.glp_recognition,
         )
     except Exception as exc:
         log.exception("IND assembly failed for campaign %s", campaign_id)

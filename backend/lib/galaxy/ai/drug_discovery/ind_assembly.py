@@ -49,10 +49,53 @@ import os
 import subprocess
 import tempfile
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
 log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Regulatory Knowledge DB
+# ---------------------------------------------------------------------------
+
+_REG_KB_PATH = Path(__file__).parent / "regulatory_knowledge.yaml"
+
+
+@lru_cache(maxsize=1)
+def _load_regulatory_kb() -> dict:
+    """Load regulatory_knowledge.yaml once and cache it in-process."""
+    try:
+        import yaml  # PyYAML (available in biomate backend environment)
+        with open(_REG_KB_PATH, encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except Exception as exc:
+        log.warning("[regulatory_kb] Could not load %s: %s — using defaults", _REG_KB_PATH, exc)
+        return {}
+
+
+def get_threshold(threshold_id: str, field: str, default=None):
+    """Read a safety threshold from the knowledge DB."""
+    kb = _load_regulatory_kb()
+    return kb.get("safety_thresholds", {}).get(threshold_id, {}).get(field, default)
+
+
+def get_guideline_ref(guideline_id: str) -> str:
+    """Return a formatted citation string for a guideline."""
+    kb = _load_regulatory_kb()
+    g = kb.get("guidelines", {}).get(guideline_id, {})
+    if not g:
+        return guideline_id
+    ver = g.get("version", "")
+    date = g.get("effective_date", "")
+    short = g.get("short_name", guideline_id)
+    return f"{short} ({date})" if date else short
+
+
+def get_compliance_gaps(region: str) -> list[dict]:
+    """Return open compliance gaps for a region."""
+    kb = _load_regulatory_kb()
+    return kb.get("compliance_matrix", {}).get(region, {}).get("gaps", [])
 
 # ---------------------------------------------------------------------------
 # LLM narrative helper
@@ -226,6 +269,9 @@ class INDSectionAssembler:
         indication: str = "Investigational indication",
         target_name: str = "Investigational target",
         pk_summary: Optional[dict] = None,
+        region: str = "ALL",
+        glp_facility: str = "",
+        glp_recognition: str = "",
     ) -> AssemblyResult:
         """
         Generate CTD Sections 2.6.1–2.6.3 for the given campaign.
@@ -271,6 +317,9 @@ class INDSectionAssembler:
             auto_proposal=auto_proposal,
             safety_profile=safety_profile,
             pk_summary=pk_summary,
+            region=region,
+            glp_facility=glp_facility,
+            glp_recognition=glp_recognition,
         )
 
         title = self._title_page(ctx)
@@ -404,9 +453,10 @@ class INDSectionAssembler:
                 compounds[cid]["assays"][r["assay_type"]] = r["value_uM"]
 
             total = len(compounds)
+            _herg_threshold = get_threshold("hERG", "value_uM", 10.0)
             herg_flagged = sum(
                 1 for c in compounds.values()
-                if c["assays"].get("hERG", 9999) < 10.0
+                if c["assays"].get("hERG", 9999) < _herg_threshold
             )
             dili_flagged = sum(
                 1 for c in compounds.values()
@@ -469,6 +519,35 @@ class INDSectionAssembler:
     # ------------------------------------------------------------------
 
     def _title_page(self, ctx: dict) -> str:
+        region = ctx.get("region", "ALL")
+        glp_line = ""
+        if ctx.get("glp_facility"):
+            glp_line = f"\n**GLP facility:** {ctx['glp_facility']}"
+            if ctx.get("glp_recognition"):
+                glp_line += f" ({ctx['glp_recognition']})"
+
+        # Region-specific submission type
+        submission_type = {
+            "FDA": "Investigational New Drug (IND) Application (21 CFR Part 312)",
+            "EMA": "Clinical Trial Authorisation (CTA) — EudraLex Volume 10",
+            "NMPA": "Clinical Trial Application (CTA) — NMPA CTD Format (Announcement No. 35, 2019)",
+            "PMDA": "Clinical Trial Notification (CTN) — PFSB/ELD Notification 0601-1",
+            "ALL": "IND/CTA (FDA/EMA/NMPA/PMDA)",
+        }.get(region, "IND/CTA")
+
+        # Guideline versions from KB
+        m4s = get_guideline_ref("ICH_M4S_R2")
+        pbpk_ref = get_guideline_ref("EMA_PBPK_2018") if region in ("EMA", "NMPA", "ALL") else get_guideline_ref("FDA_PBPK_2018")
+        s7b = get_guideline_ref("ICH_S7B")
+        s2r1 = get_guideline_ref("ICH_S2_R1")
+
+        # Open compliance gaps for region
+        gaps = get_compliance_gaps(region) if region != "ALL" else []
+        gap_note = ""
+        if gaps:
+            gap_list = "; ".join(f"§{g['section']}: {g['description'][:60]}" for g in gaps[:3])
+            gap_note = f"\n\n*Compliance gaps for {region} not yet implemented: {gap_list}. See regulatory_knowledge.yaml.*"
+
         return f"""\
 # CTD Module 2.6 — Nonclinical Written Summaries
 
@@ -477,19 +556,23 @@ class INDSectionAssembler:
 **Indication:** {ctx['indication']}
 **Target:** {ctx['target_name']}
 **Campaign ID:** {ctx['campaign_id']}
-**Generated by:** BioMate Computational CRO Platform
+**Generated by:** BioMate Computational CRO Platform v1.0
 **Generation date:** {ctx['generated_at'][:10]}
+**Target submission:** {submission_type}
+**Regulatory guidelines:** {m4s} · {pbpk_ref} · {s7b} · {s2r1}{glp_line}
 
 **Sections included:** §2.6.1 Nonclinical Overview: Pharmacology · §2.6.2 Nonclinical Overview: Pharmacokinetics · §2.6.3 Nonclinical Overview: Toxicology
 
 ---
 
 *This document was automatically generated by BioMate and is intended for attachment
-to the nonclinical overview sections of an Investigational New Drug (IND) application.
+to the nonclinical overview sections of an {submission_type}.
 All computational predictions cited herein were produced by validated models (see §2.6.1.2)
 with applicability domain assessment (see §2.6.1.5) and full audit traceability (§2.6.1.6).
 Sections 2.6.2 and 2.6.3 are derived from PBPK model outputs and in silico ADMET predictions
-and should be supplemented with in vitro/in vivo experimental data as required by ICH guidelines.*"""
+and should be supplemented with in vitro/in vivo experimental data as required by ICH guidelines.
+This AI-assisted draft requires human review and approval before regulatory submission per
+FDA/EMA Joint Guidance on Good AI Practice in Drug Development (January 2026).*{gap_note}"""
 
     def _section_overview(self, ctx: dict) -> str:
         n = len(ctx['compounds'])
@@ -618,7 +701,8 @@ PK literature).
             any_flagged_set = set()
             for cid, cpd in sp.get("compounds", {}).items():
                 assays = cpd.get("assays", {})
-                if assays.get("hERG", 9999) < 10.0:
+                _ht = get_threshold("hERG", "value_uM", 10.0)
+                if assays.get("hERG", 9999) < _ht:
                     any_flagged_set.add(cid)
                 if assays.get("DILI", 0) >= 1.0:
                     any_flagged_set.add(cid)
