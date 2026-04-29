@@ -35,9 +35,9 @@ process CRYODRGN_TRAIN {
     echo "  Poses:     ${poses_pkl}"
     echo "  z-dim:     ${zdim}   epochs: ${epochs}"
 
-    # Reserialize CTF pkl for cross-version compatibility
+    # Reserialize CTF pkl for cross-version compatibility + patch star S3 paths
     python3 - << 'PYEOF'
-import pickle, numpy as np, os
+import pickle, numpy as np, os, re, subprocess
 
 # ctf: cryodrgn 4.x expects raw (N, 9) ndarray
 with open("${ctf_pkl}", "rb") as fh:
@@ -59,13 +59,41 @@ if poses_file and os.path.isfile(poses_file):
     print(f"poses_compat.pkl: rots={rots.shape} trans={trans.shape}")
     open("HAS_POSES", "w").close()
 else:
-    print("No poses provided — will use abinit_het mode")
+    print("No poses provided — will use abinit (heterogeneous ab initio) mode")
+
+# Patch star file: if _rlnImageName contains S3 paths, download mrcs and rewrite
+particles_file = "${particles_mrcs}"
+with open(particles_file) as f:
+    content = f.read()
+
+s3_paths = sorted(set(re.findall(r's3://[^\s@\t]+\.mrcs', content)))
+if s3_paths:
+    print(f"Star file references {len(s3_paths)} S3 mrcs files — downloading locally")
+    os.makedirs("particles", exist_ok=True)
+    aws = "/opt/aws-cli/bin/aws"
+    for s3_path in s3_paths:
+        fname = os.path.basename(s3_path)
+        local = f"particles/{fname}"
+        if not os.path.exists(local):
+            print(f"  aws s3 cp {s3_path}")
+            subprocess.run([aws, "s3", "cp", "--region", "us-west-2", s3_path, local], check=True)
+        content = content.replace(s3_path, local)
+    with open("particles_local.star", "w") as f:
+        f.write(content)
+    print("Wrote particles_local.star with local paths")
+    open("USE_LOCAL_STAR", "w").close()
 PYEOF
+
+    STAR_FILE="${particles_mrcs}"
+    if [ -f USE_LOCAL_STAR ]; then
+        STAR_FILE="particles_local.star"
+        echo "Using patched star file with local mrcs paths"
+    fi
 
     if [ -f HAS_POSES ]; then
         echo "Training with poses (train_vae mode)"
         cryodrgn train_vae \\
-            ${particles_mrcs} \\
+            "\${STAR_FILE}" \\
             --ctf ctf_compat.pkl \\
             --poses poses_compat.pkl \\
             -n ${epochs} \\
@@ -74,9 +102,9 @@ PYEOF
             --no-amp \\
             --log-interval 5
     else
-        echo "Training ab initio (abinit_het mode — no poses required)"
-        cryodrgn abinit_het \\
-            ${particles_mrcs} \\
+        echo "Training ab initio (abinit mode — no poses required)"
+        cryodrgn abinit \\
+            "\${STAR_FILE}" \\
             --ctf ctf_compat.pkl \\
             -n ${epochs} \\
             --zdim ${zdim} \\

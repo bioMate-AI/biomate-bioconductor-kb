@@ -6,7 +6,7 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="BioMate Team"
 LABEL description="Protein dynamics & conformational ensemble sampling for BioMate workflows"
-LABEL version="1.0.2"
+LABEL version="1.0.5"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -33,13 +33,11 @@ RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tm
     && /tmp/aws/install --install-dir /opt/aws-cli --bin-dir /opt/aws-cli/bin \
     && rm -rf /tmp/awscliv2.zip /tmp/aws
 
-# ── Clone GitHub repos in ONE layer (keep network warm, all or nothing) ──────
+# ── Clone GitHub repos: fpocket + PocketMiner only ───────────────────────────
 RUN git clone --depth 1 https://github.com/Discngine/fpocket.git /tmp/fpocket \
-    && cd /tmp/fpocket && make && make install && rm -rf /tmp/fpocket \
-    && git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer \
-    || echo "WARNING: PocketMiner clone failed" \
-    && git clone --depth 1 https://github.com/microsoft/bioemu.git /opt/bioemu \
-    || echo "WARNING: BioEmu clone failed"
+    && cd /tmp/fpocket && make && make install && rm -rf /tmp/fpocket
+RUN git clone --depth 1 https://github.com/Hoecker-Lab/pocketminer.git /opt/pocketminer \
+    || echo "WARNING: PocketMiner clone failed"
 
 # ── Python packages ───────────────────────────────────────────────────────────
 # Install core scientific deps first; keep torch at 2.1 (base image version)
@@ -62,9 +60,10 @@ RUN pip install --no-cache-dir \
 # Install cryodrgn (for latent-space analysis utilities shared with cryo track)
 RUN pip install --no-cache-dir "cryodrgn>=3.0.0"
 
-# Install Microsoft BioEmu from cloned source
-RUN pip install --no-cache-dir /opt/bioemu || \
-    echo "WARNING: BioEmu install failed — workflow will use MDAnalysis sampling fallback"
+# ── Microsoft BioEmu 1.3.1 from PyPI ─────────────────────────────────────────
+# Pinned to 1.3.1; requires PyTorch >=2.0 (satisfied by base image torch 2.1)
+RUN pip install --no-cache-dir "bioemu==1.3.1" \
+    && python -c "import bioemu; print('BioEmu', bioemu.__version__, 'installed')"
 
 # Install PocketMiner from cloned source
 RUN pip install --no-cache-dir /opt/pocketminer || \
