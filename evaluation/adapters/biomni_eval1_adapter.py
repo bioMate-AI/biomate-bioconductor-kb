@@ -43,7 +43,6 @@ logger = logging.getLogger(__name__)
 # within a benchmark run (lru_cache can't handle list args cleanly).
 _GWAS_VARIANT_CACHE: Dict[str, str] = {}   # rsid -> formatted evidence line
 _GWAS_GENE_CACHE: Dict[str, str] = {}      # gene -> formatted evidence line
-_GWAS_FUNC_CLASS_CACHE: Dict[str, str] = {}  # rsid -> functionalClass string
 _OMIM_GENE_CACHE: Dict[str, str] = {}      # gene_symbol -> formatted OMIM evidence
 _UNIPROT_GENE_CACHE: Dict[str, List[Dict]] = {}  # gene_symbol -> [{omim_id, disease_name}]
 _CRISPR_GENE_SUMMARY_CACHE: Dict[str, str] = {}  # gene_symbol -> function summary
@@ -260,31 +259,57 @@ def _gwas_catalog_fetch(url: str, timeout: int = 4) -> Any:
         return None
 
 
-# Functional impact priority: higher = more likely causal
-_FUNC_CLASS_PRIORITY = {
-    "stop_gained": 5, "frameshift_variant": 5, "splice_acceptor_variant": 5,
-    "splice_donor_variant": 5,
-    "missense_variant": 4,
-    "splice_region_variant": 3, "inframe_insertion": 3, "inframe_deletion": 3,
-    "synonymous_variant": 2, "5_prime_UTR_variant": 2, "3_prime_UTR_variant": 2,
-    "intron_variant": 1, "upstream_gene_variant": 1, "downstream_gene_variant": 1,
-    "intergenic_variant": 0, "": 0,
-}
-
-
-def _get_functional_class(rsid: str, timeout: int = 4) -> str:
-    """Fetch functionalClass for a variant from GWAS Catalog SNP endpoint."""
-    if rsid in _GWAS_FUNC_CLASS_CACHE:
-        return _GWAS_FUNC_CLASS_CACHE[rsid]
-    url = f"https://www.ebi.ac.uk/gwas/rest/api/singleNucleotidePolymorphisms/{rsid}"
-    data = _gwas_catalog_fetch(url, timeout=timeout)
-    fc = (data or {}).get("functionalClass", "") or ""
-    _GWAS_FUNC_CLASS_CACHE[rsid] = fc
-    return fc
 
 
 _OT_ENSG_CACHE: Dict[str, Optional[str]] = {}   # gene_symbol -> ENSG ID or None
 _OT_DISEASE_CACHE: Dict[str, List] = {}          # ENSG ID -> [{name, score}]
+_CLINVAR_SIG_CACHE: Dict[str, str] = {}          # rsid -> clinical significance (P/LP/VUS/B/etc.)
+
+
+def _get_clinvar_significance(rsid: str, timeout: int = 4) -> str:
+    """
+    Query NCBI ClinVar for the clinical significance of a variant.
+    Returns simplified significance: "Pathogenic", "Likely_Pathogenic",
+    "Uncertain_Significance", "Benign", "Likely_Benign", or "" (not in ClinVar).
+    Uses NCBI eutils esearch + esummary.
+    """
+    if rsid in _CLINVAR_SIG_CACHE:
+        return _CLINVAR_SIG_CACHE[rsid]
+    sig = ""
+    try:
+        import requests as _req
+        # Step 1: Search ClinVar for this rsID
+        search_r = _req.get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+            params={"db": "clinvar", "term": f"{rsid}[RS]", "retmode": "json", "retmax": "5"},
+            timeout=(timeout, timeout),
+        )
+        search_r.raise_for_status()
+        ids = search_r.json().get("esearchresult", {}).get("idlist", [])
+        if not ids:
+            _CLINVAR_SIG_CACHE[rsid] = sig
+            return sig
+        # Step 2: Fetch summary for first ID
+        sum_r = _req.get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi",
+            params={"db": "clinvar", "id": ids[0], "retmode": "json"},
+            timeout=(timeout, timeout),
+        )
+        sum_r.raise_for_status()
+        doc = sum_r.json().get("result", {}).get(ids[0], {})
+        # ClinVar v2 uses germline_classification (v1 used clinical_significance)
+        for field in ("germline_classification", "clinical_significance"):
+            clin = doc.get(field, {})
+            if isinstance(clin, dict):
+                sig = clin.get("description", "")
+            elif isinstance(clin, str):
+                sig = clin
+            if sig:
+                break
+    except Exception as exc:
+        logger.debug("ClinVar fetch failed for %s: %s", rsid, exc)
+    _CLINVAR_SIG_CACHE[rsid] = sig
+    return sig
 
 
 def _ot_resolve_ensg(gene_symbol: str, timeout: int = 4) -> Optional[str]:
@@ -508,28 +533,13 @@ def lookup_gwas_catalog_by_trait(phenotype: str, candidate_rsids: List[str],
         if rsid not in best or p_float < best[rsid][1]:
             best[rsid] = (rsid, p_float, trait, rel)
 
-    # Fetch functional class for each variant — used as tiebreaker
-    # Missense/stopgain variants are prioritized over intronic/intergenic when
-    # both are relevant to the same phenotype, since they are more likely causal.
-    func_classes: Dict[str, str] = {}
-    for rsid in best:
-        func_classes[rsid] = _get_functional_class(rsid)
-
-    # Sort: primary = functional impact (missense > intron), secondary = p-value
-    def _sort_key(item):
-        rsid, p_float, trait, rel = item
-        fc = func_classes.get(rsid, "")
-        fc_priority = _FUNC_CLASS_PRIORITY.get(fc, 0)
-        return (-fc_priority, p_float)  # higher functional priority first, then lower p-value
-
-    ranked = sorted(best.values(), key=_sort_key)
+    # Sort by p-value ascending (most significant first)
+    ranked = sorted(best.values(), key=lambda x: x[1])
 
     lines = [f"[GWAS Catalog — {phenotype}-specific variant rankings]"]
-    lines.append(f"Candidates ranked by {phenotype} association strength (functional class, then p-value):")
+    lines.append(f"Candidates ranked by strength of {phenotype} association (lowest p = most significant):")
     for rsid, p_float, trait, rel in ranked:
-        fc = func_classes.get(rsid, "")
-        fc_tag = f" [{fc}]" if fc else ""
-        lines.append(f"  {rsid}: p={p_float:.2e} [{trait}]{fc_tag}")
+        lines.append(f"  {rsid}: p={p_float:.2e} [{trait}]")
     found_set = set(r for r, _, _, _ in ranked)
     no_data = [r for r in candidate_rsids if r not in found_set]
     if no_data:
@@ -1612,11 +1622,10 @@ _FORMAT_INSTRUCTIONS: Dict[str, str] = {
         "ANSWER REQUIRED: From the candidate SNP list, identify the ONE rsID most significantly associated with this trait.\n"
         "\n"
         "MANDATORY RULES:\n"
-        "1. If a GWAS Catalog ranked list is provided above, the rsID listed FIRST (ranked #1) IS the answer. Select it.\n"
-        "   Rankings are: functional class first (missense_variant > intron_variant > intergenic_variant), then p-value.\n"
-        "2. Associations labeled [NOT relevant to <trait>] must be COMPLETELY IGNORED — do not use their p-values to rank candidates.\n"
-        "3. If a variant is labeled [missense_variant] or [stopgain] or [frameshift_variant], it is HIGHER PRIORITY than an [intron_variant] with a lower p-value for the same phenotype.\n"
-        "4. If no GWAS Catalog context is provided, select the rsID you believe is most strongly associated with this trait from your training knowledge.\n"
+        "1. If ClinVar data is provided above showing 'Pathogenic' or contains 'pathogenicity', that variant IS the answer — clinically causal variants are the most promising for further examination.\n"
+        "2. If no ClinVar data, use the GWAS Catalog ranked list. The rsID ranked #1 (lowest p-value for the query trait) IS the answer.\n"
+        "3. Associations labeled [NOT relevant to <trait>] must be COMPLETELY IGNORED — do not use their p-values to rank candidates.\n"
+        "4. If no context is provided, select the rsID you believe is most strongly associated with this trait from your training knowledge.\n"
         "5. Do NOT refuse. Do NOT ask for data files. Do NOT explain.\n"
         "\n"
         "Respond with ONLY the rsID (e.g., rs4253311). No explanation. No other text."
@@ -2143,6 +2152,21 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                     per_rsid_ctx = lookup_gwas_catalog(phenotype, candidate_rsids[:15])
                     if per_rsid_ctx:
                         context_parts.append(per_rsid_ctx)
+
+                # ClinVar clinical significance — run in parallel with GWAS Catalog.
+                # Pathogenic/Likely_Pathogenic variants should be prioritized for
+                # "most promising for further examination" over p-value winners.
+                clinvar_lines = []
+                for rsid in candidate_rsids[:11]:
+                    sig = _get_clinvar_significance(rsid, timeout=4)
+                    if sig and "pathogenic" in sig.lower():
+                        clinvar_lines.append(f"  {rsid}: ClinVar={sig}")
+                if clinvar_lines:
+                    context_parts.append(
+                        "[ClinVar Clinical Significance — pathogenic variants]\n"
+                        + "\n".join(clinvar_lines)
+                        + "\n  Note: Pathogenic/Likely_Pathogenic variants indicate causal disease relationship"
+                    )
 
         # --- Lazy GWAS Catalog + Open Targets lookup (gwas_causal_gene) ---
         if task_name.startswith("gwas_causal_gene") and not db_context:
