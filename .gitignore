@@ -71,6 +71,50 @@ logs/
 *.pkl
 *.db
 *.sqlite
+*.db.bak*
+*.db.bak
+
+# Large binary / media files — use external storage, not git
+*.webm
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.zip
+*.tar.gz
+*.tar.bz2
+*.deb
+*.rpm
+*.dmg
+*.a
+*.so.*
+*.dylib
+
+# Virtual environments (all variants)
+.venv_*/
+.venv*/
+venv*/
+*_env/
+*.venv/
+
+# R library cache and compiled R artifacts
+.r_lib_cache/
+*.rda
+*.RData
+
+# Recording output
+recording/
+
+# Demo videos committed by mistake
+frontend/e2e/demo-videos/
+frontend/e2e/demo-videos-v2/
+frontend/demo_videos/
+
+# Pandoc installer
+pandoc-*.deb
+
+# AlphaFold venv
+.venv_alphafold/
 
 # Temporary files
 *.tmp
@@ -97,3 +141,4 @@ reference/clawdbot/
 
 # BioDSA repository (external dependency)
 reference/BioDSA/
+.r_lib_cache/
