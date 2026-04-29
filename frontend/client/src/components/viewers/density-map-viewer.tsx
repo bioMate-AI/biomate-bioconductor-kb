@@ -66,9 +66,16 @@ function parseMrcHeader(buf: ArrayBuffer): MrcHeader {
   return { nx, ny, nz, mode, xlen, ylen, zlen, dataOffset, spacegroup }
 }
 
-/** A 2D image stack (class averages, particle stack) has spacegroup=0 and nz>1 */
+/**
+ * Detect whether an MRC is a 2D image stack (class averages) vs 3D volume.
+ * CryoSPARC uses spacegroup=0 for BOTH — cannot rely on that field.
+ * Heuristic: 2D stack has nz (num images) < min(nx,ny) (image dimension).
+ * 3D volume is cubic or near-cubic: nx ≈ ny ≈ nz.
+ */
 function isImageStack(h: MrcHeader): boolean {
-  return h.spacegroup === 0 && h.nz > 1
+  if (h.nz <= 1) return false
+  const minXY = Math.min(h.nx, h.ny)
+  return h.nz < minXY  // e.g. 128×128×50 → stack; 192×192×192 → volume
 }
 
 /**
