@@ -315,6 +315,7 @@ class NextflowSearchRequest(BaseModel):
     request_text: Optional[str] = None
     preferred_domains: Optional[List[str]] = None
     key_terms: Optional[List[str]] = None
+    skip_chains: bool = False
 
 
 def _nextflow_workflow_key(filename: str) -> Optional[str]:
@@ -1540,7 +1541,7 @@ def search_nextflow_workflow(
         # The internal default of 0.15 is too permissive — direct single-pipeline
         # queries (e.g. "germline variant calling") would otherwise match complex
         # chains (e.g. rare_disease_multimodal_workup) via 2-3 shared tokens.
-        chain_candidates = _workflow_search.search_chains(user_intent, min_score=0.35)
+        chain_candidates = [] if request.skip_chains else _workflow_search.search_chains(user_intent, min_score=0.35)
         if chain_candidates:
             best_chain = chain_candidates[0]
             log.info(
