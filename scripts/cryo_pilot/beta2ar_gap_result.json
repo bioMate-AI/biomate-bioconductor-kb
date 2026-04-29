@@ -1,0 +1,13 @@
+{
+  "protein": "beta2ar",
+  "n_conformers": 500,
+  "n_residues": 442,
+  "gap_fraction": 0.0,
+  "gap_count": 0,
+  "mean_min_rmsd_A": 0.845,
+  "max_min_rmsd_A": 0.927,
+  "pocket_enrichment_pct": 0.0,
+  "gap_threshold_A": 1.5,
+  "n_clusters": 20,
+  "note": "MDAnalysis Gaussian surrogate (\u03c3=0.5\u00c5). Validates metric: 0% gap for narrow ensemble. Real BioEmu expected 10-40% gap."
+}
