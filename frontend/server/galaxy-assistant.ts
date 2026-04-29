@@ -1809,9 +1809,12 @@ Rules:
       const _isPbpkIntent = /\b(pbpk|physiologically[- ]based|full[- ]?pk|human[- ]pk|predict.{0,20}pharmacokinetics?|organ[- ]level[- ]pk|mechanistic[- ]pk|pk[- ]simulation|pk[- ]profile|pharmacokinetic[- ]simulation|whole[- ]body[- ]pk|pk[- ]model|human[- ]pharmacokinetics?|predict[- ]human[- ]pk|pharmacokinetics?\s+of)\b/i.test(message)
         || (/\bphysiol/i.test(message) && /\bpk\b/i.test(message));
       if (_isPbpkIntent) {
-        // Check for SMILES: atom pattern like CC(, c1c, [nH], etc.
-        const _hasSmilesInMessage = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message)
-          || /\.sdf\b/i.test(message);
+        // Check for SMILES: atom pattern like CC(, c1c, [nH], lowercase aromatic rings, etc.
+        // Uses two strategies: (1) broad atom token pattern, (2) SMILES-after-"for" token check
+        const _hasSmilesToken1 = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message);
+        const _smilesAfterFor = (message.match(/\bfor\s+(\S+)/) || [])[1] || '';
+        const _hasSmilesToken2 = /[a-z]\d|[A-Z]\d|\(=O\)|=O\)|\[n[H]\]|[cn][0-9]/.test(_smilesAfterFor);
+        const _hasSmilesInMessage = _hasSmilesToken1 || _hasSmilesToken2 || /\.sdf\b/i.test(message);
         // Check for CLint: numeric value after CLint/intrinsic clearance keyword
         const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
           || /\bclint\s+[\d\.]+/i.test(message)
