@@ -1162,8 +1162,11 @@ export function NextflowWorkflowViewer({
     setQCGateData(null);
     setQcGateSecondsLeft(null);
     if (reason === 'timeout') {
-      // Brief toast-style notice that the gate was dismissed and workflow continued
-      console.info("[QC Gate] Timed out — workflow continued past gate without applying suggestions");
+      toast({
+        title: 'QC gate timed out',
+        description: 'No action taken — workflow continued past the gate without applying suggestions.',
+        duration: 6000,
+      });
     }
   }, []);
 
@@ -1450,8 +1453,21 @@ export function NextflowWorkflowViewer({
         const phaseKey = data.phase_key ?? data.process_name ?? '';
         const autoloopOn = autoloopMap[phaseKey] !== false;
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
-          // Auto-apply: update params and resume from cache — no user confirmation needed
-          console.log("[QC Gate NFViewer] Auto-loop ON — auto-applying suggestions and resuming");
+          // Auto-apply: update params and resume — notify user of what happened
+          const phaseName = gateData.processName.includes(":")
+            ? gateData.processName.split(":").pop()?.replace(/_/g, " ")
+            : gateData.processName.replace(/_/g, " ");
+          const failureSummary = gateData.failures
+            .map((f: any) => typeof f === 'string' ? f : `${f.metric}: ${f.value} (threshold ${f.threshold})`)
+            .join(", ");
+          const paramSummary = gateData.suggestions
+            .map((s: any) => `${s.parameter}: ${s.currentValue} → ${s.suggestedValue}`)
+            .join(", ");
+          toast({
+            title: `QC gate failed — ${phaseName}`,
+            description: `${failureSummary}. Auto-loop adjusting: ${paramSummary} and resuming.`,
+            duration: 8000,
+          });
           const updatedParams = { ...params };
           for (const s of gateData.suggestions) {
             updatedParams[s.parameter] = s.suggestedValue;
@@ -1462,8 +1478,19 @@ export function NextflowWorkflowViewer({
             credentials: 'include',
             body: JSON.stringify({ params: updatedParams }),
           }).catch(err => console.error("[QC Gate NFViewer] Auto-rerun failed:", err));
+        } else if (autoloopOn && gateData.failures.length > 0) {
+          // Auto-loop ON but no actionable suggestions — notify user, no rerun
+          const phaseName = gateData.processName.replace(/_/g, " ");
+          const failureSummary = gateData.failures
+            .map((f: any) => typeof f === 'string' ? f : `${f.metric}: ${f.value} (threshold ${f.threshold})`)
+            .join(", ");
+          toast({
+            title: `QC gate failed — ${phaseName}`,
+            description: `${failureSummary}. No auto-fix available — workflow continued.`,
+            duration: 10000,
+          });
         } else {
-          // Auto-loop OFF (or no suggestions): show confirmation card
+          // Auto-loop OFF: show confirmation card with countdown
           setQCGateData(gateData);
           setShowQcInline(true);
         }
