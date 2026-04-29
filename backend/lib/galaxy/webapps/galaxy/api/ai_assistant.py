@@ -1134,6 +1134,8 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
             (r'\b(WBcel235|wbcel235|caenorhabditis_elegans)\b', 'WBcel235'),
             # Organism names → canonical genome
             (r'\bhuman\b|\bhomo\s+sapiens\b|\bhuman\s+(?:cell|tissue|sample|patient|tumor|cancer|plasma|blood|brain|lung|liver|kidney|colon|breast|skin|heart|muscle|bone|ovary|prostate)\b', 'GRCh38'),
+            # Clinical/patient context implies human samples
+            (r'\bpatient\b|\bclinical\s+(?:trial|sample|cohort|specimen)\b|\bcolorectal\b|\badenocarcinoma\b|\bleukem\b|\blymphoma\b|\bmelanoma\b|\bglioma\b|\bglioblastoma\b|\borganoid.*(?:cancer|tumor|patient)\b', 'GRCh38'),
             (r'\bmouse\b|\bmurine\b|\bmus\s+musculus\b|\bC57BL\b|\bBALB/c\b|\bMDCK\b', 'GRCm39'),
             (r'\brat\b|\battus\s+norvegicus\b|\bSprague\b|\bWistar\b', 'Rnor_6.0'),
             (r'\bzebrafish\b|\bdanio\s+rerio\b|\bzebra\s+fish\b', 'GRCz11'),
@@ -1204,7 +1206,7 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
                 result["strandedness"] = "reverse"
             elif _re.search(r'\b(forward|fr|ligation|forward.strand)\b', text, _re.IGNORECASE):
                 result["strandedness"] = "forward"
-            elif _re.search(r'\b(unstranded|no.strand|strand.unknown|non-stranded|full.length.*single.cell)\b', text, _re.IGNORECASE):
+            elif _re.search(r'\b(unstranded|no.strand|strand.unknown|non-stranded|full.length.*single.cell|random.hexamer|without\s+(?:strand|directionality))\b', text, _re.IGNORECASE):
                 result["strandedness"] = "unstranded"
 
     # ── MACS genome size ─────────────────────────────────────────────────────
@@ -1265,11 +1267,12 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
             result["keep_mito"] = False
 
     # ── Library type: single-end / paired-end ────────────────────────────────
+    # Check paired-end FIRST so "not single-end" matches paired-end, not single_end=True
     if "single_end" in param_names and "single_end" not in result:
-        if _re.search(r'\bsingle.end\b|\bSE\b|\bsingle\s+end\b', text, _re.IGNORECASE):
-            result["single_end"] = True
-        elif _re.search(r'\bpaired.end\b|\bPE\b|\bpaired\s+end\b', text, _re.IGNORECASE):
+        if _re.search(r'\bpaired.end\b|\bpaired\s+end\b|not\s+single.end', text, _re.IGNORECASE):
             result["single_end"] = False
+        elif _re.search(r'\bsingle.end\b|\bSE\s+reads\b|\bsingle\s+end\b', text, _re.IGNORECASE):
+            result["single_end"] = True
 
     if "paired_end" in param_names and "paired_end" not in result:
         if _re.search(r'\bpaired.end\b|\bPE\b|\bpaired\s+end\b', text, _re.IGNORECASE):
@@ -1288,7 +1291,7 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
         if _re.search(r'\bmutect2?\b|\btumor.only\b|\bno\s+matched\s+normal\b|\bsomatic.*no.*normal\b', text, _re.IGNORECASE):
             result["tools"] = "mutect2"
         # HaplotypeCaller: germline calling (includes joint genotyping via GVCF)
-        elif _re.search(r'\bhaplotypecaller\b|\bgermline\s+variant\b|\bjoint.*germline\b|\bGVCF\b|\bjoint\s+genotyping\b|\bcohort\s+genotyping\b', text, _re.IGNORECASE):
+        elif _re.search(r'\bhaplotypecaller\b|\bgermline\s+variant\b|\bjoint.*germline\b|\bGVCF\b|\bjoint\s+genotyping\b|\bcohort\s+genotyping\b|\bgermline\s+(?:single|variant|snp|indel|calling|wgs|wes)\b|\bsingle\s+sample.*germline\b|\bgermline.*single\s+sample\b', text, _re.IGNORECASE):
             result["tools"] = "haplotypecaller"
 
     # ── Pseudo-aligner ────────────────────────────────────────────────────────
@@ -1417,6 +1420,19 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
         if _re.search(r'ribo.?zero.*strand|strand.?spec.*ribo.?zero|strand.?spec.*RNA.?seq', user_intent, _re.IGNORECASE):
             result["strandedness"] = "reverse"
 
+    # ── CryoSPARC defocus range ───────────────────────────────────────────────
+    _has_defocus_min = "defocus_min_um" in param_names
+    _has_defocus_max = "defocus_max_um" in param_names
+    if _has_defocus_min or _has_defocus_max:
+        _m_defocus = _re.search(r'defocus\s+range\s+(\d+\.?\d*)\s+to\s+(\d+\.?\d*)', user_intent, _re.IGNORECASE)
+        if not _m_defocus:
+            _m_defocus = _re.search(r'(\d+\.?\d*)\s+to\s+(\d+\.?\d*)\s*(?:µm|um|micrometer)', user_intent, _re.IGNORECASE)
+        if _m_defocus:
+            if _has_defocus_min and "defocus_min_um" not in result:
+                result["defocus_min_um"] = float(_m_defocus.group(1))
+            if _has_defocus_max and "defocus_max_um" not in result:
+                result["defocus_max_um"] = float(_m_defocus.group(2))
+
     # ── CryoSPARC symmetry ───────────────────────────────────────────────────
     if "symmetry" in param_names and "symmetry" not in result:
         _m_sym = _re.search(r'\b([CDIT]\d*|O\b|I[12]?)\s*symmetry\b|\bsymmetry\s+([CDIT]\d*|O\b|I[12]?)\b|\b(asymmetric|C1)\b', user_intent, _re.IGNORECASE)
@@ -1528,8 +1544,8 @@ Rules:
 - For coordinate arrays like box_center, extract as a JSON array (e.g. [22.0, 2.5, 17.0]).
 - For box_size when given as a single number N, return [N, N, N].
 - For enum/select params, extract the most appropriate option.
+- If a value equals the current default, do NOT include it unless the user explicitly named it.
 - If a value is not clearly present in the message, do NOT include that parameter.
-- Always include explicitly stated values even if they match the current default.
 
 Return ONLY a JSON object, no markdown, no explanation.
 Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""

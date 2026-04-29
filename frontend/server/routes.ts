@@ -4017,7 +4017,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continuationToken = listResp.IsTruncated ? listResp.NextContinuationToken : undefined;
           } while (continuationToken);
 
-          console.log(`[MethodsReport] S3 scan: ${allKeys.length} objects from ${s3OutputBase}`);
 
           for (const key of allKeys) {
             const fname = key.split('/').pop() || key;
@@ -4041,7 +4040,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
           }
-          console.log(`[MethodsReport] textOutputSamples: ${textOutputSamples.map(s => s.name).join(', ')}`);
+          // After scan, ensure key CryoEM files are fetched even if beyond position 15
+          const PRIORITY_FILES = [
+            'workflow_summary.json', 'fsc_validation.json', 'nu_refinement_report.json',
+            'extract_report.json', 'selection_report.json',
+          ];
+          const fetchedNames = new Set(textOutputSamples.map(s => s.name));
+          for (const pname of PRIORITY_FILES) {
+            if (fetchedNames.has(pname)) continue;
+            const pkey = allKeys.find(k => k.endsWith('/' + pname));
+            if (!pkey) continue;
+            try {
+              const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: pkey });
+              const getResp = await s3Client.send(getCmd);
+              const chunks: Buffer[] = [];
+              const stream = getResp.Body as any;
+              await new Promise<void>((res, rej) => {
+                stream.on('data', (c: Buffer) => chunks.push(c));
+                stream.on('end', res);
+                stream.on('error', rej);
+              });
+              const fc = Buffer.concat(chunks).toString('utf-8');
+              if (fc.trim()) { textOutputSamples.push({ name: pname, content: fc.slice(0, 6000) }); fetchedNames.add(pname); }
+            } catch { /* skip */ }
+          }
         } catch (s3Err: any) {
           console.warn('[MethodsReport] S3 scan failed:', s3Err.message?.slice(0, 200));
         }
@@ -4128,8 +4150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             num_extracted_r2:         String(extractR2?.data?.num_particles            ?? 'MISSING'),
             num_particles_nu:         nuNote,
             fsc_0143_resolution:      String(fscRpt?.data?.fsc_0143_resolution        ?? 'MISSING (FSC validation not completed)'),
-            pixel_size_A:             String(wfSummary?.data?.pixel_size_angstroms     ?? params?.pixel_size ?? 'MISSING'),
-            voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? 'MISSING'),
+            pixel_size_A:             String(wfSummary?.data?.pixel_size_angstroms     ?? params?.pixel_size ?? params?.pixel_size_angstroms ?? 'MISSING'),
+            voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? params?.voltage ?? 'MISSING'),
             symmetry:                 String(wfSummary?.data?.symmetry                ?? params?.symmetry   ?? 'C1'),
             steps_completed:          String(wfSummary?.data?.steps_completed         ?? 'MISSING'),
             s3_output_path:           s3OutputBase,
@@ -4395,7 +4417,6 @@ ${paramLines || '(none recorded)'}`;
         let reportText: string;
 
         if (isCryoEM) {
-          console.log(`[MethodsReport] CryoEM step-by-step generation (Claude sonnet-4-5), ${Object.keys(extractedMetrics).length} metrics, ${missingCount} missing`);
 
           const [partA, partB, partC] = await Promise.all([
             // Part A: Abstract + Study Overview + Computational Environment
@@ -4438,7 +4459,6 @@ N. REFERENCES — CryoSPARC (Punjani 2017, PMID 28165473); CTFFIND4 (Rohou 2015,
           ]);
 
           reportText = [partA, partB, partC].join('\n\n');
-          console.log(`[MethodsReport] CryoEM report: A=${partA.length} B=${partB.length} C=${partC.length} total=${reportText.length} chars`);
 
         } else {
           // Non-CryoEM: single call with focused metrics
