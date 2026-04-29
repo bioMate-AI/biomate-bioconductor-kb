@@ -43,6 +43,78 @@ logger = logging.getLogger(__name__)
 # within a benchmark run (lru_cache can't handle list args cleanly).
 _GWAS_VARIANT_CACHE: Dict[str, str] = {}   # rsid -> formatted evidence line
 _GWAS_GENE_CACHE: Dict[str, str] = {}      # gene -> formatted evidence line
+
+# Local GWAS Catalog index — loaded once from pre-built pickle (~400K rsIDs)
+# Path: evaluation/datasets/gwas_catalog/rsid_index.pkl
+_GWAS_LOCAL_INDEX: Optional[Dict[str, list]] = None  # rsid -> [(trait, pval_f, pval_mlog, mapped_trait)]
+_GWAS_LOCAL_INDEX_PATH = Path(__file__).parent.parent / "datasets" / "gwas_catalog" / "rsid_index.pkl"
+
+
+def _ensure_local_gwas_index() -> Optional[Dict[str, list]]:
+    """Load the pre-built GWAS Catalog local index once. Returns None if not available."""
+    global _GWAS_LOCAL_INDEX
+    if _GWAS_LOCAL_INDEX is not None:
+        return _GWAS_LOCAL_INDEX
+    if not _GWAS_LOCAL_INDEX_PATH.exists():
+        return None
+    try:
+        import pickle
+        with open(_GWAS_LOCAL_INDEX_PATH, "rb") as f:
+            _GWAS_LOCAL_INDEX = pickle.load(f)
+        logger.info("Loaded local GWAS index: %d rsIDs", len(_GWAS_LOCAL_INDEX))
+    except Exception as exc:
+        logger.warning("Failed to load local GWAS index: %s", exc)
+        _GWAS_LOCAL_INDEX = {}
+    return _GWAS_LOCAL_INDEX
+
+
+def lookup_gwas_catalog_local(phenotype: str, candidate_rsids: List[str]) -> str:
+    """
+    Query the local GWAS Catalog index (no API, no rate limits).
+    For each candidate rsID, find associations matching the phenotype and rank
+    by -log10(p) descending. Returns formatted context or empty string.
+    """
+    index = _ensure_local_gwas_index()
+    if not index:
+        return ""
+
+    pheno_lower = phenotype.lower().strip()
+    pheno_words = {
+        w for w in re.split(r"[\s/\-,]+", pheno_lower)
+        if len(w) >= 4 and w not in {"measurement", "levels", "level", "blood", "serum",
+                                      "plasma", "total", "free", "adjusted"}
+    }
+    if not pheno_words:
+        return ""
+
+    # Collect best association per rsID
+    best: Dict[str, tuple] = {}  # rsid -> (trait, pval_mlog, pval_f)
+    for rsid in candidate_rsids:
+        entries = index.get(rsid, [])
+        for trait, pval_f, pval_mlog, mapped_trait in entries:
+            trait_lower = trait.lower()
+            mapped_lower = str(mapped_trait).lower()
+            combined = trait_lower + " " + mapped_lower
+            if any(w in combined for w in pheno_words):
+                mlog = pval_mlog if (pval_mlog and pval_mlog == pval_mlog) else 0.0
+                if rsid not in best or mlog > best[rsid][1]:
+                    best[rsid] = (trait, mlog, pval_f)
+
+    if not best:
+        return ""
+
+    # Sort by -log10(p) descending (higher = more significant)
+    ranked = sorted(best.items(), key=lambda x: -x[1][1])
+
+    lines = [f"[GWAS Catalog Local — {phenotype}-specific variant rankings]"]
+    lines.append(f"Candidates ranked by {phenotype} association strength (highest -log10(p) first):")
+    for rsid, (trait, mlog, pval_f) in ranked:
+        p_str = f"p≈10^(-{mlog:.0f})" if mlog > 300 else (f"p={pval_f:.2e}" if pval_f else f"-log10(p)={mlog:.1f}")
+        lines.append(f"  {rsid}: {p_str} [{trait}]")
+    no_data = [r for r in candidate_rsids if r not in best]
+    if no_data:
+        lines.append(f"  No {phenotype}-specific data: {', '.join(no_data[:8])}")
+    return "\n".join(lines)
 _OMIM_GENE_CACHE: Dict[str, str] = {}      # gene_symbol -> formatted OMIM evidence
 _UNIPROT_GENE_CACHE: Dict[str, List[Dict]] = {}  # gene_symbol -> [{omim_id, disease_name}]
 _CRISPR_GENE_SUMMARY_CACHE: Dict[str, str] = {}  # gene_symbol -> function summary
@@ -1622,9 +1694,9 @@ _FORMAT_INSTRUCTIONS: Dict[str, str] = {
         "ANSWER REQUIRED: From the candidate SNP list, identify the ONE rsID most significantly associated with this trait.\n"
         "\n"
         "MANDATORY RULES:\n"
-        "1. If ClinVar data is provided above showing 'Pathogenic' or contains 'pathogenicity', that variant IS the answer — clinically causal variants are the most promising for further examination.\n"
-        "2. If no ClinVar data, use the GWAS Catalog ranked list. The rsID ranked #1 (lowest p-value for the query trait) IS the answer.\n"
-        "3. Associations labeled [NOT relevant to <trait>] must be COMPLETELY IGNORED — do not use their p-values to rank candidates.\n"
+        "1. If GWAS Catalog data is provided above, the rsID listed FIRST (highest -log10(p) or lowest p-value for the query trait) IS the answer.\n"
+        "2. The GWAS Catalog context is pre-filtered to include only associations matching the query phenotype — all listed variants are relevant.\n"
+        "3. Associations labeled [NOT relevant to <trait>] in any fallback context must be COMPLETELY IGNORED.\n"
         "4. If no context is provided, select the rsID you believe is most strongly associated with this trait from your training knowledge.\n"
         "5. Do NOT refuse. Do NOT ask for data files. Do NOT explain.\n"
         "\n"
@@ -2136,37 +2208,25 @@ class BiomniEval1Adapter(BenchmarkAdapter):
         if db_context:
             context_parts.append(db_context)
 
-        # --- Lazy GWAS Catalog lookup (gwas_variant_prioritization) ---
+        # --- GWAS Catalog lookup (gwas_variant_prioritization) ---
         if task_name == "gwas_variant_prioritization" and not db_context:
             phenotype = _extract_phenotype(question)
             candidate_rsids = re.findall(r"\brs\d{4,}\b", question)
             if candidate_rsids:
-                # Trait-specific query: ranks rsIDs by association strength for the
-                # exact query phenotype, filtering out associations with unrelated traits.
-                # Falls back to per-rsID lookup if trait-specific returns no data.
-                trait_ctx = lookup_gwas_catalog_by_trait(phenotype, candidate_rsids[:15])
-                if trait_ctx:
-                    context_parts.append(trait_ctx)
+                # LOCAL index first (no rate limits, 423K rsIDs, instant lookup).
+                # Falls back to live API only if local index unavailable.
+                local_ctx = lookup_gwas_catalog_local(phenotype, candidate_rsids[:15])
+                if local_ctx:
+                    context_parts.append(local_ctx)
                 else:
-                    # Fallback only — avoids double network calls when trait context succeeds
-                    per_rsid_ctx = lookup_gwas_catalog(phenotype, candidate_rsids[:15])
-                    if per_rsid_ctx:
-                        context_parts.append(per_rsid_ctx)
-
-                # ClinVar clinical significance — run in parallel with GWAS Catalog.
-                # Pathogenic/Likely_Pathogenic variants should be prioritized for
-                # "most promising for further examination" over p-value winners.
-                clinvar_lines = []
-                for rsid in candidate_rsids[:11]:
-                    sig = _get_clinvar_significance(rsid, timeout=4)
-                    if sig and "pathogenic" in sig.lower():
-                        clinvar_lines.append(f"  {rsid}: ClinVar={sig}")
-                if clinvar_lines:
-                    context_parts.append(
-                        "[ClinVar Clinical Significance — pathogenic variants]\n"
-                        + "\n".join(clinvar_lines)
-                        + "\n  Note: Pathogenic/Likely_Pathogenic variants indicate causal disease relationship"
-                    )
+                    # API fallback: trait-specific query, then unfiltered
+                    trait_ctx = lookup_gwas_catalog_by_trait(phenotype, candidate_rsids[:15])
+                    if trait_ctx:
+                        context_parts.append(trait_ctx)
+                    else:
+                        per_rsid_ctx = lookup_gwas_catalog(phenotype, candidate_rsids[:15])
+                        if per_rsid_ctx:
+                            context_parts.append(per_rsid_ctx)
 
         # --- Lazy GWAS Catalog + Open Targets lookup (gwas_causal_gene) ---
         if task_name.startswith("gwas_causal_gene") and not db_context:
