@@ -247,12 +247,15 @@ Deployment on BioMate means the method becomes accessible to structural biology 
 
 | Quarter | Milestone |
 |---------|-----------|
-| Y1 Q1–Q2 | Architecture design; training data curation; baseline benchmarks on CryoBench |
-| Y1 Q3–Q4 | CryoEnsemble v1.0 training; comparison against cryoDRGN / cryoENsemble; first publication submission |
-| Y2 Q1–Q2 | Experimental validation begins (HDX-MS, smFRET); 10 EMDB dataset applications |
-| Y2 Q3–Q4 | Low-population state recovery demonstrated; pose-conformation disentanglement ablation |
-| Y3 Q1–Q2 | BioMate workflow deployment; 100 EMDB dataset processing; conformational completeness benchmark released |
-| Y3 Q3–Q4 | Drug discovery application (3 targets); CryoEnsemble v2.0; final publication; open-source release |
+| Y1 Q1 | Hire postdoctoral ML researcher; training data curation (BioEmu MD corpus + EMPIAR particle stacks); CryoBench synthetic baseline |
+| Y1 Q2 | CryoEnsemble posterior network v0.1 (particle encoder + diffusion prior coupling); ELBO training on 3 CryoBench proteins |
+| Y1 Q3 | v0.1 benchmarked against cryoDRGN and cryoENsemble on CryoBench; gap fraction metric validated against MD ground truth |
+| Y1 Q4 | Apply to β₂AR (EMPIAR-10258) and TRPV1 (EMPIAR-10059); cryptic Na⁺ site validation in β₂AR; preprint submission |
+| Y2 Q1 | Hire structural biology postdoc; HDX-MS validation begins on β₂AR and TRPV1 recovered states |
+| Y2 Q2–Q3 | Expand to 8 additional experimental proteins (GPCRs, kinases, ion channels, chaperones); smFRET validation on 2 targets |
+| Y2 Q4 | Pose-conformation disentanglement ablation; low-population state recovery demonstrated quantitatively; second publication |
+| Y3 Q1–Q2 | BioMate workflow deployment (CryoEnsemble-Lite fast mode); 100+ EMDB dataset processing; conformational completeness benchmark released publicly |
+| Y3 Q3–Q4 | Drug discovery application (cryptic pocket identification in 3 disease-relevant targets); CryoEnsemble v2.0; final open-source release |
 
 ---
 
@@ -260,30 +263,30 @@ Deployment on BioMate means the method becomes accessible to structural biology 
 
 ### Principal Investigators
 
-**[Sister's name], Ph.D., [Institution]**
-Role: Experimental lead; cryo-EM data collection and optimization; HDX-MS and smFRET validation; biological target selection.
-Expertise: Single-particle cryo-EM, membrane protein biochemistry, conformational dynamics.
+**Yaoyun Zhang — Lead PI, BioMate AI Platform**
+Role: CryoEnsemble architecture design and training; Bayesian posterior network implementation; BioMate platform deployment; AWS infrastructure and GPU compute operations.
+Expertise: Score-based diffusion models (lead-author publication [CITATION — to be added by PI]); AI-driven bioinformatics platform engineering; Nextflow DSL2 pipeline development; cryo-EM processing automation (CryoSPARC SPA pipeline delivering 1.78 Å resolution, Nyquist-limited, on EMPIAR benchmark data); large-scale cloud GPU orchestration. Founder, BioMate AI — 2,457-workflow computational biology platform serving pharma, biotech, and academic labs globally.
 
-**Yaoyun Zhang, BioMate AI Platform**
-Role: Computational lead; CryoEnsemble model architecture and training; BioMate deployment; infrastructure.
-Expertise: AI systems, generative models, Nextflow bioinformatics pipelines, AWS cloud infrastructure, structural bioinformatics knowledge systems.
+**[Sister's name], Ph.D. — Co-PI, [Department], [Institution]**
+Role: Experimental lead; cryo-EM data collection and quality optimization; target protein selection and biochemical characterization; HDX-MS and smFRET ground-truth validation; interpretation of recovered low-population states in biological context.
+Expertise: Single-particle cryo-EM, membrane protein biochemistry, conformational dynamics, structural pharmacology.
+
+### Personnel Plan
+
+| Position | FTE | Years | Scientific role |
+|---|---|---|---|
+| Postdoctoral researcher — machine learning | 1.0 | Y1–Y3 | CryoEnsemble architecture, ELBO training, CryoBench benchmarking |
+| Postdoctoral researcher — structural biology | 1.0 | Y1–Y3 | Cryo-EM data collection, HDX-MS and smFRET validation |
+| Research software engineer | 0.5 | Y1–Y2 | BioMate workflow integration, user-facing deployment |
+| Graduate student / research associate | 0.5 | Y2–Y3 | Drug discovery application, cryptic pocket analysis |
 
 ### Collaboration Rationale
 
-This project requires an unusually tight coupling between experimental structural biology and deep generative modeling. The experimental partner provides:
-- Access to controlled cryo-EM datasets with paired biochemical validation
-- Domain expertise to select biologically meaningful protein targets
-- Ground-truth validation through HDX-MS and smFRET
+This project requires unusually tight coupling between experimental structural biology and deep generative modeling — a combination rarely found in a single research group. The PI team covers both axes:
 
-The computational partner provides:
-- Pre-built cryoDRGN and BioEmu pipelines (workflows 12885, 12886) already running on AWS Batch
-- BioMate deployment platform with GPU-accelerated Nextflow execution
-- Structural bioinformatics knowledge DB with curated cryo-EM protocols and tool parameters
-- End-to-end AI infrastructure to go from research prototype to accessible tool
-
-### Advisory Expertise (to be recruited)
-- Expert in Bayesian inference for structural biology (e.g., contributors to EMMIVox or cryoENsemble)
-- Expert in score-based generative models (diffusion model architecture)
+- **Generative modeling**: lead-PI diffusion model publication; CryoEnsemble architecture design is a direct extension of score-based generative model expertise to the cryo-EM posterior estimation problem
+- **Experimental infrastructure**: co-PI cryo-EM facility access; HDX-MS and smFRET capabilities for ground-truth validation of recovered low-population states
+- **Computational platform**: BioMate deployment layer reduces time-from-research-prototype-to-accessible-tool from years to months — enabling the 100+ EMDB dataset benchmark in Year 3 without requiring users to install or configure software
 
 ---
 
