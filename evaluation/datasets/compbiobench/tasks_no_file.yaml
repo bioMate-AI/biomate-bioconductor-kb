@@ -1,0 +1,470 @@
+tasks:
+- id: ensembl-grab-q1
+  domain: genomics
+  question: 'Convert all of the following to Ensembl gene IDs. Provide the ID without the Ensembl version (e.g., ENSGXXXXXXXXXXXX
+    not ENSGXXXXXXXXXXXX.XX). Respond with semi-colon separated values, no spaces. Inputs: 1. NM_001276266.2 2. TERB2 3. ENST00000267814
+    4. chr15:45167214-45187966 (hg38) 5. GeneID:9153 6. NP_922946.1 7. MIM:617658 8. BEN domain containing 5, transcript variant
+    6.'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: genomic-state-q1
+  domain: epigenomics
+  question: Consider chr11:124,738,681-124,738,772 (hg38). What is the likely purpose of this region? Choose only one. A.
+    Active enhancer, Liver B. Active enhancer, Brain frontal lobe C. Active enhancer, ESC D. Active transcription, ubiquitous
+    E. TSS poised or flanking, ubiquitous F. Polycomb repression, ubiquitous. Respond with a single letter.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Reasoning
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching, Reasoning'
+- id: read-paper-download-file-parse-q1
+  domain: epigenomics
+  question: 'Take a look at the pdf here: https://www.biorxiv.org/content/10.1101/2023.10.04.560808v2.full.pdf, can you find
+    the exact number of peaks in the COC/L1 cluster? Follow any external links in the paper if additional data is required
+    to answer this question. Respond with only the number.'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: huggingface-entropy-q1
+  domain: machine_learning
+  question: 'Run the DNA language model here: https://huggingface.co/kuleshov-group/caduceus-ph_seqlen-131k_d_model-256_n_layer-16
+    on the 1000 bp long DNA sequence at hg38 chr12:7792299-7793299. Specifically, mask each base one at a time, keeping all
+    others unmasked, and compute the per position base 2 entropy of the predictions. Return the substring corresponding to
+    the longest run with <0.5 entropy.'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  - Reasoning
+  - ML Frameworks
+  - Tooling
+  notes: 'Original: Tooling | Skills: API/Web Fetching, Coding, Reasoning, ML Frameworks, Tooling'
+- id: ml-model-track-overlap-q1
+  domain: epigenomics
+  question: Borzoi (Linder et al., doi:10.1038/s41588-024-02053-6) and Sei (Chen et al., doi:10.1038/s41588-022-01102-2) are
+    both DNA sequence models trained to predict genomic assay outputs. Out of the Sei tracks that are linked to a specific
+    Cistrome ID, how many tracks share provenance with any of the tracks in Borzoi? Round your answer to the nearest 100.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Reasoning
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Reasoning, Data Wrangling'
+- id: compute-gc-content-interval-q1
+  domain: genomics
+  question: 'Using the GRCh38.p13 human reference genome, retrieve the reference DNA sequence for chromosome 1 from positions
+    1,000,000 to 1,000,100 (1-based, inclusive) on the ''+'' strand, and calculate: (1) gc_percent (rounded to 2 decimals),
+    (2) length, (3) n_count (the number of Ns in the sequence), and (4) sequence_md5 (MD5 of the uppercase interval sequence).
+    Return the results as a comma-separated string in the format: gc_percent,length,n_count,sequence_md5. For example: "31.86,10,50,v24a827t740a77764d0d8e35ba56f612"  '
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching, Coding'
+- id: pathogenic-variant-lookup-q1
+  domain: genomics
+  question: Using the human SHH MANE Select transcript on hg38, consider the coding sequence within exon 1. Within this interval,
+    identify all OMIM allelic variants with phenotypes that map to single-nucleotide missense substitutions in SHH. Retrieve
+    the AlphaMissense pathogenicity scores for those amino-acid substitutions. Return the single variant with the highest
+    AlphaMissense score, in chr:pos (1-based) format.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: hic-differential-loop-q1
+  domain: epigenomics
+  question: 'Consider the MicroC data for H1 and HFF cells from the following paper: https://doi.org/10.1016/j.molcel.2020.03.003.
+    In the sub-compartment containing the NANOG gene (chr12:7629950-7809597), there is a differential loop between the two
+    samples. Report the position of the loop (on chr12) in the following format start;end, with start<end rounded to the nearest
+    20000 and no commas.'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Visual Reasoning
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Visual Reasoning, Data Wrangling'
+- id: conservation-lookup-q1
+  domain: genomics
+  question: 'Using the human SHH MANE Select transcript, take the cDNA sequence from the annotated start codon through the
+    end of exon 1. For each of the following species: Pan troglodytes, Macaca mulatta, Pan paniscus, Indri indri, Semnopithecus
+    johnii, Ailuropoda melanoleuca, Delphinapterus leucas, obtain the orthologous cDNA segment corresponding to the same region
+    (prefer a one-to-one ortholog; if multiple transcripts exist, use the canonical/longest protein-coding transcript). Compute
+    the Levenshtein edit distance to the human sequence. Return results as a comma-separated list (no spaces) in the listed
+    species order.'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Bioinformatics Tools
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Bioinformatics Tools'
+- id: splice-pred-q1
+  domain: machine_learning
+  question: Extract the human genomic DNA sequence from hg38 at chr12:120,196,699-120,201,111. This locus is on the minus
+    strand. Run OpenSpliceAI (v0.0.5) to predict with the OSAIMANE-10000nt models, averaging predictions across all 5 checkpoints.
+    Call donor and acceptor splice sites with score ≥ 0.9. Reconstruct exons on the gene strand by pairing each predicted
+    acceptor with the next predicted donor in transcript order, and count the terminal exons using the interval boundaries
+    as transcript boundaries. Report the total number of predicted exons.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Reasoning
+  - Coding
+  - ML Frameworks
+  - Tooling
+  notes: 'Original: Tooling | Skills: API/Web Fetching, Reasoning, Coding, ML Frameworks, Tooling'
+- id: saluki-setup-optimize-q1
+  domain: machine_learning
+  question: Set up the Saluki model detailed in https://doi.org/10.1186/s13059-022-02811-x and use it to optimize the 3' UTR
+    of the mRNA sequence GCCGCCACCATGGTGAGCAAGGGCGAGTAGTGTACATAATAAGGACT. Specifically, perform 3 rounds of directed evolution,
+    trying every possible substitution in the 3' UTR and choosing the best after each round. Always use the average of predictions
+    across all folds and use only the human output. Make sure to use GPUs if available. Report the full sequence of the optimized
+    mRNA.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  - Reasoning
+  - ML Frameworks
+  - Data Wrangling
+  - Tooling
+  notes: 'Original: Tooling | Skills: API/Web Fetching, Coding, Reasoning, ML Frameworks, Data Wrangling, Tooling'
+- id: 1000G-retrieve-genotype-q1
+  domain: population_genetics
+  question: 'At hg38 chr10:110918899 (1-indexed), find the genotypes of the following individuals from the latest 1000G project
+    data: ''HG01248'', ''NA19204'', ''NA18614'', ''NA21123'', ''NA19171'', ''HG02303'', ''HG01274'', ''HG03134'', ''NA18639'',
+    ''HG01383''. Report the answer as comma separated string of genotypes: e.g. 0/0,0/1,1/1,...,0/1'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Data Wrangling'
+- id: annotate-variant-regulatory-overlap-q1
+  domain: epigenomics
+  question: 'Determine the regulatory element that overlap the given variant’s reference span for this specific variant and
+    regulatory  resource, without liftover and reporting 1-based inclusive coordinates. Variant: GRCh38, contig chr19, position
+    44907187, ref allele G, alt allele A. Regulatory source: ENCODE cCRE Registry, release v4. Return the class of the regulatory
+    element overlapping the variant and the CRE accession (e.g. EH38EXXXXX) as a comma-separated list. Expected output format:
+    "class,accession".'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: extract-rna-secondary-structure-q1
+  domain: transcriptomics
+  question: Using the ViennaRNA package, determine the minimum free energy secondary structure for the human 5S ribosomal
+    RNA (RNAcentral accession URS0000668495). Output must use dot-bracket notation. After the structure also output the free
+    energy up to two decimal places in kcal/mol units. Use comma (no spaces) to separate the structure and the free energy.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching'
+- id: compute-nonoverlapping-exonic-length-q1
+  domain: transcriptomics
+  question: Compute the total non-overlapping exonic length in base pairs for the mouse gene Lepr using the GENCODE mouse
+    release M31 GTF located at https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M31/gencode.vM31.annotation.gtf.gz.
+    Output a single non-negative integer.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching, Coding'
+- id: gene-info-grab-q1
+  domain: genomics
+  question: 'Consider the gene Hand1. Answer each question with the exact format specified. 1. What is its Ensembl gene ID?
+    (format: ENSMUSGXXXXXXXXXXX, no version suffix) 2. How many amino acids does the canonical protein isoform encode? (integer)
+    3. Does this gene have more than 5 or fewer than 5 introns? (answer: "more" or "fewer") 4. What is the Ensembl gene ID
+    of the nearest protein-coding gene upstream of Hand1? (format: ENSMUSGXXXXXXXXXXX, no version suffix) Respond with semi-colon
+    separate values, no spaces, e.g. "ENSMUSGXXXXXXXXXXX;23;more;ENSMUSGXXXXXXXXXXX"'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: enformer-basic-q1
+  domain: machine_learning
+  question: What is the exact count of the number of parameters in the Enformer model (https://doi.org/10.1038/s41592-021-01252-x).
+    Specifically, report the number of trainable parameters including both the human and mouse heads. Format the number without
+    commas.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - Tooling
+  - Coding
+  - API/Web Fetching
+  - Reasoning
+  - ML Frameworks
+  notes: 'Original: Tooling | Skills: Tooling, Coding, API/Web Fetching, Reasoning, ML Frameworks'
+- id: variant-coordinate-lookup-q1
+  domain: genomics
+  question: 'Retrieve the single base genomic position for the following variant identifiers: rs200533370, rs241311, NM_006492.3:c.595-2A>T,
+    CA548798891, VCV000587372.6, OMIM 616787.0001 on the GRCh38 reference assembly. Report in semi-colon separated chr#:position
+    format (1-based, inclusive), no spaces (e.g. chr1:2;chr2:34).'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: promoter-sequence-retrieval-q1
+  domain: genomics
+  question: Using the Ensembl GRCz11 genome assembly and Ensembl gene annotation, what is the DNA sequence of the promoter
+    region of the zebrafish gene shha? Define the promoter as the region spanning positions −500 to +100 relative to the transcription
+    start site (TSS) of the canonical transcript, where the TSS is position 0, negative positions are upstream, and positive
+    positions are downstream, yielding a 601 bp sequence. Return the sequence in 5′ to 3′ orientation on the sense strand
+    (reverse complement the genomic sequence if the gene is on the − strand).
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching, Coding'
+- id: geo-lookup-read-matrix-market-q1
+  domain: single_cell
+  question: From the supplementary data of the GEO accession GSE242423, for the D2 scRNA-seq matrix, retrieve the counts for
+    SOX2 for barcode AAACCCAAGTCTTCGA-1.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Data Wrangling'
+- id: annotate-variant-gene-impact-q1
+  domain: genomics
+  question: What is the clinical significance reported in the ClinVar database for the SPI1 variant represented by the HGVS
+    notation NM_003120.3(SPI1):c.143-2A>C? Respond with only the correct cateogry. Answer in all lowercase.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: 1000G-retrieve-genotype-q2
+  domain: population_genetics
+  question: I would like to make a file with genotypes at specific loci for all individuals from the 1000G data with 3202
+    individuals (20201028_3202_raw_GT_with_annot). The positions should be common SNPs- snp151Common from UCSC, hg38. Select
+    SNPs in which the observed allele column consists of exactly two distinct bases, where both alleles are strictly one of
+    A, C, G, or T (i.e. not multi-allelic or indel). Further filter them to be within chr1 and within the 1000 genome-wide
+    strongest peaks of the ENCODE peak file with accession ENCFF717TCQ (based on the qValue column). Create an uncompressed
+    tsv with columns CHROM, POS, REF, ALT, and then the 3202 identifiers in lexicographic order (include header). In this
+    tsv, the REF and ALT should come from the 1000G VCF. Keep those where both REF and ALT in 1000G are both exactly one of
+    A,C,G,T. Convert any phased calls to unphased. Then, in the genotype cells, include only one of "0/0", "0/1", "1/1" or
+    "./.", reserving "./." for any that were not exactly one of the first 3. The SNPs should be sorted by coordinate. Report
+    the total number of lines in this file along with the md5sum of this file, in the format "201;md5sum".
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Bioinformatics Tools
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Bioinformatics Tools, Data Wrangling'
+- id: gene-expression-query-q1
+  domain: transcriptomics
+  question: Retrieve the median expression level for APOE from the 'Brain_Cortex' samples in the GTEx v8 reference dataset.
+    The value should be in Transcripts Per Million as an integer.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Data Wrangling
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Data Wrangling'
+- id: afgr-1000g-intersect-atac-q1
+  domain: population_genetics
+  question: From the 1000G Phase 3 (3202 individuals), find all individuals that also have ATAC-seq filtered BAMs in the African
+    Functional Genomics Resource (AFGR). Using only publicly available data, collect the md5sums of the filtered BAMs for
+    these individuals (GRCh38 aligned), write the md5sums (one per line) to a text file sorted alphabetically. Return the
+    count of samples and the file’s md5sum as a single comma-separated line, e.g., 42,md5hash.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Data Wrangling
+  - Bioinformatics Tools
+  notes: 'Original: Retrieval | Skills: API/Web Fetching, Data Wrangling, Bioinformatics Tools'
+- id: borzoi-basic-q1
+  domain: machine_learning
+  question: What is the exact count of the number of parameters in any one of the replicates of the Borzoi model (https://doi.org/10.1038/s41588-024-02053-6).
+    Specifically, report the number of trainable parameters including both the human and mouse heads. Format the number without
+    commas.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - Tooling
+  - Coding
+  - API/Web Fetching
+  - Reasoning
+  - ML Frameworks
+  notes: 'Original: Tooling | Skills: Tooling, Coding, API/Web Fetching, Reasoning, ML Frameworks'
+- id: annotate-variant-gene-impact-q2
+  domain: genomics
+  question: Using the Ensembl VEP API, determine the consequence for the following variant rs2136714166. Respond with a single
+    word.
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: false
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  notes: 'Original: Retrieval | Skills: API/Web Fetching'
+- id: compute-gccontent-promoter-q1
+  domain: genomics
+  question: 'Compute the GC content of the promoter window for the human transcript ENST00000269305 on assembly GRCh38. Use
+    Ensembl release 115. Define the promoter interval as [TSS - upstream_bp, TSS + downstream_bp - 1] on the transcript’s
+    strand, with upstream_bp=500 and downstream_bp=100. Report the results as a semicolon separated string in the format:
+    chromosome,start,end,strand,promoter_length,gc_count,gc_fraction where chromosome, start, end and strand are the coordinates
+    of the resolved promoter region, promoter_length is the length of the promoter, gc_count is the number of G or C bases
+    in the promoter, and gc_fraction is the fraction of G/C bases in the promoter, rounded to two decimal places. All genome
+    coordinates should be 1-based and closed. An example of a correctly formatted string is: 3;101;200;+;12;100;0.12'
+  answer: null
+  answer_type: text
+  difficulty: hard
+  internet_required: true
+  requires_code_exec: true
+  requires_data_fetch: true
+  workflow_solvable: false
+  skills_tested:
+  - API/Web Fetching
+  - Coding
+  notes: 'Original: Routine Analysis | Skills: API/Web Fetching, Coding'
