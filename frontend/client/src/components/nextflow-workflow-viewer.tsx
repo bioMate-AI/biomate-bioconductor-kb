@@ -2277,54 +2277,6 @@ export function NextflowWorkflowViewer({
                   }}
                 />
               )}
-          {/* ── Logs panel — collapsible, auto-expands on failure ─────────────── */}
-          <button
-            type="button"
-            className={`strip${logsOpen ? ' open' : ''}`}
-            onClick={() => setLogsOpen(o => !o)}
-          >
-            <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
-            <span className="label">
-              {status === 'running'
-                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" style={{ marginRight: 4 }} />Execution logs</>
-                : 'Execution logs'}
-              {status === 'running' && logs.length === 0 && (
-                <span className="hint" data-testid="workflow-running-hint">
-                  {isScanningCache ? 'scanning cache…' : 'starting…'}
-                </span>
-              )}
-            </span>
-            {logs.length > 0 && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-dim)' }}>{logs.length} lines</span>}
-          </button>
-          {logsOpen && (
-            <div className="strip-body" style={{ padding: 0 }}>
-              <pre className="log-pre">
-                {logs.length === 0
-                  ? (status === 'running'
-                      ? (isScanningCache
-                          ? 'Scanning workflow cache on S3 — this takes 2–5 min for large pipelines…'
-                          : 'Waiting for logs…')
-                      : 'No logs available.')
-                  : logs.map(stripAnsi).join('\n')}
-              </pre>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '4px 18px 0' }}>
-            <ReportConfusionButton
-              runId={runId}
-              sessionId={sessionId}
-              workflowId={workflowId}
-              invocationId={invocationId}
-              context={{ executionStatus: status, errorMessage, workflowName: workflowDefinition?.name, progress, showResults }}
-              variant="ghost"
-              size="sm"
-            />
-          </div>
-
-          {runId && (status === 'completed' || status === 'failed' || status === 'running') && (
-            <DownloadCommandsPanel runId={runId} />
-          )}
 
           {/* ── Error recovery card ───────────────────────────────────────────── */}
           {status === 'failed' && (
@@ -2508,7 +2460,6 @@ export function NextflowWorkflowViewer({
           )}
         </div>
         <div className="run-foot-meta">
-          {/* Watcher attach/detach — purpose unclear, hidden until defined
           <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
             <span className="dot" />
             {status === 'running'
@@ -2526,7 +2477,7 @@ export function NextflowWorkflowViewer({
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
               Reconnect watcher
             </button>
-          )} */}
+          )}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (
             <span data-testid="usage-meter" style={{ fontSize: 11 }}>
               {usageMeter.used.toFixed(1)} / {usageMeter.limit} vCPU-hrs
