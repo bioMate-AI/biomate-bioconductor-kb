@@ -94,6 +94,15 @@ def safe_round(x, n=4):
 clr_frac   = ac(os.environ.get('PARAM_CLR_FRAC'),  0.30)   # renal CL fraction
 clh_frac   = ac(os.environ.get('PARAM_CLH_FRAC'),  0.60)   # hepatic CL fraction
 fu         = ac(os.environ.get('PARAM_FU'),         0.10)   # fu_plasma
+# P0 fix: warn when fu < 0.05 — generic albumin correction can be off 2-3x
+# for tight binders (warfarin fu=0.01, diazepam fu=0.02). The correction
+# uses a fixed binding constant valid for moderate binders (Rowland & Tozer Ch.11).
+_fu_warning = (
+    f"WARNING: fu_plasma={fu:.3f} < 0.05 (highly protein-bound). "
+    "The albumin binding correction uses a generic constant; for tight binders "
+    "(warfarin, diazepam, phenytoin) the true fu shift in hepatic impairment may "
+    "differ 2-3x from this estimate. Recommend measuring fu in disease-state plasma."
+) if fu < 0.05 else None
 vd_lkg     = ac(os.environ.get('PARAM_VD'),         0.50)   # L/kg
 logP       = ac(os.environ.get('PARAM_LOGP'),       2.00)
 high_er    = to_bool(os.environ.get('PARAM_HIGH_ER', 'false'))
@@ -558,6 +567,7 @@ pk_report = {
         'Pugh RN et al., Br J Surg 1973 (Child-Pugh classification)',
     ],
     'status': 'completed',
+    'protein_binding_warning': _fu_warning,
 }
 
 with open('disease_state_pk_report.json', 'w') as f:

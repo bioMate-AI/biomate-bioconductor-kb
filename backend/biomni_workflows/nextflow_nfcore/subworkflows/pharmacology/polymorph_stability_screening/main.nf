@@ -626,9 +626,16 @@ report = {
     'intended_route': route,
     'excipients_checked': excipients,
     'molecular_descriptors': d,
-    'polymorph_risk': poly,
+    'polymorph_risk_stratification': poly,   # renamed: risk flag, NOT crystal structure prediction
     'solid_state_stability': stab,
     'excipient_compatibility': excip,
+    'scope_statement': (
+        "RISK STRATIFICATION ONLY — This tool assesses molecular risk factors for "
+        "polymorphism using structure-activity heuristics (Fleming 2010, Blagden & Davey 2003). "
+        "It does NOT predict crystal structures, confirm polymorph existence, or replace "
+        "experimental screening. High-risk or medium-risk compounds require experimental "
+        "XRPD, DSC, and solvent-diversity crystallisation screening per ICH Q6A."
+    ),
     'status': 'completed',
 }
 
