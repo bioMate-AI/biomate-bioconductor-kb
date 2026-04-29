@@ -2392,19 +2392,6 @@ export function NextflowWorkflowViewer({
           )}
         </div>
         <div className="run-foot-meta">
-          <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
-            <span className="dot" />
-            {status === 'running'
-              ? 'Running · live SSE'
-              : status === 'paused'
-              ? 'Paused · job on AWS Batch'
-              : ''}
-          </span>
-          {status === 'running' && onPause && (
-            <button className="linkish" data-testid="button-pause-workflow-panel" onClick={onPause}>
-              Pause
-            </button>
-          )}
           {status === 'paused' && onResume && (
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
               Resume
