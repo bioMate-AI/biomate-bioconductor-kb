@@ -1,0 +1,59 @@
+{
+  "benchmark": "tdc_admet_scientific_accuracy",
+  "timestamp": 1777445536,
+  "workflow": "backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+  "results": [
+    {
+      "task": "hERG",
+      "metric": "AUROC",
+      "direction": "higher",
+      "n_compounds": 20,
+      "n_skipped": 0,
+      "biomate_score": 0.9635,
+      "classification_at_10uM": {
+        "TP": 8,
+        "FP": 3,
+        "TN": 9,
+        "FN": 0
+      },
+      "baselines": {
+        "Chemprop": 0.87,
+        "AttentiveFP": 0.854,
+        "MPNN": 0.851,
+        "RDKit+RF": 0.831
+      },
+      "elapsed_s": 1.0,
+      "data_source": "hardcoded_fallback"
+    },
+    {
+      "task": "DILI",
+      "metric": "AUROC",
+      "direction": "higher",
+      "n_compounds": 20,
+      "n_skipped": 0,
+      "biomate_score": 0.8542,
+      "baselines": {
+        "Chemprop": 0.847,
+        "AttentiveFP": 0.831,
+        "MPNN": 0.82
+      },
+      "elapsed_s": 0.7,
+      "data_source": "hardcoded_fallback"
+    },
+    {
+      "task": "PPBR_AZ",
+      "metric": "MAE (%)",
+      "direction": "lower",
+      "n_compounds": 12,
+      "n_skipped": 0,
+      "biomate_score": 19.35,
+      "baselines": {
+        "Chemprop": 8.4,
+        "AttentiveFP": 8.7,
+        "MPNN": 9.1
+      },
+      "elapsed_s": 0.3,
+      "data_source": "hardcoded_fallback"
+    }
+  ]
+}

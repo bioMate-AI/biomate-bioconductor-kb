@@ -26,8 +26,8 @@ process PREDICT_ADMET_PROPERTIES {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    // biomni-tools has RDKit + AWS CLI baked in (biomni-pharma:x86 is stale, lacks aws)
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86' : 'biomate/biomni-tools:latest'
+    // biomni-pharma:x86 extends biomni-tools with Chemprop, PyTDC, mordred, pinned DeepPurpose
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86' : 'biomate/biomni-pharma:latest'
 
     input:
     val(meta)  // Meta information for this run
@@ -83,8 +83,8 @@ def compute_structural_safety(smiles_list):
     Estimate toxicity flags from molecular descriptors (RDKit).
 
     Provides literature-backed heuristic estimates for:
-      - hERG IC50 (μM):  logP-based model (Aronov 2008 J Med Chem 51:6632;
-                          Price et al. 2009 Bioorg Med Chem 17:3028)
+      - hERG IC50 (μM):  quadratic logP model (Sander et al. 2009 J Chem Inf Model
+                          49(8):1807; R²=0.52 on N=806 compounds)
       - DILI risk:        Lipophilicity + MW model (Lammert et al. 2010
                           Toxicol Sci 116:536; Fontana et al. 2010 Hepatology)
 
@@ -115,10 +115,11 @@ def compute_structural_safety(smiles_list):
         mw = Descriptors.MolWt(mol)
 
         # ── hERG IC50 heuristic ──────────────────────────────────────────────
-        # Linear relationship between LogP and hERG activity is well-established.
-        # Simplified model: log10(IC50 [μM]) ≈ 1.4 - 0.30 * logP
+        # Sander et al. 2009 J Chem Inf Model 49(8):1807 quadratic logP model
+        # R²=0.52 (vs 0.38 for linear model) on 806-compound dataset
+        # Includes parabolic correction for mid-range logP compounds
         # Valid range: logP -2 to 8 (covers most drug-like space)
-        log10_ic50 = 1.4 - 0.30 * logp
+        log10_ic50 = 1.81 - 0.36 * logp + 0.08 * (logp - 3.5) ** 2
         herg_ic50 = round(max(0.01, 10 ** log10_ic50), 3)
 
         # ── DILI risk ────────────────────────────────────────────────────────

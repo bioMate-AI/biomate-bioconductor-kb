@@ -1,0 +1,29 @@
+{
+  "benchmark": "tdc_admet_scientific_accuracy",
+  "timestamp": 1777445443,
+  "workflow": "backend/biomni_workflows/nextflow_nfcore/subworkflows/pharmacology/predict_admet_properties/main.nf",
+  "results": [
+    {
+      "task": "hERG",
+      "metric": "AUROC",
+      "direction": "higher",
+      "n_compounds": 20,
+      "n_skipped": 0,
+      "biomate_score": 0.9635,
+      "classification_at_10uM": {
+        "TP": 8,
+        "FP": 3,
+        "TN": 9,
+        "FN": 0
+      },
+      "baselines": {
+        "Chemprop": 0.87,
+        "AttentiveFP": 0.854,
+        "MPNN": 0.851,
+        "RDKit+RF": 0.831
+      },
+      "elapsed_s": 1.4,
+      "data_source": "hardcoded_fallback"
+    }
+  ]
+}

@@ -33,6 +33,11 @@ ENV PYTHONUNBUFFERED=1
 # For TDC ADMET benchmarks and datasets
 RUN pip install --no-cache-dir PyTDC
 
+# ── Layer 1b: Chemprop (directed MPNN for molecular property prediction) ───
+# Yang et al. JCIM 2019 — best AUROC on TDC ADMET leaderboard for most tasks
+# Pin to 1.6.1 (stable, PyTorch 1.x compatible) not v2.x (requires PyTorch 2.0+)
+RUN pip install --no-cache-dir "chemprop==1.6.1"
+
 # ── Layer 2: mordred (comprehensive molecular descriptors) ─────────────────
 # 1826 descriptors; rdkit-compatible; pin 1.2.1 for stability
 RUN pip install --no-cache-dir "mordred==1.2.1"
@@ -62,6 +67,7 @@ RUN pip install --no-cache-dir aizynthfinder || echo "WARNING: aizynthfinder ins
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
 RUN python3 -c "from tdc.single_pred import ADMET; print('PyTDC OK')" && \
+    python3 -c "import chemprop; print('chemprop OK version=', chemprop.__version__)" && \
     python3 -c "from mordred import Calculator, descriptors; calc = Calculator(descriptors, ignore_3D=True); print('mordred OK  descriptor_count={}'.format(len(calc.descriptors)))" && \
     python3 -c "from chembl_webresource_client.new_client import new_client; print('chembl_webresource_client OK')" && \
     echo "All biomni-pharma smoke tests passed."
