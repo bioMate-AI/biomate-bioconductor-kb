@@ -4904,13 +4904,13 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       }
 
       // Guard: if loop exhausted or tool-only response with no final text, provide fallback.
-      // When a workflow was generated, produce a meaningful workflow-ready message so the
-      // benchmark scorer and user both see a useful response (not a generic placeholder).
+      // When a workflow was generated, produce a meaningful workflow-ready message.
       if (!rawResponse.trim()) {
-        if (generatedWorkflow && (generatedWorkflow as any).name) {
-          const _wfName = (generatedWorkflow as any).name;
-          const _domain = (generatedWorkflow as any).domain || '';
-          rawResponse = `**Workflow ready** — **${_wfName}** is set up in the panel. Review the parameters and click **Confirm & Run** to execute.${_domain ? ` (${_domain})` : ''}`;
+        const _wfGa = (generatedWorkflow as any)?.workflow_ga || {};
+        const _wfName = _wfGa.name || (generatedWorkflow as any)?.name;
+        const _wfDesc = _wfGa.description?.slice(0, 120) || '';
+        if (_wfName) {
+          rawResponse = `**Workflow ready** — **${_wfName}** has been set up in the panel. ${_wfDesc ? _wfDesc.split('.')[0] + '. ' : ''}Review the parameters and click **Confirm & Run** to execute.`;
         } else {
           rawResponse = 'I processed your request using the available tools.';
         }
