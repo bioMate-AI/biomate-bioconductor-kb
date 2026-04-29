@@ -68,11 +68,14 @@ def _ensure_local_gwas_index() -> Optional[Dict[str, list]]:
     return _GWAS_LOCAL_INDEX
 
 
+
+
 def lookup_gwas_catalog_local(phenotype: str, candidate_rsids: List[str]) -> str:
     """
     Query the local GWAS Catalog index (no API, no rate limits).
-    For each candidate rsID, find associations matching the phenotype and rank
-    by -log10(p) descending. Returns formatted context or empty string.
+    Uses the same trait-relevance scoring as lookup_gwas_catalog_by_trait
+    but against the pre-built local index instead of live API calls.
+    This is the fallback when the persistent HTTP cache misses for an rsID.
     """
     index = _ensure_local_gwas_index()
     if not index:
@@ -87,7 +90,7 @@ def lookup_gwas_catalog_local(phenotype: str, candidate_rsids: List[str]) -> str
     if not pheno_words:
         return ""
 
-    # Collect best association per rsID
+    # Collect best association per rsID using the same relevance logic as the API path
     best: Dict[str, tuple] = {}  # rsid -> (trait, pval_mlog, pval_f)
     for rsid in candidate_rsids:
         entries = index.get(rsid, [])
@@ -95,20 +98,23 @@ def lookup_gwas_catalog_local(phenotype: str, candidate_rsids: List[str]) -> str
             trait_lower = trait.lower()
             mapped_lower = str(mapped_trait).lower()
             combined = trait_lower + " " + mapped_lower
-            if any(w in combined for w in pheno_words):
-                mlog = pval_mlog if (pval_mlog and pval_mlog == pval_mlog) else 0.0
-                if rsid not in best or mlog > best[rsid][1]:
-                    best[rsid] = (trait, mlog, pval_f)
+            # Score relevance using the same function as the API path
+            rel = _trait_relevance_score(trait, phenotype)
+            if rel < 0.15:
+                continue
+            mlog = pval_mlog if (pval_mlog and pval_mlog == pval_mlog) else 0.0
+            if rsid not in best or mlog > best[rsid][1]:
+                best[rsid] = (trait, mlog, pval_f)
 
     if not best:
         return ""
 
-    # Sort by -log10(p) descending (higher = more significant)
-    ranked = sorted(best.items(), key=lambda x: -x[1][1])
+    # Sort: primary = -log10(p) descending; secondary = matcher rank ascending (more specific first)
+    ranked = sorted(best.items(), key=lambda x: (-x[1][1], x[1][3]))
 
     lines = [f"[GWAS Catalog Local — {phenotype}-specific variant rankings]"]
     lines.append(f"Candidates ranked by {phenotype} association strength (highest -log10(p) first):")
-    for rsid, (trait, mlog, pval_f) in ranked:
+    for rsid, (trait, mlog, pval_f, _) in ranked:
         p_str = f"p≈10^(-{mlog:.0f})" if mlog > 300 else (f"p={pval_f:.2e}" if pval_f else f"-log10(p)={mlog:.1f}")
         lines.append(f"  {rsid}: {p_str} [{trait}]")
     no_data = [r for r in candidate_rsids if r not in best]
@@ -319,13 +325,59 @@ def _deduplicate_omim_diseases(diseases: List[Dict]) -> List[Dict]:
     return result
 
 
+# Persistent GWAS Catalog HTTP response cache — loaded once from disk, saved on new hits.
+# Survives across benchmark runs; avoids rate limits for previously seen rsIDs.
+_GWAS_HTTP_CACHE: Dict[str, Any] = {}
+_GWAS_HTTP_CACHE_PATH = Path(__file__).parent.parent / "datasets" / "hpo" / "gwas_catalog_cache.json"
+_GWAS_HTTP_CACHE_DIRTY = False
+
+
+def _load_gwas_http_cache() -> None:
+    """Load persistent URL→response cache from disk (once per process)."""
+    global _GWAS_HTTP_CACHE
+    if _GWAS_HTTP_CACHE:
+        return
+    try:
+        if _GWAS_HTTP_CACHE_PATH.exists():
+            with open(_GWAS_HTTP_CACHE_PATH) as f:
+                _GWAS_HTTP_CACHE = json.load(f)
+            logger.info("GWAS HTTP cache loaded: %d entries", len(_GWAS_HTTP_CACHE))
+    except Exception as exc:
+        logger.warning("Failed to load GWAS HTTP cache: %s", exc)
+        _GWAS_HTTP_CACHE = {}
+
+
+def _save_gwas_http_cache() -> None:
+    """Flush new cache entries to disk (only when dirty)."""
+    global _GWAS_HTTP_CACHE_DIRTY
+    if not _GWAS_HTTP_CACHE_DIRTY:
+        return
+    try:
+        with open(_GWAS_HTTP_CACHE_PATH, "w") as f:
+            json.dump(_GWAS_HTTP_CACHE, f)
+        _GWAS_HTTP_CACHE_DIRTY = False
+        logger.debug("GWAS HTTP cache saved: %d entries", len(_GWAS_HTTP_CACHE))
+    except Exception as exc:
+        logger.warning("Failed to save GWAS HTTP cache: %s", exc)
+
+
 def _gwas_catalog_fetch(url: str, timeout: int = 4) -> Any:
-    """GET *url* and return parsed JSON, or None on any error."""
+    """GET *url* and return parsed JSON. Hits persistent disk cache first."""
+    global _GWAS_HTTP_CACHE_DIRTY
+    _load_gwas_http_cache()
+    if url in _GWAS_HTTP_CACHE:
+        return _GWAS_HTTP_CACHE[url]
     try:
         import requests as _req
         r = _req.get(url, headers={"Accept": "application/json"}, timeout=(timeout, timeout))
         r.raise_for_status()
-        return r.json()
+        data = r.json()
+        _GWAS_HTTP_CACHE[url] = data
+        _GWAS_HTTP_CACHE_DIRTY = True
+        # Periodically flush to disk every 50 new entries
+        if len(_GWAS_HTTP_CACHE) % 50 == 0:
+            _save_gwas_http_cache()
+        return data
     except Exception as exc:
         logger.debug("GWAS Catalog fetch failed for %s: %s", url, exc)
         return None
@@ -2213,20 +2265,19 @@ class BiomniEval1Adapter(BenchmarkAdapter):
             phenotype = _extract_phenotype(question)
             candidate_rsids = re.findall(r"\brs\d{4,}\b", question)
             if candidate_rsids:
-                # LOCAL index first (no rate limits, 423K rsIDs, instant lookup).
-                # Falls back to live API only if local index unavailable.
-                local_ctx = lookup_gwas_catalog_local(phenotype, candidate_rsids[:15])
-                if local_ctx:
-                    context_parts.append(local_ctx)
+                # Primary path: trait-specific query via persistent-cached HTTP API.
+                # The persistent cache (gwas_catalog_cache.json) means most rsIDs
+                # are served from disk — no live API calls, no rate limiting.
+                trait_ctx = lookup_gwas_catalog_by_trait(phenotype, candidate_rsids[:15])
+                if trait_ctx:
+                    context_parts.append(trait_ctx)
                 else:
-                    # API fallback: trait-specific query, then unfiltered
-                    trait_ctx = lookup_gwas_catalog_by_trait(phenotype, candidate_rsids[:15])
-                    if trait_ctx:
-                        context_parts.append(trait_ctx)
-                    else:
-                        per_rsid_ctx = lookup_gwas_catalog(phenotype, candidate_rsids[:15])
-                        if per_rsid_ctx:
-                            context_parts.append(per_rsid_ctx)
+                    # Secondary: per-rsID unfiltered lookup (also cache-backed)
+                    per_rsid_ctx = lookup_gwas_catalog(phenotype, candidate_rsids[:15])
+                    if per_rsid_ctx:
+                        context_parts.append(per_rsid_ctx)
+                # Flush any new cache entries to disk after processing
+                _save_gwas_http_cache()
 
         # --- Lazy GWAS Catalog + Open Targets lookup (gwas_causal_gene) ---
         if task_name.startswith("gwas_causal_gene") and not db_context:
