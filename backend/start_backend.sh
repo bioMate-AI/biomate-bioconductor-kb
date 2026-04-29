@@ -36,8 +36,10 @@ export AWS_BATCH_QUEUE=galaxy-cloud-queue
 export GPU_BATCH_QUEUE=galaxy-cloud-queue-gpu
 export AWS_S3_BUCKET=biomate-nextflow-work
 export AWS_DEFAULT_REGION=us-west-2
-export AWS_ACCESS_KEY_ID=AKIAV2DX3XSKGYVKVDET
-export AWS_SECRET_ACCESS_KEY=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
+export AWS_ACCESS_KEY_ID=AKIAV2DX3XSKLG5H4HQ6
+# AWS_SECRET_ACCESS_KEY must be set in the environment before running this script
+# Retrieve from: AWS Console → IAM → Users → biomate-admin → Security credentials
+: "${AWS_SECRET_ACCESS_KEY:?AWS_SECRET_ACCESS_KEY must be set}"
 
 # CryoSPARC direct executor — server-level connection config (shared infrastructure)
 # Each user's license key is stored separately in their credential vault, NOT here.

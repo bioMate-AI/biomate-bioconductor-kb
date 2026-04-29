@@ -35,7 +35,7 @@ Using root access keys is a fundamental AWS security violation:
 | User | Type | Permissions | Key status |
 |---|---|---|---|
 | *(root)* | Root account | Unrestricted | **Active key** `AKIAV2DX3XSKGYVKVDET` |
-| `biomate-admin` | IAM user | `AdministratorAccess` | Active key `AKIAV2DX3XSKLG5H4HQ6` — created 2026-04-28, **not yet in use** |
+| `biomate-admin` | IAM user | `AdministratorAccess` | Active key `AKIAV2DX3XSKLG5H4HQ6` — created 2026-04-28, **not yet in use** — retrieve secret from AWS Console → IAM → Users → biomate-admin → Security credentials |
 | `galaxy-dev` | IAM service account | EC2, S3, Batch, IAM, Lambda, etc. | In use by Galaxy workflows |
 | `biomate-ses-smtp` | IAM service account | SES only | In use for email |
 
@@ -52,12 +52,7 @@ AWS_ACCESS_KEY_ID=AKIAV2DX3XSKGYVKVDET
 AWS_SECRET_ACCESS_KEY=<current root secret>
 ```
 
-with:
-
-```
-AWS_ACCESS_KEY_ID=AKIAV2DX3XSKLG5H4HQ6
-AWS_SECRET_ACCESS_KEY=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
-```
+with the `biomate-admin` credentials. Retrieve the secret key from **AWS Console → IAM → Users → biomate-admin → Security credentials → Access keys**.
 
 Then restart the Node.js frontend process to pick up the new env.
 
@@ -70,7 +65,7 @@ Run a quick smoke test — confirm a workflow can be submitted and the billing L
 ```ini
 [default]
 aws_access_key_id     = AKIAV2DX3XSKLG5H4HQ6
-aws_secret_access_key = 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
+aws_secret_access_key = <retrieve from AWS Console>
 ```
 
 Verify: `aws sts get-caller-identity` should return `arn:aws:iam::399683337364:user/biomate-admin`.
