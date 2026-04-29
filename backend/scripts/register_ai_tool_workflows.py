@@ -890,6 +890,61 @@ WORKFLOWS = [
             "FDA Use in Specific Populations label templates"
         ),
     },
+    # ── P14: Exposure-Response Modeling (scipy Emax/Hill, bootstrap CI) ───────
+    {
+        "name":        "exposure_response_modeling",
+        "filename":    "pharmacology/exposure_response_modeling/main.nf",
+        "description": (
+            "Fits a sigmoid Emax/Hill exposure-response (E-R) model to patient "
+            "concentration-effect (AUC vs effect%) data and produces parameters "
+            "that feed directly into phase2_dose_justification. "
+            "Chain: nlmixr2_population_pk → exposure_response_modeling → phase2_dose_justification. "
+            "Fitting: scipy.optimize.curve_fit (LM/TRR) + bootstrap CI (n=200 replicates). "
+            "Outputs ec50_uM, emax_pct, hill coefficient, R², and 95% CI bounds. "
+            "Fixed-Emax mode available when Emax is pre-specified (--emax_fixed). "
+            "Identifiability check: warns when AUC_max/EC50 < 2.0 (sparse data). "
+            "Input: patient_data_csv (columns: patient_id, AUC_uM_h, effect_pct). "
+            "Output: er_params.json (ec50_uM, emax_pct, hill, r_squared, 95%CI), "
+            "er_curve.csv (predicted E-R curve for plotting). "
+            "References: Holford & Sheiner 1982, FDA E-R Guidance 2023."
+        ),
+        "annotation":  "Emax/Hill E-R fit + bootstrap CI. Input: AUC-effect CSV. Output: er_params.json for phase2_dose_justification.",
+        "tags":        "exposure response,Emax,Hill equation,EC50,PK-PD,dose optimization,FDA ER guidance,phase2,bootstrap CI,scipy",
+        "domain":      "pharmacology",
+        "category":    "PK-PD",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["csv"],
+        "output_types":["json", "csv"],
+        "step_count":  2,
+        "tools_used":  "SciPy, Holford & Sheiner 1982, FDA E-R Guidance 2023",
+    },
+    # ── P15: Population PK/PD — nlmixr2 (SAEM/FOCE+, R) ─────────────────────
+    {
+        "name":        "nlmixr2_population_pk",
+        "filename":    "pharmacology/nlmixr2_population_pk/main.nf",
+        "description": (
+            "Population pharmacokinetic / pharmacodynamic (PopPK/PD) analysis using nlmixr2 "
+            "(SAEM + FOCE+, equivalent to Monolix/NONMEM). Validated against NONMEM "
+            "(Fidler et al. 2019 CPT:PSP). Open-source, Nextflow-native R container. "
+            "Supports 1- and 2-compartment oral/IV models with covariate testing (WT, AGE, CRCL, ALB). "
+            "Outputs: parameter_estimates.csv (THETA, OMEGA, SIGMA), "
+            "individual_estimates.csv (EBEs), VPC plot, GOF diagnostics. "
+            "Individual AUC estimates from this workflow feed directly into "
+            "exposure_response_modeling for the full PK→E-R→dose chain. "
+            "Input: pk_data_csv (columns: ID, TIME, DV, AMT, EVID, CMT + optional covariates). "
+            "Output: popPK_report.html, nlmixr2_results.json (OFV, AIC, RSE%), VPC + GOF PDFs. "
+            "References: Fidler et al. 2019, Beal & Sheiner NONMEM, Monolix 2023."
+        ),
+        "annotation":  "nlmixr2 PopPK SAEM/FOCE+. Input: PK concentration-time CSV. Output: parameter estimates, individual EBEs, VPC.",
+        "tags":        "population PK,nlmixr2,NONMEM,SAEM,FOCE,pharmacokinetics,PopPK,covariate,VPC,GOF,IND,NDA,clinical pharmacology",
+        "domain":      "pharmacology",
+        "category":    "Population PK",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-pharma:x86",
+        "input_types": ["csv"],
+        "output_types":["html", "csv", "json", "pdf"],
+        "step_count":  4,
+        "tools_used":  "nlmixr2, rxode2, PKNCA, R 4.3.1",
+    },
 ]
 
 
