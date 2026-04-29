@@ -35,38 +35,54 @@ process CRYODRGN_TRAIN {
     echo "  Poses:     ${poses_pkl}"
     echo "  z-dim:     ${zdim}   epochs: ${epochs}"
 
-    # Re-serialize all pkl inputs using this container's numpy to avoid
-    # cross-version pickle incompatibility (numpy 1.x vs 2.x)
+    # Reserialize CTF pkl for cross-version compatibility
     python3 - << 'PYEOF'
-import pickle, numpy as np
+import pickle, numpy as np, os
 
-# poses: tuple (rots N×3×3, trans N×2)
-with open("${poses_pkl}", "rb") as fh:
-    raw = pickle.load(fh)
-rots  = np.array(raw[0], dtype=np.float32)
-trans = np.array(raw[1], dtype=np.float32)
-with open("poses_compat.pkl", "wb") as fh:
-    pickle.dump((rots, trans), fh)
-print(f"poses_compat.pkl: rots={rots.shape} trans={trans.shape}")
-
-# ctf: cryodrgn 4.x expects raw (N, 9) ndarray — not a dict
+# ctf: cryodrgn 4.x expects raw (N, 9) ndarray
 with open("${ctf_pkl}", "rb") as fh:
     raw_ctf = pickle.load(fh)
 ctf_arr = np.array(raw_ctf, dtype=np.float32)
 with open("ctf_compat.pkl", "wb") as fh:
     pickle.dump(ctf_arr, fh)
 print(f"ctf_compat.pkl: shape={ctf_arr.shape}")
+
+# poses: reserialized only if provided
+poses_file = "${poses_pkl}".strip()
+if poses_file and os.path.isfile(poses_file):
+    with open(poses_file, "rb") as fh:
+        raw = pickle.load(fh)
+    rots  = np.array(raw[0], dtype=np.float32)
+    trans = np.array(raw[1], dtype=np.float32)
+    with open("poses_compat.pkl", "wb") as fh:
+        pickle.dump((rots, trans), fh)
+    print(f"poses_compat.pkl: rots={rots.shape} trans={trans.shape}")
+    open("HAS_POSES", "w").close()
+else:
+    print("No poses provided — will use abinit_het mode")
 PYEOF
 
-    cryodrgn train_vae \\
-        ${particles_mrcs} \\
-        --ctf ctf_compat.pkl \\
-        --poses poses_compat.pkl \\
-        -n ${epochs} \\
-        --zdim ${zdim} \\
-        -o cryodrgn_output/ \\
-        --no-amp \\
-        --log-interval 5
+    if [ -f HAS_POSES ]; then
+        echo "Training with poses (train_vae mode)"
+        cryodrgn train_vae \\
+            ${particles_mrcs} \\
+            --ctf ctf_compat.pkl \\
+            --poses poses_compat.pkl \\
+            -n ${epochs} \\
+            --zdim ${zdim} \\
+            -o cryodrgn_output/ \\
+            --no-amp \\
+            --log-interval 5
+    else
+        echo "Training ab initio (abinit_het mode — no poses required)"
+        cryodrgn abinit_het \\
+            ${particles_mrcs} \\
+            --ctf ctf_compat.pkl \\
+            -n ${epochs} \\
+            --zdim ${zdim} \\
+            -o cryodrgn_output/ \\
+            --log-interval 5
+    fi
 
     echo "Training complete. Epochs saved in cryodrgn_output/"
 

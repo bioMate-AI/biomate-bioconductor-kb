@@ -100,9 +100,7 @@ workflow {
     if (!params.ctf) {
         error "ERROR: --ctf is required (path to CTF parameters .pkl file)"
     }
-    if (!params.poses) {
-        error "ERROR: --poses is required (path to particle poses .pkl file)"
-    }
+    // poses is optional — if not provided, use cryodrgn abinit_het (ab initio mode)
 
     log.info """
     =========================================================
@@ -123,7 +121,7 @@ workflow {
     // be consumed by both CRYODRGN_TRAIN and CRYODRGN_ANALYZE
     particles_ch = Channel.of([[id: 'sample'], file(params.particles)])
     ctf_ch       = Channel.value(file(params.ctf))
-    poses_ch     = Channel.value(file(params.poses))
+    poses_ch     = params.poses ? Channel.value(file(params.poses)) : Channel.value([])
 
     // Run workflow
     CRYO_EM_HETEROGENEITY(
