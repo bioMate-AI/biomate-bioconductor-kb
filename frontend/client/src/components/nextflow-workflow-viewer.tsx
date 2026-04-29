@@ -458,7 +458,7 @@ function PhaseGroupSection({
   const canRunPhase = !!activeRunId && !isGlobalExecutionActive && !isAutofixActive && !isPrereqBlocked && !executionBlockedReason;
 
   return (
-    <div className={`phase ${phaseStatus}${open ? ' open' : ''}`} data-testid={`phase-group-${group.key}`}>
+    <div className={`phase ${phaseStatus}${open ? ' open' : ''}`} data-testid={`phase-group-${group.key}`} data-status={phaseStatus}>
       {/* Phase header — always visible, click to toggle */}
       <div className="phase-head" onClick={() => setOpen(o => !o)} role="button" aria-expanded={open}>
         <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
