@@ -45,13 +45,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
+# ── PyTorch CPU-only ───────────────────────────────────────────────────────
+# Install CPU-only PyTorch BEFORE admet-ai so pip doesn't pull the full
+# CUDA wheel (~2 GB). ADMET prediction is purely inference on small molecule
+# batches — GPU is not needed and adds no throughput benefit here.
+# CPU wheel: ~250 MB vs CUDA wheel: ~2 GB.
+RUN pip install --no-cache-dir \
+    torch \
+    --index-url https://download.pytorch.org/whl/cpu
+
 # ── scikit-learn + matplotlib (lightweight, needed for fallback models) ────
 RUN pip install --no-cache-dir \
     scikit-learn \
     matplotlib
 
 # ── mordred (1826 molecular descriptors) ──────────────────────────────────
-# 1.2.0 is the latest available release on PyPI
 RUN pip install --no-cache-dir "mordred==1.2.0"
 
 # ── PyTDC (TDC benchmark datasets + splits) ───────────────────────────────
@@ -61,9 +69,8 @@ RUN pip install --no-cache-dir PyTDC
 RUN pip install --no-cache-dir chembl_webresource_client
 
 # ── ADMET-AI (Chemprop-backed, bundled pre-trained models) ────────────────
-# This is the primary ADMET predictor. Replaces DeepPurpose.
-# admet-ai ships with Chemprop as a dependency — no separate install needed.
-# Models are bundled in the package; no download required on first use.
+# admet-ai requires torch>=2.8.0 — already satisfied by CPU wheel above.
+# Chemprop will reuse the existing torch install, not pull a new one.
 RUN pip install --no-cache-dir admet-ai
 
 # ── Package verification (pip show only — no import/execution) ───────────────
