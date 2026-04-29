@@ -1,0 +1,134 @@
+[
+  {
+    "test": 1,
+    "name": "pbpk_disease_state FDA validation",
+    "n_cases": 6,
+    "n_pass": 0,
+    "results": [
+      {
+        "case": "Gabapentin (renal)",
+        "predicted": null,
+        "observed": 5.1,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      },
+      {
+        "case": "Metformin (renal)",
+        "predicted": null,
+        "observed": 1.9,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      },
+      {
+        "case": "Atenolol (renal)",
+        "predicted": null,
+        "observed": 5.8,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      },
+      {
+        "case": "Midazolam (hepatic high-ER)",
+        "predicted": null,
+        "observed": 2.5,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      },
+      {
+        "case": "Lorazepam (hepatic low-ER)",
+        "predicted": null,
+        "observed": 1.5,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      },
+      {
+        "case": "Theophylline (hepatic low-ER)",
+        "predicted": null,
+        "observed": 2.1,
+        "passed": false,
+        "status": "ERROR: 'list' object has no attribute 'get'"
+      }
+    ],
+    "score": 0.0,
+    "elapsed_s": 0.7
+  },
+  {
+    "test": 2,
+    "name": "biomarker_patient_enrichment BRIM-3 structure",
+    "n_cases": 1,
+    "n_pass": 0,
+    "results": [
+      {
+        "case": "output produced",
+        "passed": false,
+        "detail": "INFO: n=120 patients, 3 biomarkers: ['BRAF_status', 'noise_biomarker_1', 'noise_biomarker_2']\n"
+      }
+    ],
+    "score": 0.0,
+    "elapsed_s": 1.1
+  },
+  {
+    "test": 3,
+    "name": "polymorph_stability_screening CSD validation",
+    "n_cases": 6,
+    "n_pass": 3,
+    "results": [
+      {
+        "case": "Carbamazepine",
+        "csd_forms": 5,
+        "expected_tier": "HIGH",
+        "predicted_score": 2.5,
+        "predicted_tier": "LOW",
+        "passed": false,
+        "detail": "score=2.5 tier=LOW (need >=6.0 HIGH)"
+      },
+      {
+        "case": "Ritonavir",
+        "csd_forms": 2,
+        "expected_tier": "HIGH",
+        "predicted_score": 1.0,
+        "predicted_tier": "LOW",
+        "passed": false,
+        "detail": "score=1.0 tier=LOW (need >=5.5 HIGH)"
+      },
+      {
+        "case": "Sulfathiazole",
+        "csd_forms": 5,
+        "expected_tier": "HIGH",
+        "predicted_score": 2.0,
+        "predicted_tier": "LOW",
+        "passed": false,
+        "detail": "score=2.0 tier=LOW (need >=6.0 HIGH)"
+      },
+      {
+        "case": "Aspirin",
+        "csd_forms": 2,
+        "expected_tier": "LOW",
+        "predicted_score": 2.0,
+        "predicted_tier": "LOW",
+        "passed": true,
+        "detail": "score=2.0 tier=LOW (need <=5.5 LOW/MED)"
+      },
+      {
+        "case": "Caffeine",
+        "csd_forms": 2,
+        "expected_tier": "LOW",
+        "predicted_score": 1.0,
+        "predicted_tier": "LOW",
+        "passed": true,
+        "detail": "score=1.0 tier=LOW (need <=5.5 LOW/MED)"
+      },
+      {
+        "case": "Ibuprofen",
+        "csd_forms": 1,
+        "expected_tier": "LOW",
+        "predicted_score": 1.5,
+        "predicted_tier": "LOW",
+        "passed": true,
+        "detail": "score=1.5 tier=LOW (need <=5.0 LOW/MED)"
+      }
+    ],
+    "score": 0.5,
+    "critical_no_false_negatives": false,
+    "elapsed_s": 0.2
+  }
+]
