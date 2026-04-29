@@ -274,6 +274,7 @@ class INDSectionAssembler:
         region: str = "ALL",
         glp_facility: str = "",
         glp_recognition: str = "",
+        ethnic_bridging_note: str = "",
     ) -> AssemblyResult:
         """
         Generate CTD Sections 2.6.1–2.6.3 for the given campaign.
@@ -322,6 +323,7 @@ class INDSectionAssembler:
             region=region,
             glp_facility=glp_facility,
             glp_recognition=glp_recognition,
+            ethnic_bridging_note=ethnic_bridging_note,
         )
 
         title = self._title_page(ctx)

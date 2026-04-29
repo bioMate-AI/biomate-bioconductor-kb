@@ -4048,7 +4048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               stream.on('end', res);
               stream.on('error', rej);
             });
-            return { fname, content: Buffer.concat(chunks).toString('utf-8').slice(0, 6000) };
+            return { name: fname, content: Buffer.concat(chunks).toString('utf-8').slice(0, 6000) };
           }));
           for (const r of readResults) {
             if (r.status === 'fulfilled' && r.value.content.trim()) {
