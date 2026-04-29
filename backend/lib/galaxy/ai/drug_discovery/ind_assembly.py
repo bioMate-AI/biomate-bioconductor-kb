@@ -603,19 +603,45 @@ PK literature).
 *No compound data available.*"""
 
         total = len(compounds)
-        # Approximate ADMET pass rate from score distribution
-        # Compounds with composite_score >= 0.5 are considered passing
-        passing = sum(1 for c in compounds if c.get("composite_score", 0) >= 0.5)
-        pass_rate = passing / total if total > 0 else 0.0
-        top5 = compounds[:5]
+        sp = ctx.get("safety_profile", {})
 
+        # Use actual safety gate flags from safety_profile (not composite score proxy)
+        # A compound "passes" safety gates if it is NOT flagged for ANY hard failure
+        herg_flagged = sp.get("herg_flagged", 0)
+        dili_flagged = sp.get("dili_flagged", 0)
+        ames_flagged = sp.get("ames_flagged", 0)
+        # Conservative: any compound with ANY hard flag counts as "not passing all gates"
+        # If no safety profile data, fall back to composite-score proxy with explicit caveat
+        sp_total = sp.get("total_compounds", 0)
+        if sp_total > 0 and sp_total == total:
+            # At least one gate category measured — use actual flag counts
+            any_flagged_set = set()
+            for cid, cpd in sp.get("compounds", {}).items():
+                assays = cpd.get("assays", {})
+                if assays.get("hERG", 9999) < 10.0:
+                    any_flagged_set.add(cid)
+                if assays.get("DILI", 0) >= 1.0:
+                    any_flagged_set.add(cid)
+                if assays.get("Ames", 0) >= 1.0:
+                    any_flagged_set.add(cid)
+            passing = total - len(any_flagged_set)
+            pass_rate = passing / total if total > 0 else 0.0
+            pass_rate_note = "no hERG/DILI/Ames flag"
+        else:
+            # No safety data — use composite score ≥ 0.5 with caveat
+            passing = sum(1 for c in compounds if (c.get("composite_score") or c.get("combined_score") or 0) >= 0.5)
+            pass_rate = passing / total if total > 0 else 0.0
+            pass_rate_note = "composite score ≥ 0.50 (safety gate data unavailable)"
+
+        top5 = compounds[:5]
         rows = []
         for c in top5:
             cid = c.get("compound_id", "?")
-            score = c.get("composite_score", 0.0)
+            score = float(c.get("composite_score") or c.get("combined_score") or 0.0)
             rank = c.get("rank", "?")
-            smiles = c.get("smiles", "")[:30] + "…" if len(c.get("smiles", "")) > 30 else c.get("smiles", "")
-            rows.append(f"| {rank} | {cid} | {score:.3f} | {smiles} |")
+            smiles = c.get("smiles") or ""  # guard against explicit None from LEFT JOIN
+            smiles_str = smiles[:30] + "…" if len(smiles) > 30 else smiles
+            rows.append(f"| {rank} | {cid} | {score:.3f} | {smiles_str} |")
         table = "\n".join(rows)
 
         narrative = _llm_narrative("admet", {
@@ -637,15 +663,18 @@ screening pipeline.
 
 | Assay | Gate | Action on failure |
 |-------|------|------------------|
-| hERG (cardiac safety) | IC50 < 10 µM | Composite score penalty −0.30 |
-| DILI (drug-induced liver injury) | Positive | Composite score penalty −0.30 |
-| Ames mutagenicity | Positive | Composite score penalty −0.30 |
-| Lipinski Ro5 | MW > 500 or logP > 5 | Advisory flag |
+| hERG (cardiac safety, ICH S7B) | IC50 < 10 µM | Composite score penalty −0.30; compound flagged |
+| DILI (drug-induced liver injury) | Positive prediction | Composite score penalty −0.30; compound flagged |
+| Ames mutagenicity (ICH S2R1) | Positive prediction | Composite score penalty −0.30; compound flagged |
+| Lipinski Ro5 (oral bioavailability) | MW > 500 or logP > 5 | Advisory flag only |
 
 ### Results Summary
 
 - Total compounds screened: **{total}**
-- Compounds with composite score ≥ 0.50: **{passing}** ({pass_rate:.1%})
+- Compounds passing all safety gates ({pass_rate_note}): **{passing}** ({pass_rate:.1%})
+- hERG-flagged (IC50 < 10 µM): **{herg_flagged}**
+- DILI-flagged: **{dili_flagged}**
+- Ames-flagged: **{ames_flagged}**
 
 ### Top 5 Ranked Compounds
 
