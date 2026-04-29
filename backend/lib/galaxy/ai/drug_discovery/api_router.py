@@ -54,6 +54,40 @@ router = APIRouter(prefix="/api/drug-discovery", tags=["drug_discovery"])
 # Allows the download endpoint to serve files without requiring the temp dir to persist.
 _ind_cache: dict[str, dict] = {}  # campaign_id → {markdown_path, docx_path, markdown_content}
 
+
+def _store_pk_summary(db_path: str, campaign_id: str, pk_data: dict) -> None:
+    """Persist pk_summary.json content to campaign SQLite DB for IND assembly."""
+    import sqlite3, json
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS campaign_pk_predictions (
+                campaign_id TEXT NOT NULL,
+                stored_at   TEXT NOT NULL,
+                pk_json     TEXT NOT NULL,
+                PRIMARY KEY (campaign_id)
+            )
+        """)
+        conn.execute("""
+            INSERT OR REPLACE INTO campaign_pk_predictions (campaign_id, stored_at, pk_json)
+            VALUES (?, datetime('now'), ?)
+        """, (campaign_id, json.dumps(pk_data)))
+        conn.commit()
+
+
+def _load_pk_summary(db_path: str, campaign_id: str) -> Optional[dict]:
+    """Read stored pk_summary for a campaign.  Returns None if not yet stored."""
+    import sqlite3, json
+    try:
+        with sqlite3.connect(db_path) as conn:
+            cur = conn.execute(
+                "SELECT pk_json FROM campaign_pk_predictions WHERE campaign_id = ?",
+                (campaign_id,)
+            )
+            row = cur.fetchone()
+            return json.loads(row[0]) if row else None
+    except Exception:
+        return None
+
 # Per-campaign SQLite databases live in this directory.
 _CAMPAIGN_DB_DIR = os.environ.get(
     "BIOMATE_CAMPAIGN_DB_DIR",
@@ -787,6 +821,7 @@ class INDAssemblyRequest(BaseModel):
     sponsor: str = "Sponsor"
     indication: str = "Investigational indication"
     target_name: str = "Investigational target"
+    pk_summary: Optional[dict] = None  # pk_summary.json from predict_admet_properties run
 
 
 @router.post("/{campaign_id}/ind-assembly")
@@ -815,6 +850,13 @@ async def assemble_ind_section(
     import tempfile
     output_dir = tempfile.mkdtemp(prefix=f"biomate_ind_{campaign_id}_")
 
+    # Store pk_summary if provided, so it persists for future assemblies
+    if body.pk_summary:
+        try:
+            _store_pk_summary(_campaign_db(campaign_id), campaign_id, body.pk_summary)
+        except Exception as exc:
+            log.warning("Failed to store pk_summary for campaign %s: %s", campaign_id, exc)
+
     try:
         assembler = INDSectionAssembler(_campaign_db(campaign_id))
         result = assembler.assemble(
@@ -824,6 +866,7 @@ async def assemble_ind_section(
             sponsor=body.sponsor,
             indication=body.indication,
             target_name=body.target_name,
+            pk_summary=body.pk_summary,
         )
     except Exception as exc:
         log.exception("IND assembly failed for campaign %s", campaign_id)
@@ -889,8 +932,51 @@ async def download_ind_file(
         return PlainTextResponse(
             content,
             media_type="text/markdown; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{campaign_id}_CTD_2.6.1.md"'},
+            headers={"Content-Disposition": f'attachment; filename="{campaign_id}_CTD_Module2.6.md"'},
         )
+
+
+# ---------------------------------------------------------------------------
+# PK Predictions — link ADMET workflow outputs to campaign for IND §2.6.2
+# ---------------------------------------------------------------------------
+
+class PKSummaryRequest(BaseModel):
+    pk_summary: dict
+
+
+@router.post("/{campaign_id}/pk-summary")
+async def store_pk_summary(
+    campaign_id: str,
+    body: PKSummaryRequest,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Store pk_summary.json output from predict_admet_properties workflow.
+    The stored data is automatically used in subsequent IND assembly requests
+    to enrich §2.6.2 with compound-specific PK parameters.
+    """
+    try:
+        _store_pk_summary(_campaign_db(campaign_id), campaign_id, body.pk_summary)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return {
+        "campaign_id": campaign_id,
+        "stored": True,
+        "fu_plasma": body.pk_summary.get("fu_plasma"),
+        "vd_lkg": body.pk_summary.get("vd_lkg"),
+        "cl_hepatic_fraction": body.pk_summary.get("cl_hepatic_fraction"),
+        "cl_renal_fraction": body.pk_summary.get("cl_renal_fraction"),
+        "estimation_method": body.pk_summary.get("estimation_method"),
+    }
+
+
+@router.get("/{campaign_id}/pk-summary")
+async def get_pk_summary(campaign_id: str):
+    """Return the most recently stored pk_summary for a campaign, or 404 if not yet stored."""
+    data = _load_pk_summary(_campaign_db(campaign_id), campaign_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="No PK predictions stored for this campaign. Run predict_admet_properties first.")
+    return data
 
 
 # ---------------------------------------------------------------------------

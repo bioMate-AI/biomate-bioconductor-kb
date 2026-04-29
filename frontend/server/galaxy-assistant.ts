@@ -1803,6 +1803,58 @@ Rules:
       }
     }
 
+    // PBPK prereq gate: before workflow generation, verify SMILES + CLint + fu_plasma are present.
+    // This must run BEFORE _clarificationGate so it overrides the workflow generation path.
+    if (actions.needsWorkflowGeneration) {
+      const _isPbpkIntent = /\b(pbpk|physiologically.based|full.?pk|human.pk|predict.*pharmacokinetic|organ.level.pk|mechanistic.pk|pk.simulation|pk.profile|pharmacokinetic.simulation|whole.body.pk|pk.model|human.pharmacokinetic|predict.human.pk)\b/i.test(message)
+        || /\bphysiol/i.test(message) && /\bpk\b/i.test(message);
+      if (_isPbpkIntent) {
+        // Check for SMILES: atom pattern like CC(, c1c, [nH], etc.
+        const _hasSmilesInMessage = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message)
+          || /\.sdf\b/i.test(message);
+        // Check for CLint: numeric value after CLint/intrinsic clearance keyword
+        const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
+          || /\bclint\s+[\d\.]+/i.test(message)
+          || /\b[\d\.]+\s*ul\/min\/mg/i.test(message);
+        // Check for fu_plasma: numeric value after fu keyword
+        const _hasFuPlasmaInMessage = /\b(fu_plasma|fu.plasma|unbound.fraction|fu)\s*[=:]\s*[\d\.]+/i.test(message);
+
+        if (!_hasSmilesInMessage) {
+          log('PBPK prereq gate: SMILES missing — returning clarification');
+          actions.needsWorkflowGeneration = false;
+          const _pbpkSmilesQuestion = 'To run the PBPK simulation, I need your compound\'s **SMILES string** (molecular structure — e.g. `CC(=O)Oc1ccccc1C(=O)O` for aspirin). Please provide it so I can set up the 8-compartment model.';
+          return {
+            message: _pbpkSmilesQuestion,
+            intentType: intent.type,
+            intentConfidence: intent.confidence,
+            recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+            recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+            workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: 'PBPK prereq: SMILES missing' },
+            generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
+            truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
+          } as GalaxyAssistantResponse;
+        } else if (!_hasClintInMessage || !_hasFuPlasmaInMessage) {
+          const _missingPkParams = [
+            !_hasClintInMessage ? 'intrinsic clearance **CLint** (µL/min/mg)' : null,
+            !_hasFuPlasmaInMessage ? 'unbound plasma fraction **fu_plasma** (0–1)' : null,
+          ].filter(Boolean).join(' and ');
+          log(`PBPK prereq gate: PK params missing (${_missingPkParams}) — returning clarification`);
+          actions.needsWorkflowGeneration = false;
+          const _pbpkParamsQuestion = `To simulate full PBPK pharmacokinetics, I need the ${_missingPkParams} for your compound. What are these values?`;
+          return {
+            message: _pbpkParamsQuestion,
+            intentType: intent.type,
+            intentConfidence: intent.confidence,
+            recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+            recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+            workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: `PBPK prereq: ${_missingPkParams} missing` },
+            generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
+            truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
+          } as GalaxyAssistantResponse;
+        }
+      }
+    }
+
     // S1: ClarificationGate — returns early if ambiguity requires user clarification
     const clarificationResponse = await this._clarificationGate(
       intent, actions, message, recommendedTools, recommendedDatasets
@@ -1950,10 +2002,23 @@ Rules:
 
     // CRO compliance workspace routing: if the message is about CRO/compliance/IND/DMTA,
     // append a direct link to the CRO workspace so users can open it immediately.
+    // IMPORTANT: use word-boundary regex for short substrings like 'cro' and 'esig'
+    // to avoid false matches on words like 'design' (d-esig-n) or 'microsomal' (mi-cro-...).
     const _msgLower = message.toLowerCase();
-    const _isCroQuery = ['cro', 'compliance', 'ind assembly', 'ind §', '21 cfr', 'cfr part 11',
-      'audit trail', 'esig', 'electronic signature', 'auto-retrain', 'dmta loop',
-      'drug discovery campaign', 'ingest assay', 'cro order'].some(kw => _msgLower.includes(kw));
+    const _isCroQuery = /\bcro\b/.test(_msgLower)
+      || /\bcompliance\b/.test(_msgLower)
+      || _msgLower.includes('ind assembly')
+      || _msgLower.includes('ind §')
+      || _msgLower.includes('21 cfr')
+      || _msgLower.includes('cfr part 11')
+      || _msgLower.includes('audit trail')
+      || /\besign(ature)?\b/.test(_msgLower)
+      || _msgLower.includes('electronic signature')
+      || _msgLower.includes('auto-retrain')
+      || _msgLower.includes('dmta loop')
+      || _msgLower.includes('drug discovery campaign')
+      || _msgLower.includes('ingest assay')
+      || _msgLower.includes('cro order');
     if (_isCroQuery && !finalMessage.includes('/drug-discovery-cro')) {
       finalMessage += '\n\n→ Open your [CRO Compliance workspace](/drug-discovery-cro) to manage campaigns, view the audit chain, and generate IND packages.';
     }
@@ -4482,6 +4547,7 @@ ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES 
 Workflow routing (use these specific workflows when the user's intent matches):
 - "ADMET", "ADMET profiling", "ADMET screening", "toxicity screening", "DILI", "hERG toxicity", "BBB penetration", "blood-brain barrier", "drug-like properties", "lipophilicity", "bioavailability prediction", "predict ADMET", or "toxicity panel": use the predict_admet_properties workflow (6 ADMET endpoints: hERG cardiac, DILI hepato, Caco-2 permeability, BBB penetration, solubility, Ames mutagenicity — all computed from SMILES. Input: smiles_input as a SMILES string or newline-separated list. Outputs: admet_results.csv + risk_summary.json). Use immediately when a user provides SMILES and asks for ADMET or safety screening — do NOT ask for a file upload.
 - "PBPK simulation", "physiologically-based pharmacokinetics", "physiologically-based PK", "8-compartment PK", "full PK profile", "predict human PK", "predict human pharmacokinetics", "mechanistic PK simulation", "organ-level PK", "whole-body PK", "PBPK model", "Cmax prediction", "AUC prediction", "Tmax prediction", "oral bioavailability simulation", or "first-pass metabolism PK": use the pbpk_simulation workflow (8-compartment physiologically-based pharmacokinetic model, Rodgers/Rowland method; outputs pk_profile.csv + nca_parameters.json). REQUIRED PREREQ CHECK: Before generating this workflow, verify the user has provided BOTH (1) a SMILES string (the compound structure) AND (2) intrinsic clearance CLint in µL/min/mg AND unbound plasma fraction fu_plasma. If ANY of these are missing, ask for them in your response — do NOT generate the workflow card yet. Example asks: "To run PBPK, I need your compound's SMILES structure — please provide it." or "To simulate full PK, I need CLint (µL/min/mg) and fu_plasma — what are these values for your compound?"
+- "BOIN design", "BOIN dose escalation", "Bayesian optimal interval", "Phase I dose escalation trial", "MTD estimation", "dose escalation design", "clinical dose escalation", "oncology dose finding", "dose-limiting toxicity design", "DLT target design", "3+3 design", "modified toxicity probability interval", "MCRM", "adaptive dose escalation", or "Phase I oncology trial design": use the clinical_trial_dose_design workflow (BOIN/modified CRM Bayesian dose escalation. Inputs: dose_levels_json, target_DLT_rate, starting_dose_mg, n_simulations, PK params. Outputs: escalation_recommendation.json + MTD_estimate + DLT_probability_curve). Generate this workflow immediately when the user provides dose levels and a target DLT rate — do NOT route to CRO workspace.
 - "IVIVE", "in vitro to in vivo", "hepatic clearance", "intrinsic clearance", "microsomal clearance", "CLint", "CLh", "well-stirred model", "parallel tube model", or "in vitro clearance scaling": use the ivive_hepatic_clearance workflow (well-stirred + parallel-tube models, converts CLint_microsomal → predicted human CLh. Input: compound_data_csv with compound_id/CLint_uL_per_min_mg/molecular_weight columns. Outputs: ivive_results.csv + clearance_summary.json).
 - "MD simulation", "molecular dynamics", "AMBER", "pmemd", "protein stability in explicit solvent", or "post-docking MM-GBSA refinement": suggest the amber_pmemd_md workflow (AMBER pmemd.cuda GPU MD, 7-step pipeline: GAFF2 parametrization → tleap → EM → NVT/NPT equilibration → production MD → cpptraj RMSD/RMSF → MMPBSA.py ΔGbind. License: free academic since AMBER24.)
 - "GROMACS", "GROMACS MD", "GROMOS force field", or explicit mention of GROMACS: suggest the gromacs_protein_md workflow (GROMACS 2025 + gmx_MMPBSA, 8-step pipeline, outputs ΔGbind ± SE and RMSD trajectory)

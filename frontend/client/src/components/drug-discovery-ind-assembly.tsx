@@ -64,6 +64,25 @@ const SECTION_TITLES: Record<string, string> = {
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface PkSummary {
+  status: string
+  fu_plasma?: number | null
+  vd_lkg?: number | null
+  cl_hepatic_fraction?: number | null
+  cl_renal_fraction?: number | null
+  logP?: number | null
+  mw_Da?: number | null
+  estimation_method?: string
+  per_compound?: Array<{
+    compound_id: string
+    fu_plasma_predicted?: number
+    vd_lkg_estimated?: number
+    cl_renal_fraction_estimated?: number
+    logP?: number
+    mw_Da?: number
+  }>
+}
+
 interface InitialValues {
   mol?: string
   target?: string
@@ -91,6 +110,10 @@ export function DrugDiscoveryIndAssembly({
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<AssemblyResult | null>(null)
 
+  // PK summary from ADMET workflow
+  const [pkSummary, setPkSummary] = useState<PkSummary | null>(null)
+  const [pkLoading, setPkLoading] = useState(false)
+
   // Confirm overwrite
   const [confirming, setConfirming] = useState(false)
 
@@ -101,21 +124,41 @@ export function DrugDiscoveryIndAssembly({
 
   const canGenerate = mol.trim() && target.trim() && indication.trim() && !generating
 
+  // Load pk_summary from campaign DB on mount
+  const loadPkSummary = async () => {
+    setPkLoading(true)
+    try {
+      const res = await fetch(`/api/drug-discovery/${campaignId}/pk-summary`, { credentials: "include" })
+      if (res.ok) {
+        const data: PkSummary = await res.json()
+        setPkSummary(data)
+      }
+    } catch { /* not available */ } finally {
+      setPkLoading(false)
+    }
+  }
+
+  // Load on mount
+  useState(() => { loadPkSummary() })
+
   const generate = async () => {
     setGenerating(true)
     setError(null)
     setConfirming(false)
     try {
+      const body: Record<string, unknown> = {
+        molecule_name: mol.trim(),
+        target_name: target.trim(),
+        indication: indication.trim(),
+        sponsor: sponsor.trim() || "BioMate Technologies",
+      }
+      if (pkSummary) body.pk_summary = pkSummary
+
       const res = await fetch(`/api/drug-discovery/${campaignId}/ind-assembly`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          molecule_name: mol.trim(),
-          target_name: target.trim(),
-          indication: indication.trim(),
-          sponsor: sponsor.trim() || "BioMate Technologies",
-        }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -264,6 +307,45 @@ export function DrugDiscoveryIndAssembly({
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* PK Summary link status */}
+      <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
+        <Badge
+          variant="outline"
+          className={cn(
+            "font-mono text-xs shrink-0",
+            pkSummary
+              ? "text-green-700 dark:text-green-400 border-green-300"
+              : "text-muted-foreground"
+          )}
+        >
+          DMPK
+        </Badge>
+        <span className="flex-1 text-muted-foreground">
+          {pkLoading ? "Loading ADMET predictions…" :
+           pkSummary
+             ? `PK data linked — f_u=${pkSummary.fu_plasma?.toFixed(2) ?? "N/A"}, Vd=${pkSummary.vd_lkg?.toFixed(1) ?? "N/A"} L/kg, CLh=${pkSummary.cl_hepatic_fraction !== null && pkSummary.cl_hepatic_fraction !== undefined ? (pkSummary.cl_hepatic_fraction * 100).toFixed(0) + "%" : "N/A"}`
+             : "No ADMET predictions linked (run predict_admet_properties workflow first)"}
+        </span>
+        {!pkSummary && !pkLoading && (
+          <button
+            className="text-xs text-blue-600 dark:text-blue-400 underline shrink-0"
+            onClick={loadPkSummary}
+            data-testid="ind-refresh-pk"
+          >
+            Refresh
+          </button>
+        )}
+        {pkSummary && (
+          <button
+            className="text-xs text-muted-foreground underline shrink-0"
+            onClick={() => setPkSummary(null)}
+            data-testid="ind-clear-pk"
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       {/* Error */}
       {error && (

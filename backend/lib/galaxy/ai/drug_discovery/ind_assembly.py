@@ -225,9 +225,10 @@ class INDSectionAssembler:
         sponsor: str = "Sponsor",
         indication: str = "Investigational indication",
         target_name: str = "Investigational target",
+        pk_summary: Optional[dict] = None,
     ) -> AssemblyResult:
         """
-        Generate CTD Section 2.6.1 for the given campaign.
+        Generate CTD Sections 2.6.1–2.6.3 for the given campaign.
 
         Args:
             campaign_id: BioMate campaign identifier.
@@ -236,6 +237,8 @@ class INDSectionAssembler:
             sponsor:     Sponsor organization name.
             indication:  Therapeutic indication (e.g. "oncology").
             target_name: Biological target (e.g. "EGFR").
+            pk_summary:  Optional pk_summary.json dict from predict_admet_properties run.
+                         If not provided, loads from campaign DB if previously stored.
 
         Returns:
             AssemblyResult with paths and warnings.
@@ -250,6 +253,9 @@ class INDSectionAssembler:
         audit_summary = self._load_audit_summary(campaign_id, warnings)
         auto_proposal = self._load_latest_proposal(campaign_id, warnings)
         safety_profile = self._load_safety_profile(campaign_id, warnings)
+        # pk_summary: use provided value or fall back to campaign DB cache
+        if pk_summary is None:
+            pk_summary = self._load_stored_pk_summary(campaign_id, warnings)
 
         # Build document sections
         ctx = dict(
@@ -264,6 +270,7 @@ class INDSectionAssembler:
             audit_summary=audit_summary,
             auto_proposal=auto_proposal,
             safety_profile=safety_profile,
+            pk_summary=pk_summary,
         )
 
         title = self._title_page(ctx)
@@ -360,6 +367,20 @@ class INDSectionAssembler:
         except Exception as exc:
             warnings.append(f"Latest proposal unavailable: {exc}")
         return None
+
+    def _load_stored_pk_summary(self, campaign_id: str, warnings: list) -> Optional[dict]:
+        """Read pk_summary.json previously stored via POST /{id}/pk-summary."""
+        try:
+            import sqlite3, json
+            with sqlite3.connect(self._db_path) as conn:
+                cur = conn.execute(
+                    "SELECT pk_json FROM campaign_pk_predictions WHERE campaign_id = ?",
+                    (campaign_id,)
+                )
+                row = cur.fetchone()
+                return json.loads(row[0]) if row else None
+        except Exception:
+            return None
 
     def _load_safety_profile(self, campaign_id: str, warnings: list) -> dict:
         """Aggregate safety assay data per compound for §2.6.2 and §2.6.3."""
@@ -785,6 +806,7 @@ Each signature is linked to its corresponding audit record via `audit_record_id`
         vr = ctx.get("validation_report")
         compounds = ctx.get("compounds", [])
         sp = ctx.get("safety_profile", {})
+        pk_sum = ctx.get("pk_summary")  # from predict_admet_properties workflow
         n_compounds = len(compounds)
 
         # PK metrics from PBPK validation
@@ -834,6 +856,56 @@ Each signature is linked to its corresponding audit record via `audit_record_id`
                 "|-------------|-------------------|---------------------------|\n"
                 + "\n".join(rows)
             )
+
+        # Compound-specific predicted PK parameters from predict_admet_properties
+        predicted_pk_section = ""
+        if pk_sum and pk_sum.get("status") in ("predicted", "ok"):
+            fu = pk_sum.get("fu_plasma")
+            vd = pk_sum.get("vd_lkg")
+            cl_r = pk_sum.get("cl_renal_fraction")
+            cl_h = pk_sum.get("cl_hepatic_fraction")
+            logp = pk_sum.get("logP")
+            mw = pk_sum.get("mw_Da")
+            method = pk_sum.get("estimation_method", "in silico")
+            disclaimer = pk_sum.get("disclaimer", "Computational predictions require experimental confirmation.")
+
+            # Per-compound table (first 5)
+            per_cpd_rows = []
+            for cpd in (pk_sum.get("per_compound") or [])[:5]:
+                cid = cpd.get("compound_id", "?")
+                c_fu = _fmt(cpd.get("fu_plasma_predicted"))
+                c_vd = _fmt(cpd.get("vd_lkg_estimated"))
+                c_clr = _pct(cpd.get("cl_renal_fraction_estimated"))
+                c_lp = _fmt(cpd.get("logP"))
+                c_mw = _fmt(cpd.get("mw_Da"))
+                per_cpd_rows.append(f"| {cid} | {c_fu} | {c_vd} L/kg | {c_clr} | {c_lp} | {c_mw} Da |")
+            per_cpd_table = ""
+            if per_cpd_rows:
+                per_cpd_table = (
+                    "\n\n**Per-compound predicted PK:**\n\n"
+                    "| Compound | f_u (plasma) | Vd | CLr fraction | logP | MW |\n"
+                    "|----------|-------------|----|-----------|----|----|\n"
+                    + "\n".join(per_cpd_rows)
+                )
+
+            predicted_pk_section = f"""
+
+### Predicted DMPK Parameters — Lead Candidate
+
+The following values were generated by BioMate's in silico DMPK model
+(`predict_admet_properties` workflow, method: {method}).
+
+| Parameter | Predicted Value | Method |
+|-----------|----------------|--------|
+| Fraction unbound in plasma (f_u) | {_fmt(fu)} | Lobell & Sivarajah 2003 sigmoid (J Med Chem) |
+| Volume of distribution (Vd) | {_fmt(vd)} L/kg | Lombardo 2002 QSPR (J Med Chem) |
+| Hepatic CL fraction | {_pct(cl_h)} | BCS/logP heuristic (Benet 2011 Pharm Res) |
+| Renal CL fraction | {_pct(cl_r)} | BCS/logP heuristic (Benet 2011 Pharm Res) |
+| logP | {_fmt(logp)} | RDKit Crippen |
+| MW | {_fmt(mw)} Da | RDKit |
+{per_cpd_table}
+
+*Disclaimer:* {disclaimer}"""
 
         pbpk_section = ""
         if vr:
@@ -898,6 +970,7 @@ CYP inhibition potential was assessed based on IC50 values where available. The 
 pipeline evaluates CYP2C9, CYP2C19, CYP2D6, and CYP3A4 inhibitory liability. Compounds flagged for
 CYP DDI potential are highlighted in §2.6.1.3.
 {pbpk_section}
+{predicted_pk_section}
 
 ### 2.6.2.7 Other Pharmacokinetic Studies
 
