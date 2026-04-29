@@ -9557,6 +9557,14 @@ Rules:
               const outputs: any[] = outData.output_files || outData.outputs || (Array.isArray(outData) ? outData : []);
               const TEXT_EXTS = /\.(txt|log|csv|tsv|json|vcf|fasta|fa|fastq|fq|md|bed|gff|gtf)$/i;
               const fsImport = await import('fs/promises');
+              // AWS SDK for S3 reads (same credentials as step-file endpoint)
+              const { S3Client: _S3C, GetObjectCommand: _GOC } = await import('@aws-sdk/client-s3');
+              const _nfKey2 = process.env.AWS_NF_ACCESS_KEY_ID;
+              const _nfSec2 = process.env.AWS_NF_SECRET_ACCESS_KEY;
+              const _s3c = new _S3C({
+                region: 'us-east-1', followRegionRedirects: true,
+                ...(_nfKey2 && _nfSec2 ? { credentials: { accessKeyId: _nfKey2, secretAccessKey: _nfSec2 } } : {}),
+              });
               for (const out of outputs.slice(0, 30)) {
                 // Support both s3_uri (Batch runs) and file_path (local runs)
                 const filePath: string = out.s3_uri || out.file_path || out.path || '';
@@ -9565,15 +9573,13 @@ Rules:
                 try {
                   let content = '';
                   if (filePath.startsWith('s3://')) {
-                    const { execFile } = await import('child_process');
-                    const { promisify } = await import('util');
-                    const execFileP = promisify(execFile);
-                    const { stdout } = await execFileP('/opt/aws-cli/dist/aws', ['s3', 'cp', filePath, '-'], {
-                      timeout: 8000, maxBuffer: 64 * 1024,
-                    }).catch(() => execFileP('aws', ['s3', 'cp', filePath, '-'], {
-                      timeout: 8000, maxBuffer: 64 * 1024,
-                    }));
-                    content = stdout.slice(0, 8000);
+                    const _m = filePath.match(/^s3:\/\/([^/]+)\/(.+)$/);
+                    if (_m) {
+                      const _obj = await _s3c.send(new _GOC({ Bucket: _m[1], Key: _m[2] }));
+                      const chunks: Buffer[] = [];
+                      for await (const chunk of _obj.Body as any) chunks.push(Buffer.from(chunk));
+                      content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                    }
                   } else if (filePath) {
                     const raw = await fsImport.readFile(filePath, 'utf8');
                     content = raw.slice(0, 8000);
@@ -9585,50 +9591,41 @@ Rules:
             }
           } catch { /* outputs fetch failed — proceed without file content */ }
 
-          // Fallback: directly list S3 output directory for AWS Batch runs
+          // Fallback: directly list S3 output directory using AWS SDK
           if (outputSamples.length === 0) {
             try {
+              const { S3Client: _S3F, GetObjectCommand: _GF, ListObjectsV2Command: _LF } = await import('@aws-sdk/client-s3');
+              const _nfKeyF = process.env.AWS_NF_ACCESS_KEY_ID;
+              const _nfSecF = process.env.AWS_NF_SECRET_ACCESS_KEY;
+              const _s3f = new _S3F({
+                region: 'us-east-1', followRegionRedirects: true,
+                ...(_nfKeyF && _nfSecF ? { credentials: { accessKeyId: _nfKeyF, secretAccessKey: _nfSecF } } : {}),
+              });
               const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-              const nfRunId: string = (run as any).execution?.nextflowRunId || runId;
-              // Use stored output dir if available (format: s3://bucket/prefix), else fall back to run ID
-              const storedOutdir: string = (run as any).execution?.nextflowOutputDir || '';
+              const storedOutdir: string = (run as any).execution?.nextflowOutputDir ||
+                (run as any).nextflowOutputDir || '';
               const s3Prefix = storedOutdir
                 ? storedOutdir.replace(`s3://${s3Bucket}/`, '').replace(/\/?$/, '/')
-                : `nextflow/outputs/${nfRunId}/`;
-              const { execFile } = await import('child_process');
-              const { promisify } = await import('util');
-              const execFileP = promisify(execFile);
-              const TEXT_EXTS = /\.(txt|log|json|csv|tsv|md|bed|gff|gtf)$/i;
-              // List all files recursively
-              const { stdout: lsOut } = await execFileP(
-                '/opt/aws-cli/dist/aws',
-                ['s3', 'ls', `s3://${s3Bucket}/${s3Prefix}`, '--recursive'],
-                { timeout: 15000, maxBuffer: 512 * 1024 }
-              ).catch(() => execFileP('aws', ['s3', 'ls', `s3://${s3Bucket}/${s3Prefix}`, '--recursive'], {
-                timeout: 15000, maxBuffer: 512 * 1024
-              }));
-              const s3Lines = lsOut.split('\n').filter(l => l.trim());
-              for (const line of s3Lines) {
-                // Format: "date time size key"
-                const parts = line.trim().split(/\s+/);
-                const s3Key = parts.slice(3).join(' '); // key may have spaces
-                if (!s3Key || !TEXT_EXTS.test(s3Key)) continue;
-                const fileName = s3Key.split('/').pop() || s3Key;
+                : `nextflow/outputs/${runId}/`;
+              const TEXT_EXTS = /\.(txt|log|json|csv|tsv|md)$/i;
+              const listed = await _s3f.send(new _LF({ Bucket: s3Bucket, Prefix: s3Prefix, MaxKeys: 200 }));
+              const textKeys = (listed.Contents || [])
+                .filter(o => o.Key && TEXT_EXTS.test(o.Key) && (o.Size || 0) < 64000)
+                .slice(0, 10);
+              for (const obj of textKeys) {
+                const fileName = obj.Key!.split('/').pop() || obj.Key!;
                 try {
-                  const { stdout: fileContent } = await execFileP(
-                    '/opt/aws-cli/dist/aws',
-                    ['s3', 'cp', `s3://${s3Bucket}/${s3Key}`, '-'],
-                    { timeout: 8000, maxBuffer: 64 * 1024 }
-                  ).catch(() => execFileP('aws', ['s3', 'cp', `s3://${s3Bucket}/${s3Key}`, '-'], {
-                    timeout: 8000, maxBuffer: 64 * 1024
-                  }));
-                  if (fileContent.trim()) outputSamples.push({ name: fileName, content: fileContent.slice(0, 8000) });
+                  const _r = await _s3f.send(new _GF({ Bucket: s3Bucket, Key: obj.Key! }));
+                  const chunks: Buffer[] = [];
+                  for await (const ch of _r.Body as any) chunks.push(Buffer.from(ch));
+                  const content = Buffer.concat(chunks).slice(0, 8000).toString('utf8');
+                  if (content.trim()) outputSamples.push({ name: fileName, content });
                 } catch { /* skip unreadable */ }
                 if (outputSamples.length >= 6) break;
               }
-              console.log(`[Findings] S3 list found ${outputSamples.length} readable files from s3://${s3Bucket}/${s3Prefix}`);
+              console.log(`[Findings] S3 SDK list found ${outputSamples.length} files from ${s3Prefix}`);
             } catch (s3Err: any) {
-              console.warn('[Findings] S3 direct list failed:', s3Err.message);
+              console.warn('[Findings] S3 SDK list failed:', s3Err.message);
             }
           }
 
