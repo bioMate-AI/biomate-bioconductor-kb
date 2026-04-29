@@ -8871,9 +8871,12 @@ Rules:
         }
 
         const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
+        const nfKey = process.env.AWS_NF_ACCESS_KEY_ID;
+        const nfSecret = process.env.AWS_NF_SECRET_ACCESS_KEY;
         const s3 = new S3Client({
-          region: process.env.AWS_DEFAULT_REGION || process.env.AWS_REGION || 'us-east-1',
+          region: 'us-east-1',
           followRegionRedirects: true,
+          ...(nfKey && nfSecret ? { credentials: { accessKeyId: nfKey, secretAccessKey: nfSecret } } : {}),
         });
         const s3Obj = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
         if (!s3Obj.Body) return res.status(404).json({ error: 'S3 object empty' });
