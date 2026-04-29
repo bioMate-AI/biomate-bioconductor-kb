@@ -1994,124 +1994,56 @@ export function NextflowWorkflowViewer({
             </div>
           </div>{/* end flex-column wrapper */}
 
-            {/* Detach note removed alongside watcher UI */}
-
-              {/* QC Settings — only shown when QC profiles are available or a QC gate event fired */}
-              {(availableQcProfiles.length > 0 || qcGateData !== null) && (
-                <div data-testid="qc-settings-section" style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
-                  <button
-                    type="button"
-                    className={`strip${qcSettingsOpen ? ' open' : ''}`}
-                    onClick={() => setQcSettingsOpen(prev => !prev)}
-                    aria-expanded={qcSettingsOpen}
-                    style={{ borderTop: 'none' }}
-                  >
-                    <span className="label">
-                      <Settings2 style={{ width: 14, height: 14, flexShrink: 0 }} />
-                      QC Settings
-                      {Object.keys(qcOverrides).length > 0 && (
-                        <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 4 }}>
-                          {Object.keys(qcOverrides).length} edited
+              {/* QC threshold editor — opened by "edit" link on a QC gate row, not shown as a persistent strip */}
+              {qcSettingsOpen && (
+                <div data-testid="qc-settings-section" style={{ borderTop: '1px solid var(--border)', padding: '10px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      QC Thresholds
+                      {activeQcProfile && (
+                        <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 6, textTransform: 'none' }}>
+                          {activeQcProfile.id.replace(/_/g, ' ')}
                         </span>
                       )}
                     </span>
-                    <span className="caret">▶</span>
-                  </button>
-                  {qcSettingsOpen && (
-                    <div className="strip-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {/* Pause toggle */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <label style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} htmlFor="pause-qc-switch">
-                          Pause workflow when a QC gate fails
-                        </label>
-                        <button
-                          id="pause-qc-switch"
-                          type="button"
-                          className={`switch${pauseAtQcFailures ? ' on' : ''}`}
-                          onClick={() => setPauseAtQcFailures(prev => !prev)}
-                          aria-label="Pause at QC failures"
-                          aria-pressed={pauseAtQcFailures}
-                        />
-                      </div>
-
-                      {/* Threshold parameters — labeled, editable */}
-                      {displayedQcThresholds.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                              Quality thresholds
-                              {activeQcProfile && (
-                                <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 6 }}>
-                                  {activeQcProfile.id.replace(/_/g, ' ')}
-                                </span>
-                              )}
-                            </span>
-                            {Object.keys(qcOverrides).length > 0 && (
-                              <button
-                                type="button"
-                                className="btn ghost sm"
-                                onClick={() => setQcOverrides({})}
-                              >
-                                Reset all
-                              </button>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {displayedQcThresholds.map(t => (
-                              <div key={t.key} data-qc-key={t.key} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <div className="param-row">
-                                  <span className="k">
-                                    {t.label}
-                                    <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--text-dim)' }}>
-                                      ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
-                                    </span>
-                                  </span>
-                                  <input
-                                    type="number"
-                                    className="v"
-                                    style={{
-                                      width: 72, textAlign: 'right', fontSize: 12,
-                                      background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
-                                      border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
-                                      borderRadius: 4, padding: '1px 6px', color: 'var(--text)',
-                                      fontFamily: 'var(--font-mono)',
-                                    }}
-                                    value={t.value}
-                                    step="any"
-                                    onChange={e => {
-                                      const v = parseFloat(e.target.value);
-                                      if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v }));
-                                    }}
-                                    onBlur={e => {
-                                      const v = parseFloat(e.target.value);
-                                      if (isNaN(v)) {
-                                        setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; });
-                                      }
-                                    }}
-                                  />
-                                  {t.modified ? (
-                                    <button
-                                      type="button"
-                                      className="btn ghost sm danger"
-                                      title="Reset to default"
-                                      onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}
-                                    >
-                                      ×
-                                    </button>
-                                  ) : <span />}
-                                </div>
-                                {t.rationale && (
-                                  <p style={{ fontSize: 10, color: 'var(--text-dim)', lineHeight: 1.4, margin: '0 0 2px 0' }}>
-                                    {t.rationale}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {Object.keys(qcOverrides).length > 0 && (
+                        <button type="button" className="btn ghost sm" onClick={() => setQcOverrides({})}>Reset all</button>
                       )}
+                      <button type="button" className="linkish" style={{ fontSize: 11 }} onClick={() => setQcSettingsOpen(false)}>close</button>
                     </div>
-                  )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} htmlFor="pause-qc-switch">
+                      Pause workflow when a QC gate fails
+                    </label>
+                    <button id="pause-qc-switch" type="button" className={`switch${pauseAtQcFailures ? ' on' : ''}`}
+                      onClick={() => setPauseAtQcFailures(prev => !prev)} aria-label="Pause at QC failures" aria-pressed={pauseAtQcFailures} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {displayedQcThresholds.map(t => (
+                      <div key={t.key} data-qc-key={t.key} className="param-row">
+                        <span className="k">
+                          {t.label}
+                          <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--text-dim)' }}>
+                            ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
+                          </span>
+                        </span>
+                        <input type="number" className="v"
+                          style={{ width: 72, textAlign: 'right', fontSize: 12,
+                            background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
+                            border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
+                            borderRadius: 4, padding: '1px 6px', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
+                          value={t.value} step="any"
+                          onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v })); }}
+                          onBlur={e => { const v = parseFloat(e.target.value); if (isNaN(v)) setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; }); }}
+                        />
+                        {t.modified
+                          ? <button type="button" className="btn ghost sm danger" title="Reset" onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}>×</button>
+                          : <span />}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -2463,19 +2395,19 @@ export function NextflowWorkflowViewer({
           <span className={`watcher-bar${status === 'running' ? '' : ' detached'}`} data-tour="watcher">
             <span className="dot" />
             {status === 'running'
-              ? 'Watcher attached · live SSE'
-              : (status === 'paused' || status === 'failed')
-              ? 'Watcher detached · job on AWS Batch'
+              ? 'Running · live SSE'
+              : status === 'paused'
+              ? 'Paused · job on AWS Batch'
               : ''}
           </span>
           {status === 'running' && onPause && (
             <button className="linkish" data-testid="button-pause-workflow-panel" onClick={onPause}>
-              Detach watcher
+              Pause
             </button>
           )}
-          {(status === 'paused' || status === 'failed') && onResume && (
+          {status === 'paused' && onResume && (
             <button className="linkish" data-testid="button-resume-workflow-panel" onClick={onResume}>
-              Reconnect watcher
+              Resume
             </button>
           )}
           {usageMeter && usageMeter.used > 0 && (status === 'idle' || status === 'pending_review') && (

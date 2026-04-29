@@ -92,21 +92,72 @@ def ac(v, default=None):
     except: return default
 
 def smiles_heuristic_props(smi):
-    """Rough descriptor estimates from SMILES string when RDKit is absent."""
-    hbd = smi.count('[NH') + smi.count('[OH') + smi.count('N') // 2
-    hba = smi.count('O') + smi.count('N')
-    rot = max(0, smi.count('C') - 4)
-    mw  = len(smi) * 6.5
-    tpsa = hbd * 20 + hba * 10
-    rings = smi.count('1') + smi.count('2') + smi.count('3')
+    """Descriptor estimates from SMILES string when RDKit is absent.
+    Uses atom-by-atom MW, ring closure counting, and substructure patterns.
+    """
+    import re as _re
+    # Heavy-atom MW (monoisotopic approx.)
+    _aw = {'C': 12.011, 'N': 14.007, 'O': 15.999, 'S': 32.06,
+           'F': 19.00, 'P': 30.97, 'I': 126.9, 'B': 10.81}
+    _aw2 = {'Cl': 35.45, 'Br': 79.9, 'Si': 28.09}
+    clean = smi.replace('[NH]','N').replace('[NH2]','N').replace('[OH]','O')
+    mw = 0.0
+    i, n_atoms = 0, 0
+    while i < len(clean):
+        if i+1 < len(clean) and clean[i:i+2] in _aw2:
+            mw += _aw2[clean[i:i+2]]; n_atoms += 1; i += 2
+        elif clean[i] in _aw:
+            mw += _aw[clean[i]]; n_atoms += 1; i += 1
+        else:
+            i += 1
+    # Add implicit H (approx: each N/O gets 1 H; Hs already absent from MW)
+    mw += n_atoms * 1.008 * 0.5  # rough H correction
+
+    # H-bond donors: N-H patterns
+    hbd = (smi.count('[NH]') + smi.count('[NH2]') + smi.count('[NH3]')
+           + smi.count('[nH]') + smi.count('[OH]')
+           # unbracketed N followed by H not in ring
+           + len(_re.findall(r'(?<![a-z])N(?![(=])', smi)))
+    hbd = max(0, hbd)
+    # H-bond acceptors: O, N atoms
+    hba = smi.count('O') + smi.count('o') + smi.count('N') + smi.count('n')
+    hba = max(0, hba)
+    # Rotatable bonds: C-C, C-N, C-O single bonds not in ring (approx)
+    # Bonds in ring: roughly (ring_atoms * 1); non-ring rotatable ~ open-chain C
+    rot_raw = max(0, smi.count('C') + smi.count('c') - 4)
+    # Ring systems: each unique digit in SMILES = 1 ring closure pair
+    ring_digits = set(_re.findall(r'(?<![0-9])([1-9])(?![0-9])', smi))
+    n_rings = len(ring_digits)
+    # Deduct ring bonds from rotatable count
+    rot = max(0, rot_raw - n_rings * 2)
+    # Aromatic rings: rings containing lowercase atoms (aromatic SMILES)
+    #   OR kekulized aromatic pattern: C=C-C=C ring (benzene-like)
+    n_arom = 0
+    if 'c' in smi or 'n' in smi or 's' in smi or 'o' in smi:
+        # aromatic SMILES notation
+        n_arom = max(1, n_rings)
+    else:
+        # kekulized: count alternating C=C patterns within rings
+        if _re.search(r'C1=C[C=c]*C=C[C=c]*1', smi) or (
+                '=C' in smi and n_rings >= 1):
+            n_arom = n_rings
+    has_aromatic = n_arom > 0
+    aromatic_rings = n_arom
+    # Functional groups
     has_carbonyl = '=O' in smi
-    has_aromatic = 'c' in smi or 'n' in smi
+    has_amide = bool(_re.search(r'C\(=O\)N|NC\(=O\)', smi))
+    has_lactam = bool(_re.search(r'C1[^)]*C\(=O\)N[^)]*1', smi))
+    has_acid = bool(_re.search(r'C\(=O\)O|OC\(=O\)', smi))
     n_chiral_centers = smi.count('@')
+    tpsa = hbd * 20 + hba * 10
+    flex_index = rot / max(1.0, mw / 100.0)
     return {
-        'mw': mw, 'hbd': hbd, 'hba': hba, 'rotatable_bonds': rot,
-        'tpsa': tpsa, 'rings': rings, 'has_carbonyl': has_carbonyl,
-        'has_aromatic': has_aromatic, 'n_chiral_centers': n_chiral_centers,
-        'source': 'heuristic'
+        'mw': round(mw, 1), 'hbd': hbd, 'hba': hba, 'rotatable_bonds': rot,
+        'tpsa': tpsa, 'rings': n_rings, 'aromatic_rings': aromatic_rings,
+        'flex_index': round(flex_index, 3),
+        'has_carbonyl': has_carbonyl, 'has_aromatic': has_aromatic,
+        'has_amide': has_amide, 'has_lactam': has_lactam, 'has_acid': has_acid,
+        'n_chiral_centers': n_chiral_centers, 'source': 'heuristic',
     }
 
 # ---------------------------------------------------------------------------
