@@ -7806,7 +7806,10 @@ N. REFERENCES — CryoSPARC (Punjani 2017, PMID 28165473); CTFFIND4 (Rohou 2015,
       // CryoSPARC SPA runs via cryosparc_standard_spa/main.nf on AWS Batch GPU workers.
       const isNextflowOrCryoSPARCFallback =
         request.workflowDefinition.workflow_type === 'nextflow' ||
+        executionEngine === 'nextflow' ||
+        !!request.workflowDefinition.nextflow_path ||
         (request.workflowDefinition.workflow_type === 'cryosparc' && !hasCryoSPARCInstance);
+      console.log('[Execute] workflow_type=', request.workflowDefinition.workflow_type, 'executionEngine=', executionEngine, 'nextflow_path=', !!request.workflowDefinition.nextflow_path, 'isNF=', isNextflowOrCryoSPARCFallback);
       if (isNextflowOrCryoSPARCFallback) {
         console.log('[Nextflow Direct] Detected workflow_type=', request.workflowDefinition.workflow_type, hasCryoSPARCInstance ? '' : '(cryosparc→nextflow fallback)');
         console.log('[Nextflow Direct] Path:', request.workflowDefinition.nextflow_path);
