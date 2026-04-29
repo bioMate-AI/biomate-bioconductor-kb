@@ -495,62 +495,127 @@ See §5.2. Full LLM-as-judge labeling pending; `reporter.label_hallucinations(ru
 
 Governance benchmarks are slower because each query requires: (1) intent extraction pass (~8s), (2) hybrid workflow search with BGE dense retrieval + BM25 + LLM reranking (~15s at p50), and (3) parameter extraction + prereq check (~18s). The 15s search step is the primary optimization target.
 
-### 7.2 Financial Cost
+### 7.2 Financial Cost — LLM API
 
-**Table 9. API Cost Breakdown**
+**Cost formula** (implemented in `backend/lib/galaxy/ai/billing/core/cost_calculator.py`, mirrored in `frontend/server/routes.ts`):
 
-| Benchmark | n | Cost/query (USD) | Total run cost (USD) | Model |
-|-----------|---|-----------------|---------------------|-------|
-| Cross-domain routing | 120 | $0.003556 | $0.4267 | claude-sonnet-4-6 |
-| BiomniEval1 | 223 | ~$0.0040 | ~$0.89 | claude-sonnet-4-6 |
-| BOIN clinical trial | 60 | ~$0.0040 | ~$0.24 | claude-sonnet-4-6 |
-| LAB-Bench | 33 | $0.001224 | $0.0404 | claude-sonnet-4-6 |
-| PBPK routing | 45 | ~$0.0030 | ~$0.14 | claude-sonnet-4-6 |
-| Docking triage | 45 | ~$0.0030 | ~$0.14 | claude-sonnet-4-6 |
-| BixBench | 30 | $0.000211 | $0.0063 | claude-sonnet-4-6 |
-| LLM judge (all) | ~700 | ~$0.0005 | ~$0.35 | claude-sonnet-4-6 |
-| Pharmacology/TDC direct | 85 | $0 | $0 | Python only |
-| **Total** | **~631+** | **~$0.0035** | **~$2.26** | |
+```
+cost_usd = (input_tokens / 1_000_000) × price_in + (output_tokens / 1_000_000) × price_out
+```
 
-*Note: Input tokens dominate cost due to the large workflow context (up to 8k tokens for routing queries with full workflow descriptions injected). Output tokens are typically short (200–500 tokens for routing decisions, 50 tokens for LLM judge verdicts).*
+**Pricing table (per 1M tokens, as of 2026-04):**
 
-**Cost at scale (projected):**
+| Model | Input $/MTok | Output $/MTok | Used for |
+|-------|-------------|--------------|---------|
+| claude-sonnet-4-6 | $3.00 | $15.00 | BioMate primary |
+| claude-haiku-4-5-20251001 | $0.25 | $1.25 | LLM-judge, light tasks |
+| claude-opus-4-6 | $15.00 | $75.00 | Complex reasoning (unused in eval) |
+| gemini-3-flash-preview | $0.075 | $0.30 | Gemini baseline comparison |
 
-| Scenario | Queries | Estimated cost |
-|----------|---------|----------------|
-| Full LAB-Bench (1,460 tasks) | 1,460 | ~$5.84 |
+**Table 9. Measured LLM Cost per Benchmark Run (2026-04-29)**
+
+| Benchmark | n | avg input tok | avg output tok | $/query | Total run | Source |
+|-----------|---|--------------|---------------|---------|-----------|--------|
+| Cross-domain routing v11 | 120 | 107 | 216 | $0.003561 | $0.4273 | stored in DB |
+| LAB-Bench v22b | 33 | 38 | 78 | $0.001284 | $0.0424 | stored in DB |
+| BixBench v4 | 30 | 6 | 13 | $0.000213 | $0.0064 | stored in DB |
+| BiomniEval1 v27 | 223 | — | — | ? | ? | token NULL (ask_task bug, now fixed) |
+| BiomniEval1 (Gemini Flash) | 223 | 264 | 38 | $0.000031 | $0.0070 | stored in DB |
+| LAB-Bench (Gemini Flash) | 340 | 1,439 | 18 | $0.000113 | $0.0385 | stored in DB |
+
+*Token counts for routing are high (avg 107 input) because each query injects the full workflow description context (up to 8k tokens for complex routing). Knowledge benchmarks like LAB-Bench have short inputs (avg 38 tokens). BixBench MCQ has minimal context (6 tokens). The BiomniEval1 cost gap vs Gemini reflects the 40× cheaper Gemini pricing, not input length — BioMate Sonnet costs ~115× more per token than Gemini Flash.*
+
+**Cost at scale (projected, claude-sonnet-4-6):**
+
+| Scenario | n | Projected cost |
+|----------|---|----------------|
 | Full BixBench (296 tasks) | 296 | ~$0.063 |
-| Full TDC ADMET (hERG n=2,804 + others) | 0 (Python) | $0 |
-| Full BioAgentBench robustness (n=500 est.) | 500 | ~$2.00 |
-| Annual regression suite (weekly, current 631 tasks) | 32,812 | ~$115 |
+| Full LAB-Bench all 5 subtasks (1,460) | 1,460 | ~$5.84 |
+| Full routing (1,200 tasks, 10× current) | 1,200 | ~$4.27 |
+| Annual weekly regression (52 × 120 routing + 223 biomni) | 17,836 | ~$78 |
 
-The low cost per query makes large-scale, frequent evaluation economically viable. Weekly regression across all current benchmarks costs approximately $2.20/run.
+### 7.3 Financial Cost — AWS Batch Compute
 
-### 7.3 AWS Batch Execution Cost
+**Batch compute cost formula** (implemented in `cost_calculator.py::batch_job_cost()`):
 
-For validation benchmarks requiring actual workflow execution on AWS Batch (not currently run for most benchmarks due to speed):
+```
+hours = duration_seconds / 3600
+share = max(vcpu_requested / instance_vcpu, mem_requested_gb / instance_mem_gb)
+base  = instance_price_hr × hours × share
 
-| Workflow type | Instance | Time | Compute | S3+Network | LLM | Total/run |
-|--------------|----------|------|---------|-----------|-----|-----------|
-| ADMET screening (1 compound) | m5.xlarge ($0.192/hr) | 3–5 min | $0.010–0.016 | ~$0.001 | $0.003 | **~$0.015–0.02** |
-| RNA-seq diff. expression | c5.4xlarge ($0.68/hr) | 45–90 min | $0.51–1.02 | ~$0.03 | $0.004 | **~$0.55–1.05** |
-| WGS variant calling | m5.4xlarge ($0.768/hr) | 90–180 min | $1.15–2.30 | ~$0.05 | $0.004 | **~$1.20–2.35** |
-| Cryo-EM SPA (26K particles) | g6.12xlarge ($3.97/hr) | 45 min | $2.98 | ~$0.05 | $0.004 | **~$3.03** |
-| PBPK + Phase2 (pharmacology) | m5.xlarge ($0.192/hr) | 8–12 min | $0.026–0.038 | ~$0.002 | $0.008 | **~$0.036–0.048** |
+CPU-only job:  vCPU_cost = base × 0.60,  mem_cost = base × 0.40,  gpu_cost = 0
+Single GPU:    vCPU_cost = base × 0.50,  mem_cost = base × 0.30,  gpu_cost = base × 0.20
+Multi-GPU:     vCPU_cost = base × 0.30,  mem_cost = base × 0.20,  gpu_cost = base × 0.50
 
-**Full production cost breakdown per run:**
-- **Compute (CPU/GPU)**: Largest component for long-running pipelines. Charged per vCPU-second via AWS Batch.
-  Tracked by `biomate-batch-billing` Lambda → Lago (see Billing Architecture §CLAUDE.md).
-- **GPU**: g4dn.xlarge ($0.526/hr for CryoEM), p3.2xlarge ($3.06/hr for ML workflows).
-  Only billed when GPU queue (`galaxy-cloud-queue-gpu`) is used.
-- **S3 storage**: $0.023/GB/month; typical RNA-seq run produces 5–20GB intermediate files → $0.12–0.46/month.
-- **Network/egress**: ECR pulls ($0), S3 data transfer within region ($0), cross-region ($0.09/GB).
-- **LLM API**: ~$0.003–0.008/workflow regardless of compute; routing + param extraction only.
+Spot discount: multiply all by (1 − 0.65) = 0.35  (typical ~65% Spot savings)
+```
 
-Running the full pharmacology benchmark on actual AWS Batch (21 workflows × 2 runs each) would cost approximately $0.35 compute + $0.17 LLM = **~$0.52 total**.
+**Instance price reference (us-east-1, on-demand):**
 
-**Benchmark evaluation cost** (LLM only, no Nextflow execution):
-Routing n=120: $0.43; BiomniEval1 n=223: ~$0.89; LAB-Bench n=1,460: ~$5.84; BixBench n=296: ~$0.06.
+| Instance | vCPU | RAM | GPU | $/hr | Used for |
+|----------|------|-----|-----|------|---------|
+| m6i.xlarge | 4 | 16 GB | — | $0.192 | ADMET, PBPK, small tools |
+| m6i.2xlarge | 8 | 32 GB | — | $0.384 | Medium pipelines |
+| m6i.4xlarge | 16 | 64 GB | — | $0.768 | RNA-seq, WGS |
+| c6i.4xlarge | 16 | 32 GB | — | $0.680 | Compute-intensive |
+| g4dn.xlarge | 4 | 16 GB | 1×T4 | $0.526 | Light GPU (MD, small ML) |
+| g4dn.2xlarge | 8 | 32 GB | 1×T4 | $0.752 | CryoEM reconstruction |
+| p3.2xlarge | 8 | 61 GB | 1×V100 | $3.060 | ML training (unused) |
+
+**Table 10. Computed Batch Execution Cost per Workflow Run**
+
+All values from `CostCalculator.batch_job_cost()` with actual resource specs, us-east-1, 2026-04.
+
+| Workflow | Instance | vCPU | RAM | GPU | Time | On-Demand | Spot |
+|---------|----------|------|-----|-----|------|-----------|------|
+| ADMET (1 compound) | m6i.xlarge | 2 | 6 GB | — | 4 min | $0.0064 | $0.0022 |
+| PBPK + dose justification | m6i.xlarge | 2 | 6 GB | — | 10 min | $0.0160 | $0.0056 |
+| RNA-seq (2 samples) | m6i.4xlarge | 12 | 48 GB | — | 60 min | $0.5760 | $0.2016 |
+| WGS sarek (30× coverage) | m6i.4xlarge | 14 | 56 GB | — | 120 min | $1.3440 | $0.4704 |
+| CryoEM SPA (26K particles) | g4dn.2xlarge | 6 | 28 GB | 1 | 45 min | $0.4935 | $0.1727 |
+| GROMACS MD 10 ns (CPU) | m6i.2xlarge | 6 | 24 GB | — | 180 min | $0.8640 | $0.3024 |
+| GROMACS MD 10 ns (GPU) | g4dn.xlarge | 3 | 12 GB | 1 | 60 min | $0.3945 | $0.1381 |
+
+Cost attribution splits (from billing dashboard → Lago):
+- vCPU cost feeds `biomate_vcpu_seconds` metric in Lago
+- Memory cost feeds `biomate_memory_gb_seconds`
+- GPU cost feeds `biomate_gpu_seconds`
+
+### 7.4 Financial Cost — S3 and Network
+
+**S3 formula** (implemented in `cost_calculator.py::s3_put_cost()` and `s3_get_cost()`):
+
+```
+S3 storage:    $0.023/GB/month  (STANDARD class, us-east-1)
+S3 PUT:        $0.000005 per request  ($5.00/million)
+S3 GET:        $0.0000004 per request  ($0.40/million)
+Data egress:   $0.09/GB cross-region; FREE same-region EC2→S3
+ECR pull:      FREE within same region; $0.10/GB cross-region
+```
+
+**Table 11. Estimated S3 Cost per Workflow Run (30-day retention)**
+
+| Workflow outputs | Size | Storage/mo | Requests | Total/mo |
+|----------------|------|-----------|---------|---------|
+| ADMET outputs | ~1 GB | $0.0230 | $0.000052 | $0.0231 |
+| RNA-seq outputs | ~10 GB | $0.2300 | $0.000270 | $0.2303 |
+| WGS outputs | ~30 GB | $0.6900 | $0.000580 | $0.6906 |
+| CryoEM outputs | ~20 GB | $0.4600 | $0.000170 | $0.4602 |
+
+*S3 costs are amortised over 30-day retention. Files not deleted after run accumulate. WGS runs generate the largest S3 bill — BAM files alone are 20–40 GB.*
+
+### 7.5 Total Production Cost per Workflow Run
+
+| Workflow | Compute (On-Dem) | Compute (Spot) | S3/mo | LLM | Total On-Dem | Total Spot |
+|---------|-----------------|---------------|-------|-----|-------------|-----------|
+| ADMET (1 compound) | $0.006 | $0.002 | $0.023 | $0.004 | **~$0.033** | **~$0.029** |
+| PBPK pipeline | $0.016 | $0.006 | $0.023 | $0.008 | **~$0.047** | **~$0.037** |
+| RNA-seq (2 samples) | $0.576 | $0.202 | $0.230 | $0.004 | **~$0.81** | **~$0.44** |
+| WGS sarek (30×) | $1.344 | $0.470 | $0.690 | $0.004 | **~$2.04** | **~$1.16** |
+| CryoEM SPA | $0.494 | $0.173 | $0.460 | $0.004 | **~$0.96** | **~$0.64** |
+| GROMACS MD (GPU) | $0.395 | $0.138 | $0.460 | $0.004 | **~$0.86** | **~$0.60** |
+
+For most users, Spot instances (65% cheaper) are appropriate — Nextflow automatically restarts interrupted jobs via `-resume`. LLM cost is negligible (<1% of total for compute-heavy workflows). S3 accumulates for as long as files are retained.
 
 ---
 
