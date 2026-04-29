@@ -531,6 +531,69 @@ test('DD-CRO-5: IND Assembly — generate CTD §2.6.1 Markdown package', async (
   console.log(`  Pandoc: ${result.pandoc_available} | DOCX: ${result.docx_generated}`);
   console.log(`  Preview (first 200): ${result.markdown_preview.slice(0, 200)}`);
 
+  // DD-CRO-5b — pk-summary store/retrieve
+  const pkSummaryPayload = {
+    status: "predicted",
+    fu_plasma: 0.17,
+    cl_renal_fraction: 0.15,
+    cl_hepatic_fraction: 0.80,
+    vd_lkg: 2.3,
+    logP: 3.2,
+    mw_Da: 350.1,
+    estimation_method: "rdkit_lobell2003_ppb + lombardo2002_vd + bcs_logp_clr",
+  }
+  const storeResult = await page.evaluate(
+    async ({ baseUrl, cid, payload }) => {
+      const res = await fetch(`${baseUrl}/api/drug-discovery/${cid}/pk-summary`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pk_summary: payload }),
+      })
+      return { status: res.status, body: await res.json().catch(() => null) }
+    },
+    { baseUrl: BASE_URL, cid: SHARED_CAMPAIGN_ID, payload: pkSummaryPayload }
+  )
+  console.log(`  pk-summary store: ${storeResult.status}`)
+  expect(storeResult.status, 'pk-summary store 200').toBe(200)
+  expect(storeResult.body?.stored, 'pk-summary stored=true').toBe(true)
+  expect(storeResult.body?.fu_plasma, 'fu_plasma stored').toBe(0.17)
+
+  // Retrieve it back
+  const pkGetResult = await page.evaluate(
+    async ({ baseUrl, cid }) => {
+      const res = await fetch(`${baseUrl}/api/drug-discovery/${cid}/pk-summary`, { credentials: 'include' })
+      return { status: res.status, body: await res.json().catch(() => null) }
+    },
+    { baseUrl: BASE_URL, cid: SHARED_CAMPAIGN_ID }
+  )
+  console.log(`  pk-summary get: ${pkGetResult.status}`)
+  expect(pkGetResult.status, 'pk-summary GET 200').toBe(200)
+  expect(pkGetResult.body?.vd_lkg, 'vd_lkg retrieved').toBe(2.3)
+
+  // Regenerate IND with pk_summary — §2.6.2 should contain compound-specific PK table
+  const assembleWithPkResult = await page.evaluate(
+    async ({ baseUrl, cid, payload }) => {
+      const res = await fetch(`${baseUrl}/api/drug-discovery/${cid}/ind-assembly`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          molecule_name: 'BMT-4451',
+          target_name:   'EGFR L858R',
+          indication:    'NSCLC — 2nd line',
+          sponsor:       'BioMate E2E Test',
+          pk_summary:    payload,
+        }),
+      })
+      return { status: res.status, body: await res.json().catch(() => null) }
+    },
+    { baseUrl: BASE_URL, cid: SHARED_CAMPAIGN_ID, payload: pkSummaryPayload }
+  )
+  expect(assembleWithPkResult.status, 'assemble with pk_summary 200').toBe(200)
+  const pkMd: string = assembleWithPkResult.body?.markdown_content ?? ''
+  expect(pkMd, '§2.6.2 contains f_u value').toContain('0.170')
+  expect(pkMd, '§2.6.2 contains Vd value').toContain('2.3')
+  console.log(`  IND with pk_summary: len=${pkMd.length} chars, fu=0.17 present=${pkMd.includes('0.170')}`)
+
   await screenshot(page, 'cro5_03_done');
   console.log('[DD-CRO-5] ✅ PASS');
 });
