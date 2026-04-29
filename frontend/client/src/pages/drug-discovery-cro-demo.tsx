@@ -977,8 +977,8 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "ind-generate", target: '[data-tour="ind-generate"]', placement: "top",
-    title: "One-click IND §2.6.1 — with AI regulatory prose",
-    body: <>Fill campaign details, click <b>Generate IND Package</b>. BioMate pulls PBPK metrics, ADMET results, compound rankings, and audit records — then a Gemini-powered regulatory writer drafts 2–4 sentences of FDA-style prose for each section. Download the full §2.6.1 Nonclinical Overview as <b>Markdown + DOCX</b>, ready to attach to your IND filing.</>,
+    title: "One-click IND §2.6.1–§2.6.3 — with AI regulatory prose",
+    body: <>Fill campaign details, click <b>Generate IND Package</b>. BioMate assembles three ICH M4 CTD sections: §2.6.1 (Pharmacology), §2.6.2 (Pharmacokinetics), and §2.6.3 (Toxicology) — each with 2–4 sentences of Gemini-written FDA regulatory prose. Download as <b>Markdown + DOCX</b>, ready to attach to your IND filing.</>,
     setup: (setTab) => setTab("ind-assembly"),
   },
   {
@@ -994,7 +994,7 @@ const TOUR_STEPS: TourStep[] = [
       <ul style={{ paddingLeft: 18, margin: "8px 0 0", lineHeight: 1.7, color: "oklch(0.48 0.012 260)", fontSize: 12.5 }}>
         <li>Replay this tour anytime from the <b style={{ color: "oklch(0.22 0.01 260)" }}>Tutorial</b> button in the top bar.</li>
         <li>Click a regulated action (Ingest Assay, Export CRO Order) to trigger the e-signature flow.</li>
-        <li>Switch to <b style={{ color: "oklch(0.22 0.01 260)" }}>IND</b> tab, fill the form, and download the AI-written §2.6.1 Markdown + DOCX.</li>
+        <li>Switch to <b style={{ color: "oklch(0.22 0.01 260)" }}>IND</b> tab, fill the form, and download the AI-written §2.6.1–§2.6.3 Markdown + DOCX.</li>
         <li>Switch between tabs to explore Validation, Audit, and Auto-Retrain.</li>
       </ul>
     </>,

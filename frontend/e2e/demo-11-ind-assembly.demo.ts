@@ -192,11 +192,15 @@ test('Demo 11 — IND §2.6.1 Assembly with AI Regulatory Prose', async ({ page 
   console.log(`[Demo11] Sections: ${r.sections?.join(', ')}`);
   console.log(`[Demo11] Pandoc: ${r.pandoc_available} | DOCX: ${r.docx_generated}`);
 
-  // Verify all 6 section headings present
-  expect(r.sections?.length, 'all 6 sections').toBeGreaterThanOrEqual(6);
-  for (const sec of ['2.6.1.1', '2.6.1.2', '2.6.1.3', '2.6.1.4', '2.6.1.5', '2.6.1.6']) {
+  // Verify all 8 section headings present (§2.6.1 sub-sections + §2.6.2 + §2.6.3)
+  expect(r.sections?.length, 'all 8 sections').toBeGreaterThanOrEqual(8);
+  for (const sec of ['2.6.1.1', '2.6.1.2', '2.6.1.3', '2.6.1.4', '2.6.1.5', '2.6.1.6', '2.6.2', '2.6.3']) {
     expect(fullMd, `heading ${sec} in document`).toContain(sec);
   }
+
+  // §2.6.2 and §2.6.3 content quality checks
+  expect(fullMd, '§2.6.2 Pharmacokinetics section present').toContain('Pharmacokinetics');
+  expect(fullMd, '§2.6.3 Toxicology section present').toContain('Toxicology');
 
   // Narrative quality check — §2.6.1.1 and §2.6.1.2 must have real prose
   const overviewMatch = fullMd.match(/## 2\.6\.1\.1.*?\n\n(.*?)(?=\n##|\n\n###)/s);

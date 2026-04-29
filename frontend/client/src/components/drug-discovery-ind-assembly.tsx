@@ -48,7 +48,7 @@ interface AssemblyResult {
   docx_path: string | null
 }
 
-// BioMate IND section titles (ICH M4 CTD §2.6.1 computational-CRO variant)
+// BioMate IND section titles (ICH M4 CTD §2.6.1–2.6.3 computational-CRO variant)
 const SECTION_TITLES: Record<string, string> = {
   "2.6.1.1": "Overview of Computational Methods",
   "2.6.1.2": "PBPK Model Qualification",
@@ -56,6 +56,8 @@ const SECTION_TITLES: Record<string, string> = {
   "2.6.1.4": "Compound Prioritization and Lead Candidate Selection",
   "2.6.1.5": "Applicability Domain Assessment",
   "2.6.1.6": "Audit Trail and Regulatory Traceability",
+  "2.6.2":   "Nonclinical Overview: Pharmacokinetics",
+  "2.6.3":   "Nonclinical Overview: Toxicology",
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -172,10 +174,10 @@ export function DrugDiscoveryIndAssembly({
         <h3 className="text-sm font-semibold">IND Section Assembly</h3>
         <div className="flex flex-wrap gap-1.5 mt-1">
           <Badge variant="outline" className="font-mono text-xs text-indigo-700 dark:text-indigo-400 border-indigo-300">
-            ICH M4 — CTD §2.6.1
+            ICH M4 — CTD §2.6.1–§2.6.3
           </Badge>
           <Badge variant="outline" className="font-mono text-xs">
-            Nonclinical Overview — Pharmacology
+            Pharmacology · Pharmacokinetics · Toxicology
           </Badge>
         </div>
       </div>
@@ -240,7 +242,7 @@ export function DrugDiscoveryIndAssembly({
         <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-xs font-medium hover:bg-muted/50 transition-colors">
           <div className="flex items-center gap-2">
             <span>Contents Preview</span>
-            <span className="text-muted-foreground font-normal">6 sections</span>
+            <span className="text-muted-foreground font-normal">{Object.keys(SECTION_TITLES).length} sections · §2.6.1–§2.6.3</span>
           </div>
           <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", contentsOpen && "rotate-180")} />
         </CollapsibleTrigger>

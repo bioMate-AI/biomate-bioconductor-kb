@@ -473,8 +473,8 @@ test('DD-CRO-5: IND Assembly — generate CTD §2.6.1 Markdown package', async (
   expect(result.markdown_preview,'markdown_preview').toBeTruthy();
   expect(result.markdown_path,  'markdown_path').toBeTruthy();
 
-  // Check ICH M4 sections present
-  const expectedSections = ['2.6.1.1', '2.6.1.2', '2.6.1.3'];
+  // Check all ICH M4 §2.6.1–§2.6.3 sections present
+  const expectedSections = ['2.6.1.1', '2.6.1.2', '2.6.1.3', '2.6.2', '2.6.3'];
   for (const sec of expectedSections) {
     expect(result.sections, `section ${sec} present`).toContain(sec);
   }
@@ -500,10 +500,16 @@ test('DD-CRO-5: IND Assembly — generate CTD §2.6.1 Markdown package', async (
   expect(hasNarrativeMarkers, 'markdown contains regulatory prose').toBe(true);
   console.log(`  Full markdown length: ${fullMd.length} chars`);
 
-  // Section headings must appear in full doc
-  for (const sec of ['2.6.1.1', '2.6.1.2', '2.6.1.3', '2.6.1.4', '2.6.1.5', '2.6.1.6']) {
+  // All §2.6.1 sub-section headings + §2.6.2 + §2.6.3 must appear in full doc
+  for (const sec of ['2.6.1.1', '2.6.1.2', '2.6.1.3', '2.6.1.4', '2.6.1.5', '2.6.1.6', '2.6.2', '2.6.3']) {
     expect(fullMd, `full markdown contains heading ${sec}`).toContain(sec);
   }
+
+  // §2.6.2 PK section must contain ADME keywords
+  expect(fullMd, '§2.6.2 contains PK content').toMatch(/Pharmacokinetics|PBPK|absorption|distribution|metabolism/i);
+
+  // §2.6.3 Toxicology section must contain safety keywords
+  expect(fullMd, '§2.6.3 contains tox content').toMatch(/Toxicology|hERG|genotoxicity|Ames|cardiac/i);
 
   // Download endpoint — GET /ind-assembly/download?format=md must return 200
   const dlResult = await page.evaluate(
