@@ -755,6 +755,9 @@ export function NextflowWorkflowViewer({
   // QC gate inline panel state (SSE-triggered)
   const [showQcInline, setShowQcInline] = useState(false);
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
+  const [qcGateSecondsLeft, setQcGateSecondsLeft] = useState<number | null>(null);
+  const qcGateTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const QC_GATE_TIMEOUT_S = 300; // 5 minutes
   const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
     gateResults: null,
     remediations: [],
@@ -1154,11 +1157,34 @@ export function NextflowWorkflowViewer({
     }
   };
 
-  const handleProceedAnyway = () => {
-    console.log("[QC Gate NFViewer] User chose to proceed despite QC failures");
+  const dismissQcGate = React.useCallback((reason: 'user' | 'timeout') => {
+    if (qcGateTimerRef.current) { clearInterval(qcGateTimerRef.current); qcGateTimerRef.current = null; }
     setShowQcInline(false);
     setQCGateData(null);
-  };
+    setQcGateSecondsLeft(null);
+    if (reason === 'timeout') {
+      // Brief toast-style notice that the gate was dismissed and workflow continued
+      console.info("[QC Gate] Timed out — workflow continued past gate without applying suggestions");
+    }
+  }, []);
+
+  // Start countdown when gate card appears; auto-dismiss after QC_GATE_TIMEOUT_S seconds
+  React.useEffect(() => {
+    if (!showQcInline) return;
+    setQcGateSecondsLeft(QC_GATE_TIMEOUT_S);
+    qcGateTimerRef.current = setInterval(() => {
+      setQcGateSecondsLeft(prev => {
+        if (prev === null || prev <= 1) {
+          dismissQcGate('timeout');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (qcGateTimerRef.current) { clearInterval(qcGateTimerRef.current); qcGateTimerRef.current = null; } };
+  }, [showQcInline, dismissQcGate]);
+
+  const handleProceedAnyway = () => dismissQcGate('user');
 
   const handleCancelWorkflow = () => {
     console.log("[QC Gate NFViewer] User cancelled workflow due to QC failures");
