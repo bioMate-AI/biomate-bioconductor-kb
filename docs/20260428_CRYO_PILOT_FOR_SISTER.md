@@ -128,12 +128,16 @@ By the end of Week 6, we have:
 
 | Task | Who |
 |---|---|
-| Cryo-EM dataset expertise, EMPIAR data validation, structural interpretation | **[Sister] — academic PI** |
-| BioMate infrastructure, workflow execution, GPU compute, gap analysis scripts | **Yaoyun Zhang — BioMate AI** |
+| Cryo-EM dataset expertise, EMPIAR data validation, structural interpretation | **[Sister] — structural biology co-PI** |
+| BioMate infrastructure, workflow execution, GPU compute, gap analysis scripts | **Yaoyun Zhang — BioMate AI, lead PI** |
 | Proposal writing (science narrative) | Joint |
-| Grant submission (Google.org requires nonprofit/academic institution) | **[Sister's institution]** — must be the submitting organization |
+| Grant submission | **BioMate AI** (for-profit social enterprise eligible) or **[Sister's institution]** (academic route) |
 
-**Important**: Google.org's AI4Science program requires the primary applicant to be a nonprofit or academic institution. BioMate AI as a company cannot be the PI. The sister's university department must be the submitting institution, with Yaoyun Zhang as a named co-PI from the BioMate AI platform.
+**Eligibility note**: Google.org's AI for Science program accepts for-profit companies that are "social enterprise companies with a clear and explicit social impact purpose." BioMate AI qualifies on this basis — democratizing computational biology for labs that cannot afford CRO services is a direct social impact argument. BioMate can therefore apply as the primary organization, with the sister's academic lab as a named research partner/co-PI. Alternatively, the sister's institution can be the submitting organization if that strengthens the application narrative.
+
+**Funding**: $500K–$3M per selected organization from a $30M total pool. Also includes Google Cloud credits (directly useful for CryoEnsemble GPU compute) and 6 months of pro bono Google technical support.
+
+**Deadline**: Official Google.org page states May 1, 2026. Some listing sites cite April 17 — verify on the submission portal before submitting.
 
 ---
 
