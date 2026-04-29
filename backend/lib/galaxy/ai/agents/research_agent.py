@@ -458,6 +458,147 @@ def lookup_ensembl_ids(ensg_ids: List[str]) -> Dict[str, Any]:
     return out
 
 
+def search_ensembl_genes(symbols: List[str], species: str = "human") -> List[Dict[str, Any]]:
+    """Ensembl REST /lookup/symbol — gene symbol → ENSG ID, coordinates, biotype.
+    Used for CompBioBench-style 'convert gene symbols to Ensembl IDs' tasks.
+    """
+    if not symbols:
+        return []
+    results = []
+    for sym in symbols[:30]:
+        try:
+            url = f"https://rest.ensembl.org/lookup/symbol/{species}/{urllib.parse.quote(sym)}?content-type=application/json&expand=0"
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = json.loads(r.read())
+            if isinstance(data, dict) and data.get("id"):
+                results.append({
+                    "symbol": sym,
+                    "ensembl_id": data["id"],
+                    "chr": data.get("seq_region_name", ""),
+                    "start": data.get("start"),
+                    "end": data.get("end"),
+                    "strand": data.get("strand"),
+                    "biotype": data.get("biotype", ""),
+                })
+            else:
+                results.append({"symbol": sym, "ensembl_id": None, "error": "not_found"})
+        except Exception as e:
+            results.append({"symbol": sym, "ensembl_id": None, "error": str(e)})
+    return results
+
+
+def lookup_ensembl_vep(variants: List[str], species: str = "human") -> List[Dict[str, Any]]:
+    """Ensembl VEP REST — variant consequence annotation.
+    Accepts HGVS notation (e.g. 'ENST00000366667.4:c.803C>T') or chr:pos:ref:alt (e.g. '9:22125503:G:C').
+    Returns most_severe_consequence, gene_id, transcript_consequences.
+    """
+    if not variants:
+        return []
+    # Use POST for batch, GET for single
+    if len(variants) == 1:
+        v = urllib.parse.quote(variants[0])
+        url = f"https://rest.ensembl.org/vep/{species}/hgvs/{v}?content-type=application/json"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            if isinstance(data, list):
+                return [{"variant": v,
+                         "most_severe": d.get("most_severe_consequence", ""),
+                         "gene_id": (d.get("transcript_consequences") or [{}])[0].get("gene_id", ""),
+                         "transcripts": d.get("transcript_consequences", [])[:3]} for d in data]
+        except Exception as e:
+            log.debug(f"VEP lookup failed: {e}")
+        return []
+    result = _http_post(
+        f"https://rest.ensembl.org/vep/{species}/hgvs",
+        {"hgvs_notations": variants[:30]},
+        timeout=20,
+    )
+    if not isinstance(result, list):
+        return []
+    return [{"variant": d.get("input", ""),
+             "most_severe": d.get("most_severe_consequence", ""),
+             "gene_id": (d.get("transcript_consequences") or [{}])[0].get("gene_id", ""),
+             "transcripts": d.get("transcript_consequences", [])[:3]} for d in result]
+
+
+def fetch_ensembl_sequence(region: str, species: str = "human") -> Optional[str]:
+    """Ensembl REST /sequence/region — fetch DNA sequence for a genomic interval.
+    region format: 'chr:start..end' or 'chr:start-end' (1-based, hg38/GRCh38).
+    Returns the sequence string or None.
+    """
+    region_clean = re.sub(r"chr", "", region.strip(), flags=re.IGNORECASE)
+    region_clean = region_clean.replace(",", "").replace("-", "..").replace(":", ":", 1)
+    url = (f"https://rest.ensembl.org/sequence/region/{species}/{urllib.parse.quote(region_clean)}"
+           f"?content-type=text/plain")
+    req = urllib.request.Request(url, headers={"Accept": "text/plain"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.read().decode("utf-8").strip()
+    except Exception as e:
+        log.debug(f"Ensembl sequence fetch failed for {region}: {e}")
+        return None
+
+
+def lookup_gtex_expression(gene_symbol: str, tissue: Optional[str] = None) -> Dict[str, Any]:
+    """GTEx REST API v2 — gene expression (median TPM) across tissues.
+    Returns top 10 tissues by expression + specific tissue if requested.
+    """
+    url = f"https://gtexportal.org/api/v2/expression/medianGeneExpression?gencodeId=&geneSymbol={urllib.parse.quote(gene_symbol)}&datasetId=gtex_v8"
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        entries = data.get("data", [])
+        # Sort by median TPM descending
+        entries.sort(key=lambda x: x.get("median", 0), reverse=True)
+        result: Dict[str, Any] = {
+            "gene": gene_symbol,
+            "top_tissues": [
+                {"tissue": e.get("tissueSiteDetailId", ""), "median_tpm": e.get("median", 0)}
+                for e in entries[:10]
+            ],
+        }
+        if tissue:
+            match = next((e for e in entries if tissue.lower() in e.get("tissueSiteDetailId", "").lower()), None)
+            if match:
+                result["queried_tissue"] = {"tissue": match.get("tissueSiteDetailId"), "median_tpm": match.get("median", 0)}
+        return result
+    except Exception as e:
+        log.debug(f"GTEx lookup failed for {gene_symbol}: {e}")
+        return {}
+
+
+def lookup_encode_regulatory(chrom: str, start: int, end: int, assembly: str = "GRCh38") -> Dict[str, Any]:
+    """ENCODE REST API — regulatory elements overlapping a genomic interval.
+    Returns cCRE annotations (ELS, PLS, CTCF-only) and overlapping ENCODE experiments.
+    """
+    url = (f"https://www.encodeproject.org/search/?type=Annotation&annotation_type=representative+DNase+hypersensitivity+sites"
+           f"&assembly={assembly}&format=json&limit=1")
+    # Use UCSC REST for cCRE lookup (more accessible)
+    ucsc_url = (f"https://api.genome.ucsc.edu/getData/track?"
+                f"genome=hg38&track=encodeCcreCombined&chrom={chrom}&start={start-1}&end={end}")
+    req = urllib.request.Request(ucsc_url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read())
+        items = data.get("encodeCcreCombined", [])
+        return {
+            "interval": f"{chrom}:{start}-{end}",
+            "ccre_count": len(items),
+            "ccres": [
+                {"name": i.get("name", ""), "ccre_class": i.get("ucscLabel", ""),
+                 "start": i.get("chromStart"), "end": i.get("chromEnd")}
+                for i in items[:10]
+            ],
+        }
+    except Exception as e:
+        log.debug(f"ENCODE/UCSC cCRE lookup failed for {chrom}:{start}-{end}: {e}")
+        return {}
+
+
 def lookup_mygene(identifiers: List[str], fields: str = "symbol,name,summary,OMIM") -> List[dict]:
     """MyGene.info — gene annotation including OMIM disease IDs.
     Accepts ENSG IDs, Entrez IDs, or gene symbols (auto-detects via /query endpoint for symbols).
@@ -1469,6 +1610,75 @@ class ResearchAgent:
                 if clinvar_hits:
                     db_facts["clinvar_variants"] = clinvar_hits
 
+            # ── Gene symbol → Ensembl ID (CompBioBench ensembl-grab style tasks) ──
+            # Triggers when question asks to "convert" symbols to Ensembl IDs or
+            # "what is the Ensembl ID for GENE" — i.e. gene_symbols present but no ENSG IDs.
+            ensembl_lookup_keywords = {
+                "ensembl", "ensg", "gene id", "gene identifier",
+                "convert", "look up", "retrieve", "fetch",
+            }
+            needs_ensg_lookup = (
+                gene_syms and not ids["ensg_ids"]
+                and any(kw in question.lower() for kw in ensembl_lookup_keywords)
+            )
+            if needs_ensg_lookup:
+                ensg_search = search_ensembl_genes(gene_syms[:30])
+                if ensg_search:
+                    db_facts["ensembl_gene_search"] = ensg_search
+                    log.info(f"Ensembl gene search: {len(ensg_search)} symbols resolved")
+
+            # ── Variant consequence annotation (Ensembl VEP) ─────────────────────
+            # Triggers on HGVS notation or chrom:pos:ref:alt variant descriptions.
+            hgvs_variants = re.findall(
+                r"(?:chr[\dXYMT]+:[\d,]+:[ACGT]+:[ACGT]+|ENST\d+\.\d+:c\.[^\s,;]+|[A-Z]\d+[A-Z])",
+                question, re.IGNORECASE
+            )
+            variant_annotation_keywords = {"consequence", "vep", "variant effect", "annotation", "impact", "missense", "nonsense"}
+            if hgvs_variants and any(kw in question.lower() for kw in variant_annotation_keywords):
+                vep_results = lookup_ensembl_vep(hgvs_variants[:5])
+                if vep_results:
+                    db_facts["vep_annotation"] = vep_results
+                    log.info(f"VEP annotation: {len(vep_results)} variants annotated")
+
+            # ── Genomic sequence retrieval (Ensembl REST) ─────────────────────────
+            # Triggers when question asks for a DNA/genomic sequence of a region.
+            genomic_region = re.search(
+                r"\b(chr[\dXYMT]+)[:\s]+([\d,]+)[:\-\.\s]+([\d,]+)\b",
+                question, re.IGNORECASE
+            )
+            sequence_keywords = {"sequence", "fasta", "nucleotide", "promoter", "retrieve sequence", "fetch sequence"}
+            if genomic_region and any(kw in question.lower() for kw in sequence_keywords):
+                chrom = genomic_region.group(1)
+                start = genomic_region.group(2).replace(",", "")
+                end = genomic_region.group(3).replace(",", "")
+                seq = fetch_ensembl_sequence(f"{chrom}:{start}..{end}")
+                if seq:
+                    db_facts["genomic_sequence"] = {"region": f"{chrom}:{start}-{end}", "sequence": seq[:2000]}
+                    log.info(f"Ensembl sequence retrieved: {len(seq)} bp for {chrom}:{start}-{end}")
+
+            # ── GTEx gene expression lookup ───────────────────────────────────────
+            # Triggers when question mentions expression, TPM, tissue, or GTEx.
+            gtex_keywords = {"expression", "tpm", "fpkm", "gtex", "tissue", "expressed in"}
+            if gene_syms and any(kw in question.lower() for kw in gtex_keywords):
+                tissue_match = re.search(r"\b(brain|liver|heart|kidney|lung|muscle|skin|blood|testis|colon|ovary|prostate)\b", question, re.IGNORECASE)
+                tissue = tissue_match.group(1).lower() if tissue_match else None
+                gtex_data = lookup_gtex_expression(gene_syms[0], tissue)
+                if gtex_data:
+                    db_facts["gtex_expression"] = gtex_data
+                    log.info(f"GTEx expression retrieved for {gene_syms[0]}")
+
+            # ── ENCODE/UCSC regulatory element lookup ─────────────────────────────
+            # Triggers when question asks about regulatory state, cCREs, or enhancers for a region.
+            regulatory_keywords = {"regulatory", "enhancer", "promoter", "ccre", "els", "dhs", "encode", "open chromatin", "accessible"}
+            if genomic_region and any(kw in question.lower() for kw in regulatory_keywords):
+                chrom = genomic_region.group(1)
+                start_i = int(genomic_region.group(2).replace(",", ""))
+                end_i = int(genomic_region.group(3).replace(",", ""))
+                ccre_data = lookup_encode_regulatory(chrom, start_i, end_i)
+                if ccre_data:
+                    db_facts["encode_regulatory"] = ccre_data
+                    log.info(f"ENCODE cCRE lookup: {ccre_data.get('ccre_count', 0)} elements in {chrom}:{start_i}-{end_i}")
+
             # ── GWAS Catalog lookup — for SNP prioritization / causal gene questions ─
             # Triggers when: question contains candidate rsIDs (≥2) which indicates a
             # GWAS variant prioritization task rather than a general knowledge query.
@@ -1975,6 +2185,42 @@ class ResearchAgent:
                 db_section.append("### ClinVar: pathogenic variants")
                 for v in df['clinvar_variants'][:5]:
                     db_section.append(f"- {v.get('title','')} | {v.get('clinical_significance','')} | {v.get('condition','')}")
+
+            if df.get('ensembl_gene_search'):
+                db_section.append("### Ensembl gene search (gene symbols → ENSG IDs)")
+                db_section.append("**Use these IDs directly — do not guess or use training knowledge.**")
+                for entry in df['ensembl_gene_search']:
+                    ensg = entry.get('ensembl_id') or 'NOT FOUND'
+                    coords = f"chr{entry.get('chr','')}:{entry.get('start')}-{entry.get('end')}" if entry.get('start') else ""
+                    db_section.append(f"- {entry['symbol']} → {ensg} {coords} ({entry.get('biotype','')})")
+
+            if df.get('vep_annotation'):
+                db_section.append("### Ensembl VEP variant consequence annotation")
+                for v in df['vep_annotation']:
+                    db_section.append(
+                        f"- {v.get('variant','')} → most_severe: {v.get('most_severe','')} | gene: {v.get('gene_id','')}"
+                    )
+
+            if df.get('genomic_sequence'):
+                gs = df['genomic_sequence']
+                db_section.append(f"### Genomic sequence ({gs['region']}, hg38/GRCh38)")
+                db_section.append(f"```\n{gs['sequence']}\n```")
+
+            if df.get('gtex_expression'):
+                gtx = df['gtex_expression']
+                db_section.append(f"### GTEx v8 expression: {gtx['gene']} (median TPM)")
+                for t in gtx.get('top_tissues', [])[:5]:
+                    db_section.append(f"- {t['tissue']}: {t['median_tpm']:.2f} TPM")
+                if gtx.get('queried_tissue'):
+                    qt = gtx['queried_tissue']
+                    db_section.append(f"**Queried tissue ({qt['tissue']}): {qt['median_tpm']:.2f} TPM**")
+
+            if df.get('encode_regulatory'):
+                er = df['encode_regulatory']
+                db_section.append(f"### ENCODE cCRE regulatory elements: {er['interval']}")
+                db_section.append(f"Total cCREs overlapping: {er['ccre_count']}")
+                for c in er.get('ccres', [])[:5]:
+                    db_section.append(f"- {c.get('name','')} ({c.get('ccre_class','')}) {c.get('start')}-{c.get('end')}")
 
             # ── Molecular biology tool context ────────────────────────────────
             if df.get('mol_bio_tools'):

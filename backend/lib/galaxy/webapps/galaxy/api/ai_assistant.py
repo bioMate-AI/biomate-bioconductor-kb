@@ -1275,6 +1275,54 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
         elif _re.search(r'\bsingle.end\b|\bSE\b|\bsingle\s+end\b', text, _re.IGNORECASE):
             result["paired_end"] = False
 
+    # ── WES mode (whole exome sequencing) ────────────────────────────────────
+    if "wes" in param_names and "wes" not in result:
+        if _re.search(r'\bWES\b|\bwhole.exome\b|\bexome\s+(?:seq|sequencing|capture)\b', text, _re.IGNORECASE):
+            result["wes"] = True
+
+    # ── Variant calling tool selection ────────────────────────────────────────
+    if "tools" in param_names and "tools" not in result:
+        # Mutect2: for somatic / tumor-only calling
+        if _re.search(r'\bmutect2?\b|\btumor.only\b|\bno\s+matched\s+normal\b|\bsomatic.*no.*normal\b', text, _re.IGNORECASE):
+            result["tools"] = "mutect2"
+        # HaplotypeCaller: germline calling (includes joint genotyping via GVCF)
+        elif _re.search(r'\bhaplotypecaller\b|\bgermline\s+variant\b|\bjoint.*germline\b|\bGVCF\b|\bjoint\s+genotyping\b|\bcohort\s+genotyping\b', text, _re.IGNORECASE):
+            result["tools"] = "haplotypecaller"
+
+    # ── Pseudo-aligner ────────────────────────────────────────────────────────
+    if "pseudo_aligner" in param_names and "pseudo_aligner" not in result:
+        if _re.search(r'\bsalmon\b|\bpseudo.align\b.*salmon|salmon.*\bpseudo', text, _re.IGNORECASE):
+            result["pseudo_aligner"] = "salmon"
+        elif _re.search(r'\bkallisto\b', text, _re.IGNORECASE):
+            result["pseudo_aligner"] = "kallisto"
+
+    # ── Broad vs narrow peak calling (ChIP-seq/ATAC-seq) ─────────────────────
+    # Uses macs2_broad if present; falls back to narrow_peak
+    _broad_key = "macs2_broad" if "macs2_broad" in param_names else ("narrow_peak" if "narrow_peak" in param_names else None)
+    if _broad_key and _broad_key not in result:
+        _broad_marks = r'H3K27me3|H3K9me3|H3K27ac|H3K4me1|H3K36me3|broad\s+histone|broad\s+mark|broad\s+peak'
+        _narrow_marks = r'H3K4me3|H3K9ac|H3K36me2|transcription\s+factor|TF\s+binding|narrow\s+peak|sharp\s+peak'
+        if _re.search(_broad_marks, user_intent, _re.IGNORECASE):
+            result[_broad_key] = True if _broad_key == "macs2_broad" else False
+        elif _re.search(_narrow_marks, user_intent, _re.IGNORECASE):
+            result[_broad_key] = False if _broad_key == "macs2_broad" else True
+
+    # ── 16S amplicon region ────────────────────────────────────────────────────
+    if "region" in param_names and "region" not in result:
+        _m_region = _re.search(r'\b(V[1-9](?:-V[1-9])?)\b', user_intent)
+        if _m_region:
+            result["region"] = _m_region.group(1).upper()
+
+    # ── UMI-based library ─────────────────────────────────────────────────────
+    if "with_umi" in param_names and "with_umi" not in result:
+        if _re.search(r'\bUMI\b|\bunique\s+molecular\s+identifier', user_intent, _re.IGNORECASE):
+            result["with_umi"] = True
+
+    # ── Joint germline calling ────────────────────────────────────────────────
+    if "joint_germline" in param_names and "joint_germline" not in result:
+        if _re.search(r'\bjoint\s+(?:germline|genotyping|calling)\b|\bmulti.?sample.*germline\b', text, _re.IGNORECASE):
+            result["joint_germline"] = True
+
     return result
 
 

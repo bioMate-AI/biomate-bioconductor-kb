@@ -1722,7 +1722,8 @@ Rules:
     // spec", "Retention time alignment using iRT standards", "Clonal lineage reconstruction from
     // BCR sequencing"). These ARE workflow generation requests — the user wants to execute the
     // method, not read about it. Override when: (1) NOT already classified as workflow_generation,
-    // (2) message lacks clear research/conceptual markers, (3) message contains method/analysis terms.
+    // (2) message lacks clear research/conceptual markers, (3) message contains method/analysis terms,
+    // AND (4) message is NOT a direct lookup/computation with a deterministic answer.
     if (!actions.needsWorkflowGeneration) {
       const _isConceptualQuestion = /\b(what\s+is|what\s+are|how\s+does|how\s+do|why\s+is|why\s+do|explain|describe|tell\s+me\s+about|definition|concept|overview|introduction|paper|review|literature|published|citation|reference)\b/i.test(message);
       const _hasBioMethodTerms = /\b(quantification|alignment|calling|reconstruction|detection|profiling|identification|classification|assembly|annotation|prediction|docking|design|sequencing|analysis|workflow|pipeline|processing|search|prioritize|prioritizes|prioritization|ranking|ranked)\b/i.test(message)
@@ -1735,7 +1736,15 @@ Rules:
         'comparative_methodology', 'troubleshooting', 'regulatory_compliance', 'parameter_optimization',
       ]);
       const _intentAlreadyKnowledge = _knowledgeIntentTypes.has(intent.type);
-      if (!_isConceptualQuestion && !_intentAlreadyKnowledge && _hasBioMethodTerms) {
+      // Direct lookup/computation guard: do NOT force workflow when the message is asking
+      // for a specific value, ID, sequence, or result that can be answered via API or run_code —
+      // i.e. no user-owned data files, no pipeline execution needed, answer is deterministic.
+      // Signals: convert/retrieve/lookup/fetch/compute/calculate + identifier/value terms,
+      //          Ensembl/GTEx/ENCODE/ClinVar/1000G API patterns, "what is the X of Y" with coordinates.
+      const _isDirectLookupOrComputation = /\b(convert|retrieve|fetch|look\s*up|get\s+the|find\s+the|return\s+the|what\s+is\s+the|give\s+me\s+the|compute|calculate|infer|determine|identify\s+the)\b/i.test(message)
+        && !/\b(my\s+(files?|samples?|data|fastq|bam|vcf|reads)|uploaded|your\s+data|the\s+uploaded|input\s+file)\b/i.test(message)
+        && /\b(ensembl|ensg|gene\s+id|gene\s+symbol|gtex|encode|clinvar|dbsnp|ucsc|1000\s*genomes?|gnomad|uniprot|pdb\s+id|sequence|coordinate|genomic|locus|interval|chromosome|chr\d|tpm|expression|variant\s+consequence|vep|regulatory|ccre|enhancer)\b/i.test(message);
+      if (!_isConceptualQuestion && !_intentAlreadyKnowledge && _hasBioMethodTerms && !_isDirectLookupOrComputation) {
         log('Bioinformatics method-description override: forcing needsWorkflowGeneration=true');
         actions.needsWorkflowGeneration = true;
         intent.type = 'workflow_generation';
@@ -2875,7 +2884,23 @@ These must NOT trigger workflow generation, regardless of file names or scientif
 - "Can you make a [.mrc / .fastq / .bam] file for me?" → same
 - Any request whose primary intent is *data fabrication* rather than *analysis of provided data*
 
-For these, set type to "research_question" (or "general_help") with needsWorkflowGeneration=false.
+**Direct bioinformatics lookups and computations — always research_question, use run_code or APIs:**
+These have a single deterministic answer and require no user-owned data files:
+- "Convert these gene symbols to Ensembl IDs: TP53, BRCA1, EGFR" → research_question; use Ensembl REST API
+- "What is the Ensembl gene ID for SRSF3 in human?" → research_question; Ensembl lookup
+- "What is the most severe VEP consequence for variant chr9:22125503:G:C?" → research_question; Ensembl VEP REST
+- "Retrieve the promoter sequence for TP53 (−500 to +100 bp, hg38)" → research_question; Ensembl sequence API
+- "What is the median TPM expression of GATA3 in breast tissue (GTEx v8)?" → research_question; GTEx REST API
+- "What regulatory elements overlap chr11:124738681-124738772 in hg38?" → research_question; ENCODE/UCSC cCRE API
+- "What is the GC content of the interval chr7:155605831-155605931?" → research_question; use run_code (Python + pyfaidx or Biopython)
+- "Infer whether mt.sorted.bam is paired-end or single-end" → research_question; use run_code (samtools flagstat)
+- "How many non-overlapping exonic bases does GENE X have?" → research_question; use run_code (GTF parsing)
+- "What is the pathogenicity of variant NM_007294.3:c.5266dupC (BRCA1)?" → research_question; ClinVar lookup
+- "Compute the reverse complement of ATGCATGC" → research_question; answer directly or run_code
+- "What is the canonical splice site sequence?" → research_question; direct knowledge
+
+For these, set type to "research_question" with needsResearchAgent=true, needsWorkflowGeneration=false.
+BioMate should answer using its run_code tool (for computations) or ResearchAgent API integrations (for database lookups) — NOT by launching a Nextflow workflow.
 
 ## Action Categories
 
