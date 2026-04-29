@@ -476,16 +476,27 @@ class RegulatoryAuditor:
     # ── Helpers ───────────────────────────────────────────────────────────────
 
     def _extract_section(self, md: str, start_sec: str, end_sec: Optional[str]) -> str:
-        """Extract text of a section between two heading markers."""
-        if start_sec not in md:
+        """Extract text of a section between two ## heading markers.
+
+        Searches for '## {start_sec}' as a heading (not just a substring match)
+        to avoid false matches against title page references.
+        """
+        heading_pat = re.compile(r'^##\s+' + re.escape(start_sec), re.MULTILINE)
+        m = heading_pat.search(md)
+        if not m:
             return ""
-        start = md.find(start_sec)
-        if end_sec and end_sec in md:
-            end = md.find(end_sec, start + 1)
-            return md[start:end]
-        # Find next ## heading
-        next_h = md.find("\n## ", start + 1)
-        return md[start:next_h if next_h > 0 else start + 5000]
+        start = m.start()
+
+        if end_sec:
+            end_pat = re.compile(r'^##\s+' + re.escape(end_sec), re.MULTILINE)
+            em = end_pat.search(md, start + 1)
+            if em:
+                return md[start:em.start()]
+
+        # Fall back: next ## heading of any kind
+        next_h = re.search(r'^##\s', md[start + 1:], re.MULTILINE)
+        offset = next_h.start() + start + 1 if next_h else len(md)
+        return md[start:offset]
 
     def _add(self, severity: str, section: str, guideline: str, region: str,
              code: str, description: str, suggestion: str, evidence: str = "") -> None:

@@ -412,9 +412,9 @@ def compute_pk_properties(smiles_list):
     _AW2 = {'Cl': 35.45, 'Br': 79.9, 'Si': 28.09}
 
     def _smiles_logp_mw(smi):
-        """Rough logP and MW from SMILES when RDKit unavailable.
+        '''Rough logP and MW from SMILES when RDKit unavailable.
         Uses Crippen-inspired atomic contributions (simplified).
-        """
+        '''
         # MW by atom type
         mw = 0.0
         i = 0
