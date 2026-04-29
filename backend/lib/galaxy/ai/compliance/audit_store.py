@@ -40,6 +40,7 @@ class AuditAction:
     INGEST_ASSAY          = "INGEST_ASSAY"
     PROPOSE_ROUND         = "PROPOSE_ROUND"
     EXPORT_CRO_ORDER      = "EXPORT_CRO_ORDER"
+    ASSEMBLE_IND          = "ASSEMBLE_IND"    # IND CTD §2.6.1–2.6.3 generation
     REGISTER_MODEL        = "REGISTER_MODEL"
     RUN_MODEL             = "RUN_MODEL"
     POLL_LIMS             = "POLL_LIMS"

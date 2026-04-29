@@ -1325,6 +1325,17 @@ export default function DrugDiscoveryCroDemo() {
     setEsigOpen(true)
   }, [campaignId])
 
+  // UC-CRO-IND: Approve & Sign IND package — eSig required for regulatory traceability
+  const handleSignInd = useCallback((campaignName: string) => {
+    if (!campaignId) return
+    setEsigAction("GENERATE_IND")
+    setEsigTarget(campaignName || campaignId)
+    setEsigOnSigned(() => () => {
+      setToast("IND §2.6.1–§2.6.3 package approved and signed")
+    })
+    setEsigOpen(true)
+  }, [campaignId])
+
   // ── Campaign list view (no campaign selected) ────────────────────────────────
   if (!campaignId) {
     return (
@@ -1707,6 +1718,7 @@ export default function DrugDiscoveryCroDemo() {
                       indication: campaignMeta?.indication ?? "",
                       sponsor:    campaignMeta?.sponsor ?? "",
                     }}
+                    onRequestSign={() => handleSignInd(campaignMeta?.molecule_name ?? campaignId!)}
                   />
                 )}
               </>

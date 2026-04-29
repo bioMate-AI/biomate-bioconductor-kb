@@ -27,6 +27,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Shield,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -93,9 +94,11 @@ interface InitialValues {
 export function DrugDiscoveryIndAssembly({
   campaignId,
   initialValues,
+  onRequestSign,
 }: {
   campaignId: string
   initialValues?: InitialValues
+  onRequestSign?: () => void
 }) {
   const { toast } = useToast()
 
@@ -186,9 +189,10 @@ export function DrugDiscoveryIndAssembly({
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${campaignId}_CTD_2.6.1.md`
+    a.download = `${campaignId}_CTD_Module2.6.md`
     a.click()
     URL.revokeObjectURL(url)
+
   }
 
   const downloadDocx = async () => {
@@ -205,7 +209,7 @@ export function DrugDiscoveryIndAssembly({
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${campaignId}_CTD_2.6.1.docx`
+    a.download = `${campaignId}_CTD_Module2.6.docx`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -407,7 +411,7 @@ export function DrugDiscoveryIndAssembly({
           <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
             <Badge variant="outline" className="font-mono text-xs shrink-0">MD</Badge>
             <span className="flex-1 truncate font-mono text-muted-foreground">
-              {campaignId}_CTD_2.6.1.md
+              {campaignId}_CTD_Module2.6.md
             </span>
             <Button
               size="sm"
@@ -426,7 +430,7 @@ export function DrugDiscoveryIndAssembly({
             <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
               <Badge variant="outline" className="font-mono text-xs shrink-0 text-blue-700 dark:text-blue-400 border-blue-300">DOCX</Badge>
               <span className="flex-1 truncate font-mono text-muted-foreground">
-                {campaignId}_CTD_2.6.1.docx
+                {campaignId}_CTD_Module2.6.docx
               </span>
               <Button
                 size="sm"
@@ -479,6 +483,24 @@ export function DrugDiscoveryIndAssembly({
                   {w}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Approve & Sign (regulatory eSig — 21 CFR Part 11) */}
+          {onRequestSign && (
+            <div className="flex items-center gap-2 rounded-md border border-indigo-200 dark:border-indigo-800 px-3 py-2 text-xs bg-indigo-50/50 dark:bg-indigo-950/20">
+              <Shield className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span className="flex-1 text-muted-foreground">
+                Electronic signature required for regulatory submission (21 CFR Part 11)
+              </span>
+              <Button
+                size="sm"
+                className="h-6 text-xs gap-1 shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white"
+                onClick={onRequestSign}
+                data-testid="ind-approve-sign-button"
+              >
+                Approve &amp; Sign
+              </Button>
             </div>
           )}
 

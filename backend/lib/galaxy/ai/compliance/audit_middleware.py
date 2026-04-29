@@ -30,7 +30,7 @@ from fastapi import Depends, Header, HTTPException, Request
 log = logging.getLogger(__name__)
 
 # Actions that support (but by default don't require) an eSig header
-_ESIG_SUPPORTED_ACTIONS = {"EXPORT_CRO_ORDER", "PROPOSE_ROUND"}
+_ESIG_SUPPORTED_ACTIONS = {"EXPORT_CRO_ORDER", "PROPOSE_ROUND", "ASSEMBLE_IND"}
 
 # Set BIOMATE_ESIG_REQUIRED=1 to enforce eSig on supported actions
 _ESIG_REQUIRED = os.environ.get("BIOMATE_ESIG_REQUIRED", "0").strip() == "1"
@@ -112,6 +112,8 @@ def _derive_action(method: str, path: str) -> str:
         return AuditAction.PROPOSE_ROUND
     if "export/cro-order" in p or "export" in p:
         return AuditAction.EXPORT_CRO_ORDER
+    if "ind-assembly" in p:
+        return AuditAction.ASSEMBLE_IND
     if "lims/poll" in p or "lims" in p:
         return AuditAction.POLL_LIMS
     if "models" in p and "register" in p:
