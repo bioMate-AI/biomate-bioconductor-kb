@@ -3985,32 +3985,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let textOutputSamples: Array<{ name: string; content: string }> = [];
 
         try {
-          const { execFile } = await import('child_process');
-          const { promisify } = await import('util');
-          const execP = promisify(execFile);
-          const awsCmd = (args: string[]) =>
-            execP('/opt/aws-cli/dist/aws', args, { timeout: 20000, maxBuffer: 1024*1024 })
-              .catch(() => execP('aws', args, { timeout: 20000, maxBuffer: 1024*1024 }));
-
-          const { stdout: lsOut } = await awsCmd(['s3', 'ls', s3OutputBase, '--recursive']).catch((err: any) => {
-            console.warn('[MethodsReport] S3 ls failed:', err?.message?.slice(0, 300), 'stderr:', err?.stderr?.slice(0, 200));
-            return { stdout: '' };
+          const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import('@aws-sdk/client-s3');
+          const nfAccessKey = process.env.AWS_NF_ACCESS_KEY_ID;
+          const nfSecretKey = process.env.AWS_NF_SECRET_ACCESS_KEY;
+          const s3Client = new S3Client({
+            region: 'us-east-1',
+            ...(nfAccessKey && nfSecretKey ? {
+              credentials: { accessKeyId: nfAccessKey, secretAccessKey: nfSecretKey }
+            } : {}),
           });
-          const lines = lsOut.split('\n').filter(l => l.trim());
-          console.log(`[MethodsReport] S3 scan: ${lines.length} lines from ${s3OutputBase}`);
-          for (const line of lines) {
-            const parts = line.trim().split(/\s+/);
-            const key = parts.slice(3).join(' ');
-            if (!key) continue;
+
+          // Parse bucket and prefix from s3OutputBase
+          const s3Match = s3OutputBase.replace(/^s3:\/\//, '').split('/');
+          const s3BucketName = s3Match[0];
+          const s3Prefix = s3Match.slice(1).join('/');
+
+          // List all objects under the output prefix
+          let continuationToken: string | undefined;
+          const allKeys: string[] = [];
+          do {
+            const listCmd = new ListObjectsV2Command({
+              Bucket: s3BucketName,
+              Prefix: s3Prefix,
+              MaxKeys: 1000,
+              ContinuationToken: continuationToken,
+            });
+            const listResp = await s3Client.send(listCmd);
+            for (const obj of listResp.Contents || []) {
+              if (obj.Key) allKeys.push(obj.Key);
+            }
+            continuationToken = listResp.IsTruncated ? listResp.NextContinuationToken : undefined;
+          } while (continuationToken);
+
+          console.log(`[MethodsReport] S3 scan: ${allKeys.length} objects from ${s3OutputBase}`);
+
+          for (const key of allKeys) {
             const fname = key.split('/').pop() || key;
             if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
             allOutputFiles.push(fname);
             if (TEXT_EXTS.test(fname) && textOutputSamples.length < 8) {
               try {
-                const { stdout: fc } = await awsCmd(['s3', 'cp', `s3://${s3Bucket}/${key}`, '-']);
+                const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: key });
+                const getResp = await s3Client.send(getCmd);
+                const chunks: Buffer[] = [];
+                const stream = getResp.Body as any;
+                await new Promise<void>((res, rej) => {
+                  stream.on('data', (c: Buffer) => chunks.push(c));
+                  stream.on('end', res);
+                  stream.on('error', rej);
+                });
+                const fc = Buffer.concat(chunks).toString('utf-8');
                 if (fc.trim()) textOutputSamples.push({ name: fname, content: fc.slice(0, 6000) });
               } catch (cpErr: any) {
-                console.warn(`[MethodsReport] S3 cp failed for ${fname}:`, cpErr.message?.slice(0, 100));
+                console.warn(`[MethodsReport] S3 get failed for ${fname}:`, cpErr.message?.slice(0, 100));
               }
             }
           }

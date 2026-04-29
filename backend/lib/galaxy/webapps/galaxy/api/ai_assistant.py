@@ -316,6 +316,7 @@ class NextflowSearchRequest(BaseModel):
     preferred_domains: Optional[List[str]] = None
     key_terms: Optional[List[str]] = None
     skip_chains: bool = False
+    force_workflow_name: Optional[str] = None
 
 
 def _nextflow_workflow_key(filename: str) -> Optional[str]:
@@ -1572,12 +1573,31 @@ def search_nextflow_workflow(
                 "parameter_recommendations": {},
                 "pilot_run_suggested": False,
             }
-        # ── Individual Nextflow workflow search ──────────────────────────────
-        results = _workflow_search.search(
-            user_intent, limit=5, include_workflow_json=False,
-            preferred_domains=request.preferred_domains or None,
-            key_terms=request.key_terms or None,
-        )
+        # ── Forced workflow (bypasses search for param-extraction benchmarks) ──
+        if request.force_workflow_name:
+            # Search by exact name match — used by param_prefill benchmark to
+            # ensure param extraction is tested on the correct workflow regardless
+            # of how routing would normally classify the query.
+            forced_results = _workflow_search.search(
+                request.force_workflow_name, limit=5, include_workflow_json=False,
+            )
+            if forced_results:
+                # Prefer exact name match
+                _forced = next(
+                    (r for r in forced_results
+                     if getattr(r, "name", "").lower() == request.force_workflow_name.lower()),
+                    forced_results[0],
+                )
+                results = [_forced]
+            else:
+                results = []
+        else:
+            # ── Individual Nextflow workflow search ──────────────────────────────
+            results = _workflow_search.search(
+                user_intent, limit=5, include_workflow_json=False,
+                preferred_domains=request.preferred_domains or None,
+                key_terms=request.key_terms or None,
+            )
         if not results:
             return {"success": False, "message": "No matching workflows found"}
 

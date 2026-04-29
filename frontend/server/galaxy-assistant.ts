@@ -346,7 +346,10 @@ export const AMBIGUITY_RESOLVERS: Record<string, RegExp> = {
   somatic_paired:   /\bmatched\s+normal\b|\btumor[- ]normal\b|\btumor[- ]only\b|\bpanel\s+of\s+normals\b/i,
   metagenomics_type:/\b16S\b|\bamplicon\b|\bQIIME\b|\bDADA2\b|\bshotgun\b|\bKraken\b|\bMetaPhlAn\b/i,
   docking_type:     /\bblind\s+dock|\bsite[- ]directed\b|\bDiffDock\b|\bVina\b|\bknown\s+(binding\s+)?pocket\b/i,
-  admet_scope:      /\bSMILES\b|\.sdf\b|\bfull\s+ADMET\b|\bhERG\b|\bDILI\b|\bAmes\b/i,
+  // admet_scope is satisfied when: explicit SMILES string present (CC(=O), c1ccc, etc.),
+  // or .sdf file, or user named specific endpoints, or said "full ADMET" / "screening".
+  // This prevents BioMate from asking "which scope?" when a molecule is already provided.
+  admet_scope:      /\bSMILES\b|\.sdf\b|\bfull\s+ADMET\b|\bhERG\b|\bDILI\b|\bAmes\b|CC\(=O\)|c1ccc|[A-Z][a-z]?\(=O\)|screening\b/i,
 };
 
 // ============================================================================
