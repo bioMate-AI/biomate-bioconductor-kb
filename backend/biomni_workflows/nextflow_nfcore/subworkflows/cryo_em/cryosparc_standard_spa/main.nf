@@ -1728,17 +1728,25 @@ process MERGE_PARTICLES_R1 {
     #!/usr/bin/env python3
     import json
     import glob
+    import os
 
     all_particles  = []
     last_job_uid   = None
     last_num_items = 0
     last_project   = None
     last_workspace = None
-    for cs_file in sorted(glob.glob('particles_*.cs')):
-        data = json.load(open(cs_file))
+    # Use both glob and any .cs file in CWD to handle Nextflow staging edge cases
+    cs_files = sorted(set(glob.glob('*.cs') + glob.glob('particles_*.cs')))
+    cs_files = [f for f in cs_files if f != 'all_particles.cs']
+    for cs_file in cs_files:
+        try:
+            data = json.load(open(cs_file))
+        except Exception:
+            continue
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
             last_job_uid   = data['job_uid']
-            last_num_items = data.get('num_items', last_num_items)
+            # Sum num_items across batches (additive for parallel extraction)
+            last_num_items += data.get('num_items', 0)
             last_project   = data.get('project_uid', last_project)
             last_workspace = data.get('workspace_uid', last_workspace)
         all_particles.extend(data.get('particles', []))
@@ -1754,7 +1762,7 @@ process MERGE_PARTICLES_R1 {
     with open('all_particles.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_particles)} particles (job_uid={last_job_uid}, num_items={last_num_items}) from all batches")
+    print(f"✓ Merged R1: {len(cs_files)} batch files, job_uid={last_job_uid}, num_items={last_num_items}")
     """
 }
 
