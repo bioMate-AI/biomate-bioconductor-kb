@@ -1806,8 +1806,8 @@ Rules:
     // PBPK prereq gate: before workflow generation, verify SMILES + CLint + fu_plasma are present.
     // This must run BEFORE _clarificationGate so it overrides the workflow generation path.
     if (actions.needsWorkflowGeneration) {
-      const _isPbpkIntent = /\b(pbpk|physiologically.based|full.?pk|human.pk|predict.*pharmacokinetic|organ.level.pk|mechanistic.pk|pk.simulation|pk.profile|pharmacokinetic.simulation|whole.body.pk|pk.model|human.pharmacokinetic|predict.human.pk)\b/i.test(message)
-        || /\bphysiol/i.test(message) && /\bpk\b/i.test(message);
+      const _isPbpkIntent = /\b(pbpk|physiologically[- ]based|full[- ]?pk|human[- ]pk|predict.{0,20}pharmacokinetics?|organ[- ]level[- ]pk|mechanistic[- ]pk|pk[- ]simulation|pk[- ]profile|pharmacokinetic[- ]simulation|whole[- ]body[- ]pk|pk[- ]model|human[- ]pharmacokinetics?|predict[- ]human[- ]pk|pharmacokinetics?\s+of)\b/i.test(message)
+        || (/\bphysiol/i.test(message) && /\bpk\b/i.test(message));
       if (_isPbpkIntent) {
         // Check for SMILES: atom pattern like CC(, c1c, [nH], etc.
         const _hasSmilesInMessage = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message)
