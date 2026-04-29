@@ -1,20 +1,26 @@
 /**
- * CryoEM Full Pipeline — 20 EMPIAR-10028 Images, Multi-GPU, All Output Viewers
+ * CryoEM Full Pipeline — 20 EMPIAR-10028 Images, All Output Viewers
  *
  * Dataset: EMPIAR-10028 (E. coli beta-galactosidase, β-gal)
  *   s3://biomate-cryo-data/empiar-10028/Micrographs/001_movie.mrcs … 020_movie.mrcs
  *   pixel_size=0.885 Å, voltage=300 kV, Cs=2.7 mm, AC=0.1, symmetry=D2, diameter=180 Å
  *
- * Multi-GPU: num_gpu_workers=2, num_gpu=2 (set via UI after card appears)
+ * Execution model (from docs/20260427_CRYOEM_BENCHMARK_RUN_AND_PAPER_STATUS.md and
+ *   docs/20260417_CS10_CRYOSPARC_EXECUTION_FIXES.md):
+ *   - BioMate submits a single Nextflow task to AWS Batch (biomate-nextflow-queue)
+ *   - That task SSH-connects to the dedicated CryoSPARC EC2 instance (g6.2xlarge, 1× NVIDIA L4 24GB)
+ *   - Jobs are dispatched via the CryoSPARC REST API (port 30002 uvicorn, httpx direct)
+ *   - GPU count is auto-detected from CryoSPARC lane topology (_get_lane_gpu_count)
+ *     params.num_gpu=0 means "use all GPUs the worker lane reports" — do NOT override
+ *   - Real benchmark: 24 jobs, 7.4h wall / 2.8h GPU compute, FSC 3.98 Å, ~$6.29
  *
  * User-provided file flow: user attaches one stub .mrcs file via the chat
- * upload button — this exercises the file→movies_path auto-population UX.
- * The workflow itself uses the S3 path (20 real movies) for execution.
+ * upload button — exercises the file→movies_path auto-population UX.
+ * The workflow uses the S3 path (20 real movies) for execution.
  *
  * S3 credential flow (real-case simulation):
  *   MG-S1  Settings → Data tab → select Amazon S3 as default storage
  *   MG-S2  Enter user AWS credentials (Access Key ID + Secret Access Key + bucket)
- *          via Settings or the LicenseGate credential system
  *   MG-S3  Galaxy-dataset-browser: type S3 URI → Import → file appears in browser
  *   MG-S4  movies_path set from S3 import → verified credential-gated access
  *
@@ -22,7 +28,7 @@
  *   MG-0  API preflight — dataset accessible + QC profiles include cryo-EM
  *   MG-S1..S4  S3 credential provision UX (Settings → Data → AWS creds → S3 import)
  *   MG-1  User attaches .mrcs stub → AI recognises cryo-EM → workflow card appears
- *   MG-2  Multi-GPU param set via UI (num_gpu_workers=2, num_gpu=2) before Run
+ *   MG-2  GPU params verified auto-detected (num_gpu=0 preserved, no UI override)
  *   MG-3  movies_path auto-populated from user file; all required params visible
  *   MG-4  QC settings — select "cryo_em_high_quality" profile + set FSC threshold
  *   MG-5  Run button enabled → Run clicked → status transitions idle→running
@@ -607,12 +613,12 @@ test.describe("MG-S1..S4  S3 credential provision — real user flow", () => {
   });
 });
 
-// ── MG-1 + MG-2 + MG-3: File provision, multi-GPU params, movies_path ────────
-test.describe("MG-1/2/3  File provision → card → multi-GPU params", () => {
+// ── MG-1 + MG-2 + MG-3: File provision, GPU params (read-only verify), movies_path ────────
+test.describe("MG-1/2/3  File provision → card → GPU params auto-detect verify", () => {
   test.setTimeout(600_000); // 10 min for registration + AI response + param setup
   test.use({ viewport: { width: 1920, height: 1080 } });
 
-  test("User uploads .mrcs stub → AI returns SPA card → multi-GPU params set via UI", async ({ page }) => {
+  test("User uploads .mrcs stub → AI returns SPA card → GPU params auto-detected (not overridden)", async ({ page }) => {
     const assertions: Assertion[] = [];
     const screenshots: string[] = [];
     let finalStatus = "not_started";
@@ -699,37 +705,36 @@ test.describe("MG-1/2/3  File provision → card → multi-GPU params", () => {
       await setParamValue(page, "symmetry", SYMMETRY);
       screenshots.push(await shot(page, "MG_05_params_filled"));
 
-      // ── MG-2: Set multi-GPU parameters ───────────────────────────────────
-      // Scroll down to find GPU params in the settings panel
+      // ── MG-2: Verify GPU params are auto-detected (num_gpu=0 = auto) ────────
+      // CryoSPARC runs on a dedicated EC2 instance (g6.2xlarge, 1× NVIDIA L4).
+      // GPU count is detected at runtime from the CryoSPARC lane topology.
+      // We do NOT override num_gpu or num_gpu_workers — the workflow handles it.
       await page.evaluate(() => {
         const panel = document.querySelector('.strip-body, .params-body, [class*="param"]') as HTMLElement;
         if (panel) panel.scrollTop = panel.scrollHeight;
       }).catch(() => {});
       await page.waitForTimeout(400);
 
-      const numGpuWorkersSet = await setParamValue(page, "num_gpu_workers", "2");
-      const numGpuSet        = await setParamValue(page, "num_gpu", "2");
+      // Read current values — should be 0 (auto) not overridden
+      const numGpuInput = page.locator('input#num_gpu, [data-testid="param-inline-edit-num_gpu"] input').first();
+      const numGpuVal   = await numGpuInput.inputValue({ timeout: 3000 }).catch(() => "0");
       assertions.push({
-        name: "MG-2: num_gpu_workers=2 set via UI",
-        passed: numGpuWorkersSet,
-        note: numGpuWorkersSet ? "field found and filled" : "field not visible — may be in advanced section",
-      });
-      assertions.push({
-        name: "MG-2: num_gpu=2 set via UI",
-        passed: numGpuSet,
-        note: numGpuSet ? "field found and filled" : "field not visible",
+        name: "MG-2: num_gpu is 0 (auto-detect from CryoSPARC lane topology)",
+        passed: numGpuVal === "0" || numGpuVal === "",
+        note: `current value="${numGpuVal}" — 0 means auto, workflow detects from EC2 GPU count`,
       });
 
-      // Try advanced/optional params section if visible
-      const advancedBtn = page.locator('button:has-text("Advanced"), button:has-text("Optional params"), button:has-text("More settings")').first();
-      if (await advancedBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await advancedBtn.click();
-        await page.waitForTimeout(400);
-        if (!numGpuWorkersSet) await setParamValue(page, "num_gpu_workers", "2");
-        if (!numGpuSet)        await setParamValue(page, "num_gpu", "2");
-      }
+      // num_gpu_workers defaults to 1 — single CryoSPARC worker lane per EC2 instance
+      const numWorkersInput = page.locator('input#num_gpu_workers, [data-testid="param-inline-edit-num_gpu_workers"] input').first();
+      const numWorkersVal   = await numWorkersInput.inputValue({ timeout: 3000 }).catch(() => "1");
+      assertions.push({
+        name: "MG-2: num_gpu_workers is 1 (single CryoSPARC worker lane, default)",
+        passed: numWorkersVal === "1" || numWorkersVal === "",
+        note: `current value="${numWorkersVal}"`,
+      });
 
-      screenshots.push(await shot(page, "MG_06_multigpu_params"));
+      // Do NOT call setParamValue for GPU params — auto-detection is correct behaviour
+      screenshots.push(await shot(page, "MG_06_gpu_params_auto"));
 
       finalStatus = "card_ready";
     } catch (err: any) {
@@ -841,10 +846,10 @@ test.describe("MG-4  QC settings — cryo_em_high_quality profile + FSC threshol
 // ── MG-5 through MG-12: Full execution + all output viewers ──────────────────
 // This is the long-running test — actual AWS Batch CryoSPARC execution (2–8 h)
 test.describe("MG-5..12  Full execution + all output viewers", () => {
-  test.setTimeout(28_800_000); // 8 hours maximum
+  test.setTimeout(28_800_000); // 8 hours maximum (real CryoSPARC benchmark: ~7.4h wall)
   test.use({ viewport: { width: 1920, height: 1080 } });
 
-  test("Run 20 movies multi-GPU → all phases → every output type → QC gate → findings → report", async ({ page }) => {
+  test("Run 20 movies → all phases → every output type → QC gate → findings → report", async ({ page }) => {
     const assertions: Assertion[] = [];
     const screenshots: string[] = [];
     let finalStatus = "not_started";
@@ -863,7 +868,8 @@ test.describe("MG-5..12  Full execution + all output viewers", () => {
         `pixel_size=${PIXEL_SIZE}, voltage=${VOLTAGE_KV} kV, total_dose=${TOTAL_DOSE} e/Å²,`,
         `Cs=${CS_MM} mm, amplitude_contrast=${AMP_CONTRAST},`,
         `particle_diameter=${DIAMETER_A} Å, symmetry=${SYMMETRY}.`,
-        "Use 2 GPUs and 2 parallel workers for processing speed.",
+        // GPU count is auto-detected from the CryoSPARC EC2 instance (g6.2xlarge, 1× NVIDIA L4).
+        // Do NOT request a specific GPU count — the workflow detects it from the lane topology.
         "I want the full 23-step pipeline: motion correction → CTF → blob picking →",
         "2D classification × 2 rounds → ab initio → homogeneous refinement.",
       ].join(" ");
@@ -900,8 +906,10 @@ test.describe("MG-5..12  Full execution + all output viewers", () => {
       await setParamValue(page, "voltage_kv",         VOLTAGE_KV);
       await setParamValue(page, "particle_diameter_angstroms", DIAMETER_A);
       await setParamValue(page, "symmetry",           SYMMETRY);
-      await setParamValue(page, "num_gpu_workers",    "2");
-      await setParamValue(page, "num_gpu",            "2");
+      // num_gpu and num_gpu_workers intentionally NOT overridden:
+      // the workflow uses params.num_gpu=0 (auto-detect from CryoSPARC lane topology)
+      // and params.num_gpu_workers=1 (single EC2 worker lane).
+      // Overriding would conflict with the g6.2xlarge single-GPU topology.
       screenshots.push(await shot(page, "MG5_05_params_set"));
 
       // ── MG-5: Run ────────────────────────────────────────────────────────
