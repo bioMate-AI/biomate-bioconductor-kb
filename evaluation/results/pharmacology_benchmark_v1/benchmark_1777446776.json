@@ -1,0 +1,66 @@
+[
+  {
+    "test": 1,
+    "name": "pbpk_disease_state FDA validation",
+    "n_cases": 6,
+    "n_pass": 6,
+    "results": [
+      {
+        "case": "Gabapentin (renal)",
+        "predicted": 3.569,
+        "observed": 3.6,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=3.57 obs=3.60 err=0.9%)",
+        "stderr": ""
+      },
+      {
+        "case": "Metformin (renal)",
+        "predicted": 2.087,
+        "observed": 1.9,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=2.09 obs=1.90 err=9.8%)",
+        "stderr": ""
+      },
+      {
+        "case": "Atenolol (renal)",
+        "predicted": 3.824,
+        "observed": 5.8,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=3.82 obs=5.80 err=34.1%)",
+        "stderr": ""
+      },
+      {
+        "case": "Midazolam (hepatic high-ER)",
+        "predicted": 1.235,
+        "observed": 1.24,
+        "tolerance": 0.03,
+        "passed": true,
+        "status": "PASS (pred=1.24 obs=1.24 err=0.4%)",
+        "stderr": ""
+      },
+      {
+        "case": "Lorazepam (hepatic low-ER)",
+        "predicted": 1.511,
+        "observed": 1.5,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=1.51 obs=1.50 err=0.7%)",
+        "stderr": ""
+      },
+      {
+        "case": "Theophylline (hepatic low-ER)",
+        "predicted": 1.732,
+        "observed": 2.1,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=1.73 obs=2.10 err=17.5%)",
+        "stderr": ""
+      }
+    ],
+    "score": 1.0,
+    "elapsed_s": 0.7
+  }
+]

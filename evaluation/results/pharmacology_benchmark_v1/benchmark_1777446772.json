@@ -1,0 +1,147 @@
+[
+  {
+    "test": "1e",
+    "name": "pbpk_disease_state extended (15 cases, FDA labels + PMID studies)",
+    "n_cases": 15,
+    "n_pass": 15,
+    "results": [
+      {
+        "case": "Levofloxacin (renal moderate)",
+        "predicted": 1.828,
+        "observed": 1.5,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=1.83 obs=1.50 err=21.9%)",
+        "stderr": ""
+      },
+      {
+        "case": "Ciprofloxacin (renal severe)",
+        "predicted": 1.879,
+        "observed": 2.0,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=1.88 obs=2.00 err=6.0%)",
+        "stderr": ""
+      },
+      {
+        "case": "Lithium (renal severe)",
+        "predicted": 3.569,
+        "observed": 3.57,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=3.57 obs=3.57 err=0.0%)",
+        "stderr": ""
+      },
+      {
+        "case": "Vancomycin (renal moderate)",
+        "predicted": 1.882,
+        "observed": 2.3,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=1.88 obs=2.30 err=18.2%)",
+        "stderr": ""
+      },
+      {
+        "case": "Acyclovir (renal severe)",
+        "predicted": 2.173,
+        "observed": 3.0,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=2.17 obs=3.00 err=27.6%)",
+        "stderr": ""
+      },
+      {
+        "case": "Digoxin (renal ESRD)",
+        "predicted": 2.297,
+        "observed": 2.5,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=2.30 obs=2.50 err=8.1%)",
+        "stderr": ""
+      },
+      {
+        "case": "Ranitidine (renal moderate)",
+        "predicted": 1.574,
+        "observed": 1.5,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=1.57 obs=1.50 err=4.9%)",
+        "stderr": ""
+      },
+      {
+        "case": "Oseltamivir-carboxylate (renal severe)",
+        "predicted": 3.48,
+        "observed": 3.0,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=3.48 obs=3.00 err=16.0%)",
+        "stderr": ""
+      },
+      {
+        "case": "Morphine (hepatic low-ER Child-Pugh B)",
+        "predicted": 1.31,
+        "observed": 1.8,
+        "tolerance": 0.35,
+        "passed": true,
+        "status": "PASS (pred=1.31 obs=1.80 err=27.2%)",
+        "stderr": ""
+      },
+      {
+        "case": "Diazepam (hepatic low-ER Child-Pugh C)",
+        "predicted": 1.484,
+        "observed": 1.48,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=1.48 obs=1.48 err=0.3%)",
+        "stderr": ""
+      },
+      {
+        "case": "Propranolol (hepatic high-ER Child-Pugh B)",
+        "predicted": 1.238,
+        "observed": 1.24,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=1.24 obs=1.24 err=0.2%)",
+        "stderr": ""
+      },
+      {
+        "case": "Verapamil (hepatic high-ER Child-Pugh C)",
+        "predicted": 1.506,
+        "observed": 1.51,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=1.51 obs=1.51 err=0.3%)",
+        "stderr": ""
+      },
+      {
+        "case": "Lidocaine (hepatic high-ER Child-Pugh B)",
+        "predicted": 1.22,
+        "observed": 1.22,
+        "tolerance": 0.05,
+        "passed": true,
+        "status": "PASS (pred=1.22 obs=1.22 err=0.0%)",
+        "stderr": ""
+      },
+      {
+        "case": "Warfarin (hepatic low-ER Child-Pugh C)",
+        "predicted": 1.486,
+        "observed": 1.8,
+        "tolerance": 0.4,
+        "passed": true,
+        "status": "PASS (pred=1.49 obs=1.80 err=17.4%)",
+        "stderr": ""
+      },
+      {
+        "case": "Phenytoin (hepatic low-ER Child-Pugh B)",
+        "predicted": 1.169,
+        "observed": 1.3,
+        "tolerance": 0.3,
+        "passed": true,
+        "status": "PASS (pred=1.17 obs=1.30 err=10.1%)",
+        "stderr": ""
+      }
+    ],
+    "score": 1.0,
+    "elapsed_s": 1.6
+  }
+]
