@@ -61,7 +61,7 @@ process NLMIXR2_POPULATION_PK {
     label 'process_high'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    container 'nlmixr2/nlmixr2:latest'
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/r-pharma:x86' : 'biomate/r-pharma:latest'
 
     input:
     val(meta)
