@@ -226,6 +226,12 @@ def main():
             print(f"      GT:  {str(r.ground_truth)[:60]}")
             print(f"      Got: {str(r.agent_response)[:80]}")
 
+    # 5-Dimension summary
+    from evaluation.core.five_dimension_reporter import FiveDimensionReporter
+    reporter = FiveDimensionReporter(store)
+    report = reporter.compute(run_id)
+    print(reporter.render_table([report]))
+
 
 if __name__ == "__main__":
     main()

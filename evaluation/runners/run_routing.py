@@ -317,6 +317,12 @@ def main():
 
     print(f"\n  Results saved to: {config['paths']['results_db']}")
 
+    # 5-Dimension summary
+    from evaluation.core.five_dimension_reporter import FiveDimensionReporter
+    reporter = FiveDimensionReporter(store)
+    report = reporter.compute(run_id)
+    print(reporter.render_table([report]))
+
 
 if __name__ == "__main__":
     main()
