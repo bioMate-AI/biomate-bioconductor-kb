@@ -1325,14 +1325,16 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
         if _re.search(r'\bjoint\s+(?:germline|genotyping|calling)\b|\bmulti.?sample.*germline\b', text, _re.IGNORECASE):
             result["joint_germline"] = True
 
-    # ── scRNA-seq chemistry (10x Genomics version) ───────────────────────────
-    if "chemistry" in param_names and "chemistry" not in result:
+    # ── scRNA-seq protocol (10x Genomics version) ────────────────────────────
+    # nf-core/scrnaseq uses 'protocol' (values: 10XV3, 10XV2, dropseq, etc.)
+    _protocol_key = "protocol" if "protocol" in param_names else ("chemistry" if "chemistry" in param_names else None)
+    if _protocol_key and _protocol_key not in result:
         if _re.search(r'10[xX]\s*(?:Genomics\s*)?(?:Chromium\s*)?v?3\.?1?|Chromium\s*v?3\.?1?\b|10[xX]v3', user_intent, _re.IGNORECASE):
-            result["chemistry"] = "10xv3"
+            result[_protocol_key] = "10XV3"
         elif _re.search(r'10[xX]\s*(?:Genomics\s*)?(?:Chromium\s*)?v?2\.?0?|Chromium\s*v?2\.?0?\b|10[xX]v2', user_intent, _re.IGNORECASE):
-            result["chemistry"] = "10xv2"
+            result[_protocol_key] = "10XV2"
         elif _re.search(r'\bDrop-?seq\b|\bDrop\s+seq\b', user_intent, _re.IGNORECASE):
-            result["chemistry"] = "dropseq"
+            result[_protocol_key] = "dropseq"
 
     # ── scRNA-seq aligner ─────────────────────────────────────────────────────
     if "aligner" in param_names and "aligner" not in result:
@@ -1398,20 +1400,32 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
                 result["labeling_reagent"] = reagent
                 break
 
-    # ── Mass spec quantification method ──────────────────────────────────────
-    if "quantification_method" in param_names and "quantification_method" not in result:
-        if _re.search(r'\bSILAC\b|\bstable\s+isotope\s+label', user_intent, _re.IGNORECASE):
-            result["quantification_method"] = "SILAC"
-        elif _re.search(r'\bTMT\b|\biTRAQ\b|\bisobaric', user_intent, _re.IGNORECASE):
-            result["quantification_method"] = "isobaric"
-        elif _re.search(r'\bLFQ\b|\blabel.free\b|\blabel\s+free', user_intent, _re.IGNORECASE):
-            result["quantification_method"] = "LFQ"
+    # ── Mass spec quantification method / labeling type ──────────────────────
+    for _qm_key in ("quantification_method", "lib"):
+        if _qm_key in param_names and _qm_key not in result:
+            if _re.search(r'\bSILAC\b|\bstable\s+isotope\s+label', user_intent, _re.IGNORECASE):
+                result[_qm_key] = "SILAC"
+            elif _re.search(r'\bTMT\b|\biTRAQ\b|\bisobaric', user_intent, _re.IGNORECASE):
+                result[_qm_key] = "isobaric"
+            elif _re.search(r'\bLFQ\b|\blabel.free\b|\blabel\s+free', user_intent, _re.IGNORECASE):
+                result[_qm_key] = "LFQ"
+            break
 
     # ── Ribo-zero strand-specific → reverse strandedness ─────────────────────
     # (added to _KIT_REVERSE check above, but also catch here as fallback)
     if "strandedness" in param_names and "strandedness" not in result:
         if _re.search(r'ribo.?zero.*strand|strand.?spec.*ribo.?zero|strand.?spec.*RNA.?seq', user_intent, _re.IGNORECASE):
             result["strandedness"] = "reverse"
+
+    # ── CryoSPARC symmetry ───────────────────────────────────────────────────
+    if "symmetry" in param_names and "symmetry" not in result:
+        _m_sym = _re.search(r'\b([CDIT]\d*|O\b|I[12]?)\s*symmetry\b|\bsymmetry\s+([CDIT]\d*|O\b|I[12]?)\b|\b(asymmetric|C1)\b', user_intent, _re.IGNORECASE)
+        if _m_sym:
+            _sym_val = _m_sym.group(1) or _m_sym.group(2) or _m_sym.group(3)
+            if _sym_val and 'asymmetric' in _sym_val.lower():
+                result["symmetry"] = "C1"
+            elif _sym_val:
+                result["symmetry"] = _sym_val.upper()
 
     # ── GPU acceleration flag ─────────────────────────────────────────────────
     if "gpu_acceleration" in param_names and "gpu_acceleration" not in result:
@@ -1514,8 +1528,8 @@ Rules:
 - For coordinate arrays like box_center, extract as a JSON array (e.g. [22.0, 2.5, 17.0]).
 - For box_size when given as a single number N, return [N, N, N].
 - For enum/select params, extract the most appropriate option.
-- If a value equals the current default, do NOT include it.
 - If a value is not clearly present in the message, do NOT include that parameter.
+- Always include explicitly stated values even if they match the current default.
 
 Return ONLY a JSON object, no markdown, no explanation.
 Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)cc23)c1", "exhaustiveness": 4, "box_center": [22.0, 2.5, 17.0], "box_size": [20.0, 20.0, 20.0]}}"""

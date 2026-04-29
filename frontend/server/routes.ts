@@ -4023,7 +4023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const fname = key.split('/').pop() || key;
             if (BIN_EXTS.test(fname)) { allOutputFiles.push(fname + ' [binary]'); continue; }
             allOutputFiles.push(fname);
-            if (TEXT_EXTS.test(fname) && textOutputSamples.length < 8) {
+            if (TEXT_EXTS.test(fname) && textOutputSamples.length < 15) {
               try {
                 const getCmd = new GetObjectCommand({ Bucket: s3BucketName, Key: key });
                 const getResp = await s3Client.send(getCmd);
@@ -4094,28 +4094,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (isCryoEM) {
           const motionRpt  = allReports.find(r => r.name.includes('motion_report'));
           const ctfRpt     = allReports.find(r => r.name.includes('ctf_report_batch'));
+          const pickRpt    = allReports.find(r => r.name.includes('picking_report'));
+          const junkRpt    = allReports.find(r => r.name.includes('junk_report'));
+          const extractR1  = allReports.find(r => r.name.includes('extract_report_batch'));
           const class2dR1  = allReports.find(r => r.name.includes('class2d_report_pbatch'));
-          const selectR1   = _parse('selection_report.json');
-          const class2dR2  = allReports.find(r => r.name.includes('class2d_report_r2_pbatch'));
-          const extractR2  = _parse('extract_report.json');
-          const fscRpt     = _parse('fsc_validation.json');
-          const wfSummary  = _parse('workflow_summary.json');
-          const nuRpt      = _parse('nu_refinement_report.json');
+          // selection_report.json appears for both R1 and R2; first alphabetically is R1
+          const selectRpts = allReports.filter(r => r.name === 'selection_report.json');
+          const selectR1   = selectRpts[0]?.data ?? {};
+          const extractR2  = allReports.find(r => r.name === 'extract_report.json');
+          const fscRpt     = allReports.find(r => r.name === 'fsc_validation.json');
+          const wfSummary  = allReports.find(r => r.name === 'workflow_summary.json');
+          const nuRpt      = allReports.find(r => r.name === 'nu_refinement_report.json');
+          const motionCS   = motionRpt?.data?.cs_job_uid ?? ctfRpt?.data?.cs_job_uid ?? 'MISSING';
+          const proj       = motionRpt?.data?.cs_project_uid ?? 'see CryoSPARC project';
+          // num_particles=0 in refinement reports is a pipeline metadata propagation bug
+          const nuParticles = nuRpt?.data?.num_particles;
+          const nuNote = (nuParticles === 0) ? '0 (count propagation incomplete — check CryoSPARC)' : String(nuParticles ?? 'MISSING');
           extractedMetrics = {
-            num_micrographs:     String(motionRpt?.data?.num_micrographs    ?? 'MISSING'),
-            avg_total_motion_A:  String(motionRpt?.data?.avg_total_motion_A ?? 'MISSING'),
-            avg_defocus_A:       String(ctfRpt?.data?.avg_defocus_A          ?? 'MISSING'),
-            avg_fit_quality:     String(ctfRpt?.data?.avg_fit_quality        ?? 'MISSING'),
-            num_particles_r1:    String(class2dR1?.data?.num_particles       ?? 'MISSING'),
-            num_selected_r1:     String(selectR1?.num_selected_particles     ?? 'MISSING'),
-            num_extracted_r2:    String(extractR2?.num_particles             ?? 'MISSING'),
-            num_particles_nu:    String(nuRpt?.num_particles                 ?? 'MISSING'),
-            fsc_0143_resolution: String(fscRpt?.fsc_0143_resolution         ?? 'MISSING'),
-            pixel_size_A:        String(wfSummary?.pixel_size_angstroms      ?? params?.pixel_size ?? 'MISSING'),
-            voltage_kv:          String(wfSummary?.voltage_kv                ?? params?.voltage_kv ?? 'MISSING'),
-            symmetry:            String(wfSummary?.symmetry                  ?? params?.symmetry   ?? 'C1'),
-            steps_completed:     String(wfSummary?.steps_completed           ?? 'MISSING'),
-            cs_project_uid:      String(motionRpt?.data?.cs_project_uid      ?? nuRpt?.cs_project_uid ?? 'MISSING'),
+            num_micrographs:          String(motionRpt?.data?.num_micrographs          ?? 'MISSING'),
+            motion_cs_job:            motionCS,
+            avg_total_motion_A:       String(motionRpt?.data?.avg_total_motion_A       ?? 'not captured — re-run for drift stats'),
+            avg_defocus_A:            String(ctfRpt?.data?.avg_defocus_A               ?? 'not captured — re-run for CTF stats'),
+            avg_fit_quality:          String(ctfRpt?.data?.avg_fit_quality             ?? 'not captured — re-run for CTF stats'),
+            num_blob_particles:       String(pickRpt?.data?.num_particles              ?? 'MISSING'),
+            particle_diameter_A:      String(pickRpt?.data?.particle_diameter_angstroms ?? params?.particle_diameter_angstroms ?? 'MISSING'),
+            num_junk_input:           String(junkRpt?.data?.num_input_particles        ?? 'MISSING'),
+            num_junk_rejected:        String(junkRpt?.data?.num_rejected               ?? 'MISSING'),
+            num_extracted_r1:         String(extractR1?.data?.num_particles            ?? 'MISSING'),
+            box_size_pix:             String(extractR1?.data?.box_size_pix             ?? extractR2?.data?.box_size_pix ?? 'MISSING'),
+            num_particles_2d_r1:      String(class2dR1?.data?.num_particles            ?? 'MISSING'),
+            num_classes_r1:           String(class2dR1?.data?.num_classes              ?? 'MISSING'),
+            num_selected_r1:          String(selectR1?.num_selected_particles          ?? 'MISSING'),
+            num_extracted_r2:         String(extractR2?.data?.num_particles            ?? 'MISSING'),
+            num_particles_nu:         nuNote,
+            fsc_0143_resolution:      String(fscRpt?.data?.fsc_0143_resolution        ?? 'MISSING (FSC validation not completed)'),
+            pixel_size_A:             String(wfSummary?.data?.pixel_size_angstroms     ?? params?.pixel_size ?? 'MISSING'),
+            voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? 'MISSING'),
+            symmetry:                 String(wfSummary?.data?.symmetry                ?? params?.symmetry   ?? 'C1'),
+            steps_completed:          String(wfSummary?.data?.steps_completed         ?? 'MISSING'),
+            s3_output_path:           s3OutputBase,
+            completion_time:          String(wfSummary?.data?.completion_time         ?? completedAt ?? 'MISSING'),
+            cs_project_uid:           proj,
           };
         } else if (isADMET || isDrugDisc) {
           const toxRpt     = _parse('toxicity_report.json');
@@ -4234,26 +4253,26 @@ ${fileContext}
 ${outputInventory}`;
 
         if (isCryoEM) {
-          SYSTEM = `You are a senior structural biologist and computational scientist writing a complete, submission-ready Methods and Results section for a peer-reviewed cryo-EM journal (Nature Methods, IUCrJ, eLife, JSB). Write in formal third-person scientific prose, past tense. Include every parameter value, version number, and hardware spec. Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
+          SYSTEM = `You are a senior structural biologist writing a complete Methods and Results section for a cryo-EM journal (Nature Methods, IUCrJ, eLife, JSB). Write formal third-person scientific prose in past tense. Include every available parameter value, version number, and hardware spec. Where a metric says "not captured", briefly note it would be available in a production re-run. Where a metric says "MISSING", write "[data not available — pipeline re-run required]". Do NOT use markdown headers. Use numbered section headings in ALL CAPS followed by a period. Write ALL sections even when some metrics are unavailable — use what IS available.`;
 
-          USER = `Generate a complete, publication-quality cryo-EM manuscript section. Use ONLY the numbers in EXTRACTED METRICS — do not invent values. For any metric marked MISSING, write: "[data not available — pipeline re-run required]".
+          USER = `Generate a complete CryoSPARC SPA technical report. Use ALL available numbers from EXTRACTED METRICS. Write every section fully — do not skip or shorten sections because some metrics are unavailable. Available particle counts, pixel size, voltage, symmetry, and step completion data should all appear in the report.
 
 ${executionBlock}
 GPU COMPUTE: NVIDIA L4 (g6.2xlarge, 1×GPU, 8 vCPU, 32 GB RAM)
-SOFTWARE: CryoSPARC v5.0.2
-DATA COVERAGE: ${missingCount} of ${Object.keys(extractedMetrics).length} metrics are MISSING
+SOFTWARE: CryoSPARC v5.0.2 | Nextflow DSL2 | BioMate v2.0
+DATA NOTE: ${missingCount > 5 ? 'This is a partial run. Motion/CTF statistics and final refinement particle counts require a production re-run to capture. Particle picking, extraction, and 2D classification counts ARE available.' : `${Object.keys(extractedMetrics).length - missingCount} of ${Object.keys(extractedMetrics).length} metrics captured.`}
 ${commonTail}
 
-=== REQUIRED SECTIONS ===
-1. ABSTRACT (150 words) — sample, num_micrographs, num_particles_nu, fsc_0143_resolution Å, software, cloud platform.
-2. STUDY OVERVIEW — Biological question; pixel size; voltage; symmetry.
-3. COMPUTATIONAL ENVIRONMENT — AWS Batch; g6.2xlarge; CryoSPARC v5.0.2; Nextflow DSL2.
-4. DATA ACQUISITION — num_micrographs; avg_total_motion_A Å; avg_defocus_A Å; avg_fit_quality; pixel_size_A; voltage_kv.
-5. METHODS — One paragraph per stage: Motion Correction, CTF Estimation, Particle Picking, Extraction, 2D Classification R1, 2D Classification R2, Ab-Initio, Homogeneous Refinement, NU Refinement, FSC Validation.
-6. PIPELINE EXECUTION — Wall time; cs_project_uid; steps completed.
-7. RESULTS — Particle yield table: picked → selected R1 → extracted R2 → final (num_particles_nu); FSC 0.143 = fsc_0143_resolution Å.
-8. CRYO-EM DATA QUALITY — FSC 0.143 resolution; B-factor; particle yield efficiency; preferred orientation.
-9. EMDB/PDB DEPOSITION NOTE — Map pixel size; symmetry; final particle count; software version.
+=== REQUIRED SECTIONS (write ALL) ===
+1. ABSTRACT (100 words) — num_micrographs micrographs processed; num_blob_particles blob-picked particles; num_extracted_r2 particles after template picking; pixel_size_A Å/pixel; voltage_kv kV; symmetry; 23 processing steps completed; CryoSPARC v5.0.2 on AWS Batch.
+2. STUDY OVERVIEW — Pixel size pixel_size_A Å/pixel; voltage voltage_kv kV; particle diameter particle_diameter_A Å; symmetry symmetry; box size box_size_pix² pixels.
+3. COMPUTATIONAL ENVIRONMENT — AWS Batch us-east-1; NVIDIA L4 GPU (g6.2xlarge); CryoSPARC v5.0.2; Nextflow DSL2; BioMate orchestration; steps_completed steps completed; wall time wallTimeStr.
+4. DATA ACQUISITION — num_micrographs micrographs; pixel_size_A Å/pixel; voltage_kv kV; motion correction by CryoSPARC Patch Motion Correction; CTF by CryoSPARC Patch CTF. If avg_total_motion_A = "not captured", note re-run provides drift statistics.
+5. METHODS — One paragraph each: (a) Motion Correction, (b) CTF Estimation, (c) Particle Picking (num_blob_particles candidates from blob picker at particle_diameter_A Å), (d) Round-1 Extraction (num_extracted_r1 particles, box_size_pix px), (e) 2D Classification R1 (num_particles_2d_r1 particles, num_classes_r1 classes), (f) Round-2 Extraction (num_extracted_r2 particles), (g) Ab-Initio Reconstruction (3 models, C1 symmetry), (h) Homogeneous Refinement, (i) Non-Uniform Refinement, (j) FSC Validation.
+6. PIPELINE EXECUTION — Wall time wallTimeStr; steps_completed steps completed; output at s3_output_path; completion_time.
+7. RESULTS — Particle yield table using all available counts. FSC resolution: fsc_0143_resolution.
+8. DATA QUALITY — Note that 20 micrographs is a pilot dataset (1.9% of EMPIAR-10028). Discuss particle yield efficiency (num_extracted_r2/num_blob_particles × 100%). Motion and CTF quality metrics require re-run.
+9. DEPOSITION NOTE — pixel_size_A Å/voxel; symmetry; CryoSPARC v5.0.2; output at s3_output_path.
 N. REFERENCES — CryoSPARC: PMID 28165473; CTFFIND4: PMID 26278980; MotionCor2: PMID 28250466; NU refinement: PMID 33257830; Local CTF: PMID 34282325.`;
 
         } else if (isADMET || isDrugDisc) {
@@ -4345,14 +4364,87 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
 
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
-        // Use Gemini Flash for fast generation (~10s latency, well within E2E timeouts).
-        console.log(`[MethodsReport] Calling Gemini: USER prompt=${USER.length} chars, SYSTEM=${SYSTEM.length} chars, missingCount=${missingCount}`);
-        const reportText = await callGeminiFlash({
-          messages: [{ role: 'user', content: USER }],
-          system: SYSTEM,
-          maxTokens: 2048,
-        });
-        console.log(`[MethodsReport] Gemini response: ${reportText.length} chars`);
+        // ── Step-by-step report generation with Claude Sonnet 4.5 ─────────────
+        // For CryoEM, split into 3 focused calls to avoid LLM truncation.
+        // For all other domains, a single focused call.
+        const Anthropic = (await import('@anthropic-ai/sdk')).default;
+        const claudeClient = new Anthropic({ apiKey });
+
+        const claudeCall = async (userPrompt: string): Promise<string> => {
+          const msg = await claudeClient.messages.create({
+            model: 'claude-sonnet-4-5',
+            max_tokens: 1200,
+            system: SYSTEM,
+            messages: [{ role: 'user', content: userPrompt }],
+          });
+          return (msg.content[0] as any)?.text ?? '';
+        };
+
+        // Compact metrics block (no raw file JSON, just the key-value pairs)
+        const compactMeta = `WORKFLOW: ${workflowName}
+WALL TIME: ${wallTimeStr}
+STEPS COMPLETED: ${extractedMetrics.steps_completed ?? 'N/A'}
+AWS BATCH | CryoSPARC v5.0.2 | Nextflow DSL2
+
+EXTRACTED METRICS:
+${metricsBlock}
+
+INPUT PARAMETERS:
+${paramLines || '(none recorded)'}`;
+
+        let reportText: string;
+
+        if (isCryoEM) {
+          console.log(`[MethodsReport] CryoEM step-by-step generation (Claude sonnet-4-5), ${Object.keys(extractedMetrics).length} metrics, ${missingCount} missing`);
+
+          const [partA, partB, partC] = await Promise.all([
+            // Part A: Abstract + Study Overview + Computational Environment
+            claudeCall(`Write sections 1–3 of a CryoSPARC SPA technical report. Use ONLY the numbers below. Where a metric says "not captured", note that a production re-run provides it. For MISSING values, write "[data not available — pipeline re-run required]". Use numbered ALL-CAPS section headings, no markdown.
+
+${compactMeta}
+
+1. ABSTRACT (100 words) — State: ${extractedMetrics.num_micrographs} micrographs processed; ${extractedMetrics.num_blob_particles} initial blob-picked particles; ${extractedMetrics.num_extracted_r2} particles after template picking; pixel size ${extractedMetrics.pixel_size_A} Å/px; ${extractedMetrics.voltage_kv} kV; symmetry ${extractedMetrics.symmetry}; ${extractedMetrics.steps_completed} processing steps completed; CryoSPARC v5.0.2 on AWS Batch.
+2. STUDY OVERVIEW — Dataset details; pixel size ${extractedMetrics.pixel_size_A} Å/px; ${extractedMetrics.voltage_kv} kV; particle diameter ${extractedMetrics.particle_diameter_A} Å; symmetry ${extractedMetrics.symmetry}; box size ${extractedMetrics.box_size_pix}² px; note this is a 20-micrograph pilot (1.9% of EMPIAR-10028 beta-galactosidase dataset).
+3. COMPUTATIONAL ENVIRONMENT — AWS Batch (us-east-1); NVIDIA L4 GPU (g6.2xlarge, 1×GPU, 8 vCPU, 32 GB RAM); CryoSPARC v5.0.2; Nextflow DSL2; BioMate pipeline; ${extractedMetrics.steps_completed} steps completed in ${wallTimeStr}.`),
+
+            // Part B: Data Acquisition + Methods 5.1–5.5
+            claudeCall(`Write sections 4–5 (methods) of a CryoSPARC SPA technical report for this run. Use ONLY the numbers below. No markdown. ALL-CAPS numbered headings.
+
+${compactMeta}
+
+4. DATA ACQUISITION — ${extractedMetrics.num_micrographs} micrographs; pixel size ${extractedMetrics.pixel_size_A} Å/px; ${extractedMetrics.voltage_kv} kV; motion correction by CryoSPARC Patch Motion Correction (job ${extractedMetrics.motion_cs_job}); CTF by CryoSPARC Patch CTF; avg_total_motion_A="${extractedMetrics.avg_total_motion_A}"; avg_defocus_A="${extractedMetrics.avg_defocus_A}"; avg_fit_quality="${extractedMetrics.avg_fit_quality}".
+5. METHODS (write ONE paragraph each):
+   5.1 Motion Correction — CryoSPARC v5.0.2 Patch Motion Correction; ${extractedMetrics.num_micrographs} micrographs; ${extractedMetrics.avg_total_motion_A}.
+   5.2 CTF Estimation — CryoSPARC Patch CTF; avg defocus ${extractedMetrics.avg_defocus_A}; fit quality ${extractedMetrics.avg_fit_quality}.
+   5.3 Particle Picking — Blob Picker at ${extractedMetrics.particle_diameter_A} Å diameter yielded ${extractedMetrics.num_blob_particles} candidates. Junk filtering: ${extractedMetrics.num_junk_rejected} rejected.
+   5.4 Round-1 Extraction — ${extractedMetrics.num_extracted_r1} particles extracted; box size ${extractedMetrics.box_size_pix}² px at ${extractedMetrics.pixel_size_A} Å/px.
+   5.5 2D Classification R1 — ${extractedMetrics.num_particles_2d_r1} particles into ${extractedMetrics.num_classes_r1} classes.`),
+
+            // Part C: Methods 5.6–5.10 + Results + Execution + Quality + Deposition + References
+            claudeCall(`Write sections 5.6–N of a CryoSPARC SPA technical report. Use ONLY the numbers below. No markdown. ALL-CAPS numbered headings.
+
+${compactMeta}
+
+   5.6 Round-2 Extraction — After template picking, ${extractedMetrics.num_extracted_r2} particles extracted.
+   5.7 Ab-Initio Reconstruction — 3 initial models; symmetry ${extractedMetrics.symmetry}; CryoSPARC ab-initio reconstruction.
+   5.8 Homogeneous Refinement — Best ab-initio model selected; homogeneous refinement with symmetry ${extractedMetrics.symmetry}.
+   5.9 Non-Uniform Refinement — CryoSPARC NU refinement; final particles: ${extractedMetrics.num_particles_nu}.
+   5.10 FSC Validation — Gold-standard FSC; resolution: ${extractedMetrics.fsc_0143_resolution}.
+6. PIPELINE EXECUTION — Wall time ${wallTimeStr}; ${extractedMetrics.steps_completed} steps; output: ${extractedMetrics.s3_output_path}; completed ${extractedMetrics.completion_time}.
+7. RESULTS — Particle yield table (blob pick → extract R1 → extract R2 → NU refine): ${extractedMetrics.num_blob_particles} → ${extractedMetrics.num_extracted_r1} → ${extractedMetrics.num_extracted_r2} → ${extractedMetrics.num_particles_nu}. FSC 0.143: ${extractedMetrics.fsc_0143_resolution}.
+8. DATA QUALITY — 20 micrographs = pilot dataset (1.9% of EMPIAR-10028); particle yield efficiency = ${extractedMetrics.num_extracted_r2}/${extractedMetrics.num_blob_particles}; motion/CTF metrics: ${extractedMetrics.avg_total_motion_A}/${extractedMetrics.avg_defocus_A}.
+9. DEPOSITION NOTE — Pixel size ${extractedMetrics.pixel_size_A} Å/voxel; symmetry ${extractedMetrics.symmetry}; CryoSPARC v5.0.2; ${extractedMetrics.steps_completed} steps; output: ${extractedMetrics.s3_output_path}.
+N. REFERENCES — CryoSPARC (Punjani 2017, PMID 28165473); CTFFIND4 (Rohou 2015, PMID 26278980); MotionCor2 (Zheng 2017, PMID 28250466); NU refinement (Punjani 2020, PMID 33257830); Local CTF (Punjani 2021, PMID 34282325).`),
+          ]);
+
+          reportText = [partA, partB, partC].join('\n\n');
+          console.log(`[MethodsReport] CryoEM report: A=${partA.length} B=${partB.length} C=${partC.length} total=${reportText.length} chars`);
+
+        } else {
+          // Non-CryoEM: single call with focused metrics
+          console.log(`[MethodsReport] Generic report generation (Claude sonnet-4-5)`);
+          reportText = await claudeCall(`${USER}\n\n${compactMeta}`);
+        }
 
         const header = [
           `BioMate AI — Methods Report`,

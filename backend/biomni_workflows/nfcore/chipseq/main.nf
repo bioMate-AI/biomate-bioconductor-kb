@@ -4,6 +4,7 @@
 params.input            = null          // Samplesheet CSV (sample,fastq_1,fastq_2,antibody,control)
 params.genome           = null          // Reference genome: GRCh38 | GRCm39 | GRCm38 | BDGP6
 params.macs_gsize       = null          // MACS2 genome size: hs | mm | ce | dm
+params.single_end       = false         // Single-end library (false = paired-end)
 params.narrow_peak      = false         // Call narrow peaks (default: broad)
 params.macs2_broad      = true          // Call broad peaks (true for histone marks, false for TF/narrow peaks)
 params.qvalue           = 0.05          // MACS2 q-value (FDR) threshold for peak calling
