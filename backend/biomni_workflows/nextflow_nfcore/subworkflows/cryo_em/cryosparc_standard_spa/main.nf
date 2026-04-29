@@ -773,6 +773,8 @@ process PATCH_MOTION_CORRECTION_BATCH {
                                 report["max_total_motion_A"] = round(float(np.nanmax(_valid)), 2)
                                 report["num_accepted"] = int(len(_valid))
                                 report["motion_field_used"] = _field
+                                # Export per-micrograph values for histogram chart (cap at 500)
+                                report["per_micrograph_motion_A"] = [round(float(v), 2) for v in _valid[:500]]
                                 _found_motion = True
                                 break
                         except Exception as _fe:
@@ -880,6 +882,8 @@ process PATCH_CTF_ESTIMATION_BATCH {
                             report["min_ctf_fit_to_A"] = round(float(np.nanmin(_valid)), 2)
                             report["avg_fit_quality"] = round(max(0.0, 1.0 - float(np.nanmean(_valid)) / 10.0), 3)
                             report["ctf_fit_field_used"] = _f
+                            # Per-micrograph fit values for scatter chart (cap at 500)
+                            report["per_micrograph_fit_A"] = [round(float(v), 2) for v in _valid[:500]]
                             break
                 else:
                     _fit_fields = [f for f in _names if 'fit' in f.lower() or 'resolution' in f.lower()]
@@ -894,6 +898,8 @@ process PATCH_CTF_ESTIMATION_BATCH {
                             report["min_defocus_A"] = round(float(np.nanmin(_valid)), 0)
                             report["max_defocus_A"] = round(float(np.nanmax(_valid)), 0)
                             report["defocus_field_used"] = _f
+                            # Per-micrograph defocus for histogram/scatter chart (cap at 500)
+                            report["per_micrograph_defocus_A"] = [round(float(v), 0) for v in _valid[:500]]
                             break
                 # Astigmatism |df1 - df2|
                 for _f1, _f2 in [("ctf_info/df1_A","ctf_info/df2_A"), ("ctf/df1_A","ctf/df2_A"),
@@ -2480,6 +2486,25 @@ process VALIDATION_FSC {
 
             if fsc_out is None and _best_candidate is not None:
                 fsc_out = _best_candidate
+
+            # Last resort: iterate job.outputs directly (cryosparc-tools v4+ API)
+            if fsc_out is None:
+                try:
+                    for _slot_name in dir(job):
+                        if _slot_name.startswith('_'): continue
+                        try:
+                            _out = job.load_output(_slot_name)
+                            if _out is None: continue
+                            _arr = _out.data if hasattr(_out, 'data') else _out
+                            _fields = list(_arr.dtype.names) if hasattr(_arr, 'dtype') else []
+                            if any('fsc' in f.lower() for f in _fields):
+                                print(f"[FSC] Found via dir() scan: slot={_slot_name}, fields={_fields[:5]}", flush=True)
+                                fsc_out = _out
+                                break
+                        except Exception:
+                            continue
+                except Exception as _de:
+                    print(f"[FSC] dir() scan failed: {_de}", flush=True)
 
             if fsc_out is not None:
                 arr = fsc_out.data if hasattr(fsc_out, "data") else fsc_out
