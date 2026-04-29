@@ -2,25 +2,25 @@
 /*
  * pharmacology/biomarker_patient_enrichment
  *
- * Biomarker-driven patient enrichment analysis for the Phase II → III transition.
+ * Biomarker-driven patient enrichment analysis for the Phase II -> III transition.
  * Identifies predictive biomarkers (those that predict whether a patient will respond
  * to treatment) from Phase II clinical trial data and computes the patient-count
  * savings achievable by enrolling only biomarker-positive patients in the pivotal trial.
  *
  * Computations:
- *   1. Biomarker screening — logistic (binary) or linear (continuous) regression per
+ *   1. Biomarker screening -- logistic (binary) or linear (continuous) regression per
  *      biomarker; reports OR/HR with 95 % CI, p-value, and FDR-adjusted q-value
  *      (Benjamini-Hochberg).
- *   2. Optimal cut-point analysis — Youden's J statistic over continuous biomarkers
- *      to find the threshold that maximises sensitivity + specificity − 1.
+ *   2. Optimal cut-point analysis -- Youden's J statistic over continuous biomarkers
+ *      to find the threshold that maximises sensitivity + specificity - 1.
  *   3. Enrichment metrics per biomarker:
- *        ER  — enrichment ratio (response rate BM+ / response rate BM−)
- *        NNT — number needed to treat (1 / ARR)
- *        PEF — predictive enrichment factor (% of all responders captured in BM+)
- *        NNS — number needed to screen per responder enrolled
- *   4. Phase III power analysis — two-proportion z-test sample size with vs without
+ *        ER  -- enrichment ratio (response rate BM+ / response rate BM-)
+ *        NNT -- number needed to treat (1 / ARR)
+ *        PEF -- predictive enrichment factor (% of all responders captured in BM+)
+ *        NNS -- number needed to screen per responder enrolled
+ *   4. Phase III power analysis -- two-proportion z-test sample size with vs without
  *      biomarker enrichment, showing absolute patient-count savings.
- *   5. Structured output — JSON results + plain-English regulatory narrative + CSV
+ *   5. Structured output -- JSON results + plain-English regulatory narrative + CSV
  *      sample-size comparison table.
  *
  * References:
@@ -39,9 +39,9 @@
  *   --phase3_alpha        Phase III significance level, one-sided (default: 0.025)
  *
  * Outputs:
- *   biomarker_enrichment_results.json    — per-biomarker enrichment metrics + statistics
- *   enrichment_summary.txt              — plain-English narrative for regulatory submission
- *   phase3_sample_size_comparison.csv   — unenriched vs enriched Phase III sample sizes
+ *   biomarker_enrichment_results.json    -- per-biomarker enrichment metrics + statistics
+ *   enrichment_summary.txt              -- plain-English narrative for regulatory submission
+ *   phase3_sample_size_comparison.csv   -- unenriched vs enriched Phase III sample sizes
  */
 
 nextflow.enable.dsl = 2
@@ -109,11 +109,11 @@ def generate_demo_data():
     data = []
     n = 120
     for i in range(n):
-        # BM1: continuous protein expression (0–10); truly predictive
+        # BM1: continuous protein expression (0-10); truly predictive
         bm1 = np.random.gamma(2, 1.5)
-        # BM2: continuous mutation score (0–100); weakly predictive
+        # BM2: continuous mutation score (0-100); weakly predictive
         bm2 = np.random.normal(50, 15)
-        # BM3: continuous age (20–80); not predictive
+        # BM3: continuous age (20-80); not predictive
         bm3 = np.random.uniform(20, 80)
         # True response probability driven mainly by BM1
         log_odds = -1.5 + 0.45 * bm1 + 0.005 * bm2
@@ -144,7 +144,7 @@ if raw_data and raw_data not in ('null', 'None', ''):
         print(f"WARNING: Could not parse patient_data_json ({e}); using demo data.", file=sys.stderr)
         patients = generate_demo_data()
 else:
-    print("INFO: No patient data supplied — using synthetic demo dataset (n=120).", file=sys.stderr)
+    print("INFO: No patient data supplied -- using synthetic demo dataset (n=120).", file=sys.stderr)
     patients = generate_demo_data()
 
 if not patients or len(patients) < 10:
@@ -180,7 +180,7 @@ if not bm_keys:
 print(f"INFO: n={n_total} patients, {len(bm_keys)} biomarkers: {bm_keys}", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
-# Step 1: Biomarker screening — logistic or linear regression
+# Step 1: Biomarker screening -- logistic or linear regression
 # ---------------------------------------------------------------------------
 def logistic_regression_single(x, y):
     """
@@ -441,7 +441,7 @@ for bm in bm_keys:
     sr['NNS']              = round(nns, 2) if math.isfinite(nns) else None
 
 # ---------------------------------------------------------------------------
-# Step 4: Phase III sample size — two-proportion z-test
+# Step 4: Phase III sample size -- two-proportion z-test
 # ---------------------------------------------------------------------------
 def two_proportion_n(p1, p2, alpha_one_sided, power):
     """
@@ -598,7 +598,7 @@ for bm in all_bms_sorted:
     sig_flag = '[FDR-SIG]' if sr.get('fdr_significant') else '         '
     lines.append(
         f"  {sig_flag} {bm}: {sr['effect_label']}={fmt(sr['effect'])} "
-        f"(95%CI {fmt(sr['ci_95_lo'])}–{fmt(sr['ci_95_hi'])}) "
+        f"(95%CI {fmt(sr['ci_95_lo'])}-{fmt(sr['ci_95_hi'])}) "
         f"p={fmt(sr.get('pvalue'), 4)}, q={fmt(sr.get('qvalue'), 4)}"
     )
     if sr.get('optimal_cutpoint') is not None:
@@ -619,7 +619,7 @@ for bm in all_bms_sorted:
         if ps.get('enriched_total'):
             lines.append(
                 f"             Phase III N: unenriched={ps['unenriched_total']} "
-                f"→ enriched={ps['enriched_total']} "
+                f"-> enriched={ps['enriched_total']} "
                 f"(savings={ps['savings']}, {ps['pct_savings']}%)"
             )
 
@@ -670,7 +670,7 @@ if top_bm:
             '(insufficient effect size or missing cut-point).',
         ]
 else:
-    lines.append('  No biomarkers passed screening — unenriched Phase III is recommended.')
+    lines.append('  No biomarkers passed screening -- unenriched Phase III is recommended.')
 
 narrative = '\n'.join(lines)
 with open('enrichment_summary.txt', 'w') as f:

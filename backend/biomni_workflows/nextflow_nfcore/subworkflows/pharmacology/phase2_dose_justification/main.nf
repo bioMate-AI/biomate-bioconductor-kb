@@ -2,11 +2,11 @@
 /*
  * pharmacology/phase2_dose_justification
  *
- * Produces an FDA-format Phase II → III dose justification brief from upstream
+ * Produces an FDA-format Phase II -> III dose justification brief from upstream
  * exposure-response (E-R) modelling and population PK (PopPK) results.
  *
  * Based on FDA's 2023 Exposure-Response Guidance:
- *   "Exposure-Response Relationships — Study Design, Data Analysis, and
+ *   "Exposure-Response Relationships -- Study Design, Data Analysis, and
  *    Regulatory Applications" (FDA CDER/CBER, 2023)
  *   https://www.fda.gov/media/128793/download
  *
@@ -15,21 +15,21 @@
  * clinical pharmacology section of an NDA/BLA.
  *
  * Computations:
- *   - Therapeutic window (EC10–EC90 from Emax Hill model)
+ *   - Therapeutic window (EC10-EC90 from Emax Hill model)
  *   - Predicted % responders at each candidate dose via Emax model + log-normal
  *     PK variability (population_cv_pct)
  *   - Safety margin ratio: AUC_MTD / AUC_efficacious_dose
- *   - Probability of Technical Success (PTS) from E-R R² and confidence band
+ *   - Probability of Technical Success (PTS) from E-R R2 and confidence band
  *     width (Lalonde 2007 framework)
  *
  * Document sections mirror FDA 2023 E-R guidance structure:
- *   §1  E-R Relationship (model, fit quality, EC50, Hill)
- *   §2  Dose Selection Rationale (target exposure, therapeutic window)
- *   §3  Population Variability and Special Populations
- *   §4  Benefit-Risk Conclusion for proposed Phase III dose(s)
+ *   S1  E-R Relationship (model, fit quality, EC50, Hill)
+ *   S2  Dose Selection Rationale (target exposure, therapeutic window)
+ *   S3  Population Variability and Special Populations
+ *   S4  Benefit-Risk Conclusion for proposed Phase III dose(s)
  *
  * References:
- *   - FDA CDER/CBER. Exposure-Response Relationships — Study Design, Data
+ *   - FDA CDER/CBER. Exposure-Response Relationships -- Study Design, Data
  *     Analysis, and Regulatory Applications (2023). https://www.fda.gov/media/128793/download
  *   - Lalonde RL et al. Model-based drug development. Clin Pharmacol Ther. 2007.
  *   - Holford NH, et al. Simulation of clinical trials. Annu Rev Pharmacol Toxicol. 2000.
@@ -45,13 +45,13 @@
  *   --compound_name         Drug name for the report (default "Compound")
  *
  * Optional PopPK-derived AUC inputs (enhances safety margin computation):
- *   --mtd_auc_ug_L_h        AUC at MTD from Phase I PopPK (µg/L·h)
+ *   --mtd_auc_ug_L_h        AUC at MTD from Phase I PopPK (ug/L*h)
  *   --auc_cv_pct            AUC inter-subject variability % (default equals population_cv_pct)
  *
  * Outputs:
- *   dose_justification_brief.json   — machine-readable structured brief
- *   dose_justification_narrative.txt — FDA-format plain-text dose justification document
- *   er_dose_summary.csv             — per-dose quantitative summary table
+ *   dose_justification_brief.json   -- machine-readable structured brief
+ *   dose_justification_narrative.txt -- FDA-format plain-text dose justification document
+ *   er_dose_summary.csv             -- per-dose quantitative summary table
  */
 
 nextflow.enable.dsl = 2
@@ -166,9 +166,9 @@ def parse_er_params(raw):
                   "using synthetic defaults.", file=sys.stderr)
 
     # Synthetic illustrative parameters (representative oncology Phase I data)
-    # EC50=200 µg/L·h, Emax=78%, Hill=1.3, R²=0.91
-    print("INFO: No E-R parameters supplied — using illustrative synthetic "
-          "values (EC50=200 µg/L·h, Emax=78%, Hill=1.3, R²=0.91).",
+    # EC50=200 ug/L*h, Emax=78%, Hill=1.3, R2=0.91
+    print("INFO: No E-R parameters supplied -- using illustrative synthetic "
+          "values (EC50=200 ug/L*h, Emax=78%, Hill=1.3, R2=0.91).",
           file=sys.stderr)
     return {
         'EC50': 200.0,
@@ -201,7 +201,7 @@ def pct_responders_lognormal(emax, ec50, hill, mean_auc, cv_pct,
                               rng_seed=42):
     """
     Monte Carlo estimate of % responders:
-    Subjects whose predicted effect ≥ target_effect_pct given log-normal AUC
+    Subjects whose predicted effect >= target_effect_pct given log-normal AUC
     distribution (arithmetic mean=mean_auc, CV=cv_pct%).
     """
     rng = np.random.default_rng(rng_seed)
@@ -223,23 +223,23 @@ def pts_estimate(r2, n_datapoints, hill, ec50, emax,
     Framework: Lalonde et al. (2007) Clin Pharmacol Ther 82(1):21-32.
     PTS is decomposed into three independent probability components:
 
-    P1 — Relationship strength: P(E-R relationship is real)
-         Approximated from R² and sample size via Fisher z-test power.
-         R² ≥ 0.80 → P1 ≥ 0.85; R² < 0.50 → P1 ≤ 0.60.
+    P1 -- Relationship strength: P(E-R relationship is real)
+         Approximated from R2 and sample size via Fisher z-test power.
+         R2 >= 0.80 -> P1 >= 0.85; R2 < 0.50 -> P1 <= 0.60.
 
-    P2 — Dose selection accuracy: P(chosen dose is within therapeutic window)
-         Approximated from therapeutic window width (EC10–EC90 ratio).
-         Wide window (>10x) → P2 ≥ 0.80; narrow (<3x) → P2 ≤ 0.55.
+    P2 -- Dose selection accuracy: P(chosen dose is within therapeutic window)
+         Approximated from therapeutic window width (EC10-EC90 ratio).
+         Wide window (>10x) -> P2 >= 0.80; narrow (<3x) -> P2 <= 0.55.
 
-    P3 — Model transportability: P(Phase II E-R translates to Phase III)
-         Fixed prior from published Phase II→III success rates (Thomas 2014):
+    P3 -- Model transportability: P(Phase II E-R translates to Phase III)
+         Fixed prior from published Phase II->III success rates (Thomas 2014):
          Oncology 0.52, non-oncology 0.65; default 0.60.
 
-    PTS = P1 × P2 × P3
+    PTS = P1 x P2 x P3
     """
     # P1: strength of evidence
     r2_safe = r2 if r2 is not None else 0.70
-    # Scale: R²=0.95→P1=0.92, R²=0.80→P1=0.85, R²=0.60→P1=0.72, R²<0.50→P1≈0.60
+    # Scale: R2=0.95->P1=0.92, R2=0.80->P1=0.85, R2=0.60->P1=0.72, R2<0.50->P1~0.60
     p1 = 0.50 + 0.45 * (r2_safe ** 0.7)
     p1 = min(max(p1, 0.50), 0.95)
 
@@ -248,11 +248,11 @@ def pts_estimate(r2, n_datapoints, hill, ec50, emax,
         tw_ratio = ec90_exp / ec10_exp
     else:
         tw_ratio = 5.0  # assume moderate by default
-    # Scale: ratio=50→P2=0.90, ratio=10→P2=0.80, ratio=3→P2=0.55, ratio=1→P2=0.35
+    # Scale: ratio=50->P2=0.90, ratio=10->P2=0.80, ratio=3->P2=0.55, ratio=1->P2=0.35
     p2 = 0.30 + 0.65 * (1.0 - math.exp(-0.12 * (tw_ratio - 1.0)))
     p2 = min(max(p2, 0.30), 0.90)
 
-    # P3: Phase II→III translation prior (Thomas 2014 meta-analysis)
+    # P3: Phase II->III translation prior (Thomas 2014 meta-analysis)
     p3 = 0.60
 
     pts = p1 * p2 * p3
@@ -295,16 +295,16 @@ if not candidate_doses:
 # ---------------------------------------------------------------------------
 # Derive reference AUC at EC50 dose using the E-R model inversion.
 # If no PK data supplied, we set reference_dose such that it produces AUC=EC50.
-# This is the minimum information needed to map dose→AUC→effect.
+# This is the minimum information needed to map dose->AUC->effect.
 # ---------------------------------------------------------------------------
 
 # Reference point: AUC at EC50 exposure equals EC50 by definition.
-# We need a dose → AUC conversion factor.
-# Strategy: use geometric mean dose → EC50 AUC (assumes linear PK).
+# We need a dose -> AUC conversion factor.
+# Strategy: use geometric mean dose -> EC50 AUC (assumes linear PK).
 geo_mean_dose = float(np.exp(np.mean(np.log(candidate_doses))))
 # At geo_mean_dose, predicted mean AUC = EC50 (central estimate)
-dose_per_ec50 = geo_mean_dose  # mg dose that produces AUC ≈ EC50
-auc_per_mg = ec50 / dose_per_ec50  # linear PK scaling factor (µg/L·h per mg)
+dose_per_ec50 = geo_mean_dose  # mg dose that produces AUC ~ EC50
+auc_per_mg = ec50 / dose_per_ec50  # linear PK scaling factor (ug/L*h per mg)
 
 # ---------------------------------------------------------------------------
 # Therapeutic window: EC10 and EC90
@@ -365,7 +365,7 @@ for dose_mg in candidate_doses:
     }
     dose_rows.append(row)
 
-    # Flag as recommended if ≥ target effect and (safety margin ≥ 3 or unknown)
+    # Flag as recommended if >= target effect and (safety margin >= 3 or unknown)
     is_efficacious = predicted_effect_pct >= target_pct * 0.90  # within 10% of target
     is_safe = (safety_margin is None) or (safety_margin >= 3.0)
     if is_efficacious and is_safe:
@@ -395,11 +395,11 @@ if mtd_auc is not None:
     if sm_value is None:
         sm_flag = 'NOT ASSESSED'
     elif sm_value >= 10:
-        sm_flag = 'ADEQUATE (≥10× margin between efficacious and MTD exposure)'
+        sm_flag = 'ADEQUATE (>=10x margin between efficacious and MTD exposure)'
     elif sm_value >= 3:
-        sm_flag = 'ACCEPTABLE (3–10×; confirm in Phase II expansion)'
+        sm_flag = 'ACCEPTABLE (3-10x; confirm in Phase II expansion)'
     else:
-        sm_flag = 'NARROW (<3×; benefit-risk requires close monitoring)'
+        sm_flag = 'NARROW (<3x; benefit-risk requires close monitoring)'
 
 # ---------------------------------------------------------------------------
 # Generate narrative document (FDA 2023 E-R guidance structure)
@@ -409,11 +409,11 @@ today = '2026'  # kept static for reproducibility in Nextflow caching
 r2_str = f'{r2:.3f}' if r2 is not None else 'not reported'
 tw_ratio = pts_data['therapeutic_window_ratio']
 ec10_str = (f'{ec10_exp:.1f} {exp_metric} '
-            f'(≈{ec10_dose} mg)') if ec10_exp else 'not estimable'
+            f'(~{ec10_dose} mg)') if ec10_exp else 'not estimable'
 ec90_str = (f'{ec90_exp:.1f} {exp_metric} '
-            f'(≈{ec90_dose} mg)') if ec90_exp else 'not estimable'
+            f'(~{ec90_dose} mg)') if ec90_exp else 'not estimable'
 ec_tgt_str = (f'{ec_target_exp:.1f} {exp_metric} '
-              f'(≈{ec_target_dose} mg)') if ec_target_exp else 'not estimable'
+              f'(~{ec_target_dose} mg)') if ec_target_exp else 'not estimable'
 
 # Build per-dose table for narrative
 dose_table_lines = []
@@ -422,86 +422,86 @@ dose_table_lines.append(
     f"{'Responders%':>13}  {'Effect P5-P95':>16}  {'Safety Margin':>14}")
 dose_table_lines.append('-' * 90)
 for r in dose_rows:
-    sm_cell = f'{r["safety_margin_vs_MTD"]:.1f}×' if r['safety_margin_vs_MTD'] else 'N/A'
+    sm_cell = f'{r["safety_margin_vs_MTD"]:.1f}x' if r['safety_margin_vs_MTD'] else 'N/A'
     dose_table_lines.append(
         f'{r["dose_mg"]:>12.1f}  '
         f'{r["mean_AUC"]:>12.1f}  '
         f'{r["predicted_effect_pct"]:>14.1f}  '
         f'{r["pct_responders"]:>13.1f}  '
-        f'{r["effect_p5_pct"]:>7.1f}–{r["effect_p95_pct"]:<7.1f}  '
+        f'{r["effect_p5_pct"]:>7.1f}-{r["effect_p95_pct"]:<7.1f}  '
         f'{sm_cell:>14}')
 
 rec_doses_str = ', '.join(f'{d:.0f} mg' for d in recommended_doses) if recommended_doses \
     else f'{primary_dose:.0f} mg (provisional)'
 
 narrative = f"""================================================================================
-{compound.upper()} — PHASE II → PHASE III DOSE JUSTIFICATION BRIEF
-FDA Exposure-Response Guidance (2023) — CDER/CBER Format
+{compound.upper()} -- PHASE II -> PHASE III DOSE JUSTIFICATION BRIEF
+FDA Exposure-Response Guidance (2023) -- CDER/CBER Format
 ================================================================================
 
 Prepared by: BioMate Computational Pharmacology Platform
-Reference:   FDA. Exposure-Response Relationships — Study Design, Data Analysis,
+Reference:   FDA. Exposure-Response Relationships -- Study Design, Data Analysis,
              and Regulatory Applications. CDER/CBER, 2023.
              https://www.fda.gov/media/128793/download
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 SECTION 1: EXPOSURE-RESPONSE RELATIONSHIP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 
 1.1  Model Selection and Fit Quality
-─────────────────────────────────────
+-------------------------------------
 A sigmoid Emax (Hill) model was identified as the most appropriate structural
 form for the {compound} exposure-response relationship, consistent with the
 receptor-saturation pharmacology expected for this mechanism of action and with
 the FDA 2023 E-R guidance recommendation to use mechanistically plausible models
-when supported by the data (§4.2, FDA 2023 E-R Guidance).
+when supported by the data (S4.2, FDA 2023 E-R Guidance).
 
-Model equation:  Effect(%) = Emax × AUC^Hill / (EC50^Hill + AUC^Hill)
+Model equation:  Effect(%) = Emax x AUC^Hill / (EC50^Hill + AUC^Hill)
 
 Fitted parameter estimates:
   Emax  (maximum achievable effect) : {emax:.2f}%
   EC50  (exposure at half-maximum)  : {ec50:.2f} {exp_metric}
   Hill  (sigmoidicity coefficient)  : {hill:.3f}
-  R²    (goodness-of-fit)           : {r2_str}
+  R2    (goodness-of-fit)           : {r2_str}
 
-An R² of {r2_str} indicates {"a strong, well-characterised" if r2 and r2 >= 0.80 else "a moderate" if r2 and r2 >= 0.60 else "a limited"} E-R relationship.
-{"The model provides high confidence in the quantitative E-R characterisation and supports use in dose selection per FDA 2023 E-R guidance §4.3." if r2 and r2 >= 0.80 else "Additional Phase II data should be collected to strengthen the E-R characterisation before finalising the Phase III dose, as recommended by FDA 2023 E-R guidance §6.2."}
+An R2 of {r2_str} indicates {"a strong, well-characterised" if r2 and r2 >= 0.80 else "a moderate" if r2 and r2 >= 0.60 else "a limited"} E-R relationship.
+{"The model provides high confidence in the quantitative E-R characterisation and supports use in dose selection per FDA 2023 E-R guidance S4.3." if r2 and r2 >= 0.80 else "Additional Phase II data should be collected to strengthen the E-R characterisation before finalising the Phase III dose, as recommended by FDA 2023 E-R guidance S6.2."}
 
 Hill coefficient of {hill:.3f} indicates {"steep, switch-like" if hill > 2 else "moderate" if hill > 1 else "shallow (sub-Michaelis-Menten)"} concentration-effect
 sigmoidity. {"A Hill >2 implies a narrow exposure window requires precise dose selection." if hill > 2 else ""}
 
 1.2  Model Adequacy Assessment
-───────────────────────────────
-Emax constraint:  {emax:.1f}% is {"physiologically plausible for the claimed mechanism of action." if emax <= 100 else "above 100%; this may reflect a composite endpoint or assay artefact — review raw data."}
+-------------------------------
+Emax constraint:  {emax:.1f}% is {"physiologically plausible for the claimed mechanism of action." if emax <= 100 else "above 100%; this may reflect a composite endpoint or assay artefact -- review raw data."}
 EC50 plausibility: {ec50:.1f} {exp_metric} is within the range achieved at clinical doses
                   evaluated in Phase I (see dose table, Section 2).
 Residual variability and visual predictive checks should be assessed in the
 full model diagnostic report (companion output: er_parameters.json).
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 SECTION 2: DOSE SELECTION RATIONALE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 
 2.1  Target Exposure and Therapeutic Window
-─────────────────────────────────────────────
+---------------------------------------------
 The target efficacy level for Phase III is {target_pct:.0f}% of Emax, following
-the dose-selection criterion in FDA 2023 E-R guidance §5.1 and ICH E4 §3.
+the dose-selection criterion in FDA 2023 E-R guidance S5.1 and ICH E4 S3.
 
 Target effect ({target_pct:.0f}% Emax) achieved at: {ec_tgt_str}
 
-Therapeutic window (EC10–EC90):
+Therapeutic window (EC10-EC90):
   Lower bound (EC10):  {ec10_str}
   Upper bound (EC90):  {ec90_str}
-  Window ratio (EC90/EC10): {f'{tw_ratio:.1f}×' if tw_ratio else 'not estimable'}
+  Window ratio (EC90/EC10): {f'{tw_ratio:.1f}x' if tw_ratio else 'not estimable'}
 
-{"A therapeutic window ratio of " + f"{tw_ratio:.1f}×" + " is " + ("wide, supporting flexible dose selection." if tw_ratio >= 10 else "moderate; dose selection should remain close to EC" + f"{target_pct:.0f}." if tw_ratio >= 3 else "narrow (<3×). Precise dosing is critical; exposure monitoring or dose adjustment rules are recommended.") if tw_ratio else ""}
+{"A therapeutic window ratio of " + f"{tw_ratio:.1f}x" + " is " + ("wide, supporting flexible dose selection." if tw_ratio >= 10 else "moderate; dose selection should remain close to EC" + f"{target_pct:.0f}." if tw_ratio >= 3 else "narrow (<3x). Precise dosing is critical; exposure monitoring or dose adjustment rules are recommended.") if tw_ratio else ""}
 
-Per FDA 2023 E-R guidance (§5.2), selecting a dose at or above EC{target_pct:.0f} while
+Per FDA 2023 E-R guidance (S5.2), selecting a dose at or above EC{target_pct:.0f} while
 remaining below the MTD-limited exposure provides the best benefit-risk profile
 for a Phase III pivotal study.
 
 2.2  Candidate Dose Evaluation
-────────────────────────────────
+--------------------------------
 The following candidate doses were evaluated. Predicted mean AUC assumes linear
 PK (dose-proportional exposure). Population variability modelled as log-normal
 IIV with CV={pop_cv:.0f}% (see Section 3).
@@ -510,47 +510,47 @@ IIV with CV={pop_cv:.0f}% (see Section 3).
 
 Recommended Phase III dose(s): {rec_doses_str}
 
-Selection rationale: The recommended dose(s) achieve ≥{target_pct * 0.9:.0f}% of
+Selection rationale: The recommended dose(s) achieve >={target_pct * 0.9:.0f}% of
 the target efficacy level ({target_pct:.0f}% Emax) in the typical patient and maintain
-{"an adequate safety margin (≥3×) relative to MTD exposure, " if mtd_auc else ""}
+{"an adequate safety margin (>=3x) relative to MTD exposure, " if mtd_auc else ""}
 supporting a favourable benefit-risk profile.
 
-{"Safety margin (AUC_MTD / AUC_efficacious): " + (f"{sm_value:.1f}×" if sm_value else "not assessed") + " — " + sm_flag if mtd_auc else "NOTE: MTD AUC was not provided. Safety margin relative to MTD exposure should be calculated from Phase I PopPK results before finalising the Phase III dose."}
+{"Safety margin (AUC_MTD / AUC_efficacious): " + (f"{sm_value:.1f}x" if sm_value else "not assessed") + " -- " + sm_flag if mtd_auc else "NOTE: MTD AUC was not provided. Safety margin relative to MTD exposure should be calculated from Phase I PopPK results before finalising the Phase III dose."}
 
 2.3  Probability of Technical Success (PTS) Estimate
-──────────────────────────────────────────────────────
+------------------------------------------------------
 PTS was estimated using the Lalonde (2007) three-component framework:
 
-  P1 (E-R evidence strength)     : {pts_data['P1_er_strength']:.3f}  [based on R²={r2_str}]
-  P2 (dose selection adequacy)   : {pts_data['P2_window_adequacy']:.3f}  [based on TW ratio={tw_ratio:.1f}×]
-  P3 (Phase II→III translation)  : {pts_data['P3_phase_translation']:.3f}  [Thomas 2014 meta-analysis prior]
+  P1 (E-R evidence strength)     : {pts_data['P1_er_strength']:.3f}  [based on R2={r2_str}]
+  P2 (dose selection adequacy)   : {pts_data['P2_window_adequacy']:.3f}  [based on TW ratio={tw_ratio:.1f}x]
+  P3 (Phase II->III translation)  : {pts_data['P3_phase_translation']:.3f}  [Thomas 2014 meta-analysis prior]
 
-  PTS = P1 × P2 × P3 = {pts_data['PTS']:.3f}  ({pts_data['PTS']*100:.1f}%)
+  PTS = P1 x P2 x P3 = {pts_data['PTS']:.3f}  ({pts_data['PTS']*100:.1f}%)
 
-A PTS of {pts_data['PTS']*100:.1f}% represents {"an above-average" if pts_data['PTS'] >= 0.35 else "a below-average"} Phase II→III success
-probability relative to the industry median (~30–35% for small molecules;
+A PTS of {pts_data['PTS']*100:.1f}% represents {"an above-average" if pts_data['PTS'] >= 0.35 else "a below-average"} Phase II->III success
+probability relative to the industry median (~30-35% for small molecules;
 Thomas et al. 2014). {"Strengthening the E-R model with additional Phase II data and confirming biomarker-PK relationships could improve PTS further." if pts_data['PTS'] < 0.40 else "The E-R relationship supports proceeding to Phase III at the recommended dose."}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 SECTION 3: POPULATION VARIABILITY AND SPECIAL POPULATIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 
 3.1  Inter-Individual Variability in PK
-─────────────────────────────────────────
+-----------------------------------------
 Population PK variability was characterised using a log-normal distribution for
 AUC with CV={pop_cv:.0f}%, consistent with the IIV estimate from the population PK
 analysis (or clinical assumption if PopPK not yet available).
 
 At the primary recommended dose ({primary_dose:.0f} mg):
-  Predicted AUC range (P5–P95):  {primary_row['AUC_p5']:.1f} – {primary_row['AUC_p95']:.1f} {exp_metric}
-  Predicted effect range (P5–P95): {primary_row['effect_p5_pct']:.1f}% – {primary_row['effect_p95_pct']:.1f}% Emax
-  Percentage of patients achieving ≥{target_pct:.0f}% target effect: {primary_row['pct_responders']:.1f}%
+  Predicted AUC range (P5-P95):  {primary_row['AUC_p5']:.1f} - {primary_row['AUC_p95']:.1f} {exp_metric}
+  Predicted effect range (P5-P95): {primary_row['effect_p5_pct']:.1f}% - {primary_row['effect_p95_pct']:.1f}% Emax
+  Percentage of patients achieving >={target_pct:.0f}% target effect: {primary_row['pct_responders']:.1f}%
 
-{"An adequate proportion of the population achieves the target effect level, supporting a fixed-dose Phase III regimen." if primary_row['pct_responders'] >= 60 else "Less than 60% of the population reaches the target effect at the primary dose. Exposure-guided dose optimisation or biomarker stratification should be considered for Phase III, as recommended by FDA 2023 E-R guidance §5.3."}
+{"An adequate proportion of the population achieves the target effect level, supporting a fixed-dose Phase III regimen." if primary_row['pct_responders'] >= 60 else "Less than 60% of the population reaches the target effect at the primary dose. Exposure-guided dose optimisation or biomarker stratification should be considered for Phase III, as recommended by FDA 2023 E-R guidance S5.3."}
 
 3.2  Covariates and Special Populations
-─────────────────────────────────────────
-The following covariate analyses are recommended per FDA 2023 E-R guidance (§5.3)
+-----------------------------------------
+The following covariate analyses are recommended per FDA 2023 E-R guidance (S5.3)
 and should be incorporated into the Phase II/III PopPK analysis plan:
 
   (a) Renal impairment:  If the drug or active metabolite(s) are renally cleared
@@ -567,7 +567,7 @@ and should be incorporated into the Phase II/III PopPK analysis plan:
 
   (d) Age: Evaluate paediatric and geriatric subgroups. Apply allometric scaling
       for paediatric dose prediction (see allometric_scaling workflow). Geriatric
-      patients (≥65 y) may show reduced renal/hepatic clearance.
+      patients (>=65 y) may show reduced renal/hepatic clearance.
 
   (e) Sex: Evaluate sex as a covariate on CL and V. Adjust if >20% difference
       in exposure between sexes.
@@ -576,73 +576,73 @@ and should be incorporated into the Phase II/III PopPK analysis plan:
       (see cyp_ddi_panel and transporter_ddi_prediction workflows).
 
 Covariate-adjusted exposure targets should use the same E-R relationship defined
-in Section 1, per FDA 2023 E-R guidance §5.4 (E-R consistency across subgroups).
+in Section 1, per FDA 2023 E-R guidance S5.4 (E-R consistency across subgroups).
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 SECTION 4: BENEFIT-RISK CONCLUSION FOR PROPOSED PHASE III DOSE(S)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 
 4.1  Summary of Evidence
-──────────────────────────
+--------------------------
 The proposed Phase III dose(s) for {compound} are: {rec_doses_str}
 
 The dose justification rests on three quantitative pillars:
 
-  1. E-R Characterisation (R²={r2_str}): A well-characterised sigmoid Emax
+  1. E-R Characterisation (R2={r2_str}): A well-characterised sigmoid Emax
      relationship confirms a clinically meaningful exposure-efficacy relationship.
-     The recommended dose targets {target_pct:.0f}% of Emax — the exposure level that
+     The recommended dose targets {target_pct:.0f}% of Emax -- the exposure level that
      maximises benefit relative to the plateau of the E-R curve.
 
-  2. Therapeutic Window: The EC10–EC90 ratio of {f'{tw_ratio:.1f}×' if tw_ratio else 'not estimable'}
+  2. Therapeutic Window: The EC10-EC90 ratio of {f'{tw_ratio:.1f}x' if tw_ratio else 'not estimable'}
      {"provides adequate margin for dose selection" if tw_ratio and tw_ratio >= 3 else "is narrow; individualised exposure management should be considered"}.
      The recommended dose lies within this window for the majority of patients
-     (P5–P95 effect range: {primary_row['effect_p5_pct']:.1f}–{primary_row['effect_p95_pct']:.1f}% at {primary_dose:.0f} mg).
+     (P5-P95 effect range: {primary_row['effect_p5_pct']:.1f}-{primary_row['effect_p95_pct']:.1f}% at {primary_dose:.0f} mg).
 
-  3. Safety Margin: {"AUC_MTD / AUC_" + f"{target_pct:.0f}%Emax = " + f"{sm_value:.1f}× — " + sm_flag if mtd_auc else "MTD AUC not provided; safety margin should be confirmed from Phase I PK data before submission."}
+  3. Safety Margin: {"AUC_MTD / AUC_" + f"{target_pct:.0f}%Emax = " + f"{sm_value:.1f}x -- " + sm_flag if mtd_auc else "MTD AUC not provided; safety margin should be confirmed from Phase I PK data before submission."}
 
 4.2  Benefit-Risk Assessment
-──────────────────────────────
+------------------------------
 Based on the exposure-response analysis:
 
   BENEFIT: At {primary_dose:.0f} mg, the expected efficacy is {primary_row['predicted_effect_pct']:.1f}%
   of Emax (typical patient). {"A majority of patients (" + f"{primary_row['pct_responders']:.0f}%" + ") achieve the pre-specified target effect level, supporting a clinically meaningful response in the Phase III population." if primary_row['pct_responders'] >= 50 else f"Only {primary_row['pct_responders']:.0f}% of patients are predicted to achieve the target effect level. Enrichment strategies (e.g., biomarker-based patient selection) should be evaluated."}
 
-  RISK: {"Safety margin of " + f"{sm_value:.1f}×" + " versus MTD exposure is " + sm_flag.lower() + "." if mtd_auc else "Safety margin versus MTD could not be computed. Phase I dose-limiting toxicity data and NOAEL should be reviewed."} Organ-specific
+  RISK: {"Safety margin of " + f"{sm_value:.1f}x" + " versus MTD exposure is " + sm_flag.lower() + "." if mtd_auc else "Safety margin versus MTD could not be computed. Phase I dose-limiting toxicity data and NOAEL should be reviewed."} Organ-specific
   toxicity from repeated-dose studies (4- or 13-week GLP tox) should be
   factored into the final dose-selection decision.
 
   CONCLUSION: The E-R evidence {"strongly supports" if r2 and r2 >= 0.80 else "supports" if r2 and r2 >= 0.60 else "provides limited support for"} proceeding to Phase III at
   {rec_doses_str}. The probability of technical success is estimated at
-  {pts_data['PTS']*100:.1f}% (Lalonde 2007 framework). {"This exceeds the typical Phase II→III success threshold and supports a Phase III investment decision." if pts_data['PTS'] >= 0.30 else "This is below the typical Phase II→III success threshold; additional evidence should be gathered before Phase III initiation."}
+  {pts_data['PTS']*100:.1f}% (Lalonde 2007 framework). {"This exceeds the typical Phase II->III success threshold and supports a Phase III investment decision." if pts_data['PTS'] >= 0.30 else "This is below the typical Phase II->III success threshold; additional evidence should be gathered before Phase III initiation."}
 
   Phase III dose confirmation is recommended through:
     (i)  An exposure-response analysis pre-specified in the Phase III SAP
     (ii) Interim PK sampling to verify target AUC achievement
-    (iii) Adaptive dose adjustment rules if ≥30% of patients fall outside
-          the predicted P5–P95 AUC range
+    (iii) Adaptive dose adjustment rules if >=30% of patients fall outside
+          the predicted P5-P95 AUC range
 
 4.3  Regulatory Alignment
-───────────────────────────
+---------------------------
 This brief was constructed to address the following FDA guidance expectations:
 
-  • FDA 2023 E-R Guidance §4.2 — mechanistic model selection rationale ✓
-  • FDA 2023 E-R Guidance §5.1 — target exposure and dose selection ✓
-  • FDA 2023 E-R Guidance §5.2 — therapeutic window characterisation ✓
-  • FDA 2023 E-R Guidance §5.3 — population variability and covariates ✓
-  • FDA 2023 E-R Guidance §5.4 — special populations consistency ✓
-  • ICH E4 §3 — dose-response information for drug registration ✓
+  * FDA 2023 E-R Guidance S4.2 -- mechanistic model selection rationale (ok)
+  * FDA 2023 E-R Guidance S5.1 -- target exposure and dose selection (ok)
+  * FDA 2023 E-R Guidance S5.2 -- therapeutic window characterisation (ok)
+  * FDA 2023 E-R Guidance S5.3 -- population variability and covariates (ok)
+  * FDA 2023 E-R Guidance S5.4 -- special populations consistency (ok)
+  * ICH E4 S3 -- dose-response information for drug registration (ok)
 
 Companion analyses recommended for the Phase III Clinical Pharmacology package:
-  • Population PK report (nlmixr2_population_pk workflow)
-  • Paediatric/elderly PBPK (pbpk_pediatric_pregnancy workflow)
-  • DDI assessment (cyp_ddi_panel, transporter_ddi_prediction workflows)
-  • Allometric scaling / human dose prediction (allometric_scaling workflow)
+  * Population PK report (nlmixr2_population_pk workflow)
+  * Paediatric/elderly PBPK (pbpk_pediatric_pregnancy workflow)
+  * DDI assessment (cyp_ddi_panel, transporter_ddi_prediction workflows)
+  * Allometric scaling / human dose prediction (allometric_scaling workflow)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 REFERENCES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+==============================================================================
 
-1. FDA. Exposure-Response Relationships — Study Design, Data Analysis, and
+1. FDA. Exposure-Response Relationships -- Study Design, Data Analysis, and
    Regulatory Applications. CDER/CBER, 2023.
    https://www.fda.gov/media/128793/download
 
@@ -751,26 +751,26 @@ with open('er_dose_summary.csv', 'w', newline='') as f:
 
 # 4. Console output summary
 summary_lines = [
-    '=== PHASE II → III DOSE JUSTIFICATION BRIEF SUMMARY ===',
+    '=== PHASE II -> III DOSE JUSTIFICATION BRIEF SUMMARY ===',
     '',
     f'Compound:          {compound}',
     f'E-R Model:         Emax={emax:.1f}%, EC50={ec50:.1f} {exp_metric}, '
-    f'Hill={hill:.3f}, R²={r2_str}',
+    f'Hill={hill:.3f}, R2={r2_str}',
     f'Therapeutic window: EC10={ec10_str} / EC90={ec90_str}',
-    f'TW ratio:          {tw_ratio:.1f}×',
+    f'TW ratio:          {tw_ratio:.1f}x',
     '',
     f'Recommended Phase III dose(s): {rec_doses_str}',
     f'Primary dose:      {primary_dose:.0f} mg',
     f'  Predicted effect: {primary_row["predicted_effect_pct"]:.1f}% Emax',
     f'  Responders:       {primary_row["pct_responders"]:.1f}%',
-    f'  AUC P5–P95:       {primary_row["AUC_p5"]:.1f}–{primary_row["AUC_p95"]:.1f} {exp_metric}',
+    f'  AUC P5-P95:       {primary_row["AUC_p5"]:.1f}-{primary_row["AUC_p95"]:.1f} {exp_metric}',
     '',
-    f'Safety margin:     {sm_value:.1f}× — {sm_flag}' if sm_value else
+    f'Safety margin:     {sm_value:.1f}x -- {sm_flag}' if sm_value else
     f'Safety margin:     NOT ASSESSED (MTD AUC not provided)',
     '',
     f'PTS estimate:      {pts_data["PTS"]*100:.1f}% '
-    f'(P1={pts_data["P1_er_strength"]:.2f} × P2={pts_data["P2_window_adequacy"]:.2f} '
-    f'× P3={pts_data["P3_phase_translation"]:.2f})',
+    f'(P1={pts_data["P1_er_strength"]:.2f} x P2={pts_data["P2_window_adequacy"]:.2f} '
+    f'x P3={pts_data["P3_phase_translation"]:.2f})',
     '',
     'Outputs:',
     '  dose_justification_brief.json',

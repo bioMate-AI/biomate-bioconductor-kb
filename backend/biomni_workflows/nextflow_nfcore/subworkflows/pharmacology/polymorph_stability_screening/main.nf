@@ -7,7 +7,7 @@
  *
  * Computes:
  *   1. Polymorph risk score (LOW/MEDIUM/HIGH) from H-bond capacity, rotatable
- *      bonds, and conformational flexibility — Fleming (2010) heuristic +
+ *      bonds, and conformational flexibility -- Fleming (2010) heuristic +
  *      Blagden/Davey (2003) structural alerts.
  *   2. Solid-state stability assessment per ICH Q1A/Q1B:
  *      hygroscopicity (PSA + H-bond features), photostability risk (UV
@@ -20,7 +20,7 @@
  *   5. Accelerated stability condition recommendations per ICH Q1A(R2)
  *      linked to the stability risk profile.
  *
- * Applications: CMC polymorph control strategy, IND/NDA §3.2.S.3 filing,
+ * Applications: CMC polymorph control strategy, IND/NDA S3.2.S.3 filing,
  * salt/cocrystal selection, API manufacturing process risk assessment.
  *
  * References:
@@ -73,7 +73,7 @@ process POLYMORPH_STABILITY_SCREENING {
 import json, os, sys, math, re
 
 # ---------------------------------------------------------------------------
-# RDKit imports — available in biomni-tools image
+# RDKit imports -- available in biomni-tools image
 # ---------------------------------------------------------------------------
 try:
     from rdkit import Chem
@@ -81,7 +81,7 @@ try:
     RDKIT_OK = True
 except ImportError:
     RDKIT_OK = False
-    print("WARNING: RDKit not available — using SMILES heuristic fallback", file=sys.stderr)
+    print("WARNING: RDKit not available -- using SMILES heuristic fallback", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -195,16 +195,16 @@ def calc_descriptors(smi):
 # ---------------------------------------------------------------------------
 def polymorph_risk(d):
     """
-    Score from 0–10; tiers: LOW <3, MEDIUM 3–6, HIGH >6.
+    Score from 0-10; tiers: LOW <3, MEDIUM 3-6, HIGH >6.
 
     Basis:
-      • HBD+HBA  — H-bond network drives crystal packing diversity
-      • Rotatable bonds — flexible molecules adopt multiple conformations
-      • Conformational energy landscape proxy (flex_index)
-      • MW — larger molecules have more packing possibilities
-      • Aromatic rings — pi-stacking competition with H-bonds
-      • Chiral centres — each centre doubles possible packing arrangements
-    References: Fleming 2010 Table 2; Blagden & Davey 2003 §2
+      * HBD+HBA  -- H-bond network drives crystal packing diversity
+      * Rotatable bonds -- flexible molecules adopt multiple conformations
+      * Conformational energy landscape proxy (flex_index)
+      * MW -- larger molecules have more packing possibilities
+      * Aromatic rings -- pi-stacking competition with H-bonds
+      * Chiral centres -- each centre doubles possible packing arrangements
+    References: Fleming 2010 Table 2; Blagden & Davey 2003 S2
     """
     score = 0.0
     factors = []
@@ -212,7 +212,7 @@ def polymorph_risk(d):
     # H-bond network capacity (max 3.0 pts)
     hb_total = d['hbd'] + d['hba']
     if hb_total >= 6:
-        score += 3.0; factors.append(f"High H-bond capacity (HBD+HBA={hb_total}) — diverse H-bond network drives polymorphism [+3.0]")
+        score += 3.0; factors.append(f"High H-bond capacity (HBD+HBA={hb_total}) -- diverse H-bond network drives polymorphism [+3.0]")
     elif hb_total >= 4:
         score += 2.0; factors.append(f"Moderate H-bond capacity (HBD+HBA={hb_total}) [+2.0]")
     elif hb_total >= 2:
@@ -221,7 +221,7 @@ def polymorph_risk(d):
     # Rotatable bond flexibility (max 2.0 pts)
     rot = d['rotatable_bonds']
     if rot >= 8:
-        score += 2.0; factors.append(f"High flexibility (rotatable bonds={rot}) — broad conformational landscape [+2.0]")
+        score += 2.0; factors.append(f"High flexibility (rotatable bonds={rot}) -- broad conformational landscape [+2.0]")
     elif rot >= 5:
         score += 1.5; factors.append(f"Moderate flexibility (rotatable bonds={rot}) [+1.5]")
     elif rot >= 3:
@@ -237,38 +237,38 @@ def polymorph_risk(d):
     # Molecular weight (max 1.5 pts)
     mw = d['mw']
     if mw > 500:
-        score += 1.5; factors.append(f"Large MW ({mw:.0f} Da) — greater packing complexity [+1.5]")
+        score += 1.5; factors.append(f"Large MW ({mw:.0f} Da) -- greater packing complexity [+1.5]")
     elif mw > 300:
         score += 0.5; factors.append(f"Mid-range MW ({mw:.0f} Da) [+0.5]")
 
     # Aromatic system competition (max 1.0 pt)
     arom = d.get('aromatic_rings', 0)
     if arom >= 3:
-        score += 1.0; factors.append(f"Multiple aromatic rings ({arom}) — pi-stack vs H-bond competition promotes polymorphism [+1.0]")
+        score += 1.0; factors.append(f"Multiple aromatic rings ({arom}) -- pi-stack vs H-bond competition promotes polymorphism [+1.0]")
     elif arom >= 1:
         score += 0.5; factors.append(f"Aromatic ring(s) present ({arom}) [+0.5]")
 
-    # Chiral centres (max 1.0 pt; Blagden & Davey 2003 §3.1)
+    # Chiral centres (max 1.0 pt; Blagden & Davey 2003 S3.1)
     nc = d['n_chiral_centers']
     if nc >= 2:
-        score += 1.0; factors.append(f"Multiple chiral centres ({nc}) — diastereomeric packing alternatives [+1.0]")
+        score += 1.0; factors.append(f"Multiple chiral centres ({nc}) -- diastereomeric packing alternatives [+1.0]")
     elif nc == 1:
-        score += 0.5; factors.append(f"One chiral centre — enantiomeric/racemate packing alternatives [+0.5]")
+        score += 0.5; factors.append(f"One chiral centre -- enantiomeric/racemate packing alternatives [+0.5]")
 
     # Structural alert: amide/lactam H-bond donor-acceptor bridge (Brittain 2009)
     if d.get('has_amide') or d.get('has_lactam'):
-        score += 0.5; factors.append("Amide/lactam group — N-H...O=C H-bond bridge promotes multiple packing modes [+0.5]")
+        score += 0.5; factors.append("Amide/lactam group -- N-H...O=C H-bond bridge promotes multiple packing modes [+0.5]")
 
     score = min(score, 10.0)
     if score >= 6.0:
         risk_tier = 'HIGH'
-        risk_summary = 'High polymorph risk — comprehensive solid-form screening is strongly recommended before IND filing (ICH Q6A, item 3.1.1.5)'
+        risk_summary = 'High polymorph risk -- comprehensive solid-form screening is strongly recommended before IND filing (ICH Q6A, item 3.1.1.5)'
     elif score >= 3.0:
         risk_tier = 'MEDIUM'
-        risk_summary = 'Moderate polymorph risk — targeted polymorph screen covering ≥15 solvents recommended'
+        risk_summary = 'Moderate polymorph risk -- targeted polymorph screen covering >=15 solvents recommended'
     else:
         risk_tier = 'LOW'
-        risk_summary = 'Low polymorph risk — standard solvent survey (≥8 solvents) at 25°C and 50°C recommended'
+        risk_summary = 'Low polymorph risk -- standard solvent survey (>=8 solvents) at 25 degC and 50 degC recommended'
 
     return {
         'risk_score': round(score, 1),
@@ -284,31 +284,31 @@ def solid_state_stability(d):
     results = {}
     warnings = []
 
-    # 2a. Hygroscopicity — PSA + H-bond features
+    # 2a. Hygroscopicity -- PSA + H-bond features
     tpsa = d['tpsa']
     hb = d['hbd'] + d['hba']
     if tpsa > 100 or hb >= 5:
         hygro = 'HIGH'
-        warnings.append('High hygroscopicity risk: PSA>100 Å² or ≥5 H-bond groups — moisture uptake may promote hydrate formation or accelerate hydrolysis')
+        warnings.append('High hygroscopicity risk: PSA>100 A2 or >=5 H-bond groups -- moisture uptake may promote hydrate formation or accelerate hydrolysis')
     elif tpsa > 60 or hb >= 3:
         hygro = 'MODERATE'
-        warnings.append('Moderate hygroscopicity: PSA 60–100 Å² — controlled humidity storage (≤60% RH) recommended')
+        warnings.append('Moderate hygroscopicity: PSA 60-100 A2 -- controlled humidity storage (<=60% RH) recommended')
     else:
         hygro = 'LOW'
     results['hygroscopicity'] = {'class': hygro, 'tpsa_A2': tpsa, 'hb_groups': hb}
 
-    # 2b. Photostability risk — ICH Q1B chromophore detection
+    # 2b. Photostability risk -- ICH Q1B chromophore detection
     # UV absorbers: aromatic ring, carbonyl conjugated to aromatic, extended conjugation
     photo_alerts = []
     if d.get('has_conjugated_chromophore'):
-        photo_alerts.append('Conjugated carbonyl adjacent to aromatic ring (chromophore, λ~300–350 nm)')
+        photo_alerts.append('Conjugated carbonyl adjacent to aromatic ring (chromophore, lambda~300-350 nm)')
     if d.get('has_aromatic') and d.get('aromatic_rings', 0) >= 2:
         photo_alerts.append('Polycyclic aromatic system (extended UV absorption)')
     if d.get('has_aromatic'):
         photo_alerts.append('Aromatic ring (UV-active; ICH Q1B Option 1 photostability study required)')
     if photo_alerts:
         photo_risk = 'ELEVATED'
-        warnings.append('Photostability flag: UV-absorbing chromophore detected — ICH Q1B forced photodegradation study mandatory')
+        warnings.append('Photostability flag: UV-absorbing chromophore detected -- ICH Q1B forced photodegradation study mandatory')
     else:
         photo_risk = 'LOW'
     results['photostability'] = {'risk': photo_risk, 'alerts': photo_alerts}
@@ -317,41 +317,41 @@ def solid_state_stability(d):
     degradation = []
     if d.get('has_ester') or d.get('has_lactam') or d.get('has_amide'):
         paths = []
-        if d.get('has_ester'):  paths.append('ester (hydrolysis, t½ pH-dependent)')
+        if d.get('has_ester'):  paths.append('ester (hydrolysis, t1/2 pH-dependent)')
         if d.get('has_lactam'): paths.append('lactam (ring-opening hydrolysis)')
         if d.get('has_amide'):  paths.append('amide (hydrolysis under acid/base stress)')
         degradation.append({'pathway': 'hydrolysis', 'groups': paths,
-                            'condition': 'ICH Q1A 40°C/75% RH; stressed: 0.1N HCl/NaOH'})
-        warnings.append('Hydrolysis risk: ester/lactam/amide present — moisture-protected packaging required')
+                            'condition': 'ICH Q1A 40 degC/75% RH; stressed: 0.1N HCl/NaOH'})
+        warnings.append('Hydrolysis risk: ester/lactam/amide present -- moisture-protected packaging required')
 
     if d.get('has_thioether') or d.get('has_sulfoxide') or d.get('has_tert_amine') or d.get('has_benzyl_ch'):
         paths = []
-        if d.get('has_thioether'):  paths.append('thioether → sulfoxide (autoxidation)')
-        if d.get('has_sulfoxide'):  paths.append('sulfoxide → sulfone')
+        if d.get('has_thioether'):  paths.append('thioether -> sulfoxide (autoxidation)')
+        if d.get('has_sulfoxide'):  paths.append('sulfoxide -> sulfone')
         if d.get('has_tert_amine'): paths.append('tertiary amine (N-oxide, Meisenheimer oxidation)')
         if d.get('has_benzyl_ch'):  paths.append('benzylic CH (radical/peroxide oxidation)')
         degradation.append({'pathway': 'oxidation', 'groups': paths,
-                            'condition': 'stress with 3% H₂O₂; N₂ headspace in final container'})
-        warnings.append('Oxidation risk: sulfur/amine/benzylic functionality detected — antioxidant excipients and inert atmosphere recommended')
+                            'condition': 'stress with 3% H2O2; N2 headspace in final container'})
+        warnings.append('Oxidation risk: sulfur/amine/benzylic functionality detected -- antioxidant excipients and inert atmosphere recommended')
 
     if d['n_chiral_centers'] >= 1 and (d.get('has_carbonyl') or d.get('has_amide')):
         degradation.append({'pathway': 'epimerization / racemization',
                             'groups': ['chiral centre alpha to carbonyl/amide'],
-                            'condition': 'ICH Q1A stressed (60°C, pH 1 and 9)'})
-        warnings.append('Epimerisation risk: chiral centre adjacent to electron-withdrawing group — chiral HPLC in stability spec required')
+                            'condition': 'ICH Q1A stressed (60 degC, pH 1 and 9)'})
+        warnings.append('Epimerisation risk: chiral centre adjacent to electron-withdrawing group -- chiral HPLC in stability spec required')
 
     results['degradation_pathways'] = degradation
 
-    # 2d. Thermal stability — MW + melting point heuristic
-    # High-MW or highly flexible molecules typically have lower melt points → lower thermal stability
+    # 2d. Thermal stability -- MW + melting point heuristic
+    # High-MW or highly flexible molecules typically have lower melt points -> lower thermal stability
     mw = d['mw']
     rot = d['rotatable_bonds']
     if mw > 500 and rot >= 6:
         thermal = 'MODERATE_RISK'
-        warnings.append('Thermal stability concern: high MW + high flexibility may correlate with low melting point (<150°C); DSC characterisation recommended')
+        warnings.append('Thermal stability concern: high MW + high flexibility may correlate with low melting point (<150 degC); DSC characterisation recommended')
     elif mw < 200:
         thermal = 'MONITOR'
-        warnings.append('Small MW — verify melting point by DSC; low-MW APIs can have multiple polymorphs with closely spaced melting points')
+        warnings.append('Small MW -- verify melting point by DSC; low-MW APIs can have multiple polymorphs with closely spaced melting points')
     else:
         thermal = 'LOW_RISK'
     results['thermal_stability'] = {'assessment': thermal, 'mw_Da': mw, 'rotatable_bonds': rot}
@@ -394,19 +394,19 @@ def excipient_compatibility(d, excipients_list):
                     'mitigation': 'Replace lactose/glucose with mannitol or DCPD; or use enteric coating; monitor API degradant by HPLC'
                 })
 
-    # Magnesium stearate + acidic API → salt formation
+    # Magnesium stearate + acidic API -> salt formation
     mg_st_names = {'magnesium stearate', 'mg stearate', 'mg-stearate', 'magnesium stearate (vegetable)'}
     has_acid = d['tpsa'] > 40 and (d.get('has_ester') or d.get('has_amide') or d['hbd'] >= 1)
     for exc in excipients_lower:
         if exc in mg_st_names and has_acid and d['mw'] < 600:
             flags.append({
                 'excipient': 'magnesium stearate',
-                'reaction': 'Salt bridge / lubricant–acid interaction → softening of crystal lattice',
+                'reaction': 'Salt bridge / lubricant-acid interaction -> softening of crystal lattice',
                 'risk': 'MODERATE',
-                'mitigation': 'Use reduced MgSt level (≤0.5% w/w) or switch to sodium stearyl fumarate (Pruv); minimise blend time'
+                'mitigation': 'Use reduced MgSt level (<=0.5% w/w) or switch to sodium stearyl fumarate (Pruv); minimise blend time'
             })
 
-    # MCC + moisture → hydrolysis acceleration
+    # MCC + moisture -> hydrolysis acceleration
     mcc_names = {'microcrystalline cellulose', 'mcc', 'avicel', 'prosolv'}
     if d.get('has_ester') or d.get('has_lactam'):
         for exc in excipients_lower:
@@ -414,12 +414,12 @@ def excipient_compatibility(d, excipients_list):
                 if mcc in exc:
                     flags.append({
                         'excipient': exc,
-                        'reaction': 'MCC moisture (3–5% w/w) accelerates ester/lactam hydrolysis in solid state',
+                        'reaction': 'MCC moisture (3-5% w/w) accelerates ester/lactam hydrolysis in solid state',
                         'risk': 'MODERATE',
                         'mitigation': 'Dry MCC to <1% moisture before granulation; consider HPMC or calcium phosphate dibasic as filler alternative'
                     })
 
-    # Polyvinylpyrrolidone (PVP) + peroxide impurities → oxidation
+    # Polyvinylpyrrolidone (PVP) + peroxide impurities -> oxidation
     pvp_names = {'pvp', 'povidone', 'polyvinylpyrrolidone', 'crospovidone', 'plasdone'}
     if d.get('has_thioether') or d.get('has_tert_amine') or d.get('has_benzyl_ch'):
         for exc in excipients_lower:
@@ -429,12 +429,12 @@ def excipient_compatibility(d, excipients_list):
                         'excipient': exc,
                         'reaction': 'Peroxide impurities in PVP catalyse oxidation of thioether/amine/benzylic functionality',
                         'risk': 'MODERATE',
-                        'mitigation': 'Source low-peroxide PVP (≤400 ppm) and add BHT/BHA antioxidant; consider HPMC as binder replacement'
+                        'mitigation': 'Source low-peroxide PVP (<=400 ppm) and add BHT/BHA antioxidant; consider HPMC as binder replacement'
                     })
 
     if not flags:
         flags = [{'excipient': 'all listed', 'reaction': 'No high-risk incompatibilities detected',
-                  'risk': 'LOW', 'mitigation': 'Standard compatibility confirmation by DSC and XRPD at 25°C/60%RH and 40°C/75%RH'}]
+                  'risk': 'LOW', 'mitigation': 'Standard compatibility confirmation by DSC and XRPD at 25 degC/60%RH and 40 degC/75%RH'}]
 
     return {'flags': flags}
 
@@ -445,41 +445,41 @@ def screening_protocol(poly_result, stab_result, route):
     risk_tier  = poly_result['risk_tier']
     stab_class = stab_result['overall_stability_class']
 
-    # Number of crystallisation solvents — ICH Q6A Table 1 guidance
+    # Number of crystallisation solvents -- ICH Q6A Table 1 guidance
     if risk_tier == 'HIGH':
         n_solvents       = 25
-        n_temp_points    = 4     # 25, 50, 70°C + slurry
+        n_temp_points    = 4     # 25, 50, 70 degC + slurry
         methods          = ['slow evaporation', 'anti-solvent addition', 'cooling crystallisation',
                             'vapour diffusion', 'melt-quench recrystallisation', 'slurry equilibration',
                             'mechanical grinding / cogrinding', 'spray drying', 'supercritical CO2']
-        priority         = 'CRITICAL — complete polymorph screen before GMP manufacture; document per ICH Q6A §3.1.1.5'
+        priority         = 'CRITICAL -- complete polymorph screen before GMP manufacture; document per ICH Q6A S3.1.1.5'
         n_characterisation = ['XRPD (mandatory)', 'DSC (melting point, Tg)', 'TGA (thermal events)',
                                'DVS (hygroscopicity)', 'hot-stage microscopy', 'Raman/IR solid-state',
                                'solid-state NMR (if ambiguous XRPD)', 'single-crystal X-ray (for novel forms)']
     elif risk_tier == 'MEDIUM':
         n_solvents       = 15
-        n_temp_points    = 3     # 25, 50°C + slurry
+        n_temp_points    = 3     # 25, 50 degC + slurry
         methods          = ['slow evaporation', 'anti-solvent addition', 'cooling crystallisation',
                             'vapour diffusion', 'slurry equilibration']
-        priority         = 'RECOMMENDED — perform polymorph screen during pre-Phase II; update ICH Q6A filing with any new forms'
+        priority         = 'RECOMMENDED -- perform polymorph screen during pre-Phase II; update ICH Q6A filing with any new forms'
         n_characterisation = ['XRPD', 'DSC', 'TGA', 'DVS if hygro risk MODERATE+', 'IR']
     else:
         n_solvents       = 8
-        n_temp_points    = 2     # 25°C + 50°C
+        n_temp_points    = 2     # 25 degC + 50 degC
         methods          = ['slow evaporation', 'anti-solvent addition', 'slurry equilibration']
-        priority         = 'STANDARD — document in ICH Q6A; confirmatory XRPD on batch-release specification'
+        priority         = 'STANDARD -- document in ICH Q6A; confirmatory XRPD on batch-release specification'
         n_characterisation = ['XRPD (batch release)', 'DSC (identity confirmation)', 'TGA if hydrate suspected']
 
     # Stability programme per ICH Q1A(R2)
     stability_conditions = [
-        {'condition': '25°C / 60% RH', 'duration_months': 24, 'zone': 'Long-term (ICH Zone I/II)'},
-        {'condition': '30°C / 65% RH', 'duration_months': 12, 'zone': 'Intermediate (ICH Zone IVa/b)'},
-        {'condition': '40°C / 75% RH', 'duration_months': 6,  'zone': 'Accelerated (ICH Q1A)'},
+        {'condition': '25 degC / 60% RH', 'duration_months': 24, 'zone': 'Long-term (ICH Zone I/II)'},
+        {'condition': '30 degC / 65% RH', 'duration_months': 12, 'zone': 'Intermediate (ICH Zone IVa/b)'},
+        {'condition': '40 degC / 75% RH', 'duration_months': 6,  'zone': 'Accelerated (ICH Q1A)'},
     ]
     if stab_class == 'CHALLENGING':
-        stability_conditions.append({'condition': '60°C / 80% RH, 1 month', 'duration_months': 1, 'zone': 'Stress (API intrinsic stability)'})
-        stability_conditions.append({'condition': 'pH 1, 4, 7, 10 forced hydrolysis (ICH Q1A)', 'duration_months': None, 'zone': 'Stress — hydrolysis'})
-        stability_conditions.append({'condition': '1500 lux·h visible + 200 W·h/m² UV (ICH Q1B)', 'duration_months': None, 'zone': 'Photostability'})
+        stability_conditions.append({'condition': '60 degC / 80% RH, 1 month', 'duration_months': 1, 'zone': 'Stress (API intrinsic stability)'})
+        stability_conditions.append({'condition': 'pH 1, 4, 7, 10 forced hydrolysis (ICH Q1A)', 'duration_months': None, 'zone': 'Stress -- hydrolysis'})
+        stability_conditions.append({'condition': '1500 lux*h visible + 200 W*h/m2 UV (ICH Q1B)', 'duration_months': None, 'zone': 'Photostability'})
 
     # Route-specific packaging recommendation
     packaging_map = {
@@ -498,7 +498,7 @@ def screening_protocol(poly_result, stab_result, route):
             'temperature_points': n_temp_points,
             'crystallisation_methods': methods,
             'characterisation_methods': n_characterisation,
-            'ich_reference': 'ICH Q6A §3.1.1.5; FDA Guidance for Industry: ANDAs: Pharmaceutical Solid Polymorphism (2007)'
+            'ich_reference': 'ICH Q6A S3.1.1.5; FDA Guidance for Industry: ANDAs: Pharmaceutical Solid Polymorphism (2007)'
         },
         'stability_programme': {
             'stability_class': stab_class,
@@ -524,18 +524,18 @@ def generate_narrative(drug_name, route, d, poly_result, stab_result, excip_resu
         f"MW:                 {d['mw']} Da",
         f"HBD / HBA:          {d['hbd']} / {d['hba']}",
         f"Rotatable Bonds:    {d['rotatable_bonds']}",
-        f"TPSA:               {d['tpsa']} Å²",
+        f"TPSA:               {d['tpsa']} A2",
         f"Chiral Centres:     {d['n_chiral_centers']}",
         f"Descriptor Source:  {d['source']}",
         "",
         "--- 1. POLYMORPH RISK (Fleming 2010; Blagden & Davey Chem Soc Rev 2003) ---",
-        f"Risk Score:   {poly_result['risk_score']} / 10  →  {poly_result['risk_tier']}",
+        f"Risk Score:   {poly_result['risk_score']} / 10  ->  {poly_result['risk_tier']}",
         poly_result['risk_summary'],
         "",
         "Contributing factors:",
     ]
     for f in poly_result['contributing_factors']:
-        lines.append(f"  • {f}")
+        lines.append(f"  * {f}")
     lines += [
         "",
         "--- 2. SOLID-STATE STABILITY (ICH Q1A/Q1B) ---",
@@ -544,7 +544,7 @@ def generate_narrative(drug_name, route, d, poly_result, stab_result, excip_resu
         "Stability risks identified:",
     ]
     for w in stab_result['warnings'] or ['None identified']:
-        lines.append(f"  ⚠  {w}")
+        lines.append(f"  (!!)  {w}")
     lines += [
         "",
         f"  Hygroscopicity:     {stab_result['details']['hygroscopicity']['class']}",
@@ -554,14 +554,14 @@ def generate_narrative(drug_name, route, d, poly_result, stab_result, excip_resu
         "  Degradation pathways:",
     ]
     for dp in stab_result['details']['degradation_pathways'] or [{'pathway': 'None identified', 'groups': [], 'condition': ''}]:
-        lines.append(f"    • {dp['pathway']}: {', '.join(dp['groups'])} [{dp.get('condition','')}]")
+        lines.append(f"    * {dp['pathway']}: {', '.join(dp['groups'])} [{dp.get('condition','')}]")
 
     lines += [
         "",
         "--- 3. EXCIPIENT COMPATIBILITY ---",
     ]
     for fl in excip_result['flags']:
-        lines.append(f"  [{fl['risk']}] {fl['excipient']} — {fl['reaction']}")
+        lines.append(f"  [{fl['risk']}] {fl['excipient']} -- {fl['reaction']}")
         if fl['risk'] != 'LOW':
             lines.append(f"        Mitigation: {fl['mitigation']}")
 
@@ -582,13 +582,13 @@ def generate_narrative(drug_name, route, d, poly_result, stab_result, excip_resu
     ]
     for cond in sp['conditions']:
         dur = f", {cond['duration_months']} months" if cond.get('duration_months') else ""
-        lines.append(f"  • {cond['zone']}: {cond['condition']}{dur}")
+        lines.append(f"  * {cond['zone']}: {cond['condition']}{dur}")
     lines += [
         f"Packaging: {sp['packaging_recommendation']}",
         f"Reference: {sp['ich_reference']}",
         "",
         "--- 6. DOWNSTREAM WORKFLOWS ---",
-        f"  → {protocol['downstream_workflow']['name']}",
+        f"  -> {protocol['downstream_workflow']['name']}",
         f"     {protocol['downstream_workflow']['trigger']}",
         "",
         "References:",
