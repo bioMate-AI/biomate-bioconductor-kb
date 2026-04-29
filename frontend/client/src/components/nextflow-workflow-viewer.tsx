@@ -757,7 +757,7 @@ export function NextflowWorkflowViewer({
   const [qcGateData, setQCGateData] = useState<QCGateData | null>(null);
   const [qcGateSecondsLeft, setQcGateSecondsLeft] = useState<number | null>(null);
   const qcGateTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  const QC_GATE_TIMEOUT_S = 300; // 5 minutes
+  const QC_GATE_TIMEOUT_S = 60; // 1 minute
   const [autoLoopPanel, setAutoLoopPanel] = useState<AutoLoopPanelState>({
     gateResults: null,
     remediations: [],

@@ -26,8 +26,9 @@ process PREDICT_ADMET_PROPERTIES {
     label 'process_medium'
     publishDir "${params.outdir}/${meta.id}", mode: 'copy'
 
-    // biomni-pharma:x86 extends biomni-tools with Chemprop, PyTDC, mordred, pinned DeepPurpose
-    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86' : 'biomate/biomni-pharma:latest'
+    // biomni-admet: dedicated ADMET container (admet-ai/Chemprop, mordred, PyTDC)
+    // Starts from biomate-nextflow-base directly — lean, not biomni-tools
+    container System.getenv('NEXTFLOW_USE_AWS') == 'true' ? '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-admet:x86' : 'biomate/biomni-admet:latest'
 
     input:
     val(meta)  // Meta information for this run
