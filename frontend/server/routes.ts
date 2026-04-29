@@ -8782,6 +8782,25 @@ Rules:
       let outputFiles = (nfStatus?.s3_output_files || nfStatus?.output_files || []) as any[];
       let outdir = nfStatus?.outdir as string | undefined;
 
+      // Fallback: fetch from Galaxy backend when s3_output_files is not in memory
+      // (e.g. after server restart, DB-loaded runs don't have execution_json)
+      if (outputFiles.length === 0) {
+        const nfRunId: string = run.execution?.nextflowRunId || (run as any).nextflowRunId || '';
+        if (nfRunId) {
+          try {
+            const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+            const gResp = await fetch(`${galaxyUrl}/api/nextflow/status/${nfRunId}`, { signal: AbortSignal.timeout(8000) });
+            if (gResp.ok) {
+              const gData = await gResp.json() as any;
+              if (Array.isArray(gData.s3_output_files) && gData.s3_output_files.length > 0) {
+                outputFiles = gData.s3_output_files;
+              }
+              if (!outdir && gData.outdir) outdir = gData.outdir;
+            }
+          } catch { /* Galaxy unreachable — continue without */ }
+        }
+      }
+
       if (outputFiles.length === 0 && outdir && !String(outdir).startsWith('s3://')) {
         // Local dev run: scan the outdir on disk
         const { readdirSync, statSync } = await import('fs');
