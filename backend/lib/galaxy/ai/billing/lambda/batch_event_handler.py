@@ -113,8 +113,10 @@ def _estimate_cost_usd(instance_type: str, vcpus: float, duration_seconds: float
 # Lago emission — uses same event codes as lago_client.py emit_batch_job()
 # ---------------------------------------------------------------------------
 
+from .secrets import get_secret
+
 _LAGO_URL = os.environ.get("LAGO_API_URL", "").rstrip("/")
-_LAGO_KEY = os.environ.get("LAGO_API_KEY", "")
+_LAGO_KEY = get_secret("biomate/lago/api-key")  # SM; env var LAGO_API_KEY overrides in dev
 
 
 def _sub_id(user_id: str, plan_code: str = "base") -> str:

@@ -34,17 +34,32 @@ log = logging.getLogger(__name__)
 _ALLOW_INSECURE_DEV_MODE = os.environ.get("BILLING_DEV_MODE", "").lower() == "true"
 
 LAGO_BASE_URL = os.environ.get("LAGO_API_URL", "http://lago:3000")
-LAGO_API_KEY = os.environ.get("LAGO_API_KEY")
-if not LAGO_API_KEY:
+
+def _resolve_lago_api_key() -> str:
+    # 1. Env var takes priority — dev machines and unit tests work without SM
+    key = os.environ.get("LAGO_API_KEY", "")
+    if key:
+        return key
+    # 2. Dev mode bypass
     if _ALLOW_INSECURE_DEV_MODE:
-        LAGO_API_KEY = "dev-insecure-lago-key"
         log.warning("BILLING_DEV_MODE enabled: using insecure default LAGO_API_KEY")
-    else:
+        return "dev-insecure-lago-key"
+    # 3. Secrets Manager (production)
+    try:
+        import boto3, functools
+        @functools.lru_cache(maxsize=None)
+        def _fetch():
+            sm = boto3.client("secretsmanager",
+                              region_name=os.environ.get("AWS_REGION", "us-west-2"))
+            return sm.get_secret_value(SecretId="biomate/lago/api-key")["SecretString"]
+        return _fetch()
+    except Exception as e:
         raise RuntimeError(
-            "LAGO_API_KEY environment variable is required for billing event submission. "
-            "Get your API key from Lago's organization settings. "
-            "For local development only, set BILLING_DEV_MODE=true to bypass this check."
-        )
+            f"LAGO_API_KEY not set and Secrets Manager fetch failed: {e}. "
+            "Set LAGO_API_KEY env var or ensure the Lambda role has secretsmanager:GetSecretValue."
+        ) from e
+
+LAGO_API_KEY = _resolve_lago_api_key()
 LAGO_TIMEOUT = 5.0  # seconds; fire-and-forget pattern, don't block requests
 
 # Exponential backoff delays for transient network errors (1s, 2s, 4s)

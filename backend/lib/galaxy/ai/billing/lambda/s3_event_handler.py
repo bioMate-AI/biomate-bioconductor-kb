@@ -40,8 +40,10 @@ except ImportError:
 log = logging.getLogger()
 log.setLevel(logging.INFO)
 
+from .secrets import get_secret
+
 BILLING_API_URL = os.environ.get("BILLING_API_URL", "")
-BILLING_API_KEY = os.environ.get("BILLING_API_KEY", "")
+BILLING_API_KEY = get_secret("biomate/billing/api-key")  # SM; env var BILLING_API_KEY overrides in dev
 USER_TAG_NAME   = os.environ.get("USER_TAG_NAME", "user_id")
 
 s3_client = boto3.client("s3")
