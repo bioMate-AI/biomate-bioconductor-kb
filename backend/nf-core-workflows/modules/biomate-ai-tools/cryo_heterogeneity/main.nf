@@ -29,18 +29,31 @@ process CRYODRGN_TRAIN {
     def zdim    = n_zdim  ?: 8
     def epochs  = n_epochs ?: 20
     """
-    echo "Starting cryoDRGN VAE training"
-    echo "  Particles: ${particles_mrcs}"
-    echo "  CTF:       ${ctf_pkl}"
-    echo "  Poses:     ${poses_pkl}"
-    echo "  z-dim:     ${zdim}   epochs: ${epochs}"
+    # Assign Nextflow variables to bash vars first — avoids Groovy GString
+    # mangling when the same variable appears inside Python heredoc strings.
+    NXF_PARTICLES="${particles_mrcs}"
+    NXF_CTF="${ctf_pkl}"
+    NXF_POSES="${poses_pkl}"
+    NXF_ZDIM="${zdim}"
+    NXF_EPOCHS="${epochs}"
 
-    # Reserialize CTF pkl for cross-version compatibility + patch star S3 paths
+    echo "Starting cryoDRGN VAE training"
+    echo "  Particles: \$NXF_PARTICLES"
+    echo "  CTF:       \$NXF_CTF"
+    echo "  Poses:     \$NXF_POSES"
+    echo "  z-dim:     \$NXF_ZDIM   epochs: \$NXF_EPOCHS"
+
+    # Reserialize CTF pkl + patch star S3 paths (reads vars from env, not GString)
+    NXF_PARTICLES="\$NXF_PARTICLES" NXF_CTF="\$NXF_CTF" NXF_POSES="\$NXF_POSES" \\
     python3 - << 'PYEOF'
 import pickle, numpy as np, os, re, subprocess
 
+ctf_file      = os.environ["NXF_CTF"]
+poses_file    = os.environ.get("NXF_POSES", "").strip()
+particles_file = os.environ["NXF_PARTICLES"]
+
 # ctf: cryodrgn 4.x expects raw (N, 9) ndarray
-with open("${ctf_pkl}", "rb") as fh:
+with open(ctf_file, "rb") as fh:
     raw_ctf = pickle.load(fh)
 ctf_arr = np.array(raw_ctf, dtype=np.float32)
 with open("ctf_compat.pkl", "wb") as fh:
@@ -48,7 +61,6 @@ with open("ctf_compat.pkl", "wb") as fh:
 print(f"ctf_compat.pkl: shape={ctf_arr.shape}")
 
 # poses: reserialized only if provided
-poses_file = "${poses_pkl}".strip()
 if poses_file and os.path.isfile(poses_file):
     with open(poses_file, "rb") as fh:
         raw = pickle.load(fh)
@@ -61,30 +73,31 @@ if poses_file and os.path.isfile(poses_file):
 else:
     print("No poses provided — will use abinit (heterogeneous ab initio) mode")
 
-# Patch star file: if _rlnImageName contains S3 paths, download mrcs and rewrite
-particles_file = "${particles_mrcs}"
-with open(particles_file) as f:
-    content = f.read()
+# Patch star file: if _rlnImageName contains S3 paths, download mrcs locally
+with open(particles_file) as fh:
+    content = fh.read()
 
-s3_paths = sorted(set(re.findall(r's3://[^\s@\t]+\.mrcs', content)))
+s3_pat = re.compile(r's3://\S+?\.mrcs')
+s3_paths = sorted(set(s3_pat.findall(content)))
 if s3_paths:
-    print(f"Star file references {len(s3_paths)} S3 mrcs files — downloading locally")
+    print(f"Star file references {len(s3_paths)} S3 mrcs files — downloading")
     os.makedirs("particles", exist_ok=True)
-    aws = "/opt/aws-cli/bin/aws"
+    aws_bin = "/opt/aws-cli/bin/aws"
     for s3_path in s3_paths:
         fname = os.path.basename(s3_path)
-        local = f"particles/{fname}"
+        local = "particles/" + fname
         if not os.path.exists(local):
-            print(f"  aws s3 cp {s3_path}")
-            subprocess.run([aws, "s3", "cp", "--region", "us-west-2", s3_path, local], check=True)
+            print(f"  Downloading {fname}")
+            subprocess.run([aws_bin, "s3", "cp", "--region", "us-west-2",
+                            s3_path, local], check=True)
         content = content.replace(s3_path, local)
-    with open("particles_local.star", "w") as f:
-        f.write(content)
+    with open("particles_local.star", "w") as fh:
+        fh.write(content)
     print("Wrote particles_local.star with local paths")
     open("USE_LOCAL_STAR", "w").close()
 PYEOF
 
-    STAR_FILE="${particles_mrcs}"
+    STAR_FILE="\$NXF_PARTICLES"
     if [ -f USE_LOCAL_STAR ]; then
         STAR_FILE="particles_local.star"
         echo "Using patched star file with local mrcs paths"
