@@ -1416,9 +1416,10 @@ Example: {{"pdb_id": "1M17", "ligand_smiles": "C#Cc1cccc(Nc2ncnc3cc(OCCO)c(OCCO)
                     llm_result[str(k)] = json.dumps(v)
                 else:
                     llm_result[str(k)] = str(v)
-            # Merge: LLM result takes precedence for params it explicitly extracted;
-            # rule-based result fills in the rest.
-            result.update(llm_result)
+            # Merge: rule-based results take priority (deterministic, validated).
+            # LLM only fills params the rule-based step did NOT handle.
+            for k, v in llm_result.items():
+                result.setdefault(k, v)
     except Exception as exc:
         log.debug("_infer_params_from_intent_llm failed (%s) — no pre-fill", exc)
     # Guardrail: validate all extracted values against schema allowed_values and

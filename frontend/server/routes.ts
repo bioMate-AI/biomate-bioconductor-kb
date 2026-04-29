@@ -3959,22 +3959,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch { /* step info not critical */ }
 
-        // Collect S3 output files — resolve actual outdir from timing.json
-        // (nfRunId is the frontend UUID; actual S3 path is different)
+        // Collect S3 output files — use stored nextflowOutputDir first, then timing.json fallback
         const s3Bucket = process.env.AWS_S3_NEXTFLOW_BUCKET || 'biomate-nextflow-work';
-        let s3OutputBase = `s3://${s3Bucket}/nextflow/outputs/${nfRunId}/`;
-        try {
-          const fs = await import('fs/promises');
-          const timingPath = `/tmp/nextflow_runs/${nfRunId}/timing.json`;
-          const timingRaw = await fs.readFile(timingPath, 'utf-8').catch(() => null);
-          if (timingRaw) {
-            const timing = JSON.parse(timingRaw);
-            if (timing.outdir && timing.outdir.startsWith('s3://')) {
-              // Use the canonical outdir from timing.json (accounts for run_uuid_short)
-              s3OutputBase = timing.outdir.endsWith('/') ? timing.outdir : timing.outdir + '/';
+        const storedOutdir: string = (run as any)?.execution?.nextflowOutputDir || '';
+        let s3OutputBase = storedOutdir
+          ? (storedOutdir.endsWith('/') ? storedOutdir : storedOutdir + '/')
+          : `s3://${s3Bucket}/nextflow/outputs/${nfRunId}/`;
+        if (!storedOutdir) {
+          try {
+            const fs = await import('fs/promises');
+            const timingPath = `/tmp/nextflow_runs/${nfRunId}/timing.json`;
+            const timingRaw = await fs.readFile(timingPath, 'utf-8').catch(() => null);
+            if (timingRaw) {
+              const timing = JSON.parse(timingRaw);
+              if (timing.outdir && timing.outdir.startsWith('s3://')) {
+                s3OutputBase = timing.outdir.endsWith('/') ? timing.outdir : timing.outdir + '/';
+              }
             }
-          }
-        } catch { /* fall back to nfRunId-based path */ }
+          } catch { /* fall back to nfRunId-based path */ }
+        }
         const TEXT_EXTS = /\.(txt|log|json|csv|tsv|md|star|bed|gff|gtf|fasta|fa|vcf)$/i;
         const BIN_EXTS  = /\.(mrc|mrcs|cs|tif|tiff|png|jpg|gif|bam|cif|map|dm4|eer)$/i;
 
