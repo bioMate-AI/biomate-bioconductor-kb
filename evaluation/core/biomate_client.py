@@ -75,6 +75,7 @@ class BioMateEvalClient:
             "Content-Type": "application/json",
             "X-E2E-Test-Token": e2e_token,
         })
+        self._last_response: Optional["ChatResponse"] = None
 
     # ------------------------------------------------------------------
     # Auth
@@ -278,6 +279,7 @@ class BioMateEvalClient:
             duration_ms=llm_usage.get("duration_ms"),
         )
         self._emit_eval_cost_to_lago(chat_resp)
+        self._last_response = chat_resp  # thread-local cache for run_tasks() cost capture
         return chat_resp
 
     # ------------------------------------------------------------------

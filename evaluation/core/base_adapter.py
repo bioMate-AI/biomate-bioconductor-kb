@@ -172,11 +172,16 @@ class BenchmarkAdapter(abc.ABC):
             t0 = time.time()
             error = None
             response_text = ""
+            response = None
             tc = _get_thread_client()
+            # Clear last_response before call so we don't accidentally inherit a prior one
+            if hasattr(tc, "_last_response"):
+                tc._last_response = None
             try:
-                # Use ask_task() if the adapter defines it (supports per-task retry logic)
                 if hasattr(self, "ask_task"):
                     response_text = self.ask_task(tc, task)
+                    # ask_task() returns a string; cost data stored as side-effect on client
+                    response = getattr(tc, "_last_response", None)
                 else:
                     response = tc.ask(self.task_prompt(task))
                     response_text = response.text
@@ -199,6 +204,10 @@ class BenchmarkAdapter(abc.ABC):
                 latency_sec=time.time() - t0,
                 metadata=task.metadata,
                 error=error,
+                input_tokens=response.input_tokens if response else None,
+                output_tokens=response.output_tokens if response else None,
+                cost_usd=response.cost_usd if response else None,
+                model=response.model if response else None,
             )
 
         with ThreadPoolExecutor(max_workers=concurrency) as pool:

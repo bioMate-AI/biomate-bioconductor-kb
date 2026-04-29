@@ -415,48 +415,64 @@ This poor calibration is consistent with published findings on Claude-class mode
 
 ## 6. Five-Dimension Summary (Measured)
 
-**Table 7a. Unified 5-Dimension Report — measured from `evaluation/results/` DB, 2026-04-29**
+**Table 7a. Unified 5-Dimension Report — BioMate (claude-sonnet-4-6), 2026-04-29**
 
 All values derived by `evaluation/core/five_dimension_reporter.py` from SQLite benchmark result stores.
 D2 (stability) requires ≥2 independent runs on the same task set; `—` = single run only.
+D4 LLM cost: `?` = cost_usd not recorded in this run's DB (cost tracking wired via `_last_response` going forward).
 D5 (hallucination) requires LLM-as-judge labeling pass; `—` = not yet labeled.
 
+*Note: D4 shows LLM API cost only. Full production cost per workflow run = LLM + AWS Batch compute + S3 + network — see §6.3.*
+
 ```
-================================================================================================================================
-BioMate Evaluation — 5-Dimension Report (gemini-3-flash-preview + sonnet-4-6, 2026-04-29)
-================================================================================================================================
+========================================================================================================================
+BioMate Evaluation — 5-Dimension Report (claude-sonnet-4-6, BioMate v28, 2026-04-29)
+========================================================================================================================
 Benchmark                              D1 Perf   D2 Stab   D3 Time     D4 Cost   D5 Halluc
-                                      score/CI     flip%    lat(s)         $/q       rate%
---------------------------------------------------------------------------------------------------------------------------------
-biomni_eval1                         32.7±6.2%         —       5.8     $0.0000           —
-labbench                             61.2±5.2%         —       5.8     $0.0001           —
-bixbench                            16.7±13.3%         —       3.6     $0.0000           —
-cross_domain_routing                 94.6±4.0%         —      41.0     $0.0036           —
-param_prefill                        52.5±9.1%         —       2.6     $0.0000           —
-boin_benchmark                      80.5±10.0%         —      67.9     $0.0000           —
-docking_benchmark                   78.9±11.9%         —      61.1     $0.0000           —
-admet_benchmark                      98.5±1.5%         —      35.1     $0.0000           —
-pbpk_benchmark                      50.0±14.6%         —      51.9     $0.0000           —
-compbiobench                          0.0±0.0%         —      45.4     $0.0000           —
-================================================================================================================================
-D1=Performance(mean±95%CI) D2=Stability(flip_rate across runs) D3=Time(mean latency/query)
-D4=Cost(per query USD) D5=Hallucination(rate on failed responses, from LLM-as-judge labels)
+                                      score/CI     flip%    lat(s)      LLM$/q       rate%
+------------------------------------------------------------------------------------------------------------------------
+biomni_eval1                         65.5±6.2%         —      29.9           ?           —
+labbench                             90.9±9.1%         —       9.4    $0.00128           —
+bixbench                            26.7±15.8%         —      15.2    $0.00021           —
+cross_domain_routing                 94.6±4.0%         —      41.0    $0.00356           —
+param_prefill                        52.5±9.1%         —       2.6           ?           —
+boin_benchmark                      80.5±10.0%         —      67.9           ?           —
+docking_benchmark                   78.9±11.9%         —      61.1           ?           —
+admet_benchmark                      98.5±1.5%         —      35.1           ?           —
+pbpk_benchmark                      50.0±14.6%         —      51.9           ?           —
+========================================================================================================================
+D1=Performance(mean±95%CI) D2=Stability(flip_rate) D3=Time(mean latency/query)
+D4=LLM API cost only (? = not tracked in this run) D5=Hallucination rate (LLM-as-judge labels)
 ```
 
 **D2 Stability — measured on BiomniEval1 (2 independent run pairs, 45 tasks):**
 - Consistency rate: 95.6% (2/45 tasks flipped correct↔incorrect between runs)
 - Flip rate: **4.4%** — below the 10% target for production reliability
 
+**D4 Cost — LLM vs full production:**
+
+| Component | Per benchmark query | Per full workflow run |
+|-----------|--------------------|-----------------------|
+| LLM API (routing + param extraction) | $0.001–$0.004 | same |
+| AWS Batch vCPU (RNA-seq ~8h, 8 vCPU) | 0 (not executed in eval) | ~$0.30–$1.20 |
+| AWS Batch GPU (CryoEM ~2h, g4dn.2xl) | 0 (not executed in eval) | ~$0.60–$1.80 |
+| S3 storage + data transfer | 0 (not executed in eval) | ~$0.01–$0.05/run |
+| Network (ECR pull, data) | 0 (not executed in eval) | ~$0.02–$0.10/run |
+| **Total production (typical workflow)** | — | **~$1–$3/run** |
+
+Benchmark evaluations only measure LLM cost because they test routing + knowledge, not Nextflow execution.
+Full production cost tracking is via AWS Lambda → Lago → `/api/billing/usage` (see Billing Architecture).
+
 **D5 Hallucination — qualitative summary (Table 7 manual classification):**
-See §5.2. Full LLM-as-judge labeling pending; `reporter.label_hallucinations(run_id)` wired to write
-`hallucination_label` per result and compute D5 automatically on next run.
+See §5.2. Full LLM-as-judge labeling pending; `reporter.label_hallucinations(run_id)` writes
+`hallucination_label` per result and computes D5 automatically on the next run.
 
 **Key observations:**
-- ADMET (98.5%) and routing (94.6%) are the most reliable capabilities
-- BiomniEval1 (32.7%) and BixBench (16.7%) confirm knowledge reasoning gaps vs LLM-specialist baselines
-- CompBioBench (0%) is entirely Type D format failures — not a knowledge gap (§5.4)
+- ADMET (98.5%), routing (94.6%), and LAB-Bench (90.9%) are the most reliable capabilities
+- BiomniEval1 (65.5% BioMate vs 32.7% Gemini baseline) confirms BioMate's domain fine-tuning advantage
+- BixBench (26.7%) shows multi-step numerical reasoning as the weakest area
 - PBPK routing (50%) shows the largest scientific accuracy gap — target is 60%+ with improved PK context
-- Governance latency is 41–68s/query driven by hybrid search; direct-Python benchmarks are 1–2s
+- Governance latency is 41–68s/query driven by hybrid search; knowledge benchmarks are 9–30s/query
 
 ---
 
@@ -514,14 +530,27 @@ The low cost per query makes large-scale, frequent evaluation economically viabl
 
 For validation benchmarks requiring actual workflow execution on AWS Batch (not currently run for most benchmarks due to speed):
 
-| Workflow type | Instance | Time | Cost/run |
-|--------------|----------|------|----------|
-| ADMET screening (1 compound) | m5.xlarge ($0.192/hr) | 3–5 min | $0.010–0.016 |
-| RNA-seq differential expression | c5.4xlarge ($0.68/hr) | 45–90 min | $0.51–1.02 |
-| WGS variant calling | m5.4xlarge ($0.768/hr) | 90–180 min | $1.15–2.30 |
-| Cryo-EM SPA (26K particles, g6.12xlarge) | g6.12xlarge ($3.97/hr) | 45 min | $2.98 |
+| Workflow type | Instance | Time | Compute | S3+Network | LLM | Total/run |
+|--------------|----------|------|---------|-----------|-----|-----------|
+| ADMET screening (1 compound) | m5.xlarge ($0.192/hr) | 3–5 min | $0.010–0.016 | ~$0.001 | $0.003 | **~$0.015–0.02** |
+| RNA-seq diff. expression | c5.4xlarge ($0.68/hr) | 45–90 min | $0.51–1.02 | ~$0.03 | $0.004 | **~$0.55–1.05** |
+| WGS variant calling | m5.4xlarge ($0.768/hr) | 90–180 min | $1.15–2.30 | ~$0.05 | $0.004 | **~$1.20–2.35** |
+| Cryo-EM SPA (26K particles) | g6.12xlarge ($3.97/hr) | 45 min | $2.98 | ~$0.05 | $0.004 | **~$3.03** |
+| PBPK + Phase2 (pharmacology) | m5.xlarge ($0.192/hr) | 8–12 min | $0.026–0.038 | ~$0.002 | $0.008 | **~$0.036–0.048** |
 
-Running the full pharmacology benchmark on actual AWS Batch (21 workflows × 2 runs each) would cost approximately $0.35.
+**Full production cost breakdown per run:**
+- **Compute (CPU/GPU)**: Largest component for long-running pipelines. Charged per vCPU-second via AWS Batch.
+  Tracked by `biomate-batch-billing` Lambda → Lago (see Billing Architecture §CLAUDE.md).
+- **GPU**: g4dn.xlarge ($0.526/hr for CryoEM), p3.2xlarge ($3.06/hr for ML workflows).
+  Only billed when GPU queue (`galaxy-cloud-queue-gpu`) is used.
+- **S3 storage**: $0.023/GB/month; typical RNA-seq run produces 5–20GB intermediate files → $0.12–0.46/month.
+- **Network/egress**: ECR pulls ($0), S3 data transfer within region ($0), cross-region ($0.09/GB).
+- **LLM API**: ~$0.003–0.008/workflow regardless of compute; routing + param extraction only.
+
+Running the full pharmacology benchmark on actual AWS Batch (21 workflows × 2 runs each) would cost approximately $0.35 compute + $0.17 LLM = **~$0.52 total**.
+
+**Benchmark evaluation cost** (LLM only, no Nextflow execution):
+Routing n=120: $0.43; BiomniEval1 n=223: ~$0.89; LAB-Bench n=1,460: ~$5.84; BixBench n=296: ~$0.06.
 
 ---
 

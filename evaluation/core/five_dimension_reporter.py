@@ -128,21 +128,49 @@ class DimensionTime:
 @dataclass
 class DimensionCost:
     n: int
-    total_cost_usd: float
-    cost_per_query_usd: float
+    n_with_cost: int                 # how many results had cost_usd != NULL
+    total_cost_usd: float            # LLM API cost only (sum of non-NULL cost_usd)
+    cost_per_query_usd: float        # LLM API cost per query (0 if none tracked)
     total_input_tokens: int
     total_output_tokens: int
     cost_per_1k_tasks_usd: float
+    # Production costs (AWS Batch — populated when workflow actually ran)
+    batch_cpu_usd: float = 0.0       # vCPU-hour cost
+    batch_gpu_usd: float = 0.0       # GPU-hour cost (g4dn/p3 instances)
+    s3_storage_usd: float = 0.0      # S3 storage/transfer cost
+    network_usd: float = 0.0         # data egress cost
+
+    @property
+    def total_production_usd(self) -> float:
+        return self.total_cost_usd + self.batch_cpu_usd + self.batch_gpu_usd + self.s3_storage_usd + self.network_usd
 
     def as_dict(self) -> dict:
         return {
             "n": self.n,
-            "total_usd": round(self.total_cost_usd, 6),
-            "per_query_usd": round(self.cost_per_query_usd, 6),
-            "per_1k_tasks_usd": round(self.cost_per_1k_tasks_usd, 4),
+            "llm_total_usd": round(self.total_cost_usd, 6),
+            "llm_per_query_usd": round(self.cost_per_query_usd, 6),
+            "llm_per_1k_tasks_usd": round(self.cost_per_1k_tasks_usd, 4),
             "total_input_tokens": self.total_input_tokens,
             "total_output_tokens": self.total_output_tokens,
+            "batch_cpu_usd": round(self.batch_cpu_usd, 4),
+            "batch_gpu_usd": round(self.batch_gpu_usd, 4),
+            "s3_storage_usd": round(self.s3_storage_usd, 6),
+            "network_usd": round(self.network_usd, 4),
+            "total_production_usd": round(self.total_production_usd, 4),
         }
+
+    def cost_str(self) -> str:
+        """Human-readable per-query cost: scientific notation for sub-cent; '?' if not tracked."""
+        if self.n_with_cost == 0:
+            return "?"           # cost not recorded in DB for this run
+        c = self.cost_per_query_usd
+        if c == 0:
+            return "$0"
+        if c < 0.0001:
+            return f"${c:.2e}"   # e.g. $3.56e-05
+        if c < 0.01:
+            return f"${c:.5f}"   # e.g. $0.00355
+        return f"${c:.4f}"
 
 
 @dataclass
@@ -206,7 +234,7 @@ class FiveDimensionReport:
             f"score={p.mean_score*100:.1f}% (n={p.n}) | "
             f"stable={flip} flip | "
             f"lat={t.mean_latency_sec:.1f}s | "
-            f"cost=${c.cost_per_query_usd:.4f}/q | "
+            f"cost={c.cost_str()}/q (LLM only) | "
             f"halluc={hrate}"
         )
 
@@ -321,7 +349,7 @@ class FiveDimensionReporter:
             "BioMate Evaluation — 5-Dimension Report",
             "=" * 120,
             f"{'Benchmark':<35} {'D1 Perf':>10} {'D2 Stab':>9} {'D3 Time':>9} {'D4 Cost':>11} {'D5 Halluc':>11}",
-            f"{'':35} {'score/CI':>10} {'flip%':>9} {'lat(s)':>9} {'$/q':>11} {'rate%':>11}",
+            f"{'':35} {'score/CI':>10} {'flip%':>9} {'lat(s)':>9} {'LLM$/q':>11} {'rate%':>11}",
             "-" * 120,
         ]
         for r in reports:
@@ -332,8 +360,8 @@ class FiveDimensionReporter:
             h  = r.hallucination
             score_ci = f"{p.mean_score*100:.1f}±{(p.ci95_high-p.mean_score)*100:.1f}%"
             flip  = f"{s.flip_rate*100:.1f}%" if s.available else "—"
-            lat   = f"{t.mean_latency_sec:.1f}"
-            cost  = f"${c.cost_per_query_usd:.4f}"
+            lat   = f"{t.mean_latency_sec:.1f}" if t.n > 0 else "—"
+            cost  = c.cost_str()
             hrate = f"{h.hallucination_rate*100:.1f}%" if h.available else "—"
             lines.append(
                 f"{r.benchmark:<35} {score_ci:>10} {flip:>9} {lat:>9} {cost:>11} {hrate:>11}"
@@ -341,7 +369,8 @@ class FiveDimensionReporter:
         lines += [
             "=" * 120,
             "D1=Performance(mean±95%CI) D2=Stability(flip_rate across runs) "
-            "D3=Time(mean latency) D4=Cost(per query) D5=Hallucination(rate on failed responses)",
+            "D3=Time(mean latency/query) D4=Cost(LLM API only — add Batch vCPU/GPU/S3/network for production) "
+            "D5=Hallucination(rate on failed responses)",
             "",
         ]
         return "\n".join(lines)
@@ -472,13 +501,17 @@ def _compute_cost(results: List[BenchmarkResult]) -> DimensionCost:
     out_tok = [r.output_tokens  for r in results if r.output_tokens  is not None]
     total   = sum(costs)
     n       = len(results)
+    n_with  = len(costs)
+    # cost_per_query is only meaningful when we have cost data
+    cpq     = total / n_with if n_with > 0 else 0.0
     return DimensionCost(
         n=n,
+        n_with_cost=n_with,
         total_cost_usd=total,
-        cost_per_query_usd=total / n if n > 0 else 0.0,
+        cost_per_query_usd=cpq,
         total_input_tokens=sum(in_tok),
         total_output_tokens=sum(out_tok),
-        cost_per_1k_tasks_usd=(total / n * 1000) if n > 0 else 0.0,
+        cost_per_1k_tasks_usd=(cpq * 1000) if n_with > 0 else 0.0,
     )
 
 
