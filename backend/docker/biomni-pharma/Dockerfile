@@ -1,75 +1,56 @@
-# BioMate Pharmacology Container (biomni-pharma)
+# BioMate Pharmacology Cheminformatics Container (biomni-pharma)
 #
-# Extends biomni-tools:x86 with pharmacology-specific packages:
-#   - PyTDC         : Therapeutics Data Commons ADMET benchmarks
-#   - mordred        : 1826 comprehensive molecular descriptors (PK property prediction)
-#   - chembl-webresource-client : ChEMBL REST API client for bioactivity queries
-#   - py2opsin       : IUPAC name → SMILES conversion
-#   - molfeat        : Molecular featurization (fingerprints, descriptors)
-#   - deepchem       : Deep learning for chemistry (optional; heavy GPU dep)
-#   - DeepPurpose    : Pinned 0.0.3; must succeed (replaces silent-fail in biomni-tools)
-#   - aizynthfinder  : Retrosynthesis (optional; heavy dep)
+# Extends biomni-tools with pharma-specific cheminformatics tools.
+# ADMET prediction (admet-ai, Chemprop) lives in biomni-admet — not here.
 #
-# Base image already provides (via biomni-tools:x86):
-#   numpy, scipy, pandas, biopython, rdkit, scikit-learn, statsmodels,
-#   scikit-image, vina, meeko, seaborn, plotly, ViennaRNA, DeepPurpose (unfixed),
-#   AWS CLI v2, openbabel
+# Base (biomni-tools) provides: RDKit, numpy/scipy/pandas, scikit-learn,
+#   statsmodels, scikit-image, vina, meeko, ViennaRNA, openbabel, AWS CLI v2
+#
+# Adds:
+#   py2opsin     : IUPAC name → SMILES (requires Java)
+#   molfeat      : Molecular fingerprints / featurization
+#   chembl_webresource_client : ChEMBL REST API
+#   aizynthfinder : Retrosynthesis planning (optional, heavy)
 #
 # Build (x86 for AWS Batch):
 #   docker buildx build --platform linux/amd64 \
 #     -t 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-pharma:x86 \
 #     --push -f backend/docker/biomni-pharma/Dockerfile .
+#
+# Local:
+#   docker build -t biomate/biomni-pharma:latest \
+#     -f backend/docker/biomni-pharma/Dockerfile .
 
 FROM 399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86
 
 LABEL maintainer="BioMate Team"
-LABEL version="1.0.0"
-LABEL description="biomni-pharma: PyTDC, mordred, chembl-webresource-client, py2opsin, molfeat, DeepPurpose==0.0.3 (pinned), deepchem (optional), aizynthfinder (optional)"
+LABEL version="1.1.0"
+LABEL description="biomni-pharma: py2opsin, molfeat, chembl-webresource-client — pharma cheminformatics on top of biomni-tools"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
-# ── Layer 1: PyTDC (Therapeutics Data Commons) ─────────────────────────────
-# For TDC ADMET benchmarks and datasets
-RUN pip install --no-cache-dir PyTDC
-
-# ── Layer 1b: Chemprop (directed MPNN for molecular property prediction) ───
-# Yang et al. JCIM 2019 — best AUROC on TDC ADMET leaderboard for most tasks
-# Pin to 1.6.1 (stable, PyTorch 1.x compatible) not v2.x (requires PyTorch 2.0+)
-RUN pip install --no-cache-dir "chemprop==1.6.1"
-
-# ── Layer 2: mordred (comprehensive molecular descriptors) ─────────────────
-# 1826 descriptors; rdkit-compatible; pin 1.2.1 for stability
-RUN pip install --no-cache-dir "mordred==1.2.1"
-
-# ── Layer 3: ChEMBL REST API client ────────────────────────────────────────
-RUN pip install --no-cache-dir chembl_webresource_client
-
-# ── Layer 4: py2opsin (IUPAC name → SMILES) ────────────────────────────────
-# Requires Java at runtime; openjdk-11-jre-headless is sufficient
+# ── py2opsin (IUPAC name → SMILES) ────────────────────────────────────────
+# Shells out to a bundled OPSIN JAR — needs a JRE at runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-11-jre-headless \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir py2opsin
 
-# ── Layer 5: molfeat (molecular featurization) ─────────────────────────────
+# ── molfeat (molecular fingerprints / featurization) ──────────────────────
 RUN pip install --no-cache-dir molfeat
 
-# ── Layer 6: DeepPurpose pinned (fix silent failure from biomni-tools) ──────
-# Must succeed loudly — no fallback. Reinstall pins to 0.0.3.
-RUN pip install --no-cache-dir "DeepPurpose==0.0.3"
+# ── ChEMBL REST API client ─────────────────────────────────────────────────
+RUN pip install --no-cache-dir chembl_webresource_client
 
-# ── Layer 7: deepchem (optional — heavy GPU dep, allowed to fail) ──────────
-RUN pip install --no-cache-dir deepchem || echo "WARNING: deepchem install failed — GPU-dependent workflows will be unavailable"
-
-# ── Layer 8: aizynthfinder (optional — retrosynthesis, heavy dep) ──────────
-RUN pip install --no-cache-dir aizynthfinder || echo "WARNING: aizynthfinder install failed — retrosynthesis workflows will be unavailable"
+# ── aizynthfinder (retrosynthesis — optional, heavy) ──────────────────────
+RUN pip install --no-cache-dir aizynthfinder || \
+    echo "WARNING: aizynthfinder install failed — retrosynthesis workflows unavailable"
 
 # ── Smoke tests ────────────────────────────────────────────────────────────
-RUN python3 -c "from tdc.single_pred import ADMET; print('PyTDC OK')" && \
-    python3 -c "import chemprop; print('chemprop OK version=', chemprop.__version__)" && \
-    python3 -c "from mordred import Calculator, descriptors; calc = Calculator(descriptors, ignore_3D=True); print('mordred OK  descriptor_count={}'.format(len(calc.descriptors)))" && \
+RUN python3 -c "import molfeat; print('molfeat OK')" && \
     python3 -c "from chembl_webresource_client.new_client import new_client; print('chembl_webresource_client OK')" && \
+    python3 -c "from rdkit import Chem; print('RDKit OK (from base)')" && \
     echo "All biomni-pharma smoke tests passed."
 
 WORKDIR /data

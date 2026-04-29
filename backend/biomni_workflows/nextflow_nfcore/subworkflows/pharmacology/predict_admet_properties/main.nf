@@ -264,113 +264,119 @@ def predict_admet_properties(smiles_list, ADMET_model_type="MPNN"):
 
     research_log = ""
 
-    # ── Phase 2: DeepPurpose ADMET (optional) ───────────────────────────────
+    # ── Phase 2: ADMET-AI (Chemprop-backed, bundled pre-trained models) ────
+    # Swanson et al. 2023, Bioinformatics. doi:10.1093/bioinformatics/btae416
+    # 41 TDC ADMET endpoints; AUROC >0.85 on 20/31 classification tasks.
+    # Models ship inside the admet-ai package — no separate download.
     try:
-        from DeepPurpose import CompoundPred, utils
+        from admet_ai import ADMETModel
 
-        available_model_types = ["MPNN", "CNN", "Morgan"]
-        if ADMET_model_type not in available_model_types:
-            raise ValueError(
-                f"Invalid ADMET model type '{ADMET_model_type}'. "
-                f"Available: {', '.join(available_model_types)}"
-            )
+        model = ADMETModel()
+        valid_smiles = [s for s in items if s and s.strip()]
+        df = model.predict(smiles=valid_smiles)
 
-        model_ADMETs = {}
-        tasks = [
-            "AqSolDB", "Caco2", "HIA", "Pgp_inhibitor", "Bioavailability",
-            "BBB_MolNet", "PPBR", "CYP2C19", "CYP2D6", "CYP3A4", "CYP1A2",
-            "CYP2C9", "ClinTox", "Lipo_AZ", "Half_life_eDrug3D",
-            "Clearance_eDrug3D",
-        ]
-        for task in tasks:
-            model_ADMETs[task + "_" + ADMET_model_type + "_model"] = (
-                CompoundPred.model_pretrained(
-                    model=task + "_" + ADMET_model_type + "_model"
-                )
-            )
+        # ADMET-AI column → BioMate key mapping (TDC canonical names)
+        _COL = {
+            'hERG':                              'hERG_prob',
+            'DILI':                              'DILI_prob',
+            'PPBR_AZ':                           'ppbr_pct',
+            'Caco2_Wang':                        'caco2_logPapp',
+            'HIA_Hou':                           'hia_prob',
+            'BBB_Martins':                       'bbb_prob',
+            'Bioavailability_Ma':                'oral_bioavailability_prob',
+            'Pgp_Broccatelli':                   'pgp_inhibitor_prob',
+            'CYP2C19_Veith':                     'cyp2c19_inhibitor_prob',
+            'CYP2D6_Veith':                      'cyp2d6_inhibitor_prob',
+            'CYP3A4_Substrate_CarbonMangels':    'cyp3a4_substrate_prob',
+            'CYP2C9_Veith':                      'cyp2c9_inhibitor_prob',
+            'CYP1A2_Veith':                      'cyp1a2_inhibitor_prob',
+            'Solubility_AqSolDB':                'aqueous_solubility_log',
+            'Lipophilicity_AstraZeneca':         'lipophilicity_logD',
+            'HalfLife_Obach':                    'half_life_h',
+            'Clearance_Hepatocyte_AZ':           'hepatocyte_clearance_uLminmg',
+            'LD50_Zhu':                          'ld50_log_mol_kg',
+            'ClinTox':                           'clintox_prob',
+        }
 
-        def ADMET_pred(drug, task, unit):
-            model = model_ADMETs[task + "_" + ADMET_model_type + "_model"]
-            X_pred = utils.data_process(
-                X_drug=[drug], y=[0],
-                drug_encoding=ADMET_model_type,
-                split_method="no_split",
-            )
-            y_pred = float(model.predict(X_pred)[0])
-            if unit == "%":
-                y_pred = y_pred * 100
-            return y_pred, f"{y_pred:.2f} {unit}"
+        per_compound_admet = []
+        research_log = (
+            "ADMET-AI Predictions (Chemprop-RDKit; Swanson et al. 2023 Bioinformatics)\\n"
+            + "=" * 65 + "\\n"
+        )
 
-        clintox_values = []
-        research_log = "Research Log for ADMET Predictions:\\n"
-        research_log += "-------------------------------------\\n"
+        for smiles_val, row in zip(valid_smiles, df.itertuples(index=False)):
+            compound = {'smiles': smiles_val}
+            for admet_col, bm_key in _COL.items():
+                val = getattr(row, admet_col, None)
+                if val is not None:
+                    try:
+                        compound[bm_key] = round(float(val), 4)
+                    except (ValueError, TypeError):
+                        pass
+            per_compound_admet.append(compound)
 
-        for smiles in items:
-            research_log += f"\\nCompound SMILES: {smiles}\\n"
-            research_log += "Predicted ADMET properties:\\n"
+            research_log += f"\\nCompound: {smiles_val}\\n"
+            for label, key, fmt in [
+                ("hERG inhibition",       "hERG_prob",               ".3f"),
+                ("DILI probability",      "DILI_prob",               ".3f"),
+                ("Plasma protein bind %", "ppbr_pct",                ".1f"),
+                ("Caco-2 logPapp",        "caco2_logPapp",           ".3f"),
+                ("BBB penetration",       "bbb_prob",                ".3f"),
+                ("Oral bioavailability",  "oral_bioavailability_prob",".3f"),
+                ("CYP2D6 inhibitor",      "cyp2d6_inhibitor_prob",   ".3f"),
+                ("CYP3A4 substrate",      "cyp3a4_substrate_prob",   ".3f"),
+                ("ClinTox",               "clintox_prob",            ".3f"),
+                ("Half-life (h)",         "half_life_h",             ".1f"),
+            ]:
+                v = compound.get(key)
+                if v is not None:
+                    research_log += f"  {label:<28}: {v:{fmt}}\\n"
+            research_log += "-" * 40 + "\\n"
 
-            _, txt = ADMET_pred(smiles, "AqSolDB", "log mol/L")
-            research_log += f"- Solubility: {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Lipo_AZ", "(log-ratio)")
-            research_log += f"- Lipophilicity: {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Caco2", "cm/s")
-            research_log += f"- Absorption (Caco-2 permeability): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "HIA", "%")
-            research_log += f"- Absorption (HIA): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Pgp_inhibitor", "%")
-            research_log += f"- Absorption (Pgp Inhibitor): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Bioavailability", "%")
-            research_log += f"- Absorption (Bioavailability): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "BBB_MolNet", "%")
-            research_log += f"- Distribution (BBB permeation): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "PPBR", "%")
-            research_log += f"- Distribution (PPBR): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "CYP2C19", "%")
-            research_log += f"- Metabolism (CYP2C19): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "CYP2D6", "%")
-            research_log += f"- Metabolism (CYP2D6): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "CYP3A4", "%")
-            research_log += f"- Metabolism (CYP3A4): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "CYP1A2", "%")
-            research_log += f"- Metabolism (CYP1A2): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "CYP2C9", "%")
-            research_log += f"- Metabolism (CYP2C9): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Half_life_eDrug3D", "h")
-            research_log += f"- Excretion (Half-life): {txt}\\n"
-            _, txt = ADMET_pred(smiles, "Clearance_eDrug3D", "mL/min/kg")
-            research_log += f"- Excretion (Clearance): {txt}\\n"
+        # Update toxicity_report with ADMET-AI results (override heuristics)
+        if per_compound_admet:
+            worst_herg    = max(per_compound_admet, key=lambda x: x.get('hERG_prob',    0) or 0)
+            worst_dili    = max(per_compound_admet, key=lambda x: x.get('DILI_prob',    0) or 0)
+            worst_clintox = max(per_compound_admet, key=lambda x: x.get('clintox_prob', 0) or 0)
 
-            clintox_val, txt = ADMET_pred(smiles, "ClinTox", "%")
-            clintox_prob = clintox_val / 100.0
-            clintox_values.append(clintox_prob)
-            research_log += f"- Clinical Toxicity: {txt}\\n"
-            research_log += "-------------------------------------\\n"
+            herg_p    = worst_herg.get('hERG_prob',    0) or 0
+            dili_p    = worst_dili.get('DILI_prob',    0) or 0
+            clintox_p = worst_clintox.get('clintox_prob', 0) or 0
 
-        # Update toxicity report with DeepPurpose ClinTox predictions
-        if clintox_values:
-            max_clintox = max(clintox_values)
-            tox_report["toxicity"]["clintox_probability"] = round(max_clintox, 3)
-            tox_report["estimation_method"] = "rdkit_descriptors+deeppurpose"
-            # Override DILI risk if ClinTox signal is stronger
-            if max_clintox >= 0.80:
-                tox_report["toxicity"]["dili_risk"] = "high"
-                tox_report["toxicity"]["dili_probability"] = round(max_clintox, 3)
-            elif max_clintox >= 0.50:
-                if tox_report["toxicity"].get("dili_risk") != "high":
-                    tox_report["toxicity"]["dili_risk"] = "medium"
-                    tox_report["toxicity"]["dili_probability"] = round(max_clintox * 0.85, 3)
+            tox_report["toxicity"]["hERG_probability"]   = round(herg_p, 3)
+            tox_report["toxicity"]["clintox_probability"] = round(clintox_p, 3)
+
+            # hERG: TDC defines positive as IC50 < 10 µM
+            # Convert probability back to approximate IC50 (odds = P/(1-P))
+            if herg_p > 0.01:
+                ic50_est = round(10.0 * (1.0 - herg_p) / herg_p, 2)
+                tox_report["toxicity"]["herg_ic50_uM"] = max(0.01, min(ic50_est, 10000.0))
+
+            # DILI: override heuristic when ADMET-AI gives clearer signal
+            if dili_p >= 0.65:
+                tox_report["toxicity"]["dili_risk"]        = "high"
+                tox_report["toxicity"]["dili_probability"] = round(dili_p, 3)
+            elif dili_p >= 0.40 and tox_report["toxicity"].get("dili_risk") != "high":
+                tox_report["toxicity"]["dili_risk"]        = "medium"
+                tox_report["toxicity"]["dili_probability"] = round(dili_p, 3)
+
+            # PPBR from ADMET-AI (Chemprop MAE ~8.4% vs Lobell 2003 heuristic ~15-20%)
+            ppbr_vals = [c.get('ppbr_pct') for c in per_compound_admet
+                         if c.get('ppbr_pct') is not None]
+            if ppbr_vals:
+                tox_report["toxicity"]["ppbr_pct_admet_ai"] = round(max(ppbr_vals), 1)
+
+            tox_report["per_compound_admet_ai"] = per_compound_admet
+            tox_report["estimation_method"]     = "admet_ai_chemprop"
 
     except ImportError:
         research_log = (
-            "DeepPurpose not available in this environment.\\n"
-            "Structural safety estimates (RDKit descriptor-based heuristics) are used.\\n"
-            "Install DeepPurpose for full ADMET predictions including ClinTox.\\n"
+            "ADMET-AI not available — using RDKit structural safety estimates (Phase 1 only).\\n"
+            "Container: ensure biomni-admet:x86 is used for Chemprop-backed predictions.\\n"
         )
-    except Exception as dp_err:
-        research_log = (
-            f"DeepPurpose error: {dp_err}\\n"
-            "Falling back to RDKit structural estimates.\\n"
-        )
+    except Exception as _admet_err:
+        research_log = f"ADMET-AI error: {_admet_err}\\nFalling back to RDKit structural estimates.\\n"
+        print(f"ADMET-AI error: {_admet_err}", file=sys.stderr)
 
     # ── Always write toxicity_report.json ───────────────────────────────────
     with open("toxicity_report.json", "w") as f:
@@ -575,6 +581,23 @@ if not os.path.exists("toxicity_report.json"):
 smiles_input = auto_convert(os.environ.get("PARAM_SMILES_LIST", ""))
 try:
     pk_summary = compute_pk_properties(smiles_input)
+    # Upgrade fu_plasma with ADMET-AI PPBR when available (much better than Lobell heuristic)
+    # tox_report["toxicity"]["ppbr_pct_admet_ai"] is set by Phase 2 when ADMET-AI ran
+    if os.path.exists("toxicity_report.json"):
+        try:
+            with open("toxicity_report.json") as _tf:
+                _tr = json.load(_tf)
+            ppbr_ai = _tr.get("toxicity", {}).get("ppbr_pct_admet_ai")
+            if ppbr_ai is not None:
+                fu_from_ai = round(max(0.01, min(0.99, 1.0 - ppbr_ai / 100.0)), 4)
+                pk_summary["fu_plasma"]    = fu_from_ai
+                pk_summary["fu_source"]    = "admet_ai_chemprop_ppbr"
+                pk_summary["ppbr_pct"]     = round(ppbr_ai, 1)
+                pk_summary["estimation_method"] = pk_summary.get("estimation_method","").replace(
+                    "smiles_heuristic_logp", "admet_ai_ppbr").replace(
+                    "rdkit_lobell2003_ppb", "admet_ai_ppbr")
+        except Exception:
+            pass
 except Exception as pk_err:
     pk_summary = {"status": "error", "error": str(pk_err),
                   "fu_plasma": None, "cl_renal_fraction": None, "vd_lkg": None}

@@ -2,7 +2,8 @@
 # Build and push pharmacology Docker images to ECR.
 #
 # Usage:
-#   ./backend/docker/build-pharma-images.sh            # build both
+#   ./backend/docker/build-pharma-images.sh               # build all three
+#   ./backend/docker/build-pharma-images.sh biomni-admet
 #   ./backend/docker/build-pharma-images.sh biomni-pharma
 #   ./backend/docker/build-pharma-images.sh r-pharma
 #
@@ -13,10 +14,23 @@
 set -euo pipefail
 
 ECR="399683337364.dkr.ecr.us-west-2.amazonaws.com"
-REGION="us-west-2"
+
+build_biomni_admet() {
+    echo "=== Building biomni-admet:x86 ==="
+    # From biomate-nextflow-base (NOT biomni-tools) — lean ADMET-specific image
+    docker buildx build \
+        --platform linux/amd64 \
+        --progress=plain \
+        -t "$ECR/biomate/biomni-admet:x86" \
+        --push \
+        -f backend/docker/biomni-admet/Dockerfile \
+        .
+    echo "biomni-admet pushed to $ECR/biomate/biomni-admet:x86"
+}
 
 build_biomni_pharma() {
     echo "=== Building biomni-pharma:x86 ==="
+    # From biomni-tools — adds py2opsin, molfeat, chembl client
     docker buildx build \
         --platform linux/amd64 \
         --progress=plain \
@@ -29,8 +43,6 @@ build_biomni_pharma() {
 
 build_r_pharma() {
     echo "=== Building r-pharma:x86 ==="
-    # r-pharma does NOT pull from ECR base, it uses rocker/r-ver:4.3.1
-    # No ECR login needed for the base, but ECR push still requires auth.
     docker buildx build \
         --platform linux/amd64 \
         --progress=plain \
@@ -44,15 +56,18 @@ build_r_pharma() {
 TARGET="${1:-all}"
 
 case "$TARGET" in
+    biomni-admet)  build_biomni_admet ;;
     biomni-pharma) build_biomni_pharma ;;
     r-pharma)      build_r_pharma ;;
     all)
+        build_biomni_admet
         build_biomni_pharma
         build_r_pharma
         echo ""
         echo "=== All pharmacology images built and pushed ==="
-        echo "  $ECR/biomate/biomni-pharma:x86"
-        echo "  $ECR/biomate/r-pharma:x86"
+        echo "  $ECR/biomate/biomni-admet:x86   (ADMET-AI/Chemprop — from base)"
+        echo "  $ECR/biomate/biomni-pharma:x86  (py2opsin/molfeat — from biomni-tools)"
+        echo "  $ECR/biomate/r-pharma:x86       (nlmixr2/PKNCA — from rocker)"
         ;;
-    *) echo "Unknown target: $TARGET. Use: biomni-pharma | r-pharma | all" ; exit 1 ;;
+    *) echo "Unknown target: $TARGET. Use: biomni-admet | biomni-pharma | r-pharma | all" ; exit 1 ;;
 esac
