@@ -312,20 +312,27 @@ async function assertBatchExecution(page: Page, runId: string, label: string): P
     s.nextflowStatus?.work_dir?.startsWith('s3://') ||
     s.execution?.workDir?.startsWith('s3://')
   );
+  // outdir is always S3 when executor=awsbatch (set by _generate_executor_config).
+  // Galaxy status endpoint may report local work_dir but outdir is the reliable S3 signal.
+  const outdirS3: boolean = !!(
+    s.nextflowStatus?.outdir?.startsWith('s3://') ||
+    s.outdir?.startsWith('s3://')
+  );
   const logSaysAwsBatch: boolean = (s.nextflowStatus?.log_tail || []).some(
     (line: string) => /executor\s*>\s*awsbatch/i.test(line)
   );
 
-  const evidenceOfBatch = batchJobId || isBatchFlag || workDirS3 || logSaysAwsBatch;
+  const evidenceOfBatch = batchJobId || isBatchFlag || workDirS3 || outdirS3 || logSaysAwsBatch;
   expect(
     evidenceOfBatch,
     `[${label}] No AWS Batch evidence found in status — workflow may not have used Batch. ` +
-    `is_batch=${isBatchFlag}, workDirS3=${workDirS3}, logSaysAwsBatch=${logSaysAwsBatch}, batchJobId=${batchJobId}`
+    `is_batch=${isBatchFlag}, workDirS3=${workDirS3}, outdirS3=${outdirS3}, logSaysAwsBatch=${logSaysAwsBatch}, batchJobId=${batchJobId}`
   ).toBeTruthy();
 
   const batchEvidence = batchJobId ? `job_id=${batchJobId}` :
     isBatchFlag ? 'is_batch=true' :
     workDirS3 ? 'work_dir=s3://' :
+    outdirS3 ? 'outdir=s3://' :
     'log_tail=awsbatch';
   console.log(`[${label}] ✅ AWS Batch confirmed: ${batchEvidence}`);
 }
