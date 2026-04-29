@@ -1843,7 +1843,7 @@ async def regulatory_skills_narratives(
         raise HTTPException(status_code=500, detail=str(exc))
 
 
-@router.post("/regulatory-skills/compare-metrics")
+@router.get("/regulatory-skills/compare-metrics")
 async def regulatory_skills_compare_metrics(
     afe: float = Query(..., description="Absolute fold error from PBPK validation"),
     aafe: float = Query(..., description="Absolute average fold error"),
