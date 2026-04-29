@@ -3992,8 +3992,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             execP('/opt/aws-cli/dist/aws', args, { timeout: 20000, maxBuffer: 1024*1024 })
               .catch(() => execP('aws', args, { timeout: 20000, maxBuffer: 1024*1024 }));
 
-          const { stdout: lsOut } = await awsCmd(['s3', 'ls', s3OutputBase, '--recursive']).catch(() => ({ stdout: '' }));
+          const { stdout: lsOut } = await awsCmd(['s3', 'ls', s3OutputBase, '--recursive']).catch((err: any) => {
+            console.warn('[MethodsReport] S3 ls failed:', err?.message?.slice(0, 300), 'stderr:', err?.stderr?.slice(0, 200));
+            return { stdout: '' };
+          });
           const lines = lsOut.split('\n').filter(l => l.trim());
+          console.log(`[MethodsReport] S3 scan: ${lines.length} lines from ${s3OutputBase}`);
           for (const line of lines) {
             const parts = line.trim().split(/\s+/);
             const key = parts.slice(3).join(' ');
@@ -4005,10 +4009,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               try {
                 const { stdout: fc } = await awsCmd(['s3', 'cp', `s3://${s3Bucket}/${key}`, '-']);
                 if (fc.trim()) textOutputSamples.push({ name: fname, content: fc.slice(0, 6000) });
-              } catch { /* skip unreadable */ }
+              } catch (cpErr: any) {
+                console.warn(`[MethodsReport] S3 cp failed for ${fname}:`, cpErr.message?.slice(0, 100));
+              }
             }
           }
-        } catch { /* S3 listing not available */ }
+          console.log(`[MethodsReport] textOutputSamples: ${textOutputSamples.map(s => s.name).join(', ')}`);
+        } catch (s3Err: any) {
+          console.warn('[MethodsReport] S3 scan failed:', s3Err.message?.slice(0, 200));
+        }
 
         // Build parameter narrative
         const paramLines = Object.entries(params)
