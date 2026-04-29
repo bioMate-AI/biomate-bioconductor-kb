@@ -192,7 +192,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 }
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  intentModel: 'claude-sonnet-4-5',      // Sonnet 4-5: strong intent classification (41.3% BiomniEval1)
+  intentModel: 'gemini-3-flash-preview',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3-flash-preview in production
   toolRankingModel: GEMINI_FLASH_MODEL,  // Gemini Flash: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
