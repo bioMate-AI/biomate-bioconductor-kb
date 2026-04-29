@@ -550,10 +550,11 @@ test("CS-1: CryoSPARC SPA card — workflow matched, QC section + profile select
       "Page should mention CryoSPARC or single-particle analysis");
 
     // --- QC settings section ---
-    // The QC section is a collapsible — click the toggle to expand it first.
+    // Hidden by default — opens only when user clicks "edit" on a QC gate row.
     const qcSection = page.locator('[data-testid="qc-settings-section"]').first();
-    const qcVisible = await qcSection.isVisible({ timeout: 8000 }).catch(() => false);
-    assert(audit, "qc-settings-section-visible", qcVisible);
+    const qcVisible = await qcSection.isVisible({ timeout: 2000 }).catch(() => false);
+    assert(audit, "qc-settings-section-hidden-by-default", !qcVisible,
+      "QC settings should be hidden until a gate edit is triggered");
 
     if (qcVisible) {
       // Click the toggle button to expand the QC section
@@ -1792,11 +1793,11 @@ test("CS-9: smart params — card shows AI-prefilled param values from query; sc
       assert(audit, "qc-profile-auto-detected", true); // not present for this card variant
     }
 
-    // ---- 4-phase pipeline cards ----
-    const phases = page.locator('[data-testid^="phase-card-"]');
+    // ---- 4-phase pipeline groups ----
+    const phases = page.locator('[data-testid^="phase-group-"]');
     const phaseCount = await phases.count().catch(() => 0);
     assert(audit, "four-pipeline-phases-shown", phaseCount >= 4,
-      `Expected ≥4 phase cards (A Preprocessing / B Picking / C Classification / D Reconstruction), found ${phaseCount}`);
+      `Expected ≥4 phase groups (A/B/C/D for CryoSPARC SPA), found ${phaseCount}`);
 
     const phaseNames = (await phases.allTextContents().catch(() => [] as string[])).join(" ").toLowerCase();
     assert(audit, "phases-cover-preprocessing", /prepro|motion|ctf|patch/i.test(phaseNames),
