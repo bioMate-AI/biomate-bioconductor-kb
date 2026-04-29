@@ -8827,13 +8827,18 @@ Rules:
   // Serve a single step output file for inline preview
   app.get("/api/workflows/runs/:id/step-file", async (req, res) => {
     try {
-      const run = await storage.getExecutionRun(req.params.id);
-      if (!run) return res.status(404).json({ error: 'Run not found' });
-
       const filePath = req.query.path as string;
       const fileName = req.query.name as string || '';
 
       if (!filePath) return res.status(400).json({ error: 'path query param required' });
+
+      // For S3 paths, bucket validation is the security boundary — run lookup is optional.
+      // For local paths, we still require a valid run to restrict filesystem access.
+      const isS3Path = filePath.startsWith('s3://');
+      if (!isS3Path) {
+        const run = await storage.getExecutionRun(req.params.id);
+        if (!run) return res.status(404).json({ error: 'Run not found' });
+      }
 
       // Infer Content-Type (shared for both S3 and local paths)
       const ext = (fileName || filePath).split('.').pop()?.toLowerCase() ?? '';
