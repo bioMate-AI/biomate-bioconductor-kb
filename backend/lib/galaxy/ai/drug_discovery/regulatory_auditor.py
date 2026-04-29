@@ -19,11 +19,14 @@ Can also be run standalone: RegulatoryAuditor(region).audit(markdown, ctx)
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from typing import Optional
 
 from .ind_assembly import _load_regulatory_kb, get_threshold
+
+log = logging.getLogger(__name__)
 
 # ─── Finding data model ───────────────────────────────────────────────────────
 
@@ -116,6 +119,7 @@ class RegulatoryAuditor:
         self._check_thresholds(markdown)
         self._check_disclaimer(markdown)
         self._check_ai_disclosure(markdown)
+        self._check_osp_benchmarks(markdown, ctx)
 
         return sorted(self._findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, 9))
 
@@ -497,6 +501,64 @@ class RegulatoryAuditor:
         next_h = re.search(r'^##\s', md[start + 1:], re.MULTILINE)
         offset = next_h.start() + start + 1 if next_h else len(md)
         return md[start:offset]
+
+    # ── OSP benchmark comparison (from regulatory_skills_db) ─────────────────
+
+    def _check_osp_benchmarks(self, md: str, ctx: dict) -> None:
+        """
+        Compare BioMate PBPK metrics against approved OSP Qualification Report ranges.
+
+        Requires regulatory_skills_db to have been ingested at least once.
+        No-ops silently if DB not yet populated.
+        """
+        vr = ctx.get("validation_report") or {}
+        within_2fold = vr.get("within_2fold_fraction")
+        afe = vr.get("afe")
+        aafe = vr.get("aafe")
+
+        if within_2fold is None:
+            return  # no PBPK metrics available
+
+        try:
+            from .regulatory_skills_db import RegulatorySkillsDB
+            db = RegulatorySkillsDB()
+            result = db.compare_metrics(
+                afe=afe or 1.0,
+                aafe=aafe or 1.0,
+                within_2fold=within_2fold,
+                region=self.region,
+            )
+            n_reports = result.get("osp_benchmark", {}).get("n_reports", 0)
+            if n_reports == 0:
+                return  # DB not yet ingested — skip silently
+
+            verdict = result.get("verdict")
+            note = result.get("note", "")
+            margin = result.get("ema_criterion", {}).get("margin", 0)
+            osp_range = result.get("osp_benchmark", {}).get("within_2fold_range_pct", (None, None))
+            in_range = result.get("osp_benchmark", {}).get("biomate_within_osp_range", False)
+
+            if verdict == "FAIL":
+                self._add(MAJOR, "2.6.1.2", "EMA_PBPK_2018", "EMA",
+                          "OSP-BENCH-001",
+                          f"BioMate within-2-fold ({within_2fold:.1%}) is below EMA 67% criterion (margin={margin:+.1%}).",
+                          "Improve PBPK model or add more validated compounds to meet EMA criterion.",
+                          evidence=note)
+            elif not in_range and osp_range[0] is not None:
+                self._add(INFO, "2.6.1.2", "EMA_PBPK_2018", "EMA",
+                          "OSP-BENCH-002",
+                          f"BioMate within-2-fold ({within_2fold:.1%}) passes EMA criterion but is outside OSP-approved range "
+                          f"({osp_range[0]:.1f}–{osp_range[1]:.1f}%).",
+                          "Consider additional PBPK validation with OSP reference compounds (Midazolam, Rifampicin).",
+                          evidence=note)
+            else:
+                self._add(INFO, "2.6.1.2", "EMA_PBPK_2018", "EMA",
+                          "OSP-BENCH-PASS",
+                          f"BioMate PBPK within-2-fold ({within_2fold:.1%}) meets EMA criterion and is within OSP-approved range.",
+                          "",
+                          evidence=note)
+        except Exception as exc:
+            log.debug("[regulatory_auditor] OSP benchmark check failed: %s", exc)
 
     def _add(self, severity: str, section: str, guideline: str, region: str,
              code: str, description: str, suggestion: str, evidence: str = "") -> None:

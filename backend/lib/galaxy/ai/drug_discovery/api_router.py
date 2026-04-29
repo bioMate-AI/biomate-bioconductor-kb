@@ -1773,3 +1773,91 @@ async def esig_sign(campaign_id: str, body: EsigSignRequest):
         "action": sig.action,
         "meaning": sig.meaning,
     }
+
+
+# ---------------------------------------------------------------------------
+# Regulatory Skills DB — knowledge learned from approved documents
+# ---------------------------------------------------------------------------
+
+@router.get("/regulatory-skills/summary")
+async def regulatory_skills_summary():
+    """
+    Return current state of the regulatory skills DB.
+
+    Documents, skills, benchmarks, and narrative patterns
+    extracted from EMA-accepted OSP Qualification Reports.
+    """
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        return db.summary()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/regulatory-skills/ingest")
+async def regulatory_skills_ingest(force_refresh: bool = False):
+    """
+    Download and ingest all authoritative regulatory sources.
+
+    Sources: 6 OSP Qualification Reports (GPL, EMA-accepted).
+    Idempotent — re-ingestion skipped unless force_refresh=true.
+    Returns per-source status and skill counts.
+    """
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        results = db.ingest_all(force_refresh=force_refresh)
+        total_skills = sum(r.get("skills_added", 0) for r in results.values())
+        return {
+            "ingested_sources": len([r for r in results.values() if r.get("status") == "ingested"]),
+            "total_skills_added": total_skills,
+            "details": results,
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/regulatory-skills/pbpk-benchmarks")
+async def regulatory_skills_pbpk_benchmarks():
+    """Return all PBPK benchmark records from approved OSP reports."""
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        return {"benchmarks": db.get_pbpk_benchmarks()}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/regulatory-skills/narratives")
+async def regulatory_skills_narratives(
+    ctd_section: Optional[str] = Query(None, description="Filter by CTD section, e.g. '2.6.2'"),
+    pattern_type: Optional[str] = Query(None, description="Filter by pattern type: criterion_statement | regulatory_sentence"),
+):
+    """Return narrative patterns extracted from approved regulatory documents."""
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        return {"patterns": db.get_narrative_patterns(ctd_section=ctd_section, pattern_type=pattern_type)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post("/regulatory-skills/compare-metrics")
+async def regulatory_skills_compare_metrics(
+    afe: float = Query(..., description="Absolute fold error from PBPK validation"),
+    aafe: float = Query(..., description="Absolute average fold error"),
+    within_2fold: float = Query(..., description="Fraction within 2-fold (0–1)"),
+    region: str = Query("EMA", description="FDA | EMA | NMPA | PMDA"),
+):
+    """
+    Compare PBPK metrics against EMA criterion and OSP-approved benchmark range.
+
+    Returns pass/fail verdict and comparison context from approved reports.
+    """
+    try:
+        from .regulatory_skills_db import RegulatorySkillsDB
+        db = RegulatorySkillsDB()
+        return db.compare_metrics(afe=afe, aafe=aafe, within_2fold=within_2fold, region=region)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
