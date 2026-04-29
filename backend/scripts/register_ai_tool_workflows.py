@@ -666,6 +666,105 @@ WORKFLOWS = [
         "step_count":  2,
         "tools_used":  "SciPy curve_fit, Mager & Jusko 2001, FDA E-R guidance 2019",
     },
+    # ── P11: Phase II → III Dose Justification Brief ─────────────────────────
+    {
+        "name":        "phase2_dose_justification",
+        "filename":    "pharmacology/phase2_dose_justification/main.nf",
+        "description": (
+            "Generates an FDA-format Phase II → Phase III dose justification brief "
+            "from upstream exposure-response (E-R) modelling and PopPK outputs. "
+            "Computes therapeutic window (EC10–EC90), predicted % responders at each "
+            "candidate dose via Monte Carlo log-normal PK variability simulation, "
+            "safety margin ratio (AUC_MTD / AUC_efficacious), and Probability of "
+            "Technical Success (PTS) using the Lalonde 2007 three-component framework. "
+            "Produces a structured JSON report and a plain-text FDA-format narrative "
+            "document with four sections matching the FDA 2023 E-R guidance: "
+            "§1 E-R relationship (model, fit quality, EC50, Hill), "
+            "§2 Dose selection rationale (therapeutic window, candidate dose table), "
+            "§3 Population variability and special populations (renal/hepatic/paediatric/elderly), "
+            "§4 Benefit-risk conclusion for proposed Phase III dose(s). "
+            "Input: er_params_json (from exposure_response_modelling), candidate_doses_mg, "
+            "target_effect_pct (default 80%), population_cv_pct (default 40%), compound_name, "
+            "optional mtd_auc_ug_L_h (from Phase I PopPK). "
+            "Output: dose_justification_brief.json, dose_justification_narrative.txt, "
+            "er_dose_summary.csv."
+        ),
+        "annotation":  (
+            "FDA Phase II→III dose justification: TW, % responders, safety margin, PTS. "
+            "Input: E-R params JSON + candidate doses. "
+            "Output: dose_justification_brief.json, dose_justification_narrative.txt, er_dose_summary.csv."
+        ),
+        "tags":        (
+            "dose justification,Phase II,Phase III,FDA E-R guidance 2023,exposure response,"
+            "therapeutic window,EC50,Emax,Hill,probability of technical success,PTS,"
+            "safety margin,responders,PopPK,IIV,NDA,BLA,clinical pharmacology,"
+            "benefit-risk,dose selection,End-of-Phase meeting,Type B meeting"
+        ),
+        "domain":      "pharmacology",
+        "category":    "Clinical Development",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "txt", "csv"],
+        "step_count":  2,
+        "tools_used":  (
+            "SciPy (Hill inversion, log-normal Monte Carlo), NumPy, "
+            "FDA 2023 E-R Guidance, Lalonde 2007 PTS framework, Thomas 2014 Phase II→III priors"
+        ),
+    },
+    # ── CMC: Polymorph Risk + Solid-State Stability ──────────────────────────
+    {
+        "name":        "polymorph_stability_screening",
+        "filename":    "pharmacology/polymorph_stability_screening/main.nf",
+        "description": (
+            "Pharmaceutical polymorph risk scoring and solid-state stability prediction "
+            "for CMC (Chemistry, Manufacturing & Control) package preparation. "
+            "Computes: (1) Polymorph risk score (LOW/MEDIUM/HIGH) from H-bond capacity, "
+            "rotatable bonds, and conformational flexibility using the Fleming (2010) heuristic "
+            "and Blagden/Davey (Chem Soc Rev 2003) structural alerts; "
+            "(2) Solid-state stability assessment per ICH Q1A/Q1B — hygroscopicity (PSA + "
+            "H-bond features), photostability risk (UV chromophore detection: conjugated "
+            "carbonyls, polycyclic aromatics), chemical degradation pathways (hydrolysis of "
+            "ester/lactam/amide, oxidation of sulfur/amine/benzylic CH, epimerisation of "
+            "chiral centres alpha to carbonyls), and thermal stability (MW + flexibility heuristic); "
+            "(3) Excipient compatibility risk — flags Maillard reaction (lactose + primary/secondary "
+            "amine), MgSt salt formation with acidic APIs, MCC moisture-catalysed hydrolysis, "
+            "and PVP peroxide-driven oxidation; "
+            "(4) ICH Q6A-aligned screening protocol recommendation with number of solvents, "
+            "temperature points, crystallisation methods, and characterisation battery scaled "
+            "to risk tier; "
+            "(5) ICH Q1A(R2) accelerated and long-term stability condition recommendations "
+            "with packaging guidance and link to the accelerated stability workflow. "
+            "Applications: IND/NDA §3.2.S.3 polymorph control strategy, salt/cocrystal "
+            "selection, API manufacturing process risk assessment, ICH Q6A documentation. "
+            "Input: smiles, drug_name, intended_route (oral/parenteral/topical/inhalation), "
+            "excipients (comma-separated). "
+            "Output: polymorph_stability_report.json, polymorph_stability_summary.txt "
+            "(ICH Q6A narrative), screening_protocol_recommendation.json."
+        ),
+        "annotation":  (
+            "Polymorph risk (Fleming 2010) + ICH Q1A/Q1B stability + excipient compatibility. "
+            "Input: SMILES + drug name + route + excipients. "
+            "Output: polymorph_stability_report.json, screening_protocol_recommendation.json."
+        ),
+        "tags":        (
+            "polymorph,solid-state,CMC,ICH Q6A,ICH Q1A,ICH Q1B,crystal form,crystal packing,"
+            "hygroscopicity,photostability,hydrolysis,oxidation,epimerisation,thermal stability,"
+            "excipient compatibility,Maillard,lactose,MgSt,MCC,XRPD,DSC,TGA,DVS,"
+            "polymorph screen,solid form screen,salt selection,cocrystal,IND filing,"
+            "NDA CMC,drug substance stability,pharmaceutical manufacturing,API stability"
+        ),
+        "domain":      "pharmacology",
+        "category":    "CMC / Solid-State",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["smiles"],
+        "output_types":["json", "txt"],
+        "step_count":  5,
+        "tools_used":  (
+            "RDKit (Descriptors, rdMolDescriptors, SMARTS pattern matching), "
+            "Fleming 2010 polymorph heuristic, Blagden & Davey 2003 structural alerts, "
+            "ICH Q6A Table 1, ICH Q1A(R2) stability conditions, ICH Q1B photostability"
+        ),
+    },
     # ── P6: Adaptive Trial Design ─────────────────────────────────────────────
     {
         "name":        "adaptive_trial_design",
@@ -691,6 +790,105 @@ WORKFLOWS = [
         "output_types":["json", "csv"],
         "step_count":  3,
         "tools_used":  "SciPy, NumPy, Thall & Wathen 2007 RAR, Royston 2011 MAMS, Lan & DeMets 1983",
+    },
+    # ── P12: Biomarker-Driven Patient Enrichment ─────────────────────────────
+    {
+        "name":        "biomarker_patient_enrichment",
+        "filename":    "pharmacology/biomarker_patient_enrichment/main.nf",
+        "description": (
+            "Biomarker-driven patient enrichment analysis for the Phase II → III transition. "
+            "Identifies predictive biomarkers from Phase II clinical trial data to determine "
+            "which patients should be enrolled in the pivotal trial. "
+            "Step 1: screens each biomarker via logistic (binary response) or linear "
+            "(continuous) regression, reporting OR/HR with 95% CI, p-value, and "
+            "FDR-adjusted q-value (Benjamini-Hochberg). "
+            "Step 2: finds the optimal cut-point per continuous biomarker using Youden's "
+            "J statistic (maximises sensitivity + specificity − 1). "
+            "Step 3: computes per-biomarker enrichment metrics — Enrichment Ratio (ER), "
+            "Number Needed to Treat (NNT), Predictive Enrichment Factor (PEF, % of "
+            "responders captured), and Number Needed to Screen (NNS). "
+            "Step 4: performs Phase III power analysis using two-proportion z-test to "
+            "compute sample size required with vs without biomarker-based enrichment, "
+            "showing absolute patient-count savings. "
+            "Output: structured JSON, plain-English regulatory narrative per FDA 2019 "
+            "Enrichment Strategies Guidance, and a Phase III sample-size comparison CSV."
+        ),
+        "annotation":  (
+            "Predictive biomarker screening + Youden cut-point + enrichment metrics "
+            "(ER, NNT, PEF, NNS) + Phase III sample-size savings. "
+            "Input: patient_data_json, response_type, alpha, phase3_power. "
+            "Output: biomarker_enrichment_results.json, enrichment_summary.txt, "
+            "phase3_sample_size_comparison.csv."
+        ),
+        "tags":        (
+            "biomarker enrichment,predictive biomarker,patient selection,Phase II Phase III,"
+            "enrichment ratio,NNT,PEF,NNS,Youden J,cut-point,logistic regression,"
+            "FDR correction,Benjamini-Hochberg,sample size,two-proportion z-test,"
+            "FDA enrichment strategy,companion diagnostic,CDx,clinical trial design,"
+            "precision oncology,biomarker-driven trial,IND,NDA"
+        ),
+        "domain":      "pharmacology",
+        "category":    "Clinical Development",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "txt", "csv"],
+        "step_count":  4,
+        "tools_used":  (
+            "SciPy (logistic/linear regression, z-test), NumPy, "
+            "Sargent 2005 JNCI, Simon 2010, FDA Enrichment Strategies Guidance 2019, "
+            "Youden 1950, Benjamini & Hochberg 1995 FDR, Fleiss 1981 sample size"
+        ),
+    },
+    # ── P13: PBPK Disease-State (Renal + Hepatic Impairment) ─────────────────
+    {
+        "name":        "pbpk_disease_state",
+        "filename":    "pharmacology/pbpk_disease_state/main.nf",
+        "description": (
+            "Mechanistic PBPK disease-state submodels for renal and hepatic impairment, "
+            "required for all IND/NDA submissions involving renally or hepatically cleared drugs. "
+            "Renal model (FDA Guidance 2010 / ICH E7): classifies Normal/Mild/Moderate/Severe/ESRD "
+            "by eGFR; scales CLr via power-law (GFR_patient/GFR_normal)^0.75 (Nolin 2010); "
+            "corrects fu for hypoalbuminemia and Vd for oedema (hydrophilic drugs, logP<1). "
+            "Hepatic model (FDA Guidance 2003, Child-Pugh A/B/C): applies hepatocyte fraction "
+            "(0.80/0.60/0.35) and LBF fraction (0.90/0.80/0.65) per class; computes CLH via "
+            "well-stirred model (Wilkinson 2005); corrects fu via albumin-mediated binding. "
+            "Flags CONTRAINDICATED when AUC_ratio >5. Generates FDA-format '8.6 Renal Impairment' "
+            "and '8.7 Hepatic Impairment' label sections and a CTD §5.2.4 (M4S) exposure-ratio "
+            "summary table across all impairment grades. "
+            "Input: cl_renal_fraction, cl_hepatic_fraction, fu_plasma, vd_lkg, logP, "
+            "high_extraction_ratio, drug_name, primary_indication. "
+            "Output: disease_state_pk_report.json, specific_populations_label_text.txt, "
+            "exposure_ratio_table.csv."
+        ),
+        "annotation":  (
+            "Renal (eGFR power-law) + Hepatic (Child-Pugh well-stirred) PBPK impairment models; "
+            "FDA label §8.6/§8.7 generator; CTD §5.2.4 exposure table. "
+            "Input: PK fractions + drug params. "
+            "Output: disease_state_pk_report.json, specific_populations_label_text.txt, "
+            "exposure_ratio_table.csv."
+        ),
+        "tags":        (
+            "renal impairment,hepatic impairment,PBPK disease state,IND NDA submission,"
+            "FDA renal guidance 2010,FDA hepatic guidance 2003,ICH E7,Child-Pugh,"
+            "eGFR,GFR,CLr scaling,well-stirred model,fu hypoalbuminemia,albumin,"
+            "AUC ratio,Cmax ratio,dose adjustment,contraindicated,special populations,"
+            "use in specific populations,FDA label language,CTD 5.2.4,M4S,"
+            "renal clearance,hepatic clearance,drug label,NDA regulatory,clinical pharmacology,"
+            "renal insufficiency,hepatic insufficiency,ESRD dialysis,liver disease"
+        ),
+        "domain":      "pharmacology",
+        "category":    "Pharmacokinetics",
+        "docker_image":"399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/biomni-tools:x86",
+        "input_types": ["json"],
+        "output_types":["json", "txt", "csv"],
+        "step_count":  3,
+        "tools_used":  (
+            "NumPy, SciPy, "
+            "FDA Guidance Renal Impairment 2010, FDA Guidance Hepatic Impairment 2003, "
+            "ICH E7, Nolin 2010 CLr power-law, Wilkinson 2005 well-stirred model, "
+            "Rowland & Tozer Ch.11-12, Pugh 1973 Child-Pugh, "
+            "FDA Use in Specific Populations label templates"
+        ),
     },
 ]
 
