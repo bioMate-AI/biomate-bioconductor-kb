@@ -46,6 +46,8 @@ export interface JWTPayload {
   subscriptionStatus: string;
   subscriptionTier: string;
   trialEndsAt: string | null;
+  type?: 'session' | 'mfa_challenge';
+  jti?: string;
 }
 
 export interface AuthResponse {
@@ -53,6 +55,11 @@ export interface AuthResponse {
   token: string;
   expiresIn: number;  // seconds
   rememberMe?: boolean;
+}
+
+export interface MfaChallengeResponse {
+  mfaRequired: true;
+  challengeToken: string;
 }
 
 export class AuthService {
@@ -365,6 +372,25 @@ export class AuthService {
       this.provisionGalaxyUser(user.id, user.email);
     }
 
+    // If MFA is enabled, issue a short-lived challenge token instead of a full session
+    if (user.mfaEnabled) {
+      const jti = randomBytes(16).toString('hex');
+      const challengeToken = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          subscriptionStatus: user.subscriptionStatus,
+          subscriptionTier: user.subscriptionTier,
+          trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
+          type: 'mfa_challenge',
+          jti,
+        } satisfies JWTPayload,
+        _JWT_SECRET,
+        { expiresIn: '5m' }
+      );
+      return { mfaRequired: true, challengeToken } as any;
+    }
+
     const rememberMe = data.rememberMe ?? false;
     // 30 days if remembered, 24 hours otherwise
     const sessionSeconds = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60;
@@ -408,6 +434,14 @@ export class AuthService {
   async getUserById(userId: string): Promise<User | null> {
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     return user || null;
+  }
+
+  /** Verify email + password — used by MFA disable to re-authenticate */
+  async verifyCredentials(email: string, password: string): Promise<User | null> {
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (!user) return null;
+    const ok = await bcrypt.compare(password, user.password);
+    return ok ? user : null;
   }
 
   /**
@@ -593,7 +627,7 @@ export class AuthService {
   /**
    * Generate JWT token
    */
-  private generateToken(user: User, rememberMe = false): string {
+  generateToken(user: User, rememberMe = false): string {
     const payload: JWTPayload = {
       userId: user.id,
       email: user.email,

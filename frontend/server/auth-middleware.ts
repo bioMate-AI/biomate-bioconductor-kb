@@ -42,6 +42,12 @@ export async function authenticateToken(
     // Verify token
     const payload = authService.verifyToken(token);
 
+    // Reject MFA challenge tokens — only valid for /api/auth/mfa/challenge
+    if (payload.type === 'mfa_challenge') {
+      res.status(401).json({ error: 'MFA challenge token cannot be used for authenticated requests' });
+      return;
+    }
+
     // Get user from database
     const user = await authService.getUserById(payload.userId);
     if (!user) {

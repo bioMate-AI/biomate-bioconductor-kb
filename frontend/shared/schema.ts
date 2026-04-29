@@ -30,6 +30,14 @@ export const users = pgTable("users", {
   resetPasswordToken: text("reset_password_token"),
   resetPasswordExpires: timestamp("reset_password_expires"),
 
+  // MFA (TOTP)
+  mfaSecret: text("mfa_secret"),                          // AES-256-GCM encrypted base32 secret
+  mfaEnabled: boolean("mfa_enabled").default(false),
+  mfaVerifiedAt: timestamp("mfa_verified_at"),
+  mfaRecoveryCodes: text("mfa_recovery_codes"),           // JSON array of bcrypt-hashed codes
+  mfaFailedAttempts: integer("mfa_failed_attempts").default(0),
+  mfaLockoutUntil: timestamp("mfa_lockout_until"),
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

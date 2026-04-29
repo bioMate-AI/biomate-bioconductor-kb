@@ -60,6 +60,7 @@ import {
   buildNextflowComputeConfig,
   evaluateHardwareGate,
 } from "./execution-env-policy";
+import * as mfaService from "./mfa-service";
 
 // Initialize OpenAI (optional for development)
 const openai = (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()) ? new OpenAI({
@@ -1985,6 +1986,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // ── MFA routes ────────────────────────────────────────────────────────────
+
+  // Start MFA setup — generate TOTP secret, return QR code + manual key
+  app.post("/api/auth/mfa/setup", authenticateToken, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const email = (req.user as any).email;
+      const secret = mfaService.generateSecret(email);
+      await mfaService.storePendingSecret(userId, secret.base32);
+      const qrCode = await mfaService.generateQRCode(secret.otpauth_url!);
+      res.json({ qrCode, manualKey: secret.base32 });
+    } catch (e: any) {
+      res.status(500).json({ error: 'MFA setup failed' });
+    }
+  });
+
+  // Verify first TOTP code → activate MFA, return recovery codes (shown once)
+  app.post("/api/auth/mfa/verify-setup", authenticateToken, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { token } = req.body ?? {};
+      if (!token) return res.status(400).json({ error: 'token required' });
+      const base32 = await mfaService.getDecryptedSecret(userId);
+      if (!base32) return res.status(400).json({ error: 'MFA setup not initiated' });
+      if (!mfaService.verifyTotp(base32, token)) {
+        return res.status(400).json({ error: 'Invalid TOTP code' });
+      }
+      const plainCodes = mfaService.generateRecoveryCodes();
+      const hashedCodes = await mfaService.hashRecoveryCodes(plainCodes);
+      await mfaService.activateMfa(userId, hashedCodes);
+      res.json({ recoveryCodes: plainCodes });
+    } catch (e: any) {
+      res.status(500).json({ error: 'MFA activation failed' });
+    }
+  });
+
+  // Disable MFA — requires password + current TOTP for confirmation
+  app.post("/api/auth/mfa/disable", authenticateToken, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const email = (req.user as any).email;
+      const { password, token } = req.body ?? {};
+      if (!password || !token) return res.status(400).json({ error: 'password and token required' });
+      const user = await authService.verifyCredentials(email, password);
+      if (!user) return res.status(401).json({ error: 'Invalid password' });
+      const base32 = await mfaService.getDecryptedSecret(userId);
+      if (!base32 || !mfaService.verifyTotp(base32, token)) {
+        return res.status(400).json({ error: 'Invalid TOTP code' });
+      }
+      await mfaService.disableMfa(userId);
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.status(500).json({ error: 'MFA disable failed' });
+    }
+  });
+
+  // MFA status
+  app.get("/api/auth/mfa/status", authenticateToken, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const user = await authService.getUserById(userId);
+      res.json({
+        enabled: user?.mfaEnabled ?? false,
+        verifiedAt: user?.mfaVerifiedAt ?? null,
+        remainingRecoveryCodes: user?.mfaRecoveryCodes
+          ? (JSON.parse(user.mfaRecoveryCodes) as string[]).length : 0,
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: 'Failed to get MFA status' });
+    }
+  });
+
+  // MFA challenge — called after password login when MFA is enabled
+  app.post("/api/auth/mfa/challenge", async (req, res) => {
+    try {
+      const { challengeToken, token } = req.body ?? {};
+      if (!challengeToken || !token) {
+        return res.status(400).json({ error: 'challengeToken and token required' });
+      }
+
+      // Verify challenge token
+      let payload: any;
+      try {
+        payload = authService.verifyToken(challengeToken);
+      } catch {
+        return res.status(401).json({ error: 'Invalid or expired challenge token' });
+      }
+      if (payload.type !== 'mfa_challenge' || !payload.jti) {
+        return res.status(401).json({ error: 'Invalid token type' });
+      }
+
+      const { userId, jti } = payload;
+
+      // Replay prevention — consume JTI (one-use)
+      const consumed = await mfaService.consumeJti(jti, userId, new Date(Date.now() + 5 * 60 * 1000));
+      if (!consumed) {
+        return res.status(401).json({ error: 'Challenge token already used' });
+      }
+
+      // Brute-force lockout check
+      if (await mfaService.isLockedOut(userId)) {
+        return res.status(429).json({ error: 'Account temporarily locked. Try again later.' });
+      }
+
+      const base32 = await mfaService.getDecryptedSecret(userId);
+      if (!base32) return res.status(400).json({ error: 'MFA not configured' });
+
+      let valid = mfaService.verifyTotp(base32, token);
+      let usedRecovery = false;
+      if (!valid) {
+        valid = await mfaService.verifyAndBurnRecoveryCode(userId, token);
+        usedRecovery = valid;
+      }
+
+      if (!valid) {
+        const { locked, remaining } = await mfaService.recordFailedChallenge(userId);
+        if (locked) {
+          return res.status(429).json({ error: 'Too many failed attempts. Account locked for 15 minutes.' });
+        }
+        return res.status(401).json({ error: 'Invalid MFA code', remainingAttempts: remaining });
+      }
+
+      await mfaService.clearFailedChallenges(userId);
+
+      // Issue full session token
+      const user = await authService.getUserById(userId);
+      if (!user) return res.status(401).json({ error: 'User not found' });
+      const sessionToken = authService.generateToken(user, false);
+      res.json({ token: sessionToken });
+    } catch (e: any) {
+      console.error('[MFA] Challenge error:', e);
+      res.status(500).json({ error: 'MFA challenge failed' });
+    }
+  });
+
+  // ── End MFA routes ────────────────────────────────────────────────────────
 
   // Newsletter subscribe (no auth required; stores email for future mailouts)
   app.post("/api/newsletter/subscribe", async (req, res) => {
