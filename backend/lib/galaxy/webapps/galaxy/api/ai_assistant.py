@@ -1157,8 +1157,8 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
             r'TruSeq\s+Stranded',          # Illumina TruSeq Stranded mRNA/Total RNA = dUTP = reverse
             r'KAPA\s+Stranded',             # KAPA Stranded RNA-Seq = reverse
             r'NEBNext.*?Ultra.*?II.*?Direct', # NEBNext Ultra II Directional = reverse
-            r'ribo-?zero.*?stranded',
-            r'stranded.*?ribo-?zero',
+            r'ribo-?zero.*?strand',    # Ribo-zero + any strand term (stranded, strand-specific, etc.)
+            r'strand.*?ribo-?zero',
             r'Lexogen.*?SENSE',             # Lexogen SENSE = reverse
             r'SMARTer.*?Stranded',          # SMARTer Stranded = reverse
         ]
@@ -1324,6 +1324,128 @@ def _rule_based_param_inference(user_intent: str, all_params: List[Dict[str, Any
     if "joint_germline" in param_names and "joint_germline" not in result:
         if _re.search(r'\bjoint\s+(?:germline|genotyping|calling)\b|\bmulti.?sample.*germline\b', text, _re.IGNORECASE):
             result["joint_germline"] = True
+
+    # ── scRNA-seq chemistry (10x Genomics version) ───────────────────────────
+    if "chemistry" in param_names and "chemistry" not in result:
+        if _re.search(r'10[xX]\s*(?:Genomics\s*)?(?:Chromium\s*)?v?3\.?1?|Chromium\s*v?3\.?1?\b|10[xX]v3', user_intent, _re.IGNORECASE):
+            result["chemistry"] = "10xv3"
+        elif _re.search(r'10[xX]\s*(?:Genomics\s*)?(?:Chromium\s*)?v?2\.?0?|Chromium\s*v?2\.?0?\b|10[xX]v2', user_intent, _re.IGNORECASE):
+            result["chemistry"] = "10xv2"
+        elif _re.search(r'\bDrop-?seq\b|\bDrop\s+seq\b', user_intent, _re.IGNORECASE):
+            result["chemistry"] = "dropseq"
+
+    # ── scRNA-seq aligner ─────────────────────────────────────────────────────
+    if "aligner" in param_names and "aligner" not in result:
+        if _re.search(r'\bDrop-?seq\b|\bDrop\s+seq\b', user_intent, _re.IGNORECASE):
+            result["aligner"] = "star"
+        elif _re.search(r'\bkallisto\b|\bkb.?python\b|\bkb-?python\b', user_intent, _re.IGNORECASE):
+            result["aligner"] = "kallisto"
+        elif _re.search(r'\bSTARsolo\b|\bSTAR\s+solo\b', user_intent, _re.IGNORECASE):
+            result["aligner"] = "star"
+
+    # ── Ampliseq: known primer sequences ─────────────────────────────────────
+    # Maps standard primer names to their sequences so users can say "341F/806R"
+    _PRIMER_MAP = {
+        r'341F.*806R|806R.*341F|V3.V4': ('CCTACGGGNGGCWGCAG', 'GACTACNVGGGTWTCTAATCC'),
+        r'515F.*806R|806R.*515F|V4\b(?!\s*-\s*V[56])': ('GTGYCAGCMGCCGCGGTAA', 'GGACTACNVGGGTWTCTAAT'),
+        r'27F.*534R|534R.*27F|V1.V3': ('AGAGTTTGATCMTGGCTCAG', 'ATTACCGCGGCTGCTGG'),
+        r'515F.*926R|926R.*515F|V4.V5': ('GTGYCAGCMGCCGCGGTAA', 'CCGYCAATTYMTTTRAGTTT'),
+    }
+    if "FW_primer" in param_names and "FW_primer" not in result:
+        for pat, (fw, rv) in _PRIMER_MAP.items():
+            if _re.search(pat, user_intent, _re.IGNORECASE):
+                result["FW_primer"] = fw
+                if "RV_primer" in param_names and "RV_primer" not in result:
+                    result["RV_primer"] = rv
+                break
+
+    # ── Known adapter sequences ───────────────────────────────────────────────
+    _ADAPTER_MAP = {
+        r'Nextera\s*(?:XT|Rapid\s*Transposase|transposase)': 'CTGTCTCTTATACACATCT',
+        r'TruSeq\s*(?:Universal|HT|CD)': 'AGATCGGAAGAGC',
+        r'Nextera\s*(?:v2|v2\s+adapter|Flex)': 'CTGTCTCTTATACACATCT',
+    }
+    for clip_param in ('clip_r1', 'adapter_r1', 'adapter1'):
+        if clip_param in param_names and clip_param not in result:
+            for pat, seq in _ADAPTER_MAP.items():
+                if _re.search(pat, user_intent, _re.IGNORECASE):
+                    result[clip_param] = seq
+                    break
+            break
+
+    # ── Proteomics: database selection ───────────────────────────────────────
+    if "database" in param_names and "database" not in result:
+        if _re.search(r'UniProt\s*Swiss.?Prot|Swiss.?Prot\s*curated|swissprot', user_intent, _re.IGNORECASE):
+            result["database"] = "uniprot_swissprot"
+        elif _re.search(r'UniProt\s*TrEMBL|TrEMBL|unreviewed', user_intent, _re.IGNORECASE):
+            result["database"] = "uniprot_trembl"
+        elif _re.search(r'\bUniRef\s*100\b', user_intent, _re.IGNORECASE):
+            result["database"] = "uniref100"
+
+    # ── Proteomics: isobaric labeling reagent ─────────────────────────────────
+    if "labeling_reagent" in param_names and "labeling_reagent" not in result:
+        _TMT_PAT = {
+            r'TMT.?16|16.?plex.*TMT|TMT.*16.?plex': 'TMT16plex',
+            r'TMT.?11|11.?plex.*TMT|TMT.*11.?plex': 'TMT11plex',
+            r'TMT.?10|10.?plex.*TMT|TMT.*10.?plex': 'TMT10plex',
+            r'TMT.?6|6.?plex.*TMT|TMT.*6.?plex': 'TMT6plex',
+            r'\bTMT\b(?!\d)': 'TMT6plex',  # plain TMT → default 6-plex
+            r'iTRAQ.?8|8.?plex.*iTRAQ|iTRAQ.*8.?plex': 'iTRAQ8plex',
+            r'iTRAQ.?4|4.?plex.*iTRAQ|iTRAQ.*4.?plex': 'iTRAQ4plex',
+        }
+        for pat, reagent in _TMT_PAT.items():
+            if _re.search(pat, user_intent, _re.IGNORECASE):
+                result["labeling_reagent"] = reagent
+                break
+
+    # ── Mass spec quantification method ──────────────────────────────────────
+    if "quantification_method" in param_names and "quantification_method" not in result:
+        if _re.search(r'\bSILAC\b|\bstable\s+isotope\s+label', user_intent, _re.IGNORECASE):
+            result["quantification_method"] = "SILAC"
+        elif _re.search(r'\bTMT\b|\biTRAQ\b|\bisobaric', user_intent, _re.IGNORECASE):
+            result["quantification_method"] = "isobaric"
+        elif _re.search(r'\bLFQ\b|\blabel.free\b|\blabel\s+free', user_intent, _re.IGNORECASE):
+            result["quantification_method"] = "LFQ"
+
+    # ── Ribo-zero strand-specific → reverse strandedness ─────────────────────
+    # (added to _KIT_REVERSE check above, but also catch here as fallback)
+    if "strandedness" in param_names and "strandedness" not in result:
+        if _re.search(r'ribo.?zero.*strand|strand.?spec.*ribo.?zero|strand.?spec.*RNA.?seq', user_intent, _re.IGNORECASE):
+            result["strandedness"] = "reverse"
+
+    # ── GPU acceleration flag ─────────────────────────────────────────────────
+    if "gpu_acceleration" in param_names and "gpu_acceleration" not in result:
+        if _re.search(r'\bno\s+GPU\b|\bCPU.?only\b|\bno\s+gpu\s+accel', user_intent, _re.IGNORECASE):
+            result["gpu_acceleration"] = False
+        elif _re.search(r'\bGPU\b|\bgpu\s+accel', user_intent, _re.IGNORECASE):
+            result["gpu_acceleration"] = True
+
+    # ── narrow_peak from ChIP-seq context ────────────────────────────────────
+    if "narrow_peak" in param_names and "narrow_peak" not in result:
+        if _re.search(r'\bnarrow\s+peak|TF\s+binding|transcription\s+factor', user_intent, _re.IGNORECASE):
+            result["narrow_peak"] = True
+        elif _re.search(r'\bbroad\s+peak|broad\s+domain|H3K27me3|H3K9me3', user_intent, _re.IGNORECASE):
+            result["narrow_peak"] = False
+
+    # ── q-value threshold (peak calling) ─────────────────────────────────────
+    if "qvalue" in param_names and "qvalue" not in result:
+        _m_q = _re.search(r'q.?value\s+(?:of\s+)?(\d+\.?\d*)|(\d+\.?\d*)\s+q.?value', user_intent, _re.IGNORECASE)
+        if _m_q:
+            result["qvalue"] = float(_m_q.group(1) or _m_q.group(2))
+
+    # ── "not single-end" / "paired-end" as single_end: False ─────────────────
+    # Extra rule: "not single-end" explicitly → single_end=False
+    if "single_end" in param_names and "single_end" not in result:
+        if _re.search(r'not\s+single.end|paired.end\s+(?:library|reads|ChIP|RNA)', user_intent, _re.IGNORECASE):
+            result["single_end"] = False
+
+    # ── Coverage rules (sarek target_coverage, ampliseq) ─────────────────────
+    if "target_coverage" in param_names and "target_coverage" not in result:
+        _m_tc = _re.search(r'(\d{3,})\s*[xX×]\s*(?:coverage|depth|amplicon|panel)', user_intent, _re.IGNORECASE)
+        if not _m_tc:
+            _m_tc = _re.search(r'(?:coverage|depth)\s+(?:of\s+)?(\d{3,})\s*[xX×]?', user_intent, _re.IGNORECASE)
+        if _m_tc:
+            result["target_coverage"] = int(_m_tc.group(1))
 
     return result
 

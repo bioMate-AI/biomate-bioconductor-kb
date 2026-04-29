@@ -9,6 +9,7 @@ params.step             = 'mapping'     // Pipeline step: mapping | markduplicat
 params.wes              = false         // Whole exome sequencing mode (uses intervals)
 params.intervals        = null          // BED file with target regions for WES
 params.genome_coverage  = null          // Target sequencing coverage in X (e.g. 30 | 50 | 100)
+params.target_coverage  = null          // Target amplicon/panel coverage depth (e.g. 1000 for ctDNA)
 params.nucleotides_per_second = 200000  // Genome size estimate for interval splitting
 params.no_intervals     = false         // Disable interval splitting (use full genome)
 params.skip_tools       = null          // Tools to skip: baserecalibrator | markduplicates | bamqc

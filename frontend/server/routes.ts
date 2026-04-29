@@ -4346,11 +4346,13 @@ N. REFERENCES — Relevant tool citations with PMIDs.`;
         const reportFormat = req.query.format === 'docx' ? 'docx' : 'txt';
 
         // Use Gemini Flash for fast generation (~10s latency, well within E2E timeouts).
+        console.log(`[MethodsReport] Calling Gemini: USER prompt=${USER.length} chars, SYSTEM=${SYSTEM.length} chars, missingCount=${missingCount}`);
         const reportText = await callGeminiFlash({
           messages: [{ role: 'user', content: USER }],
           system: SYSTEM,
           maxTokens: 2048,
         });
+        console.log(`[MethodsReport] Gemini response: ${reportText.length} chars`);
 
         const header = [
           `BioMate AI — Methods Report`,
