@@ -77,7 +77,7 @@ else:
 with open(particles_file) as fh:
     content = fh.read()
 
-s3_pat = re.compile(r's3://\S+?\.mrcs')
+s3_pat = re.compile('s3://[^ \\t\\n]+[.]mrcs')
 s3_paths = sorted(set(s3_pat.findall(content)))
 if s3_paths:
     print(f"Star file references {len(s3_paths)} S3 mrcs files — downloading")
