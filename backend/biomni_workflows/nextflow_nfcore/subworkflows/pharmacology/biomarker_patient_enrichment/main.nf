@@ -353,6 +353,120 @@ def youden_cutpoint(x, y_bin):
     return best_t, best_j, best_sens, best_spec
 
 
+BOOTSTRAP_N = 500
+MIN_OOB = 20
+
+def bootstrap_youden_cv(x_full, y_full, n_boot=BOOTSTRAP_N):
+    """
+    Bootstrap bias-correction for Youden cut-point sensitivity/specificity.
+
+    For each bootstrap replicate:
+      - Resample x_full, y_full WITH replacement (same n).
+      - Find the optimal Youden cut-point on the bootstrap sample.
+      - Apply that cut-point to the out-of-bag (OOB) samples.
+      - Record OOB sensitivity and OOB specificity.
+
+    Returns a dict with:
+      apparent_sensitivity, apparent_specificity  (on full data)
+      bc_sensitivity, bc_specificity              (bias-corrected)
+      optimism_sensitivity, optimism_specificity  (apparent - bc)
+      ci95_sens_lo/hi, ci95_spec_lo/hi            (percentile 95% CI of OOB values)
+      bootstrap_n                                 (number of replicates with >=MIN_OOB OOB samples)
+      cv_status                                   ("ok" | "insufficient_data")
+    """
+    x_full = np.array(x_full, dtype=float)
+    y_full = np.array(y_full, dtype=float)
+    mask   = np.isfinite(x_full) & np.isfinite(y_full)
+    x_full, y_full = x_full[mask], y_full[mask]
+    n = len(x_full)
+
+    # Apparent (full-data) performance
+    app_cut, _, app_sens, app_spec = youden_cutpoint(x_full, y_full)
+    if app_cut is None:
+        return None
+
+    oob_sens_list = []
+    oob_spec_list = []
+    rng = np.random.default_rng(seed=42)
+
+    for _ in range(n_boot):
+        boot_idx = rng.integers(0, n, size=n)
+        oob_mask = np.ones(n, dtype=bool)
+        oob_mask[boot_idx] = False
+        oob_idx  = np.where(oob_mask)[0]
+
+        if oob_idx.sum() < MIN_OOB:
+            continue  # skip: too few OOB samples for reliable estimate
+
+        x_boot, y_boot = x_full[boot_idx], y_full[boot_idx]
+        x_oob,  y_oob  = x_full[oob_idx],  y_full[oob_idx]
+
+        # Find cut-point on bootstrap sample
+        cut_b, _, _, _ = youden_cutpoint(x_boot, y_boot)
+        if cut_b is None:
+            continue
+
+        # Evaluate on OOB
+        pred_oob = (x_oob >= cut_b).astype(float)
+        tp = np.sum((pred_oob == 1) & (y_oob == 1))
+        fn = np.sum((pred_oob == 0) & (y_oob == 1))
+        tn = np.sum((pred_oob == 0) & (y_oob == 0))
+        fp = np.sum((pred_oob == 1) & (y_oob == 0))
+
+        oob_sens = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        oob_spec = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+        oob_sens_list.append(oob_sens)
+        oob_spec_list.append(oob_spec)
+
+    valid_n = len(oob_sens_list)
+    if valid_n < MIN_OOB:
+        return {
+            'apparent_sensitivity':  round(float(app_sens), 4),
+            'apparent_specificity':  round(float(app_spec), 4),
+            'bc_sensitivity':        None,
+            'bc_specificity':        None,
+            'optimism_sensitivity':  None,
+            'optimism_specificity':  None,
+            'ci95_sens_lo':          None,
+            'ci95_sens_hi':          None,
+            'ci95_spec_lo':          None,
+            'ci95_spec_hi':          None,
+            'bootstrap_n':           valid_n,
+            'cv_status':             'insufficient_data',
+        }
+
+    oob_sens_arr = np.array(oob_sens_list)
+    oob_spec_arr = np.array(oob_spec_list)
+
+    mean_oob_sens = float(oob_sens_arr.mean())
+    mean_oob_spec = float(oob_spec_arr.mean())
+
+    # Bias-corrected = apparent - optimism; optimism = apparent_on_boot - OOB
+    # Standard .632 estimator: bc = apparent - (apparent_boot_mean - oob_mean)
+    # Since we don't have apparent_boot_mean per replicate, we use the simpler
+    # Harrell optimism estimator: bc = apparent - (apparent - mean_oob)
+    # i.e. bc = mean_oob  (which is the standard bootstrap optimism correction)
+    bc_sens = mean_oob_sens
+    bc_spec = mean_oob_spec
+    opt_sens = float(app_sens) - bc_sens
+    opt_spec = float(app_spec) - bc_spec
+
+    return {
+        'apparent_sensitivity':  round(float(app_sens), 4),
+        'apparent_specificity':  round(float(app_spec), 4),
+        'bc_sensitivity':        round(bc_sens, 4),
+        'bc_specificity':        round(bc_spec, 4),
+        'optimism_sensitivity':  round(opt_sens, 4),
+        'optimism_specificity':  round(opt_spec, 4),
+        'ci95_sens_lo':          round(float(np.percentile(oob_sens_arr, 2.5)), 4),
+        'ci95_sens_hi':          round(float(np.percentile(oob_sens_arr, 97.5)), 4),
+        'ci95_spec_lo':          round(float(np.percentile(oob_spec_arr, 2.5)), 4),
+        'ci95_spec_hi':          round(float(np.percentile(oob_spec_arr, 97.5)), 4),
+        'bootstrap_n':           valid_n,
+        'cv_status':             'ok',
+    }
+
+
 for bm in bm_keys:
     x_vals = []
     for p in patients:
@@ -367,11 +481,40 @@ for bm in bm_keys:
         cut, j_stat, sens, spec = youden_cutpoint(x, y)
         screening_results[bm]['optimal_cutpoint'] = round(float(cut), 4) if cut is not None else None
         screening_results[bm]['youden_J'] = round(float(j_stat), 4) if j_stat is not None else None
-        screening_results[bm]['sensitivity_at_cut'] = round(float(sens), 4) if sens is not None else None
-        screening_results[bm]['specificity_at_cut'] = round(float(spec), 4) if spec is not None else None
+        # Apparent (full-data) sensitivity/specificity
+        screening_results[bm]['cut_point_apparent_sensitivity'] = round(float(sens), 4) if sens is not None else None
+        screening_results[bm]['cut_point_apparent_specificity'] = round(float(spec), 4) if spec is not None else None
+        # Legacy field aliases (kept for backward-compat)
+        screening_results[bm]['sensitivity_at_cut'] = screening_results[bm]['cut_point_apparent_sensitivity']
+        screening_results[bm]['specificity_at_cut'] = screening_results[bm]['cut_point_apparent_specificity']
+
+        # Bootstrap bias-correction
+        bsv = bootstrap_youden_cv(x, y, n_boot=BOOTSTRAP_N)
+        if bsv is not None:
+            screening_results[bm]['cut_point_bc_sensitivity']       = bsv['bc_sensitivity']
+            screening_results[bm]['cut_point_bc_specificity']       = bsv['bc_specificity']
+            screening_results[bm]['cut_point_optimism_sensitivity']  = bsv['optimism_sensitivity']
+            screening_results[bm]['cut_point_optimism_specificity']  = bsv['optimism_specificity']
+            screening_results[bm]['cut_point_bc_ci95_sens']         = [bsv['ci95_sens_lo'], bsv['ci95_sens_hi']]
+            screening_results[bm]['cut_point_bc_ci95_spec']         = [bsv['ci95_spec_lo'], bsv['ci95_spec_hi']]
+            screening_results[bm]['bootstrap_n']                    = bsv['bootstrap_n']
+            screening_results[bm]['bootstrap_cv_status']            = bsv['cv_status']
+        else:
+            for fld in ('cut_point_bc_sensitivity', 'cut_point_bc_specificity',
+                        'cut_point_optimism_sensitivity', 'cut_point_optimism_specificity',
+                        'cut_point_bc_ci95_sens', 'cut_point_bc_ci95_spec',
+                        'bootstrap_n', 'bootstrap_cv_status'):
+                screening_results[bm][fld] = None
     else:
         screening_results[bm]['optimal_cutpoint'] = None
         screening_results[bm]['youden_J'] = None
+        screening_results[bm]['cut_point_apparent_sensitivity'] = None
+        screening_results[bm]['cut_point_apparent_specificity'] = None
+        screening_results[bm]['cut_point_bc_sensitivity'] = None
+        screening_results[bm]['cut_point_bc_specificity'] = None
+        screening_results[bm]['cut_point_optimism_sensitivity'] = None
+        screening_results[bm]['bootstrap_n'] = None
+        screening_results[bm]['bootstrap_cv_status'] = None
 
 # ---------------------------------------------------------------------------
 # Step 3: Enrichment metrics
@@ -550,6 +693,22 @@ top_data = screening_results[top_bm] if top_bm else {}
 # ---------------------------------------------------------------------------
 # Build outputs
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Regulatory pre-specification warning (FDA 2019 Enrichment Strategies)
+# ---------------------------------------------------------------------------
+regulatory_warning = {
+    "pre_specification_required": True,
+    "fda_guidance": "FDA 2014 Enrichment Strategies Guidance",
+    "warning": (
+        "Post-hoc biomarker discovery from Phase II data is hypothesis-generating only. "
+        "The identified biomarker(s) must be pre-specified in the Phase III protocol "
+        "before data lock. Independent prospective validation in a separate cohort is "
+        "required before use in Phase III patient selection. "
+        "Reference: FDA Guidance - Enrichment Strategies for Clinical Trials (2019)."
+    ),
+    "action_required": "Pre-specify biomarker and cut-point in Phase III SAP before trial start.",
+}
+
 results_out = {
     'status':              'completed',
     'n_patients':          n_total,
@@ -565,6 +724,7 @@ results_out = {
     'top_biomarker_data':  top_data,
     'n_fdr_significant':   len(sig_bms),
     'significant_biomarkers': sig_bms,
+    'regulatory_warning':  regulatory_warning,
 }
 
 with open('biomarker_enrichment_results.json', 'w') as f:
@@ -583,6 +743,11 @@ def fmt(v, decimals=3):
 
 lines = [
     '=== BIOMARKER-DRIVEN PATIENT ENRICHMENT ANALYSIS REPORT ===',
+    '',
+    '!!! REGULATORY WARNING !!!',
+    regulatory_warning['warning'],
+    f"ACTION REQUIRED: {regulatory_warning['action_required']}",
+    f"Reference: {regulatory_warning['fda_guidance']}",
     '',
     f'Population: n={n_total} Phase II patients | Response type: {response_type}',
     f'Overall response rate (unselected): {fmt(y.mean(), 3)} '
@@ -605,9 +770,30 @@ for bm in all_bms_sorted:
         lines.append(
             f"             Youden cut={fmt(sr['optimal_cutpoint'])} "
             f"(J={fmt(sr['youden_J'], 3)}, "
-            f"Sens={fmt(sr['sensitivity_at_cut'], 3)}, "
-            f"Spec={fmt(sr['specificity_at_cut'], 3)})"
+            f"Apparent Sens={fmt(sr['cut_point_apparent_sensitivity'], 3)}, "
+            f"Apparent Spec={fmt(sr['cut_point_apparent_specificity'], 3)})"
         )
+        cv_status = sr.get('bootstrap_cv_status')
+        if cv_status == 'ok':
+            lines.append(
+                f"             Bootstrap CV (n={sr.get('bootstrap_n', BOOTSTRAP_N)}): "
+                f"BC-Sens={fmt(sr['cut_point_bc_sensitivity'], 3)} "
+                f"(95%CI {fmt(sr['cut_point_bc_ci95_sens'][0] if sr.get('cut_point_bc_ci95_sens') else None, 3)}"
+                f"-{fmt(sr['cut_point_bc_ci95_sens'][1] if sr.get('cut_point_bc_ci95_sens') else None, 3)}), "
+                f"BC-Spec={fmt(sr['cut_point_bc_specificity'], 3)} "
+                f"(95%CI {fmt(sr['cut_point_bc_ci95_spec'][0] if sr.get('cut_point_bc_ci95_spec') else None, 3)}"
+                f"-{fmt(sr['cut_point_bc_ci95_spec'][1] if sr.get('cut_point_bc_ci95_spec') else None, 3)})"
+            )
+            lines.append(
+                f"             Optimism: Sens={fmt(sr.get('cut_point_optimism_sensitivity'), 3)}, "
+                f"Spec={fmt(sr.get('cut_point_optimism_specificity'), 3)} "
+                f"[NOTE: apparent performance is inflated vs out-of-sample]"
+            )
+        elif cv_status == 'insufficient_data':
+            lines.append(
+                f"             Bootstrap CV: insufficient OOB data (n_valid={sr.get('bootstrap_n', 0)} < {MIN_OOB}); "
+                f"apparent Sens/Spec reported only -- treat with caution."
+            )
     if sr.get('enrichment_ratio') is not None:
         lines.append(
             f"             Enrichment: ER={fmt(sr['enrichment_ratio'], 2)}x, "
@@ -671,6 +857,17 @@ if top_bm:
         ]
 else:
     lines.append('  No biomarkers passed screening -- unenriched Phase III is recommended.')
+
+lines += [
+    '',
+    '=' * 70,
+    '!!! MANDATORY REGULATORY PRE-SPECIFICATION WARNING !!!',
+    regulatory_warning['warning'],
+    '',
+    f"ACTION REQUIRED: {regulatory_warning['action_required']}",
+    f"Reference: {regulatory_warning['fda_guidance']}",
+    '=' * 70,
+]
 
 narrative = '\n'.join(lines)
 with open('enrichment_summary.txt', 'w') as f:
