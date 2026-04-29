@@ -1137,8 +1137,7 @@ export function NextflowWorkflowViewer({
         if (onParameterChange) onParameterChange(suggestion.parameter, suggestion.suggestedValue);
         setParams((prev: Record<string, any>) => ({ ...prev, [suggestion.parameter]: suggestion.suggestedValue }));
       }
-      setShowQcInline(false);
-      setQCGateData(null);
+      dismissQcGate('user');
       // Use Nextflow -resume so cached phases are skipped — not a fresh start
       if (activeRunId) {
         await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
