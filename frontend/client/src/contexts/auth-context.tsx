@@ -100,6 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Login failed')
     }
 
+    // MFA required — redirect to challenge page with the short-lived token
+    if (data.mfaRequired && data.challengeToken) {
+      history.pushState({ challengeToken: data.challengeToken }, '', '/mfa-challenge')
+      window.dispatchEvent(new PopStateEvent('popstate', { state: { challengeToken: data.challengeToken } }))
+      return
+    }
+
     if (!data.success) {
       throw new Error(data.error || 'Login failed')
     }

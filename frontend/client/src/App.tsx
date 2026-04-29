@@ -29,6 +29,7 @@ import RegisterPage from "@/pages/auth/register";
 import ForgotPasswordPage from "@/pages/auth/forgot-password";
 import ResetPasswordPage from "@/pages/auth/reset-password";
 import VerifyEmailPage from "@/pages/auth/verify-email";
+import MfaChallengePage from "@/pages/auth/mfa-challenge";
 import PricingPage from "@/pages/pricing";
 import CheckoutPage from "@/pages/checkout";
 import BlogPage from "@/pages/blog";
@@ -287,6 +288,7 @@ function Router({
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
+      <Route path="/mfa-challenge" component={MfaChallengePage} />
 
       {/* Public pages */}
       <Route path="/pricing">

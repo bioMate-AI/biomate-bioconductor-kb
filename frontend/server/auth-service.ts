@@ -379,8 +379,8 @@ export class AuthService {
         {
           userId: user.id,
           email: user.email,
-          subscriptionStatus: user.subscriptionStatus,
-          subscriptionTier: user.subscriptionTier,
+          subscriptionStatus: user.subscriptionStatus ?? 'trialing',
+          subscriptionTier: user.subscriptionTier ?? 'academic',
           trialEndsAt: user.trialEndsAt?.toISOString() ?? null,
           type: 'mfa_challenge',
           jti,

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { MfaSettings } from "./mfa-settings"
 import { useLocation } from "wouter"
 import { useAuth } from "@/contexts/auth-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -242,6 +243,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <TabsTrigger value="privacy" className="justify-start gap-2 p-3" data-testid="tab-privacy">
                   <Shield className="w-4 h-4" />
                   Privacy
+                </TabsTrigger>
+                <TabsTrigger value="security" className="justify-start gap-2 p-3" data-testid="tab-security">
+                  <Shield className="w-4 h-4" />
+                  Security
                 </TabsTrigger>
                 <TabsTrigger value="advanced" className="justify-start gap-2 p-3" data-testid="tab-advanced">
                   <Code className="w-4 h-4" />
@@ -725,6 +730,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+              </TabsContent>
+
+              {/* Security Tab */}
+              <TabsContent value="security" className="space-y-6 m-0">
+                <div>
+                  <h3 className="text-lg font-semibold mb-1">Security</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manage authentication security for your account.
+                  </p>
+                  <MfaSettings />
                 </div>
               </TabsContent>
 

@@ -7,9 +7,9 @@ import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { db } from './db';
+import { db, pool } from './db';
 import { users } from '../shared/schema';
-import { eq, lt } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { encryptField, decryptField } from './field-encrypt';
 
 const BCRYPT_ROUNDS = 10;
@@ -19,12 +19,9 @@ export const LOCKOUT_MINUTES = 15;
 // ─── JTI table (replay prevention) ───────────────────────────────────────────
 
 export async function consumeJti(jti: string, userId: string, expiresAt: Date): Promise<boolean> {
-  // Prune expired JTIs first
-  await db.execute(
-    `DELETE FROM mfa_challenge_jtis WHERE expires_at < NOW()`
-  );
+  await pool.query(`DELETE FROM mfa_challenge_jtis WHERE expires_at < NOW()`);
   try {
-    await db.execute(
+    await pool.query(
       `INSERT INTO mfa_challenge_jtis (jti, user_id, expires_at) VALUES ($1, $2, $3)`,
       [jti, userId, expiresAt]
     );
@@ -134,7 +131,7 @@ export async function isLockedOut(userId: string): Promise<boolean> {
 }
 
 export async function recordFailedChallenge(userId: string): Promise<{ locked: boolean; remaining: number }> {
-  await db.execute(
+  await pool.query(
     `UPDATE users SET mfa_failed_attempts = mfa_failed_attempts + 1 WHERE id = $1`,
     [userId]
   );
