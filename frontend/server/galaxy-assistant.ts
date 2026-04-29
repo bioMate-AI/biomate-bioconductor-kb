@@ -1872,6 +1872,34 @@ Rules:
       }
     }
 
+    // BOIN prereq gate: if the message asks for a Phase I dose escalation trial but does NOT
+    // provide dose levels, ask for them before generating the workflow.
+    // This prevents the LLM from generating a generic BOIN design without key inputs.
+    if (actions.needsWorkflowGeneration) {
+      const _isBoInIntent = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose.escalation.trial|dose.finding.trial|mtd.estimation|bayesian.optimal.interval|clinical.dose.escalation|phase.i.oncology|dlt.based.escalation)\b/i.test(message);
+      if (_isBoInIntent) {
+        // Dose levels present: explicit list like [10,20,40] or "dose levels: X"
+        const _hasDoseLevels = /\[\s*\d[\d,\s\.]+\]/.test(message)
+          || /\b(dose[- ]levels?|doses?)[:\s]+[\d\[,]/.test(message)
+          || /\bstarting.dose\b.+\bmax.dose\b/i.test(message);
+        if (!_hasDoseLevels) {
+          log('BOIN prereq gate: dose levels missing — returning clarification');
+          actions.needsWorkflowGeneration = false;
+          const _boinQuestion = 'To design the BOIN Phase I trial, I need the **dose levels** to test (in mg). For example: `[10, 30, 60, 100, 200]`. What dose range should I use for your compound?';
+          return {
+            message: _boinQuestion,
+            intentType: intent.type,
+            intentConfidence: intent.confidence,
+            recommendedTools: recommendedTools.length > 0 ? recommendedTools : undefined,
+            recommendedDatasets: recommendedDatasets.length > 0 ? recommendedDatasets : undefined,
+            workflowSuggestion: { shouldGenerate: false, userIntent: message, confidence: 0, reasoning: 'BOIN prereq: dose levels missing' },
+            generatedWorkflow: null, researchResponse: undefined, benchmarkEvidence: undefined,
+            truncated: false, suggestions: [], sources: { toolSearchUsed: false, datasetRAGUsed: false, workflowGenerated: false, thinkingUsed: false, researchAgentUsed: false, benchmarkAgentUsed: false, knowledgeHighlightsUsed: false },
+          } as GalaxyAssistantResponse;
+        }
+      }
+    }
+
     // S1: ClarificationGate — returns early if ambiguity requires user clarification
     const clarificationResponse = await this._clarificationGate(
       intent, actions, message, recommendedTools, recommendedDatasets
