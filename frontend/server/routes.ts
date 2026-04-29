@@ -8846,6 +8846,11 @@ Rules:
         fasta: 'text/plain', fa: 'text/plain', fastq: 'text/plain',
         vcf: 'text/plain', bed: 'text/plain', gff: 'text/plain', gtf: 'text/plain',
         star: 'text/plain', tabular: 'text/plain',
+        // MRC density maps — binary, streamed as-is for DensityMapViewer (ArrayBuffer fetch)
+        mrc: 'application/octet-stream', mrcs: 'application/octet-stream',
+        map: 'application/octet-stream', rec: 'application/octet-stream',
+        // CryoSPARC binary datasets — trigger download
+        cs: 'application/octet-stream',
       };
       const ct = contentTypeMap[ext] || 'application/octet-stream';
 

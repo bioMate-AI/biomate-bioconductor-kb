@@ -9,7 +9,7 @@
  * legacy Galaxy output dataset — it constructs the download URL for you.
  */
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +36,7 @@ interface MrcHeader {
   ylen: number
   zlen: number
   dataOffset: number
+  spacegroup: number
 }
 
 type Axis = 'z' | 'x' | 'y'
@@ -58,9 +59,16 @@ function parseMrcHeader(buf: ArrayBuffer): MrcHeader {
   const xlen = view.getFloat32(96, true)
   const ylen = view.getFloat32(100, true)
   const zlen = view.getFloat32(104, true)
+  // spacegroup: 0 = 2D images/stack, 1 = single 3D map, >1 = crystallographic
+  const spacegroup = view.getInt32(88, true)
   const nsymbt = view.getInt32(196, true)
   const dataOffset = 1024 + nsymbt
-  return { nx, ny, nz, mode, xlen, ylen, zlen, dataOffset }
+  return { nx, ny, nz, mode, xlen, ylen, zlen, dataOffset, spacegroup }
+}
+
+/** A 2D image stack (class averages, particle stack) has spacegroup=0 and nz>1 */
+function isImageStack(h: MrcHeader): boolean {
+  return h.spacegroup === 0 && h.nz > 1
 }
 
 /**
@@ -156,6 +164,66 @@ function drawSliceToCanvas(
   offCtx.putImageData(imageData, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.drawImage(offscreen, 0, 0, canvas.width, canvas.height)
+}
+
+/** Render one MRC slice (by Z index) to an offscreen canvas and return a data URL */
+function renderSliceToDataUrl(buf: ArrayBuffer, header: MrcHeader, z: number, thumbSize: number, contrast: number): string {
+  const { data, width, height } = getSlice(buf, header, 'z', z)
+  const offscreen = document.createElement('canvas')
+  offscreen.width = thumbSize; offscreen.height = thumbSize
+  drawSliceToCanvas(offscreen, data, width, height, contrast)
+  return offscreen.toDataURL()
+}
+
+/** Montage grid for 2D class averages / particle stacks */
+function MontageViewer({ arrayBuffer, header, name, contrast }: {
+  arrayBuffer: ArrayBuffer; header: MrcHeader; name?: string; contrast: number
+}) {
+  const [selected, setSelected] = useState<number | null>(null)
+  const THUMB = 96  // thumbnail size in pixels
+
+  const thumbs = React.useMemo(() => {
+    const out: string[] = []
+    for (let z = 0; z < header.nz; z++) {
+      out.push(renderSliceToDataUrl(arrayBuffer, header, z, THUMB, contrast))
+    }
+    return out
+  }, [arrayBuffer, header, contrast])
+
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground mb-2 px-1">
+        {header.nz} classes · {header.nx}×{header.ny} px · click to enlarge
+      </div>
+      {selected !== null && (
+        <div className="mb-3 flex flex-col items-center gap-1">
+          <img
+            src={renderSliceToDataUrl(arrayBuffer, header, selected, 320, contrast)}
+            alt={`Class ${selected + 1}`}
+            className="border rounded"
+            style={{ imageRendering: 'pixelated', width: 320, height: 320 }}
+          />
+          <span className="text-xs text-muted-foreground">Class {selected + 1}</span>
+          <button className="text-xs underline text-blue-500" onClick={() => setSelected(null)}>← back to grid</button>
+        </div>
+      )}
+      {selected === null && (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, ${THUMB}px)`, gap: 4, maxHeight: 480, overflowY: 'auto' }}>
+          {thumbs.map((src, i) => (
+            <div key={i} className="relative cursor-pointer group" onClick={() => setSelected(i)}>
+              <img
+                src={src}
+                alt={`Class ${i + 1}`}
+                style={{ width: THUMB, height: THUMB, imageRendering: 'pixelated', display: 'block' }}
+                className="border border-muted group-hover:border-blue-400"
+              />
+              <span className="absolute bottom-0 left-0 text-[9px] bg-black/50 text-white px-0.5">{i + 1}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DensityMapViewer({ src, name, size, className }: DensityMapViewerProps) {
@@ -260,7 +328,10 @@ export function DensityMapViewer({ src, name, size, className }: DensityMapViewe
             <span>{error}</span>
           </div>
         )}
-        {!loading && !error && header && (
+        {!loading && !error && header && isImageStack(header) && arrayBuffer && (
+          <MontageViewer arrayBuffer={arrayBuffer} header={header} name={name} contrast={contrast} />
+        )}
+        {!loading && !error && header && !isImageStack(header) && (
           <>
             <Tabs value={activeAxis} onValueChange={(v) => setActiveAxis(v as Axis)}>
               <TabsList>

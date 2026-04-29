@@ -49,6 +49,8 @@ const VCF_EXTS     = new Set(['vcf', 'bcf']);
 const ANNOT_EXTS   = new Set(['bed', 'gff', 'gtf', 'gff3']);
 const STRUCT_EXTS  = new Set(['pdb', 'mmcif', 'cif']);
 const DENSITY_EXTS = new Set(['mrc', 'map', 'mrcs', 'rec']);
+// CryoSPARC binary dataset format — not browser-renderable, offer download only
+const CRYO_BINARY_EXTS = new Set(['cs', 'csg']);
 const HTML_EXTS    = new Set(['html', 'htm']);
 const TEXT_EXTS    = new Set(['log', 'txt', 'sh', 'py', 'out', 'err']);
 
@@ -64,9 +66,10 @@ function resolveViewer(ext: string): ViewerKind {
   if (VCF_EXTS.has(e))     return 'vcf';
   if (ANNOT_EXTS.has(e))   return 'annotation';
   if (STRUCT_EXTS.has(e))  return 'structure';
-  if (DENSITY_EXTS.has(e)) return 'density';
-  if (HTML_EXTS.has(e))    return 'html';
-  if (TEXT_EXTS.has(e))    return 'text';
+  if (DENSITY_EXTS.has(e))      return 'density';
+  if (CRYO_BINARY_EXTS.has(e))  return 'download';
+  if (HTML_EXTS.has(e))         return 'html';
+  if (TEXT_EXTS.has(e))         return 'text';
   return 'download';
 }
 
