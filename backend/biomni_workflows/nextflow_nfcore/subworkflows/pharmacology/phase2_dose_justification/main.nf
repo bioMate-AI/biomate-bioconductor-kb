@@ -64,6 +64,14 @@ params.population_cv_pct    = '40'
 params.compound_name        = 'Compound'
 params.mtd_auc_ug_L_h       = 'null'
 params.auc_cv_pct           = 'null'
+// Optional PopPK parameters for proper dose→AUC→effect Monte Carlo simulation.
+// When provided, these replace the circular EC50-based AUC scaling.
+// cl_L_h:             Total apparent clearance (L/h); from PopPK model or NCA
+// bioavailability_pct: Oral bioavailability % (default 100 = IV or assumes 100%)
+// n_mc_sim:           Monte Carlo subjects per dose level (default 2000)
+params.cl_L_h               = 'null'
+params.bioavailability_pct  = '100'
+params.n_mc_sim             = '2000'
 
 process PHASE2_DOSE_JUSTIFICATION {
     tag "$meta.id"
@@ -91,6 +99,9 @@ process PHASE2_DOSE_JUSTIFICATION {
     export PARAM_COMPOUND='${params.compound_name}'
     export PARAM_MTD_AUC='${params.mtd_auc_ug_L_h}'
     export PARAM_AUC_CV='${params.auc_cv_pct}'
+    export PARAM_CL_L_H='${params.cl_L_h}'
+    export PARAM_BIOAV_PCT='${params.bioavailability_pct}'
+    export PARAM_N_MC='${params.n_mc_sim}'
 
     python3 << 'PYEOF'
 import json, os, csv, sys, math
@@ -276,6 +287,10 @@ pop_cv       = ac(os.environ.get('PARAM_POP_CV'), 40.0)
 compound     = os.environ.get('PARAM_COMPOUND', 'Compound').strip()
 mtd_auc      = ac(os.environ.get('PARAM_MTD_AUC'))
 auc_cv       = ac(os.environ.get('PARAM_AUC_CV')) or pop_cv
+# PopPK-derived PK parameters for accurate dose→AUC conversion
+cl_L_h       = ac(os.environ.get('PARAM_CL_L_H'))       # total clearance (L/h)
+bioav_pct    = ac(os.environ.get('PARAM_BIOAV_PCT'), 100.0)  # oral bioavailability %
+n_mc_sim     = int(ac(os.environ.get('PARAM_N_MC'), 2000))
 
 er = parse_er_params(er_raw)
 ec50 = er['EC50']
@@ -293,18 +308,29 @@ if not candidate_doses:
     candidate_doses = [50.0, 100.0, 200.0]
 
 # ---------------------------------------------------------------------------
-# Derive reference AUC at EC50 dose using the E-R model inversion.
-# If no PK data supplied, we set reference_dose such that it produces AUC=EC50.
-# This is the minimum information needed to map dose->AUC->effect.
+# Dose → AUC conversion factor (auc_per_mg, ug/L*h per mg)
+# Priority:
+#   1. PopPK-derived CL: AUC = Dose * F / CL (linear PK, steady-state)
+#   2. Fallback: set geo_mean_dose → AUC=EC50 (circular, requires caveat)
 # ---------------------------------------------------------------------------
 
-# Reference point: AUC at EC50 exposure equals EC50 by definition.
-# We need a dose -> AUC conversion factor.
-# Strategy: use geometric mean dose -> EC50 AUC (assumes linear PK).
-geo_mean_dose = float(np.exp(np.mean(np.log(candidate_doses))))
-# At geo_mean_dose, predicted mean AUC = EC50 (central estimate)
-dose_per_ec50 = geo_mean_dose  # mg dose that produces AUC ~ EC50
-auc_per_mg = ec50 / dose_per_ec50  # linear PK scaling factor (ug/L*h per mg)
+_pk_source = 'unknown'
+if cl_L_h is not None and cl_L_h > 0:
+    # AUC (ug/L*h) = Dose (mg) * F / CL (L/h) × 1000 (mg→ug conversion)
+    # AUC in ug/L*h: Dose(mg) * F * 1000 / CL(L/h) / 1000 = Dose * F / CL
+    # If EC50 is in ug/L*h (same units as AUC): auc_per_mg = F / CL
+    auc_per_mg = (bioav_pct / 100.0) / cl_L_h  # (ug/L*h) / mg
+    _pk_source = f'popPK_CL={cl_L_h:.2f}L/h F={bioav_pct:.0f}%'
+    print(f"INFO: Using PopPK-derived dose→AUC scaling: {auc_per_mg:.4f} ug/L*h per mg "
+          f"(CL={cl_L_h} L/h, F={bioav_pct}%)", file=sys.stderr)
+else:
+    # Fallback: assumes geo_mean_dose produces AUC = EC50 at steady state.
+    # WARNING: This is a circular assumption — if PK is available, provide cl_L_h.
+    geo_mean_dose = float(np.exp(np.mean(np.log(candidate_doses))))
+    auc_per_mg = ec50 / geo_mean_dose
+    _pk_source = 'er_inversion_fallback (circular; provide cl_L_h for accurate simulation)'
+    print("WARNING: No CL provided — dose-to-AUC uses EC50-based circular scaling. "
+          "Provide cl_L_h for a proper PopPK Monte Carlo simulation.", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
 # Therapeutic window: EC10 and EC90
@@ -337,7 +363,7 @@ for dose_mg in candidate_doses:
 
     # % responders (Monte Carlo, log-normal IIV)
     pct_resp = pct_responders_lognormal(
-        emax, ec50, hill, mean_auc, pop_cv, target_pct)
+        emax, ec50, hill, mean_auc, pop_cv, target_pct, n_samples=n_mc_sim)
 
     # AUC at P5 and P95 (5th and 95th percentile patients)
     auc_p5  = lognormal_percentile(mean_auc, pop_cv, 0.05)
@@ -712,6 +738,20 @@ brief = {
         'pk_cv_pct': pop_cv,
         'auc_cv_pct': auc_cv,
         'responders_at_primary_dose_pct': primary_row['pct_responders'],
+        'n_mc_sim': n_mc_sim,
+    },
+    'simulation': {
+        'dose_auc_source': _pk_source,
+        'auc_per_mg_scaling': round(auc_per_mg, 6),
+        'cl_L_h_provided': cl_L_h,
+        'bioavailability_pct': bioav_pct,
+        'mc_samples_per_dose': n_mc_sim,
+        'pk_model_note': (
+            'PopPK-derived CL used for dose→AUC conversion (Holford 2000 framework)'
+            if cl_L_h else
+            'WARNING: No CL provided. AUC scaling uses EC50-based circular inference. '
+            'Provide --cl_L_h for proper PopPK Monte Carlo simulation.'
+        ),
     },
     'regulatory_references': [
         'FDA CDER/CBER 2023 E-R Guidance (https://www.fda.gov/media/128793/download)',
