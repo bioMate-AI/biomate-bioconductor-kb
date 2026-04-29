@@ -241,14 +241,20 @@ HEPATIC_GRADES = [
 
 # Reference intrinsic clearance (relative units = 1.0 for normal)
 # CLint_impaired = CLint_normal * hepatocyte_frac
-# fu_impaired (albumin-mediated, per Wilkinson 2005):
-#   fu_imp = fu_normal / (1 + (0.585 - albumin_actual/albumin_normal))
-#   (0.585 is albumin-dependent binding constant for acid glycoprotein fraction)
+# fu_impaired (albumin-mediated, per Rowland & Tozer Ch.11; Wilkinson 2005):
+#   fu_imp = fu_normal / (1 - (1 - fu_normal) * (1 - alb_actual/alb_normal))
+#   At normal albumin: alb_ratio=1 → fu_imp = fu_normal (identity; correct)
 def fu_albumin_hepatic(fu_norm, alb_actual, alb_norm=4.5):
     '''fu correction for hepatic impairment via albumin reduction.
-    Ref: Wilkinson GR Drug Metab Dispos 2005; FDA 2003 Guidance §3.2.'''
-    correction = 0.585 - alb_actual / alb_norm
-    denom = 1.0 + correction
+    Uses the two-site binding model derived from Wilkinson 2005:
+      fu_imp = fu_norm / (1 - (1 - fu_norm) * (1 - alb_actual/alb_norm))
+    This correctly returns fu_norm when alb_actual == alb_norm (normal state).
+    Ref: Wilkinson GR Drug Metab Dispos 2005; FDA 2003 Guidance §3.2;
+         Rowland & Tozer Clinical Pharmacokinetics Ch.11 5th ed.'''
+    if alb_actual <= 0 or alb_norm <= 0:
+        return fu_norm
+    alb_ratio = alb_actual / alb_norm
+    denom = 1.0 - (1.0 - fu_norm) * (1.0 - alb_ratio)
     return min(1.0, fu_norm / denom) if denom > 0 else fu_norm
 
 def clh_well_stirred(lbf_mL_h, fu_p, clint_rel, lbf_normal_mL_h,

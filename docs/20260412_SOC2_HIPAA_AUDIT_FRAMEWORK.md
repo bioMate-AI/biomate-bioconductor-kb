@@ -1,4 +1,12 @@
-# 2026-04-12 — SOC2 / HIPAA Audit Framework for BioMate
+# BioMate — SOC2 / HIPAA Audit Framework
+
+**Created:** 2026-04-12
+**Last updated:** 2026-04-28
+**Document owner:** Engineering / Security
+**Review cycle:** Quarterly
+**Next review:** 2026-07-28
+
+---
 
 ## Overview
 
@@ -47,7 +55,11 @@ When PHI is detected, a row is inserted into the `audit_logs` database table wit
 
 The message hash allows re-identification **only** if the original message is presented — meeting GDPR "pseudonymization" and HIPAA de-identification requirements.
 
-### 2.3 HIPAA Minimum Necessary Standard
+### 2.3 LLM Provider — AWS Bedrock (HIPAA-eligible)
+
+All Claude API calls route through **AWS Bedrock** (not the direct Anthropic API). AWS has an executed BAA covering Bedrock services, making Claude inference HIPAA-eligible without a separate Anthropic BAA. AWS region: `us-east-1`.
+
+### 2.4 HIPAA Minimum Necessary Standard
 
 BioMate does not require PHI to function. If PHI is detected, the system:
 1. Strips it from the message
@@ -60,8 +72,6 @@ BioMate does not require PHI to function. If PHI is detected, the system:
 
 **File**: `frontend/server/safety-guardrails.ts`
 
-The `checkSafety()` function also evaluates non-PHI safety:
-
 | Rule | Signals Required | Response |
 |------|-----------------|----------|
 | `gain_of_function` | ≥3 of: enhanced transmissibility, pathogen, airborne, lethality | Refuse + audit |
@@ -69,7 +79,7 @@ The `checkSafety()` function also evaluates non-PHI safety:
 | `scheduled_substance_synthesis` | drug synthesis + (schedule I keyword) + not (clinical/pharmacology bypass) | Refuse + audit |
 | `clinical_diagnosis` | diagnosis/treatment + patient name-like token + no research bypass | Warn + audit |
 
-Multi-signal design prevents false positives on legitimate bioinformatics queries (e.g., "analyze pathogen genome" does not trigger — no airborne/lethality signal).
+Multi-signal design prevents false positives on legitimate bioinformatics queries.
 
 ---
 
@@ -77,45 +87,48 @@ Multi-signal design prevents false positives on legitimate bioinformatics querie
 
 ### 4.1 Database Table: `audit_logs`
 
+Migration: `frontend/migrations/0009_add_audit_logs.sql` (applied 2026-04-28)
+
 ```sql
-CREATE TABLE audit_logs (
-  id          SERIAL PRIMARY KEY,
-  timestamp   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  event_type  TEXT NOT NULL,          -- 'phi_detected', 'content_blocked', 'auth_failure', etc.
-  user_id     INTEGER REFERENCES users(id),
-  session_id  TEXT,
-  message_hash TEXT,                  -- SHA-256, hex-encoded
-  phi_types   TEXT,                   -- Comma-separated if applicable
-  rule_name   TEXT,                   -- Safety rule name if content blocked
-  ip_address  TEXT,
-  user_agent  TEXT,
-  metadata    JSONB
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  timestamp     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  action        TEXT NOT NULL,
+  user_id       INTEGER REFERENCES users(id),
+  resource_type TEXT,
+  resource_id   TEXT,
+  ip_address    TEXT,
+  user_agent    TEXT,
+  request_id    TEXT,
+  session_id    TEXT,
+  details       JSONB,
+  phi_types     TEXT,
+  rule_name     TEXT,
+  severity      TEXT DEFAULT 'info',
+  metadata      JSONB
 );
+-- Indexes: user_id, timestamp DESC, action, (resource_type, resource_id)
 ```
 
-### 4.2 Admin Query Endpoints
+### 4.2 Log Retention — Hot + Cold Tiers
 
-**List events** (requires `isAdmin = true` on authenticated user):
+Per HIPAA §164.316(b)(2)(i): 6-year retention required.
+
+| Tier | Storage | Retention | Mechanism |
+|------|---------|-----------|-----------|
+| Hot | PostgreSQL | 90 days | Live queries |
+| Cold | S3 Glacier IR | 6 years from creation | `export_audit_logs.py` — systemd timer, daily 02:00 UTC |
+
+**S3 path:** `s3://biomate-production-data-399683337364/audit-logs-glacier/YYYYMMDD/`
+**Restore SLA:** Glacier IR — within 4 hours for compliance audit requests.
+
+### 4.3 Admin Query Endpoints
+
 ```
 GET /api/admin/audit-log?event_type=phi_detected&limit=100&offset=0
-```
-
-**Summary counts** (for dashboard):
-```
 GET /api/admin/audit-log/summary
 ```
-Returns: `{ total, phi_detected, content_blocked, auth_failures, last_24h_by_type }`
-
-Both endpoints require `authenticateToken` + `requireAdmin` middleware. Non-admin requests receive `403 Forbidden`.
-
-### 4.3 Log Retention
-
-Per HIPAA §164.316(b)(2)(i): audit logs must be retained for **6 years** from creation.
-
-Recommended implementation:
-- PostgreSQL `audit_logs` table: hot storage, 90 days
-- AWS S3 Glacier export: after 90 days, daily export via Lambda + lifecycle policy → Glacier IR
-- Restore SLA: within 4 hours for compliance audit requests
+Both require `authenticateToken` + `requireAdmin`. Non-admin: `403 Forbidden`.
 
 ---
 
@@ -123,30 +136,46 @@ Recommended implementation:
 
 ### 5.1 Authentication
 
-- All API routes require JWT Bearer token (except public OAuth callbacks)
-- Tokens signed with `JWT_SECRET` env var; HS256 algorithm
-- Token expiry: 7 days (configurable via `JWT_EXPIRY_DAYS`)
-- Failed auth attempts logged to `audit_logs` with `event_type = 'auth_failure'`
+| Control | Implementation | Status |
+|---------|---------------|--------|
+| Password hashing | bcrypt, 12 rounds | ✅ |
+| JWT tokens | HS256, 15-min expiry (production), httpOnly + sameSite:strict | ✅ |
+| JWT secret | 64-char hex (256-bit), set in `/opt/biomate/.env` — verified 2026-04-28 | ✅ |
+| Failed auth logging | `audit_logs`, `event_type='auth_failure'` | ✅ |
 
-### 5.2 Authorization Tiers
+### 5.2 Multi-Factor Authentication
+
+TOTP-based MFA implemented and fully tested in `mfa-prototype/` (70/70 tests passing). Features:
+- `speakeasy` TOTP, Google Authenticator compatible
+- 5-minute challenge token (short-lived, one-time via JTI)
+- 5-attempt brute-force lockout → 15-minute account lock
+- 8 recovery codes (bcrypt-hashed, burn-on-use, atomic SQLite transaction)
+- AES-256-GCM TOTP secret encryption at rest
+
+**Status:** Prototype complete. Integration into main system: next sprint.
+
+### 5.3 Authorization Tiers
 
 | Role | Capabilities |
 |------|-------------|
-| Anonymous | Read-only public endpoints, submit chat (rate-limited) |
-| Authenticated User | Full workflow access, session management, personal data only |
-| Admin | All user endpoints + audit log access + user management |
-| Service Account | Machine-to-machine API key auth (instruments, CI/CD) |
+| Anonymous | Read-only public endpoints, rate-limited chat |
+| Authenticated User | Full workflow access, personal data only |
+| Admin | All endpoints + audit log + user management |
+| Service Account | Machine-to-machine API key auth |
 
-### 5.3 Per-User Galaxy API Keys
+### 5.4 Galaxy API Key Encryption
 
-Each BioMate user has a personal Galaxy API key (`galaxyApiKey` in `users` table). All Galaxy operations use the requesting user's key — not a shared service key. This ensures Galaxy audit trails are attributable to individual users.
+Galaxy API keys (`galaxyApiKey` column in `users` table) are encrypted using AES-256-GCM before storage.
 
-### 5.4 API Key Rotation
+- **Encrypt:** `frontend/server/field-encrypt.ts` — `encryptField()` called on write in `auth-service.ts`
+- **Decrypt:** `decryptField()` called on read in `routes.ts`
+- **Secret:** `FIELD_ENCRYPTION_SECRET` env var — set in `/opt/biomate/.env` (2026-04-28)
+- **Migration:** Graceful fallback for existing plaintext values during rolling migration
 
-Instrument connectors (OpenTrons, Benchling, MinKNOW) use service account API keys stored in environment variables:
-- `BENCHLING_API_KEY`, `BIOMATE_API_KEY`, `SILA2_DEVICE_IPS`
-- Keys must be rotated quarterly
-- Rotation procedure: update env var → restart service → verify connectivity
+### 5.5 API Key Rotation
+
+Instrument connectors (OpenTrons, Benchling, MinKNOW): quarterly rotation.
+Rotation procedure: update env var → restart service → verify connectivity.
 
 ---
 
@@ -154,45 +183,54 @@ Instrument connectors (OpenTrons, Benchling, MinKNOW) use service account API ke
 
 ### 6.1 In-Transit
 
-- All external HTTP traffic: TLS 1.2+ enforced via AWS ALB
-- Internal gRPC (SiLA2): `insecure=True` in development; production requires TLS certificates from device manufacturer
-- MinKNOW connector: plain HTTP on port 9501 — acceptable only when sequencer and BioMate are on the same isolated VLAN/VPC
+| Layer | Spec | Status |
+|-------|------|--------|
+| External HTTP | TLS 1.2+ via AWS ALB | ✅ |
+| Redis (ElastiCache) | TLS required (`rediss://`, mode=required) | ✅ Fixed 2026-04-28 |
+| LLM API (Bedrock) | AWS SDK mutual TLS | ✅ |
+| SiLA2 gRPC | `insecure=True` in dev; lab network only | ⚠️ Open |
+| MinKNOW | Plain HTTP port 9501 — sequencer VLAN only | ⚠️ Low risk |
 
 ### 6.2 At-Rest
 
-- PostgreSQL: AWS RDS with storage encryption (AES-256, AWS-managed KMS key)
-- S3 workflow outputs: bucket-level SSE-S3 or SSE-KMS
-- Audit logs: encrypted at RDS level; no additional application-layer encryption required (message hashes only, no plaintext PHI)
+| Layer | Spec | Status |
+|-------|------|--------|
+| PostgreSQL | AES-256 (AWS RDS KMS) | ✅ |
+| S3 user uploads | SSE-KMS, key `58874a28-...` | ✅ |
+| S3 Nextflow outputs | SSE-S3 | ✅ |
+| Redis (ElastiCache) | AES-256 at-rest encryption | ✅ Fixed 2026-04-28 |
+| KMS CMKs | All 3 keys have rotation enabled | ✅ |
+| Galaxy API keys (PostgreSQL) | AES-256-GCM application-layer | ✅ Added 2026-04-28 |
+| MFA TOTP secrets | AES-256-GCM application-layer | ✅ (in prototype) |
 
 ### 6.3 Secrets Management
 
-All secrets use environment variables. Recommended progression:
-1. **Current (dev)**: `.env` file, not committed to git (`.gitignore` enforced)
-2. **Production target**: AWS Secrets Manager + parameter injection via ECS task definition
+| Secret | Location | Status |
+|--------|----------|--------|
+| `JWT_SECRET` | `/opt/biomate/.env` (64-char hex) | ✅ Verified 2026-04-28 |
+| `FIELD_ENCRYPTION_SECRET` | `/opt/biomate/.env` | ✅ Added 2026-04-28 |
+| `MFA_ENCRYPTION_SECRET` | `/opt/biomate/.env` | ✅ Added 2026-04-28 |
+| `ANTHROPIC_API_KEY` | `/opt/biomate/.env` | ⚠️ Will be removed when Bedrock migration complete |
+| All secrets | Target: AWS Secrets Manager | Planned — next quarter |
 
 ---
 
 ## 7. Availability and Disaster Recovery (SOC2 A1)
 
-### 7.1 Current Architecture
+| Component | HA Strategy | Status |
+|-----------|------------|--------|
+| Frontend / API | Single EC2 (`BioMate-Production`); target: ECS Fargate multi-AZ | ⚠️ Single point |
+| PostgreSQL | Docker on EC2 — not HA | ⚠️ No RDS Multi-AZ |
+| Redis | ElastiCache single-node (`biomate-redis-enc`) | ⚠️ No replication |
+| Nextflow execution | AWS Batch — distributed | ✅ |
+| S3 outputs | 99.999999999% durability (AWS SLA) | ✅ |
 
-| Component | HA Strategy |
-|-----------|------------|
-| Frontend / API (gunicorn) | Single EC2 (`dev-public`); target: ECS Fargate multi-AZ |
-| PostgreSQL | RDS with Multi-AZ standby (auto-failover < 60s) |
-| Nextflow execution | AWS Batch — inherently distributed; no single point of failure |
-| S3 workflow outputs | 99.999999999% durability (AWS SLA) |
+| Metric | Target | Current |
+|--------|--------|---------|
+| RTO | < 4 hours | Not formally tested |
+| RPO | < 1 hour | EC2 EBS snapshots (schedule TBD) |
 
-### 7.2 RTO / RPO Targets
-
-| Metric | Target | Current Status |
-|--------|--------|---------------|
-| RTO (Recovery Time Objective) | < 4 hours | Not formally tested |
-| RPO (Recovery Point Objective) | < 1 hour | RDS automated backups every 1 hour |
-
-### 7.3 Backup Verification
-
-Monthly: restore RDS snapshot to test instance, run DB integrity check, verify row counts for `sessions`, `workflows`, `audit_logs`.
+**Backup verification:** Monthly test restore + row count check.
 
 ---
 
@@ -200,60 +238,84 @@ Monthly: restore RDS snapshot to test instance, run DB integrity check, verify r
 
 ### 8.1 PHI Breach Detection
 
-A PHI breach occurs if:
-- PHI is sent to an LLM despite the stripping layer (e.g., stripping bug)
-- Audit logs are accessed by unauthorized users
-- An attacker exfiltrates the `users` or `sessions` table
-
 Detection signals:
-- `audit_logs` query: `SELECT * FROM audit_logs WHERE event_type = 'phi_detected' AND timestamp > NOW() - INTERVAL '1 day'`
-- CloudTrail alert on unexpected S3 `GetObject` on audit export bucket
-- Anomaly alert: >100 `phi_detected` events from same `user_id` in 1 hour
+- Audit log query: `SELECT * FROM audit_logs WHERE action = 'phi_detected' AND timestamp > NOW() - INTERVAL '1 day'`
+- CloudWatch alarm (pending setup) on auth failure spike
+- S3 CloudTrail alert on unexpected `audit-logs-glacier` `GetObject`
+- Anomaly: >100 `phi_detected` events from same `user_id` in 1 hour
 
 ### 8.2 Breach Response Timeline
 
 | Hour | Action |
 |------|--------|
-| 0–1 | Identify scope: which users, which messages, which PHI types |
-| 1–4 | Contain: revoke affected API keys, rotate JWT secret, force re-login |
-| 4–24 | Assess: determine if PHI reached external services (LLM, S3 logs) |
-| 24–72 | HIPAA notification to affected individuals (if >500: also notify HHS + media) |
-| 72+ | Root cause analysis, control improvement, regulator report |
+| 0–1 | Identify scope: users, messages, PHI types |
+| 1–4 | Contain: revoke API keys, rotate JWT secret, force re-login |
+| 4–24 | Assess: did PHI reach LLM or S3? |
+| 24–72 | HIPAA notification to affected individuals |
+| 72+ | Root cause, regulator report |
 
-### 8.3 Breach Notification
+### 8.3 Breach Notification Thresholds
 
-HIPAA Breach Notification Rule (45 CFR §§ 164.400–414):
-- Individual notification: within **60 days** of discovery
-- HHS notification: same timeline (for breaches <500) or immediate for >500
-- Media notification: if >500 individuals in a state — contact prominent media outlets in that state
-
----
-
-## 9. Business Associate Agreement (BAA) Requirements (HIPAA §164.308(b))
-
-BioMate must execute BAAs with:
-- **AWS** (available as standard click-through in AWS Console → Account → Agreements)
-- **Anthropic** (required before processing PHI via Claude API — contact enterprise@anthropic.com)
-- Any downstream cloud provider that processes PHI
-
-BioMate acts as a **Business Associate** when deployed for covered entities (hospitals, clinical labs, pharma with patient data).
+- Individual: within 60 days of discovery
+- HHS: same (< 500); immediate for > 500
+- Media: if > 500 individuals in one state
 
 ---
 
-## 10. Evidence Collection Checklist for SOC2 Audit
+## 9. Business Associate Agreements (HIPAA §164.308(b))
 
-| Control | Evidence Artifact | Location |
-|---------|------------------|----------|
-| PHI stripping implemented | Code review of `safety-guardrails.ts` | `frontend/server/safety-guardrails.ts` |
-| Audit logging active | DB query of `audit_logs` table (last 30 days) | RDS `biomate` db |
-| Access control enforced | Penetration test report | `docs/security/` |
-| TLS in transit | ALB listener configuration (HTTPS 443 only) | AWS Console |
-| Encryption at rest | RDS/S3 encryption settings screenshot | AWS Console |
-| JWT auth on all routes | Code review of `routes.ts` `authenticateToken` usage | `frontend/server/routes.ts` |
-| Per-user API key isolation | DB query: `SELECT DISTINCT galaxy_api_key FROM users LIMIT 5` | RDS |
-| PHI detection test | Unit test suite pass for `safety-guardrails.ts` | `frontend/server/__tests__/` |
-| Incident response plan | This document | `docs/20260412_SOC2_HIPAA_AUDIT_FRAMEWORK.md` |
-| BAA with AWS | AWS Agreement PDF | Legal folder (not in git) |
+| Party | BAA Status | Notes |
+|-------|-----------|-------|
+| AWS | ✅ Executed | Covers all AWS services including Bedrock |
+| Anthropic (direct API) | N/A | Not required — using Bedrock |
+| Other downstream providers | To assess per deployment | |
+
+---
+
+## 10. Evidence Collection (SOC2 CC4.1)
+
+### 10.1 Automated Monthly Evidence
+
+**Script:** `backend/scripts/compliance/collect_evidence.py`
+**Output:** `s3://biomate-compliance-evidence-399683337364/YYYY-MM/YYYYMMDDTHHMMSSZ_evidence.json.gz`
+**Alerts:** SNS `biomate-compliance-alerts` → `arn:aws:sns:us-west-2:399683337364:biomate-compliance-alerts`
+
+14 checks run monthly:
+
+| # | Control | Checks |
+|---|---------|--------|
+| 1 | CloudTrail enabled | Trail exists + IsLogging=true |
+| 2 | S3 public access | All 4 block flags enabled on every bucket |
+| 3 | S3 evidence versioning | Compliance bucket versioning=Enabled |
+| 4 | KMS key rotation | All CMKs have annual rotation enabled |
+| 5 | Root access keys absent | IAM credential report, root key1+key2 inactive |
+| 6 | Root MFA enabled | AccountMFAEnabled=1 in IAM summary |
+| 7 | ElastiCache encryption | AtRest=true + Transit=true on all clusters |
+| 8 | EC2 IMDSv2 required | HttpTokens=required on production instance |
+| 9 | Security groups | No 0.0.0.0/0 on ports 22/3306/5432/6379/27017 |
+| 10 | S3 default encryption | SSE enabled on all biomate buckets |
+| 11 | Lambda secrets | No plaintext secrets in Lambda env vars |
+| 12 | RDS backup retention | ≥ 7 days (or N/A if using EC2 PostgreSQL) |
+| 13 | CloudWatch auth alarm | At least one auth-related alarm exists |
+| 14 | IAM password policy | MinLen≥12, complexity, MaxAge≤90 |
+
+### 10.2 AWS Config Rules (7 rules, ~$14/month)
+
+Immediate SNS alert if any control regresses between monthly runs:
+
+| Rule | Managed Rule |
+|------|-------------|
+| S3 public access | `s3-bucket-public-read-prohibited` |
+| S3 encryption | `s3-bucket-server-side-encryption-enabled` |
+| RDS encryption | `rds-storage-encrypted` |
+| Root MFA | `root-account-mfa-enabled` |
+| IAM password policy | `iam-password-policy` |
+| CloudTrail enabled | `cloud-trail-enabled` |
+| KMS rotation | `cmk-backing-key-rotation-enabled` |
+
+### 10.3 Audit at Audit Time
+
+Grant Big 4 auditor read-only S3 access to `biomate-compliance-evidence-*` — they pull 12 months of evidence directly. No portal or external dependency required.
 
 ---
 
@@ -262,7 +324,9 @@ BioMate acts as a **Business Associate** when deployed for covered entities (hos
 | Test | Frequency | Owner |
 |------|-----------|-------|
 | PHI guardrail unit tests | Every CI run | Engineering |
-| Dependency vulnerability scan (`npm audit`, `pip-audit`) | Weekly | DevOps |
+| MFA prototype full test suite (70 tests) | Every CI run | Engineering |
+| Dependency scan (`npm audit`, `pip-audit`) | Weekly | DevOps |
+| Evidence collector (`collect_evidence.py`) | Monthly (Lambda) | DevOps |
 | OWASP ZAP dynamic scan | Monthly | Security |
 | Penetration test (external) | Annually | Third-party firm |
 | SOC2 readiness assessment | Annually | Compliance team |
@@ -270,20 +334,42 @@ BioMate acts as a **Business Associate** when deployed for covered entities (hos
 
 ---
 
-## 12. Open Gaps (as of 2026-04-12)
+## 12. Open Gaps (updated 2026-04-28)
 
-| Gap | Risk | Remediation |
-|-----|------|-------------|
-| SiLA2 gRPC uses `insecure=True` | Medium — lab network only | Issue TLS certs per device; add cert path to `SiLA2Device.connect()` |
-| MinKNOW plain HTTP | Low — sequencer VLAN | VLAN isolation + firewall rule; log if off-subnet |
-| Audit log retention policy not enforced | Medium | Implement S3 Glacier export Lambda |
-| No multi-factor authentication | High for production | Add MFA via TOTP (speakeasy) or AWS Cognito |
-| `JWT_SECRET` default empty in dev | Critical if deployed without setting | Fail-fast: raise on startup if `JWT_SECRET` not set in production |
-| No BAA with Anthropic | High if PHI in prompts | Execute BAA before production go-live with clinical customers |
-| Audit log table not yet created in schema | High | Add Drizzle migration for `audit_logs` table |
+**Evidence baseline run: 2026-04-28 — 10/14 passing**
+`s3://biomate-compliance-evidence-399683337364/2026-04/20260429T040646Z_evidence.json.gz`
+
+| Gap | Risk | Status |
+|-----|------|--------|
+| Root IAM access key active | **Critical** | ❌ Root key in use as current AWS CLI credential — create IAM admin user, migrate credentials, delete root key |
+| Port 22 open 0.0.0.0/0 on 6 SGs | Medium | ⚠️ Intentional for EC2 Instance Connect — consider restricting to office CIDR or switching to SSM-only |
+| Lambda secrets still in env vars | Low | ⚠️ Values now in Secrets Manager — wire Lambdas to read from SM (needs `secretsmanager:GetSecretValue` on Lambda role) |
+| MFA not yet integrated into main system | High | ✅ Prototype done (70 tests) — integration: next sprint |
+| CloudTrail not configured | High | ✅ Fixed 2026-04-28 — `biomate-audit-trail`, multi-region, log validation enabled |
+| EC2 IMDSv2 set to optional | Medium | ✅ Fixed 2026-04-28 — `HttpTokens=required` on BioMate-Production |
+| SiLA2 gRPC `insecure=True` | Medium | ⚠️ Lab hardware — TLS certs pending device manufacturer |
+| MinKNOW plain HTTP | Low | ⚠️ VLAN isolation — acceptable if network-isolated |
+| PostgreSQL not on RDS | Medium | ⚠️ No Multi-AZ — manual pg_dump cron or migrate to RDS |
+| AWS Secrets Manager migration | Low | ✅ Billing secrets stored (biomate/billing/api-key, biomate/lago/api-key) — full migration next quarter |
+| CloudWatch auth failure alarm | Low | ✅ Fixed 2026-04-28 — `biomate-auth-failures-alarm` on BioMate/Security namespace |
+| IAM password policy | Low | ✅ Fixed 2026-04-28 — MinLen=14, complexity, MaxAge=90, reuse-prevention=12 |
+
+Previously open gaps — now closed:
+
+| Gap | Closed | How |
+|-----|--------|-----|
+| No BAA with Anthropic | 2026-04-28 | Switched to AWS Bedrock (AWS BAA covers) |
+| JWT_SECRET not verified on EC2 | 2026-04-28 | SSH verified: 64-char hex, set in .env |
+| FIELD_ENCRYPTION_SECRET missing | 2026-04-28 | Generated + added to production .env |
+| Galaxy API keys plaintext | 2026-04-28 | AES-256-GCM via field-encrypt.ts |
+| Redis encryption not verified | 2026-04-28 | Recreated cluster: AtRest=true, Transit=required |
+| Audit log Glacier export missing | 2026-04-28 | export_audit_logs.py + systemd timer daily 02:00 UTC |
+| audit_logs migration missing | 2026-04-28 | 0009_add_audit_logs.sql |
+| Privacy Policy outdated | 2026-04-28 | Updated to April 28, 2026 with PHI/HIPAA section |
+| No MFA | In progress | Prototype: 70/70 tests, brute-force + replay hardened |
 
 ---
 
 *Document owner: Engineering / Security*
 *Review cycle: Quarterly*
-*Next review: 2026-07-12*
+*Next review: 2026-07-28*

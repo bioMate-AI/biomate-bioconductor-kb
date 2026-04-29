@@ -88,12 +88,15 @@ params.enable_low_memory_mode = false        // Auto-enabled for <16GB GPUs
 // Parallelism parameters
 params.micrograph_batch_size = 200           // micrographs per parallel batch
 params.particle_batch_size = 10000           // particles per parallel 2D class batch
-params.num_gpu_workers = 1                   // controls ThreadPoolExecutor in Python side
+params.num_gpu_workers = 1                   // ThreadPoolExecutor threads; executor sets to match num_gpu
 params.max_parallel_jobs = 20                // Nextflow queueSize cap
-// Multi-lane parallelism: set > 1 on a multi-GPU instance where CryoSPARC workers
-// "worker_0" .. "worker_{N-1}" are pre-registered (cryosparcm addworker).
-// When 1 (default), all jobs use params.cryosparc_lane ("default") — identical to prior behaviour.
-params.num_cs_workers = 1                    // CryoSPARC workers to spread parallel batches across
+// Multi-GPU parallelism: executor auto-sets num_cs_workers = num_gpu before launch.
+// Workers pre-registered via SSH by nextflow_executor.py:
+//   cryosparcm worker connect --path <worker_path> --worker worker_N --lane worker_N
+//                             --sshstr ubuntu@localhost --gpus N --ssdpath /tmp/cryosparc_ssd
+// Benchmark: g6.12xlarge (4× NVIDIA L4), num_cs_workers=4 → 3.4× speedup,
+//   FSC 1.78 Å (Nyquist), $0.75 vs $6.29 single-GPU — docs/20260428_CRYOSPARC_MULTIMODE_BENCHMARK_RESULTS.md
+params.num_cs_workers = 1                    // executor overrides to num_gpu (e.g. 4 for g6.12xlarge)
 // import_particles mode: skip motion/CTF/picking; start from pre-extracted particle stacks.
 // Set import_mode="particles", particle_star_file=<path>, particle_blob_path=<dir>.
 params.import_mode          = "movies"       // "movies" (default) or "particles"
@@ -333,8 +336,8 @@ def CS_HELPER = '''
     def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
         """Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
         lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
-        prior single-lane behaviour.  With num_workers > N, lanes 'worker_0' .. 'worker_{N-1}'
-        must be pre-registered on the CryoSPARC instance (cryosparcm addworker)."""
+        prior single-lane behaviour.  With num_workers > 1, lanes 'worker_0' .. 'worker_{N-1}'
+        must be pre-registered by nextflow_executor.py via SSH before the workflow starts."""
         if num_workers <= 1:
             return base_lane
         # batch_id may be 'batch_0003' or a raw integer string '3'
@@ -559,39 +562,48 @@ process INIT_CRYOSPARC_PROJECT {
                     pass
             print(f"[CS] Imported {num_movies} movies (single-batch)", flush=True)
 
-    # ── Multi-lane worker registration (only when num_cs_workers > 1) ──────────
-    # Each worker gets a dedicated lane name "worker_0" .. "worker_{N-1}".
-    # Pre-requisite: the CryoSPARC instance must have N GPUs; one worker per GPU
-    # is created here via cryosparcm CLI over SSH (or locally if host=localhost).
-    import subprocess as _sp, shutil as _sh
-    _num_workers = ${params.num_cs_workers}
-    if _num_workers > 1:
-        _cryosparcm = _sh.which("cryosparcm") or "/home/ubuntu/cryosparc_master/bin/cryosparcm"
-        print(f"[CS] Registering {_num_workers} CryoSPARC workers (lanes worker_0..worker_{_num_workers-1})", flush=True)
-        for _i in range(_num_workers):
-            _wname = f"worker_{_i}"
-            try:
-                # Check if lane already exists
-                _r = _sp.run(
-                    [_cryosparcm, "cli", f"list(db.workers.find({{'lane':'{_wname}'}}, {{'_id':1}}))"],
-                    capture_output=True, text=True, timeout=15
-                )
-                if f"worker_{_i}" in (_r.stdout or ""):
-                    print(f"[CS] Lane {_wname} already registered — skipping", flush=True)
-                    continue
-                # Register: GPU index _i, single GPU per worker for parallel execution
-                _reg = _sp.run(
-                    [_cryosparcm, "addworker", "--name", _wname,
-                     "--hostname", "localhost", "--gpus", str(_i),
-                     "--script_path_prefix", "${params.cryosparc_project_dir}"],
-                    capture_output=True, text=True, timeout=30
-                )
-                if _reg.returncode == 0:
-                    print(f"[CS] Registered lane {_wname} (GPU {_i})", flush=True)
-                else:
-                    print(f"[CS] Warning: addworker {_wname} exit={_reg.returncode}: {_reg.stderr[:200]}", flush=True)
-            except Exception as _e:
-                print(f"[CS] Warning: worker registration {_wname} failed: {_e}", flush=True)
+    # ── Multi-lane worker detection (auto when num_cs_workers == 0) ─────────────
+    # Workers are pre-registered by nextflow_executor.py via SSH BEFORE this
+    # workflow starts:
+    #   cryosparcm worker connect --worker worker_N --lane worker_N --gpus N
+    # This block DETECTS available worker lanes via the CryoSPARC API only.
+    # It never calls cryosparcm from inside the Nextflow container.
+    def _detect_worker_lanes(cs):
+        """Return set of 'worker_N' lane names visible to the CryoSPARC API."""
+        found = set()
+        try:
+            targets = cs.get_targets() if hasattr(cs, "get_targets") else []
+            for t in (targets or []):
+                for attr in ("lane", "name"):
+                    val = getattr(t, attr, None)
+                    if val is None and isinstance(t, dict):
+                        val = t.get(attr)
+                    if isinstance(val, str) and val.startswith("worker_"):
+                        found.add(val)
+                        break
+        except Exception as _e:
+            print(f"[CS] Warning: get_targets() failed ({_e})", flush=True)
+        return found
+
+    _num_workers_param = ${params.num_cs_workers}
+    if _num_workers_param == 0:
+        # Auto-detect: count "worker_N" lanes pre-registered on this instance
+        _worker_lanes = _detect_worker_lanes(cs)
+        _num_workers = len(_worker_lanes) if len(_worker_lanes) >= 2 else 1
+        if _num_workers > 1:
+            print(f"[CS] Auto-detected {_num_workers} worker lanes: {sorted(_worker_lanes)}", flush=True)
+        else:
+            print(f"[CS] No worker_N lanes found — running single-lane mode (lane='${params.cryosparc_lane}')", flush=True)
+    else:
+        _num_workers = _num_workers_param
+        if _num_workers > 1:
+            # Verify lanes exist — do NOT register; executor handles that via SSH
+            _worker_lanes = _detect_worker_lanes(cs)
+            _missing = [f"worker_{i}" for i in range(_num_workers) if f"worker_{i}" not in _worker_lanes]
+            if _missing:
+                print(f"[CS] Warning: expected lanes {_missing} not in targets — jobs will fall back to 'default'", flush=True)
+            else:
+                print(f"[CS] Verified {_num_workers} worker lanes pre-registered", flush=True)
 
     with open("cs_init.json", "w") as f:
         _init_doc = {

@@ -184,11 +184,11 @@ BioMate has four distinct storage locations:
 |---|---|---|---|
 | 1 | No multi-factor authentication | **High** | ✅ Prototype complete (`mfa-prototype/`) — 70/70 tests passing; ready for integration. Adds TOTP, brute-force lockout (5 attempts → 15min), JTI replay prevention, atomic recovery code burn |
 | 2 | No BAA with Anthropic | **High** | ✅ Resolved by routing Claude via AWS Bedrock — AWS BAA already in place; switch `@anthropic-ai/sdk` → `@anthropic-ai/bedrock-sdk` |
-| 3 | `JWT_SECRET` must be verified set on EC2 production instance | **High** | ⏳ Requires SSH to EC2 — run: `echo $JWT_SECRET \| wc -c` (expect 65) |
-| 4 | Audit log S3 Glacier export not implemented | Medium | ⏳ Open — Lambda code to be written |
+| 3 | `JWT_SECRET` must be verified set on EC2 production instance | **High** | ✅ Verified — `JWT_SECRET` confirmed set in `/opt/biomate/.env` (64-char hex, 256-bit). Also added `FIELD_ENCRYPTION_SECRET` and `MFA_ENCRYPTION_SECRET` to production .env on 2026-04-28 |
+| 4 | Audit log S3 Glacier export not implemented | Medium | ✅ Done — `/opt/biomate/scripts/export_audit_logs.py` deployed to production EC2; exports rows >90 days to `s3://biomate-production-data-399683337364/audit-logs-glacier/` with `GLACIER_IR` storage class; systemd timer runs daily at 02:00 UTC (`audit-glacier-export.timer` enabled) |
 | 5 | `audit_logs` table Drizzle migration not yet added | Medium | ✅ Done — `frontend/migrations/0009_add_audit_logs.sql` created with all 13 columns + 4 indexes |
-| 6 | Galaxy API keys stored in plaintext in PostgreSQL | Medium | ✅ Done — `frontend/server/field-encrypt.ts` (AES-256-GCM); encrypt on write in `auth-service.ts`, decrypt on read in `routes.ts`. Requires `FIELD_ENCRYPTION_SECRET` env var on EC2 |
-| 7 | Redis ElastiCache encryption not verified | Medium | ⏳ Requires AWS Console — check `AtRestEncryptionEnabled` + `TransitEncryptionEnabled` |
+| 6 | Galaxy API keys stored in plaintext in PostgreSQL | Medium | ✅ Done — `frontend/server/field-encrypt.ts` (AES-256-GCM); encrypt on write in `auth-service.ts`, decrypt on read in `routes.ts`. `FIELD_ENCRYPTION_SECRET` added to production .env |
+| 7 | Redis ElastiCache encryption not verified | Medium | ✅ Fixed — new cluster `biomate-redis-enc` created with `AtRestEncryptionEnabled=true`, `TransitEncryptionEnabled=true` (mode=required). Old unencrypted cluster deleted 2026-04-28. `REDIS_URL` updated to `rediss://` on production EC2 |
 | 8 | SiLA2 gRPC uses `insecure=True` | Medium | ⏳ Lab hardware dependency |
 | 9 | MinKNOW connector uses plain HTTP | Low | ⏳ VLAN isolation + firewall rule |
 | 10 | Privacy Policy dated Oct 2025 | Low | ✅ Done — updated to April 28, 2026; TLS 1.3→1.2+; PHI stripping bullet added; HIPAA section expanded |
