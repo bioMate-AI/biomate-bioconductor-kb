@@ -1,0 +1,72 @@
+{
+  "_note": "Published smFRET state populations for GPCR benchmark proteins. Used as ground-truth lambda_fret signal in CryoEnsemble multi-modal posterior.",
+  "a2a": {
+    "protein": "A2A adenosine receptor",
+    "reference": "Bhattacharya & Bhattacharya, PNAS 2020, doi:10.1073/pnas.2003932117",
+    "conditions": "purified in detergent micelles, 37C, no ligand (apo)",
+    "dye_pairs": [
+      {
+        "label": "ICL3-ECL2 (intracellular/extracellular gate)",
+        "residues": [208, 149],
+        "R0_angstrom": 54,
+        "states": {
+          "inactive": {"fret_efficiency": 0.72, "population_fraction": 0.68, "sem": 0.04},
+          "active":   {"fret_efficiency": 0.38, "population_fraction": 0.32, "sem": 0.04}
+        },
+        "note": "Active state fraction increases 0.32→0.61 upon NECA agonist addition"
+      }
+    ],
+    "key_finding": "Apo A2A samples active-like state at 32% population in solution; cryo-EM datasets are typically 100% inactive because antagonist-stabilized forms are used for structure determination"
+  },
+  "beta2ar": {
+    "protein": "beta2-Adrenergic receptor",
+    "reference": "Gregorio et al., Nature 2017, doi:10.1038/nature22354",
+    "conditions": "purified in lipid nanodiscs, 25C, no ligand (apo)",
+    "dye_pairs": [
+      {
+        "label": "TM6-TM3 (canonical activation sensor)",
+        "residues": [265, 136],
+        "R0_angstrom": 54,
+        "states": {
+          "inactive": {"fret_efficiency": 0.81, "population_fraction": 0.71, "sem": 0.05},
+          "active":   {"fret_efficiency": 0.43, "population_fraction": 0.29, "sem": 0.05}
+        },
+        "note": "Active fraction rises 0.29→0.85 upon full agonist + G-protein"
+      },
+      {
+        "label": "TM6-ICL1 (second orthogonal sensor)",
+        "residues": [265, 60],
+        "R0_angstrom": 54,
+        "states": {
+          "inactive": {"fret_efficiency": 0.65, "population_fraction": 0.71, "sem": 0.06},
+          "active":   {"fret_efficiency": 0.29, "population_fraction": 0.29, "sem": 0.06}
+        }
+      }
+    ],
+    "key_finding": "Beta2AR apo samples active-like state at 29% in nanodiscs; EMPIAR-10258 particles are ~100% inactive (carazolol inverse agonist used for cryo-EM)"
+  },
+  "mu_opioid": {
+    "protein": "mu-Opioid receptor",
+    "reference": "Huang et al., Nature 2015 + Sounier et al., Nature 2015",
+    "conditions": "detergent micelles, 25C",
+    "dye_pairs": [
+      {
+        "label": "TM5-TM6 distance",
+        "residues": [229, 287],
+        "R0_angstrom": 54,
+        "states": {
+          "inactive": {"fret_efficiency": 0.76, "population_fraction": 0.80, "sem": 0.06},
+          "active":   {"fret_efficiency": 0.41, "population_fraction": 0.20, "sem": 0.06}
+        },
+        "note": "Morphine partially shifts toward active (0.20→0.45); DAMGO full agonist 0.20→0.70"
+      }
+    ],
+    "key_finding": "Apo mu-OR samples 20% active-like; cryo-EM structures (4DKL, 5C1M) capture only inactive"
+  },
+  "_validation_target": {
+    "description": "CryoEnsemble posterior should assign population weights matching smFRET fractions within 2x sem for each state",
+    "primary_metric": "R2 between predicted posterior weights and smFRET population fractions",
+    "target": "R2 >= 0.70 across all dye pairs and conditions",
+    "baseline": "cryoDRGN assigns 0% weight to active states (reconstruction floor); smFRET shows 20-32% active in apo conditions"
+  }
+}

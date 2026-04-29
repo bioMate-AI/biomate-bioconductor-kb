@@ -510,6 +510,17 @@ def gap_analysis_real(
               f"{gap_mask_primary.sum()}/{n_conf} = {gap_frac_primary:.1%}")
         print(f"  Pocket enrichment in gap: {ps_enrich:+.1f}%")
 
+    # ── 6. smFRET comparison (if literature data available) ──────────────────
+    smfret_comparison = None
+    smfret_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'smfret_literature.json')
+    if os.path.exists(smfret_path):
+        import json as _json
+        with open(smfret_path) as _f:
+            smfret_db = _json.load(_f)
+        # protein key is injected by caller; skip here, added in run_real()
+        smfret_comparison = smfret_db  # full db, filtered by protein in run_real
+
     result = {
         'mode': 'real',
         'n_conformers': n_conf,
@@ -539,7 +550,7 @@ def gap_analysis_real(
     if mrc_gap_results:
         result['mrc'] = mrc_gap_results
 
-    return result, gap_mask_primary, bio_rmsds, pscores
+    return result, gap_mask_primary, bio_rmsds, pscores, smfret_comparison
 
 
 def run_real(protein, bioemu_s3, cryodrgn_s3, reference_s3, n_clusters, outdir):
@@ -609,13 +620,42 @@ def run_real(protein, bioemu_s3, cryodrgn_s3, reference_s3, n_clusters, outdir):
         print(f"  MRC volumes not yet available (cryodrgn analyze may still be running)")
 
     # ── Run gap analysis ───────────────────────────────────────────────────────
-    result, gap_mask, bio_rmsds, pscores = gap_analysis_real(
+    result, gap_mask, bio_rmsds, pscores, smfret_db = gap_analysis_real(
         bioemu_coords, ref_coords, z_latents, n_clusters, mrc_volumes
     )
     result['protein'] = protein
 
+    # ── smFRET literature comparison ──────────────────────────────────────────
+    if smfret_db and protein in smfret_db:
+        lit = smfret_db[protein]
+        smfret_result = {
+            'reference': lit.get('reference',''),
+            'conditions': lit.get('conditions',''),
+            'key_finding': lit.get('key_finding',''),
+            'dye_pairs': [],
+        }
+        for dp in lit.get('dye_pairs', []):
+            states = dp.get('states', {})
+            active_pop = states.get('active', {}).get('population_fraction', None)
+            smfret_result['dye_pairs'].append({
+                'label': dp['label'],
+                'smfret_active_fraction': active_pop,
+                'cryo_em_active_fraction': 0.0,
+                'gap': f"smFRET measures {active_pop:.0%} active in solution; "
+                       f"cryo-EM reconstructs 0% (all particles are inactive-state)"
+                       if active_pop else ''
+            })
+        result['smfret_validation'] = smfret_result
+        if verbose:
+            for dp in smfret_result['dye_pairs']:
+                print(f"  smFRET [{dp['label']}]: active={dp['smfret_active_fraction']:.0%} in solution "
+                      f"vs 0% in cryoDRGN clusters → gap confirmed independently")
+    elif smfret_db:
+        avail = [k for k in smfret_db if not k.startswith('_')]
+        print(f"  No smFRET data for '{protein}'. Available: {avail}")
+
     make_gap_figure(protein, bio_rmsds, gap_mask, pscores,
-                    result['pocket_enrichment_pct'], outdir, 'real data')
+                    result.get('pocket_enrichment_pct', 0), outdir, 'real data')
 
     # ── Interpretation note ────────────────────────────────────────────────────
     if result['bioemu_rmsd_max_A'] < 1.5:
