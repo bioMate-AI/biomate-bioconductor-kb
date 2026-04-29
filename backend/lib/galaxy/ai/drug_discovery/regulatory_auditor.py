@@ -83,8 +83,8 @@ class RegulatoryAuditor:
         "EMA_CRIT":   (r"67%|≥67|within.?2.fold", "2.6.1.2"),
     }
 
-    # PBPK table required columns
-    PBPK_TABLE_COLS = ["AFE", "AAFE", r"R[²2]", "2-fold", "2fold"]
+    # PBPK table required columns (patterns matched against PBPK section)
+    PBPK_TABLE_COLS = ["AFE", "AAFE", r"R[²2²]", r"2.?fold"]
 
     def __init__(self, region: str = "ALL"):
         self.region = region
