@@ -65,7 +65,7 @@ All wrong predictions are grounded errors (reasoning from real data to wrong con
 |-----------|-------|--------|-----|-----|
 | screen_gene | 42% | ≥70% | -28pp | ORCS fingerprinting partial; needs better lncRNA coverage |
 | BixBench | 30% | ≥50% | -20pp | MCQ format insufficient; needs execution mode |
-| gwas_variant | 67.4% | ≥70% | -2.6pp | Metabolite relevance threshold fix (partially done) |
+| gwas_variant | 67.4% | ≥70% | -2.6pp | GWAS Catalog rate-limited after many runs; ClinVar added for iron case (rs1800562); metabolite variants not in ClinVar |
 | PBPK | 75.6% | ≥80% | -4.4pp | Need proactive CLint/fu_plasma ask |
 
 ---
@@ -82,5 +82,16 @@ Architecture: IDF-weighted candidate fingerprinting:
 5. Return ranked list with `*** IN CANDIDATE LIST ***` markers
 
 Hits ~50% of cases; lncRNAs (no Entrez ID) and vehicle controls (DMSO) not coverable.
+
+---
+
+## gwas_variant Deep Dive — Why 67.4% is the Ceiling Without Study-Specific Data
+
+14 failing cases analyzed:
+- 1 case (Iron): rs1800562 (HFE C282Y, missense) vs rs8177240 (intron, lower p-value). **ClinVar fix**: rs1800562 = "Conflicting classifications of pathogenicity" → correct with ClinVar context. GWAS Catalog rate-limited today, v35 benchmark needed after reset.
+- 13 cases: Metabolite GWAS variants (erythritol, myristic acid, L-alanine, arachidonoylglycerophosphocholine, etc.) from specific metabolomics GWAS studies. Lead SNPs are study-specific and not retrievable from GWAS Catalog (p-value), ClinVar (clinical disease), or Open Targets (drug targets). Accessible APIs: PhenoScanner (blocked), Open Targets Genetics (blocked).
+
+**Next run (after GWAS Catalog rate limit resets)**: Expected ~30/43 = 69.8% with ClinVar fix.
+To reach 31/43 = 72.1%: needs metabolomics study-specific data (e.g., supplement tables from Kettunen 2016, Shin 2014).
 
 *Generated: 2026-04-29 | All benchmarks run from `/home/yzhang/biomate/evaluation/results/`*
