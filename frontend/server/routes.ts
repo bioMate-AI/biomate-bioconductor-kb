@@ -3040,6 +3040,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         execRun?.workflowDefinition?.nextflowPath ||
         '';
 
+      // Accept updated params from caller (e.g. QC gate auto-loop rerun)
+      const updatedParams = req.body?.params ?? null;
+
       const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
       const response = await fetch(
         `${galaxyUrl}/api/nextflow/resume/${encodeURIComponent(nextflowRunId)}`,
@@ -3049,7 +3052,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             'Content-Type': 'application/json',
             'X-API-Key': process.env.GALAXY_API_KEY || '',
           },
-          body: JSON.stringify({ nextflow_path: nextflowPath }),
+          body: JSON.stringify({
+            nextflow_path: nextflowPath,
+            ...(updatedParams ? { parameters: updatedParams } : {}),
+          }),
         }
       );
       if (!response.ok) {

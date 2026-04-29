@@ -40,6 +40,10 @@ params.logP                   = '2.0'
 params.high_extraction_ratio  = 'false'
 params.drug_name              = 'CompoundX'
 params.primary_indication     = 'not specified'
+// Optional: path to pk_summary.json from predict_admet_properties output.
+// When provided, fu_plasma / cl_renal_fraction / cl_hepatic_fraction / vd_lkg / logP
+// are auto-populated from ADMET predictions (manual params take precedence if non-default).
+params.admet_json             = ''
 
 process PBPK_DISEASE_STATE {
     tag "$meta.id"
@@ -69,6 +73,7 @@ process PBPK_DISEASE_STATE {
     export PARAM_HIGH_ER='${params.high_extraction_ratio}'
     export PARAM_DRUG='${params.drug_name}'
     export PARAM_INDICATION='${params.primary_indication}'
+    export PARAM_ADMET_JSON='${params.admet_json}'
 
     python3 << 'PYEOF'
 import json, os, csv, sys, math
@@ -89,11 +94,45 @@ def safe_round(x, n=4):
     except: return None
 
 # ---------------------------------------------------------------------------
+# Auto-populate from ADMET pk_summary.json if provided
+# Manual params take precedence over ADMET predictions (non-default only)
+# ---------------------------------------------------------------------------
+_admet_file = os.environ.get('PARAM_ADMET_JSON', '').strip()
+_admet_pk   = {}
+_admet_source = 'manual'
+if _admet_file and os.path.isfile(_admet_file):
+    try:
+        with open(_admet_file) as _f:
+            _admet_pk = json.load(_f)
+        _admet_source = f"admet_prediction ({_admet_file})"
+        print(f"INFO: Loaded ADMET PK properties from {_admet_file}", file=sys.stderr)
+        print(f"  fu_plasma={_admet_pk.get('fu_plasma')} clr_frac={_admet_pk.get('cl_renal_fraction')} vd={_admet_pk.get('vd_lkg')} logP={_admet_pk.get('logP')}", file=sys.stderr)
+        print(f"  NOTE: These are predictions — confirm experimentally before regulatory submission.", file=sys.stderr)
+    except Exception as _e:
+        print(f"WARNING: Could not read ADMET JSON '{_admet_file}': {_e}", file=sys.stderr)
+
+# Default param values (Nextflow placeholders)
+_DEFAULT_CLR = 0.30
+_DEFAULT_CLH = 0.60
+_DEFAULT_FU  = 0.10
+_DEFAULT_VD  = 0.50
+_DEFAULT_LOGP = 2.00
+
+def _param_or_admet(env_key, default, admet_key, admet_default=None):
+    """Return env param if non-default, else ADMET prediction, else default."""
+    env_val = ac(os.environ.get(env_key), None)
+    if env_val is not None and abs(env_val - default) > 1e-6:
+        return env_val   # user explicitly set a non-default value
+    if _admet_pk and admet_key in _admet_pk and _admet_pk[admet_key] is not None:
+        return float(_admet_pk[admet_key])
+    return env_val if env_val is not None else default
+
+# ---------------------------------------------------------------------------
 # Load parameters
 # ---------------------------------------------------------------------------
-clr_frac   = ac(os.environ.get('PARAM_CLR_FRAC'),  0.30)   # renal CL fraction
-clh_frac   = ac(os.environ.get('PARAM_CLH_FRAC'),  0.60)   # hepatic CL fraction
-fu         = ac(os.environ.get('PARAM_FU'),         0.10)   # fu_plasma
+clr_frac   = _param_or_admet('PARAM_CLR_FRAC', _DEFAULT_CLR, 'cl_renal_fraction',   0.30)
+clh_frac   = _param_or_admet('PARAM_CLH_FRAC', _DEFAULT_CLH, 'cl_hepatic_fraction', 0.60)
+fu         = _param_or_admet('PARAM_FU',        _DEFAULT_FU,  'fu_plasma',           0.10)   # fu_plasma
 # P0 fix: warn when fu < 0.05 — generic albumin correction can be off 2-3x
 # for tight binders (warfarin fu=0.01, diazepam fu=0.02). The correction
 # uses a fixed binding constant valid for moderate binders (Rowland & Tozer Ch.11).
@@ -103,8 +142,8 @@ _fu_warning = (
     "(warfarin, diazepam, phenytoin) the true fu shift in hepatic impairment may "
     "differ 2-3x from this estimate. Recommend measuring fu in disease-state plasma."
 ) if fu < 0.05 else None
-vd_lkg     = ac(os.environ.get('PARAM_VD'),         0.50)   # L/kg
-logP       = ac(os.environ.get('PARAM_LOGP'),       2.00)
+vd_lkg     = _param_or_admet('PARAM_VD',    _DEFAULT_VD,   'vd_lkg',  0.50)   # L/kg
+logP       = _param_or_admet('PARAM_LOGP',  _DEFAULT_LOGP, 'logP',    2.00)
 high_er    = to_bool(os.environ.get('PARAM_HIGH_ER', 'false'))
 drug_name  = os.environ.get('PARAM_DRUG', 'CompoundX').strip()
 indication = os.environ.get('PARAM_INDICATION', 'not specified').strip()
@@ -568,6 +607,10 @@ pk_report = {
     ],
     'status': 'completed',
     'protein_binding_warning': _fu_warning,
+    'parameter_source': _admet_source,
+    'admet_prediction_disclaimer': (
+        _admet_pk.get('disclaimer') if _admet_pk else None
+    ),
 }
 
 with open('disease_state_pk_report.json', 'w') as f:

@@ -1128,15 +1128,25 @@ export function NextflowWorkflowViewer({
     if (!qcGateData) return;
     setIsApplyingSuggestions(true);
     try {
+      const updatedParams = { ...params };
       for (const suggestion of qcGateData.suggestions) {
-        if (onParameterChange) {
-          onParameterChange(suggestion.parameter, suggestion.suggestedValue);
-        }
+        updatedParams[suggestion.parameter] = suggestion.suggestedValue;
+        if (onParameterChange) onParameterChange(suggestion.parameter, suggestion.suggestedValue);
         setParams((prev: Record<string, any>) => ({ ...prev, [suggestion.parameter]: suggestion.suggestedValue }));
       }
       setShowQcInline(false);
       setQCGateData(null);
-      if (onExecute) onExecute(params);
+      // Use Nextflow -resume so cached phases are skipped — not a fresh start
+      if (activeRunId) {
+        await fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ params: updatedParams }),
+        });
+      } else if (onExecute) {
+        onExecute(updatedParams);
+      }
     } catch (err) {
       console.error('[QC Gate NFViewer] Failed to apply suggestions:', err);
     } finally {
@@ -1409,8 +1419,29 @@ export function NextflowWorkflowViewer({
           failures: data.failures ?? [],
           suggestions: data.suggestions ?? [],
         };
-        setQCGateData(gateData);
-        setShowQcInline(true);
+        // Determine if auto-loop is enabled for this phase.
+        // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
+        // Auto-loop OFF → show confirmation card and let user decide.
+        const phaseKey = data.phase_key ?? data.process_name ?? '';
+        const autoloopOn = autoloopMap[phaseKey] !== false;
+        if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
+          // Auto-apply: update params and resume from cache — no user confirmation needed
+          console.log("[QC Gate NFViewer] Auto-loop ON — auto-applying suggestions and resuming");
+          const updatedParams = { ...params };
+          for (const s of gateData.suggestions) {
+            updatedParams[s.parameter] = s.suggestedValue;
+          }
+          fetch(`/api/workflows/runs/${encodeURIComponent(activeRunId)}/rerun`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ params: updatedParams }),
+          }).catch(err => console.error("[QC Gate NFViewer] Auto-rerun failed:", err));
+        } else {
+          // Auto-loop OFF (or no suggestions): show confirmation card
+          setQCGateData(gateData);
+          setShowQcInline(true);
+        }
       } catch (err) {
         console.error("[QC Gate NFViewer] Failed to parse event:", err);
       }
