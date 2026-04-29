@@ -25,9 +25,13 @@ RUN pip install --no-cache-dir conda-pack
 # Create working directory
 WORKDIR /workspace
 
-# Install DrugCLIP dependencies
+# CPU-only PyTorch — DrugCLIP screening runs on CPU (GPU optional per docs)
+# CPU wheel ~250 MB vs CUDA wheel ~2 GB
+RUN pip install --no-cache-dir torch \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# Install DrugCLIP dependencies (torch already installed above)
 RUN pip install --no-cache-dir \
-    torch \
     numpy \
     pandas \
     scikit-learn \
