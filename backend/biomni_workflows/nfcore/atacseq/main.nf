@@ -6,6 +6,7 @@ params.genome           = null          // Reference genome: GRCh38 | GRCm39 | G
 params.macs_gsize       = null          // MACS2 genome size: hs | mm | ce | dm (or numeric)
 params.paired_end       = true          // Paired-end library (true | false)
 params.narrow_peak      = false         // Call narrow peaks (default: broad peaks for ATAC)
+params.macs2_broad      = true          // Call broad peaks with MACS2 (true = broad, false = narrow)
 params.keep_mito        = false         // Keep mitochondrial reads (false = remove them)
 params.max_fragment_size = 200          // Maximum fragment size to retain (bp)
 params.skip_peak_qc     = false         // Skip peak QC with deepTools

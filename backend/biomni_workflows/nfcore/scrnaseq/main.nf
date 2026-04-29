@@ -8,6 +8,7 @@ params.aligner          = 'cellranger'  // Aligner: cellranger | alevin | starso
 params.barcode_whitelist = null         // Barcode whitelist (auto-detected for 10X)
 params.expected_cells   = 3000         // Expected number of cells per sample
 params.skip_emptydrops  = false         // Skip EmptyDrops cell filtering
+params.remove_doublets  = false         // Remove doublets using Scrublet or DoubletFinder (true | false)
 params.outdir           = './results'
 params.email            = null
 params.max_memory       = '128.GB'
