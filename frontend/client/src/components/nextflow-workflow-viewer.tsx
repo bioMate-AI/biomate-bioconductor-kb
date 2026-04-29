@@ -2019,31 +2019,6 @@ export function NextflowWorkflowViewer({
                   </button>
                   {qcSettingsOpen && (
                     <div className="strip-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {/* QC Profile selector */}
-                      {availableQcProfiles.length > 0 && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                          <label style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }} htmlFor="qc-profile-select">
-                            QC Profile
-                          </label>
-                          <select
-                            id="qc-profile-select"
-                            data-testid="qc-profile-select"
-                            role="combobox"
-                            value={qcProfile}
-                            onChange={e => setQcProfile(e.target.value)}
-                            style={{
-                              fontSize: 12, borderRadius: 4, border: '1px solid var(--border)',
-                              background: 'var(--surface)', color: 'var(--text)',
-                              padding: '2px 6px', maxWidth: 180, cursor: 'pointer',
-                            }}
-                          >
-                            <option value="">Default</option>
-                            {availableQcProfiles.map(p => (
-                              <option key={p.id} value={p.id}>{p.id.replace(/_/g, ' ')}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
                       {/* Pause toggle */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <label style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} htmlFor="pause-qc-switch">
