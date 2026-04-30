@@ -1780,6 +1780,21 @@ Rules:
       }
     }
 
+    // BOIN intent override:
+    // Queries mentioning BOIN / Phase I dose escalation are clinical trial simulation tasks.
+    // The Gemini intent classifier often misroutes these as "experiment_design", which skips
+    // generateWorkflow() entirely and leaves generatedWorkflow=null → empty LLM response.
+    // Force workflow_generation so the BOIN prereq gate fires (asks for dose levels if missing)
+    // and so generateWorkflow() finds clinical_trial_simulation.
+    if (!actions.needsWorkflowGeneration) {
+      const _isBoInIntentEarly = /\b(boin|phase\s*i\s*(dose\s*escalation|trial)|dose[\s-]escalation[\s-](trial|study)|dose[\s-]finding[\s-](trial|study)|bayesian[\s-]optimal[\s-]interval|clinical[\s-]dose[\s-]escalation|phase[\s-]i[\s-]oncology|dlt[\s-]based[\s-]escalation|mtd[\s-]estimation|3\+3[\s-]design)\b/i.test(message);
+      if (_isBoInIntentEarly) {
+        log('BOIN intent override: forcing needsWorkflowGeneration=true for prereq gate');
+        actions.needsWorkflowGeneration = true;
+        intent.type = 'workflow_generation';
+      }
+    }
+
     // HPO + ENSG candidate gene override:
     // Messages containing HPO phenotype codes (HP:XXXXXXX) AND ENSG gene IDs are patient gene
     // detection tasks — they query ClinVar/OMIM/Monarch to find the causal gene from a candidate
