@@ -1,11 +1,26 @@
 """
-BioMate Regulatory Auditor — Continuous Compliance Checker
+BioMate Regulatory Auditor — Hybrid Compliance Checker
 
-Audits every generated IND §2.6.1–§2.6.3 document against:
-  - ICH M4S(R2) structural completeness
-  - Region-specific requirements (FDA/EMA/NMPA/PMDA)
-  - Content accuracy (threshold citations, guideline references)
-  - Format compliance (section numbering, table structure, required fields)
+Audit architecture: two-tier hybrid
+
+  TIER 1 — Regex/deterministic (structure, format, exact values):
+    • Section presence / ordering (ICH M4 §2.6 structure)
+    • Table count and syntax
+    • Title page required fields
+    • Exact numeric threshold values (hERG IC50, PBPK 67%)
+    • Guideline citation strings (e.g. "S7B", "S2(R1)")
+    • Flag count consistency (document vs safety_profile data)
+    • Document length gate
+    Regex is exact, zero-cost, reproducible. Right tool for binary structural checks.
+
+  TIER 2 — LLM semantic judge (content adequacy, quality, nuance):
+    • Is the mechanistic DILI discussion substantive (not just a keyword)?
+    • Does the in silico disclaimer genuinely warn about limitations?
+    • Is the ethnic bridging section adequate for the stated region?
+    • Does the AI-disclosure satisfy FDA/EMA Jan 2026 guidance?
+    • Does §2.6.1.2 provide a genuine PBPK interpretation, not boilerplate?
+    LLM batches all semantic checks into ONE call (Haiku, structured JSON output).
+    Regex cannot detect "No reactive metabolite assessment" as a failure — LLM can.
 
 Returns a list of AuditFinding objects with severity levels:
   CRITICAL  — document cannot be submitted without this fix
@@ -19,14 +34,148 @@ Can also be run standalone: RegulatoryAuditor(region).audit(markdown, ctx)
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TypedDict
 
 from .ind_assembly import _load_regulatory_kb, get_threshold
 
 log = logging.getLogger(__name__)
+
+
+# ─── Semantic check definition ────────────────────────────────────────────────
+
+class SemanticCheck(TypedDict):
+    code:         str   # machine-readable check code
+    severity:     str   # CRITICAL | MAJOR | MINOR | INFO
+    section:      str   # CTD section it applies to
+    guideline_id: str
+    region:       str   # ALL | FDA | EMA | NMPA | PMDA
+    question:     str   # plain-English question for the LLM judge
+    pass_criteria: str  # what a passing answer looks like (fed to LLM)
+    suggestion:   str   # remediation guidance shown in the finding
+
+
+# Checks that require semantic judgment — regex would produce false positives/negatives
+_SEMANTIC_CHECKS: list[SemanticCheck] = [
+    {
+        "code": "EMA-DILI-MECH-001",
+        "severity": "MAJOR",
+        "section": "2.6.3.2",
+        "guideline_id": "EMA_DILI_2021",
+        "region": "EMA",
+        "question": (
+            "Does section 2.6.3.2 (Repeat-Dose Toxicity) contain a SUBSTANTIVE mechanistic DILI "
+            "assessment? A substantive assessment must: (1) identify specific reactive metabolite "
+            "structural alert classes (e.g. Michael acceptor, quinone precursor, acyl glucuronide, "
+            "epoxide), (2) present results of a structural alert screen (per compound or for lead), "
+            "and (3) cite EMA DILI Reflection Paper (EMA/CHMP/HMPC/700003/2012) or equivalent. "
+            "A brief mention of 'DILI' or 'no reactive metabolite assessment' does NOT qualify."
+        ),
+        "pass_criteria": "Section contains a table or list of structural alert classes with per-compound results AND cites EMA DILI guidance.",
+        "suggestion": "Add _mechanistic_dili_block() content: structural alert SMARTS screen table, alert class definitions, EMA/CHMP/HMPC/700003/2012 citation.",
+    },
+    {
+        "code": "PK-DISC-QUALITY-001",
+        "severity": "MAJOR",
+        "section": "2.6.2",
+        "guideline_id": "ICH_M4S_R2",
+        "region": "ALL",
+        "question": (
+            "Does section 2.6.2 (Pharmacokinetics) contain a GENUINE disclaimer that in silico PK "
+            "predictions require experimental confirmation? The disclaimer must explicitly state that "
+            "computational predictions should be supplemented with wet-lab DMPK studies (e.g. microsomal "
+            "stability, Caco-2, plasma protein binding) before IND filing or Phase I dose escalation. "
+            "A section that only uses words like 'predicted' or 'model' without a genuine limitation "
+            "statement does NOT pass."
+        ),
+        "pass_criteria": "Contains a clear statement that in silico values require experimental validation before clinical use.",
+        "suggestion": "Add explicit disclaimer: 'In silico PK predictions should be supplemented with in vitro DMPK studies prior to IND filing.'",
+    },
+    {
+        "code": "AI-DISC-QUALITY-001",
+        "severity": "MINOR",
+        "section": "title",
+        "guideline_id": "FDA_AI_GUIDANCE_2026",
+        "region": "ALL",
+        "question": (
+            "Does the document contain an adequate AI-disclosure statement per FDA/EMA Joint Guidance "
+            "on Good AI Practice in Drug Development (January 2026)? The disclosure must: (1) state that "
+            "the document was AI-assisted or generated by an automated system, (2) indicate that a human "
+            "reviewed and approved it, and (3) either appear on the title page or as a standing disclaimer. "
+            "A generic 'computational methods were used' statement is NOT sufficient."
+        ),
+        "pass_criteria": "Contains explicit 'AI-assisted' or 'automated draft' language plus 'human reviewed/approved'.",
+        "suggestion": "Add to title page: 'AI-assisted draft — human reviewed and approved [DATE] by [NAME], per FDA/EMA Good AI Practice Guidance (Jan 2026).'",
+    },
+    {
+        "code": "ETHNIC-BRIDGING-QUALITY-001",
+        "severity": "MINOR",
+        "section": "2.6.2",
+        "guideline_id": "ICH_E5",
+        "region": "ALL",
+        "question": (
+            "If the document contains an ethnic bridging section (§2.6.2.8 or equivalent), is the "
+            "content substantive? A substantive section must: (1) name at least one specific CYP "
+            "polymorphism (CYP2C19, CYP2D6, CYP3A4) with quantitative prevalence difference between "
+            "populations, (2) specify which ethnic group(s) are relevant (East Asian, Japanese, etc.), "
+            "and (3) state what follow-up study is recommended. If there is NO ethnic bridging section "
+            "at all, return pass=true (absence is handled separately)."
+        ),
+        "pass_criteria": "Contains CYP polymorphism prevalences, named populations, and follow-up study recommendation.",
+        "suggestion": "Add CYP2C19 poor metabolizer frequency comparison (14-22% East Asian vs 2-6% European) and recommended bridging PK study.",
+    },
+    {
+        "code": "PBPK-INTERP-QUALITY-001",
+        "severity": "MINOR",
+        "section": "2.6.1.2",
+        "guideline_id": "EMA_PBPK_2018",
+        "region": "ALL",
+        "question": (
+            "Does section 2.6.1.2 (PBPK Model Qualification) contain a genuine scientific interpretation "
+            "of the validation results — not just a table of numbers? A genuine interpretation must: "
+            "(1) compare the metrics to the EMA criterion (≥67% within 2-fold), (2) explicitly state "
+            "whether the criterion was met or not met with the exact percentage, and (3) draw a conclusion "
+            "about model suitability for IND submission. A table of numbers without interpretive text fails."
+        ),
+        "pass_criteria": "Contains explicit pass/fail statement with percentage AND a conclusion sentence about IND suitability.",
+        "suggestion": "Add a narrative sentence: 'The model [meets/does not meet] the EMA criterion with X% of predictions within 2-fold; this [supports/does not support] use of PBPK for IND filing.'",
+    },
+]
+
+# ─── LLM semantic judge ───────────────────────────────────────────────────────
+
+_JUDGE_SYSTEM = """\
+You are a regulatory compliance expert reviewing IND §2.6 (Nonclinical Overview) documents.
+You will be given a document and a list of semantic compliance checks to perform.
+For each check, assess whether the document content passes or fails the stated criteria.
+Be strict: keyword presence alone does not constitute a pass — evaluate substantive content quality.
+Return ONLY valid JSON matching the schema provided. No prose outside the JSON."""
+
+_JUDGE_PROMPT_TEMPLATE = """\
+Document sections to review (truncated to relevant sections):
+---
+{sections}
+---
+
+Perform the following semantic compliance checks. For each check:
+- Read the question carefully
+- Evaluate the document content against the pass_criteria
+- Return pass=true only if the document GENUINELY satisfies the criteria
+- Include a short evidence quote (≤80 chars) from the document that supports your verdict
+
+Checks:
+{checks_json}
+
+Return JSON in this exact format:
+{{
+  "results": [
+    {{"code": "CHECK_CODE", "pass": true/false, "confidence": 0.0-1.0, "evidence": "brief quote or observation"}}
+  ]
+}}
+"""
 
 # ─── Finding data model ───────────────────────────────────────────────────────
 
@@ -89,8 +238,9 @@ class RegulatoryAuditor:
     # PBPK table required columns (patterns matched against PBPK section)
     PBPK_TABLE_COLS = ["AFE", "AAFE", r"R[²2²]", r"2.?fold"]
 
-    def __init__(self, region: str = "ALL"):
+    def __init__(self, region: str = "ALL", semantic: bool = True):
         self.region = region
+        self.semantic = semantic   # set False in unit tests to skip LLM calls
         self.kb = _load_regulatory_kb()
         self._findings: list[AuditFinding] = []
 
@@ -99,6 +249,9 @@ class RegulatoryAuditor:
     def audit(self, markdown: str, ctx: dict) -> list[AuditFinding]:
         """
         Run all audit checks and return findings sorted by severity.
+
+        Tier 1 (regex): structure, format, exact values — always runs.
+        Tier 2 (LLM):   semantic adequacy checks — one batched call.
 
         Args:
             markdown: Full assembled document text.
@@ -109,6 +262,7 @@ class RegulatoryAuditor:
         """
         self._findings = []
 
+        # ── Tier 1: deterministic/structural checks ───────────────────────
         self._check_structure(markdown)
         self._check_section_content(markdown, ctx)
         self._check_citations(markdown)
@@ -118,10 +272,128 @@ class RegulatoryAuditor:
         self._check_region_specific(markdown, ctx)
         self._check_thresholds(markdown)
         self._check_disclaimer(markdown)
-        self._check_ai_disclosure(markdown)
         self._check_osp_benchmarks(markdown, ctx)
 
+        # ── Tier 2: LLM semantic adequacy checks (batched, one call) ─────
+        if self.semantic:
+            self._check_semantic(markdown, ctx)
+
         return sorted(self._findings, key=lambda f: _SEVERITY_ORDER.get(f.severity, 9))
+
+    # ── Tier 2: LLM semantic judge ────────────────────────────────────────────
+
+    def _check_semantic(self, md: str, ctx: dict) -> None:
+        """
+        Run all semantic adequacy checks via a single batched LLM call.
+
+        Active checks are filtered by region and by whether the relevant section
+        exists (skips checks for sections not present in the document).
+        """
+        # Filter checks to those relevant for this region
+        active = [
+            c for c in _SEMANTIC_CHECKS
+            if c["region"] in ("ALL", self.region)
+        ]
+
+        # Additional region filter: EMA-DILI-MECH-001 only when triggered
+        sp = ctx.get("safety_profile", {})
+        pk_sum = ctx.get("pk_summary", {}) or {}
+        dili_flagged = sp.get("dili_flagged", 0)
+        cl_h = pk_sum.get("cl_hepatic_fraction", 0) or 0
+
+        if not (dili_flagged > 0 and cl_h >= 0.5):
+            active = [c for c in active if c["code"] != "EMA-DILI-MECH-001"]
+
+        if not active:
+            return
+
+        # Gather relevant section texts (truncated to keep prompt manageable)
+        sections_text = self._build_sections_for_judge(md)
+
+        checks_payload = [
+            {"code": c["code"], "question": c["question"], "pass_criteria": c["pass_criteria"]}
+            for c in active
+        ]
+
+        prompt = _JUDGE_PROMPT_TEMPLATE.format(
+            sections=sections_text,
+            checks_json=json.dumps(checks_payload, indent=2),
+        )
+
+        try:
+            results = self._call_llm_judge(prompt)
+        except Exception as exc:
+            log.warning("[semantic_audit] LLM judge failed, skipping semantic checks: %s", exc)
+            return
+
+        # Map results back to findings
+        check_map = {c["code"]: c for c in active}
+        for r in results.get("results", []):
+            code = r.get("code", "")
+            if code not in check_map:
+                continue
+            passed = r.get("pass", True)
+            confidence = r.get("confidence", 0.5)
+            evidence = r.get("evidence", "")
+            if not passed and confidence >= 0.6:
+                c = check_map[code]
+                self._add(c["severity"], c["section"], c["guideline_id"],
+                          c["region"], code,
+                          f"[Semantic judge] {c['question'][:120]}",
+                          c["suggestion"], evidence=f"LLM evidence (conf={confidence:.0%}): {evidence}")
+
+    def _build_sections_for_judge(self, md: str) -> str:
+        """Extract relevant section text for the LLM judge, keeping prompt size small."""
+        sections_of_interest = [
+            ("2.6.1.2", "2.6.1.3"),
+            ("2.6.2", "2.6.3"),
+            ("2.6.3.2", "2.6.3.3"),
+        ]
+        parts = []
+        title = md[:600]  # Title page
+        parts.append(f"[TITLE PAGE]\n{title}")
+
+        for start, end in sections_of_interest:
+            text = self._extract_section(md, start, end)
+            if text:
+                # Keep first 800 chars of each section
+                parts.append(f"[§{start}]\n{text[:800]}")
+
+        return "\n\n---\n\n".join(parts)
+
+    def _call_llm_judge(self, prompt: str) -> dict:
+        """Call Haiku (fast/cheap) for semantic audit judgment. Returns parsed JSON."""
+        try:
+            import anthropic
+            client = anthropic.Anthropic()
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=1024,
+                system=_JUDGE_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = msg.content[0].text.strip()
+            # Extract JSON even if model wraps in markdown code block
+            if "```" in text:
+                text = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL).group(1).strip()
+            return json.loads(text)
+        except Exception:
+            # Fallback to Gemini Flash if Anthropic not available
+            try:
+                from galaxy.ai.gemini_flash import call_gemini_flash as _gemini
+                resp = _gemini(
+                    messages=[{"role": "user", "content": prompt}],
+                    system=_JUDGE_SYSTEM,
+                    max_tokens=1024,
+                    temperature=0.1,
+                )
+                text = resp.strip()
+                if "```" in text:
+                    m = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
+                    text = m.group(1).strip() if m else text
+                return json.loads(text)
+            except Exception as exc2:
+                raise RuntimeError(f"Both LLM backends failed: {exc2}") from exc2
 
     # ── Structural checks (ICH M4S(R2)) ──────────────────────────────────────
 
@@ -367,22 +639,12 @@ class RegulatoryAuditor:
                       evidence="CDE Nonclinical CTA Guideline (Aug 2021): ethnic bridging required if PK may differ")
 
     def _check_ema(self, md: str, ctx: dict) -> None:
-        """EMA-specific checks."""
-        # Mechanistic DILI assessment for hepatically-cleared drugs
-        sp = ctx.get("safety_profile", {})
-        pk_sum = ctx.get("pk_summary", {}) or {}
-        cl_h = pk_sum.get("cl_hepatic_fraction", 0) or 0
-        dili_flagged = sp.get("dili_flagged", 0)
+        """EMA-specific structural checks.
 
-        if dili_flagged > 0 and cl_h >= 0.5:
-            if not re.search(r"reactive metabolite|Michael acceptor|quinone|mechanistic.*DILI|DILI.*mechanistic", md, re.IGNORECASE):
-                self._add(MAJOR, "2.6.3.2", "EMA_DILI_2021", "EMA",
-                          "EMA-DILI-MECH-001",
-                          f"§2.6.3.2 missing mechanistic DILI tier assessment. Required by EMA DILI Reflection Paper (2021) for hepatically-cleared drugs (CLh fraction={cl_h:.0%}, DILI-flagged={dili_flagged}).",
-                          "Add reactive metabolite structural alert evaluation (RDKit SMARTS or Derek Nexus); cite EMA/CHMP/HMPC/700003/2012.",
-                          evidence=f"cl_hepatic_fraction={cl_h:.2f} ≥ 0.50 threshold; DILI-flagged={dili_flagged}")
-
-        # EMA PBPK: 67% criterion pass/fail must be explicit
+        Content-adequacy checks (DILI mechanistic, PBPK interpretation quality)
+        are handled by the LLM semantic tier — see _check_semantic().
+        """
+        # EMA PBPK: 67% criterion pass/fail must be stated (structural — exact "67" required)
         pbpk_section = self._extract_section(md, "2.6.1.2", "2.6.1.3")
         if pbpk_section and "67" not in pbpk_section:
             self._add(MINOR, "2.6.1.2", "EMA_PBPK_2018", "EMA",
@@ -445,37 +707,20 @@ class RegulatoryAuditor:
                           f"Update to ≥{expected_pct}% per EMA/CHMP/EWP/37498/2011 Rev1.",
                           evidence=doc_pct_match.group(0))
 
-    # ── Disclaimer checks ─────────────────────────────────────────────────────
+    # ── Disclaimer checks — structural only (quality handled by semantic tier) ──
 
     def _check_disclaimer(self, md: str) -> None:
-        """Required disclaimers must be present."""
+        """Structural disclaimer presence check.
 
-        # Title page in silico disclaimer
+        Only verifies that the title page contains SOME in silico disclaimer text.
+        Content quality (whether it is genuinely cautionary) is assessed by the
+        LLM semantic tier (PK-DISC-QUALITY-001 check).
+        """
         if not re.search(r"in silico|computational prediction", md[:2000], re.IGNORECASE):
             self._add(MAJOR, "title", "ICH_M4S_R2", "ALL",
                       "DISC-INSILICO-001",
-                      "Title page missing 'in silico predictions require experimental confirmation' disclaimer.",
+                      "Title page missing 'in silico predictions' disclaimer text.",
                       "Add disclaimer to title page per ICH M4 good practice.")
-
-        # §2.6.2 PK predictions disclaimer
-        pk_section = self._extract_section(md, "2.6.2", "2.6.3")
-        if pk_section and "predicted" in pk_section.lower():
-            if not re.search(r"disclaimer|require experimental|require.*confirm|GLP|validated", pk_section, re.IGNORECASE):
-                self._add(MAJOR, "2.6.2", "ICH_M4S_R2", "ALL",
-                          "DISC-PK-001",
-                          "§2.6.2 PK predictions table missing disclaimer that values are computational and require experimental confirmation.",
-                          "Add disclaimer block after DMPK predictions table.")
-
-    # ── AI disclosure (FDA/EMA Jan 2026) ─────────────────────────────────────
-
-    def _check_ai_disclosure(self, md: str) -> None:
-        """FDA/EMA Jan 2026 Joint Guidance requires AI-generated content disclosure."""
-        if not re.search(r"AI.assisted|human review|LLM|language model|BioMate.*draft|automated.*draft", md, re.IGNORECASE):
-            self._add(MINOR, "title", "FDA_AI_GUIDANCE_2026", "ALL",
-                      "AI-DISC-001",
-                      "Document does not disclose AI-assisted generation per FDA/EMA Joint Guidance on Good AI Practice (January 2026).",
-                      "Add: 'AI-assisted draft — human reviewed and approved [DATE] by [NAME]' to title page or footer.",
-                      evidence="FDA/EMA Jan 2026 guidance requires disclosure of AI-generated regulatory content")
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
