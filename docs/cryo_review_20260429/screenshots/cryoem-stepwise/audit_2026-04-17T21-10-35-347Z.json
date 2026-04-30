@@ -1,0 +1,84 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-17T21:10:35.347Z",
+  "passed": 1,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-9",
+      "runId": null,
+      "startTs": 1776460177711,
+      "endTs": 1776460235248,
+      "finalStatus": "done",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "param-value-1.77-in-card",
+          "passed": true,
+          "note": "Value \"1.77\" (from query) should appear in the workflow card"
+        },
+        {
+          "name": "param-value-D2-in-card",
+          "passed": true,
+          "note": "Value \"D2\" (from query) should appear in the workflow card"
+        },
+        {
+          "name": "param-value-120-in-card",
+          "passed": true,
+          "note": "Value \"120\" (from query) should appear in the workflow card"
+        },
+        {
+          "name": "param-value-300-in-card",
+          "passed": true,
+          "note": "Value \"300\" (from query) should appear in the workflow card"
+        },
+        {
+          "name": "parameter-rationale-enrichment-present",
+          "passed": true
+        },
+        {
+          "name": "qc-profile-auto-detected",
+          "passed": true,
+          "note": "QC section: \"QC SettingsPause workflow when a QC gate failsQuality thresholdscryoem spa purifiedReads Surviving Trim(≥%)> 50% loss = \""
+        },
+        {
+          "name": "four-pipeline-phases-shown",
+          "passed": true,
+          "note": "Expected ≥4 phase cards (A Preprocessing / B Picking / C Classification / D Reconstruction), found 23"
+        },
+        {
+          "name": "phases-cover-preprocessing",
+          "passed": true,
+          "note": "phases: import moviesimport moviespendingrun step patch motion correctionpatch motion correctionpendingrun step patch ctf estimationpatch ctf estimationpendingrun step micrograph denoisermicrograph denoiserpe"
+        },
+        {
+          "name": "phases-cover-classification",
+          "passed": true,
+          "note": "phases: import moviesimport moviespendingrun step patch motion correctionpatch motion correctionpendingrun step patch ctf estimationpatch ctf estimationpendingrun step micrograph denoisermicrograph denoiserpe"
+        },
+        {
+          "name": "phases-cover-reconstruction",
+          "passed": true,
+          "note": "phases: import moviesimport moviespendingrun step patch motion correctionpatch motion correctionpendingrun step patch ctf estimationpatch ctf estimationpendingrun step micrograph denoisermicrograph denoiserpe"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs9_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs9_02_params.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs9_03_rationale.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs9_04_qc_profile.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs9_05_phases.png"
+      ]
+    }
+  ]
+}

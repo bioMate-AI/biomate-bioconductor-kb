@@ -1,0 +1,12 @@
+{
+  "step": "17_homogeneous_refinement",
+  "vol_name": "vol_2",
+  "timestamp": "2026-04-27T12:12:04.914110",
+  "cs_job_uid": "J16",
+  "num_particles": 0,
+  "symmetry": "C1",
+  "real_mode": true,
+  "viz_files": [
+    "cs_out_J16_002_volume_precision.mrc"
+  ]
+}

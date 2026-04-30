@@ -1,0 +1,46 @@
+[
+  {
+    "testId": "MG-1/2/3",
+    "startTs": 1777442534484,
+    "endTs": 1777442534484,
+    "finalStatus": "card_ready",
+    "assertions": [
+      {
+        "name": "MG-1: AI responded to cryo-EM query with file upload",
+        "passed": true
+      },
+      {
+        "name": "MG-1: CryoSPARC SPA workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC license saved",
+        "passed": true
+      },
+      {
+        "name": "MG-3: movies_path populated (S3 ideal, local upload accepted)",
+        "passed": true,
+        "note": "local upload: /home/yzhang/biomate/frontend/data/uploads/3624c54a-76a6-4924-a372-c6a93a146ff2."
+      },
+      {
+        "name": "MG-2: num_gpu is 0 (auto-detect from CryoSPARC lane topology)",
+        "passed": true,
+        "note": "current value=\"0\" — 0 means auto, workflow detects from EC2 GPU count"
+      },
+      {
+        "name": "MG-2: num_gpu_workers is 1 (single CryoSPARC worker lane, default)",
+        "passed": true,
+        "note": "current value=\"1\""
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_03b_license_saved.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_04_movies_path.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_05_params_filled.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_06_gpu_params_auto.png"
+    ]
+  }
+]

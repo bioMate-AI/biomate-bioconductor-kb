@@ -1,0 +1,8 @@
+{
+  "step": "02_patch_motion_correction",
+  "batch_id": "batch_0000",
+  "timestamp": "2026-04-27T07:43:17.966369",
+  "cs_job_uid": "J2",
+  "num_micrographs": 20,
+  "real_mode": true
+}

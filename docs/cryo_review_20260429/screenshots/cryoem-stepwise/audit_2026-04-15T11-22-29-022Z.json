@@ -1,0 +1,339 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-15T11:22:29.022Z",
+  "passed": 1,
+  "total": 8,
+  "runs": [
+    {
+      "testId": "CS-1",
+      "runId": null,
+      "startTs": 1776251599350,
+      "endTs": 1776251659964,
+      "finalStatus": "n/a",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "cryosparc-workflow-matched",
+          "passed": true,
+          "note": "Page should mention CryoSPARC or single-particle analysis"
+        },
+        {
+          "name": "qc-settings-section-visible",
+          "passed": true
+        },
+        {
+          "name": "qc-profile-selector-present",
+          "passed": false
+        },
+        {
+          "name": "qc-threshold-inputs-present",
+          "passed": false,
+          "note": "Expected ≥1 numeric threshold input, found 0"
+        },
+        {
+          "name": "phase-cards-rendered",
+          "passed": true,
+          "note": "Expected ≥1 phase-card-*, found 25"
+        },
+        {
+          "name": "phase-cards-have-status-badges",
+          "passed": false,
+          "note": "0/25 cards had readable badge text"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs1_01_ready.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs1_02_response.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs1_03_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs1_04_qc.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs1_05_phase_cards.png"
+      ]
+    },
+    {
+      "testId": "CS-2",
+      "runId": null,
+      "startTs": 1776251660264,
+      "endTs": 1776251711806,
+      "finalStatus": "n/a",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [
+        {
+          "phaseId": "0",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "1",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "2",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "3",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "4",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "5",
+          "runBtnDisabledBeforeRun": true,
+          "skipBtnVisibleWhenPending": true,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        }
+      ],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "phase-cards-present",
+          "passed": true
+        },
+        {
+          "name": "run-step-btns-disabled-before-run",
+          "passed": true,
+          "note": "All Run Step buttons should be disabled before run starts (no activeRunId)"
+        },
+        {
+          "name": "run-step-buttons-present",
+          "passed": true,
+          "note": "Expected button-run-step-* for each phase, found 25"
+        },
+        {
+          "name": "file-rows-not-visible-before-run",
+          "passed": true,
+          "note": "Expected 0 file preview/download buttons before run, found 0"
+        },
+        {
+          "name": "step-controls-hint-visible",
+          "passed": true,
+          "note": "workflow-step-controls-hint should be present in the viewer"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs2_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs2_02_step_buttons.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs2_04_final.png"
+      ]
+    },
+    {
+      "testId": "CS-3",
+      "runId": null,
+      "startTs": 1776251712099,
+      "endTs": 1776251915482,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-3",
+      "runId": null,
+      "startTs": 1776251712099,
+      "endTs": 1776251915482,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-4",
+      "runId": null,
+      "startTs": 1776251916341,
+      "endTs": 1776252032677,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-4",
+      "runId": null,
+      "startTs": 1776251916341,
+      "endTs": 1776252032677,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-5",
+      "runId": null,
+      "startTs": 1776252033264,
+      "endTs": 1776252148515,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-5",
+      "runId": null,
+      "startTs": 1776252033264,
+      "endTs": 1776252148515,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_01_card.png"
+      ]
+    }
+  ]
+}

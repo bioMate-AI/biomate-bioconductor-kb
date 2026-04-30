@@ -1,0 +1,168 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-15T21:30:30.826Z",
+  "passed": 1,
+  "total": 2,
+  "runs": [
+    {
+      "testId": "CS-4",
+      "runId": "ce9c4fbc-ddc4-45d3-ac9b-4e96c8799dbb",
+      "startTs": 1776288135539,
+      "endTs": 1776288381589,
+      "finalStatus": "completed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "findings-card-auto-appears",
+          "passed": true,
+          "note": "findings-card should appear automatically after run completes (polls /api/workflows/runs/{id}/findings)"
+        },
+        {
+          "name": "findings-card-has-summary-text",
+          "passed": true
+        },
+        {
+          "name": "table-viewer-renders-star-or-csv",
+          "passed": true
+        },
+        {
+          "name": "download-all-btn-state-matches-status",
+          "passed": true
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_03_completed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_04_findings_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_04b_key_results.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_06_table_viewer.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs4_08_download_btns.png"
+      ]
+    },
+    {
+      "testId": "CS-5",
+      "runId": "07d89651-a7e2-4375-acb3-0a0bb76753dc",
+      "startTs": 1776288381949,
+      "endTs": 1776288629988,
+      "finalStatus": "completed",
+      "wallTimeSec": 148,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "completion-banner-visible-on-success",
+          "passed": true
+        },
+        {
+          "name": "overall-status-badge-visible",
+          "passed": true
+        },
+        {
+          "name": "run-metrics-strip-visible",
+          "passed": true
+        },
+        {
+          "name": "metric-wall-time-visible",
+          "passed": true
+        },
+        {
+          "name": "metric-started-at-visible",
+          "passed": true
+        },
+        {
+          "name": "metric-completed-at-visible",
+          "passed": true
+        },
+        {
+          "name": "analyze-results-btn-visible",
+          "passed": true
+        },
+        {
+          "name": "analyze-results-btn-enabled-after-completion",
+          "passed": true,
+          "note": "button-analyze-results is only enabled when status===completed and runId present"
+        },
+        {
+          "name": "ai-analysis-panel-appears-after-click",
+          "passed": true,
+          "note": "ai-analysis-panel renders when analysisState changes from idle to loading/done"
+        },
+        {
+          "name": "ai-panel-has-summary-section",
+          "passed": true
+        },
+        {
+          "name": "ai-panel-has-key-findings-section",
+          "passed": true
+        },
+        {
+          "name": "ai-panel-shows-model-attribution",
+          "passed": true,
+          "note": "Panel header should show '· claude-sonnet-4-6'"
+        },
+        {
+          "name": "methods-report-btn-visible",
+          "passed": true
+        },
+        {
+          "name": "methods-report-btn-enabled-after-run",
+          "passed": true,
+          "note": "button-download-methods-report disabled only when invocationId missing or run failed"
+        },
+        {
+          "name": "methods-report-popup-url-correct",
+          "passed": false,
+          "note": "Expected URL containing 'methods-report', got: :"
+        },
+        {
+          "name": "methods-report-content-has-header",
+          "passed": false,
+          "note": "Plain text report should start with 'BioMate AI — Methods Report'"
+        },
+        {
+          "name": "methods-report-has-invocation-id",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_02_completed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_03_banner.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_04_metrics_strip.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_05_analyze_btn.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_06_analyzing.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_07_ai_panel.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_08_ai_done.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_09_methods_btn.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs5_10_final.png"
+      ]
+    }
+  ]
+}

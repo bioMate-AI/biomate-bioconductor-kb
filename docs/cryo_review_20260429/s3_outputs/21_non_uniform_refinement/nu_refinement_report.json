@@ -1,0 +1,10 @@
+{
+  "step": "21_non_uniform_refinement",
+  "timestamp": "2026-04-27T12:32:18.378913",
+  "cs_job_uid": "J22",
+  "num_particles": 0,
+  "real_mode": true,
+  "viz_files": [
+    "cs_out_J22_002_volume_precision.mrc"
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "testId": "MG-7..12",
+    "startTs": 1777453173193,
+    "endTs": 1777453173193,
+    "finalStatus": "completed",
+    "assertions": [
+      {
+        "name": "MG-7: Step outputs API returns 200",
+        "passed": false
+      },
+      {
+        "name": "MG-8: Invocation outputs endpoint accessible",
+        "passed": true
+      },
+      {
+        "name": "MG-8: density_map output file (MRC/CS) present",
+        "passed": false,
+        "note": "0 outputs total"
+      },
+      {
+        "name": "MG-8: STAR table output present",
+        "passed": false
+      },
+      {
+        "name": "MG-8: PNG image output present",
+        "passed": false
+      },
+      {
+        "name": "MG-9: Run status endpoint returns 200",
+        "passed": true
+      },
+      {
+        "name": "MG-9: QC gate data accessible (no gate = metrics within range)",
+        "passed": true,
+        "note": "no gates fired — good data quality"
+      },
+      {
+        "name": "MG-10: Findings endpoint returns 200",
+        "passed": true
+      },
+      {
+        "name": "MG-10: Findings contain cryo-EM domain content",
+        "passed": true,
+        "note": "CryoSPARC standard single-particle analysis facilitates the high-resolution 3D reconstruction of macromolecular structur"
+      },
+      {
+        "name": "MG-11: Methods report HTTP 200",
+        "passed": true
+      },
+      {
+        "name": "MG-11: Methods report non-empty (>200 chars)",
+        "passed": true
+      },
+      {
+        "name": "MG-11: Methods report contains CryoSPARC",
+        "passed": false,
+        "note": "BioMate AI — Methods Report\n============================================================\nGenerated: "
+      },
+      {
+        "name": "MG-12: Download commands endpoint returns 200",
+        "passed": true
+      },
+      {
+        "name": "MG-12: Download commands contain S3 paths",
+        "passed": false,
+        "note": "0 files"
+      }
+    ],
+    "screenshots": []
+  }
+]

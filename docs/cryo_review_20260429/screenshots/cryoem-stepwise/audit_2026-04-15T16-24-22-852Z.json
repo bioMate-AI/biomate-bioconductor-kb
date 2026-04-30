@@ -1,0 +1,153 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-15T16:24:22.853Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-3",
+      "runId": "cc0660a9-eb0d-40ff-9652-0a6b1cfd521b",
+      "startTs": 1776270157969,
+      "endTs": 1776270262530,
+      "finalStatus": "failed",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [
+        {
+          "phaseId": "0",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "1",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "2",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "3",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "4",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "5",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "6",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        },
+        {
+          "phaseId": "7",
+          "runBtnDisabledBeforeRun": null,
+          "skipBtnVisibleWhenPending": false,
+          "pauseAfterBtnVisible": false,
+          "paramsBtnVisible": false,
+          "statusAfterRun": null,
+          "outputFileCount": 0,
+          "outputFileTypes": [],
+          "previewedFile": null,
+          "previewViewerType": null
+        }
+      ],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "cancel-btn-visible-during-run",
+          "passed": true
+        },
+        {
+          "name": "nf-process-list-appears-during-run",
+          "passed": true,
+          "note": "nf-process-list should show Nextflow process status during execution"
+        },
+        {
+          "name": "run-reached-terminal-state",
+          "passed": true
+        },
+        {
+          "name": "phase-card-statuses-updated-after-run",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_02_running.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_03_nf_process_list.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_04_failed.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_05_file_lists.png"
+      ]
+    }
+  ]
+}

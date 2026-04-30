@@ -1,0 +1,54 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-15T16:47:37.417Z",
+  "passed": 0,
+  "total": 2,
+  "runs": [
+    {
+      "testId": "CS-3",
+      "runId": null,
+      "startTs": 1776271470630,
+      "endTs": 1776271657171,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png"
+      ]
+    },
+    {
+      "testId": "CS-3",
+      "runId": null,
+      "startTs": 1776271470630,
+      "endTs": 1776271657171,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": true
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": false
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs3_01_card.png"
+      ]
+    }
+  ]
+}

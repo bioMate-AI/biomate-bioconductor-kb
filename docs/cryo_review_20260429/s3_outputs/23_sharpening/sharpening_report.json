@@ -1,0 +1,11 @@
+{
+  "step": "23_sharpening",
+  "timestamp": "2026-04-27T12:33:24.641750",
+  "cs_job_uid": "J23",
+  "real_mode": true,
+  "final_output": "volume_sharpened.mrc",
+  "viz_files": [
+    "cs_out_sharp_J23_mask_fsc.mrc",
+    "cs_out_sharp_J23_map_sharp.mrc"
+  ]
+}

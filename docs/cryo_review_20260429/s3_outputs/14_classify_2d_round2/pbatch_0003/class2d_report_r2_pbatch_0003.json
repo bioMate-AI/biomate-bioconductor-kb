@@ -1,0 +1,12 @@
+{
+  "step": "14_classify_2d_round2",
+  "batch_id": "pbatch_0003",
+  "timestamp": "2026-04-27T10:41:23.637959",
+  "cs_job_uid": "J10",
+  "num_particles": 36669,
+  "num_classes": 100,
+  "real_mode": true,
+  "viz_files": [
+    "cs_out_J10_020_class_averages.mrc"
+  ]
+}

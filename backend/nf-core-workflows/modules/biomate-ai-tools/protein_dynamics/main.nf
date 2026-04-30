@@ -373,25 +373,28 @@ process CONFORMATIONAL_SUMMARY {
     tar -xzf "${ensemble_tgz}" -C ensemble_pdbs
 
     python3 << 'PYEOF'
-import os
-import sys
-import json
-import glob
+import os, sys, json, glob, warnings
+# Prevent TF/protobuf SIGABRT when container has both BioEmu (JAX/TF) and PocketMiner
+os.environ.setdefault('TF_CPP_MIN_LOG_LEVEL', '3')
+os.environ.setdefault('TF_ENABLE_ONEDNN_OPTS', '0')
+os.environ.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
+warnings.filterwarnings("ignore")
+
 import numpy as np
 
 # -- MDAnalysis for RMSD / Rg --------------------------------------------------
 try:
     import MDAnalysis as mda
-    from MDAnalysis.analysis import rms, align
     HAS_MDA = True
 except ImportError:
     HAS_MDA = False
-    print("[CONFORMATIONAL_SUMMARY] MDAnalysis not available — using Biopython fallback", flush=True)
 
-# -- Fallback: Biopython RMSD --------------------------------------------------
-from Bio import PDB as bpdb
-import warnings
-warnings.filterwarnings("ignore")
+# -- Biopython fallback --------------------------------------------------------
+try:
+    from Bio import PDB as bpdb
+    HAS_BIO = True
+except ImportError:
+    HAS_BIO = False
 
 pdbs = sorted(glob.glob("ensemble_pdbs/*.pdb"))
 pdbs = [p for p in pdbs if not p.endswith("MANIFEST.txt")]
@@ -406,20 +409,21 @@ print(f"[CONFORMATIONAL_SUMMARY] Processing {n} conformers", flush=True)
 
 # -- Compute pairwise Cα RMSD matrix ------------------------------------------
 def get_ca_coords(pdb_path):
-    # Extract Ca coordinates from a PDB file using Biopython
-    parser = bpdb.PDBParser(QUIET=True)
-    structure = parser.get_structure("s", pdb_path)
+    """Extract Cα coordinates directly from PDB ATOM records (no lib dependency)."""
     coords = []
-    for model in structure:
-        for chain in model:
-            for residue in chain:
-                if bpdb.is_aa(residue, standard=True):
-                    try:
-                        coords.append(residue["CA"].get_vector().get_array())
-                    except KeyError:
-                        pass
-        break  # first model only
-    return np.array(coords, dtype=np.float32)
+    seen = set()
+    with open(pdb_path) as f:
+        for line in f:
+            if not line.startswith('ATOM'): continue
+            if line[12:16].strip() != 'CA': continue
+            rn = int(line[22:26])
+            if rn in seen: continue
+            seen.add(rn)
+            try:
+                coords.append([float(line[30:38]), float(line[38:46]), float(line[46:54])])
+            except ValueError:
+                pass
+    return np.array(coords, dtype=np.float32) if coords else np.zeros((0, 3), dtype=np.float32)
 
 def rmsd(a, b):
     # Compute RMSD between two Ca coordinate arrays (same length)
@@ -476,16 +480,17 @@ mean_pockets    = float(np.mean(pocket_counts))   if pocket_counts    else 0.0
 max_drug_score  = float(max(druggability_scores))  if druggability_scores else 0.0
 mean_drug_score = float(np.mean(druggability_scores)) if druggability_scores else 0.0
 
-# -- Build pairwise RMSD matrix for UMAP ---------------------------------------
-# Limit to first 200 conformers to keep memory manageable
-max_umap = min(n, 200)
+# -- Build pairwise RMSD matrix for UMAP (vectorised via scipy cdist) ----------
+# Vectorised pairwise RMSD — stack into (N, n_res*3), use scipy cdist
+max_umap = min(n, 50)   # cap at 50 for UMAP; 200 pairwise loops were causing OOM
 print(f"[CONFORMATIONAL_SUMMARY] Computing pairwise RMSD for {max_umap} conformers…", flush=True)
-rmsd_matrix = np.zeros((max_umap, max_umap), dtype=np.float32)
-for i in range(max_umap):
-    for j in range(i + 1, max_umap):
-        d = rmsd(all_coords[i], all_coords[j])
-        rmsd_matrix[i, j] = d
-        rmsd_matrix[j, i] = d
+n_res = min(c.shape[0] for c in all_coords[:max_umap])
+flat  = np.stack([c[:n_res].flatten() for c in all_coords[:max_umap]])  # (N, n_res*3)
+from scipy.spatial.distance import cdist
+# cdist with 'euclidean' on flattened gives sqrt(sum sq diff) per atom pair * sqrt(n_res)
+# We want RMSD = sqrt(mean sq diff) = euclidean / sqrt(n_res)
+raw   = cdist(flat, flat, metric='euclidean')
+rmsd_matrix = (raw / np.sqrt(n_res)).astype(np.float32)
 
 # -- UMAP projection -----------------------------------------------------------
 try:

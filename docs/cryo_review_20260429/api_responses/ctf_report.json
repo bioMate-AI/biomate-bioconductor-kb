@@ -1,0 +1,8 @@
+{
+  "step": "03_patch_ctf_estimation",
+  "batch_id": "batch_0000",
+  "timestamp": "2026-04-27T07:52:49.411372",
+  "cs_job_uid": "J3",
+  "num_micrographs": 20,
+  "real_mode": true
+}

@@ -1,0 +1,9 @@
+{
+  "step": "05_blob_picker",
+  "batch_id": "batch_0000",
+  "timestamp": "2026-04-27T07:54:04.643416",
+  "cs_job_uid": "J4",
+  "num_particles": 27621,
+  "particle_diameter_angstroms": 150.0,
+  "real_mode": true
+}

@@ -1,0 +1,42 @@
+{
+  "suiteId": "cryoem-stepwise-and-output",
+  "generatedAt": "2026-04-17T04:14:44.363Z",
+  "passed": 0,
+  "total": 1,
+  "runs": [
+    {
+      "testId": "CS-10",
+      "runId": "aaa11da2-93e4-4924-865d-ae24ab62a6f1",
+      "startTs": 1776398970783,
+      "endTs": 1776399284339,
+      "finalStatus": "unknown",
+      "wallTimeSec": null,
+      "stepLlmCostUsd": null,
+      "steps": [],
+      "assertions": [
+        {
+          "name": "ai-response-received",
+          "passed": false
+        },
+        {
+          "name": "workflow-card-appeared",
+          "passed": true
+        },
+        {
+          "name": "execute-returned-runId",
+          "passed": true
+        },
+        {
+          "name": "execute-engine-is-cryosparc",
+          "passed": true,
+          "note": "Expected executionEngine=cryosparc, got: cryosparc"
+        }
+      ],
+      "screenshots": [
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_01_card.png",
+        "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-stepwise/cs10_02_running.png"
+      ],
+      "error": "page.waitForTimeout: Target page, context or browser has been closed"
+    }
+  ]
+}

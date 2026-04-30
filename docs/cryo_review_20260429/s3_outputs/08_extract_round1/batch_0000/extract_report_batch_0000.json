@@ -1,0 +1,8 @@
+{
+  "step": "08_extract_particles_round1",
+  "batch_id": "batch_0000",
+  "timestamp": "2026-04-27T07:57:09.560955",
+  "real_mode": true,
+  "num_particles": 24879,
+  "box_size_pix": 192
+}

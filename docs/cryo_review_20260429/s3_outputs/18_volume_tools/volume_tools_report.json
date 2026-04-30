@@ -1,0 +1,13 @@
+{
+  "step": "18_volume_tools",
+  "timestamp": "2026-04-27T12:17:18.815262",
+  "cs_job_uid": "J19",
+  "operations": [
+    "lowpass_filter",
+    "auto_mask"
+  ],
+  "real_mode": true,
+  "viz_files": [
+    "cs_out_J19_map.mrc"
+  ]
+}

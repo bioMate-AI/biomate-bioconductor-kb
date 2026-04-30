@@ -1,0 +1,233 @@
+[
+  {
+    "testId": "MG-S1..S4",
+    "startTs": 1777444385001,
+    "endTs": 1777444385001,
+    "finalStatus": "done",
+    "assertions": [
+      {
+        "name": "MG-S1: Settings button visible in sidebar",
+        "passed": true
+      },
+      {
+        "name": "MG-S1: Settings → Data tab exists",
+        "passed": true
+      },
+      {
+        "name": "MG-S1: Default storage selector visible",
+        "passed": true
+      },
+      {
+        "name": "MG-S1: Amazon S3 selected as default storage",
+        "passed": true
+      },
+      {
+        "name": "MG-S2: AWS Access Key ID input visible after selecting S3",
+        "passed": true,
+        "note": "credential fields rendered"
+      },
+      {
+        "name": "MG-S2: AWS credentials saved",
+        "passed": true
+      },
+      {
+        "name": "MG-S3: Dataset browser S3/External URL tab visible",
+        "passed": false
+      },
+      {
+        "name": "MG-S4: AI accepted S3 URI in natural query",
+        "passed": true
+      },
+      {
+        "name": "MG-S4: Workflow card appears for S3-sourced dataset",
+        "passed": true
+      },
+      {
+        "name": "MG-S4: movies_path populated with user-provided S3 URI",
+        "passed": false,
+        "note": "(empty)"
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_02_settings_data_tab.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_03_s3_storage_selected.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_04_aws_creds_saved.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_09_s3_query_response.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_10_s3_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MGS_11_movies_path_s3.png"
+    ]
+  },
+  {
+    "testId": "MG-1/2/3",
+    "startTs": 1777444526099,
+    "endTs": 1777444526099,
+    "finalStatus": "card_ready",
+    "assertions": [
+      {
+        "name": "MG-1: AI responded to cryo-EM query with file upload",
+        "passed": true
+      },
+      {
+        "name": "MG-1: CryoSPARC SPA workflow card appeared",
+        "passed": true
+      },
+      {
+        "name": "CryoSPARC license saved",
+        "passed": true
+      },
+      {
+        "name": "MG-3: movies_path set to S3 dataset path",
+        "passed": true,
+        "note": "/home/yzhang/biomate/frontend/data/uploads/2e19b5a2-29e9-4d53-8495-8841757bba96."
+      },
+      {
+        "name": "MG-2: num_gpu is 0 (auto-detect from CryoSPARC lane topology)",
+        "passed": true,
+        "note": "current value=\"0\" — 0 means auto, workflow detects from EC2 GPU count"
+      },
+      {
+        "name": "MG-2: num_gpu_workers is 1 (single CryoSPARC worker lane, default)",
+        "passed": true,
+        "note": "current value=\"1\""
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_02_after_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_03_workflow_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_03b_license_saved.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_04_movies_path.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_05_params_filled.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_06_gpu_params_auto.png"
+    ]
+  },
+  {
+    "testId": "MG-4",
+    "startTs": 1777444623680,
+    "endTs": 1777444623680,
+    "finalStatus": "done",
+    "assertions": [
+      {
+        "name": "Workflow card appeared for QC test",
+        "passed": true
+      },
+      {
+        "name": "MG-4: QC settings section visible",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG4_01_card.png"
+    ]
+  },
+  {
+    "testId": "MG-5..12",
+    "startTs": 1777445207407,
+    "endTs": 1777445207407,
+    "finalStatus": "failed",
+    "assertions": [
+      {
+        "name": "MG-5: AI responded to full EMPIAR-10028 query",
+        "passed": true
+      },
+      {
+        "name": "MG-5: CryoSPARC SPA card appeared",
+        "passed": true
+      },
+      {
+        "name": "MG-5: Run button clicked successfully",
+        "passed": true
+      },
+      {
+        "name": "MG-5: Overall status transitions to running",
+        "passed": false
+      },
+      {
+        "name": "MG-5: Footer shows Running... spinner",
+        "passed": false
+      },
+      {
+        "name": "MG-6: At least one phase card shows running/completed",
+        "passed": false
+      },
+      {
+        "name": "MG-6: First phase completed (idle→running→completed)",
+        "passed": false,
+        "note": "timeout — still running"
+      },
+      {
+        "name": "MG-8: Full pipeline reached terminal state",
+        "passed": true,
+        "note": "failed"
+      },
+      {
+        "name": "MG-8: ChatOutputAttachments panel visible",
+        "passed": true
+      },
+      {
+        "name": "MG-8: density_map output → DensityMapViewer canvas rendered",
+        "passed": false
+      },
+      {
+        "name": "MG-8: image output → ImageOutput img rendered",
+        "passed": false
+      },
+      {
+        "name": "MG-8: table output → CsvTableViewer rendered",
+        "passed": false
+      },
+      {
+        "name": "MG-8: text output → TextOutput pre rendered",
+        "passed": false
+      },
+      {
+        "name": "MG-9: QC gate card visible (FSC or advisory)",
+        "passed": true,
+        "note": "gate fired"
+      },
+      {
+        "name": "MG-9: QC gate shows measured vs threshold values",
+        "passed": false,
+        "note": "Movies Path=s3://biomate-cryo-data/empiar-10028/Micrographsedit"
+      },
+      {
+        "name": "MG-10: Findings card visible",
+        "passed": false
+      },
+      {
+        "name": "MG-11: Methods report HTTP 200",
+        "passed": true
+      },
+      {
+        "name": "MG-11: Methods report non-empty",
+        "passed": true
+      },
+      {
+        "name": "MG-11: Methods report contains CryoSPARC",
+        "passed": true,
+        "note": "BioMate AI — Methods Report\n============================================================\nGenerated: "
+      },
+      {
+        "name": "MG-12: Download commands panel visible",
+        "passed": false
+      }
+    ],
+    "screenshots": [
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_01_home.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_02_query.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_03_card.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_04_license.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_05_params_set.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_06_run_started.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG5_07_running_state.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG6_01_phases_active.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG6_02_first_phase_done.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG8_01_terminal_failed.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG8_02_output_panel.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG9_01_qc_gate.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG11_01_report_btn.png",
+      "/home/yzhang/biomate/frontend/e2e/screenshots/cryoem-multigpu/MG_final_state.png"
+    ]
+  }
+]

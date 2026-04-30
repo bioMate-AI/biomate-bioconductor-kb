@@ -1,0 +1,22 @@
+{
+  "workflow": "cryosparc_standard_spa",
+  "version": "2.0",
+  "completion_time": "2026-04-27T12:33:24.641769",
+  "sample_type": "unknown",
+  "pixel_size_angstroms": 1.96,
+  "voltage_kv": 300,
+  "symmetry": "C1",
+  "mock_mode": false,
+  "real_mode": true,
+  "parallelism": {
+    "micrograph_batch_size": 200,
+    "particle_batch_size": 10000,
+    "max_parallel_jobs": 20
+  },
+  "outputs": {
+    "final_map": "volume_sharpened.mrc",
+    "local_resolution_map": "local_resolution.mrc",
+    "fsc_validation": "fsc_validation.json"
+  },
+  "steps_completed": 23
+}

@@ -1,0 +1,7 @@
+{
+  "step": "04_micrograph_denoiser",
+  "timestamp": "2026-04-27T07:54:39.748280",
+  "num_micrographs": 0,
+  "denoiser_model": "janni",
+  "mock_mode": false
+}
