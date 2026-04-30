@@ -1296,6 +1296,9 @@ in drug-metabolising enzymes and transporters, body composition differences, and
         genotox_block = f"\n{narrative_genotox}\n" if narrative_genotox else ""
         cardiac_block = f"\n{narrative_cardiac}\n" if narrative_cardiac else ""
 
+        # EMA mechanistic DILI tier (EMA DILI Reflection Paper 2021)
+        mech_dili_block = self._mechanistic_dili_block(ctx)
+
         # Safety summary table
         safety_table = f"""\
 | Safety Gate | Compounds Flagged | Campaign Total | Flag Rate |
