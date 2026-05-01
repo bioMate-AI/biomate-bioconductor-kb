@@ -77,12 +77,19 @@ if ext in (".pdb", ".ent"):
 # -- Try BioEmu 1.3.1 Python API: bioemu.sample.main() -----------------------
 try:
     from bioemu.sample import main as bioemu_main
+    # batch_size_100: BioEmu computes batch_size = int(batch_size_100 * (100/n_res)^2)
+    # For sequences >316 aa this rounds to 0 → ValueError. Set batch_size_100
+    # large enough so batch_size >= 1 for any sequence up to 700 aa.
+    n_res_est = len(open(fasta_file).read().split('\n',1)[-1].replace('\n',''))
+    import math
+    batch_size_100 = max(20, math.ceil((n_res_est / 100) ** 2) + 1)
     print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
-    print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file}", flush=True)
+    print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file} ({n_res_est} aa), batch_size_100={batch_size_100}", flush=True)
     bioemu_main(
         sequence=fasta_file,
         num_samples=n_samples,
         output_dir="bioemu_output",
+        batch_size_100=batch_size_100,
     )
     # BioEmu writes .xtc + topology .pdb — convert to individual PDBs
     import glob as g
