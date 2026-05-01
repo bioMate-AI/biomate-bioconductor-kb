@@ -1,0 +1,141 @@
+{
+  "Sildenafil": {
+    "herg_ic50_uM": 3.3113,
+    "n_measurements": 11,
+    "all_values": [
+      100.0,
+      3.3113,
+      3.3113,
+      3.3,
+      3.3
+    ]
+  },
+  "Terfenadine": {
+    "herg_ic50_uM": 0.1995,
+    "n_measurements": 24,
+    "all_values": [
+      0.204,
+      0.056,
+      0.056,
+      0.1995,
+      0.1288
+    ]
+  },
+  "Cisapride": {
+    "herg_ic50_uM": 0.0398,
+    "n_measurements": 25,
+    "all_values": [
+      0.0065,
+      0.045,
+      0.047,
+      0.0398,
+      0.0065
+    ]
+  },
+  "Dofetilide": {
+    "herg_ic50_uM": 0.014,
+    "n_measurements": 21,
+    "all_values": [
+      0.015,
+      0.01,
+      0.01,
+      44.0,
+      0.03
+    ]
+  },
+  "Verapamil": {
+    "herg_ic50_uM": 0.2,
+    "n_measurements": 20,
+    "all_values": [
+      0.143,
+      0.143,
+      0.1412,
+      0.1445,
+      3.1
+    ]
+  },
+  "Amiodarone": {
+    "herg_ic50_uM": 10.0,
+    "n_measurements": 5,
+    "all_values": [
+      10.0,
+      10.0,
+      10.0,
+      1.0,
+      0.03
+    ]
+  },
+  "Haloperidol": {
+    "herg_ic50_uM": 0.0302,
+    "n_measurements": 16,
+    "all_values": [
+      0.0281,
+      0.032,
+      0.0302,
+      0.0282,
+      1.4
+    ]
+  },
+  "Quinidine": {
+    "herg_ic50_uM": 0.3236,
+    "n_measurements": 7,
+    "all_values": [
+      0.3236,
+      0.3236,
+      0.3236,
+      0.3,
+      2.67
+    ]
+  },
+  "Astemizole": {
+    "herg_ic50_uM": 0.008,
+    "n_measurements": 24,
+    "all_values": [
+      0.0009,
+      0.0009,
+      0.006,
+      0.01,
+      0.0009
+    ]
+  },
+  "Clarithromycin": {
+    "herg_ic50_uM": 58.8844,
+    "n_measurements": 5,
+    "all_values": [
+      58.8844,
+      33.1131,
+      46.0,
+      58.8844,
+      58.8844
+    ]
+  },
+  "Ketoconazole": {
+    "herg_ic50_uM": 1.9055,
+    "n_measurements": 6,
+    "all_values": [
+      1.9055,
+      1.9055,
+      1.9,
+      1.9,
+      1.9055
+    ]
+  },
+  "Clozapine": {
+    "herg_ic50_uM": 0.3236,
+    "n_measurements": 13,
+    "all_values": [
+      0.191,
+      0.3236,
+      5.7544,
+      0.3236,
+      0.32
+    ]
+  },
+  "Propranolol": {
+    "herg_ic50_uM": 2.828,
+    "n_measurements": 1,
+    "all_values": [
+      2.828
+    ]
+  }
+}

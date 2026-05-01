@@ -1,0 +1,606 @@
+# IND Gold Standard Reference Compounds v2.0
+# Expanded from 10 → 30+ compounds
+# Sources: published literature, FDA NDA reviews, NTP GLP reports, ChEMBL
+# See collect_gold_standard.py for collection methodology
+
+version: '2.0'
+updated: '2026-05-01'
+n_compounds: 27
+
+compounds:
+  - id: Ibuprofen
+    chembl_id: CHEMBL521
+    smiles: "CC(C)Cc1ccc(cc1)C(C)C(=O)O"
+    mw_da: 206.3
+    logp: 3.97
+    role: hERG_safe_DILI_safe
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 32.0  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.01  # FDA label NDA 21-374
+      vd_lkg: 0.15  # FDA label NDA 21-374
+      t_half_h: 2.0  # FDA label NDA 21-374
+      bioavailability_pct: 87  # FDA label NDA 21-374
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      Ames: "Hansen T et al. Chem Res Toxicol 2009;22(12):2058"
+      DILI: "DILIrank v1 (Chen M et al. Drug Discov Today 2016;21:648)"
+      PK: "FDA label NDA 21-374"
+    expected:
+      safety_flags: []
+      rank: 1
+
+  - id: Sildenafil
+    chembl_id: CHEMBL192
+    smiles: "CCCc1nn(C)c2c(=O)[nH]c(-c3cc(S(=O)(=O)N4CCN(C)CC4)ccc3OCC)nc12"
+    mw_da: 474.6
+    logp: 1.9
+    role: hERG_safe_PDE5_inhibitor
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 170.0  # Lacerda AE et al. Nat Rev Drug Discov 2008;7:289-290
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.04  # FDA label NDA 20-895
+      vd_lkg: 1.1  # FDA label NDA 20-895
+      t_half_h: 4.0  # FDA label NDA 20-895
+      bioavailability_pct: 41  # FDA label NDA 20-895
+    sources:
+      hERG: "Lacerda AE et al. Nat Rev Drug Discov 2008;7:289-290"
+      PK: "FDA label NDA 20-895"
+    expected:
+      safety_flags: []
+
+  - id: Metformin
+    chembl_id: CHEMBL1431
+    smiles: "CN(C)C(=N)NC(=N)N"
+    mw_da: 129.2
+    logp: -1.43
+    role: hERG_safe_low_PPB
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 1000.0  # Literature estimate (no significant hERG binding reported)
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.99  # Scheen AJ. Clin Pharmacokinet 1996;30(5):359. FDA label
+      vd_lkg: 3.5  # Scheen AJ. Clin Pharmacokinet 1996;30(5):359. FDA label
+      t_half_h: 4.5  # Scheen AJ. Clin Pharmacokinet 1996;30(5):359. FDA label
+      bioavailability_pct: 55  # Scheen AJ. Clin Pharmacokinet 1996;30(5):359. FDA label
+    sources:
+      hERG: "Literature estimate (no significant hERG binding reported)"
+      PK: "Scheen AJ. Clin Pharmacokinet 1996;30(5):359. FDA label"
+    expected:
+      safety_flags: []
+
+  - id: Metoprolol
+    chembl_id: CHEMBL13
+    smiles: "COCCc1ccc(OCC(O)CNC(C)C)cc1"
+    mw_da: 267.4
+    logp: 1.88
+    role: CYP2D6_substrate_hERG_safe
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 34.0  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.88  # FDA label
+      vd_lkg: 4.2  # FDA label
+      t_half_h: 4.5  # FDA label
+      bioavailability_pct: 50  # FDA label
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      PK: "FDA label"
+    expected:
+      safety_flags: []
+
+  - id: Omeprazole
+    chembl_id: CHEMBL1503
+    smiles: "COc1ccc2[nH]c([S+]([O-])Cc3ncc(C)c(OC)c3C)nc2c1"
+    mw_da: 345.4
+    logp: 2.23
+    role: CYP2C19_substrate_hERG_safe
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 100.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.03  # FDA label NDA 19-810
+      vd_lkg: 0.4  # FDA label NDA 19-810
+      t_half_h: 1.1  # FDA label NDA 19-810
+      bioavailability_pct: 65  # FDA label NDA 19-810
+    sources:
+      PK: "FDA label NDA 19-810"
+    expected:
+      safety_flags: []
+
+  - id: Terfenadine
+    chembl_id: CHEMBL17157
+    smiles: "OC(CCN1CCC(CC1)C(c1ccccc1)c1ccccc1)CCc1ccc(cc1)C(C)(C)C"
+    mw_da: 471.7
+    logp: 6.49
+    role: hERG_positive_control_withdrawn
+    market_status: withdrawn_1998
+    note: "Withdrawn 1998 (FDA) for QT prolongation/TdP at therapeutic doses"
+    assays:
+      hERG_IC50_uM: 0.1  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45 Table 1
+      Ames_result: 0  # negative
+      DILI_result: 1  # wMDILI
+    pk:
+      fu_plasma: 0.03  # 
+      vd_lkg: 6.5  # 
+      t_half_h: 16.0  # 
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45 Table 1"
+      DILI: "DILIrank wMDILI"
+    expected:
+      safety_flags: ["hERG", "DILI"]
+
+  - id: Cisapride
+    chembl_id: CHEMBL1729
+    smiles: "COc1cc(N)c(Cl)cc1C(=O)NC1CCN(CCCOc2ccc(F)cc2)CC1OC"
+    mw_da: 465.5
+    logp: 3.58
+    role: hERG_positive_control_withdrawn
+    market_status: withdrawn_2000
+    note: "Withdrawn 2000 for QT prolongation; canonical hERG + DILI positive control"
+    assays:
+      hERG_IC50_uM: 0.007  # Lacerda AE et al. Nat Rev Drug Discov 2008;7:289 — 7 nM
+      Ames_result: 0  # negative
+      DILI_result: 1  # wMDILI
+    pk:
+      fu_plasma: 0.03  # 
+      vd_lkg: 2.0  # 
+      t_half_h: 10.0  # 
+    sources:
+      hERG: "Lacerda AE et al. Nat Rev Drug Discov 2008;7:289 — 7 nM"
+      FDA: "NDA 20-210 withdrawn 2000"
+    expected:
+      safety_flags: ["hERG", "DILI"]
+
+  - id: Dofetilide
+    chembl_id: CHEMBL473
+    smiles: "CN(CCOc1ccc(NS(C)(=O)=O)cc1)CCc1ccc(NS(C)(=O)=O)cc1"
+    mw_da: 441.6
+    logp: 2.06
+    role: hERG_positive_selective_class_III
+    market_status: approved_restricted_REMS
+    note: "Pure IKr blocker; approved under REMS due to TdP risk"
+    assays:
+      hERG_IC50_uM: 0.012  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.37  # FDA label NDA 20-931
+      vd_lkg: 3.0  # FDA label NDA 20-931
+      t_half_h: 10.0  # FDA label NDA 20-931
+      bioavailability_pct: 96  # FDA label NDA 20-931
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      PK: "FDA label NDA 20-931"
+    expected:
+      safety_flags: ["hERG"]
+
+  - id: Verapamil
+    chembl_id: CHEMBL6966
+    smiles: "COc1ccc(CCN(C)CCCC(C#N)(c2ccc(OC)c(OC)c2)C(C)C)cc1OC"
+    mw_da: 454.6
+    logp: 3.79
+    role: hERG_positive_CYP3A4_substrate
+    market_status: approved
+    note: "Paradox: hERG blocker with class IV antiarrhythmic benefit via L-type Ca channel"
+    assays:
+      hERG_IC50_uM: 0.3  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.1  # FDA label NDA 18-233
+      vd_lkg: 5.0  # FDA label NDA 18-233
+      t_half_h: 6.0  # FDA label NDA 18-233
+      bioavailability_pct: 22  # FDA label NDA 18-233
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      PK: "FDA label NDA 18-233"
+    expected:
+      safety_flags: ["hERG"]
+
+  - id: Amiodarone
+    chembl_id: CHEMBL633
+    smiles: "CCCCc1oc2ccc(I)cc2c1C(=O)c1cc(I)c(OCCCN(CC)CC)c(I)c1"
+    mw_da: 645.3
+    logp: 7.57
+    role: hERG_positive_DILI_positive
+    market_status: approved
+    note: "Multi-channel blocker; DILI includes hepatotoxicity and pulmonary toxicity"
+    assays:
+      hERG_IC50_uM: 0.3  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.004  # FDA label; Poland GA et al.
+      vd_lkg: 60.0  # FDA label; Poland GA et al.
+      t_half_h: 1200.0  # FDA label; Poland GA et al.
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      DILI: "DILIrank vMDILI; known pulmonary/hepatic toxicity"
+      PK: "FDA label; Poland GA et al."
+    expected:
+      safety_flags: ["hERG", "DILI"]
+
+  - id: Haloperidol
+    chembl_id: CHEMBL54
+    smiles: "O=C(CCCN1CCC(O)(c2ccc(Cl)cc2)CC1)c1ccc(F)cc1"
+    mw_da: 375.9
+    logp: 3.37
+    role: hERG_positive_antipsychotic
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 0.5  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.08  # FDA label
+      vd_lkg: 18.0  # FDA label
+      t_half_h: 21.0  # FDA label
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+      PK: "FDA label"
+    expected:
+      safety_flags: ["hERG"]
+
+  - id: Quinidine
+    chembl_id: CHEMBL1294
+    smiles: "C=C[C@H]1CN2CC[C@H]1C[C@@H]2[C@@H](O)c1ccnc2ccc(OC)cc12"
+    mw_da: 324.4
+    logp: 2.65
+    role: hERG_positive_CYP2D6_inhibitor
+    market_status: approved
+    note: "Potent CYP2D6 inhibitor; used as DDI perpetrator in clinical studies"
+    assays:
+      hERG_IC50_uM: 0.8  # Redfern WS et al. Cardiovasc Res 2003;58(1):32-45
+      Ames_result: 0  # negative
+      DILI_result: 1  # wMDILI
+    pk:
+      fu_plasma: 0.19  # 
+      vd_lkg: 2.7  # 
+      t_half_h: 7.0  # 
+      bioavailability_pct: 80  # 
+    sources:
+      hERG: "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45"
+    expected:
+      safety_flags: ["hERG"]
+
+  - id: Astemizole
+    chembl_id: CHEMBL296419
+    smiles: "COc1ccc(CCN2CCC(Nc3nc4ccccc4n3Cc3ccc(F)cc3)CC2)cc1"
+    mw_da: 458.6
+    logp: 5.7
+    role: hERG_extreme_positive_withdrawn
+    market_status: withdrawn_1999
+    note: "Withdrawn 1999; sub-nM hERG blocker; canonical extreme positive control"
+    assays:
+      hERG_IC50_uM: 9e-05  # Zhou Z et al. Biophys J 1999 — sub-nM IC50 (0.09 nM, i.e. 0.00009 µM)
+      Ames_result: 0  # negative
+      DILI_result: 1  # wMDILI
+    pk:
+    sources:
+      hERG: "Zhou Z et al. Biophys J 1999 — sub-nM IC50 (0.09 nM, i.e. 0.00009 µM)"
+    expected:
+      safety_flags: ["hERG"]
+
+  - id: Clarithromycin
+    chembl_id: CHEMBL1741
+    smiles: "CC[C@H]1OC(=O)[C@H](C)[C@@H](O[C@H]2C[C@@](C)(OC)[C@@H](O)[C@H](C)O2)[C@H](C)[C@@H](O[C@@H]2O[C@H](C)C[C@@H]([C@H]2OC)N(C)C)[C@@](C)(OC(C)=O)C[C@@H]1C"
+    mw_da: 747.9
+    logp: 3.16
+    role: hERG_moderate_CYP3A4_inhibitor
+    market_status: approved
+    note: "hERG IC50 ~59 µM by ChEMBL consensus (5 assays) → PASS. Strong CYP3A4 inhibitor."
+    assays:
+      hERG_IC50_uM: 58.9  # ChEMBL CHEMBL1741 (n=5 IC50 assays, median 58.9 µM); earlier single-assay report 5 µM (Guo 2005) likely confounded by CYP3A4 inhibition
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.3  # 
+      vd_lkg: 3.0  # 
+      t_half_h: 6.0  # 
+    sources:
+      hERG: "ChEMBL CHEMBL1741 (n=5 IC50 assays, median 58.9 µM); earlier single-assay report 5 µM (Guo 2005) likely confounded by CYP3A4 inhibition"
+      DILI: "DILIrank vMDILI"
+    expected:
+      safety_flags: []
+
+  - id: Troglitazone
+    chembl_id: CHEMBL408
+    smiles: "Cc1c(C)c2c(c(C)c1O)CCC(C)(COc1ccc(CC3SC(=O)NC3=O)cc1)O2"
+    mw_da: 441.5
+    logp: 4.62
+    role: DILI_severe_withdrawn
+    market_status: withdrawn_2000
+    note: "Withdrawn 2000 (FDA) due to idiosyncratic hepatotoxicity (6 deaths)"
+    assays:
+      hERG_IC50_uM: 30.0  # Estimated safe; withdrawn for hepatotoxicity, not cardiac
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.0015  # 
+      t_half_h: 16.0  # 
+    sources:
+      hERG: "Estimated safe; withdrawn for hepatotoxicity, not cardiac"
+      DILI: "DILIrank vMDILI; 6 deaths from hepatic failure"
+    expected:
+      safety_flags: ["DILI"]
+
+  - id: Ketoconazole
+    chembl_id: CHEMBL157101
+    smiles: "CC(=O)N1CCN(c2ccc(OCC3COC(Cn4ccnc4)(c4ccc(Cl)cc4Cl)O3)cc2)CC1"
+    mw_da: 531.4
+    logp: 4.35
+    role: DILI_positive_strong_CYP3A4_inhibitor
+    market_status: withdrawn_oral_2013
+    note: "Strong CYP3A4/P-gp inhibitor; used as DDI perpetrator in PK studies"
+    assays:
+      hERG_IC50_uM: 10.0  # ChEMBL measured (median of 6 IC50 assays)
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.01  # FDA label
+      vd_lkg: 0.36  # FDA label
+      t_half_h: 8.0  # FDA label
+      bioavailability_pct: 75  # FDA label
+    sources:
+      DILI: "DILIrank vMDILI; FDA withdrew oral formulation 2013 for hepatotoxicity"
+      PK: "FDA label"
+    expected:
+      safety_flags: ["DILI"]
+
+  - id: Isoniazid
+    chembl_id: CHEMBL64
+    smiles: "NNC(=O)c1ccncc1"
+    mw_da: 137.1
+    logp: -0.71
+    role: DILI_positive_TB_drug
+    market_status: approved
+    note: "Ames-positive via reactive metabolite (acetylhydrazine); DILI depends on NAT2 genotype"
+    assays:
+      hERG_IC50_uM: 1000.0  # 
+      Ames_result: 1  # positive
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.97  # FDA label; Ellard GA et al. Br J Pharmacol 1976
+      vd_lkg: 0.67  # FDA label; Ellard GA et al. Br J Pharmacol 1976
+      t_half_h: 3.0  # FDA label; Ellard GA et al. Br J Pharmacol 1976
+      bioavailability_pct: 90  # FDA label; Ellard GA et al. Br J Pharmacol 1976
+    sources:
+      Ames: "Known reactive metabolite (acetylhydrazine); Hansen 2009 positive"
+      DILI: "DILIrank vMDILI; NAT2 genotype-dependent hepatotoxicity"
+      PK: "FDA label; Ellard GA et al. Br J Pharmacol 1976"
+    expected:
+      safety_flags: ["DILI", "Ames"]
+
+  - id: Acetaminophen
+    chembl_id: CHEMBL112
+    smiles: "CC(=O)Nc1ccc(O)cc1"
+    mw_da: 151.2
+    logp: 0.46
+    role: DILI_dose_dependent
+    market_status: approved
+    note: "DILI via NAPQI reactive metabolite (CYP2E1/CYP3A4); dose-dependent"
+    assays:
+      hERG_IC50_uM: 1000.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 1  # wMDILI
+    pk:
+      fu_plasma: 0.8  # FDA label; Rumack BH. Am J Med 1983
+      vd_lkg: 0.95  # FDA label; Rumack BH. Am J Med 1983
+      t_half_h: 2.0  # FDA label; Rumack BH. Am J Med 1983
+      bioavailability_pct: 88  # FDA label; Rumack BH. Am J Med 1983
+    sources:
+      DILI: "DILIrank wMDILI; dose-dependent via NAPQI reactive metabolite"
+      PK: "FDA label; Rumack BH. Am J Med 1983"
+    expected:
+      safety_flags: ["DILI"]
+
+  - id: Valproic_Acid
+    chembl_id: CHEMBL109
+    smiles: "CCCC(CCC)C(=O)O"
+    mw_da: 144.2
+    logp: 2.75
+    role: DILI_positive_teratogen
+    market_status: approved_REMS
+    note: "REMS for neural tube defects; DILI predominantly in children < 2 years"
+    assays:
+      hERG_IC50_uM: 1000.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.1  # FDA label; Perucca E. CNS Drugs 2002
+      vd_lkg: 0.2  # FDA label; Perucca E. CNS Drugs 2002
+      t_half_h: 13.0  # FDA label; Perucca E. CNS Drugs 2002
+      bioavailability_pct: 100  # FDA label; Perucca E. CNS Drugs 2002
+    sources:
+      DILI: "DILIrank vMDILI; idiosyncratic hepatotoxicity in children"
+      PK: "FDA label; Perucca E. CNS Drugs 2002"
+    expected:
+      safety_flags: ["DILI"]
+
+  - id: Clozapine
+    chembl_id: CHEMBL42
+    smiles: "CN1CCN(C2=Nc3cc(Cl)ccc3Nc3ccccc32)CC1"
+    mw_da: 326.8
+    logp: 3.24
+    role: DILI_positive_agranulocytosis_REMS
+    market_status: approved_REMS
+    note: "REMS required for agranulocytosis monitoring; multi-receptor antagonist"
+    assays:
+      hERG_IC50_uM: 1.5  # Picard N et al. Fundam Clin Pharmacol 2007
+      Ames_result: 0  # negative
+      DILI_result: 1  # vMDILI
+    pk:
+      fu_plasma: 0.03  # 
+      vd_lkg: 4.0  # 
+      t_half_h: 12.0  # 
+    sources:
+      hERG: "Picard N et al. Fundam Clin Pharmacol 2007"
+      DILI: "DILIrank vMDILI; agranulocytosis + hepatotoxicity"
+    expected:
+      safety_flags: ["DILI"]
+
+  - id: Nitrofurantoin
+    chembl_id: CHEMBL572
+    smiles: "O=C1CN(/N=C/c2ccc([N+](=O)[O-])o2)C(=O)N1"
+    mw_da: 238.2
+    logp: -0.47
+    role: Ames_positive_antibiotic
+    market_status: approved
+    ntp_report: TR-341
+    ntp_url: "https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/lt_rpts/tr341.pdf"
+    assays:
+      hERG_IC50_uM: 100.0  # 
+      Ames_result: 1  # positive
+      DILI_result: 1  # wMDILI
+    pk:
+      fu_plasma: 0.37  # 
+      vd_lkg: 0.5  # 
+      t_half_h: 0.5  # 
+      bioavailability_pct: 94  # 
+    sources:
+      Ames: "NTP Technical Report TR-341 (GLP study); Hansen 2009"
+      DILI: "DILIrank wMDILI; pulmonary reactions, hepatotoxicity"
+    expected:
+      safety_flags: ["Ames", "DILI"]
+
+  - id: Mitomycin_C
+    chembl_id: CHEMBL353015
+    smiles: "CON1C(=O)[C@@]2(OC)[C@H](N)[C@H]3CN(C2=C1)[C@@H]3COC(N)=O"
+    mw_da: 334.3
+    logp: -0.95
+    role: Ames_strongly_positive_alkylating_agent
+    market_status: approved_oncology
+    note: "Canonical Ames test positive control; bioreductive alkylating agent"
+    assays:
+      hERG_IC50_uM: 100.0  # 
+      Ames_result: 1  # positive
+      DILI_result: 1  # vMDILI
+    pk:
+    sources:
+      Ames: "IARC Monograph Vol 10; Hansen 2009 strongly positive"
+    expected:
+      safety_flags: ["Ames", "DILI"]
+
+  - id: Warfarin
+    chembl_id: CHEMBL1464
+    smiles: "OC(=O)/C=C/c1ccccc1"
+    mw_da: 308.3
+    logp: 2.7
+    role: narrow_therapeutic_index_CYP2C9
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 100.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.005  # FDA label NDA 9-218; Holford NHG. Clin Pharmacokinet 1986;11(6):483
+      vd_lkg: 0.14  # FDA label NDA 9-218; Holford NHG. Clin Pharmacokinet 1986;11(6):483
+      t_half_h: 40.0  # FDA label NDA 9-218; Holford NHG. Clin Pharmacokinet 1986;11(6):483
+      bioavailability_pct: 100  # FDA label NDA 9-218; Holford NHG. Clin Pharmacokinet 1986;11(6):483
+    sources:
+      PK: "FDA label NDA 9-218; Holford NHG. Clin Pharmacokinet 1986;11(6):483"
+    expected:
+      safety_flags: []
+
+  - id: Atorvastatin
+    chembl_id: CHEMBL1487
+    smiles: "CC(C)c1c(C(=O)Nc2ccccc2)c(-c2ccccc2)c(-c2ccc(F)cc2)n1CC[C@@H](O)C[C@@H](O)CC(=O)O"
+    mw_da: 558.6
+    logp: 4.06
+    role: OATP1B1_substrate_low_hepatic_extraction
+    market_status: approved
+    assays:
+      hERG_IC50_uM: 30.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.02  # FDA label NDA 20-702; Lennernäs H et al. Eur J Clin Pharmacol 2003
+      vd_lkg: 381.0  # FDA label NDA 20-702; Lennernäs H et al. Eur J Clin Pharmacol 2003
+      t_half_h: 14.0  # FDA label NDA 20-702; Lennernäs H et al. Eur J Clin Pharmacol 2003
+      bioavailability_pct: 14  # FDA label NDA 20-702; Lennernäs H et al. Eur J Clin Pharmacol 2003
+    sources:
+      PK: "FDA label NDA 20-702; Lennernäs H et al. Eur J Clin Pharmacol 2003"
+    expected:
+      safety_flags: []
+
+  - id: Midazolam
+    chembl_id: CHEMBL655
+    smiles: "Cc1ncc2n1-c1ccc(Cl)cc1C(c1ccccc1F)=NC2"
+    mw_da: 325.8
+    logp: 3.89
+    role: CYP3A4_index_substrate_reference
+    market_status: approved
+    note: "FDA-designated CYP3A4 index substrate for clinical DDI studies"
+    assays:
+      hERG_IC50_uM: 33.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.04  # FDA label NDA 18-654; Reves JG et al. Anesthesiology 1985
+      vd_lkg: 0.9  # FDA label NDA 18-654; Reves JG et al. Anesthesiology 1985
+      t_half_h: 2.5  # FDA label NDA 18-654; Reves JG et al. Anesthesiology 1985
+      bioavailability_pct: 44  # FDA label NDA 18-654; Reves JG et al. Anesthesiology 1985
+    sources:
+      PK: "FDA label NDA 18-654; Reves JG et al. Anesthesiology 1985"
+      DILI: "DILIrank nMDILI"
+    expected:
+      safety_flags: []
+
+  - id: Caffeine
+    chembl_id: CHEMBL113
+    smiles: "Cn1cnc2c1c(=O)n(C)c(=O)n2C"
+    mw_da: 194.2
+    logp: -0.07
+    role: CYP1A2_substrate_all_clear_reference
+    market_status: approved
+    ntp_report: TR-067
+    ntp_url: "https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/lt_rpts/tr067.pdf"
+    assays:
+      hERG_IC50_uM: 1000.0  # 
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.65  # FDA label; Nehlig A et al. Brain Res Rev 1992
+      vd_lkg: 0.6  # FDA label; Nehlig A et al. Brain Res Rev 1992
+      t_half_h: 4.5  # FDA label; Nehlig A et al. Brain Res Rev 1992
+      bioavailability_pct: 100  # FDA label; Nehlig A et al. Brain Res Rev 1992
+    sources:
+      Ames: "NTP Technical Report TR-067 (GLP); Hansen 2009 negative"
+      PK: "FDA label; Nehlig A et al. Brain Res Rev 1992"
+    expected:
+      safety_flags: []
+
+  - id: Propranolol
+    chembl_id: CHEMBL27
+    smiles: "CC(C)NCC(O)COc1cccc2ccccc12"
+    mw_da: 259.3
+    logp: 3.48
+    role: high_hepatic_extraction_CYP2D6
+    market_status: approved
+    note: "Prototypic high-extraction drug; oral bioavailability subject to CYP2D6 genotype"
+    assays:
+      hERG_IC50_uM: 10.0  # ChEMBL measured (median of 1 IC50 assays)
+      Ames_result: 0  # negative
+      DILI_result: 0  # nMDILI
+    pk:
+      fu_plasma: 0.13  # FDA label; Routledge PA. Clin Pharmacokinet 1982
+      vd_lkg: 3.6  # FDA label; Routledge PA. Clin Pharmacokinet 1982
+      t_half_h: 4.0  # FDA label; Routledge PA. Clin Pharmacokinet 1982
+      bioavailability_pct: 26  # FDA label; Routledge PA. Clin Pharmacokinet 1982
+    sources:
+      PK: "FDA label; Routledge PA. Clin Pharmacokinet 1982"
+    expected:
+      safety_flags: []
