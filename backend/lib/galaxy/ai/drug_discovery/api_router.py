@@ -826,6 +826,7 @@ class INDAssemblyRequest(BaseModel):
     glp_facility: str = ""                 # NMPA/CDE: GLP facility name for declaration
     glp_recognition: str = ""             # NMPA/CDE: GLP recognition statement
     ethnic_bridging_note: str = ""         # NMPA/PMDA: sponsor-provided ethnic bridging context
+    wetlab_data: Optional[dict] = None     # measured wet-lab PK/safety data (overrides computational)
 
 
 @router.post("/{campaign_id}/ind-assembly")
@@ -875,6 +876,7 @@ async def assemble_ind_section(
             glp_facility=body.glp_facility,
             glp_recognition=body.glp_recognition,
             ethnic_bridging_note=body.ethnic_bridging_note,
+            wetlab_data=body.wetlab_data,
         )
     except Exception as exc:
         log.exception("IND assembly failed for campaign %s", campaign_id)

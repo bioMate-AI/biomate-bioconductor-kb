@@ -275,6 +275,7 @@ class INDSectionAssembler:
         glp_facility: str = "",
         glp_recognition: str = "",
         ethnic_bridging_note: str = "",
+        wetlab_data: Optional[dict] = None,
     ) -> AssemblyResult:
         """
         Generate CTD Sections 2.6.1–2.6.3 for the given campaign.
@@ -306,6 +307,13 @@ class INDSectionAssembler:
         if pk_summary is None:
             pk_summary = self._load_stored_pk_summary(campaign_id, warnings)
 
+        # Wet-lab data overrides: merge measured values into pk_summary and safety_profile
+        # Measured values always take precedence over computational predictions.
+        if wetlab_data:
+            pk_summary, safety_profile = self._merge_wetlab_overrides(
+                wetlab_data, pk_summary, safety_profile, warnings
+            )
+
         # Build document sections
         ctx = dict(
             campaign_id=campaign_id,
@@ -320,6 +328,7 @@ class INDSectionAssembler:
             auto_proposal=auto_proposal,
             safety_profile=safety_profile,
             pk_summary=pk_summary,
+            wetlab_data=wetlab_data,
             region=region,
             glp_facility=glp_facility,
             glp_recognition=glp_recognition,
@@ -425,6 +434,69 @@ class INDSectionAssembler:
         except Exception as exc:
             warnings.append(f"Latest proposal unavailable: {exc}")
         return None
+
+    def _merge_wetlab_overrides(self, wetlab_data: dict, pk_summary: Optional[dict],
+                                  safety_profile: dict, warnings: list) -> tuple[dict, dict]:
+        """
+        Merge wet-lab measured values into pk_summary and safety_profile.
+
+        Measured values ALWAYS override computational predictions.
+        Each overridden field is tagged with source='measured_wetlab'.
+
+        wetlab_data format: WetLabStudyData.to_dict() or WetLabStudyData.to_pk_summary_override()
+        """
+        try:
+            from .wetlab_report_ingester import WetLabReportIngester
+            ingester = WetLabReportIngester()
+
+            # Accept either raw dict (WetLabStudyData.to_dict()) or structured input
+            if "fu_plasma" in wetlab_data and isinstance(wetlab_data.get("fu_plasma"), (int, float)):
+                # Already flattened — use ingest_structured
+                wl = ingester.ingest_structured(wetlab_data,
+                                                drug_name=wetlab_data.get("drug_name", ""),
+                                                source_reference=wetlab_data.get("source_document", "wetlab"))
+            elif "value" in str(wetlab_data.get("fu_plasma", "")):
+                # MeasuredValue dicts from to_dict()
+                wl = ingester.ingest_structured(
+                    {k: v["value"] if isinstance(v, dict) and "value" in v else v
+                     for k, v in wetlab_data.items()},
+                    source_reference=wetlab_data.get("source_document", "wetlab")
+                )
+            else:
+                wl = ingester.ingest_structured(wetlab_data)
+
+            pk_override = wl.to_pk_summary_override()
+
+            # Merge into pk_summary
+            merged_pk = dict(pk_summary or {})
+            for key, val in pk_override.items():
+                if val is not None:
+                    merged_pk[key] = val
+                    if key not in ("status", "source", "measurement_provenance"):
+                        log.info("[wetlab_merge] %s overridden with measured value: %s", key, val)
+
+            # Update safety_profile with measured safety values
+            merged_sp = dict(safety_profile)
+            if wl.herg_ic50_uM_measured is not None:
+                merged_sp["herg_ic50_uM_measured"] = wl.herg_ic50_uM_measured.value
+                merged_sp["herg_source"] = "measured_patch_clamp"
+                log.info("[wetlab_merge] hERG IC50 overridden: %.3f µM (measured)",
+                         wl.herg_ic50_uM_measured.value)
+            if wl.ames_in_vitro:
+                merged_sp["ames_result_measured"] = wl.ames_in_vitro
+                merged_sp["ames_source"] = "measured_in_vitro"
+            if wl.noael_mg_kg_day:
+                merged_sp["noael_mg_kg_day_measured"] = wl.noael_mg_kg_day.value
+                merged_sp["noael_species"] = wl.noael_species
+                merged_sp["noael_study_duration"] = wl.noael_study_duration
+            merged_sp["genotox_battery_result_measured"] = wl.genotox_battery_result
+            merged_sp["wetlab_source"] = wetlab_data.get("source_document", "wetlab_report")
+
+            return merged_pk, merged_sp
+
+        except Exception as exc:
+            warnings.append(f"Wet-lab data merge failed: {exc}")
+            return pk_summary or {}, safety_profile
 
     def _load_stored_pk_summary(self, campaign_id: str, warnings: list) -> Optional[dict]:
         """Read pk_summary.json previously stored via POST /{id}/pk-summary."""
@@ -1063,21 +1135,32 @@ Each signature is linked to its corresponding audit record via `audit_record_id`
                     + "\n".join(per_cpd_rows)
                 )
 
+            # Determine source label per parameter
+            fu_source    = pk_sum.get("fu_source", "")
+            ppbr_method  = "ADMET-AI Chemprop-RDKit (Swanson et al. 2023)" if "admet_ai" in fu_source else method
+            is_measured  = pk_sum.get("measurement_provenance") == "wetlab_study"
+
+            if is_measured:
+                source_note = "**Source: measured wet-lab study** (values have been validated experimentally)"
+                fu_method   = f"Measured PPB study ({pk_sum.get('wetlab_source', 'CRO')})"
+            else:
+                source_note = f"*Source: computational prediction — method: {ppbr_method}*"
+                fu_method   = ppbr_method
+
             predicted_pk_section = f"""
 
-### Predicted DMPK Parameters — Lead Candidate
+### DMPK Parameters — Lead Candidate
 
-The following values were generated by BioMate's in silico DMPK model
-(`predict_admet_properties` workflow, method: {method}).
+{source_note}
 
-| Parameter | Predicted Value | Method |
-|-----------|----------------|--------|
-| Fraction unbound in plasma (f_u) | {_fmt(fu)} | Lobell & Sivarajah 2003 sigmoid (J Med Chem) |
-| Volume of distribution (Vd) | {_fmt(vd)} L/kg | Lombardo 2002 QSPR (J Med Chem) |
-| Hepatic CL fraction | {_pct(cl_h)} | BCS/logP heuristic (Benet 2011 Pharm Res) |
-| Renal CL fraction | {_pct(cl_r)} | BCS/logP heuristic (Benet 2011 Pharm Res) |
-| logP | {_fmt(logp)} | RDKit Crippen |
-| MW | {_fmt(mw)} Da | RDKit |
+| Parameter | Value | Source | Method |
+|-----------|-------|--------|--------|
+| Fraction unbound in plasma (f_u) | {_fmt(fu)} | {'Measured ✓' if is_measured else 'Predicted'} | {fu_method} |
+| Volume of distribution (Vd) | {_fmt(vd)} L/kg | {'Measured ✓' if is_measured else 'Predicted'} | Lombardo 2002 QSPR (J Med Chem) |
+| Hepatic CL fraction | {_pct(cl_h)} | Predicted | BCS/logP heuristic (Benet 2011 Pharm Res) |
+| Renal CL fraction | {_pct(cl_r)} | Predicted | BCS/logP heuristic (Benet 2011 Pharm Res) |
+| logP | {_fmt(logp)} | Predicted | RDKit Crippen |
+| MW | {_fmt(mw)} Da | Calculated | RDKit |
 {per_cpd_table}
 
 *Disclaimer:* {disclaimer}"""
