@@ -448,3 +448,99 @@ BioMate's iteration cycle is minutes, not weeks.
 4. **Audit trail moat:** 21 CFR Part 11 SHA-256 hash chain + TOTP eSig + document
    freeze is a genuine compliance capability, not a checkbox. Once a customer builds
    their IND filing workflow around BioMate's audit trail, switching costs are very high.
+
+---
+
+## 8. Honest Readiness Assessment — The Four Moats
+
+The four moats are architecturally sound but commercially unproven. Here is an honest
+gap-by-gap assessment of what is ready vs. what needs work before each moat is
+defensible in front of a paying customer or a regulatory reviewer.
+
+### Moat 1: ADMET Training Data (13,719 compounds, guideline-tagged)
+
+**Status: Partially ready**
+
+The data exists (`data/admet_training.db`) and is tagged to controlling ICH/FDA/EMA
+guidelines per property. The PPBR predictor was trained on it (MAE 7.35%, beating both
+Lobell 2003 at 19.35% and ADMET-AI baseline at 8.6%).
+
+**Gap:** The hERG, DILI, and Ames models still use ADMET-AI's pre-trained weights —
+they are not fine-tuned on our expanded dataset. We have 4,172 ChEMBL hERG records vs.
+TDC's 655. To make this moat credible:
+1. Fine-tune hERG classifier on ChEMBL + TDC combined (n ~4,800) and benchmark
+2. Show the fine-tuned model outperforms ADMET-AI out-of-the-box
+3. Retrain quarterly as new ChEMBL data accumulates
+
+Until the fine-tuning is done, this data is a resource we hold, not yet a model advantage.
+
+### Moat 2: Regulatory KB Requiring Ongoing Domain Expertise
+
+**Status: Mostly ready, missing maintenance process**
+
+The KB v1.1 is current as of 2026-04-30 — it correctly reflects ICH S7B(R1) Step 4
+(November 2024), ICH M7(R2) (2023), FDA/EMA AI Guidance (January 2026), and NMPA
+CDE guidelines. The auditor uses it to drive compliance checks that regenerate thresholds
+automatically when the KB is updated.
+
+**Gap:** There is no formal review process. A competitor could build a comparable KB
+in 2–3 weeks. The moat only materialises if we maintain higher accuracy and currency
+than anyone else. Required:
+1. Assigned owner responsible for quarterly KB review
+2. Automated watch-item alerting (subscribe to FDA/EMA/ICH newsletters, flag new
+   guidelines within 30 days of publication)
+3. A public-facing "guideline status" page showing BioMate's coverage vs. each region —
+   this turns the KB into a trust signal customers can verify
+
+### Moat 3: Auditable Gold Standard Benchmarks
+
+**Status: Partially ready — 9 compounds is not enough**
+
+37/37 assertions on 9 reference compounds (Redfern 2003, DILIrank, Hansen 2009) is a
+real result, and TDC hERG AUROC 0.9635 is competitive. But:
+
+9 compounds is too small for a credible published benchmark. Published computational
+drug discovery benchmarks typically use 50–100+ compounds. A regulatory reviewer
+looking at "9 compounds" would question statistical power.
+
+**Required before paper submission:**
+- Expand gold standard to 30–50 compounds with full PK/safety annotations
+- Sources: Obach 2008 (670 drugs, measured t_half and CLh), DrugBank PK, TDC full test sets
+- Cover the hardest cases: highly protein-bound drugs (PPB > 99%), CYP3A4 substrates,
+  reactive metabolite positives (quinone-forming) that are correctly flagged in §2.6.3.2
+
+Until then, the benchmark is a proof of concept, not a moat.
+
+### Moat 4: 21 CFR Part 11 Audit Trail — Switching Costs
+
+**Status: Technically implemented, commercially unproven**
+
+SHA-256 hash chain, TOTP eSig, document freeze, `ASSEMBLE_IND` / `GENERATE_IND`
+audit actions, and hash footer are all implemented. The switching cost argument is
+correct in theory: once a customer has 6–12 months of campaigns tied to BioMate's
+audit trail and their eSig records are part of their regulatory filing history,
+switching to a competitor means orphaning that history.
+
+**Gap:** Zero production campaigns. No real sponsor has run a campaign through BioMate
+and used the audit trail in a regulatory context. The moat becomes real only with
+usage. Without it, the moat is a technical feature, not a business advantage.
+
+**Required to activate this moat:**
+- One paying pilot customer who runs a real campaign to completion
+- Their pre-IND meeting package includes BioMate-generated §2.6.1–§2.6.5 with eSig
+- They receive FDA written guidance at the pre-IND meeting
+- We document the outcome (publicly if positive, internally if negative)
+
+### Summary: What Needs to Happen Before Commercial Launch
+
+| Moat | Current State | Required to Activate |
+|------|-------------|---------------------|
+| ADMET training data | Data collected | Fine-tune hERG on expanded ChEMBL dataset |
+| Regulatory KB | Current + versioned | Assign quarterly review owner; build alerting |
+| Gold standard benchmarks | 9 compounds, 37/37 | Expand to 30–50 compounds; publish paper |
+| 21 CFR Part 11 audit trail | Implemented | One real pilot customer campaign |
+
+**The honest position:** BioMate is production-ready technically. It is not yet
+market-ready commercially. The gap is not engineering — it is validation. One real
+pilot that produces a pre-IND meeting package and receives FDA written guidance would
+do more for commercial credibility than any further feature development.
