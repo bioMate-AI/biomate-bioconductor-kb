@@ -65,8 +65,32 @@ Three external forces converge in 2026:
 
 **Yes — at the pre-IND stage. No — as a standalone full Phase I IND.**
 
-This distinction is critical and often misunderstood. There are three distinct FDA
-submission pathways, and BioMate is positioned for the first two:
+### Clarification on 21 CFR §312.23(a)(8)
+
+The regulation says nonclinical data "may consist of published literature or unpublished
+studies." This phrase was drafted in the 1970s–80s. **"Unpublished studies" means
+proprietary in-house wet-lab studies not yet published — not computational models.**
+FDA has never formally interpreted this phrase to include in silico predictions as a
+substitute for required in vitro studies.
+
+The operative standard — "sufficient to reasonably conclude it is safe to proceed" —
+has been operationalised by FDA through ICH M3(R2) to require specific in vitro studies
+before first-in-human (FIH) dosing:
+
+- In vitro genotoxicity (Ames + chromosomal aberration) per ICH S2(R1) §4:
+  *"should ordinarily be completed before initiation of human clinical trials"*
+- In vitro hERG per ICH S7B(R1): *"In vitro assays for hERG channel current inhibition
+  should be conducted before first-in-human studies"* — even though S7B(R1) Step 4
+  (November 2024) formally validates in silico screening, it explicitly does NOT
+  allow in silico to replace the GLP in vitro assay for FIH decisions
+
+**BioMate's computational data is appropriate for §2.6.1** (which ICH M4S(R2) defines as
+the computational pharmacology section) and the **pre-IND meeting context**. It cannot
+stand alone as the §2.6.3 toxicology evidentiary basis for a Phase I IND.
+
+The correct framing: BioMate generates the computational scaffold that (a) is submitted
+in the pre-IND meeting, (b) informs the GLP study design, and (c) is progressively
+enriched with wet-lab data as studies complete.
 
 ### Pathway 1: Pre-IND Meeting Package (Primary Target)
 
@@ -79,11 +103,10 @@ and request written guidance. The package submitted for this meeting typically c
 - Proposed nonclinical study plan
 - Proposed Phase I clinical protocol design
 
-**Computational ADMET + PBPK + in silico Ames/hERG is entirely standard here.**
-FDA's written response to a pre-IND package gives sponsors a formal record of what
-studies they will accept for the full IND. This is the highest-value early use case
-for BioMate output — it gives the startup written FDA guidance before they spend
-$2–5M on GLP studies.
+**Computational ADMET + PBPK + in silico Ames/hERG is standard here.**
+FDA's written response gives sponsors a formal record of what studies they will accept
+for the full IND — before they spend $2–5M on GLP studies. This is the primary
+use case for BioMate output today.
 
 ### Pathway 2: Exploratory/Phase 0 IND
 
