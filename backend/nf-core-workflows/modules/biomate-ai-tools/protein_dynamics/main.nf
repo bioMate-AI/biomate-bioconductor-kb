@@ -86,14 +86,15 @@ try:
     print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
     print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file} ({n_res_est} aa), batch_size_100={batch_size_100}", flush=True)
     # Pull checkpoint from S3 (119 MB, same-region, ~5s) — no HuggingFace needed
-    import subprocess
+    import boto3
     os.makedirs("bioemu_ckpt", exist_ok=True)
+    s3 = boto3.client("s3", region_name="us-west-2")
     for f in ["checkpoint.ckpt", "config.yaml"]:
-        subprocess.run([
-            "/opt/aws-cli/bin/aws", "s3", "cp", "--region", "us-west-2",
-            f"s3://biomate-nextflow-work/models/bioemu-v1.1/checkpoints/bioemu-v1.1/{f}",
+        s3.download_file(
+            "biomate-nextflow-work",
+            f"models/bioemu-v1.1/checkpoints/bioemu-v1.1/{f}",
             f"bioemu_ckpt/{f}"
-        ], check=True)
+        )
     print("[BIOEMU_SAMPLE] Checkpoint loaded from S3", flush=True)
 
     bioemu_main(

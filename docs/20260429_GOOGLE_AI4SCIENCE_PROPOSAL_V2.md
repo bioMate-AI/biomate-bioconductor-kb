@@ -6,7 +6,7 @@
 
 **Principal Investigators:**
 - Yaoyun Zhang, BioMate AI Platform — Lead PI; AI architecture, training infrastructure, BioMate deployment
-- [Sister's name], Ph.D. — Co-PI, [Department], [Institution]; cryo-EM data collection, experimental validation
+- [Sister's name], Ph.D. — Co-PI, [Department], [Institution]; cryo-EM data collection, HDX-MS validation, experimental design
 
 **Requested Amount:** $2,500,000 over 3 years
 
@@ -16,7 +16,7 @@
 
 ## Abstract
 
-Cryo-EM systematically discards the conformational states that matter most for drug discovery: states present at less than 5% population fall below the particle-count resolution floor and are treated as noise by every current heterogeneity analysis method. We propose CryoEnsemble, a multi-modal Bayesian posterior framework that recovers these rare states by jointly conditioning a **mixture of state-of-the-art generative priors** — BioEmu-1 (MD Boltzmann), AlphaFold3 diffusion head (all-atom, multi-chain), and ESMFold/ESM3 (language model) — on **multiple experimental likelihoods**: per-particle cryo-EM image likelihoods, smFRET distance distributions, and HDX-MS protection factors. The core insight is that each signal source sees different conformational information: cryo-EM particles encode structural detail but miss states below the reconstruction floor; smFRET reports state populations in solution; HDX-MS captures residue-level dynamics orthogonally; and each generative model covers different regions of conformational space. A score-based diffusion posterior sampler (DPS-style) integrates all signals into a single coherent posterior — the first method to do so. In a proof-of-concept on adenylate kinase — 2,000 particles, 5% closed state — cryoDRGN misses the rare closed state entirely (RMSD 7.11 Å), while CryoEnsemble's posterior recovers it (RMSD 0.82 Å). The team combines the lead PI's score-based diffusion expertise and BioMate's production cryo-EM infrastructure (1.78 Å on EMPIAR-10028, 2,457 deployed workflows) with the co-PI's experimental cryo-EM, smFRET, and HDX-MS capabilities. CryoEnsemble will be deployed on BioMate and applied to 100+ EMDB datasets including 16 membrane proteins (GPCRs, ion channels, transporters) where vitrification bias is most severe.
+Cryo-EM systematically discards the conformational states that matter most for drug discovery: states present at less than 5% population fall below the particle-count resolution floor and are treated as noise by every current heterogeneity analysis method. We propose CryoEnsemble, a multi-modal Bayesian posterior framework that recovers these rare states by jointly conditioning a **mixture of state-of-the-art generative priors** — BioEmu-1 (MD Boltzmann), AlphaFold3 diffusion head (all-atom, multi-chain), and ESMFold/ESM3 (language model) — on **multiple experimental likelihoods**: per-particle cryo-EM image likelihoods, smFRET distance distributions, and HDX-MS protection factors. The core insight is that each signal source sees different conformational information: cryo-EM particles encode structural detail but miss states below the reconstruction floor; smFRET reports state populations in solution; HDX-MS captures residue-level dynamics orthogonally; and each generative model covers different regions of conformational space. A score-based diffusion posterior sampler (DPS-style) integrates all signals into a single coherent posterior — the first method to do so. In a proof-of-concept on adenylate kinase — 2,000 particles, 5% closed state — cryoDRGN misses the rare closed state entirely (RMSD 7.11 Å), while CryoEnsemble's posterior recovers it (RMSD 0.82 Å). The team combines the lead PI's score-based diffusion expertise and BioMate's production cryo-EM infrastructure (1.78 Å on EMPIAR-10028, 2,457 deployed workflows) with the co-PI's experimental cryo-EM and HDX-MS capabilities. smFRET validation will be pursued via external collaboration with specialist labs (λ_fret = 0 when unavailable — the method degrades gracefully to cryo-EM + HDX-MS). CryoEnsemble will be deployed on BioMate and applied to 100+ EMDB datasets including 16 membrane proteins (GPCRs, ion channels, transporters) where vitrification bias is most severe.
 
 ---
 
@@ -214,7 +214,7 @@ This result confirms the core claim: per-particle likelihood conditioning preser
 | **Obj. 1** | Train CryoEnsemble v0.1 on CryoBench synthetic datasets | Y1 Q1–Q2 | ≥ 50% rare-state recovery recall at 5% population vs. cryoDRGN baseline of 0% |
 | **Obj. 2** | Benchmark v0.1 against cryoDRGN, 3DVA, cryoENsemble on CryoBench | Y1 Q3 | CryoEnsemble RMSD to rare state ≤ 2.0 Å for ≥ 3/5 CryoBench proteins where cryoDRGN RMSD > 4.0 Å |
 | **Obj. 3** | Apply to β₂AR (EMPIAR-10258) and TRPV1 (EMPIAR-10059); validate against published allosteric sites | Y1 Q4 | Posterior ensemble enriches for β₂AR Na⁺ cryptic site conformers ≥ 2× vs. cryoDRGN clusters (Fisher's exact p < 0.05) |
-| **Obj. 4** | HDX-MS and smFRET experimental validation on 2 targets | Y2 | smFRET population fraction R² ≥ 0.70 between predicted posterior weights and measured state populations |
+| **Obj. 4** | HDX-MS validation on ≥ 2 targets; smFRET via external collaboration if feasible | Y2 | HDX-MS correlation r ≥ 0.65 for flexible regions on ≥ 2 targets; smFRET R² ≥ 0.70 contingent on collaboration availability (not a hard gating criterion) |
 | **Obj. 5** | Expand to 10 experimental cryo-EM datasets | Y2 | Rare-state RMSD ≤ 2.0 Å for ≥ 7/10 targets; HDX-MS correlation r ≥ 0.65 for flexible regions |
 | **Obj. 6** | Deploy on BioMate; process 100+ EMDB datasets; cryptic pocket demonstration | Y3 | ≥ 100 EMDB datasets processed; cryptic pocket recall ≥ 60% vs. published allosteric sites for 3 drug targets |
 
@@ -280,9 +280,9 @@ L = E_q[Σ_modal λ_modal · log L_modal(data | x)] - β·KL(q(z|data,seq) || P_
 
 The experimental component, led by [Sister's name], will provide ground-truth validation using three complementary techniques:
 
-**HDX-MS (Hydrogen-Deuterium Exchange Mass Spectrometry):** Measures backbone amide exchange rates as a proxy for conformational flexibility and solvent exposure. Regions of high exchange correspond to conformations predicted to sample disordered or open states in the CryoEnsemble posterior. This provides residue-level validation of the recovered ensemble without requiring atomic structures of rare states.
+**HDX-MS (Hydrogen-Deuterium Exchange Mass Spectrometry):** Measures backbone amide exchange rates as a proxy for conformational flexibility and solvent exposure. Regions of high exchange correspond to conformations predicted to sample disordered or open states in the CryoEnsemble posterior. HDX-MS provides residue-level *supporting evidence* for ensemble dynamics — it validates that recovered conformers are physically plausible (increased exposure in predicted rare states) but cannot directly confirm specific conformational populations or rare-state RMSD values. We use HDX-MS correlation (r ≥ 0.65) as a supporting metric, complementary to the primary cryo-EM rare-state recall benchmark.
 
-**Single-molecule FRET (smFRET):** For proteins with defined distance-reporting conformational changes (e.g., kinase open/closed, GPCR active/inactive), smFRET provides direct population fractions of distinct states in solution. CryoEnsemble's predicted population weights wᵢ will be validated against smFRET-derived state populations.
+**Single-molecule FRET (smFRET):** For proteins with defined distance-reporting conformational changes, smFRET provides direct population fractions of distinct states in solution — the strongest available validation of posterior weights. smFRET requires site-specific labeling and specialized instrumentation not available in all structural biology labs. We will pursue smFRET validation via targeted external collaboration (e.g., labs with established GPCR or transporter smFRET pipelines). When smFRET data is unavailable, λ_fret = 0 and CryoEnsemble reduces gracefully to cryo-EM + HDX-MS conditioning. smFRET is therefore a high-value augmentation, not a hard dependency.
 
 **Cryo-EM sample preparation optimization:** Systematic comparison of grid preparation conditions (detergent concentrations, buffer pH, temperature, addition of crosslinkers) to experimentally reduce the air-water interface adsorption bias, creating paired datasets with high and low conformational sampling bias for controlled validation of CryoEnsemble's bias correction.
 
@@ -306,7 +306,7 @@ BioMate (biomate.ai) provides the computational infrastructure for deploying Cry
 
 **Conformational completeness benchmark**: The first systematic comparison of cryo-EM-recovered conformational landscapes against MD ground truth for ≥ 100 EMDB datasets, establishing a public leaderboard. This resource alone will have lasting value independent of the CryoEnsemble method, providing quantitative evidence of the rare-state gap across the most-studied structural biology targets.
 
-**Recovered rare states with experimental validation**: Experimentally validated low-population (<5%) conformational states for at least 5 proteins, with structural characterization of cryptic binding sites and functional annotation. Validation is by two orthogonal methods (HDX-MS and smFRET) for each target, achieving smFRET population fraction R² ≥ 0.70 against measured state populations.
+**Recovered rare states with experimental validation**: Experimentally validated low-population (<5%) conformational states for at least 5 proteins, with structural characterization of cryptic binding sites and functional annotation. Primary validation is HDX-MS (residue-level dynamics, co-PI laboratory) for all targets, achieving HDX-MS correlation r ≥ 0.65 for flexible regions. smFRET validation (population fractions, R² ≥ 0.70) will be pursued for ≥ 2 targets via external collaboration; this is a stretch goal dependent on collaboration availability and not a hard project deliverable.
 
 **Population-weighted free-energy estimates**: Posterior ensemble population fractions validated against smFRET and HDX-MS for 5 protein systems (smFRET R² ≥ 0.70; HDX-MS correlation r ≥ 0.65 for flexible regions), demonstrating calibrated thermodynamic predictions that cannot be obtained from any current cryo-EM reconstruction method.
 
@@ -315,9 +315,12 @@ BioMate (biomate.ai) provides the computational infrastructure for deploying Cry
 CryoEnsemble directly addresses the cryptic binding site problem in drug discovery. Approximately 70% of human disease-relevant proteins are currently considered "undruggable" because their ground-state structures lack accessible ligand-binding pockets. Many of these proteins are believed to sample druggable conformations transiently. CryoEnsemble, by recovering low-population states from existing cryo-EM datasets, could unlock these cryptic pockets without requiring new experimental infrastructure or additional data collection.
 
 Three disease-relevant targets will be prioritized for demonstration, with a quantitative success criterion of cryptic pocket recall ≥ 60% vs. published allosteric sites:
-- A G-protein-coupled receptor in an underexplored allosteric state
-- A protein-protein interaction interface relevant to oncology
-- A kinase DFG-out conformation absent from available crystal structures
+
+- **β₂-adrenergic receptor (β₂AR, EMPIAR-10258) — positive control.** The cryptic Na⁺ allosteric site (Liu et al. 2012, residue D79 region) is a well-characterized rare-state pocket. β₂AR validates that CryoEnsemble recovers a *known* site that cryoDRGN misses — a necessary baseline before claiming discovery power. Success criterion: posterior conformers enriched ≥ 2× for Na⁺ site geometry vs. cryoDRGN clusters (Fisher's exact p < 0.05).
+
+- **SERT serotonin transporter (5I6X / EMPIAR data) — novel discovery case.** SERT is a secondary active SLC6-family transporter that undergoes large-scale alternating-access transitions (outward-open → occluded → inward-open, ~15 Å TM helix displacement). Low-population intermediate conformations are systematically underrepresented in existing cryo-EM datasets due to the particle-count resolution floor. Unlike β₂AR, there is no pre-characterized cryptic pocket to validate against — SERT tests whether CryoEnsemble can identify *novel* rare-state binding sites with genuine discovery value. SLC transporters are a medically critical and structurally underexplored drug target class; antidepressant SSRIs bind SERT, yet the structural determinants of allosteric modulation remain incompletely mapped.
+
+- **A second novel target (TBD in Y2)** — a kinase or ion channel with documented conformational gating but no published rare-state structural data, selected based on Year 1 ensemble results.
 
 ### 5.3 Platform Impact via BioMate
 
@@ -350,7 +353,7 @@ Role: CryoEnsemble architecture design and training; Bayesian posterior network 
 Expertise: Score-based diffusion models (lead-author publication [CITATION — to be added by PI]); AI-driven bioinformatics platform engineering; Nextflow DSL2 pipeline development; cryo-EM processing automation (CryoSPARC SPA pipeline delivering 1.78 Å resolution, Nyquist-limited, on EMPIAR benchmark data); large-scale cloud GPU orchestration. Founder, BioMate AI — 2,457-workflow computational biology platform serving pharma, biotech, and academic labs globally.
 
 **[Sister's name], Ph.D. — Co-PI, [Department], [Institution]**  
-Role: Experimental lead; cryo-EM data collection and quality optimization; target protein selection and biochemical characterization; HDX-MS and smFRET ground-truth validation; interpretation of recovered low-population states in biological context.  
+Role: Experimental lead; cryo-EM data collection and quality optimization; target protein selection and biochemical characterization; HDX-MS ground-truth validation; biological interpretation of recovered low-population states. smFRET validation to be coordinated via external specialist collaboration.  
 Expertise: Single-particle cryo-EM, membrane protein biochemistry, conformational dynamics, structural pharmacology.
 
 ### Personnel Plan
@@ -439,7 +442,7 @@ This project requires unusually tight coupling between experimental structural b
 | Personnel — computational (2 FTE, includes PI time) | $320K | $330K | $340K | $990K |
 | Personnel — experimental (1.5 FTE postdoc + 0.5 FTE technician) | $210K | $220K | $230K | $660K |
 | GPU compute (AWS Batch spot instances: g6/A100 fleet, 60–70% spot discount applied) | $175K | $140K | $85K | $400K |
-| Experimental materials (HDX-MS, smFRET reagents, grid prep) | $80K | $100K | $80K | $260K |
+| Experimental materials (HDX-MS reagents, grid prep; smFRET via collaboration) | $80K | $80K | $60K | $220K |
 | Subcontract — advisory expertise (Bayesian inference / diffusion models) | $60K | $40K | $20K | $120K |
 | Travel, conference dissemination | $20K | $25K | $25K | $70K |
 | **Total** | **$865K** | **$855K** | **$780K** | **$2,500K** |
