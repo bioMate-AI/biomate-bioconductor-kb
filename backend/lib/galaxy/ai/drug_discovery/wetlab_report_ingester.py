@@ -192,6 +192,12 @@ class WetLabReportIngester:
         "chromosomal_aberration": [
             r'chromosomal\s+aberration[^:.\n]*:\s*(negative|positive)',
             r'clastogenicity[^:.\n]*:\s*(negative|positive)',
+            # NTP format: "induced increased numbers of chromosomal aberrations" → positive
+            r'induced[^.]*chromosomal\s+aberrations',
+            # EMA/FDA format: "chromosomal aberration test was (positive|negative)"
+            r'chromosomal\s+aberration\s+(?:test\s+)?was\s+(positive|negative)',
+            # Negative: "no chromosomal aberrations were observed"
+            r'no\s+(?:increase[^.]*)?chromosomal\s+aberrations?\s+were\s+(?:observed|induced)',
         ],
         "micronucleus": [
             r'micronucleus\s+test[^:.\n]*:\s*(negative|positive)',
@@ -370,14 +376,23 @@ class WetLabReportIngester:
     def _extract_binary_result(self, text: str, param: str, ref: str) -> Optional[str]:
         for pat in self._SAFETY_PATTERNS.get(param, []):
             m = re.search(pat, text, re.IGNORECASE)
-            if m:
-                result_str = m.group(1).lower().strip()
-                if "not mutagenic" in result_str or "negative" in result_str:
+            if not m:
+                continue
+            # Patterns that imply result from full match (no capture group)
+            if m.lastindex is None or m.lastindex == 0:
+                matched = m.group(0).lower()
+                if "no " in matched and ("aberration" in matched or "mutagenic" in matched):
                     return "negative"
-                elif "mutagenic" in result_str or "positive" in result_str:
+                if "induced" in matched or "positive" in matched or "mutagenic" in matched:
                     return "positive"
-                elif "equivocal" in result_str:
-                    return "equivocal"
+                continue
+            result_str = m.group(1).lower().strip()
+            if "not mutagenic" in result_str or "negative" in result_str:
+                return "negative"
+            elif "mutagenic" in result_str or "positive" in result_str:
+                return "positive"
+            elif "equivocal" in result_str:
+                return "equivocal"
         return None
 
     def _extract_noael(self, text: str, ref: str) -> tuple[Optional[MeasuredValue], str]:
