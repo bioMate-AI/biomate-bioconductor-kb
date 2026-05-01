@@ -181,6 +181,9 @@ class WetLabReportIngester:
             r'Ames\s+test[^:.\n]*:\s*(negative|positive|equivocal)',
             r'Salmonella[^:.\n]*:\s*(negative|positive)',
             r'mutagenicity[^:.\n]*:\s*(negative|positive|not\s+mutagenic)',
+            # NTP Technical Report format: "was mutagenic in Salmonella" or "was not mutagenic"
+            r'was\s+(mutagenic|not mutagenic)\s+(?:in\s+)?Salmonella',
+            r'(mutagenic|not\s+mutagenic)\s+in\s+Salmonella\s+typhimurium',
         ],
         "noael": [
             r'NOAEL\s*[=:of]*\s*([\d.]+)\s*mg/kg(?:/day)?(?:\s+in\s+(\w+))?',
@@ -369,9 +372,9 @@ class WetLabReportIngester:
             m = re.search(pat, text, re.IGNORECASE)
             if m:
                 result_str = m.group(1).lower().strip()
-                if "negative" in result_str or "not mutagenic" in result_str:
+                if "not mutagenic" in result_str or "negative" in result_str:
                     return "negative"
-                elif "positive" in result_str:
+                elif "mutagenic" in result_str or "positive" in result_str:
                     return "positive"
                 elif "equivocal" in result_str:
                     return "equivocal"
