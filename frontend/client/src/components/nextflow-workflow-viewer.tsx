@@ -451,11 +451,23 @@ function PhaseGroupSection({
     if (anyRunning || anyFailed) setOpen(true);
   }, [anyRunning, anyFailed]);
 
-  // Params that belong to this phase (matched by group field on the param schema)
+  // Match params to this phase by keyword overlap between param's semantic group name
+  // and the phase label. Supports both legacy letter groups ("A","B") and semantic names
+  // ("Motion Correction", "CTF Estimation"). Global/Advanced params are never matched here.
   const phaseRenderedParams = renderedParameters.filter(p => {
-    const g = (p as any).group;
-    if (!g) return false;
-    return String(g).toUpperCase() === group.key.toUpperCase();
+    const pg = String((p as any).group || '').trim().toLowerCase();
+    if (!pg) return false;
+    if (['global', 'advanced', 'infrastructure', 'performance'].includes(pg)) return false;
+
+    // Legacy: exact letter match (e.g. group="A" matches phase key="A")
+    if (pg === group.key.toLowerCase()) return true;
+
+    // Semantic: keyword overlap — extract words ≥3 chars from param group name
+    // and check if any appear in the phase label (e.g. "ctf" in "CTF Estimation" matches
+    // phase label "Motion Correction & CTF")
+    const groupWords = pg.split(/[\s_\-]+/).filter(w => w.length >= 3);
+    const labelNorm = label.toLowerCase();
+    return groupWords.some(w => labelNorm.includes(w));
   });
   const [phaseParamsOpen, setPhaseParamsOpen] = React.useState(false);
 
@@ -2110,17 +2122,24 @@ export function NextflowWorkflowViewer({
             )}
 
             {/* ── Global/infrastructure params strip ──────────────────────────── */}
-            {/* Only shows: params with group='global', params with no group that weren't claimed
-                by any phase, and params without any group field at all (legacy workflows).
-                Phase-specific params (group A/B/C/D/E) are shown inside each phase card above. */}
+            {/* Shows params NOT claimed by any phase card. A param is claimed when its semantic
+                group name has keyword overlap with a phase label ("CTF Estimation" → CTF phase).
+                group='global'/'advanced' is always shown here. No-group params also go here. */}
             {(() => {
-              // Known phase keys (letters A-Z, excluding 'global')
-              const phaseKeys = new Set(groupedPhases.map(g => g.key.toUpperCase()).filter(k => k !== 'ALL'));
-              // Global params = group is 'global' OR group is missing/unrecognized
-              const globalParams = renderedParameters.filter(p => {
-                const g = String((p as any).group || '').toUpperCase();
-                return !g || g === 'GLOBAL' || (!phaseKeys.has(g) && g !== 'GLOBAL');
-              });
+              // Re-use the same keyword matcher as PhaseGroupSection
+              const paramClaimedByAnyPhase = (p: any): boolean => {
+                const pg = String(p.group || '').trim().toLowerCase();
+                if (!pg) return false;
+                if (['global', 'advanced', 'infrastructure', 'performance'].includes(pg)) return false;
+                return groupedPhases.some(grp => {
+                  if (pg === grp.key.toLowerCase()) return true;
+                  const dashIdx = grp.label.indexOf('—');
+                  const lbl = (dashIdx > -1 ? grp.label.slice(dashIdx + 1) : grp.label).toLowerCase();
+                  const words = pg.split(/[\s_\-]+/).filter((w: string) => w.length >= 3);
+                  return words.some((w: string) => lbl.includes(w));
+                });
+              };
+              const globalParams = renderedParameters.filter(p => !paramClaimedByAnyPhase(p));
               // Format mismatch warning
               const allParamDefs: any[] = [
                 ...(workflowDefinition?.required_params || []),

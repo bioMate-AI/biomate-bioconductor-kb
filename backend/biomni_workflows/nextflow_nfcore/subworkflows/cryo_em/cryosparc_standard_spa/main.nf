@@ -39,7 +39,7 @@ nextflow.enable.dsl = 2
 // Parameters
 // ============================================================================
 
-// [Phase A] Data Input & Motion Correction
+// [Motion Correction] Data acquisition and beam-induced motion correction
 params.movies_path = null                   // Path to movie files (*.tif, *.mrc, *.eer)
 params.gain_ref = null                       // Optional gain reference
 params.pixel_size = 1.05                     // Angstroms per pixel
@@ -50,22 +50,22 @@ params.dose_per_frame = null                 // Auto-calculated if null
 params.phase_plate = false                   // true = Volta Phase Plate (VPP) data collection
 params.motion_correction_dose_weighting = true
 
-// [Phase B] CTF Estimation
+// [CTF Estimation] Contrast transfer function estimation parameters
 params.ctf_fitting_resolution_min = 30.0     // Angstroms — lower bound of CTF fit range
 params.ctf_fitting_resolution_max = 5.0      // Angstroms — upper bound of CTF fit range
 
-// [Phase C] Particle Picking
+// [Particle Picking] Automated particle detection and selection
 params.sample_type = 'unknown'               // 'membrane_protein' | 'virus' | 'ribosome' | 'small_protein' | 'unknown'
 params.particle_diameter_angstroms = null    // Particle diameter; estimated from molecular weight if null
 params.molecular_weight_kda = null           // Used to estimate particle diameter if not provided
 params.particle_box_size = null              // Box size in pixels; auto-calculated from diameter if null
 
-// [Phase E] 3D Reconstruction & Refinement
+// [Refinement] 3D reconstruction, classification, and refinement
 params.symmetry = 'C1'                       // Point group symmetry (e.g. C1, C2, D2, O, T, I)
 params.num_ab_initio_classes = 3             // Number of initial 3D classes for ab-initio reconstruction
 params.max_resolution_refinement = 2.5       // Target resolution in Angstroms for refinement
 
-// [Global] Infrastructure & CryoSPARC Connection
+// [Advanced] Infrastructure and CryoSPARC connection
 params.outdir = './results/cryosparc_spa'
 params.project_name = 'biomate_spa'
 params.mock_mode = false                     // Set to true only for CI unit tests
@@ -81,7 +81,7 @@ params.num_gpu = 0                           // 0 = auto-detect from CryoSPARC l
 params.gpu_memory_gb = 16
 params.enable_low_memory_mode = false        // Auto-enabled for <16GB GPUs
 
-// [Global] Performance & Parallelism
+// [Advanced] Performance and parallelism
 params.micrograph_batch_size = 200           // micrographs per parallel batch
 params.particle_batch_size = 10000           // particles per parallel 2D class batch
 params.num_gpu_workers = 1                   // ThreadPoolExecutor threads; executor sets to match num_gpu
