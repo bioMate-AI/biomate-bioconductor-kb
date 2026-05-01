@@ -459,20 +459,45 @@ defensible in front of a paying customer or a regulatory reviewer.
 
 ### Moat 1: ADMET Training Data (13,719 compounds, guideline-tagged)
 
-**Status: Partially ready**
+**Status: Misframed — needs correction**
 
-The data exists (`data/admet_training.db`) and is tagged to controlling ICH/FDA/EMA
-guidelines per property. The PPBR predictor was trained on it (MAE 7.35%, beating both
-Lobell 2003 at 19.35% and ADMET-AI baseline at 8.6%).
+The original claim ("our fine-tuned models outperform ADMET-AI") cannot be guaranteed
+and is likely wrong. Three reasons:
 
-**Gap:** The hERG, DILI, and Ames models still use ADMET-AI's pre-trained weights —
-they are not fine-tuned on our expanded dataset. We have 4,172 ChEMBL hERG records vs.
-TDC's 655. To make this moat credible:
-1. Fine-tune hERG classifier on ChEMBL + TDC combined (n ~4,800) and benchmark
-2. Show the fine-tuned model outperforms ADMET-AI out-of-the-box
-3. Retrain quarterly as new ChEMBL data accumulates
+1. **ADMET-AI was already trained on TDC data, which derives from ChEMBL.** Adding
+   more raw ChEMBL records to our training set likely overlaps with what ADMET-AI
+   already saw. More of the same data does not produce a better model.
 
-Until the fine-tuning is done, this data is a resource we hold, not yet a model advantage.
+2. **ChEMBL hERG data is noisier than TDC.** Our 4,172 records come from dozens of
+   different labs and assay conditions. ADMET-AI's TDC training data was curated —
+   duplicates removed, conflicting measurements resolved. Mixing noisy raw ChEMBL
+   data into training will likely hurt performance, not improve it.
+
+3. **Our hERG AUROC 0.9635 is not comparable to ADMET-AI's 0.870.** Our number comes
+   from a 20-compound internal holdout in the gold standard test. ADMET-AI's 0.870 is
+   measured on the 655-compound official TDC test split. Different test sets —
+   the comparison is invalid. On a fair benchmark, ADMET-AI's Chemprop message-passing
+   architecture will outperform our RDKit+GBR model for hERG.
+
+**Correct framing of this moat:**
+
+ADMET-AI is our ADMET prediction engine — we run it on AWS Batch and use its outputs.
+We should not try to compete with it on raw prediction accuracy. The data moat is
+different and longer-term: **as customers run campaigns through BioMate and upload
+wet-lab results, proprietary compound-assay pairs accumulate that no public model
+is trained on.** A CRO running 500 campaigns over 3 years builds a private ADMET
+dataset that becomes genuinely differentiating. This moat requires 2–3 years of
+production usage to materialise — it does not exist today.
+
+**What we have now:** A training database that is useful for (a) expanding our own
+gold standard test set, (b) tracking benchmark progress over time, and (c) providing
+regulatory provenance metadata (which guideline controls which property). That is
+valuable, but it is not a model performance moat today.
+
+**The PPBR exception:** Our custom GBR PPBR model (MAE 7.35%) does beat ADMET-AI's
+reported baseline (8.6%) on the TDC PPBR_AZ dataset. This result is approximately
+fair — both measured on the same dataset with similar train/test splits. But this
+is one endpoint, and it may not hold on the official TDC test split.
 
 ### Moat 2: Regulatory KB Requiring Ongoing Domain Expertise
 
