@@ -55,6 +55,78 @@ router = APIRouter(prefix="/api/drug-discovery", tags=["drug_discovery"])
 _ind_cache: dict[str, dict] = {}  # campaign_id → {markdown_path, docx_path, markdown_content}
 
 
+def _store_ind_document_hash(db_path: str, campaign_id: str, doc_hash: str, generated_at: str) -> None:
+    """Store the SHA-256 hash of a newly assembled IND document in the campaign DB."""
+    import sqlite3
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS ind_document_hashes (
+                campaign_id TEXT NOT NULL,
+                doc_hash    TEXT NOT NULL,
+                generated_at TEXT NOT NULL,
+                frozen_at   TEXT,
+                frozen_by   TEXT,
+                sig_id      TEXT,
+                is_frozen   INTEGER DEFAULT 0,
+                PRIMARY KEY (campaign_id, doc_hash)
+            )
+        """)
+        conn.execute("""
+            INSERT OR REPLACE INTO ind_document_hashes
+                (campaign_id, doc_hash, generated_at, is_frozen)
+            VALUES (?, ?, ?, 0)
+        """, (campaign_id, doc_hash, generated_at))
+        conn.commit()
+
+
+def _get_latest_ind_hash(db_path: str, campaign_id: str) -> Optional[dict]:
+    """Return the most recent ind_document_hashes row for a campaign, or None."""
+    import sqlite3
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.execute("""
+                SELECT doc_hash, generated_at, frozen_at, frozen_by, sig_id, is_frozen
+                FROM ind_document_hashes
+                WHERE campaign_id = ?
+                ORDER BY generated_at DESC
+                LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else None
+    except Exception:
+        return None
+
+
+def _freeze_ind_document(db_path: str, campaign_id: str, sig_id: str, user_id: str) -> Optional[str]:
+    """Mark the most recent IND document hash as frozen after eSig. Returns the frozen hash."""
+    import sqlite3
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with sqlite3.connect(db_path) as conn:
+            # Find latest unfrozen hash
+            cur = conn.execute("""
+                SELECT doc_hash FROM ind_document_hashes
+                WHERE campaign_id = ? AND is_frozen = 0
+                ORDER BY generated_at DESC LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            doc_hash = row[0]
+            conn.execute("""
+                UPDATE ind_document_hashes
+                SET frozen_at = ?, frozen_by = ?, sig_id = ?, is_frozen = 1
+                WHERE campaign_id = ? AND doc_hash = ?
+            """, (now, user_id, sig_id, campaign_id, doc_hash))
+            conn.commit()
+            return doc_hash
+    except Exception as exc:
+        log.warning("_freeze_ind_document failed for campaign %s: %s", campaign_id, exc)
+        return None
+
+
 def _store_pk_summary(db_path: str, campaign_id: str, pk_data: dict) -> None:
     """Persist pk_summary.json content to campaign SQLite DB for IND assembly."""
     import sqlite3, json
@@ -846,7 +918,26 @@ async def assemble_ind_section(
       - 21 CFR Part 11 audit trail summary
 
     Returns paths to the generated Markdown and (if pandoc is installed) DOCX.
+
+    Returns 409 if the document has already been frozen by an eSig.
+    Use POST /{campaign_id}/ind-assembly/supersede to create a new version.
     """
+    import hashlib
+
+    # Freeze guard: reject regeneration if the current document is frozen
+    db_path = _campaign_db(campaign_id)
+    latest_hash_row = _get_latest_ind_hash(db_path, campaign_id)
+    if latest_hash_row and latest_hash_row.get("is_frozen"):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Document frozen after eSig (sig_id={latest_hash_row.get('sig_id')}, "
+                f"frozen_by={latest_hash_row.get('frozen_by')}, "
+                f"frozen_at={latest_hash_row.get('frozen_at')}). "
+                f"Use POST /{campaign_id}/ind-assembly/supersede to create a new version."
+            ),
+        )
+
     try:
         from .ind_assembly import INDSectionAssembler
     except ImportError as exc:
@@ -858,12 +949,12 @@ async def assemble_ind_section(
     # Store pk_summary if provided, so it persists for future assemblies
     if body.pk_summary:
         try:
-            _store_pk_summary(_campaign_db(campaign_id), campaign_id, body.pk_summary)
+            _store_pk_summary(db_path, campaign_id, body.pk_summary)
         except Exception as exc:
             log.warning("Failed to store pk_summary for campaign %s: %s", campaign_id, exc)
 
     try:
-        assembler = INDSectionAssembler(_campaign_db(campaign_id))
+        assembler = INDSectionAssembler(db_path)
         result = assembler.assemble(
             campaign_id=campaign_id,
             output_dir=output_dir,
@@ -885,11 +976,20 @@ async def assemble_ind_section(
     # Read Markdown content to return inline
     markdown_content = Path(result.markdown_path).read_text(encoding="utf-8")
 
-    # Cache for download endpoint
+    # Compute and store document hash (hash of content already includes footer hash)
+    doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
+    try:
+        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at)
+    except Exception as exc:
+        log.warning("Failed to store IND document hash for campaign %s: %s", campaign_id, exc)
+
+    # Cache for download endpoint (include hash metadata)
     _ind_cache[campaign_id] = {
         "markdown_path": result.markdown_path,
         "docx_path": result.docx_path,
         "markdown_content": markdown_content,
+        "doc_hash": doc_hash,
+        "generated_at": result.generated_at,
     }
 
     # Serialize audit findings
@@ -919,6 +1019,8 @@ async def assemble_ind_section(
         "markdown_content": markdown_content,
         "markdown_path": result.markdown_path,
         "docx_path": result.docx_path,
+        "doc_hash": doc_hash,
+        "frozen": False,
     }
 
 
@@ -930,12 +1032,30 @@ async def download_ind_file(
     """
     Download the last generated IND assembly file (Markdown or DOCX).
     Serves from the in-memory cache populated by the POST endpoint.
+
+    Response headers include:
+      X-Doc-Hash: SHA-256 of the document content
+      X-Doc-Frozen: "true" if document has been eSig-frozen, "false" otherwise
+      X-Frozen-At, X-Frozen-By: populated when frozen
     """
     from fastapi.responses import FileResponse, PlainTextResponse
 
     cached = _ind_cache.get(campaign_id)
     if not cached:
         raise HTTPException(status_code=404, detail="No IND assembly found for this campaign. Generate first.")
+
+    # Retrieve freeze state from DB
+    db_path = _campaign_db(campaign_id)
+    hash_row = _get_latest_ind_hash(db_path, campaign_id)
+    doc_hash = cached.get("doc_hash", hash_row.get("doc_hash", "") if hash_row else "")
+    is_frozen = bool(hash_row and hash_row.get("is_frozen"))
+    frozen_headers: dict = {
+        "X-Doc-Hash": doc_hash,
+        "X-Doc-Frozen": "true" if is_frozen else "false",
+    }
+    if is_frozen and hash_row:
+        frozen_headers["X-Frozen-At"] = hash_row.get("frozen_at") or ""
+        frozen_headers["X-Frozen-By"] = hash_row.get("frozen_by") or ""
 
     if format == "docx":
         docx_path = cached.get("docx_path")
@@ -945,6 +1065,7 @@ async def download_ind_file(
             docx_path,
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             filename=f"{campaign_id}_CTD_2.6.1.docx",
+            headers=frozen_headers,
         )
     else:
         # Markdown — serve from cache (always available)
@@ -955,11 +1076,123 @@ async def download_ind_file(
                 content = Path(md_path).read_text(encoding="utf-8")
         if not content:
             raise HTTPException(status_code=404, detail="Markdown content not found in cache.")
+        frozen_headers["Content-Disposition"] = f'attachment; filename="{campaign_id}_CTD_Module2.6.md"'
         return PlainTextResponse(
             content,
             media_type="text/markdown; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{campaign_id}_CTD_Module2.6.md"'},
+            headers=frozen_headers,
         )
+
+
+@router.post("/{campaign_id}/ind-assembly/supersede")
+async def supersede_ind_assembly(
+    campaign_id: str,
+    body: INDAssemblyRequest,
+    _audit: None = Depends(_audit_fn),
+):
+    """
+    Create a new IND document version when the current document is frozen after eSig.
+
+    This endpoint bypasses the freeze guard and generates a fresh document. The new
+    document will be stored as a new hash record and will require re-signing before
+    it can be filed. The frozen record is preserved for audit traceability.
+
+    Returns the same shape as POST /{campaign_id}/ind-assembly plus
+      "supersedes": "<previous_frozen_hash>"
+    """
+    import hashlib
+
+    db_path = _campaign_db(campaign_id)
+
+    # Capture the frozen hash we are superseding (for audit trail)
+    previous_row = _get_latest_ind_hash(db_path, campaign_id)
+    superseded_hash = previous_row.get("doc_hash") if previous_row else None
+
+    try:
+        from .ind_assembly import INDSectionAssembler
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    import tempfile
+    output_dir = tempfile.mkdtemp(prefix=f"biomate_ind_{campaign_id}_supersede_")
+
+    if body.pk_summary:
+        try:
+            _store_pk_summary(db_path, campaign_id, body.pk_summary)
+        except Exception as exc:
+            log.warning("Failed to store pk_summary (supersede) for campaign %s: %s", campaign_id, exc)
+
+    try:
+        assembler = INDSectionAssembler(db_path)
+        result = assembler.assemble(
+            campaign_id=campaign_id,
+            output_dir=output_dir,
+            molecule_name=body.molecule_name,
+            sponsor=body.sponsor,
+            indication=body.indication,
+            target_name=body.target_name,
+            pk_summary=body.pk_summary,
+            region=body.region,
+            glp_facility=body.glp_facility,
+            glp_recognition=body.glp_recognition,
+            ethnic_bridging_note=body.ethnic_bridging_note,
+            wetlab_data=body.wetlab_data,
+        )
+    except Exception as exc:
+        log.exception("IND supersede assembly failed for campaign %s", campaign_id)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    markdown_content = Path(result.markdown_path).read_text(encoding="utf-8")
+    doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
+
+    try:
+        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at)
+    except Exception as exc:
+        log.warning("Failed to store supersede hash for campaign %s: %s", campaign_id, exc)
+
+    _ind_cache[campaign_id] = {
+        "markdown_path": result.markdown_path,
+        "docx_path": result.docx_path,
+        "markdown_content": markdown_content,
+        "doc_hash": doc_hash,
+        "generated_at": result.generated_at,
+    }
+
+    audit_findings_json = []
+    for f in result.audit_findings:
+        audit_findings_json.append({
+            "severity": f.severity,
+            "section": f.section,
+            "guideline_id": f.guideline_id,
+            "region": f.region,
+            "code": f.code,
+            "description": f.description,
+            "suggestion": f.suggestion,
+            "evidence": f.evidence,
+        })
+
+    log.info(
+        "[ind_supersede] campaign=%s new_hash=%s supersedes=%s",
+        campaign_id, doc_hash, superseded_hash,
+    )
+
+    return {
+        "campaign_id": campaign_id,
+        "sections": result.sections,
+        "pandoc_available": result.pandoc_available,
+        "docx_generated": result.docx_path is not None,
+        "generated_at": result.generated_at,
+        "warnings": result.warnings,
+        "audit_findings": audit_findings_json,
+        "audit_score": result.audit_score,
+        "markdown_preview": markdown_content[:2000],
+        "markdown_content": markdown_content,
+        "markdown_path": result.markdown_path,
+        "docx_path": result.docx_path,
+        "doc_hash": doc_hash,
+        "frozen": False,
+        "supersedes": superseded_hash,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1771,12 +2004,29 @@ async def esig_sign(campaign_id: str, body: EsigSignRequest):
         log.exception("eSig signing failed for campaign %s", campaign_id)
         raise HTTPException(status_code=500, detail=str(exc))
 
-    return {
+    response: dict = {
         "sig_id": sig.sig_id,
         "signed_at": sig.signed_at,
         "action": sig.action,
         "meaning": sig.meaning,
     }
+
+    # Freeze IND document when signing an IND-related action
+    if body.action in ("GENERATE_IND", "ASSEMBLE_IND"):
+        frozen_hash = _freeze_ind_document(
+            _campaign_db(campaign_id), campaign_id, sig.sig_id, body.user_id
+        )
+        if frozen_hash:
+            response["frozen_doc_hash"] = frozen_hash
+            response["frozen"] = True
+            log.info(
+                "[esig_freeze] campaign=%s sig_id=%s doc_hash=%s frozen by %s",
+                campaign_id, sig.sig_id, frozen_hash, body.user_id,
+            )
+        else:
+            response["frozen"] = False
+
+    return response
 
 
 # ---------------------------------------------------------------------------
