@@ -13,14 +13,18 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-# Default location for all API cache files
+# Primary location: backend/database/knowledge_cache/ (has symlinks to eval datasets)
 _CACHE_DIR = Path(__file__).parent.parent.parent.parent.parent / "database" / "knowledge_cache"
+# Fallback: evaluation/datasets/hpo/ (populated by benchmark runs)
+_EVAL_CACHE_DIR = (
+    Path(__file__).parent.parent.parent.parent.parent.parent
+    / "evaluation" / "datasets" / "hpo"
+)
 
 
 class PersistentAPICache:
@@ -40,7 +44,14 @@ class PersistentAPICache:
         default_timeout: int = 5,
     ) -> None:
         self.name = name
-        self.path = (cache_dir or _CACHE_DIR) / f"{name}_cache.json"
+        cache_filename = f"{name}_cache.json"
+        if cache_dir:
+            self.path = cache_dir / cache_filename
+        else:
+            # Prefer primary dir; if file already exists in eval dir, use that
+            primary = _CACHE_DIR / cache_filename
+            eval_path = _EVAL_CACHE_DIR / cache_filename
+            self.path = primary if (primary.exists() or not eval_path.exists()) else eval_path
         self.flush_interval = flush_interval
         self.default_timeout = default_timeout
         self._cache: Dict[str, Any] = {}
