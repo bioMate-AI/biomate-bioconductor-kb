@@ -4646,6 +4646,10 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       ? `<long_term_memory>\n${context.ltmContextBlock}\n</long_term_memory>\nNote: long-term memory reflects patterns across past sessions — use it to personalise responses but let the current conversation take precedence.\n\n`
       : '';
 
+    // Compute isWorkflowTurn here so it is available for both the system prompt
+    // selection (below) and the agent-tools gate (further down in the Claude branch).
+    const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
+
     const RESEARCH_INTENT_TYPES_FOR_PROMPT = new Set([
       'research_question', 'troubleshooting', 'parameter_optimization',
       'experiment_design', 'data_interpretation', 'protocol_guidance',
@@ -4899,7 +4903,7 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       // in Step 4 (generateWorkflow) BEFORE generateResponse() runs, so adding tools
       // here would only confuse Claude into calling run_code/read_file instead of
       // narrating the workflow result. Reserve tools for pure data-analysis turns.
-      const isWorkflowTurn = workflowSuggestion.shouldGenerate || !!generatedWorkflow;
+      // (isWorkflowTurn is hoisted above so it is also available for system prompt selection.)
       const agentTools = (!useThinking && onToolEvent && !isWorkflowTurn) ? BIOMATE_TOOLS : undefined;
       const agentMessages: Anthropic.MessageParam[] = [
         ...previousMessages,

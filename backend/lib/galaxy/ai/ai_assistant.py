@@ -2059,9 +2059,9 @@ Respond with a single JSON object — no other text:
         'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
         'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
-        # CryoSPARC infra — passed via backend env vars / credential vault, never shown to users
-        'cryosparc_license', 'cryosparc_password', 'cryosparc_email', 'cryosparc_host',
-        'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
+        # CryoSPARC connection details — host/port/email/dir are infra-level (set by admin)
+        # cryosparc_license and cryosparc_password are USER credentials shown in Global section
+        'cryosparc_email', 'cryosparc_host', 'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
         # Parallelism controls — internal pipeline tuning
         'micrograph_batch_size', 'particle_batch_size', 'num_gpu_workers', 'max_parallel_jobs',
         'num_gpu', 'num_gpu_workers',

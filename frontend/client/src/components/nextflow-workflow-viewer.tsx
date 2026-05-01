@@ -451,7 +451,13 @@ function PhaseGroupSection({
     if (anyRunning || anyFailed) setOpen(true);
   }, [anyRunning, anyFailed]);
 
-  // groupRenderedParams removed — QC thresholds are now passed directly via qcThresholds prop
+  // Params that belong to this phase (matched by group field on the param schema)
+  const phaseRenderedParams = renderedParameters.filter(p => {
+    const g = (p as any).group;
+    if (!g) return false;
+    return String(g).toUpperCase() === group.key.toUpperCase();
+  });
+  const [phaseParamsOpen, setPhaseParamsOpen] = React.useState(false);
 
   // Phase status and letter badge
   const phaseStatus = anyFailed ? 'failed' : anyRunning ? 'running' : allDone ? 'completed' : 'pending';
@@ -491,6 +497,84 @@ function PhaseGroupSection({
       {/* Phase body — visible when expanded */}
       {open && (
         <div className="phase-body">
+          {/* Per-phase parameters — shown inline, before steps */}
+          {phaseRenderedParams.length > 0 && (
+            <div className="phase-params">
+              <div className="phase-params-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Parameters
+                  <span style={{ fontWeight: 400, marginLeft: 4, color: 'var(--text-dim)' }}>
+                    ({phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0
+                      ? `${phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length} required`
+                      : `${phaseRenderedParams.length} configured`})
+                  </span>
+                </span>
+                <button
+                  className="linkish"
+                  style={{ fontSize: 10 }}
+                  onClick={() => setPhaseParamsOpen(o => !o)}
+                  data-testid={`phase-params-toggle-${group.key}`}
+                >
+                  {phaseParamsOpen ? 'collapse' : 'edit'}
+                </button>
+              </div>
+              {/* Compact summary row when collapsed */}
+              {!phaseParamsOpen && (
+                <div style={{ padding: '4px 14px 6px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  {phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).length > 0 ? (
+                    <span style={{ color: 'var(--warn)' }}>
+                      {phaseRenderedParams.filter(p => p.required && (!p.value || p.value === '')).map(p => p.label).join(', ')} — required
+                    </span>
+                  ) : (
+                    phaseRenderedParams.slice(0, 4).map(p =>
+                      `${p.label}: ${p.value ?? p.defaultValue ?? '—'}`
+                    ).join(' · ')
+                  )}
+                </div>
+              )}
+              {/* Full editable param list when expanded */}
+              {phaseParamsOpen && (
+                <div style={{ padding: '6px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {phaseRenderedParams.map(p => (
+                    <div key={p.id} className="param-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+                      <span className="k" style={{ fontSize: 11, color: p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--text-muted)' }}>
+                        {p.label}{p.required ? ' *' : ''}
+                      </span>
+                      {p.type === 'boolean' ? (
+                        <button
+                          type="button"
+                          className={`switch${(p.value === true || p.value === 'true') ? ' on' : ''}`}
+                          onClick={() => onParamChange(p.id, !(p.value === true || p.value === 'true'))}
+                          style={{ flexShrink: 0 }}
+                        />
+                      ) : p.options ? (
+                        <select
+                          className="v"
+                          value={String(p.value ?? p.defaultValue ?? '')}
+                          style={{ fontSize: 11, padding: '2px 4px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 3, color: 'var(--text)' }}
+                          onChange={e => onParamChange(p.id, e.target.value)}
+                        >
+                          {p.options.map((o: string) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type={p.type === 'number' ? 'number' : 'text'}
+                          className="v"
+                          value={String(p.value ?? p.defaultValue ?? '')}
+                          placeholder={p.required ? 'required' : ''}
+                          style={{ fontSize: 11, padding: '2px 6px', width: 140, background: 'var(--surface)',
+                            border: `1px solid ${p.required && (!p.value || p.value === '') ? 'var(--warn)' : 'var(--border)'}`,
+                            borderRadius: 3, color: 'var(--text)', fontFamily: p.type === 'file' ? 'var(--font-mono)' : undefined }}
+                          onChange={e => onParamChange(p.id, e.target.value)}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Step rows */}
           {steps.map((step: any, idx: number) => {
             const s = String(step.status || '').toLowerCase();
@@ -2025,149 +2109,71 @@ export function NextflowWorkflowViewer({
               />
             )}
 
-            {/* ── Parameters (collapsible settings strip) ─────────────────────── */}
-            <div>
-              <button
-                type="button"
-                className={`strip${globalParamsOpen ? ' open' : ''}`}
-                onClick={() => setGlobalParamsOpen(p => !p)}
-                title="Workflow input parameters. Required fields (*) must be filled before running."
-              >
-                <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
-                <span className="label">
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Workflow settings
-                  {renderedParameters.length > 0 && (
-                    <span className="hint">({renderedParameters.length})</span>
-                  )}
-                  {hasUnfilledRequired && (
-                    <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
-                  )}
-                </span>
-              </button>
-              {globalParamsOpen && (
-              <div className="strip-body">
-              <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Format mismatch warning — shown when uploaded file type doesn't match workflow input */}
-              {(() => {
-                const allParams: any[] = [
-                  ...(workflowDefinition?.required_params || []),
-                  ...(workflowDefinition?.optional_params || []),
-                ];
-                const mismatch = allParams.find((p: any) => p?.format_mismatch_warning);
-                if (!mismatch) return null;
-                return (
-                  <div className="alert warn" data-testid="format-mismatch-warning">
-                    <span>⚠️</span>
-                    <span>{mismatch.format_mismatch_warning}</span>
-                  </div>
-                );
-              })()}
-              {renderedParameters.length === 0 ? (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', padding: '0 4px' }}>No editable parameters detected for this workflow.</p>
-              ) : (() => {
-                // Group params by their schema group label; fall back to a single group.
-                const groups = new Map<string, typeof renderedParameters>();
-                for (const p of renderedParameters) {
-                  const g = p.group || 'Parameters';
-                  if (!groups.has(g)) groups.set(g, []);
-                  groups.get(g)!.push(p);
-                }
-                // Within each group: required first, then has-default, then optional
-                const sortGroup = (ps: typeof renderedParameters) => [
-                  ...ps.filter(p => p.required && (p.value === '' || p.value == null)),
-                  ...ps.filter(p => p.required && p.value !== '' && p.value != null),
-                  ...ps.filter(p => !p.required && p.defaultValue != null),
-                  ...ps.filter(p => !p.required && p.defaultValue == null),
-                ];
-                // Always open the first group; collapse the rest by default
-                let firstGroup = true;
-                return Array.from(groups.entries()).map(([groupTitle, groupParams]) => {
-                  const open = firstGroup;
-                  firstGroup = false;
-                  const sorted = sortGroup(groupParams);
-                  const requiredCount = sorted.filter(p => p.required).length;
-                  const desc = requiredCount > 0
-                    ? `${requiredCount} required · ${sorted.length - requiredCount} optional`
-                    : `${sorted.length} parameter${sorted.length !== 1 ? 's' : ''}`;
-                  return (
-                    <ParameterGroup
-                      key={groupTitle}
-                      id={`params-${groupTitle}`}
-                      title={groupTitle}
-                      description={desc}
-                      parameters={sorted}
-                      onChange={handleParamChange}
-                      onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
-                      defaultOpen={open}
-                    />
-                  );
-                });
-              })()}
-              {hasUnfilledRequired && (
-                <p style={{ fontSize: 12, color: 'var(--warn)' }}>
-                  Fill in all required fields (*) before running.
-                </p>
-              )}
+            {/* ── Global/infrastructure params strip ──────────────────────────── */}
+            {/* Only shows: params with group='global', params with no group that weren't claimed
+                by any phase, and params without any group field at all (legacy workflows).
+                Phase-specific params (group A/B/C/D/E) are shown inside each phase card above. */}
+            {(() => {
+              // Known phase keys (letters A-Z, excluding 'global')
+              const phaseKeys = new Set(groupedPhases.map(g => g.key.toUpperCase()).filter(k => k !== 'ALL'));
+              // Global params = group is 'global' OR group is missing/unrecognized
+              const globalParams = renderedParameters.filter(p => {
+                const g = String((p as any).group || '').toUpperCase();
+                return !g || g === 'GLOBAL' || (!phaseKeys.has(g) && g !== 'GLOBAL');
+              });
+              // Format mismatch warning
+              const allParamDefs: any[] = [
+                ...(workflowDefinition?.required_params || []),
+                ...(workflowDefinition?.optional_params || []),
+              ];
+              const mismatch = allParamDefs.find((p: any) => p?.format_mismatch_warning);
+              const requiredUnfilled = globalParams.filter(p => p.required && (!p.value || p.value === ''));
 
-              </div>
-              </div>
-              )}
-            </div>
-          </div>{/* end flex-column wrapper */}
-
-              {/* QC threshold editor — opened by "edit" link on a QC gate row, not shown as a persistent strip */}
-              {qcSettingsOpen && (
-                <div data-testid="qc-settings-section" style={{ borderTop: '1px solid var(--border)', padding: '10px 18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      QC Thresholds
-                      {activeQcProfile && (
-                        <span className="chip" style={{ fontSize: 10, padding: '1px 6px', marginLeft: 6, textTransform: 'none' }}>
-                          {activeQcProfile.id.replace(/_/g, ' ')}
-                        </span>
+              if (globalParams.length === 0 && !mismatch) return null;
+              return (
+                <div>
+                  <button
+                    type="button"
+                    className={`strip${globalParamsOpen ? ' open' : ''}`}
+                    onClick={() => setGlobalParamsOpen(p => !p)}
+                    title="Global workflow settings (infrastructure, output, connection parameters)"
+                  >
+                    <span className="caret"><ChevronRight className="h-3.5 w-3.5" /></span>
+                    <span className="label">
+                      <Settings2 className="h-3.5 w-3.5" />
+                      Advanced settings
+                      <span className="hint">({globalParams.length} params)</span>
+                      {requiredUnfilled.length > 0 && (
+                        <span className="chip err" style={{ fontSize: 10, padding: '1px 5px' }}>Required</span>
                       )}
                     </span>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      {Object.keys(qcOverrides).length > 0 && (
-                        <button type="button" className="btn ghost sm" onClick={() => setQcOverrides({})}>Reset all</button>
-                      )}
-                      <button type="button" className="linkish" style={{ fontSize: 11 }} onClick={() => setQcSettingsOpen(false)}>close</button>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
-                    <label style={{ fontSize: 12, color: 'var(--text-muted)', cursor: 'pointer' }} htmlFor="pause-qc-switch">
-                      Pause workflow when a QC gate fails
-                    </label>
-                    <button id="pause-qc-switch" type="button" className={`switch${pauseAtQcFailures ? ' on' : ''}`}
-                      onClick={() => setPauseAtQcFailures(prev => !prev)} aria-label="Pause at QC failures" aria-pressed={pauseAtQcFailures} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {displayedQcThresholds.map(t => (
-                      <div key={t.key} data-qc-key={t.key} className="param-row">
-                        <span className="k">
-                          {t.label}
-                          <span style={{ marginLeft: 4, fontSize: 10, color: 'var(--text-dim)' }}>
-                            ({t.direction === 'min' ? '≥' : '≤'}{t.unit})
-                          </span>
-                        </span>
-                        <input type="number" className="v"
-                          style={{ width: 72, textAlign: 'right', fontSize: 12,
-                            background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
-                            border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
-                            borderRadius: 4, padding: '1px 6px', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
-                          value={t.value} step="any"
-                          onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) setQcOverrides(prev => ({ ...prev, [t.key]: v })); }}
-                          onBlur={e => { const v = parseFloat(e.target.value); if (isNaN(v)) setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; }); }}
+                  </button>
+                  {globalParamsOpen && (
+                    <div className="strip-body">
+                      <div style={{ maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {mismatch && (
+                          <div className="alert warn" data-testid="format-mismatch-warning">
+                            <span>⚠️</span><span>{mismatch.format_mismatch_warning}</span>
+                          </div>
+                        )}
+                        <ParameterGroup
+                          id="params-global"
+                          title="Infrastructure & connection"
+                          description={`${requiredUnfilled.length > 0 ? requiredUnfilled.length + ' required · ' : ''}${globalParams.length} param${globalParams.length !== 1 ? 's' : ''}`}
+                          parameters={globalParams.sort((a, b) => (b.required ? 1 : 0) - (a.required ? 1 : 0))}
+                          onChange={handleParamChange}
+                          onBrowseDataset={(paramId, paramLabel) => setBrowsingForParam({ id: paramId, label: paramLabel })}
+                          defaultOpen={requiredUnfilled.length > 0}
                         />
-                        {t.modified
-                          ? <button type="button" className="btn ghost sm danger" title="Reset" onClick={() => setQcOverrides(prev => { const n = { ...prev }; delete n[t.key]; return n; })}>×</button>
-                          : <span />}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              );
+            })()}
+          </div>{/* end flex-column wrapper */}
+
+              {/* Global QC settings removed — QC gates are now shown per-phase inside each phase card */}
 
               {isAutofixActive && (
                 <div className="alert info" data-testid="autofix-active-banner" style={{ marginBottom: 8 }}>
