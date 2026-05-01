@@ -754,12 +754,29 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             return {"parameters": parameters, "parameter_metadata": parameter_metadata}
         content = abs_path.read_text(encoding="utf-8", errors="replace")
 
-        # Match: params.name = value  // optional comment
+        # Scan line-by-line to track [Phase X] / [Global] section headers
+        # Header format: // [Phase A] Description  or  // [Global] Description
+        section_re = re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
         param_re = re.compile(
             r'^params\.([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^\n/]+?)\s*(?://\s*(.+))?$',
-            re.MULTILINE,
         )
-        for m in param_re.finditer(content):
+        current_group: str | None = None
+        for line in content.splitlines():
+            # Check for section header comment
+            sec_m = section_re.search(line)
+            if sec_m and line.strip().startswith('//'):
+                raw_sec = sec_m.group(1).strip()
+                # "Phase A" → "A", "Global" → "global", "Phase E" → "E"
+                if raw_sec.lower().startswith('phase '):
+                    current_group = raw_sec.split()[-1].upper()
+                elif raw_sec.lower() in ('global', 'infrastructure', 'performance'):
+                    current_group = 'global'
+                else:
+                    current_group = raw_sec
+                continue
+            m = param_re.match(line)
+            if not m:
+                continue
             name = m.group(1).strip()
             raw_val = m.group(2).strip()
             comment = (m.group(3) or "").strip()
@@ -822,6 +839,8 @@ def _parse_nextflow_params(nf_filename: str) -> Dict[str, Any]:
             meta: Dict[str, Any] = {"type": ptype, "label": label, "level": level}
             if allowed_values:
                 meta["allowed_values"] = allowed_values
+            if current_group:
+                meta["group"] = current_group
             parameter_metadata[name] = meta
 
     except Exception as exc:
@@ -1890,12 +1909,14 @@ def search_nextflow_workflow(
         _req_params: list = []
         _opt_params: list = []
         for _pname, _pmeta in (_wf_parameter_metadata.items() if isinstance(_wf_parameter_metadata, dict) else []):
-            _entry = {
+            _entry: dict = {
                 "name": _pname,
                 "label": _pmeta.get("label", _pname.replace("_", " ").title()),
                 "description": _pmeta.get("label", _pname.replace("_", " ").title()),
                 "default": _wf_parameters.get(_pname),
             }
+            if _pmeta.get("group"):
+                _entry["group"] = _pmeta["group"]
             if _pmeta.get("level") == "required":
                 _req_params.append(_entry)
             else:

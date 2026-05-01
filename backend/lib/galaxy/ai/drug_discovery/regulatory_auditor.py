@@ -343,21 +343,31 @@ class RegulatoryAuditor:
                           c["suggestion"], evidence=f"LLM evidence (conf={confidence:.0%}): {evidence}")
 
     def _build_sections_for_judge(self, md: str) -> str:
-        """Extract relevant section text for the LLM judge, keeping prompt size small."""
-        sections_of_interest = [
-            ("2.6.1.2", "2.6.1.3"),
-            ("2.6.2", "2.6.3"),
-            ("2.6.3.2", "2.6.3.3"),
-        ]
-        parts = []
-        title = md[:600]  # Title page
-        parts.append(f"[TITLE PAGE]\n{title}")
+        """Extract relevant section text for the LLM judge, keeping prompt size small.
 
-        for start, end in sections_of_interest:
-            text = self._extract_section(md, start, end)
-            if text:
-                # Keep first 800 chars of each section
-                parts.append(f"[§{start}]\n{text[:800]}")
+        Uses flexible heading matching (## or ###) to avoid missing sub-sections.
+        """
+        parts = []
+
+        # Title page (first 600 chars)
+        parts.append(f"[TITLE PAGE]\n{md[:600]}")
+
+        # §2.6.1.2 PBPK (via ## heading)
+        pbpk = self._extract_section(md, "2.6.1.2", "2.6.1.3")
+        if pbpk:
+            parts.append(f"[§2.6.1.2 PBPK]\n{pbpk[:800]}")
+
+        # §2.6.2 full PK section
+        pk = self._extract_section(md, "2.6.2", "2.6.3")
+        if pk:
+            parts.append(f"[§2.6.2 Pharmacokinetics]\n{pk[:800]}")
+
+        # §2.6.3 full toxicology section (includes 2.6.3.2 sub-heading as ###)
+        # Use regex to find ## 2.6.3 through end of document
+        tox_m = re.search(r'^##\s+2\.6\.3\b', md, re.MULTILINE)
+        if tox_m:
+            tox_text = md[tox_m.start():]
+            parts.append(f"[§2.6.3 Toxicology (incl. §2.6.3.2)]\n{tox_text[:1200]}")
 
         return "\n\n---\n\n".join(parts)
 

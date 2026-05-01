@@ -39,29 +39,35 @@ nextflow.enable.dsl = 2
 // Parameters
 // ============================================================================
 
-// Input/Output
+// [Phase A] Data Input & Motion Correction
 params.movies_path = null                   // Path to movie files (*.tif, *.mrc, *.eer)
 params.gain_ref = null                       // Optional gain reference
-params.outdir = './results/cryosparc_spa'
-params.project_name = 'biomate_spa'
-
-// Acquisition parameters
 params.pixel_size = 1.05                     // Angstroms per pixel
 params.voltage = 300                         // kV
 params.spherical_aberration = 2.7            // mm
 params.total_dose = 50.0                     // e-/A^2
 params.dose_per_frame = null                 // Auto-calculated if null
-
-// Sample parameters (for context-aware recommendations)
-params.sample_type = 'unknown'               // 'membrane_protein', 'virus', 'ribosome', 'small_protein', 'unknown'
-params.particle_diameter_angstroms = null    // If null, estimated from molecular weight
-params.molecular_weight_kda = null           // Used to estimate diameter if not provided
-params.symmetry = 'C1'                       // Point group symmetry
-
-// Acquisition optics
 params.phase_plate = false                   // true = Volta Phase Plate (VPP) data collection
+params.motion_correction_dose_weighting = true
 
-// Processing mode
+// [Phase B] CTF Estimation
+params.ctf_fitting_resolution_min = 30.0     // Angstroms — lower bound of CTF fit range
+params.ctf_fitting_resolution_max = 5.0      // Angstroms — upper bound of CTF fit range
+
+// [Phase C] Particle Picking
+params.sample_type = 'unknown'               // 'membrane_protein' | 'virus' | 'ribosome' | 'small_protein' | 'unknown'
+params.particle_diameter_angstroms = null    // Particle diameter; estimated from molecular weight if null
+params.molecular_weight_kda = null           // Used to estimate particle diameter if not provided
+params.particle_box_size = null              // Box size in pixels; auto-calculated from diameter if null
+
+// [Phase E] 3D Reconstruction & Refinement
+params.symmetry = 'C1'                       // Point group symmetry (e.g. C1, C2, D2, O, T, I)
+params.num_ab_initio_classes = 3             // Number of initial 3D classes for ab-initio reconstruction
+params.max_resolution_refinement = 2.5       // Target resolution in Angstroms for refinement
+
+// [Global] Infrastructure & CryoSPARC Connection
+params.outdir = './results/cryosparc_spa'
+params.project_name = 'biomate_spa'
 params.mock_mode = false                     // Set to true only for CI unit tests
 params.use_cryosparc = true                  // Use live CryoSPARC API (real execution)
 params.cryosparc_license = null              // CryoSPARC license ID
@@ -72,20 +78,10 @@ params.cryosparc_password = null            // Set via --cryosparc_password
 params.cryosparc_project_dir = '/home/ubuntu/cryosparc_projects'
 params.cryosparc_lane = 'default'
 params.num_gpu = 0                           // 0 = auto-detect from CryoSPARC lane topology
-
-// Processing parameters (can be auto-tuned based on sample_type)
-params.motion_correction_dose_weighting = true
-params.ctf_fitting_resolution_min = 30.0     // Angstroms
-params.ctf_fitting_resolution_max = 5.0      // Angstroms
-params.particle_box_size = null              // Auto-calculated
-params.num_ab_initio_classes = 3
-params.max_resolution_refinement = 2.5       // Angstroms
-
-// GPU settings
 params.gpu_memory_gb = 16
 params.enable_low_memory_mode = false        // Auto-enabled for <16GB GPUs
 
-// Parallelism parameters
+// [Global] Performance & Parallelism
 params.micrograph_batch_size = 200           // micrographs per parallel batch
 params.particle_batch_size = 10000           // particles per parallel 2D class batch
 params.num_gpu_workers = 1                   // ThreadPoolExecutor threads; executor sets to match num_gpu

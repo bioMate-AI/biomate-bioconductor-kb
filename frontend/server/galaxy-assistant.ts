@@ -2961,41 +2961,20 @@ The distinction is the nature of the task, not the presence of file names in the
 
 ---
 
-## BioMate Parameter-Driven Workflows (No File Upload Required)
+## BioMate Workflow Catalog (Reference)
 
-These BioMate workflows take **numerical parameters or molecular identifiers directly** — they do NOT require user genomics files (FASTQ/BAM/VCF). They must always be classified as **workflow_generation** even though they sound like planning or design tasks.
+BioMate has runnable workflows beyond standard omics pipelines. Some take numerical parameters or molecular identifiers rather than genomics files. Knowing these exist helps you classify correctly:
 
-**Clinical trial simulation (Phase I dose escalation):**
-- "Design a BOIN Phase I trial", "dose escalation with dose levels [X,Y,Z]", "design a 3+3 dose-finding study", "estimate the MTD", "Phase I oncology trial design", "DLT-based escalation", "Bayesian Optimal Interval design"
-- Inputs: dose levels (mg list), target DLT rate, optional PK parameters (CL, Vd) — all numerical, no files
+- **Clinical trial simulation**: BOIN Phase I design, 3+3 dose-finding, MTD estimation. Inputs: dose levels (mg), target DLT rate, PK params.
+- **PBPK simulation**: physiologically-based PK modeling, whole-body PK profile. Inputs: SMILES + CLint + fu_plasma.
+- **ADMET prediction**: hERG/DILI/Ames/BBB toxicity panel. Inputs: SMILES strings or SDF.
+- **Molecular docking**: AutoDock Vina, DiffDock, Glide. Inputs: protein structure + ligand SMILES/SDF.
+- **MD simulation**: GROMACS, AMBER molecular dynamics. Inputs: protein structure files.
+- **NCA-PK analysis**: AUC/Cmax/Tmax from concentration-time data. Inputs: CSV.
+- **CYP DDI / drug interaction**: CYP inhibition risk screening. Inputs: SMILES.
+- **Allometric scaling**: cross-species PK extrapolation. Inputs: animal PK data.
 
-**PBPK / physiologically-based PK simulation:**
-- "Run a PBPK simulation", "predict human pharmacokinetics", "whole-body PK model", "organ-level PK", "physiologically-based pharmacokinetic modeling", "predict plasma concentration-time profile"
-- Inputs: SMILES string + intrinsic clearance (CLint) + unbound fraction (fu_plasma) — no files
-
-**ADMET / toxicity / safety prediction:**
-- "Predict ADMET properties", "screen for hERG / DILI / Ames toxicity", "cardiotoxicity screening", "hepatotoxicity prediction", "drug safety panel"
-- Inputs: SMILES strings (typed directly) or SDF file
-
-**Molecular docking / binding affinity:**
-- "Dock [ligand] into [protein]", "AutoDock Vina / DiffDock / Glide docking", "binding pose prediction", "virtual screening"
-- Inputs: protein FASTA or PDB + ligand SMILES/SDF
-
-**Molecular dynamics (MD) simulation:**
-- "GROMACS simulation", "molecular dynamics run", "MD trajectory for [protein/complex]", "AMBER simulation"
-- Inputs: protein structure files (PDB/CIF)
-
-**NCA / PK data analysis:**
-- "Non-compartmental PK analysis", "compute AUC/Cmax/Tmax/half-life from my data", "NCA-PK from concentration-time data"
-- Inputs: concentration-time CSV
-
-**CYP inhibition / drug-drug interaction:**
-- "CYP DDI risk", "CYP3A4/2D6 inhibition prediction", "drug-drug interaction screening"
-
-**Allometric scaling / inter-species PK:**
-- "Allometric scaling from animal to human", "cross-species PK extrapolation"
-
-**Rule**: if a user query describes one of these activities and provides (or is about to provide) the required numerical/molecular inputs, classify as **workflow_generation** regardless of whether the message contains file paths.
+Use this to distinguish intent: a user **asking to run or execute** one of these (providing concrete inputs or asking BioMate to compute a result) → `workflow_generation`. A user **asking about** the method (how does BOIN work?, what is PBPK?) → `research_question`. Providing actual parameter values (dose levels, a SMILES string) is strong evidence the user wants execution, not explanation.
 
 ---
 
