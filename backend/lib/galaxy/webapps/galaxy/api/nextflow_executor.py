@@ -1735,6 +1735,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
     """
     try:
         import boto3 as _boto3
+        import json as _json
         s3_client = _boto3.client("s3", region_name=os.environ.get("AWS_DEFAULT_REGION", "us-west-2"))
     except ImportError:
         return None
@@ -1756,7 +1757,7 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
         try:
             parts = uri[5:].split("/", 1)
             obj = s3_client.get_object(Bucket=parts[0], Key=parts[1])
-            data: Dict = json.loads(obj["Body"].read().decode("utf-8"))
+            data: Dict = _json.loads(obj["Body"].read().decode("utf-8"))
         except Exception as _e:
             log.debug("[QC] S3 read failed for %s: %s", rf.get("name"), _e)
             continue
