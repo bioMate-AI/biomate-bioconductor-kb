@@ -596,6 +596,7 @@ class NextflowQCGateHandler:
         current_parameters: Optional[Dict[str, Any]] = None,
         qc_overrides: Optional[Dict[str, Any]] = None,
         qc_profile: Optional[str] = None,
+        s3_outdir: Optional[str] = None,
     ):
         """
         Initialize QC gate handler.
@@ -623,6 +624,9 @@ class NextflowQCGateHandler:
         self.workflow_domain = workflow_domain
         self.current_parameters = current_parameters or {}
         self.active_profile = qc_profile  # None if not using a named profile
+        # S3 published output directory — set for Batch runs so _calculate_qc_metrics
+        # can read published report JSON files instead of non-existent local task dirs.
+        self.s3_outdir: Optional[str] = s3_outdir.rstrip("/") if s3_outdir else None
 
         # Merge profile overrides (lower precedence) with explicit overrides (higher precedence).
         # Merge order: profile → explicit overrides (right-hand-side wins on key collision)
@@ -986,6 +990,14 @@ class NextflowQCGateHandler:
             task_work_dir = self.work_dir
 
         process_upper = process_name.upper()
+
+        # For Batch runs, local task_work_dir will not exist — fall back to reading
+        # the published S3 report JSON files that our pipeline writes to s3_outdir.
+        if self.s3_outdir and not task_work_dir.is_dir():
+            s3_metrics = self._read_s3_report_metrics(process_upper)
+            if s3_metrics is not None:
+                return s3_metrics
+            # No published report found — fall through to local parsers (will return None)
 
         # --- Cryo-EM ---
         if "MOTION_CORRECTION" in process_upper:
