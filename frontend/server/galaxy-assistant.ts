@@ -2921,7 +2921,7 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 
 Describe the user's information need with a descriptive label. You may use these common labels or create a new one that better fits:
 
-**workflow_generation** — Execute a computational pipeline, run a tool on user data, process files or accessions.
+**workflow_generation** — Execute a computational pipeline or run code on user data. Covers: (a) Nextflow pipelines processing files/accessions (set needsWorkflowGeneration: true), and (b) direct code execution via run_code for ad-hoc computations on provided inputs such as a pasted sequence, numeric parameters, or a small dataset (set needsWorkflowGeneration: false, needsLLMReasoning: true). Both are execution tasks — the distinction is whether BioMate needs to launch a full Nextflow workflow or can compute directly.
 **research_question** — Look up or synthesize information from scientific literature and papers.
 **database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
 **genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links, published CRISPR screen results. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates, "which gene showed the strongest effect in this CRISPR screen", "identify the gene from this published screen". Requires live GWAS Catalog / Open Targets / DepMap / GenomeCRISPR lookup. Candidate gene/SNP lists in the prompt are published data to look up — NOT user-provided files.
@@ -3134,23 +3134,23 @@ These must NOT trigger workflow generation, regardless of file names or scientif
 - "Can you make a [.mrc / .fastq / .bam] file for me?" → same
 - Any request whose primary intent is *data fabrication* rather than *analysis of provided data*
 
-**Direct bioinformatics lookups and computations — always research_question, use run_code or APIs:**
-These have a single deterministic answer and require no user-owned data files:
-- "Convert these gene symbols to Ensembl IDs: TP53, BRCA1, EGFR" → research_question; use Ensembl REST API
+**Direct computations on user-provided inputs — workflow_generation with needsWorkflowGeneration: false:**
+When the user pastes concrete data (a sequence, numbers, a small dataset) and asks BioMate to compute something, this is workflow_generation with needsWorkflowGeneration: false. No Nextflow pipeline is launched — BioMate executes code directly via run_code:
+- "Compute the reverse complement of ATGCATGC" → workflow_generation, needsWorkflowGeneration: false
+- "What is the GC content of this sequence: ATGCATGCGC?" → workflow_generation, needsWorkflowGeneration: false
+- "Calculate BOIN decision boundaries for phi_T=0.25, n_patients=6" → workflow_generation, needsWorkflowGeneration: false
+- "Fit a 1-compartment PK model to these concentration-time points: [paste data]" → workflow_generation, needsWorkflowGeneration: false
+- "Compute allometric scaling: CL_rat=0.5 L/h/kg at 250g → predicted human CL" → workflow_generation, needsWorkflowGeneration: false
+- "Parse this VCF snippet and count variants per chromosome" → workflow_generation, needsWorkflowGeneration: false
+- "Infer whether mt.sorted.bam is paired-end or single-end" → workflow_generation, needsWorkflowGeneration: false
+
+**Database lookups for structured biological facts — always research_question:**
+When the answer comes from a live biological database and no computation on user data is needed:
 - "What is the Ensembl gene ID for SRSF3 in human?" → research_question; Ensembl lookup
-- "What is the most severe VEP consequence for variant chr9:22125503:G:C?" → research_question; Ensembl VEP REST
-- "Retrieve the promoter sequence for TP53 (−500 to +100 bp, hg38)" → research_question; Ensembl sequence API
+- "What is the pathogenicity of variant NM_007294.3:c.5266dupC (BRCA1)?" → research_question; ClinVar lookup
 - "What is the median TPM expression of GATA3 in breast tissue (GTEx v8)?" → research_question; GTEx REST API
 - "What regulatory elements overlap chr11:124738681-124738772 in hg38?" → research_question; ENCODE/UCSC cCRE API
-- "What is the GC content of the interval chr7:155605831-155605931?" → research_question; use run_code (Python + pyfaidx or Biopython)
-- "Infer whether mt.sorted.bam is paired-end or single-end" → research_question; use run_code (samtools flagstat)
-- "How many non-overlapping exonic bases does GENE X have?" → research_question; use run_code (GTF parsing)
-- "What is the pathogenicity of variant NM_007294.3:c.5266dupC (BRCA1)?" → research_question; ClinVar lookup
-- "Compute the reverse complement of ATGCATGC" → research_question; answer directly or run_code
 - "What is the canonical splice site sequence?" → research_question; direct knowledge
-
-For these, set type to "research_question" with needsResearchAgent=true, needsWorkflowGeneration=false.
-BioMate should answer using its run_code tool (for computations) or ResearchAgent API integrations (for database lookups) — NOT by launching a Nextflow workflow.
 
 ## Action Categories
 
@@ -3366,12 +3366,12 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "type": "workflow_generation",
   "keywords": ["reverse complement"],
   "inlineParameters": {"sequence": "ATGCGATCG"},
-  "needsToolSearch": true,
+  "needsToolSearch": false,
   "needsDatasets": false,
   "confidence": 0.95,
   "actions": {
-    "needsToolSearch": true,
-    "needsWorkflowGeneration": true,
+    "needsToolSearch": false,
+    "needsWorkflowGeneration": false,
     "needsWorkflowModification": false,
     "needsResearchAgent": false,
     "needsBenchmarkAgent": false,
@@ -4651,7 +4651,13 @@ IMPORTANT: Return ONLY valid JSON array, no markdown, no backticks, no code fenc
       'experiment_design', 'data_interpretation', 'protocol_guidance',
       'methods_writing', 'comparative_methodology', 'regulatory_compliance',
     ]);
-    const isResearchIntent = !!researchResponse || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '');
+    // isResearchIntent = true when no Nextflow workflow panel is active.
+    // This includes: research/knowledge intents, AND workflow_generation with
+    // needsWorkflowGeneration=false (run_code / direct execution) — both get
+    // the compute-enabled system prompt where run_code tool is permitted.
+    const isResearchIntent = !!researchResponse
+      || RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '')
+      || !isWorkflowTurn;
     const systemPrompt = isResearchIntent
       ? `${sessionMemoryBlock}${ltmBlock}${inlineDataBlock}${domainProfileContext}You are BioMate, an expert bioinformatics AI assistant with deep scientific knowledge.
 
@@ -4700,7 +4706,7 @@ Do NOT deviate from these three formats. No freeform narrative, no "Next Steps" 
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
-${RESEARCH_INTENT_TYPES_FOR_PROMPT.has((intent as any)?.type ?? '') ? `- You CAN and SHOULD compute, calculate, and reason directly when the question is scientific/knowledge-based and no workflow is needed. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.` : `- NEVER compute or calculate results yourself for workflow tasks (e.g., reverse complement, sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead`}
+${isWorkflowTurn ? `- NEVER compute or calculate results yourself for workflow tasks (e.g., sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead` : `- You CAN and SHOULD compute, calculate, and reason directly when no Nextflow workflow panel is open. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.`}
 - If a runnable workflow was generated, explain it and encourage the user to click "Run"
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions

@@ -2159,7 +2159,11 @@ Respond with a single JSON object — no other text:
         return 'string'
 
     def _parse_nextflow_params(self, filename: str) -> dict:
-        """Parse params.* lines from .nf file. Returns {"required": [...], "optional": [...]}."""
+        """Parse params.* lines from .nf file. Returns {"required": [...], "optional": [...]}.
+
+        Section header comments of the form `// [Phase A] Description` assign a `group`
+        field to each parameter so the UI can display them per-phase instead of globally.
+        """
         import re as _re
         nf_path = self._find_nf_file(filename)
         if not nf_path:
@@ -2170,7 +2174,24 @@ Respond with a single JSON object — no other text:
             return {"required": [], "optional": []}
         required, optional = [], []
         seen_names: set = set()
-        for m in _re.finditer(r"^\s*params\.(\w+)\s*=\s*(.+)$", text, _re.MULTILINE):
+        section_re = _re.compile(r'//\s*\[([A-Za-z][A-Za-z0-9 _-]*)\]')
+        param_re = _re.compile(r'^\s*params\.(\w+)\s*=\s*(.+)$')
+        current_group: str | None = None
+        for line in text.splitlines():
+            # Detect section header: // [Phase A] ... or // [Global] ...
+            sec_m = section_re.search(line)
+            if sec_m and line.strip().startswith('//'):
+                raw_sec = sec_m.group(1).strip()
+                if raw_sec.lower().startswith('phase '):
+                    current_group = raw_sec.split()[-1].upper()
+                elif raw_sec.lower() in ('global', 'infrastructure', 'performance', 'advanced'):
+                    current_group = 'global'
+                else:
+                    current_group = raw_sec
+                continue
+            m = param_re.match(line)
+            if not m:
+                continue
             name = m.group(1)
             if name in seen_names:
                 continue  # first declaration wins (top-level params block)
@@ -2182,25 +2203,23 @@ Respond with a single JSON object — no other text:
             label = name.replace("_", " ").title()
             description = f"Workflow parameter: {label}"
             # A param is truly required only if it's null AND not in the known-optional set.
-            # Optional-null params auto-calculate or have workflow-level fallbacks.
             is_required = (val_raw == "null") and (name not in self._OPTIONAL_NULL_PARAMS)
             # null-default params get Python None (renders as empty in UI), not the string "null"
             default_str = None if (is_required or val_raw == "null") else val_raw.strip("'\"")
             param_type = self._detect_param_type(name, default_str or "")
-            # Convert boolean string defaults to actual Python bools so the JSON
-            # serialisation sends true/false (not the strings "true"/"false"),
-            # enabling the frontend Switch component to work correctly.
             if param_type == 'boolean' and default_str in ('true', 'True'):
                 default_str = True
             elif param_type == 'boolean' and default_str in ('false', 'False'):
                 default_str = False
-            entry = {
+            entry: dict = {
                 "name": name,
                 "label": label,
                 "description": description,
                 "type": param_type,
                 "default": default_str,
             }
+            if current_group:
+                entry["group"] = current_group
             seen_names.add(name)
             if is_required:
                 required.append(entry)
