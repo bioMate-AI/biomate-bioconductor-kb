@@ -2059,15 +2059,15 @@ Respond with a single JSON object — no other text:
         'max_cpus', 'max_memory', 'max_time', 'publish_dir_mode', 'monochrome_logs',
         'enable_conda', 'singularity_pull_docker_container', 'validationSkipDuplicateCheck',
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
-        # CryoSPARC connection details — host/port/email/dir are infra-level (set by admin)
-        # cryosparc_license and cryosparc_password are USER credentials shown in Global section
+        # CryoSPARC connection — all infra-level, set by admin not users
         'cryosparc_email', 'cryosparc_host', 'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
-        # Parallelism controls — internal pipeline tuning
+        # Dev/testing flags — never shown to users (false = mock mode which breaks production)
+        'use_cryosparc',
+        # Parallelism / executor internals — auto-set by BioMate executor before launch
         'micrograph_batch_size', 'particle_batch_size', 'num_gpu_workers', 'max_parallel_jobs',
-        'num_gpu', 'num_gpu_workers',
-        # Processing internals
-        'motion_correction_dose_weighting', 'ctf_fitting_resolution_min', 'ctf_fitting_resolution_max',
-        'enable_low_memory_mode', 'gpu_memory_gb', 'max_resolution_refinement',
+        'num_gpu', 'num_cs_workers', 'movie_batch_dirs',
+        # Motion & GPU internals — auto-tuned by executor
+        'motion_correction_dose_weighting', 'enable_low_memory_mode', 'gpu_memory_gb',
     }
 
     # Params that are `= null` in .nf files but are auto-calculated or truly optional.
