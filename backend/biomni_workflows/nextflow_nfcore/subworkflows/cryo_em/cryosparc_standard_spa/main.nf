@@ -743,10 +743,17 @@ process PATCH_MOTION_CORRECTION_BATCH {
             except Exception:
                 _n = getattr(micrographs_out, 'num_items', 0) if micrographs_out is not None else 0
             if micrographs_out is not None and _n >= 0:
-                _data = micrographs_out.data if hasattr(micrographs_out, 'data') else micrographs_out
+                # CryoSPARC v5 Dataset objects don't have a .data attribute —
+                # access fields directly via dataset[field_name] and enumerate
+                # via dataset.fields() (v5) or dataset.dtype.names (numpy-backed)
                 _all_fields = []
                 try:
-                    _all_fields = list(_data.dtype.names) if hasattr(_data, 'dtype') else list(vars(_data).keys()) if hasattr(_data, '__dict__') else []
+                    if hasattr(micrographs_out, 'fields'):
+                        _all_fields = list(micrographs_out.fields())
+                    elif hasattr(micrographs_out, 'dtype') and hasattr(micrographs_out.dtype, 'names'):
+                        _all_fields = list(micrographs_out.dtype.names)
+                    elif hasattr(micrographs_out, '__dict__'):
+                        _all_fields = list(vars(micrographs_out).keys())
                 except Exception:
                     pass
                 print(f"[QC] micrographs output fields: {_all_fields[:20]}", flush=True)
@@ -761,7 +768,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
                 for _field in _motion_candidates:
                     if _field in _all_fields:
                         try:
-                            _vals = np.asarray(_data[_field], dtype=float)
+                            _vals = np.asarray(micrographs_out[_field], dtype=float)
                             _valid = _vals[np.isfinite(_vals)]
                             if len(_valid) > 0:
                                 report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
@@ -781,7 +788,7 @@ process PATCH_MOTION_CORRECTION_BATCH {
                     print(f"[QC] No standard motion field found. Candidates: {_motion_fields}", flush=True)
                     for _field in _motion_fields:
                         try:
-                            _vals = np.asarray(_data[_field], dtype=float)
+                            _vals = np.asarray(micrographs_out[_field], dtype=float)
                             _valid = _vals[np.isfinite(_vals) & (_vals > 0)]
                             if len(_valid) > 0:
                                 report["avg_total_motion_A"] = round(float(np.nanmean(_valid)), 2)
@@ -863,20 +870,32 @@ process PATCH_CTF_ESTIMATION_BATCH {
             import numpy as np
             ctf_out = job.load_output("micrographs_ctf")
             if ctf_out is not None and len(ctf_out) > 0:
-                _d = ctf_out.data if hasattr(ctf_out, 'data') else ctf_out
-                _names = list(_d.dtype.names) if hasattr(_d, 'dtype') else []
+                # CryoSPARC v5 Dataset: use ctf_out directly, enumerate fields via
+                # .fields() (v5 API) or .dtype.names (numpy-backed), NOT .data
+                _names = []
+                try:
+                    if hasattr(ctf_out, 'fields'):
+                        _names = list(ctf_out.fields())
+                    elif hasattr(ctf_out, 'dtype') and hasattr(ctf_out.dtype, 'names'):
+                        _names = list(ctf_out.dtype.names)
+                    elif hasattr(ctf_out, '__dict__'):
+                        _names = list(vars(ctf_out).keys())
+                except Exception:
+                    pass
                 print(f"[QC] CTF output fields: {_names[:20]}", flush=True)
                 report["cs_ctf_output_fields"] = _names[:30]
                 # CTF fit quality (resolution at which CTF fit is reliable — lower Å = better)
                 for _f in ("ctf_info/fit_to_A_lp", "ctf/fit_to_A", "ctf_fit_to_A",
                            "fit_to_A", "ctf_info/fit_to_A", "ctf_fit_res_A"):
                     if _f in _names:
-                        _v = np.asarray(_d[_f], dtype=float)
+                        _v = np.asarray(ctf_out[_f], dtype=float)
                         _valid = _v[np.isfinite(_v) & (_v > 0)]
                         if len(_valid) > 0:
-                            report["avg_ctf_fit_to_A"] = round(float(np.nanmean(_valid)), 2)
+                            _mean_fit = float(np.nanmean(_valid))
+                            report["avg_ctf_fit_to_A"] = round(_mean_fit, 2)
                             report["min_ctf_fit_to_A"] = round(float(np.nanmin(_valid)), 2)
-                            report["avg_fit_quality"] = round(max(0.0, 1.0 - float(np.nanmean(_valid)) / 10.0), 3)
+                            # Derived quality score — always written when fit data available
+                            report["avg_fit_quality"] = round(max(0.0, 1.0 - _mean_fit / 10.0), 3)
                             report["ctf_fit_field_used"] = _f
                             # Per-micrograph fit values for scatter chart (cap at 500)
                             report["per_micrograph_fit_A"] = [round(float(v), 2) for v in _valid[:500]]
@@ -887,7 +906,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                 # Defocus range
                 for _f in ("ctf_info/df1_A", "ctf/df1_A", "df1_A", "ctf_df1_A", "defocus_1_A"):
                     if _f in _names:
-                        _v = np.asarray(_d[_f], dtype=float)
+                        _v = np.asarray(ctf_out[_f], dtype=float)
                         _valid = _v[np.isfinite(_v) & (_v > 0)]
                         if len(_valid) > 0:
                             report["avg_defocus_A"] = round(float(np.nanmean(_valid)), 0)
@@ -901,7 +920,7 @@ process PATCH_CTF_ESTIMATION_BATCH {
                 for _f1, _f2 in [("ctf_info/df1_A","ctf_info/df2_A"), ("ctf/df1_A","ctf/df2_A"),
                                   ("df1_A","df2_A"), ("ctf_df1_A","ctf_df2_A")]:
                     if _f1 in _names and _f2 in _names:
-                        _astig = np.abs(np.asarray(_d[_f1],float) - np.asarray(_d[_f2],float))
+                        _astig = np.abs(np.asarray(ctf_out[_f1],float) - np.asarray(ctf_out[_f2],float))
                         _valid = _astig[np.isfinite(_astig)]
                         if len(_valid) > 0:
                             report["avg_astigmatism_A"] = round(float(np.nanmean(_valid)), 0)

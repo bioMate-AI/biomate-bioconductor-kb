@@ -1361,9 +1361,52 @@ def _evaluate_qc_from_s3(
             "predict_admet_properties" in f.get("filename", "")
             for f in s3_output_files
         )
-        if not (is_admet or is_admet_files):
-            return []  # Only S3 QC for ADMET domain currently
+        is_cryo = any(k in domain_upper for k in ("CRYO", "CRYOSPARC", "CRYOEM", "CRYO_EM"))
+        if not (is_admet or is_admet_files) and not is_cryo:
+            return []  # S3 QC supported for ADMET and CryoEM domains
 
+        # ── CryoEM path ────────────────────────────────────────────────────
+        if is_cryo and not (is_admet or is_admet_files):
+            # Build outdir from one of the s3_uris
+            outdir = ""
+            for _f in s3_output_files:
+                _uri = _f.get("s3_uri", "")
+                if _uri.startswith("s3://"):
+                    # Use bucket + first two path components as outdir prefix
+                    _parts = _uri[5:].split("/")
+                    outdir = "s3://" + "/".join(_parts[:3]) if len(_parts) >= 3 else _uri
+                    break
+            qc_data = _build_qc_report_from_s3_files(s3_output_files, outdir)
+            if not qc_data:
+                return []
+            gate_failures: List[Dict] = []
+            # Operator and key mapping for each named metric
+            _metric_map = {
+                "Avg motion drift (Å)":         ("total_drift_angstrom",      ">"),
+                "CTF fit resolution (Å)":        ("ctf_fit_to_A",              ">"),
+                "Particle picking yield (/mic)": ("particles_per_micrograph",  "<"),
+                "FSC 0.143 resolution (Å)":      ("fsc_resolution_angstrom",   ">"),
+                "Junk class fraction":           ("junk_class_fraction",       ">"),
+                "CTF fit quality":               ("ctf_fit_quality",           "<"),
+            }
+            for m in qc_data.get("_all_metrics", []):
+                if m.get("pass", True):
+                    continue  # Gate passed — nothing to report
+                name = m.get("name", "")
+                metric_key, operator = _metric_map.get(name, (
+                    name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_per_"),
+                    ">"
+                ))
+                gate_failures.append({
+                    "metric": metric_key,
+                    "value": m["measured"],
+                    "threshold": m["threshold"],
+                    "operator": operator,
+                    "message": f"{name}: {m['measured']} {m.get('unit', '')} (threshold: {m['threshold']})",
+                })
+            return gate_failures
+
+        # ── ADMET path ─────────────────────────────────────────────────────
         # Build a dummy handler just to reuse _check_qc_thresholds
         handler = NextflowQCGateHandler(
             invocation_id=run_id,
@@ -1703,6 +1746,8 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
 
     metrics: Dict[str, Any] = {}
     all_metrics: List[Dict] = []
+    # Track motion micrograph count so picking can compute particles/mic
+    _motion_num_mics: Optional[int] = None
 
     for rf in report_files:
         uri = rf.get("s3_uri", "")
@@ -1718,54 +1763,157 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
         step = data.get("step", rf.get("name", ""))
 
         if "02_patch_motion" in step or "02_motion" in step:
+            num_mics = data.get("num_micrographs")
+            motion_entry: Dict[str, Any] = {}
+            if num_mics is not None:
+                motion_entry["num_micrographs"] = num_mics
+                _motion_num_mics = int(num_mics)
             if "avg_total_motion_A" in data:
-                metrics.setdefault("motion", {}).update({
+                motion_entry.update({
                     "avg_total_motion_A": data["avg_total_motion_A"],
                     "max_total_motion_A": data.get("max_total_motion_A"),
-                    "num_micrographs": data.get("num_micrographs"),
                     "num_accepted": data.get("num_accepted"),
                 })
                 all_metrics.append({"name": "Avg motion drift (Å)", "step": step,
                                      "measured": data["avg_total_motion_A"], "unit": "Å",
-                                     "threshold": 50, "pass": data["avg_total_motion_A"] < 50})
+                                     "threshold": 50.0,
+                                     "pass": data["avg_total_motion_A"] < 50.0})
+            if motion_entry:
+                metrics.setdefault("motion", {}).update(motion_entry)
 
         elif "03_patch_ctf" in step or "03_ctf" in step:
-            if "avg_fit_quality" in data:
-                metrics.setdefault("ctf", {}).update({
-                    "avg_fit_quality": data["avg_fit_quality"],
-                    "avg_ctf_fit_to_A": data.get("avg_ctf_fit_to_A"),
+            num_mics = data.get("num_micrographs")
+            ctf_entry: Dict[str, Any] = {}
+            if num_mics is not None:
+                ctf_entry["num_micrographs"] = num_mics
+            # Use avg_ctf_fit_to_A (actual field written by pipeline) NOT avg_fit_quality
+            if "avg_ctf_fit_to_A" in data:
+                fit_val = float(data["avg_ctf_fit_to_A"])
+                ctf_entry.update({
+                    "avg_ctf_fit_to_A": fit_val,
                     "avg_defocus_A": data.get("avg_defocus_A"),
                     "avg_astigmatism_A": data.get("avg_astigmatism_A"),
+                    # Derived quality score: 0..1, higher is better (1.0 = 0Å fit, 0.0 = 10Å)
+                    "avg_fit_quality": round(max(0.0, 1.0 - fit_val / 10.0), 3),
                 })
+                # Gate: CTF fit resolution ≤ 8Å is acceptable; higher = worse
+                all_metrics.append({"name": "CTF fit resolution (Å)", "step": step,
+                                     "measured": fit_val, "unit": "Å",
+                                     "threshold": 8.0,
+                                     "pass": fit_val <= 8.0})
+            elif "avg_fit_quality" in data:
+                # Legacy field — keep backward compat
+                ctf_entry["avg_fit_quality"] = data["avg_fit_quality"]
                 all_metrics.append({"name": "CTF fit quality", "step": step,
                                      "measured": data["avg_fit_quality"], "unit": "",
-                                     "threshold": 0.7, "pass": data["avg_fit_quality"] >= 0.7})
-            elif data.get("real_mode"):
-                metrics.setdefault("ctf", {})["num_micrographs"] = data.get("num_micrographs")
+                                     "threshold": 0.7,
+                                     "pass": data["avg_fit_quality"] >= 0.7})
+            if ctf_entry:
+                metrics.setdefault("ctf", {}).update(ctf_entry)
+
+        elif "05_blob_picker" in step or "blob_picker" in step:
+            num_particles = data.get("num_particles")
+            picking_entry: Dict[str, Any] = {}
+            if num_particles is not None:
+                picking_entry["num_particles"] = int(num_particles)
+            if "particle_diameter_angstroms" in data:
+                picking_entry["particle_diameter_angstroms"] = data["particle_diameter_angstroms"]
+            # Compute particles/micrograph yield if we have micrograph count
+            if num_particles is not None and _motion_num_mics and _motion_num_mics > 0:
+                yield_per_mic = round(float(num_particles) / float(_motion_num_mics), 1)
+                picking_entry["particles_per_micrograph"] = yield_per_mic
+                all_metrics.append({"name": "Particle picking yield (/mic)", "step": step,
+                                     "measured": yield_per_mic, "unit": "/mic",
+                                     "threshold": 50.0,
+                                     "pass": yield_per_mic >= 50.0})
+            elif num_particles is not None and num_particles > 0:
+                # Can't compute yield without mic count; record raw count only
+                picking_entry.setdefault("note", "num_micrographs unavailable for yield calc")
+            if picking_entry:
+                metrics.setdefault("picking", {}).update(picking_entry)
 
         elif "09_classify" in step or "14_classify" in step:
+            # Skip selection_report — num_selected_particles=0 is a known cs_mode bug
+            if "num_selected_particles" in data and data.get("num_particles", -1) == 0:
+                continue
             nm = data.get("num_particles") or data.get("num_items", 0)
+            nc = data.get("num_classes", 0)
             if nm:
-                metrics.setdefault("picking", {})["num_particles"] = nm
+                # Keep the higher count across rounds
+                prev_nm = metrics.get("classification", {}).get("num_particles", 0)
+                if nm > prev_nm:
+                    metrics.setdefault("classification", {}).update({
+                        "num_particles": nm,
+                        "num_classes": nc,
+                        "step": step,
+                    })
+                    # Update picking num_particles too (post-2D selection)
+                    metrics.setdefault("picking", {})["num_particles_2d"] = nm
             if "junk_class_fraction" in data:
                 metrics.setdefault("classification", {}).update({
                     "junk_class_fraction": data["junk_class_fraction"],
                     "num_good_classes": data.get("num_good_classes"),
-                    "num_classes": data.get("num_classes"),
                 })
                 all_metrics.append({"name": "Junk class fraction", "step": step,
                                      "measured": data["junk_class_fraction"], "unit": "",
-                                     "threshold": 0.5, "pass": data["junk_class_fraction"] <= 0.5})
+                                     "threshold": 0.5,
+                                     "pass": data["junk_class_fraction"] <= 0.5})
 
-        elif "fsc" in step.lower():
+        elif "21_non_uniform_refinement" in step or "non_uniform_refinement" in step:
+            # Record job UID as proof of refinement reaching this step
+            if data.get("cs_job_uid"):
+                metrics.setdefault("refinement", {})["cs_job_uid"] = data["cs_job_uid"]
+            # DON'T add num_particles if 0 — cs_mode bug causes false zeros
+            np_val = data.get("num_particles", 0)
+            if np_val and np_val > 0:
+                metrics.setdefault("refinement", {})["num_particles"] = np_val
+
+        elif "fsc" in step.lower() or "19_validation" in step:
             if "fsc_resolution_angstrom" in data:
-                metrics.setdefault("fsc", {})["resolution_A"] = data["fsc_resolution_angstrom"]
+                res = float(data["fsc_resolution_angstrom"])
+                metrics.setdefault("fsc", {})["resolution_A"] = res
                 all_metrics.append({"name": "FSC 0.143 resolution (Å)", "step": step,
-                                     "measured": data["fsc_resolution_angstrom"], "unit": "Å",
+                                     "measured": res, "unit": "Å",
                                      "threshold": 10.0,
-                                     "pass": data["fsc_resolution_angstrom"] <= 10.0})
+                                     "pass": res <= 10.0})
+            elif "estimated_resolution_A" in data:
+                res = float(data["estimated_resolution_A"])
+                metrics.setdefault("fsc", {})["resolution_A"] = res
+                all_metrics.append({"name": "FSC 0.143 resolution (Å)", "step": step,
+                                     "measured": res, "unit": "Å",
+                                     "threshold": 10.0,
+                                     "pass": res <= 10.0})
+            elif "fsc_curve" in data:
+                curve = data["fsc_curve"]
+                if isinstance(curve, list) and len(curve) > 0:
+                    # Find resolution where FSC crosses 0.143 (gold-standard criterion)
+                    res_at_143 = None
+                    for i in range(len(curve) - 1):
+                        pt = curve[i]
+                        pt_next = curve[i + 1]
+                        fsc_val = pt.get("fsc", pt.get("y", None))
+                        fsc_next = pt_next.get("fsc", pt_next.get("y", None))
+                        if fsc_val is not None and fsc_next is not None:
+                            if fsc_val >= 0.143 and fsc_next < 0.143:
+                                # Linearly interpolate resolution at 0.143
+                                res_val = pt.get("resolution_A", pt.get("x", 0))
+                                res_next = pt_next.get("resolution_A", pt_next.get("x", 0))
+                                frac = (0.143 - fsc_val) / (fsc_next - fsc_val)
+                                res_at_143 = round(res_val + frac * (res_next - res_val), 2)
+                                break
+                    if res_at_143 is not None:
+                        metrics.setdefault("fsc", {})["resolution_A"] = res_at_143
+                        all_metrics.append({"name": "FSC 0.143 resolution (Å)", "step": step,
+                                             "measured": res_at_143, "unit": "Å",
+                                             "threshold": 10.0,
+                                             "pass": res_at_143 <= 10.0})
 
-    if not metrics:
+    # Only return a result if there's at least one actionable metric beyond micrograph count
+    has_real_metrics = bool(all_metrics) or bool(
+        metrics.get("picking") or metrics.get("classification") or
+        metrics.get("refinement") or metrics.get("fsc")
+    )
+    if not has_real_metrics:
         return None
     metrics["_all_metrics"] = all_metrics
     return metrics

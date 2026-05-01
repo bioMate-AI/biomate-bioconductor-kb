@@ -347,13 +347,14 @@ class INDSectionAssembler:
         s_tox_overview = self._section_toxicology_overview(ctx)
         s_pharm_tab    = self._section_pharm_tabulated(ctx)
         s_pk_tab       = self._section_pk_tabulated(ctx)
+        s_tox_tab      = self._section_tox_tabulated(ctx)
 
         sections = [
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6",
-            "2.6.2", "2.6.3", "2.6.4", "2.6.5",
+            "2.6.2", "2.6.3", "2.6.4", "2.6.5", "2.6.6",
         ]
         parts = [title, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit,
-                 s_pk_overview, s_tox_overview, s_pharm_tab, s_pk_tab]
+                 s_pk_overview, s_tox_overview, s_pharm_tab, s_pk_tab, s_tox_tab]
         markdown_body = "\n\n".join(p for p in parts if p)
 
         # --- Document integrity footer ---
@@ -2154,6 +2155,197 @@ ICH E5 (NMPA/PMDA bridging requirements).*
 *All computational PK predictions cited in §2.6.5 require confirmation by wet-lab DMPK
 studies (microsomal stability, Caco-2, plasma protein binding, hepatocyte clearance) prior
 to IND filing per FDA PBPK Guidance (Sep 2018) and EMA/CHMP/EWP/37498/2011 Rev1.*"""
+
+    def _section_tox_tabulated(self, ctx: dict) -> str:
+        """ICH M4 CTD §2.6.6 — Nonclinical Tabulated Summary: Toxicology.
+
+        Per ICH M4S(R2) §2.6.6 this section tabulates in vitro and in silico
+        toxicology data for each compound. Covers:
+          Table A: In Vitro / In Silico Safety Panel
+          Table B: hERG Cardiac Safety (ICH S7B)
+          Table C: Genotoxicity (ICH S2(R1))
+          Table D: Hepatotoxicity (DILI — EMA DILI Reflection Paper 2021)
+          Table E: Reactive Metabolite / Structural Alert Screen
+          Table F: ClinTox / General Toxicity Flags
+        """
+        sp = ctx.get("safety_profile", {})
+        compounds = ctx.get("compounds", [])
+        pk = ctx.get("pk_summary", {}) or {}
+        wetlab = ctx.get("wetlab_data", {}) or {}
+        molecule_name = ctx.get("molecule_name", "?")
+        total = sp.get("total_compounds", len(compounds))
+
+        # ── Table A: In Vitro / In Silico Safety Panel header ─────────────────
+        table_a_header = (
+            "| Compound ID | hERG IC50 (µM) | DILI | Ames | ClinTox | "
+            "Reactive Met. Alert | Endpoint Source |\n"
+            "|-------------|---------------|------|------|---------|"
+            "--------------------|-----------------|\n"
+        )
+        table_a_rows = []
+        for cpd in compounds[:10]:
+            cid = cpd.get("compound_id", "N/A")
+            herg = cpd.get("hERG_IC50", cpd.get("herg_ic50", "N/A"))
+            dili = cpd.get("DILI", cpd.get("dili", "N/A"))
+            ames = cpd.get("Ames", cpd.get("ames", "N/A"))
+            ctox = cpd.get("ClinTox", cpd.get("clintox", "N/A"))
+            # Reactive metabolite from safety_profile alerts list
+            rm_alerts = sp.get("reactive_metabolite_alerts", {}).get(cid, [])
+            rm_str = "; ".join(rm_alerts[:2]) if rm_alerts else "None detected"
+            source = "ADMET-AI Chemprop-RDKit"
+            # Override source for lead compound if wet-lab data present
+            if wetlab and cid == molecule_name:
+                wl_herg = wetlab.get("herg_ic50_um")
+                if wl_herg is not None:
+                    herg = f"{wl_herg} ✓"
+                    source = "Measured (patch clamp) ✓"
+            table_a_rows.append(
+                f"| {cid} | {herg} | {dili} | {ames} | {ctox} | {rm_str} | {source} |"
+            )
+        if not table_a_rows:
+            table_a_rows = ["| N/A | N/A | N/A | N/A | N/A | N/A | N/A |"]
+        table_a = table_a_header + "\n".join(table_a_rows)
+
+        # ── Table B: hERG Cardiac Safety ──────────────────────────────────────
+        lead_herg = sp.get("lead_herg_ic50", pk.get("herg_ic50", "not determined"))
+        herg_threshold = 10.0  # ICH S7B concern threshold µM
+        lead_herg_numeric = None
+        try:
+            lead_herg_numeric = float(str(lead_herg).split()[0])
+        except (ValueError, TypeError):
+            pass
+        if lead_herg_numeric is not None:
+            safety_margin = f"{lead_herg_numeric / herg_threshold:.1f}×" if lead_herg_numeric > 0 else "< 1×"
+            herg_flag = "CONCERN" if lead_herg_numeric < herg_threshold else "ACCEPTABLE"
+        else:
+            safety_margin = "N/A"
+            herg_flag = "NOT DETERMINED"
+
+        table_b = f"""\
+| Parameter | Value | Reference | Status |
+|-----------|-------|-----------|--------|
+| hERG IC50 (lead, predicted) | {lead_herg} µM | ADMET-AI Chemprop-RDKit | — |
+| Concern threshold | 10 µM | ICH S7B Table 2 | — |
+| Safety margin (IC50 / 10 µM) | {safety_margin} | ICH S7B | {herg_flag} |
+| Required in vitro confirmation | hERG patch clamp (room temp + physiologic) | ICH S7B §3.1 | PENDING |
+| Required in vivo confirmation | Anesthetized guinea pig or dog QTc study | ICH S7B §3.2 | PENDING |
+| TQT study required before FIH? | Yes (ICH E14, if QT concern not ruled out) | ICH E14 | PENDING |"""
+
+        # ── Table C: Genotoxicity ─────────────────────────────────────────────
+        lead_ames = sp.get("lead_ames_result", pk.get("ames", "not determined"))
+        ames_flagged = sp.get("ames_flagged", 0)
+        table_c = f"""\
+| Test | Strain / System | Result (lead cpd) | Predicted Flag Rate | Regulatory Basis | Status |
+|------|----------------|-------------------|---------------------|-----------------|--------|
+| Bacterial reverse mutation (Ames) | *S. typhimurium* TA98/TA100/TA1535/TA1537; ±S9 | {lead_ames} (in silico) | {ames_flagged}/{total} | ICH S2(R1) §4.1 | PREDICTED — confirmation required |
+| In vitro chromosomal aberration | CHO or V79 cells, ±S9 | Not performed | — | ICH S2(R1) §4.2 | PENDING |
+| In vivo micronucleus (bone marrow) | Mouse/rat | Not performed | — | ICH S2(R1) §4.3 | PENDING |
+| Comet assay (optional) | Rat, liver/blood | Not performed | — | ICH S2(R1) §4.4 | OPTIONAL |
+
+*ICH S2(R1) Option 1 (standard battery): Ames + in vitro CA + in vivo MN must all be negative before FIH.*"""
+
+        # ── Table D: Hepatotoxicity (DILI) ────────────────────────────────────
+        lead_dili = sp.get("lead_dili_result", pk.get("dili", "not determined"))
+        dili_flagged = sp.get("dili_flagged", 0)
+        # EMA tier 2 reactive metabolite screen
+        rm_classes = sp.get("reactive_metabolite_alerts", {})
+        any_rm = any(rm_classes.values()) if rm_classes else False
+        tier2_flag = "CONCERN — Tier 2 bioactivation assessment recommended" if any_rm else "No structural alerts detected"
+        table_d = f"""\
+| Parameter | Lead Compound | Campaign Summary | EMA Tier | Regulatory Basis |
+|-----------|---------------|-----------------|---------|-----------------|
+| DILI prediction (ADMET-AI) | {lead_dili} | {dili_flagged}/{total} flagged | Tier 1 (screening) | EMA DILI Reflection Paper 2021 §3.1 |
+| Reactive metabolite structural alerts | {tier2_flag} | See Table A column | Tier 2 | EMA DILI Reflection Paper 2021 §3.2 |
+| In vitro mitochondrial toxicity | Not performed | — | Tier 2 | EMA DILI Reflection Paper 2021 §3.2.2 |
+| Hepatocyte viability (PHH) | Not performed | — | Tier 3 | EMA DILI Reflection Paper 2021 §3.3 |
+| BSEP inhibition | Not performed | — | Tier 3 | EMA DILI Reflection Paper 2021 §3.3.4 |
+
+*EMA DILI Tier 1 (in silico) is acceptable for pre-IND package. Tier 2/3 in vitro studies
+are recommended before Phase I IND filing if Tier 1 flags a concern.*"""
+
+        # ── Table E: Reactive Metabolite / Structural Alert Screen ───────────
+        rm_rows = []
+        lead_alerts = sp.get("reactive_metabolite_alerts", {}).get(molecule_name, [])
+        if lead_alerts:
+            for alert in lead_alerts:
+                rm_rows.append(f"| {molecule_name} | {alert} | Present | EMA DILI Reflection Paper 2021 §3.2 | In vitro GSH trapping assay |")
+        else:
+            rm_rows.append(f"| {molecule_name} | All 12 SMARTS classes | None detected | EMA DILI Reflection Paper 2021 §3.2 | — |")
+        table_e_header = (
+            "| Compound | Alert Class | Status | Regulatory Basis | Recommended Follow-up |\n"
+            "|----------|------------|--------|-----------------|----------------------|\n"
+        )
+        table_e = table_e_header + "\n".join(rm_rows)
+
+        # ── Table F: ClinTox / General Toxicity Flags ─────────────────────────
+        clintox_flagged = sp.get("clintox_flagged", 0)
+        table_f_rows = []
+        for cpd in compounds[:5]:
+            cid = cpd.get("compound_id", "N/A")
+            ctox_score = cpd.get("ClinTox", cpd.get("clintox", "N/A"))
+            try:
+                ct_f = float(ctox_score)
+                ct_status = "FLAG" if ct_f > 0.5 else "PASS"
+            except (TypeError, ValueError):
+                ct_status = "N/A"
+            table_f_rows.append(f"| {cid} | {ctox_score} | {ct_status} | ADMET-AI (FDA approved drug clinical failure) |")
+        if not table_f_rows:
+            table_f_rows = ["| N/A | N/A | N/A | N/A |"]
+        table_f_header = (
+            "| Compound ID | ClinTox score (0–1) | Flag (>0.5) | Basis |\n"
+            "|-------------|--------------------|-----------:|-------|\n"
+        )
+        table_f = table_f_header + "\n".join(table_f_rows)
+
+        return f"""\
+## 2.6.6 Nonclinical Tabulated Summary: Toxicology
+
+Per ICH M4S(R2) §2.6.6 this section presents tabulated in vitro and in silico toxicology data.
+All predicted values are flagged as such and require experimental confirmation before IND filing.
+
+**References:** ICH S7A/S7B (safety pharmacology) · ICH S2(R1) (genotoxicity) ·
+EMA DILI Reflection Paper EMA/CHMP/DILI/44444/2021 · ICH M3(R2) nonclinical safety timing
+
+### Table 2.6.6.A — In Vitro / In Silico Safety Panel
+
+{table_a}
+
+*All predictions from ADMET-AI Chemprop-RDKit (Swanson et al. J Chem Inf Model 2023).
+Measured values (✓) supersede predictions where available.*
+
+### Table 2.6.6.B — Cardiac Safety: hERG Channel (ICH S7B)
+
+{table_b}
+
+### Table 2.6.6.C — Genotoxicity Battery (ICH S2(R1))
+
+{table_c}
+
+### Table 2.6.6.D — Hepatotoxicity / DILI Assessment (EMA 2021)
+
+{table_d}
+
+### Table 2.6.6.E — Reactive Metabolite / Structural Alert Screen
+
+{table_e}
+
+*Screen covers 12 SMARTS alert classes: Michael acceptors, epoxides, quinones, acyl halides,
+nitroaromatics, thiophenes, anilines, hydrazines, carbamates, sulfonates, iminium precursors,
+para-aminophenols. Method: RDKit SMARTS substructure match.*
+
+### Table 2.6.6.F — ClinTox / General Clinical Toxicity Flags
+
+{table_f}
+
+*ClinTox model trained on FDA-approved drug clinical failure data (Gayvert et al. Cell Chem Biol 2016).
+Score > 0.5 = elevated likelihood of clinical toxicity failure. Flagged compounds require
+additional in vitro cytotoxicity profiling (MTT/LDH, HepG2 and primary cell lines).*
+
+---
+
+*All computational toxicology predictions cited in §2.6.6 are for candidate triage purposes only.
+GLP in vitro genotoxicity (Ames + CA) and safety pharmacology (hERG patch clamp) are required
+before IND filing per ICH M3(R2) Table 1 (Phase I single ascending dose).*"""
 
     # ------------------------------------------------------------------
     # Regulatory audit
