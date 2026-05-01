@@ -837,13 +837,30 @@ def lookup_gwas_catalog(phenotype: str, candidate_rsids: List[str]) -> Dict[str,
     Query GWAS Catalog REST API for each candidate rsID and rank by association
     strength with the given phenotype.
 
+    Uses the persistent HTTP cache from knowledge.variant_enrichment when available
+    (prevents rate limiting after repeated calls in the same day).
+
     Returns a dict with:
       - top_rsid: str — best-scoring rsID (lowest p-value for phenotype-matching associations)
       - ranked: List[dict] — [{rsid, pvalue_exp, pvalue_mantissa, trait, mapped_gene}, ...]
       - phenotype_matches: List[dict] — associations where trait name overlaps with phenotype
+      - gene_annotation: Dict[str, str] — nearest protein-coding genes per rsID (from Ensembl)
+      - enriched_context: str — formatted context block for direct prompt injection
     """
     if not candidate_rsids:
         return {}
+
+    # Use persistent cache from knowledge module when available (prevents rate limiting)
+    enriched_context = ""
+    gene_annotation: Dict[str, str] = {}
+    try:
+        from galaxy.ai.knowledge.variant_enrichment import enrich_variants_gwas, annotate_variants_with_genes
+        enriched_context = enrich_variants_gwas(phenotype, candidate_rsids[:20], timeout=5)
+        gene_annotation = annotate_variants_with_genes(candidate_rsids[:20])
+        if enriched_context:
+            log.info("variant_enrichment: cached GWAS context (%d chars)", len(enriched_context))
+    except Exception as _ke:
+        log.debug("knowledge.variant_enrichment unavailable, using live API: %s", _ke)
 
     phenotype_words = set(re.findall(r"\b\w{4,}\b", phenotype.lower()))
     results: List[Dict[str, Any]] = []
@@ -885,17 +902,21 @@ def lookup_gwas_catalog(phenotype: str, candidate_rsids: List[str]) -> Dict[str,
                 "phenotype_overlap": overlap,
             })
 
-    if not results:
+    if not results and not enriched_context:
         return {}
 
     # Sort: primary = phenotype overlap (desc), secondary = p-value exponent (asc)
-    results.sort(key=lambda x: (-x["phenotype_overlap"], x["pvalue_exp"], x["pvalue_mantissa"]))
+    if results:
+        results.sort(key=lambda x: (-x["phenotype_overlap"], x["pvalue_exp"], x["pvalue_mantissa"]))
     phenotype_matches = [r for r in results if r["phenotype_overlap"] > 0]
+    top_rsid = results[0]["rsid"] if results else (candidate_rsids[0] if candidate_rsids else "")
 
     return {
-        "top_rsid": results[0]["rsid"],
+        "top_rsid": top_rsid,
         "ranked": results[:10],
         "phenotype_matches": phenotype_matches[:5],
+        "gene_annotation": gene_annotation,
+        "enriched_context": enriched_context,
     }
 
 
@@ -2102,21 +2123,33 @@ class ResearchAgent:
             # ── GWAS Catalog associations — for SNP prioritization tasks ──────────
             if df.get('gwas_catalog'):
                 gc = df['gwas_catalog']
-                db_section.append("### GWAS Catalog: variant associations (ranked by phenotype relevance, then p-value)")
-                top = gc.get('top_rsid', '')
-                if top:
-                    db_section.append(f"**Top candidate rsID: {top}**")
-                for r in gc.get('ranked', [])[:8]:
-                    genes_str = ", ".join(r.get('mapped_genes', [])) or "—"
-                    db_section.append(
-                        f"- {r['rsid']}: trait='{r['trait'][:80]}' | "
-                        f"p={r['pvalue_mantissa']}×10^{r['pvalue_exp']} | "
-                        f"genes={genes_str} | phenotype_match={r['phenotype_overlap']}"
-                    )
-                if gc.get('phenotype_matches'):
-                    db_section.append("**Phenotype-matching associations:**")
-                    for m in gc['phenotype_matches'][:3]:
-                        db_section.append(f"  → {m['rsid']} matched trait '{m['trait'][:80]}'")
+                # Prefer enriched_context from persistent cache (more accurate p-value ranking)
+                if gc.get('enriched_context'):
+                    db_section.append("### GWAS Catalog: phenotype-specific variant rankings (cached)")
+                    db_section.append(gc['enriched_context'])
+                    # Also inject gene annotations if available
+                    gene_ann = gc.get('gene_annotation', {})
+                    if gene_ann:
+                        ann_lines = [f"  {rsid}: {genes}" for rsid, genes in gene_ann.items() if genes]
+                        if ann_lines:
+                            db_section.append("[Nearest protein-coding genes via Ensembl]")
+                            db_section.extend(ann_lines)
+                else:
+                    db_section.append("### GWAS Catalog: variant associations (ranked by phenotype relevance, then p-value)")
+                    top = gc.get('top_rsid', '')
+                    if top:
+                        db_section.append(f"**Top candidate rsID: {top}**")
+                    for r in gc.get('ranked', [])[:8]:
+                        genes_str = ", ".join(r.get('mapped_genes', [])) or "—"
+                        db_section.append(
+                            f"- {r['rsid']}: trait='{r['trait'][:80]}' | "
+                            f"p={r['pvalue_mantissa']}×10^{r['pvalue_exp']} | "
+                            f"genes={genes_str} | phenotype_match={r['phenotype_overlap']}"
+                        )
+                    if gc.get('phenotype_matches'):
+                        db_section.append("**Phenotype-matching associations:**")
+                        for m in gc['phenotype_matches'][:3]:
+                            db_section.append(f"  → {m['rsid']} matched trait '{m['trait'][:80]}'")
 
             # ── Open Targets gene candidates — for causal-gene questions ──────────
             if df.get('open_targets_gene'):
