@@ -647,6 +647,284 @@ REFERENCE_COMPOUNDS: list[dict] = [
         "expected_flags": [],
         "note": "Prototypic high-extraction drug; oral bioavailability subject to CYP2D6 genotype",
     },
+
+    # ── Extended set (v2.1 — 13 additional compounds) ─────────────────────────
+
+    {
+        "id": "Rosuvastatin",
+        "chembl_id": "CHEMBL1496",
+        "smiles": "CC(C)c1nc(N(C)S(C)(=O)=O)nc(-c2ccc(F)cc2)c1CC[C@@H](O)C[C@@H](O)CC(=O)O",
+        "mw_da": 481.5, "logp": 0.33,
+        "role": "OATP1B1_substrate_hERG_safe",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,   # no significant hERG activity; Eur J Pharmacol
+            "Ames": "negative",
+            "DILI": "nMDILI",
+            "fu_plasma": 0.12,        # 88% bound; FDA label NDA 21-366
+            "vd_lkg": 134.0,          # large apparent Vd
+            "t_half_h": 19.0,
+            "bioavailability_pct": 20,
+        },
+        "sources": {
+            "PK": "FDA label NDA 21-366",
+            "DILI": "DILIrank nMDILI",
+        },
+        "expected_flags": [],
+        "note": "OATP1B1/BCRP substrate; lowest bioavailability statin (20%); no hERG concern",
+    },
+    {
+        "id": "Tamoxifen",
+        "chembl_id": "CHEMBL83",
+        "smiles": "CCC(=C(c1ccccc1)c1ccc(OCCN(C)C)cc1)c1ccccc1",
+        "mw_da": 371.5, "logp": 6.3,
+        "role": "DILI_positive_CYP2D6_substrate",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 25.0,    # modest hERG; Katchman 2006
+            "Ames": "negative",       # not mutagenic in standard Ames
+            "DILI": "wMDILI",        # DILIrank wMDILI; fatty liver, steatohepatitis
+            "fu_plasma": 0.01,        # 99% bound; tamoxifen + active metabolites
+            "vd_lkg": 50.0,
+            "t_half_h": 168.0,        # 7 days (tamoxifen); active metabolite endoxifen t½ >> 7d
+        },
+        "sources": {
+            "hERG": "Katchman AN et al. J Pharmacol Exp Ther 2006",
+            "DILI": "DILIrank wMDILI; non-alcoholic fatty liver + steatohepatitis",
+            "PK": "FDA label NDA 17-970",
+        },
+        "expected_flags": ["DILI"],
+        "note": "SERM; CYP2D6 substrate → active metabolite endoxifen; REMS for teratogenicity",
+    },
+    {
+        "id": "Diclofenac",
+        "chembl_id": "CHEMBL139",
+        "smiles": "O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl",
+        "mw_da": 296.2, "logp": 4.51,
+        "role": "DILI_positive_NSAID_reactive_metabolite",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,
+            "Ames": "negative",
+            "DILI": "vMDILI",        # DILIrank vMDILI; idiosyncratic hepatotoxicity
+            "fu_plasma": 0.005,
+            "vd_lkg": 0.55,
+            "t_half_h": 1.8,
+            "bioavailability_pct": 60,
+        },
+        "sources": {
+            "DILI": "DILIrank vMDILI; Boelsterli UA. Curr Drug Metab 2003 — reactive metabolite mechanism",
+            "PK": "FDA label",
+        },
+        "expected_flags": ["DILI"],
+        "note": "NSAID; reactive metabolite (acyl glucuronide + quinone-imine via CYP2C8) → hepatotoxicity",
+    },
+    {
+        "id": "Rifampin",
+        "chembl_id": "CHEMBL374478",
+        "smiles": "CO[C@H]1/C=C/O[C@@]2(C)Oc3c(C)c(O)c4c(O)c(c(/C=N/N5CCN(C)CC5)c(O)c4c3C2=O)NC(=O)/C(C)=C\\C=C\\[C@H](C)[C@H](O)[C@@H](C)[C@@H](O)[C@@H](C)[C@H](OC(C)=O)[C@@H]1C",
+        "mw_da": 822.9, "logp": 4.24,
+        "role": "DILI_positive_CYP_inducer_TB_drug",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,
+            "Ames": "negative",
+            "DILI": "vMDILI",        # dose-dependent hepatotoxicity; isoniazid combination worsens
+            "fu_plasma": 0.20,
+            "vd_lkg": 0.97,
+            "t_half_h": 2.5,
+            "bioavailability_pct": 90,
+        },
+        "sources": {
+            "DILI": "DILIrank vMDILI; potent PXR agonist → CYP3A4 autoinduction → metabolite accumulation",
+            "PK": "FDA label",
+        },
+        "expected_flags": ["DILI"],
+        "note": "Prototypic strong CYP3A4/1A2/2C9 inducer; DILI synergistic with isoniazid",
+    },
+    {
+        "id": "Methotrexate",
+        "chembl_id": "CHEMBL34259",
+        "smiles": "CN(Cc1cnc2nc(N)nc(N)c2n1)c1ccc(C(=O)N[C@@H](CCC(=O)O)C(=O)O)cc1",
+        "mw_da": 454.4, "logp": -1.85,
+        "role": "DILI_positive_antifolate",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 1000.0,  # no hERG activity (charged molecule)
+            "Ames": "positive",       # antifolate mechanism; TA1535/TA1537 positive
+            "DILI": "vMDILI",        # hepatic fibrosis with chronic use
+            "fu_plasma": 0.50,
+            "vd_lkg": 0.9,
+            "t_half_h": 8.0,
+            "bioavailability_pct": 70,
+        },
+        "sources": {
+            "Ames": "NTP study data; positive via DHFR inhibition mechanism",
+            "DILI": "DILIrank vMDILI; hepatic fibrosis/cirrhosis with cumulative dose",
+            "PK": "FDA label",
+        },
+        "expected_flags": ["Ames", "DILI"],
+        "note": "Antifolate; DILI via accumulation in hepatocytes (polyglutamation); Ames+ via indirect mechanism",
+    },
+    {
+        "id": "Nifedipine",
+        "chembl_id": "CHEMBL193",
+        "smiles": "COC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1ccccc1[N+](=O)[O-]",
+        "mw_da": 346.3, "logp": 2.2,
+        "role": "CYP3A4_index_substrate_CCB",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,   # safe; calcium channel blocker (L-type, not hERG)
+            "Ames": "negative",
+            "DILI": "nMDILI",
+            "fu_plasma": 0.05,
+            "vd_lkg": 0.78,
+            "t_half_h": 2.5,
+            "bioavailability_pct": 45,
+        },
+        "sources": {
+            "PK": "FDA label; Sorkin EM. Drugs 1985",
+        },
+        "expected_flags": [],
+        "note": "FDA-designated CYP3A4 index substrate alongside midazolam; photodegrades to nitrosoamine",
+    },
+    {
+        "id": "Erythromycin",
+        "chembl_id": "CHEMBL532",
+        "smiles": "CC[C@H]1OC(=O)[C@H](C)[C@@H](O[C@H]2C[C@@](C)(OC)[C@@H](O)[C@H](C)O2)[C@H](C)[C@@H](O[C@@H]2O[C@H](C)C[C@@H]([C@H]2O)N(C)C)[C@@](C)(O)C[C@@H]1C",
+        "mw_da": 733.9, "logp": 3.06,
+        "role": "hERG_moderate_CYP3A4_inhibitor_DDI",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 0.040,   # 40 nM; Guo 2005 — potent hERG blocker
+            "Ames": "negative",
+            "DILI": "wMDILI",        # cholestatic hepatitis (estolate > base)
+            "fu_plasma": 0.18,
+            "vd_lkg": 0.57,
+            "t_half_h": 1.5,
+            "bioavailability_pct": 37,
+        },
+        "sources": {
+            "hERG": "Guo J et al. Antimicrob Agents Chemother 2005 — 40 nM (comparable to cisapride)",
+            "DILI": "DILIrank wMDILI; cholestatic hepatitis with estolate ester",
+        },
+        "expected_flags": ["hERG", "DILI"],
+        "note": "hERG IC50 40 nM; ranks alongside cisapride for cardiac risk; strong CYP3A4 inhibitor",
+    },
+    {
+        "id": "Digoxin",
+        "chembl_id": "CHEMBL1751",
+        "smiles": "C[C@H]1O[C@@H](O[C@H]2[C@@H](O)C[C@H](O[C@H]3[C@@H](O)C[C@H](O[C@H]4CC[C@@]5(C)[C@H](CC[C@@H]6[C@@H]5C[C@@H](O)[C@]5(C)[C@@H](C7=CC(=O)OC7)CC[C@]65O)C4)O[C@@H]3C)O[C@@H]2C)C[C@H](O)[C@@H]1O",
+        "mw_da": 780.9, "logp": 1.26,
+        "role": "Pgp_substrate_narrow_TI",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,   # no significant hERG at therapeutic concentrations
+            "Ames": "negative",
+            "DILI": "nMDILI",
+            "fu_plasma": 0.75,        # only 25% bound; narrow TI (serum conc 0.5-2 ng/mL)
+            "vd_lkg": 7.3,            # large Vd due to tissue binding
+            "t_half_h": 36.0,
+            "bioavailability_pct": 70,
+        },
+        "sources": {
+            "PK": "FDA label; Evered DC et al. Eur J Clin Pharmacol 1979",
+        },
+        "expected_flags": [],
+        "note": "Prototypic P-gp substrate; narrow TI; toxicity via Na+/K+-ATPase inhibition not hERG",
+    },
+    {
+        "id": "Simvastatin",
+        "chembl_id": "CHEMBL1064",
+        "smiles": "CCC(C)(C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C)[C@H](CC[C@@H]3C[C@@H](O)CC(=O)O3)[C@@H]21",
+        "mw_da": 418.6, "logp": 4.68,
+        "role": "DILI_positive_CYP3A4_substrate_statin",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,
+            "Ames": "negative",
+            "DILI": "vMDILI",        # rhabdomyolysis (indirect DILI via myopathy)
+            "fu_plasma": 0.05,
+            "vd_lkg": 2.5,
+            "t_half_h": 2.0,         # active acid metabolite; simvastatin t½ ~2h
+            "bioavailability_pct": 5, # extensive first-pass; CYP3A4
+        },
+        "sources": {
+            "DILI": "DILIrank vMDILI; rhabdomyolysis risk (esp. with CYP3A4 inhibitors); FDA dose limit 80mg",
+            "PK": "FDA label NDA 19-766",
+        },
+        "expected_flags": ["DILI"],
+        "note": "CYP3A4-sensitive statin; dose-limited due to myopathy/rhabdomyolysis; DDI risk with CYP3A4 inhibitors",
+    },
+    {
+        "id": "Fluoxetine",
+        "chembl_id": "CHEMBL41",
+        "smiles": "CNCCC(Oc1ccc(C(F)(F)F)cc1)c1ccccc1",
+        "mw_da": 309.3, "logp": 4.17,
+        "role": "CYP2D6_inhibitor_SSRI",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 0.70,    # Redfern Cat-2; some cardiac concern
+            "Ames": "negative",
+            "DILI": "nMDILI",
+            "fu_plasma": 0.06,
+            "vd_lkg": 35.0,           # very large Vd due to tissue accumulation
+            "t_half_h": 72.0,         # fluoxetine; norfluoxetine t½ ~7-15 days
+            "bioavailability_pct": 72,
+        },
+        "sources": {
+            "hERG": "Redfern WS et al. Cardiovasc Res 2003;58(1):32-45 Cat-2",
+            "PK": "FDA label NDA 18-936",
+        },
+        "expected_flags": ["hERG"],
+        "note": "Potent CYP2D6 inhibitor (Ki ~0.5 µM); hERG IC50 0.7 µM → flagged but clinical QT risk considered low due to reflex sympathetic activation",
+    },
+    {
+        "id": "Phenytoin",
+        "chembl_id": "CHEMBL16",
+        "smiles": "O=C1NC(=O)C(c2ccccc2)(c2ccccc2)N1",
+        "mw_da": 252.3, "logp": 2.47,
+        "role": "DILI_positive_CYP2C9_substrate_narrow_TI",
+        "market_status": "approved",
+        "measured": {
+            "hERG_IC50_uM": 100.0,   # no significant hERG activity (voltage-gated Na channel)
+            "Ames": "negative",
+            "DILI": "wMDILI",        # DILIrank wMDILI; hypersensitivity hepatitis, SJS/TEN
+            "fu_plasma": 0.10,
+            "vd_lkg": 0.78,
+            "t_half_h": 22.0,         # nonlinear PK; saturable CYP2C9
+            "bioavailability_pct": 95,
+        },
+        "sources": {
+            "DILI": "DILIrank wMDILI; idiosyncratic hypersensitivity with Stevens-Johnson syndrome",
+            "PK": "FDA label; Jusko WJ. J Pharm Sci 1976",
+        },
+        "expected_flags": ["DILI"],
+        "note": "Narrow TI; CYP2C9 substrate with saturable Michaelis-Menten kinetics; HLA-associated hypersensitivity",
+    },
+    {
+        "id": "Carbamazepine",
+        "chembl_id": "CHEMBL108",
+        "smiles": "NC(=O)N1c2ccccc2C=Cc2ccccc21",
+        "mw_da": 236.3, "logp": 2.77,
+        "role": "DILI_positive_CYP_inducer_SJS_risk",
+        "market_status": "approved_REMS",
+        "measured": {
+            "hERG_IC50_uM": 100.0,   # no clinically significant hERG
+            "Ames": "negative",
+            "DILI": "vMDILI",        # DILIrank vMDILI; aplastic anemia + agranulocytosis + SJS/TEN
+            "fu_plasma": 0.24,
+            "vd_lkg": 1.4,
+            "t_half_h": 15.0,         # auto-induction to 5-12h after chronic dosing
+            "bioavailability_pct": 89,
+        },
+        "sources": {
+            "DILI": "DILIrank vMDILI; HLA-B*15:02 → SJS (Asian populations); CYP3A4 auto-inducer",
+            "PK": "FDA label; Eichelbaum M. Clin Pharmacokinet 1982",
+        },
+        "expected_flags": ["DILI"],
+        "note": "REMS for serious dermatological reactions; HLA pharmacogenomics; CYP3A4 auto-inducer",
+    },
 ]
 
 
@@ -903,7 +1181,9 @@ def write_yaml(compounds: list[dict], chembl_data: dict, output_path: Path) -> N
         lines.append(f"  - id: {cid}")
         if chembl_id:
             lines.append(f"    chembl_id: {chembl_id}")
-        lines.append(f"    smiles: \"{cpd.get('smiles', '')}\"")
+        # Use single-quote YAML strings to avoid backslash escaping issues in stereo SMILES
+        safe_smiles = cpd.get("smiles", "").replace("'", "''")
+        lines.append(f"    smiles: '{safe_smiles}'")
         if cpd.get("mw_da"):
             lines.append(f"    mw_da: {cpd['mw_da']}")
         if cpd.get("logp") is not None:

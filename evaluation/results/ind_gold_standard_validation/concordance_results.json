@@ -1,0 +1,53 @@
+[
+  {
+    "endpoint": "hERG",
+    "admet_col": "hERG",
+    "threshold": 0.5,
+    "n_evaluated": 39,
+    "tp": 10,
+    "tn": 14,
+    "fp": 14,
+    "fn": 1,
+    "sensitivity": 0.9091,
+    "specificity": 0.5,
+    "accuracy": 0.6154,
+    "balanced_accuracy": 0.7045,
+    "mcc": 0.3784,
+    "ppv": 0.4167,
+    "npv": 0.9333
+  },
+  {
+    "endpoint": "DILI",
+    "admet_col": "DILI",
+    "threshold": 0.5,
+    "n_evaluated": 39,
+    "tp": 13,
+    "tn": 6,
+    "fp": 9,
+    "fn": 11,
+    "sensitivity": 0.5417,
+    "specificity": 0.4,
+    "accuracy": 0.4872,
+    "balanced_accuracy": 0.4708,
+    "mcc": -0.0572,
+    "ppv": 0.5909,
+    "npv": 0.3529
+  },
+  {
+    "endpoint": "Ames",
+    "admet_col": "AMES",
+    "threshold": 0.5,
+    "n_evaluated": 39,
+    "tp": 3,
+    "tn": 28,
+    "fp": 7,
+    "fn": 1,
+    "sensitivity": 0.75,
+    "specificity": 0.8,
+    "accuracy": 0.7949,
+    "balanced_accuracy": 0.775,
+    "mcc": 0.3821,
+    "ppv": 0.3,
+    "npv": 0.9655
+  }
+]

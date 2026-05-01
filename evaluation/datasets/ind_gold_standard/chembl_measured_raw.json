@@ -137,5 +137,59 @@
     "all_values": [
       2.828
     ]
+  },
+  "Tamoxifen": {
+    "herg_ic50_uM": 1.5849,
+    "n_measurements": 2,
+    "all_values": [
+      1.5849,
+      0.967
+    ]
+  },
+  "Nifedipine": {
+    "herg_ic50_uM": 50.1187,
+    "n_measurements": 6,
+    "all_values": [
+      50.1187,
+      280.0,
+      50.1187,
+      50.1187,
+      50.1187
+    ]
+  },
+  "Erythromycin": {
+    "herg_ic50_uM": 39.0,
+    "n_measurements": 2,
+    "all_values": [
+      39.0,
+      0.039
+    ]
+  },
+  "Fluoxetine": {
+    "herg_ic50_uM": 1.5136,
+    "n_measurements": 7,
+    "all_values": [
+      1.5136,
+      1.5136,
+      1.5136,
+      3.1,
+      0.4571
+    ]
+  },
+  "Phenytoin": {
+    "herg_ic50_uM": 239.8833,
+    "n_measurements": 3,
+    "all_values": [
+      240.0,
+      239.8833,
+      100.0
+    ]
+  },
+  "Carbamazepine": {
+    "herg_ic50_uM": 104.7129,
+    "n_measurements": 1,
+    "all_values": [
+      104.7129
+    ]
   }
 }
