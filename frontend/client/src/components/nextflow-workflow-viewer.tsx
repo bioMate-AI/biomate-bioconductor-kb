@@ -407,6 +407,7 @@ function PhaseGroupSection({
   qcThresholds,
   qcOverrides,
   onQcChange,
+  paramGroupToPhaseKey,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -430,6 +431,8 @@ function PhaseGroupSection({
   qcThresholds: Array<{ key: string; label: string; unit: string; direction: string; value: number; modified: boolean; rationale?: string }>;
   qcOverrides: Record<string, number>;
   onQcChange: (key: string, val: number | null) => void;
+  /** Pre-built map from normalized group name → phase key, computed once at panel mount. */
+  paramGroupToPhaseKey: Map<string, string>;
 }) {
   const { steps, label, phaseParams } = group;
   const [qcEditorOpen, setQcEditorOpen] = React.useState(false);
@@ -451,23 +454,10 @@ function PhaseGroupSection({
     if (anyRunning || anyFailed) setOpen(true);
   }, [anyRunning, anyFailed]);
 
-  // Match params to this phase by keyword overlap between param's semantic group name
-  // and the phase label. Supports both legacy letter groups ("A","B") and semantic names
-  // ("Motion Correction", "CTF Estimation"). Global/Advanced params are never matched here.
+  // Direct lookup using the pre-computed map — no per-render matching.
   const phaseRenderedParams = renderedParameters.filter(p => {
     const pg = String((p as any).group || '').trim().toLowerCase();
-    if (!pg) return false;
-    if (['global', 'advanced', 'infrastructure', 'performance'].includes(pg)) return false;
-
-    // Legacy: exact letter match (e.g. group="A" matches phase key="A")
-    if (pg === group.key.toLowerCase()) return true;
-
-    // Semantic: keyword overlap — extract words ≥3 chars from param group name
-    // and check if any appear in the phase label (e.g. "ctf" in "CTF Estimation" matches
-    // phase label "Motion Correction & CTF")
-    const groupWords = pg.split(/[\s_\-]+/).filter(w => w.length >= 3);
-    const labelNorm = label.toLowerCase();
-    return groupWords.some(w => labelNorm.includes(w));
+    return !!pg && paramGroupToPhaseKey.get(pg) === group.key;
   });
   const [phaseParamsOpen, setPhaseParamsOpen] = React.useState(false);
 
@@ -1373,6 +1363,36 @@ export function NextflowWorkflowViewer({
     });
   }, [workflowDefinition, params, toolHintMap]);
 
+  // At panel-generation time: build a one-time map from param semantic group → phase key.
+  // Each param carries a group name like "Motion Correction" or "CTF Estimation" from the
+  // .nf section headers. Match against phase labels so PhaseGroupSection can do a direct lookup.
+  const paramGroupToPhaseKey = React.useMemo<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    const GLOBAL_GROUPS = new Set(['global', 'advanced', 'infrastructure', 'performance']);
+    const tokenize = (s: string) =>
+      s.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim().split(/\s+/).filter(w => w.length >= 3);
+
+    for (const p of renderedParameters) {
+      const rawGroup = String((p as any).group || '').trim();
+      if (!rawGroup) continue;
+      const pgNorm = rawGroup.toLowerCase();
+      if (GLOBAL_GROUPS.has(pgNorm)) continue;
+      if (map.has(pgNorm)) continue; // already mapped
+
+      const groupTokens = tokenize(rawGroup);
+      for (const phase of groupedPhases) {
+        const phaseTokens = tokenize(phase.label);
+        // All group tokens must appear in the phase label tokens (or vice versa for short names)
+        const matched = groupTokens.every(gt => phaseTokens.some(pt => pt.includes(gt) || gt.includes(pt)));
+        if (matched) {
+          map.set(pgNorm, phase.key);
+          break;
+        }
+      }
+    }
+    return map;
+  }, [renderedParameters, groupedPhases]);
+
   const [showResults, setShowResults] = useState(status === 'completed');
   const [downloadAllPromptOpen, setDownloadAllPromptOpen] = useState(false);
 
@@ -2098,6 +2118,7 @@ export function NextflowWorkflowViewer({
                       setAutoLoopPanel({ gateResults: null, remediations: [], complete: null });
                       handleExecute();
                     }}
+                    paramGroupToPhaseKey={paramGroupToPhaseKey}
                   />
                 ))}
                 <button
@@ -2122,24 +2143,14 @@ export function NextflowWorkflowViewer({
             )}
 
             {/* ── Global/infrastructure params strip ──────────────────────────── */}
-            {/* Shows params NOT claimed by any phase card. A param is claimed when its semantic
-                group name has keyword overlap with a phase label ("CTF Estimation" → CTF phase).
-                group='global'/'advanced' is always shown here. No-group params also go here. */}
+            {/* Shows params not claimed by any phase (group='global'/'advanced', or no match). */}
             {(() => {
-              // Re-use the same keyword matcher as PhaseGroupSection
-              const paramClaimedByAnyPhase = (p: any): boolean => {
-                const pg = String(p.group || '').trim().toLowerCase();
-                if (!pg) return false;
-                if (['global', 'advanced', 'infrastructure', 'performance'].includes(pg)) return false;
-                return groupedPhases.some(grp => {
-                  if (pg === grp.key.toLowerCase()) return true;
-                  const dashIdx = grp.label.indexOf('—');
-                  const lbl = (dashIdx > -1 ? grp.label.slice(dashIdx + 1) : grp.label).toLowerCase();
-                  const words = pg.split(/[\s_\-]+/).filter((w: string) => w.length >= 3);
-                  return words.some((w: string) => lbl.includes(w));
-                });
-              };
-              const globalParams = renderedParameters.filter(p => !paramClaimedByAnyPhase(p));
+              // A param is claimed if paramGroupToPhaseKey resolved it to a phase key
+              const globalParams = renderedParameters.filter(p => {
+                const pg = String((p as any).group || '').trim().toLowerCase();
+                if (!pg) return true; // no group → goes here
+                return !paramGroupToPhaseKey.has(pg); // not mapped to any phase
+              });
               // Format mismatch warning
               const allParamDefs: any[] = [
                 ...(workflowDefinition?.required_params || []),
