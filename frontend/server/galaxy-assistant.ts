@@ -1840,10 +1840,17 @@ Rules:
       if (_isPbpkIntent) {
         // Check for SMILES: atom pattern like CC(, c1c, [nH], lowercase aromatic rings, etc.
         // Uses two strategies: (1) broad atom token pattern, (2) SMILES-after-"for" token check
-        const _hasSmilesToken1 = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message);
-        const _smilesAfterFor = (message.match(/\bfor\s+(\S+)/) || [])[1] || '';
+        // Strategy 1: common SMILES fragments that don't require word-boundary (appear only in SMILES)
+        const _hasSmilesToken1 = /\b([A-Z][a-z]?\(|c1|CC\(|n1|N\(|O=|F[^a-z]|Cl[^a-z]|Br[^a-z])/.test(message)
+          || /\(=O\)/.test(message)   // carbonyl/ester/amide — unique to SMILES
+          || /\[n[Hh]\]/.test(message) // aromatic NH in SMILES
+          || /[a-z]{2,}\d/.test(message.replace(/\b[a-z]{4,}\b/g, '')); // ring-closure digits after lowercase
+        // Strategy 2: look for SMILES in the token AFTER "for [name] [SMILES]" (name + SMILES pattern)
+        const _smilesAfterFor = (message.match(/\bfor\s+\S+\s+(\S+)/) || message.match(/\bfor\s+(\S+)/) || [])[1] || '';
         const _hasSmilesToken2 = /[a-z]\d|[A-Z]\d|\(=O\)|=O\)|\[n[H]\]|[cn][0-9]/.test(_smilesAfterFor);
-        const _hasSmilesInMessage = _hasSmilesToken1 || _hasSmilesToken2 || /\.sdf\b/i.test(message);
+        // Strategy 3: any word-like token containing SMILES brackets or ring-closure digits
+        const _hasSmilesToken3 = /[A-Za-z0-9]\([A-Za-z=]/.test(message) && /[a-z]\d/.test(message);
+        const _hasSmilesInMessage = _hasSmilesToken1 || _hasSmilesToken2 || _hasSmilesToken3 || /\.sdf\b/i.test(message);
         // Check for CLint: numeric value after CLint/intrinsic clearance keyword
         const _hasClintInMessage = /\b(clint|cl_int|intrinsic.clearance)\s*[=:]\s*[\d\.]+/i.test(message)
           || /\bclint\s+[\d\.]+/i.test(message)
