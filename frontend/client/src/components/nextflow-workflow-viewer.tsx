@@ -392,7 +392,6 @@ function PhaseGroupSection({
   onRun,
   onSkip,
   onStopPhase,
-  onEditGate,
   onPreviewFile,
   onAdjustAndRerun,
   activeRunId,
@@ -405,6 +404,9 @@ function PhaseGroupSection({
   onToggleAutoloop,
   onDismissAutoloop,
   onAcceptAutoloop,
+  qcThresholds,
+  qcOverrides,
+  onQcChange,
 }: {
   group: PhaseGroup;
   renderedParameters: any[];
@@ -413,7 +415,6 @@ function PhaseGroupSection({
   onRun: (phase: any) => void;
   onSkip: (id: string) => void;
   onStopPhase?: () => void;
-  onEditGate?: (paramId: string) => void;
   onPreviewFile: (file: any) => void;
   onAdjustAndRerun: (step: any) => void;
   activeRunId: string | null | undefined;
@@ -426,8 +427,12 @@ function PhaseGroupSection({
   onToggleAutoloop: () => void;
   onDismissAutoloop: () => void;
   onAcceptAutoloop?: (paramChanges: Record<string, unknown>) => void;
+  qcThresholds: Array<{ key: string; label: string; unit: string; direction: string; value: number; modified: boolean; rationale?: string }>;
+  qcOverrides: Record<string, number>;
+  onQcChange: (key: string, val: number | null) => void;
 }) {
   const { steps, label, phaseParams } = group;
+  const [qcEditorOpen, setQcEditorOpen] = React.useState(false);
 
   const completedCount = steps.filter(s =>
     ['completed', 'ok', 'COMPLETED'].includes(String(s.status))
@@ -446,7 +451,7 @@ function PhaseGroupSection({
     if (anyRunning || anyFailed) setOpen(true);
   }, [anyRunning, anyFailed]);
 
-  const groupRenderedParams = renderedParameters.filter(p => phaseParams.includes(p.id));
+  // groupRenderedParams removed — QC thresholds are now passed directly via qcThresholds prop
 
   // Phase status and letter badge
   const phaseStatus = anyFailed ? 'failed' : anyRunning ? 'running' : allDone ? 'completed' : 'pending';
@@ -569,16 +574,50 @@ function PhaseGroupSection({
             );
           })}
 
-          {/* QC Gates block */}
-          {groupRenderedParams.length > 0 && (
+          {/* QC Gates block — shown for every phase that has autoloop or QC thresholds */}
+          {qcThresholds.length > 0 && (
             <div className="qc-block">
-              <div className="qc-head">QC Gates — evaluated after step {steps.length}</div>
-              {groupRenderedParams.map(p => (
-                <div className="qc-gate" key={p.id}>
-                  <span className="metric">{p.label}</span>
-                  <span className="op">{p.type === 'number' ? '≥' : '='}</span>
-                  <span className="thr">{String(params[p.id] ?? p.value ?? '')}</span>
-                  <button className="linkish edit" onClick={() => onEditGate ? onEditGate(p.id) : onParamChange(p.id, params[p.id])}>edit</button>
+              <div className="qc-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>QC Gates</span>
+                <button
+                  className="linkish"
+                  style={{ fontSize: 10 }}
+                  onClick={() => setQcEditorOpen(o => !o)}
+                  data-testid={`qc-edit-toggle-${group.key}`}
+                >
+                  {qcEditorOpen ? 'done' : 'edit'}
+                </button>
+              </div>
+              {qcThresholds.map(t => (
+                <div className="qc-gate" key={t.key} data-qc-key={t.key}>
+                  <span className="metric">{t.label}</span>
+                  <span className="op">{t.direction === 'min' ? '≥' : '≤'}</span>
+                  {qcEditorOpen ? (
+                    <input
+                      type="number"
+                      className="v"
+                      style={{ width: 60, textAlign: 'right', fontSize: 11,
+                        background: t.modified ? 'var(--accent-soft)' : 'var(--surface)',
+                        border: `1px solid ${t.modified ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: 3, padding: '1px 4px', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}
+                      value={t.value}
+                      step="any"
+                      onChange={e => { const v = parseFloat(e.target.value); if (!isNaN(v)) onQcChange(t.key, v); }}
+                      onBlur={e => { if (isNaN(parseFloat(e.target.value))) onQcChange(t.key, null); }}
+                    />
+                  ) : (
+                    <span className="thr" style={{ color: t.modified ? 'var(--accent)' : undefined }}>
+                      {t.value}{t.unit}
+                    </span>
+                  )}
+                  {t.modified && qcEditorOpen && (
+                    <button
+                      className="linkish"
+                      style={{ fontSize: 10, color: 'var(--warn)' }}
+                      title="Reset to default"
+                      onClick={() => onQcChange(t.key, null)}
+                    >×</button>
+                  )}
                 </div>
               ))}
               <div className="qc-autoloop">
@@ -1927,13 +1966,13 @@ export function NextflowWorkflowViewer({
                     onRun={handleRunStep}
                     onSkip={(id) => setConfirmSkipPhaseId(id)}
                     onStopPhase={onCancel}
-                    onEditGate={(paramId) => {
-                      setQcSettingsOpen(true);
-                      setTimeout(() => {
-                        document.querySelector(`[data-qc-key="${paramId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                      }, 200);
-                    }}
                     onPreviewFile={(file) => setPreviewFile(file)}
+                    qcThresholds={displayedQcThresholds}
+                    qcOverrides={qcOverrides}
+                    onQcChange={(key, val) => {
+                      if (val === null) setQcOverrides(prev => { const n = {...prev}; delete n[key]; return n; });
+                      else setQcOverrides(prev => ({ ...prev, [key]: val }));
+                    }}
                     onAdjustAndRerun={(phase) => setAdjustStep({
                       id: phase.id,
                       name: phase.name,
