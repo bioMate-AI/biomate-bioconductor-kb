@@ -1,0 +1,38 @@
+{
+  "timestamp": "20260501_030748",
+  "split": {
+    "seed": 1,
+    "test_frac": 0.1,
+    "method": "scaffold"
+  },
+  "results": {
+    "hERG": {
+      "endpoint": "hERG",
+      "n_total": 65,
+      "n_valid": 65,
+      "n_missing_pred": 0,
+      "auroc": 0.8885,
+      "metric": "AUROC",
+      "value": 0.8885,
+      "admet_ai_published": 0.87,
+      "chemprop_baseline": 0.87,
+      "vs_admet_ai": "+0.0185",
+      "matches_published": true,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/hERG_predictions.csv"
+    },
+    "PPBR_AZ": {
+      "endpoint": "PPBR_AZ",
+      "n_total": 164,
+      "n_valid": 164,
+      "n_missing_pred": 0,
+      "mae": 4.745,
+      "metric": "MAE",
+      "value": 4.745,
+      "admet_ai_published": 8.6,
+      "chemprop_baseline": 8.4,
+      "vs_admet_ai": "-3.855%",
+      "matches_published": false,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/PPBR_AZ_predictions.csv"
+    }
+  }
+}

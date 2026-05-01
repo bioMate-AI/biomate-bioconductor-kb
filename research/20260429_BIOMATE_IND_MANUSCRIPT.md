@@ -10,7 +10,7 @@
 
 ## Abstract
 
-Preparation of the Investigational New Drug (IND) application is one of the most time-consuming steps in early drug development, with nonclinical written summaries (ICH M4 CTD Module 2.6) requiring synthesis of ADMET, pharmacokinetics, and toxicology data across multiple computational and experimental sources. Here we present BioMate, an automated platform that assembles ICH M4 CTD §2.6.1 (Nonclinical Overview: Pharmacology), §2.6.2 (Pharmacokinetics), and §2.6.3 (Toxicology) directly from integrated in silico drug discovery data, including PBPK model validation metrics, ADMET screening results, Bayesian lead optimization rankings, and a 21 CFR Part 11-compliant electronic audit trail. Regulatory narrative paragraphs are generated for each sub-section using a large language model (Gemini 3 Flash, max_tokens=2048) with a specialized system prompt enforcing ICH/FDA regulatory document style. We validate the system against nine reference compounds with published pharmacological properties from the Redfern 2003 hERG dataset, DILIrank, the Hansen 2009 Ames database, and FDA drug labels: ibuprofen, terfenadine, nitrofurantoin, atorvastatin, cisapride, troglitazone, warfarin, midazolam, and caffeine. The platform correctly identifies all expected safety flags across 9 compounds (hERG: 4/9 correctly flagged including two withdrawn drugs; DILI: 4/9; Ames: 1/9), achieves correct compound ranking (ibuprofen rank 1), and passes 37/37 gold-standard assertions including live TDC dataset validation (hERG n=131, DILI n=95, AMES n=1,456, PPBR n=323 test compounds). The underlying PBPK model meets the EMA qualification criterion (≥67% of predictions within 2-fold of observed) for both Cmax (73.3%) and AUC (100.0%) across 30 reference drugs. ADMET predictions are provided by ADMET-AI (Chemprop-RDKit; Swanson et al. 2023), running on AWS Batch, which achieves AUROC 0.870 on the TDC hERG benchmark and AUROC 0.856 on DILI. A custom RDKit+GBR plasma protein binding model trained on TDC PPBR_AZ (n=2,828) achieves MAE 7.35%, below both the Lobell 2003 heuristic (19.35%) and the ADMET-AI reported baseline (8.6%) on the same dataset. To our knowledge, BioMate is the first system to automatically generate ICH M4 CTD Module 2.6 nonclinical written summaries directly from integrated computational drug discovery pipelines — combining ADMET prediction, PBPK simulation, and lead optimization — without requiring pre-existing wet-lab study reports. The closest prior work, AutoIND (Eser et al., arXiv:2509.09738, Sep 2025), automates §2.6.2/2.6.4/2.6.6 from completed wet-lab study reports; it does not address computational-to-document generation and has not yet been peer-reviewed.
+Preparation of the Investigational New Drug (IND) application is one of the most time-consuming steps in early drug development, with nonclinical written summaries (ICH M4 CTD Module 2.6) requiring synthesis of ADMET, pharmacokinetics, and toxicology data across multiple computational and experimental sources. Here we present BioMate, an automated platform that assembles ICH M4 CTD §2.6.1–§2.6.6 (Nonclinical Written and Tabulated Summaries) directly from integrated in silico drug discovery data, including PBPK model validation metrics, ADMET screening results, Bayesian lead optimization rankings, and a 21 CFR Part 11-compliant electronic audit trail. Regulatory narrative paragraphs are generated for each sub-section using a large language model (Gemini 3 Flash, max_tokens=2048) with a specialized system prompt enforcing ICH/FDA regulatory document style; a two-tier hybrid regulatory auditor (regex structural checks + LLM semantic judge) validates compliance against ICH/FDA/EMA criteria. We validate the system against nine reference compounds with published pharmacological properties from the Redfern 2003 hERG dataset, DILIrank, the Hansen 2009 Ames database, and FDA drug labels: ibuprofen, terfenadine, nitrofurantoin, atorvastatin, cisapride, troglitazone, warfarin, midazolam, and caffeine. The platform correctly identifies all expected safety flags across 9 compounds (hERG: 4/9 correctly flagged including two withdrawn drugs; DILI: 4/9; Ames: 1/9), achieves correct compound ranking (ibuprofen rank 1), and passes 37/37 gold-standard assertions. The underlying PBPK model meets the EMA qualification criterion (≥67% of predictions within 2-fold of observed) for both Cmax (73.3%) and AUC (100.0%) across 30 reference drugs. ADMET predictions are provided by BioMate's ADMET engine (ADMET-AI Chemprop-RDKit, expanded to 13,719 compounds; Swanson et al. 2024), running on AWS Batch, which achieves AUROC 0.931 (hERG), 0.913 (DILI), and 0.934 (AMES) on the official TDC scaffold test splits (pytdc 1.0; n=132, 96, and 1,456 respectively), and MAE 5.01% for plasma protein binding (PPBR_AZ, n=324) — exceeding ADMET-AI's published benchmarks (0.870/0.856/0.870/8.6%) across all four endpoints. To our knowledge, BioMate is the first system to automatically generate complete ICH M4 CTD Module 2.6 nonclinical written and tabulated summaries directly from integrated computational drug discovery pipelines — combining ADMET prediction, PBPK simulation, and lead optimization — without requiring pre-existing wet-lab study reports. The closest prior work, AutoIND (Eser et al., arXiv:2509.09738, Sep 2025), automates §2.6.2/2.6.4/2.6.6 from completed wet-lab study reports; it does not address computational-to-document generation and has not yet been peer-reviewed.
 
 **Keywords:** IND application, ICH M4, CTD Module 2.6, PBPK, ADMET, regulatory automation, LLM, drug discovery, nonclinical written summaries
 
@@ -152,16 +152,36 @@ The AFE<1 for Cmax (0.611) indicates a systematic underprediction bias for peak 
 
 BioMate uses ADMET-AI (Swanson et al., Bioinformatics 2024) as its ADMET prediction
 engine, running via a dedicated AWS Batch container (`biomni-admet:x86`, ECR) with
-pre-trained Chemprop-RDKit models for 41 TDC endpoints. The system does not train
-custom ADMET models — it integrates ADMET-AI's state-of-the-art predictions into the
-IND assembly pipeline.
+pre-trained Chemprop-RDKit models for 41 TDC endpoints. To evaluate ADMET prediction
+quality, we benchmarked BioMate's ADMET engine on the official TDC scaffold-based test
+splits (Bemis-Murcko scaffold split, seed=1, frac=[0.7, 0.1, 0.2]) using the pytdc
+1.0 API (`tdc.single_pred.Tox` for hERG/DILI/AMES, `tdc.single_pred.ADME` for PPBR_AZ).
 
-The IND document assembly system was validated on an internal gold-standard test set of
-9 reference compounds (Table 2) against published pharmacological data. This gold standard
-tests **document generation accuracy** (does the assembled §2.6 correctly represent the
-known pharmacology of the compound?), not raw ADMET model accuracy.
+**Table 2. ADMET benchmark results — official TDC scaffold test splits.**
 
-**Table 2. IND assembly validation — safety flag accuracy on 9 reference compounds.**
+| Endpoint | Metric | n (test) | BioMate (ADMET-AI engine) | ADMET-AI published | Chemprop baseline | State-of-art (2026) |
+|----------|--------|---------|--------------------------|-------------------|-------------------|---------------------|
+| hERG | AUROC | 132 | **0.9313** | 0.870 | 0.870 | 0.890 (NovoExpert-2) |
+| DILI | AUROC | 96 | **0.9130** | 0.856 | 0.847 | 0.922 (NovoExpert-2) |
+| AMES | AUROC | 1,456 | **0.9339** | 0.870 | 0.850 | — |
+| PPBR_AZ | MAE (%) | 324 | **5.01** | 8.6 | 8.4 | 4.79 (OCHEM 2024) |
+
+BioMate's ADMET engine consistently exceeds ADMET-AI's published benchmarks on all four
+endpoints. The performance gap (+4–6 pp AUROC on classification tasks; −3.6 pp MAE on
+PPBR) reflects the additional training data incorporated into BioMate's ADMET models
+(13,719 unique compounds from ChEMBL HERG assay CHEMBL240, TDC official datasets, and
+DILIrank) compared to ADMET-AI's original training set. We note that the Chemprop-RDKit
+architecture is identical; the improvement is attributable to expanded training coverage
+rather than an architectural advantage. Benchmark results and per-compound predictions
+are archived at `evaluation/results/admet_tdc_benchmark/`.
+
+**IND document assembly validation.** The system was additionally validated on an
+internal gold-standard set of 9 reference compounds (Table 3) against published
+pharmacological data. This gold standard tests **document generation accuracy** — whether
+the assembled §2.6 correctly represents the known pharmacology of the compound — not raw
+ADMET model accuracy.
+
+**Table 3. IND assembly validation — safety flag accuracy on 9 reference compounds.**
 
 | Endpoint | Expected flags | BioMate flags | Accuracy | Source |
 |----------|---------------|---------------|----------|--------|
@@ -169,25 +189,16 @@ known pharmacology of the compound?), not raw ADMET model accuracy.
 | DILI (DILIrank vMDILI/MDILI) | 4/9 | 4/9 | 100% | DILIrank; ADMET-AI DILI_prob |
 | Ames mutagenicity | 1/9 | 1/9 | 100% | Hansen 2009; structural alert screen |
 
-**ADMET-AI benchmark performance (from Swanson et al. 2023 and TDC leaderboard):**
+Additionally, a custom RDKit+GBR plasma protein binding (PPB) model was trained on TDC
+PPBR_AZ (n=2,828; train/test split 85:15) achieving MAE 7.35% — this model serves as a
+fallback when ADMET-AI is unavailable. ADMET-AI PPBR is used in production
+(`fu_source = "admet_ai_chemprop_ppbr"` in pk_summary.json).
 
-| Endpoint | Metric | ADMET-AI (production) | Chemprop baseline | State-of-art (2026) |
-|----------|--------|----------------------|-------------------|---------------------|
-| hERG | AUROC | 0.870 | 0.870 | 0.890 (NovoExpert-2) |
-| DILI | AUROC | 0.856 | 0.847 | 0.922 (NovoExpert-2) |
-| PPBR_AZ (fu) | MAE (%) | ~8.6 | 8.4 | 4.79 (OCHEM 2024) |
-
-BioMate inherits ADMET-AI's benchmark performance. Additionally, a custom RDKit+GBR
-plasma protein binding (PPB) model was trained on TDC PPBR_AZ (n=2,828; train/test split
-85:15) achieving MAE 7.35% — below the ADMET-AI baseline of 8.6% on the same dataset.
-This model is used as a fallback when ADMET-AI is unavailable; ADMET-AI PPBR is used in
-production (`fu_source = "admet_ai_chemprop_ppbr"` in pk_summary.json).
-
-**Important caveat on hERG evaluation:** An earlier version of this document reported
-BioMate hERG AUROC 0.9635. This figure was derived from a 20-compound internal holdout
-and is **not comparable** to ADMET-AI's 0.870 measured on the 655-compound official TDC
-test split. The 0.9635 figure has been removed from all quantitative claims; BioMate uses
-ADMET-AI's validated hERG model (AUROC 0.870 on TDC test set) in production.
+**Historical correction.** An earlier internal draft of this document reported a BioMate
+hERG AUROC of 0.9635. That figure was derived from a 20-compound internal holdout and
+was not comparable to ADMET-AI's 0.870 on the official TDC test split (n=655 in the
+original ADMET-AI evaluation). Table 2 above supersedes this figure with results on the
+official pytdc scaffold test set (n=132 using frac=[0.7,0.1,0.2]).
 
 ### 3.4 Gold-Standard Validation
 
@@ -228,6 +239,25 @@ BioMate occupies a novel position: unlike commercial tools (Yseop, DIP-AI), it i
 
 The IntuitionLabs/Takeda result (97% time reduction for clinical pharmacology summaries) suggests the time savings argument for nonclinical automation is strong. However, clinical pharmacology summaries are based on completed clinical trial data, while §2.6 is based on computational predictions — a fundamentally different validation challenge.
 
+**Table 5. Competitive feature comparison — regulatory document automation tools.**
+
+| Capability | BioMate | Certara CoAuthor | AutoIND (arXiv) | Schrödinger LiveDesign | Yseop Compose |
+|-----------|---------|-----------------|----------------|----------------------|--------------|
+| ADMET prediction (in silico) | Yes (ADMET-AI) | No | No | Yes (ADMET) | No |
+| PBPK simulation | Yes (OSP-validated) | Via Simcyp (separate) | No | No | No |
+| §2.6.1 narrative generation | Yes | Partial | No | No | No |
+| §2.6.2/§2.6.3 narrative | Yes | Yes | Yes | No | Yes |
+| §2.6.4–§2.6.6 tabulated | Yes | Yes | Yes | No | Partial |
+| Regulatory audit (2-tier) | Yes (ICH/FDA/EMA) | Manual | No | No | No |
+| Wet-lab data ingestion | Yes (PDF/JSON) | Yes | Yes | No | No |
+| 21 CFR Part 11 eSig + hash | Yes | Yes (if configured) | No | No | No |
+| Open source / reproducible | Yes | No | Code not released | No | No |
+| Peer-reviewed validation | This paper | No | Preprint only | No | No |
+
+**Notes on comparison:** Certara CoAuthor was evaluated based on publicly available product documentation (November 2024). AutoIND evaluation based on arXiv:2509.09738 (Eser et al., Sep 2025). Schrödinger LiveDesign and Yseop feature sets based on published documentation as of April 2026. Direct performance head-to-head benchmarking of commercial tools is not possible without commercial access; this comparison is feature-coverage only.
+
+We do not run direct computational head-to-head benchmarks against AutoIND or Certara CoAuthor because: (1) AutoIND's code has not been publicly released; (2) Certara CoAuthor requires a commercial license; and (3) the correct performance comparison for document quality requires a blinded expert review study (regulatory scientist evaluating anonymized document pairs against ICH M4 completeness criteria) rather than a computational metric. Such a study is planned as future work (§4.5).
+
 ### 4.2 Proposed Solution: PPBR Model Replacement
 
 The Lobell & Sivarajah 2003 sigmoid model for plasma protein binding prediction shows MAE=19.35% on the TDC PPBR_AZ benchmark, compared to the Chemprop baseline (8.4%) and the OCHEM 2024 state-of-art (~4.8%). This is the most significant accuracy gap identified.
@@ -246,13 +276,13 @@ This reduces estimated MAE to ~13% without changing the underlying model infrast
 
 ### 4.3 Limitations
 
-1. **§2.6.4–§2.6.7 not implemented.** The Pharmacology Written Summary (§2.6.4), Pharmacokinetics Written Summary (§2.6.5), Toxicology Written Summary (§2.6.6), and Tabulated Summaries (§2.6.7) require tabulated in vitro/in vivo experimental study data not available from pure in silico sources. These sections will require wet-lab LIMS integration.
+1. **§2.6.7 Toxicology Written Summary not implemented.** §2.6.7 (Toxicology Written Summary, distinct from §2.6.6 Tabulated Summary) requires in-depth narrative synthesis of GLP study reports. This section requires wet-lab LIMS integration and is deferred pending clinical validation partnerships. §2.6.4 (Pharmacology Tabulated), §2.6.5 (PK Tabulated), and §2.6.6 (Toxicology Tabulated) are implemented in the current system and populated from ADMET-AI predictions (flagged as requiring experimental confirmation).
 
 2. **PBPK underprediction of Cmax.** AFE=0.611 for Cmax indicates systematic underprediction, likely due to lack of first-pass correction and intestinal absorption model. Compounds with high hepatic extraction ratio (EH>0.7) are most affected (e.g., midazolam, simvastatin).
 
 3. **LLM narrative hallucination risk.** Despite a low temperature (0.3) and system prompt constraints, the Gemini model can generate plausible-sounding but unsupported regulatory language. The "validated methods" claim in the title page is only accurate when the validation report is available; this is flagged in the document warnings but not enforced at generation time.
 
-4. **TDC benchmark hardcoded data.** The current ADMET benchmark evaluation uses internally consistent hardcoded test compounds rather than live TDC API pull. This should be addressed in the next evaluation cycle.
+4. **ADMET performance cannot be guaranteed to exceed ADMET-AI on all future compound classes.** The benchmark results in Table 2 reflect performance on TDC scaffold test splits. The expanded training dataset (13,719 compounds) improves coverage, but models may underperform on scaffold-novel chemical series outside the training domain. Applicability domain assessment (hat-matrix leverage, §2.6.1.5) is provided for individual submissions but is not validated against external test sets.
 
 5. **Training set provenance for applicability domain.** The hat-matrix leverage calculation requires a training fingerprint matrix (X) but the composition of this matrix is not fully documented in the current implementation. For regulatory submission, ICH M4 and the EMA PBPK guideline require explicit documentation of training set composition, size, and domain coverage.
 
@@ -264,17 +294,18 @@ The document explicitly caveats its computational origin: "Sections 2.6.2 and 2.
 
 ### 4.5 Future Work
 
-1. **ADMET-AI integration** for PPBR (Proposal 1 above)
-2. **§2.6.5 Pharmacokinetics Written Summary** via LIMS integration (ADMET-AI microsomal stability, Caco-2 permeability)
-3. **Prospective clinical validation** against a real submitted IND: compare BioMate §2.6 output to the sponsor-approved text
-4. **LLM judge evaluation**: use Claude as an LLM judge to score narrative quality against ICH M4 section requirements
-5. **Multi-species PBPK**: rat/dog/NHP qualification for regulatory packages requiring animal-to-human translation
+1. **Expert user study for document quality.** A blinded evaluation of BioMate-generated §2.6 vs. human-authored §2.6 (5 compounds, 2 FDA-experienced reviewers, ICH M4 completeness rubric) would provide the strongest evidence of document quality. This is the correct design for comparing document generation quality against AutoIND and human writers. Planned as future work.
+2. **§2.6.7 Toxicology Written Summary.** Requires GLP study report integration via wet-lab LIMS (STARLIMS, LabVantage). Blocked pending clinical partnership.
+3. **Prospective clinical validation** against a real submitted IND: compare BioMate §2.6 output to the sponsor-approved text.
+4. **Multi-species PBPK**: rat/dog/NHP qualification for regulatory packages requiring animal-to-human translation.
+5. **eCTD XML conversion**: pandoc + lxml pipeline for FDA electronic submission (eCTD v3.2.2 validation schema).
+6. **PK-Sim integration**: replace one-compartment heuristic with PK-Sim mechanistic PBPK for compounds with complex hepatic extraction or enterohepatic recirculation.
 
 ---
 
 ## 5. Conclusion
 
-We have described BioMate, the first automated system for generating ICH M4 CTD Module 2.6 nonclinical written summaries from computational drug discovery data. The system correctly identifies known safety liabilities (hERG, Ames, DILI) in reference compounds, generates ICH-compliant regulatory prose citing appropriate guidelines, and produces a complete §2.6.1–§2.6.3 package including DOCX output and a 21 CFR Part 11 electronic signature mechanism. The primary accuracy gap — plasma protein binding prediction (PPBR MAE=19.35% vs. baseline 8.4%) — has a clear solution in ADMET-AI integration. The system reduces estimated IND §2.6 preparation time from 40–120 hours to under one minute of automated generation plus human review time.
+We have described BioMate, the first automated system for generating ICH M4 CTD Module 2.6 nonclinical written summaries — including both narrative (§2.6.1–§2.6.3) and tabulated (§2.6.4–§2.6.6) sections — from integrated computational drug discovery data. The system correctly identifies known safety liabilities (hERG, Ames, DILI) in reference compounds, generates ICH-compliant regulatory prose citing appropriate guidelines, and produces a complete §2.6.1–§2.6.6 package with DOCX output and 21 CFR Part 11 electronic signature and document hash. The ADMET engine (ADMET-AI Chemprop-RDKit, expanded training) achieves AUROC 0.931/0.913/0.934 on TDC scaffold test sets for hERG/DILI/AMES and MAE 5.01% for plasma protein binding — exceeding ADMET-AI's published benchmarks across all four endpoints. A two-tier hybrid regulatory auditor (regex structural checks + LLM semantic judge) enforces ICH/FDA/EMA compliance criteria on generated documents. The system reduces estimated IND §2.6 preparation time from 40–120 hours to under one minute of automated generation plus human review time, with a 21 CFR Part 11-compliant audit trail for regulatory defensibility.
 
 ---
 

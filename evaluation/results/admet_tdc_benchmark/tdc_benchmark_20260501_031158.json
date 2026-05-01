@@ -1,0 +1,70 @@
+{
+  "timestamp": "20260501_031158",
+  "split": {
+    "seed": 1,
+    "test_frac": 0.1,
+    "method": "scaffold"
+  },
+  "results": {
+    "hERG": {
+      "endpoint": "hERG",
+      "n_total": 132,
+      "n_valid": 132,
+      "n_missing_pred": 0,
+      "auroc": 0.9313,
+      "metric": "AUROC",
+      "value": 0.9313,
+      "admet_ai_published": 0.87,
+      "chemprop_baseline": 0.87,
+      "vs_admet_ai": "+0.0613",
+      "matches_published": false,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/hERG_predictions.csv",
+      "split_method": "pytdc_official_scaffold"
+    },
+    "DILI": {
+      "endpoint": "DILI",
+      "n_total": 96,
+      "n_valid": 96,
+      "n_missing_pred": 0,
+      "auroc": 0.913,
+      "metric": "AUROC",
+      "value": 0.913,
+      "admet_ai_published": 0.856,
+      "chemprop_baseline": 0.847,
+      "vs_admet_ai": "+0.0570",
+      "matches_published": false,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/DILI_predictions.csv",
+      "split_method": "pytdc_official_scaffold"
+    },
+    "AMES": {
+      "endpoint": "AMES",
+      "n_total": 1456,
+      "n_valid": 1456,
+      "n_missing_pred": 0,
+      "auroc": 0.9339,
+      "metric": "AUROC",
+      "value": 0.9339,
+      "admet_ai_published": 0.87,
+      "chemprop_baseline": 0.85,
+      "vs_admet_ai": "+0.0639",
+      "matches_published": false,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/AMES_predictions.csv",
+      "split_method": "pytdc_official_scaffold"
+    },
+    "PPBR_AZ": {
+      "endpoint": "PPBR_AZ",
+      "n_total": 324,
+      "n_valid": 324,
+      "n_missing_pred": 0,
+      "mae": 5.015,
+      "metric": "MAE",
+      "value": 5.015,
+      "admet_ai_published": 8.6,
+      "chemprop_baseline": 8.4,
+      "vs_admet_ai": "-3.58%",
+      "matches_published": false,
+      "predictions_path": "/home/yzhang/biomate/evaluation/results/admet_tdc_benchmark/PPBR_AZ_predictions.csv",
+      "split_method": "pytdc_official_scaffold"
+    }
+  }
+}
