@@ -2947,27 +2947,63 @@ You may also create a novel label if none of the above fit (e.g., "cost_estimati
 
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
 
-Ask a single question: **"Does completing this task require running computational tools on user-provided biological data files?"**
+Ask a single question: **"Does completing this task require running computational tools on user data — files, accession IDs, molecular inputs, or numerical parameters?"**
 
-- If yes → **workflow_generation**. The user may not have named their files yet; BioMate will ask.
-- If the task requires querying a live biological database (GWAS Catalog, OMIM, ClinVar, Open Targets, Ensembl) → **database_lookup**, **genomics_knowledge**, or **clinical_genomics** as appropriate.
+- If yes → **workflow_generation**. The user may not have named their inputs yet; BioMate will ask.
+- **Accession IDs are workflow inputs.** SRA (SRR/ERR/DRR), GEO (GSE/GSM), NCBI (PRJNA/PRJEB), UniProt IDs, PDB IDs, EMBL accessions — these are all valid workflow inputs that BioMate fetches automatically. "Run RNA-seq analysis on SRR12345678" or "dock compound into PDB:3HTB" is workflow_generation, not a database lookup.
+- **Molecular inputs are workflow inputs.** SMILES strings, PDB files, SDF files, dose level lists, concentration-time CSV — all signal workflow_generation for drug discovery / pharmacology workflows.
+- If the task requires querying a live biological database (GWAS Catalog, OMIM, ClinVar, Open Targets, Ensembl) for structured facts → **database_lookup**, **genomics_knowledge**, or **clinical_genomics** as appropriate.
 - If the task can be fully resolved from scientific literature or general biological knowledge → **research_question**.
 
-Key distinction: **candidate lists are NOT user data.** A question giving a list of rsIDs or gene names and asking to select the causal one is a database lookup task — NOT a pipeline execution. No files need to be processed.
+Key distinction: **candidate lists from published studies are NOT user data.** A question giving a list of rsIDs or gene names from a published GWAS and asking to identify the causal one is a database lookup — no pipeline needed.
 
-**HPO terms + ENSG candidate genes = clinical_genomics, NOT workflow_generation.** A task that provides HPO phenotype codes (HP:XXXXXXX) and a list of ENSG gene IDs and asks to identify the causal gene is a knowledge/database lookup — it queries ClinVar, OMIM, and Monarch. It does NOT require running a computational pipeline on user data files. Never classify such tasks as workflow_generation.
+**HPO terms + ENSG candidate genes = clinical_genomics, NOT workflow_generation.** A task providing HPO phenotype codes and a list of ENSG gene IDs asking to identify the causal gene queries ClinVar/OMIM/Monarch — it does not run a Nextflow pipeline.
 
 The distinction is the nature of the task, not the presence of file names in the message.
 
 ---
 
-## BioMate Full Domain Coverage (2,463 workflows across 34 domains)
+## BioMate Workflow Catalog — 2,463 workflows across 34 domains
 
-BioMate has runnable workflows in ALL of these scientific domains. When a user wants to process data or run an analysis in any of these areas, consider workflow_generation:
+BioMate can run computational pipelines in all the domains below. When a user wants to process data or run an analysis in any of these areas, classify as workflow_generation. Representative workflows are listed per domain so you can recognize queries.
 
-transcriptomics (865) · genomics (369) · general/Bioconductor (464) · epigenomics (133) · proteomics (113) · variant_calling (102) · drug_discovery (61) · imaging/flow-cytometry (45) · metagenomics (42) · single_cell (22) · bioimaging (22) · pharmacology (21) · metabolomics (21) · microbiology (16) · physiology (14) · immunology (13) · bioengineering (13) · systems_biology (12) · synthetic_biology (11) · cryo_em (11) · genetics (11) · structural_biology (3) · cryo_et (2) · cancer_biology (7) · molecular_biology (26) · lab_automation (7) · pathology (7) · biochemistry (9) · glycoengineering (3) · biophysics (3) · multi_omics (1) · database (5) · literature (4) · cell_biology (5)
+**Transcriptomics (865):** nf-core/rnaseq, DESeq2, edgeR, Kallisto/sleuth, STAR-RSEM, nf-core/differentialabundance, nf-core/scrnaseq, nf-core/spatialvi, nf-core/lncpipe, nf-core/circrna — inputs: FASTQ files or SRA/GEO accessions
 
-Note: drug_discovery and cryo_em are BioMate's primary launch verticals; see detailed examples in the Critical Classification Rules section below.
+**Genomics (369):** nf-core/sarek (WGS/WES somatic+germline), nf-core/raredisease, nf-core/mag (metagenome assembly), BWA-MEM, GATK HaplotypeCaller, nf-core/nanoseq, nf-core/phageannotator, nf-core/bacass — inputs: FASTQ/BAM or SRA accessions
+
+**Variant calling (102):** nf-core/sarek, GATK4, DeepVariant, Strelka2, nf-core/variantcatalogue, bcftools, VEP annotation — inputs: BAM/FASTQ/VCF or accessions
+
+**Epigenomics (133):** nf-core/chipseq, nf-core/atacseq, nf-core/methylseq (bisulfite), nf-core/cutandrun, nf-core/cutandtag, nf-core/hicar — inputs: FASTQ files
+
+**Proteomics (113):** nf-core/proteomicslfq (DDA), nf-core/diaproteomics (DIA/Spectronaut), MaxQuant, FragPipe, nf-core/quantms, nf-core/mspepquant — inputs: raw mass spec files (.raw/.mzML) or PRIDE accessions
+
+**Single-cell (22):** nf-core/scrnaseq, Seurat/Scanpy downstream, nf-core/scampi, nf-core/scdownstream (requires Cell Ranger output/h5ad, not raw FASTQ) — inputs: FASTQ, 10x cellranger output, or h5ad
+
+**Metagenomics (42):** nf-core/ampliseq (16S/18S/ITS), nf-core/taxprofiler, nf-core/mag, nf-core/funcscan, QIIME2, Kraken2 — inputs: FASTQ or SRA accessions
+
+**Metabolomics (21):** nf-core/metabolomics, MZmine, XCMS, OpenMS — inputs: raw MS files (.raw/.mzML)
+
+**Imaging / flow cytometry (45):** nf-core/mcmicro (multiplexed tissue imaging: CODEX, CyCIF, MIBI), CytoPipeline (flow cytometry), EBImage, imcRtools — inputs: image files (.tiff/.fcs)
+
+**Immunology (13):** nf-core/airrflow (BCR/TCR repertoire from FASTQ), nf-core/bactmap, nf-core/hadge — inputs: FASTQ or VDJ accessions
+
+**Microbiology (16):** nf-core/bactmap (bacterial mapping), nf-core/bacass (assembly), nf-core/taxprofiler, nf-core/phageannotator — inputs: FASTQ
+
+**Molecular biology (26):** CRISPR sgRNA design, primer design, restriction enzyme analysis, Golden Gate assembly, plasmid annotation (pLannotate), PCR simulation — inputs: DNA sequence or plasmid FASTA
+
+**Synthetic biology / bioengineering (11+13):** codon optimization, genetic circuit design, protein engineering, pathway modeling — inputs: sequences or parameters
+
+**Systems biology (12):** pathway enrichment (GSEA/ORA), network analysis, multi-omics integration — inputs: gene lists, expression matrices
+
+**Drug discovery (61) + Pharmacology (21):** see detailed examples in Critical Classification Rules below — inputs: SMILES, PDB files, SDF, CSV, dose levels, sequence FASTA
+
+**Cryo-EM (11) + Cryo-ET (2) + Structural biology (3):** see detailed examples in Critical Classification Rules below — inputs: .mrc/.tif/.eer micrograph movies or tilt series
+
+**Lab automation (7):** liquid handling protocols, plate reformatting, assay setup — inputs: CSV plate maps
+
+**Cancer biology (7):** tumor mutational burden, clonality, nf-core/oncoanalyser — inputs: BAM/VCF or accessions
+
+**Multi-omics (1):** nf-core/multiomics integration — inputs: multiple omics data files
 
 ---
 
@@ -3010,7 +3046,7 @@ These EXACT QUERIES are workflow_generation, NOT research_question:
 General pattern: "[computational method/analysis] [from/using/of] [data type or instrument]" = the user wants to EXECUTE that method on their data. Not a literature search. Not a conceptual question.
 
 **Drug discovery and pharmacology requests (workflow_generation):**
-BioMate has 61 drug discovery and 21 pharmacology workflows. These cover the full small-molecule pipeline and take molecular inputs (SMILES, PDB, dose levels, CSV data) rather than genomics files. When a user provides concrete inputs and asks to compute/simulate/run, classify as workflow_generation:
+BioMate has 61 drug discovery and 21 pharmacology workflows covering the full small-molecule and clinical pipeline. Inputs are molecular (SMILES, PDB files, SDF libraries, dose level lists, concentration-time CSVs) rather than sequencing files (FASTQ/BAM/VCF). When a user provides concrete molecular/numerical inputs and asks to compute/simulate/screen/design, classify as workflow_generation:
 
 *Molecular docking and virtual screening:*
 - "Dock [ligand SMILES] into [protein PDB/FASTA]", "AutoDock Vina docking", "DiffDock blind docking", "Glide virtual screening", "covalent docking with MOE", "DrugCLIP ultra-fast virtual screening against 10M compounds", "predict protein-ligand binding pose" → Docking Autodock Vina / Run Diffdock With Smiles / Schrodinger Glide Docking / MOE Covalent Docking / drugclip_virtual_screening
