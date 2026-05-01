@@ -340,3 +340,88 @@ In priority order for the next 4 weeks:
 4. **Patent:** The §2.6.1–§2.6.5 assembly pipeline from computational data is likely
    patentable as a novel method. File provisional before publishing if commercially
    important. Consult IP counsel.
+
+---
+
+## 7. Why BioMate — Not Competitors?
+
+The honest answer: **no existing product connects computational pipeline outputs to
+CTD-formatted regulatory documents with an audit trail.** BioMate fills a gap, not
+a contested space.
+
+### Current customer workflow (what we replace)
+
+```
+Computational scientist runs Schrödinger/MOE/Pipeline Pilot
+    → exports ADMET numbers to Excel
+    → sends Excel + PBPK simulation report to regulatory writer
+    → regulatory writer spends 3–6 weeks writing §2.6 in Word
+    → multiple rounds of internal review + formatting
+    → final document emailed to sponsor → manual version control
+    
+Total: $30–150K, 4–8 weeks, no audit trail
+```
+
+```
+With BioMate:
+SMILES list → AWS Batch (ADMET-AI) → Campaign workspace
+    → "Generate IND Package" (minutes)
+    → Review draft → Approve & Sign (eSig)
+    → Download frozen DOCX with SHA-256 hash + version metadata
+    
+Total: <$5K, <1 week, 21 CFR Part 11 audit trail
+```
+
+### Specific competitive comparison
+
+**vs. Certara CoAuthor:**  
+CoAuthor formats structured tables (that you must already have) into narrative text.
+You still have to run Simcyp yourself, export the tables, and hand them to CoAuthor.
+No ADMET integration, no audit trail, no eSig. It's a Word plugin with NLG — not
+an end-to-end pipeline. BioMate includes the ADMET-AI + PBPK step that CoAuthor requires
+as a prerequisite.
+
+**vs. Schrödinger / ADMET-AI:**  
+These tools produce predictions but stop there. You get a spreadsheet or visualization.
+They have no regulatory document generation, no ICH M4 CTD formatting, no audit trail.
+BioMate sits *above* them in the stack — we could theoretically accept their outputs
+as inputs (via the wet-lab ingester or pk_summary upload).
+
+**vs. AutoIND (arXiv:2509.09738):**  
+AutoIND uses LLMs to summarize *completed* preclinical study reports into §2.6.2/4/6.
+If you have finished GLP studies, AutoIND can draft the narratives. But it does not:
+(a) run any ADMET predictions; (b) cover §2.6.1 computational pharmacology; (c) work
+from a computational pipeline without wet-lab reports; (d) have a regulatory auditor;
+(e) have multi-region compliance; (f) have 21 CFR Part 11 audit trail. And it is a
+preprint — no peer review, no production deployment disclosed.
+
+**vs. Yseop / Narrativa / Assyro:**  
+These target clinical regulatory documents (Module 2.7 clinical overview, CSR narratives).
+They work from clinical trial data (CDISC datasets). They do not address nonclinical
+computational data (§2.6.1–§2.6.5) at all. Different section, different data type,
+different customer workflow.
+
+**vs. In-house regulatory team:**  
+The most common "competitor" is doing it manually. The regulatory writer is either
+an FTE ($150–250K fully loaded annual cost) or a contractor ($100–200/hour).
+A typical IND nonclinical package takes 40–80 hours = $4,000–16,000 in labour for
+one §2.6 iteration. Multiply by 5–10 iterations per compound during development.
+BioMate's iteration cycle is minutes, not weeks.
+
+### The sustainable moat
+
+1. **Data moat:** The ADMET training database (13,719 compounds, 18,602 measurements,
+   guideline-tagged) and OSP skills DB (6 EMA-accepted qualification reports, 194 skills)
+   improve the system's accuracy in ways competitors cannot easily replicate.
+
+2. **Regulatory KB moat:** The versioned, multi-region regulatory knowledge base
+   (FDA/EMA/NMPA/PMDA) with watch items and auto-updating thresholds requires ongoing
+   regulatory expertise to maintain. This is not a one-time build.
+
+3. **Gold standard moat:** 37/37 assertions against published reference compounds with
+   quantitative benchmarks (TDC, OSP) provides auditable evidence of accuracy that
+   competitors don't have and can't easily produce.
+
+4. **Audit trail moat:** 21 CFR Part 11 SHA-256 hash chain + TOTP eSig + document
+   freeze is a genuine compliance capability, not a checkbox. Once a customer builds
+   their IND filing workflow around BioMate's audit trail, switching costs are very high.
