@@ -214,7 +214,7 @@ class RegulatoryAuditor:
         critical = [f for f in findings if f.severity == CRITICAL]
     """
 
-    # ICH M4S(R2) required headings in §2.6.1–§2.6.3
+    # ICH M4S(R2) required headings in §2.6.1–§2.6.5
     REQUIRED_HEADINGS = [
         ("2.6.1.1", "Overview of Computational Methods"),
         ("2.6.1.2", "PBPK Model Qualification"),
@@ -224,6 +224,8 @@ class RegulatoryAuditor:
         ("2.6.1.6", "Audit Trail"),
         ("2.6.2",   "Pharmacokinetics"),
         ("2.6.3",   "Toxicology"),
+        ("2.6.4",   "Pharmacology Tabulated Summary"),
+        ("2.6.5",   "Pharmacokinetics Tabulated Summary"),
     ]
 
     # Required ICH guideline citations
@@ -588,7 +590,10 @@ class RegulatoryAuditor:
 
         # Section numbering: must be sequential
         sec_nums = re.findall(r'## (2\.6\.\d+(?:\.\d+)?)', md)
-        expected_order = ["2.6.1.1","2.6.1.2","2.6.1.3","2.6.1.4","2.6.1.5","2.6.1.6","2.6.2","2.6.3"]
+        expected_order = [
+            "2.6.1.1","2.6.1.2","2.6.1.3","2.6.1.4","2.6.1.5","2.6.1.6",
+            "2.6.2","2.6.3","2.6.4","2.6.5",
+        ]
         found = [s for s in expected_order if s in sec_nums]
         if found != expected_order[:len(found)]:
             self._add(MAJOR, "2.6", "ICH_M4S_R2", "ALL",

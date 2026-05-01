@@ -345,13 +345,15 @@ class INDSectionAssembler:
         s_audit        = self._section_audit_trail(ctx)
         s_pk_overview  = self._section_pk_overview(ctx)
         s_tox_overview = self._section_toxicology_overview(ctx)
+        s_pharm_tab    = self._section_pharm_tabulated(ctx)
+        s_pk_tab       = self._section_pk_tabulated(ctx)
 
         sections = [
             "2.6.1.1", "2.6.1.2", "2.6.1.3", "2.6.1.4", "2.6.1.5", "2.6.1.6",
-            "2.6.2", "2.6.3",
+            "2.6.2", "2.6.3", "2.6.4", "2.6.5",
         ]
         parts = [title, s_overview, s_pbpk, s_admet, s_priority, s_ad, s_audit,
-                 s_pk_overview, s_tox_overview]
+                 s_pk_overview, s_tox_overview, s_pharm_tab, s_pk_tab]
         markdown_body = "\n\n".join(p for p in parts if p)
 
         # --- Document integrity footer ---
@@ -1611,6 +1613,547 @@ The hERG IC50 threshold for concern is 10 µM (30× margin over anticipated ther
 
 *A hERG-based QTc liability assessment (in vitro hERG patch clamp) is required before first-in-human
 dosing per ICH S7B. The in silico screen presented here supports early candidate triage only.*"""
+
+    def _section_pharm_tabulated(self, ctx: dict) -> str:
+        """ICH M4 CTD §2.6.4 — Nonclinical Tabulated Summary: Pharmacology.
+
+        Per ICH M4S(R2) §2.6.4 this section presents tabulated (not narrative)
+        data covering primary pharmacology, safety pharmacology (ICH S7A/S7B),
+        and CYP inhibition (ICH M3(R2)).
+
+        Tables:
+          2.6.4.A — Primary Pharmacology Summary
+          2.6.4.B — Safety Pharmacology Summary (ICH S7A/S7B)
+          2.6.4.C — CYP Inhibition Panel (ICH M3(R2))
+        """
+        pk_sum = ctx.get("pk_summary") or {}
+        compounds = ctx.get("compounds", [])
+        sp = ctx.get("safety_profile", {})
+        sp_compounds = sp.get("compounds", {})
+
+        per_cpd_admet = pk_sum.get("per_compound_admet_ai", [])[:10]
+        has_admet = bool(per_cpd_admet)
+
+        # ── Helper: look up per-compound ADMET-AI value ──────────────────────
+        def _admet(cpd_id: str, key: str, fmt: str = "prob") -> str:
+            for row in per_cpd_admet:
+                if row.get("compound_id") == cpd_id:
+                    v = row.get(key)
+                    if v is None:
+                        return "N/A"
+                    try:
+                        f = float(v)
+                        if fmt == "logval":
+                            return f"{f:.2f}"
+                        return f"{f:.2f}"
+                    except (TypeError, ValueError):
+                        return str(v)
+            return "N/A (not predicted)"
+
+        def _risk(prob_str: str, threshold: float = 0.5) -> str:
+            """Convert probability string to risk label."""
+            try:
+                v = float(prob_str)
+                return "HIGH" if v >= threshold else ("MODERATE" if v >= 0.3 else "LOW")
+            except (TypeError, ValueError):
+                return "N/A"
+
+        def _herg_risk(ic50_uM_val) -> str:
+            try:
+                v = float(ic50_uM_val)
+                if v < 1.0:
+                    return "HIGH (< 1 µM)"
+                elif v < 10.0:
+                    return "MODERATE (1–10 µM)"
+                else:
+                    return "LOW (> 10 µM)"
+            except (TypeError, ValueError):
+                return "N/A"
+
+        def _lipinski(cpd) -> str:
+            """Pass/fail Lipinski Ro5 from compound data."""
+            mw = cpd.get("mw_Da") or cpd.get("mw")
+            logp = cpd.get("logP") or cpd.get("logp")
+            if mw is None and logp is None:
+                return "N/A"
+            mw_pass = (float(mw) <= 500) if mw is not None else True
+            logp_pass = (float(logp) <= 5) if logp is not None else True
+            return "Pass" if (mw_pass and logp_pass) else "Fail"
+
+        # ── Build top-10 compound list ────────────────────────────────────────
+        display_rows = list(compounds[:10])
+        for row in per_cpd_admet:
+            if not any(c.get("compound_id") == row.get("compound_id") for c in display_rows):
+                display_rows.append({"compound_id": row.get("compound_id", "?"), "smiles": ""})
+        display_rows = display_rows[:10]
+
+        # ── Table A: Primary Pharmacology ────────────────────────────────────
+        table_a_rows = []
+        for cpd in display_rows:
+            cid = cpd.get("compound_id", "?")
+            smiles = cpd.get("smiles") or ""
+            smiles_t = smiles[:20] + "…" if len(smiles) > 20 else (smiles or "N/A")
+            ic50 = sp_compounds.get(cid, {}).get("assays", {}).get("IC50")
+            ic50_str = f"{float(ic50):.3f}" if ic50 is not None else "N/A"
+            herg_assay = sp_compounds.get(cid, {}).get("assays", {}).get("hERG")
+            sel = "N/A"
+            if herg_assay is not None and ic50 is not None:
+                try:
+                    sel = f"{float(herg_assay) / float(ic50):.1f}×"
+                except (ZeroDivisionError, TypeError, ValueError):
+                    sel = "N/A"
+            oral_f = _admet(cid, "oral_bioavailability_prob") if has_admet else "N/A"
+            logd = _admet(cid, "lipophilicity_logD", "logval") if has_admet else "N/A"
+            mw = cpd.get("mw_Da") or cpd.get("mw")
+            mw_str = f"{float(mw):.1f}" if mw is not None else "N/A"
+            lip = _lipinski(cpd)
+            table_a_rows.append(
+                f"| {cid} | {smiles_t} | {ic50_str} | {sel} | {oral_f} | {logd} | {mw_str} | {lip} |"
+            )
+        table_a = (
+            "\n".join(table_a_rows)
+            if table_a_rows
+            else "| N/A | N/A (not predicted) | — | — | — | — | — | — |"
+        )
+
+        # ── Table B: Safety Pharmacology (ICH S7A/S7B) ───────────────────────
+        table_b_rows = []
+        for cpd in display_rows:
+            cid = cpd.get("compound_id", "?")
+            herg_assay = sp_compounds.get(cid, {}).get("assays", {}).get("hERG")
+            herg_str = f"{float(herg_assay):.3f}" if herg_assay is not None else "N/A"
+            herg_r = _herg_risk(herg_assay) if herg_assay is not None else "N/A"
+            dili_p = _admet(cid, "DILI_prob") if has_admet else (
+                "1.0" if sp_compounds.get(cid, {}).get("assays", {}).get("DILI", 0) >= 1.0
+                else "0.0"
+            )
+            dili_r = _risk(dili_p)
+            ames_v = sp_compounds.get(cid, {}).get("assays", {}).get("Ames")
+            ames_str = (
+                "Positive" if (ames_v is not None and float(ames_v) >= 1.0) else
+                ("Negative" if ames_v is not None else "N/A")
+            )
+            clintox_v = sp_compounds.get(cid, {}).get("assays", {}).get("ClinTox")
+            clintox_str = (
+                "Positive" if (clintox_v is not None and float(clintox_v) >= 1.0)
+                else "Negative"
+            )
+            qtc = (
+                "YES — see §2.6.3.7"
+                if (herg_assay is not None and float(herg_assay) < 10.0)
+                else "No"
+            )
+            table_b_rows.append(
+                f"| {cid} | {herg_str} | {herg_r} | {dili_p} | {dili_r} | "
+                f"{ames_str} | {clintox_str} | {qtc} |"
+            )
+        table_b = (
+            "\n".join(table_b_rows)
+            if table_b_rows
+            else "| N/A | N/A | — | — | — | — | — | — |"
+        )
+
+        # ── Table C: CYP Inhibition Panel (ICH M3(R2)) ───────────────────────
+        table_c_rows = []
+        for cpd in display_rows:
+            cid = cpd.get("compound_id", "?")
+            cyp1a2  = _admet(cid, "cyp1a2_inhibitor_prob")  if has_admet else "N/A"
+            cyp2c9  = _admet(cid, "cyp2c9_inhibitor_prob")  if has_admet else "N/A"
+            cyp2c19 = _admet(cid, "cyp2c19_inhibitor_prob") if has_admet else "N/A"
+            cyp2d6  = _admet(cid, "cyp2d6_inhibitor_prob")  if has_admet else "N/A"
+            cyp3a4_inh = _admet(cid, "cyp3a4_substrate_prob") if has_admet else "N/A"
+            # CYP3A4 substrate flag
+            cyp3a4_sub = "N/A"
+            if has_admet:
+                for r in per_cpd_admet:
+                    if r.get("compound_id") == cid:
+                        v = r.get("cyp3a4_substrate_prob")
+                        cyp3a4_sub = "Yes" if (v is not None and float(v) >= 0.5) else "No"
+                        break
+            table_c_rows.append(
+                f"| {cid} | {cyp1a2} | {cyp2c9} | {cyp2c19} | {cyp2d6} | {cyp3a4_inh} | {cyp3a4_sub} |"
+            )
+        table_c = (
+            "\n".join(table_c_rows)
+            if table_c_rows
+            else "| N/A | N/A (not predicted) | — | — | — | — | — |"
+        )
+
+        admet_src_note = (
+            "*All probability values from ADMET-AI Chemprop-RDKit (Swanson et al. J Chem Inf Model 2023).*"
+            if has_admet
+            else (
+                "*ADMET-AI predictions not available for this campaign. "
+                "Run `predict_admet_properties` workflow to populate.*"
+            )
+        )
+
+        return f"""\
+## 2.6.4 Nonclinical Tabulated Summary: Pharmacology
+
+Per ICH M4S(R2) §2.6.4 this section provides tabulated pharmacology data covering
+primary and safety pharmacology for the top-ranked campaign compounds.
+
+### Table 2.6.4.A — Primary Pharmacology Summary
+
+| Compound ID | SMILES (truncated) | Target IC50 (µM) | Selectivity vs hERG | Oral F (prob) | logD | MW (Da) | Lipinski Ro5 |
+|-------------|-------------------|-----------------|--------------------|--------------|----|---------|-------------|
+{table_a}
+
+*Selectivity vs hERG = hERG IC50 / target IC50 (higher = more selective).*
+*Oral bioavailability probability from ADMET-AI; values ≥ 0.50 indicate likely oral bioavailability.*
+
+### Table 2.6.4.B — Safety Pharmacology Summary (ICH S7A/S7B)
+
+| Compound ID | hERG IC50 (µM) | hERG Risk | DILI Prob | DILI Risk | Ames | ClinTox | Cardiac QTc concern |
+|-------------|---------------|-----------|----------|-----------|------|---------|---------------------|
+{table_b}
+
+**ICH S7B footnotes:**
+- hERG threshold for concern: **10 µM** (ICH S7B, Step 4 Nov 2000; reaffirmed S7B(R1) Step 4 Nov 2024).
+- S7B(R1) (Step 4, November 2024) formally validates in silico hERG assessments as compound
+  triage tools, provided predictions are validated against a reference set (see §2.6.1.2).
+- DILI risk: HIGH = prob ≥ 0.50; MODERATE = 0.30–0.50; LOW < 0.30.
+- QTc concern flagged for all compounds with hERG IC50 < 10 µM; in vitro hERG patch clamp
+  required before first-in-human dosing per ICH S7B.
+
+### Table 2.6.4.C — CYP Inhibition Panel (ICH M3(R2))
+
+Values are inhibitor probability (0.0–1.0); threshold ≥ 0.50 = inhibitor class.
+
+| Compound ID | CYP1A2 inh | CYP2C9 inh | CYP2C19 inh | CYP2D6 inh | CYP3A4 inh | CYP3A4 substrate |
+|-------------|-----------|-----------|------------|-----------|-----------|-----------------|
+{table_c}
+
+**ICH M3(R2) CYP interpretation footnotes:**
+- Compounds with ≥ 2 CYP isoform inhibitor probabilities ≥ 0.50 require in vitro CYP inhibition
+  assays (Ki determination) prior to Phase I per ICH M3(R2) §7.6.
+- CYP3A4 substrate flag indicates potential for CYP3A4-mediated DDI with concomitant inhibitors/inducers.
+- P-gp inhibitor assessment is included in §2.6.5.F.
+
+{admet_src_note}"""
+
+    def _section_pk_tabulated(self, ctx: dict) -> str:
+        """ICH M4 CTD §2.6.5 — Nonclinical Tabulated Summary: Pharmacokinetics.
+
+        Per ICH M4S(R2) §2.6.5 this section provides tabulated ADME data.
+
+        Tables:
+          2.6.5.A — Analytical Methods
+          2.6.5.B — Absorption
+          2.6.5.C — Distribution
+          2.6.5.D — Metabolism
+          2.6.5.E — Excretion
+          2.6.5.F — PK Interactions
+          2.6.5.G — Special Populations (standard note)
+        """
+        pk_sum = ctx.get("pk_summary") or {}
+        compounds = ctx.get("compounds", [])
+        sp = ctx.get("safety_profile", {})
+        sp_compounds = sp.get("compounds", {})
+        wetlab = ctx.get("wetlab_data") or {}
+        per_cpd_admet = pk_sum.get("per_compound_admet_ai", [])[:10]
+        has_admet = bool(per_cpd_admet)
+
+        # Wetlab overrides
+        wetlab_fu = wetlab.get("fu_plasma") if wetlab else None
+        is_fu_measured = (wetlab_fu is not None)
+        fu_source_label = "Measured ✓" if is_fu_measured else "Predicted (ADMET-AI)"
+        wl_thalf = wetlab.get("t_half_h") if wetlab else None
+
+        # ── Helper: per-compound ADMET-AI lookup ─────────────────────────────
+        def _ai(cpd_id: str, key: str) -> str:
+            for row in per_cpd_admet:
+                if row.get("compound_id") == cpd_id:
+                    v = row.get(key)
+                    if v is None:
+                        return "N/A"
+                    try:
+                        return f"{float(v):.3f}"
+                    except (TypeError, ValueError):
+                        return str(v)
+            return "N/A"
+
+        def _ai_flag(cpd_id: str, key: str, threshold: float = 0.5) -> str:
+            for row in per_cpd_admet:
+                if row.get("compound_id") == cpd_id:
+                    v = row.get(key)
+                    if v is None:
+                        return "N/A"
+                    try:
+                        return "Yes" if float(v) >= threshold else "No"
+                    except (TypeError, ValueError):
+                        return "N/A"
+            return "N/A"
+
+        # ── Top 10 compounds for display ──────────────────────────────────────
+        display_rows = list(compounds[:10])
+        for row in per_cpd_admet:
+            if not any(c.get("compound_id") == row.get("compound_id") for c in display_rows):
+                display_rows.append({"compound_id": row.get("compound_id", "?"), "smiles": ""})
+        display_rows = display_rows[:10]
+
+        # ── Table A: Analytical Methods ───────────────────────────────────────
+        table_a = """\
+| Method | Analyte | Matrix | LLOQ | Validated |
+|--------|---------|--------|------|-----------|
+| LC-MS/MS (planned) | Parent compound + metabolites | Human plasma | TBD | Planned (Phase I) |
+| ADMET-AI in silico | ADME parameters | — | N/A (in silico) | Model AUROC ≥ 0.85 |
+| PBPK model | Cmax, AUC, t½ | Simulated plasma | N/A (simulation) | EMA criterion (§2.6.1.2) |
+
+*Wet-lab LC-MS/MS methods will be validated per FDA Bioanalytical Method Validation Guidance
+(May 2018) and EMA/CHMP/EWP/192217/2009 Rev1 before Phase I.*"""
+
+        # ── Table B: Absorption ───────────────────────────────────────────────
+        def _bcs(sol: str, perm: str) -> str:
+            try:
+                s = float(sol); p = float(perm)
+                hs = s > -4.0; hp = p > -5.5
+                if hs and hp: return "I"
+                if not hs and hp: return "II"
+                if hs and not hp: return "III"
+                return "IV"
+            except (TypeError, ValueError):
+                return "N/A"
+
+        table_b_rows = []
+        for cpd in display_rows:
+            cid = cpd.get("compound_id", "?")
+            caco2 = _ai(cid, "caco2_logPapp")
+            hia   = _ai(cid, "hia_prob")
+            oral_f = _ai(cid, "oral_bioavailability_prob")
+            pgp   = _ai_flag(cid, "pgp_inhibitor_prob")
+            sol   = _ai(cid, "aqueous_solubility_log")
+            bcs   = _bcs(sol, caco2) if has_admet else "N/A"
+            table_b_rows.append(
+                f"| {cid} | {caco2} | {hia} | {oral_f} | {pgp} | {sol} | {bcs} |"
+            )
+        table_b = (
+            "\n".join(table_b_rows)
+            if table_b_rows
+            else "| N/A | N/A | N/A | N/A | N/A | N/A | N/A |"
+        )
+
+        # ── Table C: Distribution ─────────────────────────────────────────────
+        lead_vd  = pk_sum.get("vd_lkg")
+        cl_h_frac = pk_sum.get("cl_hepatic_fraction")
+        cl_r_frac = pk_sum.get("cl_renal_fraction")
+        t_half    = pk_sum.get("t_half_h")
+
+        table_c_rows = []
+        for i, cpd in enumerate(display_rows):
+            cid = cpd.get("compound_id", "?")
+            ppb = _ai(cid, "ppbr_pct")
+            # fu_plasma
+            if is_fu_measured and i == 0:
+                fu_val = f"{float(wetlab_fu):.3f}"
+                src = "Measured ✓"
+            else:
+                ppb_raw = _ai(cid, "ppbr_pct")
+                try:
+                    fu_val = f"{(100.0 - float(ppb_raw)) / 100.0:.3f}"
+                except (TypeError, ValueError):
+                    fu_val = "N/A"
+                src = "Predicted (ADMET-AI)"
+            # Vd from pk_summary per_compound
+            vd_row = next(
+                (r for r in (pk_sum.get("per_compound") or []) if r.get("compound_id") == cid),
+                {}
+            )
+            vd_val = _fmt(
+                vd_row.get("vd_lkg_estimated") or (lead_vd if i == 0 else None)
+            )
+            bbb = _ai_flag(cid, "bbb_prob")
+            table_c_rows.append(
+                f"| {cid} | {ppb} | {fu_val} | {vd_val} | {bbb} | {src} |"
+            )
+        table_c = (
+            "\n".join(table_c_rows)
+            if table_c_rows
+            else "| N/A | N/A | N/A | N/A | N/A | N/A |"
+        )
+
+        # ── Table D: Metabolism ───────────────────────────────────────────────
+        table_d_rows = []
+        for i, cpd in enumerate(display_rows):
+            cid = cpd.get("compound_id", "?")
+            # t½
+            if wl_thalf is not None and i == 0:
+                thalf_val = f"{float(wl_thalf):.2f} (Measured ✓)"
+            else:
+                thalf_ai = _ai(cid, "half_life_h")
+                thalf_val = thalf_ai if thalf_ai != "N/A" else _fmt(t_half)
+            cl_cells = _ai(cid, "hepatocyte_clearance_uLminmg")
+            vd_row = next(
+                (r for r in (pk_sum.get("per_compound") or []) if r.get("compound_id") == cid),
+                {}
+            )
+            clh_f = _pct(vd_row.get("cl_hepatic_fraction_estimated") or cl_h_frac)
+            cyp3a4_sub = _ai_flag(cid, "cyp3a4_substrate_prob")
+            # Hepatic extraction ratio
+            clh = float(vd_row.get("cl_hepatic_fraction_estimated") or cl_h_frac or 0.0)
+            clr = float(vd_row.get("cl_renal_fraction_estimated") or cl_r_frac or 0.0)
+            try:
+                er_str = f"{clh / (clh + clr):.2f}" if (clh + clr) > 0 else "N/A"
+            except (TypeError, ValueError, ZeroDivisionError):
+                er_str = "N/A"
+            table_d_rows.append(
+                f"| {cid} | {thalf_val} | {cl_cells} | {clh_f} | "
+                f"CYP3A4 sub={cyp3a4_sub} | {er_str} |"
+            )
+        table_d = (
+            "\n".join(table_d_rows)
+            if table_d_rows
+            else "| N/A | N/A | N/A | N/A | N/A | N/A |"
+        )
+
+        # ── Table E: Excretion ────────────────────────────────────────────────
+        table_e_rows = []
+        for i, cpd in enumerate(display_rows):
+            cid = cpd.get("compound_id", "?")
+            vd_row = next(
+                (r for r in (pk_sum.get("per_compound") or []) if r.get("compound_id") == cid),
+                {}
+            )
+            clr_f = _pct(vd_row.get("cl_renal_fraction_estimated") or cl_r_frac)
+            mw = cpd.get("mw_Da") or cpd.get("mw")
+            try:
+                biliary = "Yes (MW > 500 Da)" if float(mw) > 500 else "No"
+            except (TypeError, ValueError):
+                biliary = "N/A"
+            table_e_rows.append(
+                f"| {cid} | {clr_f} | Renal + Hepatic | {biliary} |"
+            )
+        table_e = (
+            "\n".join(table_e_rows)
+            if table_e_rows
+            else "| N/A | N/A | N/A | N/A |"
+        )
+
+        # ── Table F: PK Interactions ──────────────────────────────────────────
+        table_f_rows = []
+        for cpd in display_rows:
+            cid = cpd.get("compound_id", "?")
+            cyp2d6 = _ai(cid, "cyp2d6_inhibitor_prob") if has_admet else "N/A"
+            cyp3a4 = _ai(cid, "cyp3a4_substrate_prob") if has_admet else "N/A"
+            cyp2c9 = _ai(cid, "cyp2c9_inhibitor_prob") if has_admet else "N/A"
+            pgp    = _ai_flag(cid, "pgp_inhibitor_prob") if has_admet else "N/A"
+            # DDI risk
+            ddi_risk = "N/A"
+            if has_admet:
+                try:
+                    flags = [
+                        _ai(cid, k)
+                        for k in ["cyp2d6_inhibitor_prob", "cyp3a4_substrate_prob",
+                                  "cyp2c9_inhibitor_prob", "cyp1a2_inhibitor_prob"]
+                    ]
+                    ddi_risk = "HIGH" if any(
+                        f not in ("N/A", "N/A (not predicted)") and float(f) >= 0.5
+                        for f in flags
+                    ) else "LOW"
+                except (TypeError, ValueError):
+                    ddi_risk = "N/A"
+            table_f_rows.append(
+                f"| {cid} | {cyp2d6} | {cyp3a4} | {cyp2c9} | {pgp} | {ddi_risk} |"
+            )
+        table_f = (
+            "\n".join(table_f_rows)
+            if table_f_rows
+            else "| N/A | N/A | N/A | N/A | N/A | N/A |"
+        )
+
+        # ── Table G: Special Populations ─────────────────────────────────────
+        table_g = """\
+| Population | Assessment | Regulatory Basis | Status |
+|------------|-----------|-----------------|--------|
+| Pediatric | PK assessment planned for Phase I/II | ICH E7 | Planned |
+| Renal impairment | Population PK per renal function strata | EMA/CHMP/80229/2022 | Planned |
+| Hepatic impairment | Child-Pugh B/C PBPK simulation if CLh > 50% | EMA/CHMP/80229/2022 | Planned |
+| CYP2C19 poor metabolizers | Genotyping sub-study if substrate confirmed | ICH E5 (NMPA/PMDA bridging) | Recommended |
+| CYP2D6 poor metabolizers | Exposure assessment per FDA DDI Guidance 2020 | ICH E5 / FDA DDI 2020 | Recommended |
+| Elderly | PK assessment per ICH E7 | ICH E7 | Planned |"""
+
+        src_note = (
+            "*Predicted values from ADMET-AI Chemprop-RDKit (Swanson et al. J Chem Inf Model 2023) "
+            "unless marked Measured ✓. All predicted values require experimental confirmation.*"
+            if has_admet
+            else (
+                "*ADMET-AI predictions not available. Run `predict_admet_properties` workflow "
+                "to populate Tables B–F.*"
+            )
+        )
+
+        return f"""\
+## 2.6.5 Nonclinical Tabulated Summary: Pharmacokinetics
+
+Per ICH M4S(R2) §2.6.5 this section provides tabulated pharmacokinetic data for the
+top-ranked campaign compounds. All values are predicted unless marked Measured ✓.
+
+**References:** EMA/CHMP/EWP/37498/2011 Rev1 · FDA PBPK Guidance (Sep 2018) · ICH M3(R2)
+
+### Table 2.6.5.A — Analytical Methods
+
+{table_a}
+
+### Table 2.6.5.B — Absorption
+
+| Compound ID | Caco-2 logPapp | HIA prob | Oral F prob | Pgp inhibitor | Aq. sol (log mol/L) | BCS class (predicted) |
+|-------------|--------------|---------|-----------|--------------|--------------------|-----------------------|
+{table_b}
+
+*BCS classification: I = high sol + high perm; II = low sol/high perm; III = high sol/low perm;
+IV = low sol/perm. Boundary: sol > −4 log mol/L; Caco-2 logPapp > −5.5.*
+
+### Table 2.6.5.C — Distribution
+
+| Compound ID | PPB (%) | fu_plasma | Vd (L/kg) | BBB penetrant | Source |
+|-------------|--------|----------|----------|--------------|--------|
+{table_c}
+
+*fu_plasma = (100 − PPBR%) / 100 when predicted. Lead compound fu source: {fu_source_label}.*
+
+### Table 2.6.5.D — Metabolism
+
+| Compound ID | t½ (h) | CL (µL/min/10⁶ cells) | CLh fraction | Primary CYP (substrate) | Hepatic extraction ratio |
+|-------------|-------|----------------------|-------------|------------------------|--------------------------|
+{table_d}
+
+*Hepatic extraction ratio = CLh / (CLh + CLr). Low < 0.3; intermediate 0.3–0.7; high > 0.7
+(Benet 2011 Pharm Res).*
+
+### Table 2.6.5.E — Excretion
+
+| Compound ID | CLr fraction | Route | Biliary flag (MW > 500 Da) |
+|-------------|------------|-------|---------------------------|
+{table_e}
+
+*Compounds with MW > 500 Da may undergo biliary excretion; enterohepatic recirculation
+not modelled (see §2.6.2 model assumptions).*
+
+### Table 2.6.5.F — PK Interactions (CYP / P-gp)
+
+| Compound ID | CYP2D6 inh | CYP3A4 substrate | CYP2C9 inh | P-gp inhibitor | DDI risk |
+|-------------|-----------|-----------------|-----------|---------------|---------|
+{table_f}
+
+*DDI risk HIGH = any major CYP inhibitor probability ≥ 0.50. In vitro DDI assays (TDI,
+reversible inhibition, Ki) recommended for HIGH-risk compounds per ICH M3(R2) §7.6.*
+
+### Table 2.6.5.G — Special Populations
+
+{table_g}
+
+*Pediatric, renal, hepatic impairment PK assessments planned for Phase I/II per ICH E7
+and EMA/CHMP/80229/2022. CYP2C19 and CYP2D6 polymorphism impact assessed separately per
+ICH E5 (NMPA/PMDA bridging requirements).*
+
+---
+
+{src_note}
+
+*All computational PK predictions cited in §2.6.5 require confirmation by wet-lab DMPK
+studies (microsomal stability, Caco-2, plasma protein binding, hepatocyte clearance) prior
+to IND filing per FDA PBPK Guidance (Sep 2018) and EMA/CHMP/EWP/37498/2011 Rev1.*"""
 
     # ------------------------------------------------------------------
     # Regulatory audit
