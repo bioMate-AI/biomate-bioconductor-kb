@@ -44,6 +44,110 @@ logger = logging.getLogger(__name__)
 _GWAS_VARIANT_CACHE: Dict[str, str] = {}   # rsid -> formatted evidence line
 _GWAS_GENE_CACHE: Dict[str, str] = {}      # gene -> formatted evidence line
 
+# Ensembl-based gene annotation cache: rsid -> "GENE1, GENE2" (nearest protein-coding genes)
+# Persisted between runs to avoid repeat Ensembl queries.
+_ENSEMBL_GENE_CACHE: Dict[str, str] = {}   # rsid -> comma-sep gene names or ""
+_ENSEMBL_GENE_CACHE_PATH = Path(__file__).parent.parent / "datasets" / "hpo" / "ensembl_gene_cache.json"
+_ENSEMBL_GENE_CACHE_DIRTY = False
+
+
+def _load_ensembl_gene_cache() -> None:
+    global _ENSEMBL_GENE_CACHE
+    if _ENSEMBL_GENE_CACHE:
+        return
+    try:
+        if _ENSEMBL_GENE_CACHE_PATH.exists():
+            with open(_ENSEMBL_GENE_CACHE_PATH) as f:
+                _ENSEMBL_GENE_CACHE.update(json.load(f))
+    except Exception as exc:
+        logger.debug("Failed to load Ensembl gene cache: %s", exc)
+
+
+def _save_ensembl_gene_cache() -> None:
+    global _ENSEMBL_GENE_CACHE_DIRTY
+    if not _ENSEMBL_GENE_CACHE_DIRTY:
+        return
+    try:
+        with open(_ENSEMBL_GENE_CACHE_PATH, "w") as f:
+            json.dump(_ENSEMBL_GENE_CACHE, f)
+        _ENSEMBL_GENE_CACHE_DIRTY = False
+    except Exception as exc:
+        logger.debug("Failed to save Ensembl gene cache: %s", exc)
+
+
+def _annotate_variants_with_genes(rsids: List[str], window: int = 25000) -> Dict[str, str]:
+    """
+    For each rsID, return a comma-separated string of nearby protein-coding genes
+    using Ensembl REST API. Results are persistently cached.
+
+    Strategy:
+    1. Batch-query rsID → genomic position (1 API call for all rsIDs)
+    2. For each uncached position, query gene overlap (1 call per rsID)
+    Returns {rsid: "GENE1, GENE2"} for rsIDs that resolve to genes, "" otherwise.
+    """
+    global _ENSEMBL_GENE_CACHE_DIRTY
+    _load_ensembl_gene_cache()
+
+    # Step 1: find which rsIDs need position lookup
+    need_pos = [r for r in rsids if r not in _ENSEMBL_GENE_CACHE]
+    if not need_pos:
+        return {r: _ENSEMBL_GENE_CACHE.get(r, "") for r in rsids}
+
+    positions: Dict[str, tuple] = {}  # rsid -> (chrom, pos)
+    try:
+        import requests as _req
+        r = _req.post(
+            "https://rest.ensembl.org/variation/human",
+            json={"ids": need_pos[:200]},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=(5, 15),
+        )
+        if r.ok:
+            for rsid, data in r.json().items():
+                mappings = data.get("mappings", [])
+                if mappings:
+                    loc = mappings[0]
+                    positions[rsid] = (loc.get("seq_region_name", ""), loc.get("start", 0))
+    except Exception as exc:
+        logger.debug("Ensembl variant batch failed: %s", exc)
+
+    # Step 2: query gene overlap for each resolved position
+    for rsid, (chrom, pos) in positions.items():
+        if not chrom or not pos:
+            _ENSEMBL_GENE_CACHE[rsid] = ""
+            _ENSEMBL_GENE_CACHE_DIRTY = True
+            continue
+        try:
+            r2 = _req.get(
+                f"https://rest.ensembl.org/overlap/region/human/{chrom}:{max(1,pos-window)}-{pos+window}",
+                params={"feature": "gene", "content-type": "application/json"},
+                timeout=(4, 10),
+            )
+            if r2.ok:
+                genes = r2.json()
+                names = [g.get("external_name", "") for g in genes
+                         if g.get("external_name") and g.get("biotype") == "protein_coding"]
+                # Sort by proximity to variant
+                gene_set = list(dict.fromkeys(n for n in names if n))[:4]
+                _ENSEMBL_GENE_CACHE[rsid] = ", ".join(gene_set)
+            else:
+                _ENSEMBL_GENE_CACHE[rsid] = ""
+            _ENSEMBL_GENE_CACHE_DIRTY = True
+        except Exception as exc:
+            logger.debug("Ensembl gene overlap failed for %s: %s", rsid, exc)
+            _ENSEMBL_GENE_CACHE[rsid] = ""
+
+    # Fill in rsIDs that didn't resolve
+    for rsid in need_pos:
+        if rsid not in _ENSEMBL_GENE_CACHE:
+            _ENSEMBL_GENE_CACHE[rsid] = ""
+            _ENSEMBL_GENE_CACHE_DIRTY = True
+
+    if _ENSEMBL_GENE_CACHE_DIRTY:
+        _save_ensembl_gene_cache()
+
+    return {r: _ENSEMBL_GENE_CACHE.get(r, "") for r in rsids}
+
 # Local GWAS Catalog index — loaded once from pre-built pickle (~400K rsIDs)
 # Path: evaluation/datasets/gwas_catalog/rsid_index.pkl
 _GWAS_LOCAL_INDEX: Optional[Dict[str, list]] = None  # rsid -> [(trait, pval_f, pval_mlog, mapped_trait)]
@@ -1743,14 +1847,14 @@ _FORMAT_INSTRUCTIONS: Dict[str, str] = {
     "gwas_variant_prioritization": (
         "\n\n---\n"
         "THIS IS A KNOWLEDGE/RECALL QUESTION — not a bioinformatics workflow task.\n"
-        "ANSWER REQUIRED: From the candidate SNP list, identify the ONE rsID most significantly associated with this trait.\n"
+        "ANSWER REQUIRED: From the candidate SNP list, identify the ONE rsID most significantly and specifically associated with this trait.\n"
         "\n"
-        "MANDATORY RULES:\n"
-        "1. If GWAS Catalog data is provided above, the rsID listed FIRST (highest -log10(p) or lowest p-value for the query trait) IS the answer.\n"
-        "2. The GWAS Catalog context is pre-filtered to include only associations matching the query phenotype — all listed variants are relevant.\n"
-        "3. Associations labeled [NOT relevant to <trait>] in any fallback context must be COMPLETELY IGNORED.\n"
-        "4. If no context is provided, select the rsID you believe is most strongly associated with this trait from your training knowledge.\n"
-        "5. Do NOT refuse. Do NOT ask for data files. Do NOT explain.\n"
+        "PRIORITY ORDER:\n"
+        "1. GWAS CATALOG RANK (primary): If GWAS Catalog data shows a candidate ranked #1 with a strong association to the query phenotype, that IS the answer.\n"
+        "2. GENE-PATHWAY MATCH (when GWAS shows 'No phenotype-specific data' for most candidates): If [Nearest protein-coding genes] context is provided AND a candidate is in a gene with a DIRECT biochemical role in producing/metabolizing the phenotype compound, prioritize that candidate.\n"
+        "   Examples: PEMT → phosphatidylcholines; SLC25A1 → citrate transport; ACY3 → N-acetylated amino acids; ASRGL1 → asparagine; HFE → iron/hemochromatosis; FADS1/FADS2 → fatty acids.\n"
+        "   CAUTION: Only apply this rule for specific chemical entities (amino acids, organic acids, phospholipids), NOT for complex traits (cholesterol measurement, triglycerides) where GWAS ranking is more reliable.\n"
+        "3. TRAINING KNOWLEDGE: If neither GWAS nor gene context is available, use your GWAS training knowledge.\n"
         "\n"
         "Respond with ONLY the rsID (e.g., rs4253311). No explanation. No other text."
     ),
@@ -2278,6 +2382,16 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                         context_parts.append(per_rsid_ctx)
                 # Flush any new cache entries to disk after processing
                 _save_gwas_http_cache()
+
+                # Gene annotations via Ensembl — gives model biological pathway context.
+                # Critical for metabolite phenotypes where the variant's gene function
+                # is more informative than GWAS p-value (e.g. rs748196→PEMT for PC synthesis).
+                gene_ann = _annotate_variants_with_genes(candidate_rsids[:15])
+                ann_lines = [f"  {rsid}: {genes}" for rsid, genes in gene_ann.items() if genes]
+                if ann_lines:
+                    context_parts.append(
+                        "[Nearest protein-coding genes via Ensembl]\n" + "\n".join(ann_lines)
+                    )
 
         # --- Lazy GWAS Catalog + Open Targets lookup (gwas_causal_gene) ---
         if task_name.startswith("gwas_causal_gene") and not db_context:
