@@ -1131,6 +1131,175 @@ class NextflowQCGateHandler:
         else:
             return None
 
+    # ── S3 published report reader ────────────────────────────────────────────
+    # For AWS Batch runs, task work dirs are on S3. Our pipeline publishes
+    # structured JSON report files to s3_outdir that contain the same metrics
+    # the local parsers extract. This method reads those published files.
+
+    # Maps process name keywords → (s3_step_prefix, report_glob_pattern)
+    _S3_REPORT_PATHS: Dict[str, tuple] = {
+        "MOTION_CORRECTION": ("02_motion_correction", "motion_report_*.json"),
+        "CTF_ESTIMATION":    ("03_ctf_estimation",    "ctf_report_*.json"),
+        "CTF_ESTIMATE":      ("03_ctf_estimation",    "ctf_report_*.json"),
+        "BLOB_PICKER":       ("05_blob_picker",       "picking_report_*.json"),
+        "PARTICLE_PICKING":  ("05_blob_picker",       "picking_report_*.json"),
+        "JUNK_DETECTOR":     ("06_junk_detector",     "junk_report.json"),
+        "INSPECT_PICKS":     ("07_inspect_picks_round1", "inspect_report.json"),
+        "EXTRACT":           ("08_extract_round1",    "extract_report_*.json"),
+        "CLASSIFY_2D":       ("09_classify_2d_round1", "class2d_report_*.json"),
+        "CLASS_2D":          ("09_classify_2d_round1", "class2d_report_*.json"),
+        "SELECT_2D":         ("10_select_2d_round1",  "selection_report.json"),
+        "AB_INITIO":         ("16_ab_initio",         "ab_initio_report_*.json"),
+        "HOMOGENEOUS_REFINEMENT": ("17_homogeneous_refinement", "refinement_report_*.json"),
+        "NONUNIFORM_REFINEMENT":  ("21_non_uniform_refinement", "nu_refinement_report.json"),
+        "VALIDATION_FSC":    ("19_validation_fsc",   "validation_report.json"),
+        # RNA-seq / nf-core: MultiQC aggregates these → read multiqc_data JSON
+        "STAR_ALIGN":        ("star", "Log.final.out"),
+        "FASTQC":            ("fastqc", "*_fastqc_data.json"),
+        "FASTP":             ("fastp", "*.json"),
+        "FEATURECOUNTS":     ("featurecounts", "*.summary"),
+        "SALMON":            ("salmon", "lib_format_counts.json"),
+        "SAMTOOLS_FLAGSTAT": ("samtools", "*.flagstat"),
+    }
+
+    def _read_s3_report_metrics(self, process_upper: str) -> Optional[Dict[str, Any]]:
+        """
+        Read QC metrics from published S3 report files.
+        Returns a metrics dict compatible with _check_qc_thresholds, or None if not found.
+        """
+        if not self.s3_outdir:
+            return None
+
+        try:
+            import boto3 as _boto3
+            import json as _json
+            import fnmatch as _fnmatch
+
+            s3 = _boto3.client("s3", region_name=__import__("os").environ.get("AWS_DEFAULT_REGION", "us-west-2"))
+            parts = self.s3_outdir[5:].split("/", 1)
+            bucket = parts[0]
+            prefix_base = parts[1].rstrip("/") if len(parts) > 1 else ""
+
+            # Find matching step prefix and report pattern
+            step_prefix = None
+            report_pattern = None
+            for keyword, (step, pattern) in self._S3_REPORT_PATHS.items():
+                if keyword in process_upper:
+                    step_prefix = step
+                    report_pattern = pattern
+                    break
+
+            if not step_prefix:
+                return None
+
+            # List objects under s3_outdir/step_prefix/
+            search_prefix = f"{prefix_base}/{step_prefix}/" if prefix_base else f"{step_prefix}/"
+            resp = s3.list_objects_v2(Bucket=bucket, Prefix=search_prefix)
+            report_objects = [
+                obj["Key"] for obj in resp.get("Contents", [])
+                if _fnmatch.fnmatch(obj["Key"].split("/")[-1], report_pattern)
+            ]
+
+            if not report_objects:
+                log.debug("[QC-S3] No report found for %s at s3://%s/%s%s",
+                          process_upper, bucket, search_prefix, report_pattern)
+                return None
+
+            # Read the first matching report (take most recent by key name)
+            report_objects.sort()
+            key = report_objects[-1]
+            obj = s3.get_object(Bucket=bucket, Key=key)
+            data = _json.loads(obj["Body"].read().decode("utf-8"))
+
+            # Convert JSON report to QC metrics dict
+            return self._report_json_to_metrics(process_upper, data)
+
+        except Exception as _e:
+            log.debug("[QC-S3] Error reading S3 report for %s: %s", process_upper, _e)
+            return None
+
+    def _report_json_to_metrics(self, process_upper: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Convert a published pipeline JSON report to a QC metrics dict."""
+        metrics: Dict[str, Any] = {}
+
+        if "MOTION_CORRECTION" in process_upper:
+            if "avg_total_motion_A" in data:
+                metrics["total_drift_angstrom"] = data["avg_total_motion_A"]
+            if "per_micrograph_motion_A" in data:
+                arr = data["per_micrograph_motion_A"]
+                if arr:
+                    import statistics as _st
+                    metrics.setdefault("total_drift_angstrom", round(_st.mean(arr), 2))
+            if "num_micrographs" in data:
+                metrics["n_micrographs"] = data["num_micrographs"]
+
+        elif "CTF_ESTIMATION" in process_upper or "CTF_ESTIMATE" in process_upper:
+            if "avg_fit_quality" in data:
+                metrics["fit_quality"] = data["avg_fit_quality"]
+            elif "avg_ctf_fit_to_A" in data:
+                fit_a = float(data["avg_ctf_fit_to_A"])
+                metrics["fit_quality"] = round(max(0.0, 1.0 - fit_a / 10.0), 3)
+            if "avg_defocus_A" in data:
+                metrics["defocus_u_angstrom"] = data["avg_defocus_A"]
+                metrics["defocus_out_of_range"] = not (1000 <= data["avg_defocus_A"] <= 100000)
+            if "avg_astigmatism_A" in data:
+                metrics["astigmatism_angstrom"] = data["avg_astigmatism_A"]
+            if "per_micrograph_defocus_A" in data:
+                arr = data["per_micrograph_defocus_A"]
+                if arr:
+                    import statistics as _st
+                    metrics.setdefault("defocus_u_angstrom", round(_st.mean(arr), 0))
+
+        elif any(k in process_upper for k in ("PICKING", "BLOB_PICKER")):
+            if "num_particles" in data:
+                metrics["particles_picked"] = data["num_particles"]
+            if "num_micrographs" in data and data["num_micrographs"] > 0:
+                metrics["particle_density_per_micrograph"] = round(
+                    data.get("num_particles", 0) / data["num_micrographs"], 1)
+
+        elif any(k in process_upper for k in ("CLASSIFY_2D", "CLASS_2D")):
+            if "num_particles" in data:
+                metrics["particles_2d_classified"] = data["num_particles"]
+            if "junk_class_fraction" in data:
+                metrics["junk_class_fraction"] = data["junk_class_fraction"]
+                metrics["good_class_fraction"] = round(1.0 - data["junk_class_fraction"], 3)
+
+        elif any(k in process_upper for k in ("STAR_ALIGN",)):
+            # Parse STAR Log.final.out: "Uniquely mapped reads %" line
+            log_text = data.get("_raw_text", "")
+            for line in log_text.splitlines():
+                if "Uniquely mapped reads %" in line:
+                    try:
+                        metrics["alignment_rate"] = float(line.split("|")[-1].strip().rstrip("%"))
+                    except (ValueError, IndexError):
+                        pass
+
+        elif "FASTQC" in process_upper:
+            if "basic_statistics" in data:
+                total = data.get("basic_statistics", {}).get("Total Sequences", 0)
+                if total:
+                    metrics["total_reads"] = total
+
+        elif "FASTP" in process_upper:
+            summary = data.get("summary", {})
+            if "after_filtering" in summary and "before_filtering" in summary:
+                after = summary["after_filtering"].get("total_reads", 0)
+                before = summary["before_filtering"].get("total_reads", 1)
+                if before > 0:
+                    metrics["reads_surviving_pct"] = round(after / before * 100, 1)
+
+        elif "SAMTOOLS_FLAGSTAT" in process_upper or "FLAGSTAT" in process_upper:
+            raw = data.get("_raw_text", "")
+            for line in raw.splitlines():
+                if "mapped (" in line and "%" in line:
+                    try:
+                        pct_str = line.split("(")[1].split("%")[0].strip()
+                        metrics["mapped_pct"] = float(pct_str.lstrip("+").strip())
+                    except (IndexError, ValueError):
+                        pass
+
+        return metrics if metrics else None
+
     def _parse_motion_correction_metrics(self, task_work_dir: Path) -> Optional[Dict[str, Any]]:
         """
         Parse motion correction log files (MotionCor2 / RELION Motioncorr output).
