@@ -2198,6 +2198,26 @@ class BiomniEval1Adapter(BenchmarkAdapter):
                 raw_rows.append((task_name, row))
 
         # ----------------------------------------------------------------
+        # Phase 2b-gene: Pre-populate Ensembl gene cache for gwas_variant tasks.
+        # Done here (sequential) so parallel task_prompt() calls hit cache instantly.
+        _load_ensembl_gene_cache()
+        gv_rsids_all: list[str] = []
+        for task_name, row in raw_rows:
+            if task_name == "gwas_variant_prioritization":
+                import re as _re_local
+                gv_rsids_all.extend(_re_local.findall(r"\brs\d{4,}\b", str(row.get("prompt", ""))))
+        # Deduplicate
+        gv_rsids_uncached = list(dict.fromkeys(
+            r for r in gv_rsids_all if r not in _ENSEMBL_GENE_CACHE
+        ))
+        if gv_rsids_uncached:
+            logger.info("Pre-caching Ensembl genes for %d rsIDs...", len(gv_rsids_uncached))
+            # Process in sequential batches of 50 to respect Ensembl rate limits
+            for i in range(0, len(gv_rsids_uncached), 50):
+                batch = gv_rsids_uncached[i:i+50]
+                _annotate_variants_with_genes(batch)
+
+        # ----------------------------------------------------------------
         # Phase 2: (GWAS pre-fetch disabled — too slow for large datasets)
         # ----------------------------------------------------------------
         db_context_map: dict = {}
