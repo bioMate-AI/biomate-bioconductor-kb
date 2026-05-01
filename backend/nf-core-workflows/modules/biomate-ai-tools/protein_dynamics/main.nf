@@ -85,11 +85,25 @@ try:
     batch_size_100 = max(20, math.ceil((n_res_est / 100) ** 2) + 1)
     print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
     print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file} ({n_res_est} aa), batch_size_100={batch_size_100}", flush=True)
+    # Pull checkpoint from S3 (119 MB, same-region, ~5s) — no HuggingFace needed
+    import subprocess
+    os.makedirs("bioemu_ckpt", exist_ok=True)
+    for f in ["checkpoint.ckpt", "config.yaml"]:
+        subprocess.run([
+            "/opt/aws-cli/bin/aws", "s3", "cp", "--region", "us-west-2",
+            f"s3://biomate-nextflow-work/models/bioemu-v1.1/checkpoints/bioemu-v1.1/{f}",
+            f"bioemu_ckpt/{f}"
+        ], check=True)
+    print("[BIOEMU_SAMPLE] Checkpoint loaded from S3", flush=True)
+
     bioemu_main(
         sequence=fasta_file,
         num_samples=n_samples,
         output_dir="bioemu_output",
         batch_size_100=batch_size_100,
+        ckpt_path="bioemu_ckpt/checkpoint.ckpt",
+        model_config_path="bioemu_ckpt/config.yaml",
+        msa_host_url="https://api.colabfold.com",  # API instead of local 3.5 GB AF2 weights
     )
     # BioEmu writes .xtc + topology .pdb — convert to individual PDBs
     import glob as g
