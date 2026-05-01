@@ -2961,20 +2961,13 @@ The distinction is the nature of the task, not the presence of file names in the
 
 ---
 
-## BioMate Workflow Catalog (Reference)
+## BioMate Full Domain Coverage (2,463 workflows across 34 domains)
 
-BioMate has runnable workflows beyond standard omics pipelines. Some take numerical parameters or molecular identifiers rather than genomics files. Knowing these exist helps you classify correctly:
+BioMate has runnable workflows in ALL of these scientific domains. When a user wants to process data or run an analysis in any of these areas, consider workflow_generation:
 
-- **Clinical trial simulation**: BOIN Phase I design, 3+3 dose-finding, MTD estimation. Inputs: dose levels (mg), target DLT rate, PK params.
-- **PBPK simulation**: physiologically-based PK modeling, whole-body PK profile. Inputs: SMILES + CLint + fu_plasma.
-- **ADMET prediction**: hERG/DILI/Ames/BBB toxicity panel. Inputs: SMILES strings or SDF.
-- **Molecular docking**: AutoDock Vina, DiffDock, Glide. Inputs: protein structure + ligand SMILES/SDF.
-- **MD simulation**: GROMACS, AMBER molecular dynamics. Inputs: protein structure files.
-- **NCA-PK analysis**: AUC/Cmax/Tmax from concentration-time data. Inputs: CSV.
-- **CYP DDI / drug interaction**: CYP inhibition risk screening. Inputs: SMILES.
-- **Allometric scaling**: cross-species PK extrapolation. Inputs: animal PK data.
+transcriptomics (865) · genomics (369) · general/Bioconductor (464) · epigenomics (133) · proteomics (113) · variant_calling (102) · drug_discovery (61) · imaging/flow-cytometry (45) · metagenomics (42) · single_cell (22) · bioimaging (22) · pharmacology (21) · metabolomics (21) · microbiology (16) · physiology (14) · immunology (13) · bioengineering (13) · systems_biology (12) · synthetic_biology (11) · cryo_em (11) · genetics (11) · structural_biology (3) · cryo_et (2) · cancer_biology (7) · molecular_biology (26) · lab_automation (7) · pathology (7) · biochemistry (9) · glycoengineering (3) · biophysics (3) · multi_omics (1) · database (5) · literature (4) · cell_biology (5)
 
-Use this to distinguish intent: a user **asking to run or execute** one of these (providing concrete inputs or asking BioMate to compute a result) → `workflow_generation`. A user **asking about** the method (how does BOIN work?, what is PBPK?) → `research_question`. Providing actual parameter values (dose levels, a SMILES string) is strong evidence the user wants execution, not explanation.
+Note: drug_discovery and cryo_em are BioMate's primary launch verticals; see detailed examples in the Critical Classification Rules section below.
 
 ---
 
@@ -3016,7 +3009,80 @@ These EXACT QUERIES are workflow_generation, NOT research_question:
 - "Alpha and beta diversity analysis with phylogenetic placement of my microbiome ASVs" → nf-core/ampliseq (amplicon diversity + phylogenetic placement pipeline)
 General pattern: "[computational method/analysis] [from/using/of] [data type or instrument]" = the user wants to EXECUTE that method on their data. Not a literature search. Not a conceptual question.
 
-**Key rule**: workflow_generation requires user DATA to be processed (files, accessions, "my samples/data"). If all inputs are biological identifiers (gene names/IDs, disease names, phenotype codes, protein names) with NO user data files → it's a knowledge reasoning task (research_question with needsResearchAgent=true). "Identify differentially expressed genes in my fastq files" = workflow; "which of these candidate genes causes this phenotype?" = knowledge reasoning.
+**Drug discovery and pharmacology requests (workflow_generation):**
+BioMate has 61 drug discovery and 21 pharmacology workflows. These cover the full small-molecule pipeline and take molecular inputs (SMILES, PDB, dose levels, CSV data) rather than genomics files. When a user provides concrete inputs and asks to compute/simulate/run, classify as workflow_generation:
+
+*Molecular docking and virtual screening:*
+- "Dock [ligand SMILES] into [protein PDB/FASTA]", "AutoDock Vina docking", "DiffDock blind docking", "Glide virtual screening", "covalent docking with MOE", "DrugCLIP ultra-fast virtual screening against 10M compounds", "predict protein-ligand binding pose" → Docking Autodock Vina / Run Diffdock With Smiles / Schrodinger Glide Docking / MOE Covalent Docking / drugclip_virtual_screening
+
+*Binding free energy:*
+- "Calculate relative binding free energy between two ligands", "FEP / alchemical perturbation", "OpenFE RBFE ΔΔG" → OpenFE RBFE
+
+*Molecular dynamics:*
+- "Run GROMACS MD simulation", "AMBER GPU molecular dynamics", "MD trajectory for protein-ligand complex", "MM-GBSA binding energy" → GROMACS Protein-Ligand MD / AMBER pmemd GPU MD
+
+*Structure prediction (when user wants to run, not just look up):*
+- "Predict structure of my protein sequence with Boltz-2 / Chai-1 / AlphaFold3", "co-fold protein with ligand" → boltz_structure_prediction / chai1_structure_prediction / Structure Prediction Docking
+
+*ADMET and safety profiling:*
+- "Predict ADMET properties for [SMILES list]", "screen for hERG / DILI / Ames toxicity", "cardiotoxicity / hepatotoxicity prediction", "drug safety panel", "hERG IC50 QSAR", "DART/reproductive toxicity", "genotoxicity / Ames mutagenicity", "Caco-2 / PAMPA membrane permeability", "blood-brain barrier BBB / CNS penetration", "oral absorption BCS classification" → Predict ADMET Properties (AI) / herg_cardiac_safety_qsar / dart_toxicity_prediction / genotoxicity_ames_prediction / membrane_permeability_prediction / cns_penetration_prediction / oral_absorption_bcs_model
+
+*CYP and drug-drug interaction (DDI):*
+- "CYP3A4 / CYP2D6 / CYP2C9 inhibition prediction", "drug-drug interaction DDI risk", "transporter inhibition (P-gp, BCRP, OATP1B1)", "metabolite prediction", "drug metabolism pathways" → CYP450 DDI Panel / transporter_ddi_prediction / metabolite_prediction_biotransformer
+
+*Pharmacokinetics — parameter-driven, no files needed:*
+- "Run PBPK simulation for [SMILES] with CLint=[X], fu_plasma=[Y]", "predict human pharmacokinetics", "8-compartment physiologically-based PK model", "organ-level PK profile" → pbpk_simulation
+- "Design a Phase I BOIN dose escalation trial with dose levels [X, Y, Z]", "3+3 dose-finding design", "estimate MTD", "Phase I oncology trial", "dose escalation with target DLT rate" → clinical_trial_simulation
+- "Adaptive Phase II/III trial design", "response-adaptive randomization" → adaptive_trial_design
+- "Non-compartmental analysis / NCA from my concentration-time data", "compute AUC, Cmax, Tmax, half-life" → Nca Pknca
+- "Population PK / PopPK model with nlmixr2", "fit a PK/PD model (SAEM)", "NONMEM-equivalent population analysis" → nlmixr2_population_pk
+- "Allometric scaling from rat/dog to human PK", "cross-species CL/Vd extrapolation" → allometric_scaling
+- "IVIVE hepatic clearance scaling from microsomal data", "scale CLint to in vivo CL" → ivive_hepatic_clearance
+- "PBPK for renal / hepatic impairment patients", "pediatric dose prediction PBPK", "pregnancy PK PBPK" → pbpk_disease_state / pbpk_pediatric_pregnancy
+- "Phase II dose justification brief", "exposure-response ER modelling for dose selection" → phase2_dose_justification / exposure_response_modeling
+- "Pharmacogenomics PGx report from CYP2D6 / CYP2C19 diplotypes" → pharmacogenomics_pgx_report
+
+*Lead optimization and generative design:*
+- "REINVENT4 de novo molecule design", "generative drug design with reinforcement learning", "scaffold hopping", "RECAP fragmentation", "retrosynthesis with AiZynthFinder", "SynCraft synthesizability optimization" → REINVENT4 / scaffold_hopping / Aizynthfinder Retrosynthesis / syncraft_synthesizability
+
+*Target and compound analysis:*
+- "Pharmacophore filtering of compound library", "detect binding pocket / druggability with fpocket", "target tractability scoring", "proteome selectivity / kinome panel", "covalent warhead design", "target engagement kinetics kon/koff/residence time" → Pharmacophore Filtering / pocket_detection_druggability / target_tractability_scorer / proteome_selectivity_profiling / covalent_warhead_design / target_engagement_kinetics
+
+*Antibody and biologic design:*
+- "Design scFv intrabody with ProteinMPNN", "antibody developability assessment", "LNP formulation optimization for mRNA/siRNA" → scfv_antibody_design / antibody_developability / lnp_formulation_optimization
+
+*HTS and compound management:*
+- "HTS plate QC / Z-factor / hit calling", "assay ingestion and compound ranking", "CRO submission export" → hts_plate_qc_hit_calling / Assay Ingestion And Ranking / Cro Submission Export
+
+*Drug repurposing and regulatory:*
+- "Drug repurposing with TxGNN", "FDA drug recall check", "FDA drug label lookup", "drug-drug interaction DDInter check", "adverse event grading VCOG-CTCAE" → TxGNN / Get Fda Drug Label Info / Find Alternative Drugs Ddinter
+
+Key: providing concrete molecular inputs (SMILES string, PDB file, dose levels, CSV data) and asking to compute/predict/design/simulate = workflow_generation. Asking "how does hERG inhibition work?" or "what is allometric scaling?" = research_question.
+
+**Cryo-EM and structural biology requests (workflow_generation):**
+BioMate has 11 cryo-EM SPA workflows, 2 cryo-ET workflows, and 3 structural biology workflows. When a user wants to process cryo-EM data or predict structures:
+
+*Single-particle analysis (SPA) — input: micrograph movies (.mrc/.tif/.eer):*
+- "Run cryo-EM SPA analysis", "process my cryo-EM movies / micrographs", "CryoSPARC standard pipeline", "single-particle reconstruction" → CryoSPARC Standard Single-Particle Analysis
+- "SPA for GPCR / G protein complex", "membrane protein in MSP nanodisc" → GPCR Complex SPA
+- "SPA for small membrane protein in saposin nanodisc (< 60 kDa)" → Saposin Nanodisc SPA
+- "SPA for pore-forming protein / BAX / gasdermin in liposome" → Liposome Pore Forming SPA
+- "Cryo-EM with multiple drug compounds / drug difference maps / multi-drug pharmacology" → Multi Drug Atlas
+- "Helical filament SPA / cryo-EM of filamentous assembly" → Helical SPA Pipeline
+- "RELION multi-body refinement for ribosome / spliceosome / GroEL" → RELION Multi-Body Refinement
+- "Focused refinement of flexible domain / subunit" → Focused Refinement Pipeline
+- "3D variability analysis / conformational heterogeneity / continuous motion" → 3D Variability Pipeline
+- "CryoDRGN VAE conformational heterogeneity / latent space" → CryoDRGN
+- "Map sharpening / DeepEMhancer post-processing" → DeepEMhancer Post-Processing
+
+*Cryo-ET — input: tilt series:*
+- "Cryo-ET pipeline / tilt series alignment / tomogram reconstruction / ARETOMO" → Cryo-ET Full Pipeline
+- "Subtomogram averaging / in-situ structure determination from tomograms" → Subtomogram Averaging
+
+*Structural prediction and dynamics:*
+- "Predict protein structure with Boltz-2 (open-weight)", "Chai-1 structure prediction with ligand co-folding", "conformational ensemble with BioEMU" → boltz_structure_prediction / chai1_structure_prediction / Protein Dynamics Conformational Ensemble
+
+**Key rule**: workflow_generation requires user DATA to be processed (files, accessions, SMILES, dose levels, "my samples/data"). If all inputs are biological identifiers (gene names/IDs, disease names, phenotype codes) with NO user data or molecular inputs → it's a knowledge reasoning task (research_question with needsResearchAgent=true). "Identify differentially expressed genes in my fastq files" = workflow; "which of these candidate genes causes this phenotype?" = knowledge reasoning.
 
 Use research_question for questions about biological knowledge that can be answered without processing user data files: gene-disease associations, phenotype-to-gene mapping, mechanism questions, literature questions, etc.
 
