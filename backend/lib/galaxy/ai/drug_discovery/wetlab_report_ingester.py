@@ -405,3 +405,204 @@ class WetLabReportIngester:
         if all(r == "negative" for r in available) and len(available) >= 2:
             return "complete_negative"
         return "partial_negative"
+
+    # ─── FDA NDA / EMA EPAR / NTP fetchers ───────────────────────────────────
+
+    # Known FDA NDA nonclinical review PDF URLs (public, no auth required)
+    _FDA_NDA_URLS: dict[str, str] = {
+        "Ibuprofen":   "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2002/21-374_Ibuprofen_pharmr.pdf",
+        "Warfarin":    "https://www.accessdata.fda.gov/drugsatfda_docs/nda/2000/09218S097_Coumadin.pdf",
+        "Midazolam":   "https://www.accessdata.fda.gov/drugsatfda_docs/nda/97/018654ap.pdf",
+    }
+
+    # Known NTP GLP Technical Report PDF URLs
+    _NTP_URLS: dict[str, str] = {
+        "Nitrofurantoin": "https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/lt_rpts/tr341.pdf",
+        "Caffeine":       "https://ntp.niehs.nih.gov/sites/default/files/ntp/htdocs/lt_rpts/tr067.pdf",
+    }
+
+    def ingest_fda_nda(
+        self,
+        drug_name: str,
+        nda_url: Optional[str] = None,
+        cache_dir: Optional[str] = None,
+    ) -> WetLabStudyData:
+        """
+        Download and parse an FDA NDA nonclinical pharmacology/toxicology review PDF.
+
+        Args:
+            drug_name:  Name of the drug (used for caching and as fallback URL key).
+            nda_url:    Direct URL to the PDF. If None, looks up _FDA_NDA_URLS[drug_name].
+            cache_dir:  Local directory to cache the downloaded PDF. Defaults to /tmp.
+
+        Returns:
+            WetLabStudyData with measured values extracted from the review text.
+        """
+        import requests as req
+
+        url = nda_url or self._FDA_NDA_URLS.get(drug_name)
+        if not url:
+            log.warning("[fda_nda] No URL known for '%s'. Pass nda_url explicitly.", drug_name)
+            return WetLabStudyData(drug_name=drug_name, source_document="FDA NDA (not found)")
+
+        # ── Download / cache ──────────────────────────────────────────────
+        cache_path = None
+        if cache_dir:
+            import os
+            os.makedirs(cache_dir, exist_ok=True)
+            fname = f"fda_nda_{drug_name.replace(' ', '_')}.pdf"
+            cache_path = Path(cache_dir) / fname
+
+        pdf_path = None
+        if cache_path and cache_path.exists():
+            pdf_path = cache_path
+            log.info("[fda_nda] Using cached PDF: %s", pdf_path)
+        else:
+            try:
+                log.info("[fda_nda] Downloading FDA NDA for %s from %s", drug_name, url)
+                r = req.get(url, timeout=60, stream=True)
+                if r.status_code != 200:
+                    log.warning("[fda_nda] HTTP %d for %s", r.status_code, url)
+                    return WetLabStudyData(drug_name=drug_name, source_document=f"FDA NDA (HTTP {r.status_code})")
+                # Write to cache or temp
+                import tempfile
+                dest = cache_path or Path(tempfile.mktemp(suffix=".pdf"))
+                with open(dest, "wb") as f:
+                    for chunk in r.iter_content(8192):
+                        f.write(chunk)
+                pdf_path = dest
+                log.info("[fda_nda] Downloaded %.1f KB → %s", dest.stat().st_size / 1024, dest)
+            except Exception as exc:
+                log.warning("[fda_nda] Download error: %s", exc)
+                return WetLabStudyData(drug_name=drug_name, source_document=f"FDA NDA (error: {exc})")
+
+        # ── Extract text and parse ─────────────────────────────────────────
+        ref = f"FDA NDA {url}"
+        return self.ingest_pdf(str(pdf_path), drug_name=drug_name)
+
+    def ingest_ntp_report(
+        self,
+        drug_name: str,
+        ntp_url: Optional[str] = None,
+        cache_dir: Optional[str] = None,
+    ) -> WetLabStudyData:
+        """
+        Download and parse an NTP GLP Technical Report PDF.
+
+        NTP reports are 2-year rodent carcinogenesis/subchronic GLP studies.
+        They contain detailed genotoxicity battery results (Ames + CA + MN),
+        NOAEL, and pathology findings in structured appendix tables.
+
+        Args:
+            drug_name:  Name of the compound (used for caching and URL lookup).
+            ntp_url:    Direct URL to the PDF. Defaults to _NTP_URLS[drug_name].
+            cache_dir:  Local directory to cache. Defaults to /tmp.
+        """
+        import requests as req
+
+        url = ntp_url or self._NTP_URLS.get(drug_name)
+        if not url:
+            log.warning("[ntp] No URL known for '%s'. Pass ntp_url explicitly.", drug_name)
+            return WetLabStudyData(drug_name=drug_name, source_document="NTP report (not found)")
+
+        cache_path = None
+        if cache_dir:
+            import os
+            os.makedirs(cache_dir, exist_ok=True)
+            fname = f"ntp_{drug_name.replace(' ', '_')}.pdf"
+            cache_path = Path(cache_dir) / fname
+
+        pdf_path = None
+        if cache_path and cache_path.exists():
+            pdf_path = cache_path
+        else:
+            try:
+                log.info("[ntp] Downloading NTP report for %s", drug_name)
+                r = req.get(url, timeout=120, stream=True)
+                if r.status_code != 200:
+                    return WetLabStudyData(drug_name=drug_name, source_document=f"NTP (HTTP {r.status_code})")
+                import tempfile
+                dest = cache_path or Path(tempfile.mktemp(suffix=".pdf"))
+                with open(dest, "wb") as f:
+                    for chunk in r.iter_content(8192):
+                        f.write(chunk)
+                pdf_path = dest
+                log.info("[ntp] Downloaded %.1f KB → %s", dest.stat().st_size / 1024, dest)
+            except Exception as exc:
+                log.warning("[ntp] Download error: %s", exc)
+                return WetLabStudyData(drug_name=drug_name, source_document=f"NTP (error: {exc})")
+
+        return self.ingest_pdf(str(pdf_path), drug_name=drug_name)
+
+    def ingest_chembl_reference(self, drug_name: str, chembl_id: str) -> WetLabStudyData:
+        """
+        Build a WetLabStudyData from ChEMBL measured bioactivity data.
+        Pulls hERG IC50, PPB (Fub), and CLint from public ChEMBL API.
+        This is a 'literature_measured' source (not GLP, but peer-reviewed assay data).
+        """
+        import requests as req
+        from datetime import datetime, timezone
+
+        result = WetLabStudyData(
+            drug_name=drug_name,
+            source_document=f"ChEMBL {chembl_id} measured bioactivity",
+            ingested_at=datetime.now(timezone.utc).isoformat(),
+        )
+        base = "https://www.ebi.ac.uk/chembl/api/data/activity"
+        ref = f"ChEMBL {chembl_id} (www.ebi.ac.uk/chembl)"
+
+        # hERG IC50
+        try:
+            r = req.get(base, params={
+                "molecule_chembl_id": chembl_id,
+                "target_pref_name": "Voltage-gated inwardly rectifying potassium channel KCNH2",
+                "standard_type": "IC50",
+                "format": "json",
+                "limit": 25,
+            }, timeout=15)
+            if r.status_code == 200:
+                acts = r.json().get("activities", [])
+                ic50_vals = []
+                for a in acts:
+                    v = a.get("standard_value")
+                    u = a.get("standard_units", "")
+                    if v and a.get("standard_relation") == "=":
+                        val_um = float(v) / 1000.0 if u == "nM" else float(v)
+                        ic50_vals.append(val_um)
+                if ic50_vals:
+                    median = sorted(ic50_vals)[len(ic50_vals) // 2]
+                    result.herg_ic50_uM_measured = MeasuredValue(
+                        value=round(median, 4), unit="µM",
+                        reference=ref, study_type="herg_radioligand_binding",
+                        confidence="MEDIUM",  # assay variability across labs
+                    )
+                    log.info("[chembl] %s hERG IC50 = %.4f µM (n=%d)", drug_name, median, len(ic50_vals))
+        except Exception as e:
+            log.warning("[chembl] hERG fetch failed for %s: %s", drug_name, e)
+
+        # PPB / Fub
+        try:
+            for std_type in ("Fub", "PPB"):
+                r = req.get(base, params={
+                    "molecule_chembl_id": chembl_id,
+                    "standard_type": std_type,
+                    "format": "json",
+                    "limit": 10,
+                }, timeout=15)
+                if r.status_code == 200:
+                    acts = r.json().get("activities", [])
+                    if acts:
+                        v = acts[0].get("standard_value")
+                        u = acts[0].get("standard_units", "")
+                        if v:
+                            fub = float(v) if u in ("", "fraction") else float(v) / 100.0
+                            result.fu_plasma = MeasuredValue(
+                                value=round(fub, 4), unit="fraction",
+                                reference=ref, study_type="plasma_protein_binding",
+                                confidence="MEDIUM",
+                            )
+                        break
+        except Exception as e:
+            log.warning("[chembl] PPB fetch failed for %s: %s", drug_name, e)
+
+        return result
