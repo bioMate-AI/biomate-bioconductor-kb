@@ -17,7 +17,7 @@ import { ToolIntroductionDialog } from "@/components/tool-introduction-dialog";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { chatHistoryService } from "@/lib/chat-history";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { PanelLeft, Plus, FlaskConical, MessageCircle } from "lucide-react";
 import type { ChatSession } from "@shared/schema";
@@ -360,6 +360,13 @@ function Router({
         <AuthenticatedPageLayout>
           <DrugDiscoveryCroDemoPage />
         </AuthenticatedPageLayout>
+      </Route>
+
+      {/* Dev-only: CryoEM viewer test */}
+      <Route path="/dev/cryo-viewers">
+        <React.Suspense fallback={<div>Loading…</div>}>
+          {React.createElement(React.lazy(() => import('@/pages/cryo-viewer-test')))}
+        </React.Suspense>
       </Route>
 
       {/* Root: platform for authenticated users, redirect to /login for guests */}

@@ -285,9 +285,12 @@ export function DensityMapViewer({ src, name, size, className }: DensityMapViewe
     ? activeAxis === 'z' ? header.nz : activeAxis === 'x' ? header.nx : header.ny
     : 1
 
-  const voxelSizeX = header && header.nx > 0 ? (header.xlen / header.nx).toFixed(2) : '—'
-  const voxelSizeY = header && header.ny > 0 ? (header.ylen / header.ny).toFixed(2) : '—'
-  const voxelSizeZ = header && header.nz > 0 ? (header.zlen / header.nz).toFixed(2) : '—'
+  // CryoSPARC often writes CELLA=0 — show N/A rather than misleading 0.00
+  const _voxFmt = (len: number, n: number) =>
+    (n > 0 && len > 0) ? (len / n).toFixed(2) : 'N/A'
+  const voxelSizeX = header ? _voxFmt(header.xlen, header.nx) : '—'
+  const voxelSizeY = header ? _voxFmt(header.ylen, header.ny) : '—'
+  const voxelSizeZ = header ? _voxFmt(header.zlen, header.nz) : '—'
   const axisLabels: Record<Axis, string> = { z: 'XY', x: 'YZ', y: 'XZ' }
 
   return (

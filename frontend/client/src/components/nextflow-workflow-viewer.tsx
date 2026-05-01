@@ -2282,7 +2282,7 @@ export function NextflowWorkflowViewer({
                     data-testid="button-download-methods-report"
                     data-invocation-id={invocationId || ''}
                   >
-                    Methods report
+                    Report
                   </button>
                   {(availableQcProfiles.length > 0 || qcGateData !== null) && (
                     <>

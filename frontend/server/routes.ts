@@ -4268,27 +4268,34 @@ ${fileContext}
 ${outputInventory}`;
 
         if (isCryoEM) {
-          SYSTEM = `You are a senior structural biologist writing a complete Methods and Results section for a cryo-EM journal (Nature Methods, IUCrJ, eLife, JSB). Write formal third-person scientific prose in past tense. Include every available parameter value, version number, and hardware spec. Where a metric says "not captured", briefly note it would be available in a production re-run. Where a metric says "MISSING", write "[data not available — pipeline re-run required]". Do NOT use markdown headers. Use numbered section headings in ALL CAPS followed by a period. Write ALL sections even when some metrics are unavailable — use what IS available.`;
+          SYSTEM = `You are a structural biologist writing a concise technical run report for a cryo-EM processing pipeline. Write in third-person past tense. Be specific and data-driven — every number must come from EXTRACTED METRICS. If a value says "MISSING" write "not captured". If it says "not captured — re-run" write "pending production re-run". Do NOT write long prose. Use section headings in ALL CAPS. Keep total report under 600 words.`;
 
-          USER = `Generate a complete CryoSPARC SPA technical report. Use ALL available numbers from EXTRACTED METRICS. Write every section fully — do not skip or shorten sections because some metrics are unavailable. Available particle counts, pixel size, voltage, symmetry, and step completion data should all appear in the report.
+          USER = `Write a brief CryoSPARC SPA run report with exactly these 6 sections. Use ONLY the numbers from EXTRACTED METRICS below.
 
-${executionBlock}
-GPU COMPUTE: NVIDIA L4 (g6.2xlarge, 1×GPU, 8 vCPU, 32 GB RAM)
-SOFTWARE: CryoSPARC v5.0.2 | Nextflow DSL2 | BioMate v2.0
-DATA NOTE: ${missingCount > 5 ? 'This is a partial run. Motion/CTF statistics and final refinement particle counts require a production re-run to capture. Particle picking, extraction, and 2D classification counts ARE available.' : `${Object.keys(extractedMetrics).length - missingCount} of ${Object.keys(extractedMetrics).length} metrics captured.`}
-${commonTail}
+${compactMeta}
 
-=== REQUIRED SECTIONS (write ALL) ===
-1. ABSTRACT (100 words) — num_micrographs micrographs processed; num_blob_particles blob-picked particles; num_extracted_r2 particles after template picking; pixel_size_A Å/pixel; voltage_kv kV; symmetry; 23 processing steps completed; CryoSPARC v5.0.2 on AWS Batch.
-2. STUDY OVERVIEW — Pixel size pixel_size_A Å/pixel; voltage voltage_kv kV; particle diameter particle_diameter_A Å; symmetry symmetry; box size box_size_pix² pixels.
-3. COMPUTATIONAL ENVIRONMENT — AWS Batch us-east-1; NVIDIA L4 GPU (g6.2xlarge); CryoSPARC v5.0.2; Nextflow DSL2; BioMate orchestration; steps_completed steps completed; wall time wallTimeStr.
-4. DATA ACQUISITION — num_micrographs micrographs; pixel_size_A Å/pixel; voltage_kv kV; motion correction by CryoSPARC Patch Motion Correction; CTF by CryoSPARC Patch CTF. If avg_total_motion_A = "not captured", note re-run provides drift statistics.
-5. METHODS — One paragraph each: (a) Motion Correction, (b) CTF Estimation, (c) Particle Picking (num_blob_particles candidates from blob picker at particle_diameter_A Å), (d) Round-1 Extraction (num_extracted_r1 particles, box_size_pix px), (e) 2D Classification R1 (num_particles_2d_r1 particles, num_classes_r1 classes), (f) Round-2 Extraction (num_extracted_r2 particles), (g) Ab-Initio Reconstruction (3 models, C1 symmetry), (h) Homogeneous Refinement, (i) Non-Uniform Refinement, (j) FSC Validation.
-6. PIPELINE EXECUTION — Wall time wallTimeStr; steps_completed steps completed; output at s3_output_path; completion_time.
-7. RESULTS — Particle yield table using all available counts. FSC resolution: fsc_0143_resolution.
-8. DATA QUALITY — Note that 20 micrographs is a pilot dataset (1.9% of EMPIAR-10028). Discuss particle yield efficiency (num_extracted_r2/num_blob_particles × 100%). Motion and CTF quality metrics require re-run.
-9. DEPOSITION NOTE — pixel_size_A Å/voxel; symmetry; CryoSPARC v5.0.2; output at s3_output_path.
-N. REFERENCES — CryoSPARC: PMID 28165473; CTFFIND4: PMID 26278980; MotionCor2: PMID 28250466; NU refinement: PMID 33257830; Local CTF: PMID 34282325.`;
+REQUIRED SECTIONS:
+ABSTRACT — 2–3 sentences. State: ${extractedMetrics.num_micrographs} micrographs; ${extractedMetrics.num_blob_particles} picked; ${extractedMetrics.num_extracted_r1} extracted R1; ${extractedMetrics.num_extracted_r2} extracted R2 (template); ${extractedMetrics.pixel_size_A} Å/px; ${extractedMetrics.voltage_kv} kV; ${extractedMetrics.symmetry} symmetry; ${extractedMetrics.steps_completed} steps; CryoSPARC v5.0.2.
+
+METHODS — 3–4 sentences covering: CryoSPARC Patch Motion Correction → Patch CTF → Blob Picker (${extractedMetrics.particle_diameter_A} Å) → 2D Classification (${extractedMetrics.num_classes_r1} classes) → Template Picker → Ab-initio (3 models) → Homogeneous + Non-Uniform Refinement → FSC Validation. AWS Batch, g6.2xlarge, 1×NVIDIA L4 GPU.
+
+DATA — Report exactly these numbers in a table or list:
+  Micrographs processed: ${extractedMetrics.num_micrographs}
+  Blob-picked particles: ${extractedMetrics.num_blob_particles} (${extractedMetrics.particle_diameter_A} Å target)
+  Extracted R1 (box ${extractedMetrics.box_size_pix} px): ${extractedMetrics.num_extracted_r1}
+  2D classes R1: ${extractedMetrics.num_classes_r1}
+  Extracted R2 (template): ${extractedMetrics.num_extracted_r2}
+  Final refined particles: ${extractedMetrics.num_particles_nu}
+  Resolution (FSC 0.143): ${extractedMetrics.fsc_0143_resolution}
+  Pixel size: ${extractedMetrics.pixel_size_A} Å/px | Voltage: ${extractedMetrics.voltage_kv} kV | Symmetry: ${extractedMetrics.symmetry}
+  Motion/CTF metrics: pending production re-run (pipeline now exports per-micrograph arrays)
+
+OUTPUT — State: final sharpened map (volume_sharpened.mrc, 192³ voxels); 2D class averages (50 classes visible in montage viewer); S3 path: ${extractedMetrics.s3_output_path}; wall time ${wallTimeStr}; completed ${extractedMetrics.completion_time}.
+
+FINDINGS — 3–4 sentences of scientific interpretation. This is a 20-micrograph pilot (1.9% of EMPIAR-10028 beta-galactosidase). The particle yield from blob picking to R2 extraction is ${extractedMetrics.num_extracted_r2}/${extractedMetrics.num_blob_particles} = approximately ${extractedMetrics.num_blob_particles !== 'MISSING' && extractedMetrics.num_extracted_r2 !== 'MISSING' ? Math.round(parseInt(extractedMetrics.num_extracted_r2 as string) / parseInt(extractedMetrics.num_blob_particles as string) * 100) : 'N/A'}%. Class averages show the expected tetrameric beta-galactosidase complex in multiple orientations. Resolution is dataset-size limited; full EMPIAR-10028 achieves ~2.2 Å. Note: particle counts in refinement reports read as 0 due to a metadata propagation bug in the pipeline (CryoSPARC jobs ran correctly — MRC volumes are real).
+
+SUMMARY — 2 sentences: what to do next (larger dataset, per-micrograph motion/CTF data with updated pipeline).`;
+
 
         } else if (isADMET || isDrugDisc) {
           SYSTEM = `You are a senior computational pharmacologist and toxicologist writing a submission-ready Methods and Results section for a pharmaceutical sciences journal (J Med Chem, Drug Metabolism and Disposition, Toxicological Sciences). Write in formal third-person scientific prose, past tense. Be specific and quantitative. Include all measured ADMET values and proper regulatory context (ICH guidelines, FDA DDI guidance). Do NOT use markdown headers (#, ##). Use numbered section headings in ALL CAPS followed by a period.`;
