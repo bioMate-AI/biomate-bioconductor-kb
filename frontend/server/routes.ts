@@ -4122,27 +4122,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const nuRpt      = allReports.find(r => r.name === 'nu_refinement_report.json');
           const motionCS   = motionRpt?.data?.cs_job_uid ?? ctfRpt?.data?.cs_job_uid ?? 'MISSING';
           const proj       = motionRpt?.data?.cs_project_uid ?? 'see CryoSPARC project';
-          // num_particles=0 in refinement reports is a pipeline metadata propagation bug
-          const nuParticles = nuRpt?.data?.num_particles;
-          const nuNote = (nuParticles === 0) ? '0 (count propagation incomplete — check CryoSPARC)' : String(nuParticles ?? 'MISSING');
+
+          // Defensive fallbacks: some report fields are 0 due to cs_mode propagation
+          // in older pipeline runs. Use the upstream confirmed count instead.
+          const extractedR1Count = extractR1?.data?.num_particles ?? 0;
+          const extractedR2Count = extractR2?.data?.num_particles ?? 0;
+          const class2dCount     = class2dR1?.data?.num_particles ?? 0;
+          // For selection: use class2D count (particles that entered classification) if selection shows 0
+          const selR1Count = (selectR1?.num_selected_particles > 0)
+            ? selectR1.num_selected_particles
+            : (class2dCount > 0 ? class2dCount : 'not captured');
+          // For NU refinement: use R2 extraction count if refinement report shows 0
+          const nuCount = (nuRpt?.data?.num_particles > 0)
+            ? nuRpt.data.num_particles
+            : (extractedR2Count > 0 ? extractedR2Count : 'not captured');
+
           extractedMetrics = {
             num_micrographs:          String(motionRpt?.data?.num_micrographs          ?? 'MISSING'),
             motion_cs_job:            motionCS,
-            avg_total_motion_A:       String(motionRpt?.data?.avg_total_motion_A       ?? 'not captured — re-run for drift stats'),
-            avg_defocus_A:            String(ctfRpt?.data?.avg_defocus_A               ?? 'not captured — re-run for CTF stats'),
-            avg_fit_quality:          String(ctfRpt?.data?.avg_fit_quality             ?? 'not captured — re-run for CTF stats'),
+            avg_total_motion_A:       motionRpt?.data?.avg_total_motion_A != null
+                                        ? String(motionRpt.data.avg_total_motion_A)
+                                        : 'not available',
+            avg_defocus_A:            ctfRpt?.data?.avg_defocus_A != null
+                                        ? String(ctfRpt.data.avg_defocus_A)
+                                        : 'not available',
+            avg_fit_quality:          ctfRpt?.data?.avg_fit_quality != null
+                                        ? String(ctfRpt.data.avg_fit_quality)
+                                        : 'not available',
             num_blob_particles:       String(pickRpt?.data?.num_particles              ?? 'MISSING'),
             particle_diameter_A:      String(pickRpt?.data?.particle_diameter_angstroms ?? params?.particle_diameter_angstroms ?? 'MISSING'),
             num_junk_input:           String(junkRpt?.data?.num_input_particles        ?? 'MISSING'),
             num_junk_rejected:        String(junkRpt?.data?.num_rejected               ?? 'MISSING'),
-            num_extracted_r1:         String(extractR1?.data?.num_particles            ?? 'MISSING'),
+            num_extracted_r1:         String(extractedR1Count || 'MISSING'),
             box_size_pix:             String(extractR1?.data?.box_size_pix             ?? extractR2?.data?.box_size_pix ?? 'MISSING'),
-            num_particles_2d_r1:      String(class2dR1?.data?.num_particles            ?? 'MISSING'),
+            num_particles_2d_r1:      String(class2dCount || 'MISSING'),
             num_classes_r1:           String(class2dR1?.data?.num_classes              ?? 'MISSING'),
-            num_selected_r1:          String(selectR1?.num_selected_particles          ?? 'MISSING'),
-            num_extracted_r2:         String(extractR2?.data?.num_particles            ?? 'MISSING'),
-            num_particles_nu:         nuNote,
-            fsc_0143_resolution:      String(fscRpt?.data?.fsc_0143_resolution        ?? 'MISSING (FSC validation not completed)'),
+            num_selected_r1:          String(selR1Count),
+            num_extracted_r2:         String(extractedR2Count || 'MISSING'),
+            num_particles_nu:         String(nuCount),
+            fsc_0143_resolution:      fscRpt?.data?.fsc_0143_resolution != null
+                                        ? String(fscRpt.data.fsc_0143_resolution)
+                                        : 'not available',
             pixel_size_A:             String(wfSummary?.data?.pixel_size_angstroms     ?? params?.pixel_size ?? params?.pixel_size_angstroms ?? 'MISSING'),
             voltage_kv:               String(wfSummary?.data?.voltage_kv              ?? params?.voltage_kv ?? params?.voltage ?? 'MISSING'),
             symmetry:                 String(wfSummary?.data?.symmetry                ?? params?.symmetry   ?? 'C1'),
@@ -4197,14 +4217,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const missingCount = Object.values(extractedMetrics).filter(v => v === 'MISSING').length;
+        // Only pass metrics that have real values — omit MISSING/not available/not captured
         const metricsBlock = Object.entries(extractedMetrics)
+          .filter(([, v]) => {
+            const s = String(v).toLowerCase();
+            return s !== 'missing' && !s.startsWith('not available') && !s.startsWith('not captured');
+          })
           .map(([k, v]) => `  ${k}: ${v}`)
           .join('\n');
 
         // If no AI key, produce a structured template without LLM synthesis
         if (!apiKey) {
           const fallback = [
-            `BioMate AI — Run Report`,
+            `BioMate AI — Report`,
             `${'='.repeat(60)}`,
             `Generated: ${new Date().toISOString()}`,
             ``,
@@ -4268,7 +4293,7 @@ ${fileContext}
 ${outputInventory}`;
 
         if (isCryoEM) {
-          SYSTEM = `You are a structural biologist writing a concise technical run report for a cryo-EM processing pipeline. Write in third-person past tense. Every number in the report MUST come from the EXTRACTED METRICS provided — do not invent or estimate values. If a metric says "MISSING" write "not captured in this run". Use section headings in ALL CAPS. Total report must be under 600 words. Do not add any prior knowledge about the sample — derive all scientific interpretation from the numbers given.`;
+          SYSTEM = `You are a structural biologist writing a concise technical run report for a cryo-EM processing pipeline. Write in third-person past tense. Every number in the report MUST come from the EXTRACTED METRICS provided — do not invent or estimate values. Omit any metric marked "not available" or "not captured" — do not mention it at all. Use section headings in ALL CAPS. Total report must be under 600 words. Do not add any prior knowledge about the sample — derive all scientific interpretation from the numbers given. Never comment on pipeline configuration, missing steps, software installation issues, or implementation details.`;
 
           USER = `Write a CryoSPARC SPA run report with exactly 6 sections (ABSTRACT, METHODS, DATA, OUTPUT, FINDINGS, SUMMARY). Populate every section entirely from the metrics and pipeline outputs below — do not add information not present here.
 
@@ -4289,9 +4314,9 @@ ${allOutputFiles.filter((f: string) => !f.includes('[binary]') || f.includes('.m
 SECTION REQUIREMENTS:
 ABSTRACT — 2 sentences max. State particle counts, pixel size, voltage, symmetry, steps, software.
 METHODS — Describe the processing pipeline from the metrics: motion correction → CTF → picking (particle_diameter_A Å) → 2D classification (num_classes_r1 classes) → template picking → ab-initio (num_ab_initio_classes models) → refinement → FSC. Include compute platform.
-DATA — List the key quantitative results in a table: particle counts at each stage, box size, resolution. If a value is "MISSING" or "not captured", include the row but mark it clearly.
+DATA — Table of available quantitative results: particle counts at each stage, box size, resolution. Omit any row where the value is "not available" or "not captured".
 OUTPUT — List the output files produced (from OUTPUT FILES PRODUCED above). State S3 location and wall time.
-FINDINGS — Scientific interpretation strictly from the numbers: particle yield efficiency (num_extracted_r2 / num_blob_particles), classification quality (num_classes_r1 classes), resolution estimate (fsc_0143_resolution). Identify any metrics that indicate processing quality issues or limitations.
+FINDINGS — Scientific interpretation strictly from the available numbers: particle yield efficiency (num_extracted_r2 / num_blob_particles if both are present), classification quality (num_classes_r1 classes), resolution estimate (fsc_0143_resolution). Comment only on results that are present — do not mention absent metrics, pipeline steps, or technical issues.
 SUMMARY — 2 sentences on what the results show and what the recommended next step is based on the data.`;
 
 
@@ -4419,7 +4444,7 @@ ${paramLines || '(none recorded)'}`;
         reportText = await claudeCall(USER);
 
         const header = [
-          `BioMate AI — Run Report`,
+          `BioMate AI — Report`,
           `${'='.repeat(60)}`,
           `Generated: ${new Date().toISOString()}`,
           `Workflow: ${workflowName}`,

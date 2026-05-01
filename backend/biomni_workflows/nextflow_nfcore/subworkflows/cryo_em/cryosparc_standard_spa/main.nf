@@ -1575,19 +1575,32 @@ process MERGE_MICROGRAPHS {
 
     all_micrographs = []
     last_job_uid = None
+    last_project = None
+    last_workspace = None
+    total_num_items = 0
+    is_real = False
     for cs_file in sorted(glob.glob('micrographs_ctf_batch_*.cs')):
         data = json.load(open(cs_file))
         if data.get('cs_mode') == 'real' and data.get('job_uid'):
-            last_job_uid = data['job_uid']
+            is_real = True
+            last_job_uid   = data['job_uid']
+            last_project   = data.get('project_uid', last_project)
+            last_workspace = data.get('workspace_uid', last_workspace)
+            total_num_items += data.get('num_items', 0)
         all_micrographs.extend(data.get('micrographs', []))
 
-    merged = {'micrographs': all_micrographs, 'merged': True}
+    # In real mode, num_items is the authoritative micrograph count (no inline array)
+    report_count = total_num_items if is_real else len(all_micrographs)
+    merged = {'micrographs': all_micrographs, 'merged': True, 'num_items': report_count}
     if last_job_uid:
-        merged['job_uid'] = last_job_uid
+        merged['cs_mode']    = 'real'
+        merged['job_uid']    = last_job_uid
+        if last_project:   merged['project_uid']   = last_project
+        if last_workspace: merged['workspace_uid'] = last_workspace
     with open('all_micrographs_ctf.cs', 'w') as f:
         json.dump(merged, f, indent=2)
 
-    print(f"✓ Merged {len(all_micrographs)} micrographs (job_uid={last_job_uid}) from all batches")
+    print(f"✓ Merged {report_count} micrographs (real={is_real}, job_uid={last_job_uid}) from all batches")
     """
 }
 
@@ -1860,28 +1873,37 @@ process MICROGRAPH_DENOISER {
 
     mics_data = json.load(open('${ctf_cs}'))
     micrographs = mics_data.get('micrographs', [])
+    is_real = mics_data.get('cs_mode') == 'real'
 
-    # Add denoising metadata
+    # In real mode, micrographs array is empty; use num_items as the count
+    num_mics = mics_data.get('num_items', len(micrographs)) if is_real else len(micrographs)
+
+    # Add denoising metadata for any inline mock micrographs
     denoised = [
         {**mic, 'denoised': True, 'noise_model': 'gaussian'}
         for mic in micrographs
     ]
 
+    out_data = dict(mics_data)
+    out_data['micrographs'] = denoised
+    out_data['num_items'] = num_mics
+
     report = {
         'step': '04_micrograph_denoiser',
         'timestamp': datetime.now().isoformat(),
-        'num_micrographs': len(micrographs),
+        'num_micrographs': num_mics,
         'denoiser_model': 'janni',
+        'real_mode': is_real,
         'mock_mode': ${mock}
     }
 
     with open('micrographs_denoised.cs', 'w') as f:
-        json.dump({'micrographs': denoised}, f, indent=2)
+        json.dump(out_data, f, indent=2)
 
     with open('denoise_report.json', 'w') as f:
         json.dump(report, f, indent=2)
 
-    print(f"✓ Denoised {len(micrographs)} micrographs")
+    print(f"✓ Denoised {num_mics} micrographs (real={is_real})")
     """
 }
 
