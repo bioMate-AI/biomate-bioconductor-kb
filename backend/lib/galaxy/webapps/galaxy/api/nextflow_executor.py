@@ -1461,6 +1461,7 @@ def _start_qc_monitor(
     qc_profile: Optional[str] = None,
     trace_path: Optional[Path] = None,
     is_batch: bool = False,
+    s3_outdir: Optional[str] = None,
 ) -> None:
     """
     Spawn a background thread that polls the Nextflow trace file and fires
@@ -1508,6 +1509,7 @@ def _start_qc_monitor(
         workflow_domain=workflow_domain,
         qc_overrides=qc_overrides,
         qc_profile=qc_profile,
+        s3_outdir=s3_outdir,
     )
 
     # Register handler so export endpoint can access live QC state.
@@ -3009,6 +3011,7 @@ def execute_nextflow(
             qc_profile=qc_profile,
             trace_path=trace_path,
             is_batch=_is_batch,
+            s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
         )
         return {
             "success": True,
@@ -3076,6 +3079,7 @@ def execute_nextflow(
         qc_profile=qc_profile,
         trace_path=trace_path,
         is_batch=_is_batch,
+        s3_outdir=str(outdir) if _is_batch and str(outdir).startswith("s3://") else None,
     )
 
     return {
