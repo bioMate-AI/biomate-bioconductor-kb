@@ -1759,11 +1759,10 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
             obj = s3_client.get_object(Bucket=parts[0], Key=parts[1])
             data: Dict = _json.loads(obj["Body"].read().decode("utf-8"))
         except Exception as _e:
-            log.debug("[QC] S3 read failed for %s: %s", rf.get("name"), _e)
+            log.warning("[QC] S3 read failed for %s: %s", rf.get("name"), _e)
             continue
 
         step = data.get("step", rf.get("name", ""))
-        log.debug("[QC] Processing step=%s keys=%s", step, list(data.keys())[:8])
 
         if "02_patch_motion" in step or "02_motion" in step:
             num_mics = data.get("num_micrographs")
@@ -1912,7 +1911,6 @@ def _build_qc_report_from_s3_files(s3_files: List[Dict], outdir: str) -> Optiona
                                              "pass": res_at_143 <= 10.0})
 
     # Only return a result if there's at least one actionable metric beyond micrograph count
-    log.debug("[QC] _build_qc: metrics=%s all_metrics=%d", list(metrics.keys()), len(all_metrics))
     has_real_metrics = bool(all_metrics) or bool(
         metrics.get("picking") or metrics.get("classification") or
         metrics.get("refinement") or metrics.get("fsc")
