@@ -3344,6 +3344,40 @@ For SINGLE-intent messages (the common case), respond with a single JSON object:
   "chain_hint": null
 }
 
+The above example uses needsWorkflowGeneration: false because the user pasted their data inline (a sequence) — BioMate computes directly via run_code.
+
+Contrast with a Nextflow pipeline case where data is an accession or file path:
+"Run RNA-seq differential expression analysis on my samples SRR1518169 and SRR1518170"
+{
+  "type": "workflow_generation",
+  "keywords": ["RNA-seq", "differential expression", "SRR1518169"],
+  "inlineParameters": {"reads": "SRR1518169"},
+  "needsToolSearch": true,
+  "needsDatasets": false,
+  "confidence": 0.98,
+  "actions": {
+    "needsToolSearch": true,
+    "needsWorkflowGeneration": true,
+    "needsWorkflowModification": false,
+    "needsResearchAgent": false,
+    "needsBenchmarkAgent": false,
+    "needsDatasetAccess": false,
+    "needsLLMReasoning": true
+  },
+  "facts": [
+    {"category": "accession", "value": "SRR1518169", "confidence": 1.0},
+    {"category": "data_type", "value": "RNA-seq FASTQ", "confidence": 0.95},
+    {"category": "analysis_goal", "value": "differential expression", "confidence": 0.95}
+  ],
+  "workflowAmbiguity": null,
+  "preferred_domains": ["transcriptomics"],
+  "key_terms": ["RNA-seq", "differential expression", "nf-core/rnaseq"],
+  "needs_thinking": false,
+  "chain_hint": "bulk_rnaseq_de_analysis"
+}
+
+Key rule: needsWorkflowGeneration: true when the user provides a file path, SRA/GEO accession, or any data reference that must be fetched and processed by a Nextflow pipeline. needsWorkflowGeneration: false when the user pastes the data inline (a short sequence, a few numbers, a small table) and BioMate can compute the answer directly without a pipeline.
+
 preferred_domains: list of 0–3 domain strings most relevant to this query, chosen from:
   [${PREFERRED_DOMAINS_PROMPT_LIST}]
   Leave empty [] when the query is domain-agnostic or unclear.
