@@ -4488,7 +4488,10 @@ ${paramLines || '(none recorded)'}`;
   // Streaming chat endpoint (SSE) for token-level response updates
   app.post("/api/chat/stream", optionalAuth, async (req, res) => {
     const abortController = new AbortController();
-    req.on('close', () => abortController.abort());
+    req.on('close', () => {
+      console.log('[chat-stream] req close fired, aborting. socket destroyed:', (req.socket as any)?.destroyed, new Error().stack?.split('\n').slice(1,4).join(' | '));
+      abortController.abort();
+    });
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
 
