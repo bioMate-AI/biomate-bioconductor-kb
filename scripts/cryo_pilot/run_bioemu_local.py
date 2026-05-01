@@ -1,11 +1,30 @@
 #!/usr/bin/env python3
 """Run BioEmu locally on GB10 GPU for beta2ar and trpv1."""
-import os, sys, math, subprocess, boto3, glob, tarfile, json
+import os, sys, math, subprocess, boto3, glob, tarfile, json, types
 from pathlib import Path
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
+# Stub TF — BioEmu vendors AlphaFold TF code; stub must handle any attr recursively.
+import importlib.util as _ilu
+from unittest.mock import MagicMock as _MM
+
+class _TFStub(types.ModuleType):
+    def __init__(self, name):
+        super().__init__(name)
+        self.__spec__ = _ilu.spec_from_loader(name, loader=None)
+        self.__path__ = []; self.__package__ = name
+    def __getattr__(self, n):
+        if n.startswith("__"): raise AttributeError(n)
+        return _MM()
+
+for _n in ["tensorflow","tensorflow.compat","tensorflow.compat.v1","tensorflow.compat.v2",
+           "tensorflow.python","tensorflow.python.framework",
+           "tensorflow.python.framework.ops","tensorflow.python.util",
+           "tensorflow.python.util.compat"]:
+    sys.modules[_n] = _TFStub(_n)
 
 import jax
 print(f"[INFO] JAX devices: {jax.devices()}", flush=True)
