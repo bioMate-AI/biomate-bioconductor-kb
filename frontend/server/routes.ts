@@ -3886,7 +3886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           { responseType: 'arraybuffer', params: req.query }
         );
         const contentType = response.headers['content-type'] || 'text/plain';
-        const contentDisposition = response.headers['content-disposition'] || `attachment; filename="methods_report_${invocationId}.txt"`;
+        const contentDisposition = response.headers['content-disposition'] || `attachment; filename="run_report_${invocationId}.txt"`;
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', contentDisposition);
         return res.status(response.status).send(Buffer.from(response.data));
@@ -4204,7 +4204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If no AI key, produce a structured template without LLM synthesis
         if (!apiKey) {
           const fallback = [
-            `BioMate AI — Methods Report`,
+            `BioMate AI — Run Report`,
             `${'='.repeat(60)}`,
             `Generated: ${new Date().toISOString()}`,
             ``,
@@ -4235,7 +4235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `All outputs: ${s3OutputBase}`,
           ].filter(l => l !== undefined).join('\n');
           res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-          res.setHeader('Content-Disposition', `attachment; filename="methods_report_${invocationId}.txt"`);
+          res.setHeader('Content-Disposition', `attachment; filename="run_report_${invocationId}.txt"`);
           return res.status(200).send(fallback);
         }
 
@@ -4467,7 +4467,7 @@ N. REFERENCES — CryoSPARC (Punjani 2017, PMID 28165473); CTFFIND4 (Rohou 2015,
         }
 
         const header = [
-          `BioMate AI — Methods Report`,
+          `BioMate AI — Run Report`,
           `${'='.repeat(60)}`,
           `Generated: ${new Date().toISOString()}`,
           `Workflow: ${workflowName}`,
@@ -4494,12 +4494,12 @@ N. REFERENCES — CryoSPARC (Punjani 2017, PMID 28165473); CTFFIND4 (Rohou 2015,
           execSync(`pandoc "${tmpMd}" -o "${tmpDocx}" --from=plain --to=docx`, { timeout: 30000 });
           const docxBuf = fs.readFileSync(tmpDocx);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-          res.setHeader('Content-Disposition', `attachment; filename="methods_report_${safeName}_${invocationId.slice(0,8)}.docx"`);
+          res.setHeader('Content-Disposition', `attachment; filename="run_report_${safeName}_${invocationId.slice(0,8)}.docx"`);
           return res.status(200).send(docxBuf);
         }
 
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="methods_report_${safeName}_${invocationId.slice(0,8)}.txt"`);
+        res.setHeader('Content-Disposition', `attachment; filename="run_report_${safeName}_${invocationId.slice(0,8)}.txt"`);
         return res.status(200).send(header);
       } catch (fallbackErr: any) {
         console.error('[MethodsReport] Generation failed:', fallbackErr.message);
