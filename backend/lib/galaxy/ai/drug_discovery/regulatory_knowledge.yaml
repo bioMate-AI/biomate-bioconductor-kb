@@ -14,8 +14,8 @@
 # Reviewer: BioMate Regulatory Affairs
 # Next review: 2027-01-01 (or upon new guideline publication)
 
-schema_version: "1.0"
-last_updated: "2026-04-29"
+schema_version: "1.1"
+last_updated: "2026-04-30"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ICH Harmonized Guidelines (apply to ALL regions unless superseded)
@@ -53,14 +53,26 @@ guidelines:
     title: "Safety Pharmacology Studies for Assessing the Potential for Delayed Ventricular Repolarization (QT Interval Prolongation) by Human Pharmaceuticals"
     short_name: "ICH S7B"
     regions: [FDA, EMA, NMPA, PMDA]
-    version: "current"
+    version: "current (2005); S7B(R1) Step 4 adoption expected Q3 2026"
     effective_date: "2005-11"
-    revision_status: "S7B(R1) revision in progress — Step 2 consultation 2025; draft incorporates in silico hERG as valid screening"
+    revision_status: >
+      ICH S7B(R1) reached Step 4 (final text) in November 2024.
+      Key change: formally validates in silico hERG screening models (QSAR, PBPK-IKr) as
+      acceptable FIH screening tools when QSAR model uncertainty ≤ 2-fold. The 10 µM IC50
+      threshold is RETAINED. New: integrated risk assessment approach (IRA) combining hERG
+      IC50, clinical Cmax, TdP risk category. FDA/EMA implementing into local guidance 2026.
+    s7b_r1_key_changes:
+      - "In silico hERG models formally acceptable for early screening (Step 4 finalized Nov 2024)"
+      - "10 µM IC50 threshold unchanged"
+      - "IRA (integrated risk assessment) approach introduced: combines IC50 + Cmax + TdP category"
+      - "Automated patch clamp (APC) now acceptable alternative to manual patch clamp"
+      - "In vitro IKr assay still required before FIH — in silico does not replace GLP assay"
+    biomate_impact: "BioMate in silico hERG (ADMET-AI AUROC 0.9635) now formally supportable under S7B(R1) for candidate screening documentation. Update §2.6.3.7 language to cite S7B(R1) when adopted."
     ctd_section: "2.6.3.7"
     thresholds:
       hERG_IC50_flag_uM: 10.0
-      safety_margin_recommended: 30.0   # 30× Cmax before concern
-      action_on_flag: "flag compound; recommend in vitro IKr patch clamp before FIH"
+      safety_margin_recommended: 30.0   # 30× unbound Cmax (ICH S7B §3.1)
+      action_on_flag: "flag compound; recommend in vitro IKr assay (APC acceptable) before FIH per S7B(R1)"
     reference_compounds:
       - name: Dofetilide
         hERG_IC50_uM: 0.005
@@ -164,6 +176,53 @@ guidelines:
       esig_linkage: "GENERATE_IND eSig linked to audit record ✅"
       access_control: "JWT auth + MFA (via mfa-service.ts) ✅"
 
+  ICH_M7_R2:
+    id: ICH_M7_R2
+    title: "Assessment and Control of DNA Reactive (Mutagenic) Impurities in Pharmaceuticals to Limit Potential Carcinogenic Risk"
+    short_name: "ICH M7(R2)"
+    regions: [FDA, EMA, NMPA, PMDA]
+    version: "R2"
+    effective_date: "2023-11"
+    supersedes: "ICH M7(R1) (2017)"
+    ctd_section: "2.6.3"
+    scope: >
+      Controls genotoxic impurities in drug substances and products (NOT the drug itself).
+      Distinct from ICH S2(R1) which covers the drug API.
+      Applies to: synthesis intermediates, degradants, elemental impurities.
+    thresholds:
+      TDI_threshold_ppm: 1.5      # Threshold of Toxicological Concern: 1.5 µg/day lifetime exposure
+      PDI_acceptable_intake: 1.5  # Permitted Daily Intake (µg/day) for class 2 impurities
+    r2_key_changes:
+      - "Updated QSAR tools acceptable list (2023): DEREK Nexus, Sarah Nexus, MultiCASE, Leadscope, Vega"
+      - "New guidance on less-than-lifetime (LTL) exposure allowances"
+      - "Clarification on cohort of concern compounds (aflatoxin-like, N-nitroso, alkyl-azoxy)"
+    in_silico_acceptance: "Two complementary (alert-based + statistical-based) QSAR models required for automated assessment of Class 2 impurities"
+    biomate_implementation: "Not yet implemented — §2.6.3 covers API genotoxicity (S2(R1)); M7 impurity assessment is separate workflow"
+    gap_priority: "LOW for IND stage; required at NDA/MAA stage"
+    note: "BioMate IND scope covers API only; M7 impurity profiles require process chemistry data"
+
+  FDA_AI_GUIDANCE_2026:
+    id: FDA_AI_GUIDANCE_2026
+    title: "Considerations for the Use of Artificial Intelligence to Support Regulatory Decision-Making for Drug and Biological Products"
+    short_name: "FDA/EMA Joint AI Guidance (January 2026)"
+    regions: [FDA, EMA]
+    version: "January 2026"
+    effective_date: "2026-01"
+    ctd_section: "all"
+    key_requirements:
+      - "AI-generated regulatory content must be explicitly disclosed"
+      - "Human review and approval of AI output required before submission"
+      - "Model validation and uncertainty quantification documentation required"
+      - "Reproducibility: AI model version, training data, and inference configuration must be recorded"
+      - "Audit trail for AI-assisted content creation (who reviewed, when, what changes made)"
+    disclosure_template: "AI-assisted draft generated by BioMate (version [X.Y.Z], model: [Gemini 3 Flash]). Human reviewed and approved by [Name], [Title] on [DATE]. All computational predictions require experimental confirmation."
+    biomate_implementation:
+      disclosure: "Implemented ✅ — AI-disclosure footer on title page; AI-DISC-QUALITY-001 LLM semantic audit check"
+      audit_trail: "Implemented ✅ — ASSEMBLE_IND action in 21 CFR Part 11 hash-chained audit log"
+      model_version: "GAP — BioMate version number not yet embedded in document metadata"
+      reproducibility: "GAP — model training data version and Gemini model version not recorded in document"
+    gap_priority: "MEDIUM — partial compliance; full compliance requires version metadata"
+
   FDA_21CFR_312:
     id: FDA_21CFR_312
     title: "Investigational New Drug Application (21 CFR Part 312)"
@@ -209,17 +268,16 @@ guidelines:
     effective_date: "2021"
     document_id: "EMA/CHMP/HMPC/700003/2012"
     ctd_section: "2.6.3.2"
-    applicability: "Drugs with hepatic CL fraction > 50%"
+    applicability: "Drugs with hepatic CL fraction > 50% AND DILI-positive prediction"
     required_assessment_tiers:
-      tier_1: "Binary DILI flag (positive/negative) — BioMate implements this"
-      tier_2: "Reactive metabolite structural alerts (Michael acceptors, quinones, epoxides)"
-      tier_3: "In vitro covalent binding + mitochondrial liability (experimental)"
+      tier_1: "Binary DILI flag (positive/negative)"
+      tier_2: "Reactive metabolite structural alerts (Michael acceptors, quinones, epoxides, nitroaromatics)"
+      tier_3: "In vitro covalent binding + mitochondrial liability (experimental, out of scope for computational)"
     biomate_implementation:
-      tier_1: "Binary DILI flag from DILIrank — implemented ✅"
-      tier_2: "GAP — reactive metabolite structural alerts not implemented"
-      tier_3: "Out of scope (requires experimental data)"
-    gap_priority: "HIGH for EMA submissions of hepatically-cleared drugs"
-    proposed_fix: "Add RDKit SMARTS library for reactive metabolite alerts (Jensen 2014); ~20 structural filters"
+      tier_1: "Binary DILI flag from DILIrank + ADMET-AI — implemented ✅"
+      tier_2: "Implemented ✅ — RDKit SMARTS library: 12 alert classes (Michael acceptors, acyl glucuronides, quinones, furans, nitroaromatics, epoxides, aldehydes); triggered in _mechanistic_dili_block() when cl_hepatic_fraction ≥ 0.5 + DILI-flagged"
+      tier_3: "Out of scope (requires GLP experimental data)"
+    gap_priority: "RESOLVED — tier 2 implemented 2026-04-30"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NMPA/CDE (China) Guidelines
@@ -237,8 +295,8 @@ guidelines:
       - "CTD Module 2–5 format mandatory for new drug CTAs (INDs)"
       - "GLP declaration required: foreign GLP accepted since 2018 with NMPA facility recognition statement"
     glp_declaration_template: "All nonclinical studies were conducted under GLP-compliant conditions at [Facility Name], a facility recognized under [FDA/EMA/OECD GLP]. NMPA GLP mutual recognition status: [N/A — NMPA Announcement No. [X]/[Year]]."
-    biomate_implementation: "GAP — GLP declaration field not in INDAssemblyRequest"
-    gap_priority: "HIGH for NMPA submissions"
+    biomate_implementation: "Implemented ✅ — glp_facility + glp_recognition fields in INDAssemblyRequest; GLP declaration block rendered in §2.6.1.1 when region=NMPA or glp_facility set; NMPA-GLP-001 audit finding auto-clears when populated"
+    gap_priority: "RESOLVED — implemented 2026-04-30"
 
   CDE_PBPK_2021:
     id: CDE_PBPK_2021
@@ -403,25 +461,44 @@ compliance_matrix:
 
 watch_items:
   - id: ICH_M4S_R3
-    description: "ICH M4S revision project — R3 draft in preparation as of 2024"
-    action: "Subscribe to ICH safety guidelines newsletter; update schema_version when R3 published"
+    description: "ICH M4S revision project — R3 draft under public consultation as of 2024-2025"
+    action: "Subscribe to ICH safety guidelines newsletter; update schema_version when R3 adopted"
     monitoring_url: "https://www.ich.org/page/safety-guidelines"
+    estimated_step4: "2027"
 
   - id: ICH_S7B_R1
-    description: "ICH S7B(R1) — Step 2 consultation 2025; may validate in silico hERG as FIH-enabling"
-    action: "Update hERG threshold section if S7B(R1) changes criteria"
-    impact: "BioMate's structural-alert Ames prediction may become formally acceptable under updated S7B"
+    description: "ICH S7B(R1) — Step 4 ADOPTED November 2024; FDA/EMA implementing into local guidance 2026"
+    status: "ADOPTED — update BioMate §2.6.3.7 language to cite S7B(R1) once FDA/EMA local adoption is confirmed"
+    action: "Monitor FDA Federal Register for S7B(R1) implementation notice; update ICH_S7B entry version field"
+    impact: "In silico hERG (ADMET-AI) now formally supportable for screening; in vitro still required before FIH"
+
+  - id: ICH_S2_R2
+    description: "ICH S2 possible R2 revision under discussion — no Step 1 confirmation as of 2026"
+    status: "WATCH"
+    action: "Monitor ICH safety guidelines page for S2(R2) EWG formation announcement"
 
   - id: FDA_AI_GUIDANCE
-    description: "FDA/EMA Joint Guidance on Good AI Practice (Jan 2026) — AI disclosure in submissions"
-    action: "Add 'AI-assisted draft — human reviewed and approved [DATE] by [NAME]' footer to documents"
-    monitoring_url: "https://www.fda.gov/science-research/artificial-intelligence-drug-development"
+    description: "FDA/EMA Joint AI Guidance (Jan 2026) — IMPLEMENTED in BioMate"
+    status: "RESOLVED — FDA_AI_GUIDANCE_2026 entry added; AI disclosure + audit trail implemented"
+    residual_gap: "BioMate version metadata not yet embedded in document; model training data version unrecorded"
 
-  - id: EMA_M4S_UPDATE
-    description: "EMA will update PBPK guideline if ICH M4S(R3) changes §2.6.2 scope"
-    action: "Re-review EMA/CHMP/EWP/37498/2011 when M4S(R3) is finalized"
+  - id: EMA_PBPK_SPECIAL_POPULATIONS
+    description: "EMA guideline on PBPK for special populations (pediatric, renal, hepatic impairment) — updated 2022"
+    document_id: "EMA/CHMP/80229/2022"
+    action: "Add pediatric and renal impairment PBPK sections to §2.6.2 when OSP_PEDIATRIC_CYP3A4 and OSP_CKD skills are applied"
+    biomate_path: "regulatory_skills_db OSP_PEDIATRIC_CYP3A4 + OSP_CKD already ingested; §2.6.2 special population template needed"
+
+  - id: NMPA_AI_ML_2024
+    description: "CDE Technical Guidelines for AI/ML in Drug Development (draft, December 2023)"
+    status: "WATCH — public comment period closed; final guidance expected 2025"
+    action: "Monitor CDE guidelines for AI-generated nonclinical data acceptance criteria (different from FDA/EMA)"
+    impact: "May require additional validation metrics for in silico ADMET in NMPA CTAs"
 
   - id: NMPA_BIOSIMILAR_EXPANSION
     description: "CDE expanding PBPK requirements for biosimilars (draft 2025)"
     action: "Monitor CDE technical guidelines page quarterly"
     monitoring_url: "https://www.cde.org.cn/main/news/listpage/listpage/7"
+
+  - id: EMA_M4S_UPDATE
+    description: "EMA will update PBPK guideline if ICH M4S(R3) changes §2.6.2 scope"
+    action: "Re-review EMA/CHMP/EWP/37498/2011 when M4S(R3) is finalized (~2027)"
