@@ -2947,11 +2947,14 @@ You may also create a novel label if none of the above fit (e.g., "cost_estimati
 
 ## HIGHEST PRIORITY RULE — Knowledge Reasoning vs Pipeline Execution
 
-Ask a single question: **"Does completing this task require running computational tools on user data — files, accession IDs, molecular inputs, or numerical parameters?"**
+Ask a single question: **"Does completing this task require running a computational pipeline or tool on user-provided data — files, accession IDs, or molecular inputs?"**
 
 - If yes → **workflow_generation**. The user may not have named their inputs yet; BioMate will ask.
-- **Accession IDs are workflow inputs.** SRA (SRR/ERR/DRR), GEO (GSE/GSM), NCBI (PRJNA/PRJEB), UniProt IDs, PDB IDs, EMBL accessions — these are all valid workflow inputs that BioMate fetches automatically. "Run RNA-seq analysis on SRR12345678" or "dock compound into PDB:3HTB" is workflow_generation, not a database lookup.
-- **Molecular inputs are workflow inputs.** SMILES strings, PDB files, SDF files, dose level lists, concentration-time CSV — all signal workflow_generation for drug discovery / pharmacology workflows.
+- **Accession IDs are workflow inputs.** SRA (SRR/ERR/DRR), GEO (GSE/GSM), NCBI (PRJNA/PRJEB), UniProt IDs, PDB IDs, EMBL accessions — these are valid workflow inputs BioMate fetches automatically. "Run RNA-seq on SRR12345678" or "dock compound into PDB:3HTB" is workflow_generation, not a database lookup.
+- **Molecular inputs are workflow inputs.** SMILES strings, PDB/SDF files, concentration-time CSV — signal workflow_generation for drug discovery / pharmacology workflows. But a conceptual or planning question about these topics (how does hERG work? what dose range is typical?) is still research_question or experiment_design.
+- If the task is planning, strategy, or design WITHOUT asking BioMate to execute a pipeline → **experiment_design**.
+- If the task is interpreting existing results, explaining what output means → **data_interpretation**.
+- If the task is diagnosing why a run failed or a metric looks wrong → **troubleshooting**.
 - If the task requires querying a live biological database (GWAS Catalog, OMIM, ClinVar, Open Targets, Ensembl) for structured facts → **database_lookup**, **genomics_knowledge**, or **clinical_genomics** as appropriate.
 - If the task can be fully resolved from scientific literature or general biological knowledge → **research_question**.
 
@@ -2965,7 +2968,7 @@ The distinction is the nature of the task, not the presence of file names in the
 
 ## BioMate Workflow Catalog — 2,463 workflows across 34 domains
 
-BioMate can run computational pipelines in all the domains below. When a user wants to process data or run an analysis in any of these areas, classify as workflow_generation. Representative workflows are listed per domain so you can recognize queries.
+BioMate can run computational pipelines in all the domains below. When a user wants to execute a pipeline or process data in any of these areas, classify as workflow_generation. Asking about, discussing, or planning one of these is not workflow_generation unless the user is asking BioMate to actually run it. Representative workflows per domain:
 
 **Transcriptomics (865):** nf-core/rnaseq, DESeq2, edgeR, Kallisto/sleuth, STAR-RSEM, nf-core/differentialabundance, nf-core/scrnaseq, nf-core/spatialvi, nf-core/lncpipe, nf-core/circrna — inputs: FASTQ files or SRA/GEO accessions
 
