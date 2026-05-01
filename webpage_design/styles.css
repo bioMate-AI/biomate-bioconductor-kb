@@ -165,6 +165,65 @@ html[data-palette="deepnavy"] .bm-nav { background: rgba(239,230,207,.93); }
 .bm-mobile-toggle { display: none; background: none; border: 1px solid var(--border); border-radius: 7px; width: 38px; height: 38px; cursor: pointer; align-items: center; justify-content: center; margin-left: auto; color: var(--text); }
 .bm-mobile-toggle svg { width: 18px; height: 18px; }
 
+/* ════════════════════════════════════════════ NAV DROPDOWNS ═══ */
+.bm-has-dropdown { position: relative; }
+.bm-has-dropdown > a { display: flex; align-items: center; gap: 4px; }
+.bm-chevron { width: 14px; height: 14px; stroke-width: 2.2; flex-shrink: 0; transition: transform .2s; }
+.bm-has-dropdown:hover .bm-chevron,
+.bm-has-dropdown.bm-dd-open .bm-chevron { transform: rotate(180deg); }
+
+.bm-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0;
+  min-width: 210px; list-style: none;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: .4rem 0;
+  box-shadow: 0 8px 28px -6px rgba(20,40,58,.18), 0 2px 8px rgba(20,40,58,.06);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity .15s, transform .15s, visibility .15s;
+  z-index: 200;
+}
+.bm-has-dropdown:hover .bm-dropdown,
+.bm-has-dropdown.bm-dd-open .bm-dropdown {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translateY(0);
+}
+.bm-dropdown a {
+  display: block; padding: .52rem 1.1rem;
+  color: var(--text); font-size: .88rem; font-weight: 400;
+  transition: background .12s, color .12s;
+  border-radius: 0;
+}
+.bm-dropdown a:hover { background: var(--accent-tint); color: var(--accent-2); }
+.bm-dropdown-divider { height: 1px; background: var(--border); margin: .35rem .75rem; }
+
+/* ════════════════════════════════════════════ CTA BAR ═══ */
+.bm-cta-bar {
+  background: var(--bg-ink);
+  padding: clamp(3rem, 6vw, 5rem) clamp(1rem, 5vw, 2.5rem);
+  text-align: center;
+}
+.bm-cta-bar-inner { max-width: 680px; margin: 0 auto; }
+.bm-cta-bar-eyebrow {
+  display: inline-block;
+  font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--warm); margin-bottom: .9rem;
+}
+.bm-cta-bar-head {
+  font-family: var(--font-head); font-weight: 600;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  line-height: 1.1; letter-spacing: -.015em;
+  color: var(--on-ink); margin-bottom: .75rem;
+}
+.bm-cta-bar-sub {
+  color: var(--on-ink-mute); font-size: 1.05rem;
+  line-height: 1.55; margin-bottom: 0;
+}
+.bm-cta-bar-btns {
+  display: flex; gap: .75rem; justify-content: center;
+  flex-wrap: wrap; margin-top: 2rem;
+}
+
 /* ════════════════════════════════════════════════════════ BTN ═══ */
 .bm-btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -756,6 +815,25 @@ html[data-type="editorial"] .bm-h1, html[data-type="editorial"] .bm-h2 { font-we
 }
 @media (max-width: 720px) {
   .bm-nav-links { display: none; }
+  .bm-nav-links.bm-nav-open {
+    display: flex; flex-direction: column; align-items: stretch;
+    position: fixed; top: var(--nav-h); left: 0; right: 0;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: .75rem 1rem 1.25rem; gap: 2px; z-index: 99;
+    max-height: calc(100vh - var(--nav-h)); overflow-y: auto;
+  }
+  .bm-nav-links.bm-nav-open li { width: 100%; }
+  .bm-nav-links.bm-nav-open a { display: block; padding: 10px 12px; border-radius: 7px; }
+  /* Dropdowns as accordions on mobile */
+  .bm-nav-links.bm-nav-open .bm-dropdown {
+    position: static; opacity: 1; visibility: visible; pointer-events: auto;
+    transform: none; box-shadow: none; border: none; border-radius: 0;
+    background: transparent; padding: 0 0 0 1rem;
+    display: none;
+  }
+  .bm-nav-links.bm-nav-open .bm-has-dropdown.bm-dd-open .bm-dropdown { display: block; }
+  .bm-nav-links.bm-nav-open .bm-dropdown a { font-size: .87rem; padding: 8px 12px; color: var(--text-muted); }
+  .bm-nav-links.bm-nav-open .bm-dropdown-divider { display: none; }
   .bm-mobile-toggle { display: inline-flex; }
   .bm-hero-photo { max-width: 360px; }
   .bm-hero-photo-img { aspect-ratio: 1 / 1; }

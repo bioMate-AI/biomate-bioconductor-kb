@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-palette="default" data-type="default" data-density="cozy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact &mdash; BioMate AI</title>
+  <meta name="description" content="Contact BioMate AI — sales, partnerships, scientific collaboration, or just a question about what we do." />
+  <link rel="stylesheet" href="fonts/fonts.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .bm-contact-grid {
+      display: grid; grid-template-columns: 1fr 1.4fr;
+      gap: clamp(2.5rem, 5vw, 5rem); align-items: start;
+      max-width: var(--maxw); margin: 0 auto;
+      padding: clamp(3rem,7vw,6rem) clamp(1rem,5vw,2.5rem);
+    }
+    @media(max-width:760px){ .bm-contact-grid { grid-template-columns:1fr; } }
+
+    .bm-contact-info { position: sticky; top: calc(var(--nav-h) + 2rem); }
+    .bm-contact-info h1 { margin-top: 1rem; margin-bottom: 1.25rem; }
+    .bm-contact-info .bm-lead { margin-bottom: 2rem; }
+
+    .bm-contact-channels { display: flex; flex-direction: column; gap: .75rem; margin-top: 2rem; }
+    .bm-contact-channel {
+      display: flex; align-items: center; gap: 1rem;
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem 1.25rem; text-decoration: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .bm-contact-channel:hover { border-color: var(--accent-tint2); box-shadow: var(--shadow-md); }
+    .bm-contact-channel-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--accent-tint); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .bm-contact-channel-icon svg { width: 18px; height: 18px; stroke: var(--accent-2); }
+    .bm-contact-channel-body { min-width: 0; }
+    .bm-contact-channel-label { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); }
+    .bm-contact-channel-value { font-size: .95rem; font-weight: 500; color: var(--text); }
+
+    /* Form */
+    .bm-contact-form {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 16px; padding: clamp(1.5rem,3vw,2.5rem);
+      box-shadow: var(--shadow-sm);
+    }
+    .bm-contact-form h2 { font-size: 1.3rem; margin-bottom: 1.75rem; color: var(--text); }
+    .bm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media(max-width:520px){ .bm-form-row { grid-template-columns:1fr; } }
+    .bm-field { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1.1rem; }
+    .bm-field label { font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+    .bm-field input, .bm-field select, .bm-field textarea {
+      padding: 10px 13px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+      font-family: var(--font-body); font-size: .92rem; color: var(--text);
+      transition: border-color .15s, box-shadow .15s;
+      width: 100%;
+    }
+    .bm-field input:focus, .bm-field select:focus, .bm-field textarea:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-tint);
+    }
+    .bm-field textarea { resize: vertical; min-height: 120px; }
+    .bm-form-submit { margin-top: .5rem; }
+    .bm-form-note { font-size: .8rem; color: var(--text-faint); margin-top: .75rem; }
+  </style>
+</head>
+<body>
+
+  <div id="bm-nav"></div>
+
+  <div class="bm-contact-grid">
+
+    <!-- Left: info -->
+    <div class="bm-contact-info bm-anim-up">
+      <span class="bm-eyebrow">Get in touch</span>
+      <h1 class="bm-h1">We'd like to hear from you.</h1>
+      <p class="bm-lead">Questions about what BioMate does, enterprise pricing, a pilot program, or scientific collaboration — reach out and a person will respond.</p>
+
+      <div class="bm-contact-channels">
+        <a href="mailto:contact@biomate.ai" class="bm-contact-channel">
+          <div class="bm-contact-channel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div class="bm-contact-channel-body">
+            <div class="bm-contact-channel-label">Email</div>
+            <div class="bm-contact-channel-value">contact@biomate.ai</div>
+          </div>
+        </a>
+        <a href="https://dev-public.biomate.ai/register" class="bm-contact-channel">
+          <div class="bm-contact-channel-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="bm-contact-channel-body">
+            <div class="bm-contact-channel-label">Try the platform</div>
+            <div class="bm-contact-channel-value">Start free — no credit card needed</div>
+          </div>
+        </a>
+      </div>
+
+      <div style="margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--border);">
+        <p style="font-size:.88rem;color:var(--text-muted);line-height:1.6;">
+          <strong style="color:var(--text);">Enterprise &amp; CRO inquiries</strong><br />
+          For pharma, biotech, and CRO partnerships — including custom workflow development, volume pricing, and IND nonclinical package support — please use the form or email directly. We typically respond within one business day.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: form -->
+    <div class="bm-contact-form bm-anim-up-d1">
+      <h2>Send us a message</h2>
+      <form action="mailto:contact@biomate.ai" method="post" enctype="text/plain">
+        <div class="bm-form-row">
+          <div class="bm-field">
+            <label for="cf-name">Name</label>
+            <input type="text" id="cf-name" name="name" placeholder="Your name" required />
+          </div>
+          <div class="bm-field">
+            <label for="cf-email">Work email</label>
+            <input type="email" id="cf-email" name="email" placeholder="you@org.com" required />
+          </div>
+        </div>
+        <div class="bm-field">
+          <label for="cf-org">Organization</label>
+          <input type="text" id="cf-org" name="organization" placeholder="Company, university, or CRO" />
+        </div>
+        <div class="bm-field">
+          <label for="cf-topic">Topic</label>
+          <select id="cf-topic" name="topic">
+            <option value="">Select a topic&hellip;</option>
+            <option>Drug discovery — ADMET / DMPK</option>
+            <option>Drug discovery — IND nonclinical package</option>
+            <option>Genomics &amp; multi-omics</option>
+            <option>Structural biology / Cryo-EM</option>
+            <option>Enterprise / team pricing</option>
+            <option>CRO or partner inquiry</option>
+            <option>Scientific collaboration</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="bm-field">
+          <label for="cf-message">Message</label>
+          <textarea id="cf-message" name="message" placeholder="Tell us what you're working on or what you'd like to know…"></textarea>
+        </div>
+        <div class="bm-form-submit">
+          <button type="submit" class="bm-btn bm-btn-primary bm-btn-lg" style="width:100%;justify-content:center;">
+            Send message <span class="bm-btn-arrow">&rarr;</span>
+          </button>
+        </div>
+        <p class="bm-form-note">We don't share your information with third parties.</p>
+      </form>
+    </div>
+
+  </div>
+
+  <div id="bm-foot"></div>
+  <script src="shell.js"></script>
+  <script>renderShell({ active: 'contact', cta: false });</script>
+
+</body>
+</html>
