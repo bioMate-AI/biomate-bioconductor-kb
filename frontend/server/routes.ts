@@ -4493,7 +4493,10 @@ ${paramLines || '(none recorded)'}`;
     let heartbeatTimer: NodeJS.Timeout | null = null;
 
     const safeSend = (event: string, data: unknown): void => {
-      if (res.writableEnded || abortController.signal.aborted) return;
+      if (res.writableEnded || abortController.signal.aborted) {
+        console.log(`[safeSend] BLOCKED event=${event} writableEnded=${res.writableEnded} aborted=${abortController.signal.aborted}`);
+        return;
+      }
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
