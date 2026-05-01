@@ -4488,18 +4488,16 @@ ${paramLines || '(none recorded)'}`;
   // Streaming chat endpoint (SSE) for token-level response updates
   app.post("/api/chat/stream", optionalAuth, async (req, res) => {
     const abortController = new AbortController();
-    req.on('close', () => {
-      console.log('[chat-stream] req close fired, aborting. socket destroyed:', (req.socket as any)?.destroyed, new Error().stack?.split('\n').slice(1,4).join(' | '));
-      abortController.abort();
-    });
+    // Use socket 'close' (TCP disconnect) not req 'close' (body consumed).
+    // req 'close' fires as soon as express body-parser finishes reading the POST body,
+    // which is before the SSE response is sent. socket 'close' fires only when the
+    // TCP connection is actually destroyed (client disconnect).
+    req.socket?.on('close', () => abortController.abort());
 
     let heartbeatTimer: NodeJS.Timeout | null = null;
 
     const safeSend = (event: string, data: unknown): void => {
-      if (res.writableEnded || abortController.signal.aborted) {
-        console.log(`[safeSend] BLOCKED event=${event} writableEnded=${res.writableEnded} aborted=${abortController.signal.aborted}`);
-        return;
-      }
+      if (res.writableEnded || abortController.signal.aborted) return;
       res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
 
