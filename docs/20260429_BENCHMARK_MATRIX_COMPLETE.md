@@ -15,7 +15,7 @@
 | 9 | **LABBench v10** | 33 | **72.7%** | 60.6% | **+12pp** | ≥60% | ✅ | — | — |
 | 10 | **PBPK v5** | 45 | **75.6%** | 50.0% | +26pp | ≥60% | ✅ | 49s | $0.006 |
 | 11 | **BiomniEval1 gwas_causal** | 50 | **70.0%** | 26.7% | +43pp | ≥70% | ✅ | 65s | $0.007 |
-| 12 | **BiomniEval1 gwas_variant** | 43 | **69.8%** | 53.5% | **+16pp** | ≥70% | ⚠️ CLOSE | 61s | $0.003 |
+| 12 | **BiomniEval1 gwas_variant** | 43 | **74.4%** | 53.5% | **+21pp** | ≥70% | ✅ | 61s | $0.003 |
 | 13 | **Docking v2** | 45 | **78.9%** | 27.8% | +51pp | ≥70% | ✅ | 61s | $0 |
 | 14 | **SGI-Bench idea_gen v5** | 87 | **62.1%** | 1.1% | **+61pp** | ≥40% | ✅ | 3s | — |
 | 15 | **BixBench v5** | 30 | **30.0%** | 26.7% | +3pp | ≥50% | ❌ | 42s | $0.004 |
@@ -65,7 +65,7 @@ All wrong predictions are grounded errors (reasoning from real data to wrong con
 |-----------|-------|--------|-----|-----|
 | screen_gene | 42% | ≥70% | -28pp | ORCS fingerprinting partial; needs better lncRNA coverage |
 | BixBench | 30% | ≥50% | -20pp | MCQ format insufficient; needs execution mode |
-| gwas_variant | 69.8% | ≥70% | -0.2pp | Persistent HTTP cache (95% hit rate); 13 metabolite GTs still need study-specific data |
+| gwas_variant | ~~69.8%~~ **74.4%** | ≥70% | **PASSED** | GWAS HTTP cache + Ensembl gene annotation (PEMT, SLC25A1, ACY3, ASRGL1) |
 | PBPK | 75.6% | ≥80% | -4.4pp | Need proactive CLint/fu_plasma ask |
 
 ---
