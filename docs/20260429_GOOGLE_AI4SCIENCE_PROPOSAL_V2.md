@@ -6,7 +6,7 @@
 
 **Principal Investigators:**
 - Yaoyun Zhang, BioMate AI Platform — Lead PI; AI architecture, training infrastructure, BioMate deployment
-- [Sister's name], Ph.D. — Co-PI, [Department], [Institution]; cryo-EM data collection, HDX-MS validation, experimental design
+- Yuhan Zhang, Ph.D. — Co-PI, Department of Structural Biology, St. Jude Children's Research Hospital; cryo-EM data collection, HDX-MS validation, experimental design
 
 **Requested Amount:** $2,500,000 over 3 years
 
@@ -278,7 +278,7 @@ L = E_q[Σ_modal λ_modal · log L_modal(data | x)] - β·KL(q(z|data,seq) || P_
 
 ### 4.3 Experimental Validation Plan (Co-PI Laboratory)
 
-The experimental component, led by [Sister's name], will provide ground-truth validation using three complementary techniques:
+The experimental component, led by Yuhan Zhang (St. Jude Children's Research Hospital), will provide ground-truth validation using three complementary techniques:
 
 **HDX-MS (Hydrogen-Deuterium Exchange Mass Spectrometry):** Measures backbone amide exchange rates as a proxy for conformational flexibility and solvent exposure. Regions of high exchange correspond to conformations predicted to sample disordered or open states in the CryoEnsemble posterior. HDX-MS provides residue-level *supporting evidence* for ensemble dynamics — it validates that recovered conformers are physically plausible (increased exposure in predicted rare states) but cannot directly confirm specific conformational populations or rare-state RMSD values. We use HDX-MS correlation (r ≥ 0.65) as a supporting metric, complementary to the primary cryo-EM rare-state recall benchmark.
 
@@ -352,9 +352,9 @@ Deployment on BioMate means the method becomes accessible to structural biology 
 Role: CryoEnsemble architecture design and training; Bayesian posterior network implementation; BioMate platform deployment; AWS infrastructure and GPU compute operations.  
 Expertise: Score-based diffusion models (lead-author publication [CITATION — to be added by PI]); AI-driven bioinformatics platform engineering; Nextflow DSL2 pipeline development; cryo-EM processing automation (CryoSPARC SPA pipeline delivering 1.78 Å resolution, Nyquist-limited, on EMPIAR benchmark data); large-scale cloud GPU orchestration. Founder, BioMate AI — 2,457-workflow computational biology platform serving pharma, biotech, and academic labs globally.
 
-**[Sister's name], Ph.D. — Co-PI, [Department], [Institution]**  
+**Yuhan Zhang, Ph.D. — Co-PI, Department of Structural Biology, St. Jude Children's Research Hospital, Memphis, TN, USA**  
 Role: Experimental lead; cryo-EM data collection and quality optimization; target protein selection and biochemical characterization; HDX-MS ground-truth validation; biological interpretation of recovered low-population states. smFRET validation to be coordinated via external specialist collaboration.  
-Expertise: Single-particle cryo-EM, membrane protein biochemistry, conformational dynamics, structural pharmacology.
+Expertise: Single-particle cryo-EM of membrane signaling complexes; structural biology of RNA-binding proteins and biomolecular condensates; biochemical and biophysical characterization of large complexes. Co-first author publications in *Science* (2022), *Nature Cell Biology* (2019), *Nature Communications* (2021), and *PNAS* (2018). Current focus: structural studies of membrane protein complexes at St. Jude Children's Research Hospital (2024–present). ORCID: 0000-0002-6001-0062.
 
 ### Personnel Plan
 

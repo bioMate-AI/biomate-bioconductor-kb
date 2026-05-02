@@ -8,13 +8,12 @@
 
 ## Authors
 
-[Sister's Name]¹*, Yaoyun Zhang²*, [Advisory co-author: Bayesian inference / diffusion models]³
+Yuhan Zhang¹*, Yaoyun Zhang²*
 
-¹ Department of [Structural Biology / Cryo-EM], [Institution]  
+¹ Department of Structural Biology, St. Jude Children's Research Hospital, Memphis, TN, USA  
 ² BioMate AI Platform  
-³ [Institution]  
 *Equal contribution  
-Correspondence: [emails]
+Correspondence: yuhan.zhang@stjude.org; xiaoni5122@gmail.com
 
 ---
 
@@ -182,7 +181,7 @@ where σ = 3 × noise_σ = 2.4 Å. The posterior weight is proportional to exp(l
 
 ### 2.8 Implementation
 
-All analyses implemented in Python 3.12 using NumPy 2.3, SciPy 1.16, scikit-learn 1.7, MDAnalysis 2.10, and matplotlib 3.10. ADK benchmark: `scripts/cryo_pilot/poc_cryoensemble.py`; results in `scripts/cryo_pilot/poc_results.json`. Code available at [GitHub URL]. Analysis pipeline integrated into BioMate as workflow 12887 (CryoEnsemble pilot).
+All analyses implemented in Python 3.12 using NumPy 2.3, SciPy 1.16, scikit-learn 1.7, MDAnalysis 2.10, and matplotlib 3.10. ADK benchmark: `scripts/cryo_pilot/poc_cryoensemble.py`; results in `scripts/cryo_pilot/poc_results.json`. Code available from the corresponding authors upon request. Analysis pipeline integrated into BioMate as workflow 12887 (CryoEnsemble pilot).
 
 ---
 
@@ -371,7 +370,7 @@ Gap conformers show +16.1% mean surface pocket enrichment across ten proteins, c
 
 ## Data and Code Availability
 
-Analysis scripts, ensemble generation code, and gap analysis pipeline: [GitHub URL]  
+Analysis scripts, ensemble generation code, and gap analysis pipeline: available from corresponding authors upon request.  
 ADK synthetic benchmark: `scripts/cryo_pilot/poc_cryoensemble.py`; results: `scripts/cryo_pilot/poc_results.json`; figure: `scripts/cryo_pilot/poc_figure.png`  
 Pilot data (β₂AR and TRPV1, 1,000-conformer ensembles and all analysis outputs): [Zenodo DOI]  
 BioMate integration (workflow 12887 — CryoEnsemble pilot): biomate.ai  

@@ -3,16 +3,16 @@
 
 **Prepared by:** Yaoyun Zhang (Lead PI, BioMate AI)
 **Date:** 2026-05-01
-**For submission by:** Co-PI ([Sister's name])
+**For submission by:** Co-PI (Yuhan Zhang, yuhan.zhang@stjude.org)
 **Deadline:** May 1, 2026
 **Full proposal:** `docs/20260429_GOOGLE_AI4SCIENCE_PROPOSAL_V2.md`
 
 ---
 
-## BEFORE SUBMITTING — Sister's action items
+## BEFORE SUBMITTING — Yuhan's action items
 
-1. **Q49/Q50/Q53** — If you are at a public university, change Q49 and Q50 to **Yes** and add a note in Q53: *"Co-PI [name] is employed by [University], a public institution."*
-2. **Q36 / GitHub URL** — Replace `[GitHub URL]` with the real repo URL once Yaoyun creates the `cryoensemble` repository (see `docs/20260429_PROPOSAL_FILLINS.md`).
+1. **Q49/Q50/Q53** — St. Jude Children's Research Hospital is a **non-profit private institution**, not a public university. So Q49 and Q50 should be **No** unless any government-funded personnel are involved. If unsure, check with St. Jude's grants office.
+2. **Q36 / GitHub URL** — Form uses "available from corresponding authors upon request" (no public repo). ✅ Done
 3. **Author line** — The form asks for organization/PI info; use your institutional affiliation as Co-PI.
 4. **Certification (Q53)** — You are the submitting representative; certify on behalf of your institution or BioMate AI as agreed.
 
@@ -252,7 +252,7 @@
 ---
 
 **36. Public presence and project visibility:**
-> BioMate AI Platform: biomate.ai — deployed bioinformatics platform with 2,457 workflows. CryoEnsemble proof-of-concept code and ADK benchmark results: available at [GitHub URL — fill in before submitting]. BioMate cryo-EM pipeline: 1.78 Å reconstruction on EMPIAR-10028 documented in technical report. Lead PI publication: score-based diffusion models [citation — fill in before submitting]. ADK PoC reproducibility: scripts/cryo_pilot/poc_cryoensemble.py and poc_results.json.
+> BioMate AI Platform: biomate.ai — deployed bioinformatics platform with 2,457 workflows. CryoEnsemble proof-of-concept code and ADK benchmark results available from corresponding authors upon request. BioMate cryo-EM pipeline: 1.78 Å reconstruction on EMPIAR-10028 documented in technical report. ADK PoC reproducibility: scripts/cryo_pilot/poc_cryoensemble.py and poc_results.json.
 
 *(60 words / 100 limit)*
 
@@ -327,8 +327,7 @@
 
 **52.** Dealings in sanctioned regions (Crimea, Cuba, Iran, North Korea, Russia, DNR/LNR, Syria): **No**
 
-**53.** If yes to any above: **[If public university: "Co-PI [name] is employed by [University name], a public institution. No government funds will be used in this project; all experimental work occurs within the co-PI's standard academic research activities."]**
-*(If all No: enter N/A)*
+**53.** N/A *(St. Jude is a private non-profit; all Q48–52 are No)*
 
 ---
 
@@ -342,7 +341,7 @@
 |---|------|-----|
 | Q36 | GitHub URL for `cryoensemble` repo | Yaoyun (create repo, push scripts) |
 | Q26 / Q28 | Lead PI publication citation | Yaoyun (or remove clause) |
-| Q9 (author line) | Sister's full name, department, institution | Sister |
+| Q9 (author line) | Already filled: Yuhan Zhang, Dept. of Structural Biology, St. Jude | ✅ Done |
 | Q49 / Q50 / Q53 | Public university disclosure | Sister |
 | Q31 Partner 3 | smFRET lab name + website if identified | Both |
 | Certification | Submitting representative must certify | Sister (as submitting PI) |
