@@ -122,9 +122,22 @@ PATHWAY_NODES = {
     'JAK_STAT': ['JAK1', 'JAK2', 'STAT3_MONO', 'STAT3_DIMER', 'STAT3_NUKE'],
     'EGFR':     ['EGFR', 'EGFR_PHOS', 'GRB2_SOS', 'RAS', 'MEK', 'ERK'],
     'WNT':      ['FZD', 'DVL', 'AXIN_DEGRAD', 'BCAT_FREE', 'BCAT_NUKE'],
+    # APOPTOSIS: two sub-branches
+    # Intrinsic (p53-driven): P53 → PUMA_NOXA → BAX → CYTC → APAF1 → CASP3
+    # BCL2 anti-apoptotic branch: BCL2 → BCL2_ACTIVE (inhibits BAX; drug inhibits BCL2 → releases BAX)
+    # When BCL2 is the drug target, the pathway reverses: BCL2 inhibition ACTIVATES downstream
     'APOPTOSIS':['P53', 'PUMA_NOXA', 'BAX', 'CYTC', 'APAF1', 'CASP3'],
+    'BCL2_APOPTOSIS': ['BCL2', 'BAX_RELEASE', 'CYTC', 'APAF1', 'CASP3'],
     'TGF_BETA': ['TGFBR', 'SMAD2_P', 'SMAD3_P', 'SMAD4', 'SMAD_COMPLEX'],
 }
+
+# BCL2_APOPTOSIS uses inverse inhibition: drug inhibits BCL2 (first node) → releases BAX
+# This is modeled as ACTIVATION of downstream when first node is blocked
+INVERSE_PATHWAYS = {'BCL2_APOPTOSIS'}  # drug inhibition of first node = activation of rest
+
+# Auto-remap certain targets to their correct pathway variant
+if pathway_key == 'APOPTOSIS' and target_node in ('BCL2', 'BCL2L1', 'MCL1', 'BCL-XL'):
+    pathway_key = 'BCL2_APOPTOSIS'  # anti-apoptotic branch
 
 # Fallback to MAPK_ERK if pathway not found
 nodes = PATHWAY_NODES.get(pathway_key, PATHWAY_NODES['MAPK_ERK'])
@@ -156,6 +169,7 @@ if target_idx is None:
     target_idx = len(nodes) // 2  # default: middle of chain
 
 fb = fblock(ic50_nM, cmax_nM, hill_n)
+is_inverse = pathway_key in INVERSE_PATHWAYS  # inhibitory pathway (BCL2_APOPTOSIS)
 
 # Stimulus: step function at t=0, max activation for first node
 stim_factor = min(1.0, stim_nM / (stim_nM + 1.0))  # normalise stimulus
@@ -175,16 +189,41 @@ for step in range(n_steps):
     dX_ctrl = [0.0] * n_nodes
     dX_ctrl[0] = k_on[0] * stim_factor * (1 - X_ctrl[0]) - k_off[0] * X_ctrl[0]
     for i in range(1, n_nodes):
-        upstream = X_ctrl[i-1]
-        dX_ctrl[i] = k_on[i] * upstream * (1 - X_ctrl[i]) - k_off[i] * X_ctrl[i]
+        if is_inverse and i == 1:
+            # BCL2_APOPTOSIS control: BCL2 (node 0) suppresses BAX (node 1)
+            suppression = X_ctrl[0]
+            activation  = max(0.0, 1.0 - suppression)
+            dX_ctrl[i] = k_on[i] * stim_factor * activation * (1 - X_ctrl[i]) - k_off[i] * X_ctrl[i]
+        else:
+            upstream = X_ctrl[i-1]
+            dX_ctrl[i] = k_on[i] * upstream * (1 - X_ctrl[i]) - k_off[i] * X_ctrl[i]
 
     # Derivatives — drug (block at target_idx)
     dX_drug = [0.0] * n_nodes
-    dX_drug[0] = k_on[0] * stim_factor * (1 - X_drug[0]) - k_off[0] * X_drug[0]
-    for i in range(1, n_nodes):
-        upstream = X_drug[i-1]
-        inhibition = (1 - fb) if i == target_idx else 1.0
-        dX_drug[i] = k_on[i] * upstream * inhibition * (1 - X_drug[i]) - k_off[i] * X_drug[i]
+    if is_inverse:
+        # BCL2_APOPTOSIS: BCL2 (node 0) is an INHIBITORY upstream node.
+        # dX_BAX/dt = k_on * stim * (1 - X_BCL2) * (1 - X_BAX) — inhibitory coupling
+        # When drug blocks BCL2: X_BCL2 falls → (1 - X_BCL2) rises → BAX activates
+        # Drug effect: BCL2 activity = X_BCL2 * (1 - fb)  [venetoclax reduces BCL2]
+        # Control: BCL2 is partially activated by stimulus (acts as anti-apoptotic)
+        # Drug: BCL2 is further suppressed by fb
+        drug_bcl2_factor = (1 - fb)  # venetoclax reduces BCL2 activity by fb
+        dX_drug[0] = k_on[0] * stim_factor * drug_bcl2_factor * (1 - X_drug[0]) - k_off[0] * X_drug[0]
+        for i in range(1, n_nodes):
+            if i == 1:
+                # BAX_RELEASE: INHIBITORY coupling from BCL2 — BAX = f(1 - BCL2)
+                suppression = X_drug[0]  # BCL2 level suppresses BAX
+                activation  = max(0.0, 1.0 - suppression)  # more BAX when BCL2 low
+                dX_drug[i] = k_on[i] * stim_factor * activation * (1 - X_drug[i]) - k_off[i] * X_drug[i]
+            else:
+                upstream = X_drug[i-1]
+                dX_drug[i] = k_on[i] * upstream * (1 - X_drug[i]) - k_off[i] * X_drug[i]
+    else:
+        dX_drug[0] = k_on[0] * stim_factor * (1 - X_drug[0]) - k_off[0] * X_drug[0]
+        for i in range(1, n_nodes):
+            upstream = X_drug[i-1]
+            inhibition = (1 - fb) if i == target_idx else 1.0
+            dX_drug[i] = k_on[i] * upstream * inhibition * (1 - X_drug[i]) - k_off[i] * X_drug[i]
 
     # Euler update
     X_ctrl = [max(0.0, min(1.0, X_ctrl[i] + dX_ctrl[i] * dt)) for i in range(n_nodes)]

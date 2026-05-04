@@ -150,8 +150,8 @@ CELL_TYPE_MARKERS = {
     'Cardiomyocytes':             {'up': ['TNNT2','MYH7','ACTC1','MYL2','NPPA','TNNC1'], 'down': []},
     # Neurons
     'Neurons':                    {'up': ['TUBB3','MAP2','SYP','NCAM1','NEFM','ENO2'], 'down': ['VIM']},
-    # Stem cells / progenitors
-    'Stem cells / progenitors':   {'up': ['NANOG','POU5F1','SOX2','CD44','ALDH1A1'], 'down': ['CDKN1A']},
+    # Stem cells / progenitors — quiescent; CDKN1A HIGH (cell cycle checkpoint), proliferation markers LOW
+    'Stem cells / progenitors':   {'up': ['NANOG','POU5F1','SOX2','CD44','ALDH1A1','CDKN1A'], 'down': ['MKI67','TOP2A','CCND1']},
     # Cancer-specific
     'Cancer cells (proliferating)': {'up': ['MKI67','MYC','CDK4','CCND1','E2F1','TOP2A','PCNA'], 'down': ['CDKN1A','CDKN2A','TP53']},
     'Drug-arrested cells (G1)':   {'up': ['CDKN1A','CDKN1B','RB1','CDKN2A'], 'down': ['CDK4','CCND1','MKI67','E2F1']},
@@ -164,9 +164,18 @@ def score_cell_type(expr_norm, markers):
     down_genes = markers.get('down', [])
     scores_up   = [expr_norm.get(g, 0) for g in up_genes]
     scores_down = [expr_norm.get(g, 0) for g in down_genes]
-    mean_up   = sum(scores_up)   / max(len(scores_up),  1)
-    mean_down = sum(scores_down) / max(len(scores_down), 1)
-    return round(mean_up - mean_down, 4)
+    mean_up   = sum(scores_up)   / max(len(up_genes),   1)
+    mean_down = sum(scores_down) / max(len(down_genes), 1)
+    # Coverage penalty: if no UP markers are present in input, down-score by 0.5
+    # This prevents cell types with 0 matching up-markers from scoring high
+    # purely because their down-markers happen to be low in the input.
+    n_up_present  = sum(1 for g in up_genes   if g in expr_norm)
+    n_dn_present  = sum(1 for g in down_genes if g in expr_norm)
+    up_coverage   = n_up_present  / max(len(up_genes),   1)
+    raw_score = mean_up - mean_down
+    # Weight by up-marker coverage (0 up coverage → raw_score × 0.1)
+    coverage_weight = max(0.1, up_coverage)
+    return round(raw_score * coverage_weight, 4)
 
 cell_scores = {}
 for ct, markers in CELL_TYPE_MARKERS.items():

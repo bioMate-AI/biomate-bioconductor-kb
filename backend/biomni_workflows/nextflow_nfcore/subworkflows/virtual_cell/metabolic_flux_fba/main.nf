@@ -179,7 +179,11 @@ REACTIONS = {
     # OXPHOS (complex I-IV; P/O ratio NADH=2.5 ATP, FADH2=1.5 ATP)
     'E1': {'name': 'Complex I (NADH-Q)',   'atp': +2.5, 'nadh': -1, 'fadh2': 0, 'pathway': 'oxphos'},
     'E2': {'name': 'Complex II (FADH2-Q)', 'atp': +1.5, 'nadh': 0,  'fadh2': -1, 'pathway': 'oxphos'},
-    'E3': {'name': 'Complex III (bc1)',    'atp': 0,  'nadh': 0,  'fadh2': 0, 'pathway': 'oxphos'},
+    # Complex III (bc1) — part of proton-pumping ETC. Blocking CIII stops electron flow from
+    # ubiquinol, causing NADH/FADH2 to back up. We model this by assigning CIII a virtual
+    # ATP contribution of 1.0 (representing its share of the proton gradient driving ATP synthase).
+    # When CIII is blocked, E1 and E5 fluxes are also reduced proportionally via DRUG_EFFECTS cascade.
+    'E3': {'name': 'Complex III (bc1)',    'atp': +1.0, 'nadh': 0,  'fadh2': 0, 'pathway': 'oxphos'},
     'E4': {'name': 'Complex IV (CytC-O2)', 'atp': 0,  'nadh': 0,  'fadh2': 0, 'pathway': 'oxphos'},
     'E5': {'name': 'ATP synthase',         'atp': +1, 'nadh': 0,  'fadh2': 0, 'pathway': 'oxphos'},
     # BETA-OXIDATION (palmitate C16: 7 cycles → 8 acetyl-CoA + 7 NADH + 7 FADH2)
@@ -198,9 +202,11 @@ DRUG_EFFECTS = {}
 # Complex I inhibition (rotenone-like)
 for rxn in ['E1']:
     DRUG_EFFECTS[rxn] = fb_ci
-# Complex III inhibition (antimycin-like)
-for rxn in ['E3']:
-    DRUG_EFFECTS[rxn] = fb_ciii
+# Complex III inhibition (antimycin-like): blocks ubiquinol oxidation
+# → NADH can't be re-oxidized by Complex I → E1 and E3 both impaired
+# → proton gradient collapses → ATP synthase (E5) output drops
+for rxn in ['E1', 'E3', 'E5']:
+    DRUG_EFFECTS[rxn] = max(DRUG_EFFECTS.get(rxn, 0), fb_ciii)
 # Beta-oxidation impairment
 for rxn in ['B2', 'B3', 'B4', 'B5']:
     DRUG_EFFECTS[rxn] = fb_fatox
