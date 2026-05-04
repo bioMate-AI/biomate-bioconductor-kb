@@ -6,7 +6,7 @@ FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL maintainer="BioMate Team"
 LABEL description="Protein dynamics & conformational ensemble sampling for BioMate workflows"
-LABEL version="1.0.5"
+LABEL version="1.0.6"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
@@ -61,7 +61,9 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir "cryodrgn>=3.0.0"
 
 # ── Microsoft BioEmu 1.3.1 from PyPI ─────────────────────────────────────────
-# Pinned to 1.3.1; requires PyTorch >=2.0 (satisfied by base image torch 2.1)
+# Pin tensorflow-cpu==2.12.0 (the version BioEmu 1.3.1 was tested with and JAX 0.4.35 XLA is compatible with).
+# Newer TF (>2.14) registers conflicting XLA protobuf descriptors causing SIGABRT when JAX is also loaded.
+RUN pip install --no-cache-dir "tensorflow-cpu==2.12.0"
 RUN pip install --no-cache-dir "bioemu==1.3.1" \
     && python -c "import bioemu; print('BioEmu', bioemu.__version__, 'installed')"
 

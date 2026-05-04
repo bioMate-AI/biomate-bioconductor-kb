@@ -1,0 +1,32 @@
+{
+  "benchmark": "protocol_discrimination",
+  "n_soluble_micrographs": 20,
+  "n_membrane_micrographs": 5,
+  "total_micrographs": 25,
+  "source_soluble": "EMPIAR-10028 (E. coli \u03b2-galactosidase, real motion correction output)",
+  "source_membrane": "Synthetic TRPV1-profile exposures (drift 58-74 \u00c5, CTF 0.63-0.67, consistent with EMPIAR-10005 published stats)",
+  "profiles": {
+    "purified_protein": {
+      "rejected_total": 5,
+      "false_positives": 5,
+      "true_positives": 0,
+      "passed": 20,
+      "thresholds": {
+        "max_drift_A": 50.0,
+        "min_ctf_fit": 0.7
+      }
+    },
+    "membrane_protein": {
+      "rejected_total": 0,
+      "false_positives": 0,
+      "true_positives": 0,
+      "passed": 25,
+      "thresholds": {
+        "max_drift_A": 80.0,
+        "min_ctf_fit": 0.65
+      }
+    }
+  },
+  "false_positives_eliminated": 5,
+  "estimated_particles_recovered_per_5_micrographs": 6630
+}

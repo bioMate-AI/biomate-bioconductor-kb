@@ -7,7 +7,7 @@
 - [x] Per-job timing table with real CryoSPARC timestamps
 - [x] DOCX ready: `manuscript/BioMate_Cryo_preprint.docx`
 - [ ] Register Zenodo DOI for benchmark run data + code
-- [ ] Fill author affiliations (Sister's institution, collaborators)
+- [x] Fill author affiliations (Yuhan Zhang, St. Jude Structural Biology)
 - [ ] Add GitHub repository URL
 - [ ] Upload to bioRxiv.org
 - [ ] TRPV1 benchmark run (EMPIAR-10005) — in preparation
@@ -23,10 +23,9 @@ BioMate-Cryo: Evidence-Graded Interactive QC Governance for Automated Single-Par
 **Category:** Structural Biology · Methods and Resources
 
 **Authors:**
-Yaoyun Zhang¹*, [Sister's Name]²*, [Structural Biology Co-author]³  
-¹ BioMate AI Platform  
-² Department of [Structural Biology], [Institution]  
-³ [Cryo-EM Core Facility], [Institution]  
+Yaoyun Zhang¹*, Yuhan Zhang²*  
+¹ BioMate AI  
+² Department of Structural Biology, St. Jude Children's Research Hospital, Memphis, TN, USA  
 *Equal contribution
 
 **Abstract (from manuscript):**

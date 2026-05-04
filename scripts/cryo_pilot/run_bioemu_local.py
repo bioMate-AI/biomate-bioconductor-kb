@@ -7,9 +7,23 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-# Stub TF — BioEmu vendors AlphaFold TF code; stub must handle any attr recursively.
+# Stub TF — BioEmu vendors AlphaFold TF code that's never called via ColabFold path.
+# MagicMock raises on assert_* attrs; use a plain recursive sentinel instead.
 import importlib.util as _ilu
-from unittest.mock import MagicMock as _MM
+
+class _R:
+    """Recursive sentinel: any attr access, call, or context manager returns self."""
+    def __call__(self, *a, **k): return self
+    def __getattr__(self, n): return self
+    def __iter__(self): return iter([])
+    def __bool__(self): return False
+    def __int__(self): return 0
+    def __index__(self): return 0
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def __len__(self): return 0
+
+_R_inst = _R()
 
 class _TFStub(types.ModuleType):
     def __init__(self, name):
@@ -18,7 +32,7 @@ class _TFStub(types.ModuleType):
         self.__path__ = []; self.__package__ = name
     def __getattr__(self, n):
         if n.startswith("__"): raise AttributeError(n)
-        return _MM()
+        return _R_inst
 
 for _n in ["tensorflow","tensorflow.compat","tensorflow.compat.v1","tensorflow.compat.v2",
            "tensorflow.python","tensorflow.python.framework",

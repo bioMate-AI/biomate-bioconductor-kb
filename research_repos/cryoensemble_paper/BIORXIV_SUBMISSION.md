@@ -9,7 +9,7 @@
 - [x] Analysis code: `pilot_study/run_full_analysis.py` + step scripts 01–05
 - [ ] Convert MANUSCRIPT_DRAFT.md → PDF (use pandoc or Word export before upload)
 - [ ] Register Zenodo DOI for data + code (before or alongside bioRxiv posting)
-- [ ] Fill author affiliations (Sister's institution, BioMate affiliation)
+- [x] Fill author affiliations (Yuhan Zhang, St. Jude Structural Biology; Yaoyun Zhang, BioMate AI)
 - [ ] Upload to bioRxiv.org
 
 ---
@@ -22,9 +22,9 @@ CryoEnsemble: Quantifying the Conformational Completeness Gap Between Cryo-EM He
 **Category:** Biophysics · Structural Biology
 
 **Authors:**
-[Sister's Name]¹*, Yaoyun Zhang²*  
-¹ [Institution]  
-² BioMate AI Platform  
+Yuhan Zhang¹*, Yaoyun Zhang²*  
+¹ Department of Structural Biology, St. Jude Children's Research Hospital, Memphis, TN, USA  
+² BioMate AI  
 *Equal contribution
 
 **Abstract (paste from manuscript):**

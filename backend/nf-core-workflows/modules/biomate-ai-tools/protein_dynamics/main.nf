@@ -16,7 +16,7 @@ process BIOEMU_SAMPLE {
     tag "$meta.id"
     label 'process_gpu'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
 
     input:
     tuple val(meta), path(pdb_or_fasta)
@@ -33,6 +33,11 @@ process BIOEMU_SAMPLE {
     set -euo pipefail
 
     echo "[BIOEMU_SAMPLE] Input: ${pdb_or_fasta}  n_samples: ${n_samp}"
+
+    # Prevent XLA/TF protobuf descriptor conflict (SIGABRT/core dump)
+    export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+    export TF_CPP_MIN_LOG_LEVEL=3
+    export TF_ENABLE_ONEDNN_OPTS=0
 
     # -- Run BioEmu conformational sampling ------------------------------------
     # BioEmu 1.3.1 API: bioemu.sample.main(sequence, num_samples, output_dir)
@@ -80,21 +85,20 @@ try:
     # batch_size_100: BioEmu computes batch_size = int(batch_size_100 * (100/n_res)^2)
     # For sequences >316 aa this rounds to 0 → ValueError. Set batch_size_100
     # large enough so batch_size >= 1 for any sequence up to 700 aa.
-    n_res_est = len(open(fasta_file).read().split('\n',1)[-1].replace('\n',''))
+    n_res_est = len(open(fasta_file).read().splitlines()[1] if len(open(fasta_file).read().splitlines()) > 1 else '')
     import math
     batch_size_100 = max(20, math.ceil((n_res_est / 100) ** 2) + 1)
     print(f"[BIOEMU_SAMPLE] BioEmu 1.3.1 loaded — sampling {n_samples} conformers", flush=True)
     print(f"[BIOEMU_SAMPLE] Input sequence: {fasta_file} ({n_res_est} aa), batch_size_100={batch_size_100}", flush=True)
-    # Pull checkpoint from S3 (119 MB, same-region, ~5s) — no HuggingFace needed
-    import boto3
+    # Pull checkpoint from S3 — AWS CLI mounted from host at /opt/aws-cli-container/bin/aws
+    import subprocess
     os.makedirs("bioemu_ckpt", exist_ok=True)
-    s3 = boto3.client("s3", region_name="us-west-2")
     for f in ["checkpoint.ckpt", "config.yaml"]:
-        s3.download_file(
-            "biomate-nextflow-work",
-            f"models/bioemu-v1.1/checkpoints/bioemu-v1.1/{f}",
+        subprocess.run([
+            "/opt/aws-cli-container/bin/aws", "s3", "cp", "--region", "us-west-2",
+            f"s3://biomate-nextflow-work/models/bioemu-v1.1/checkpoints/bioemu-v1.1/{f}",
             f"bioemu_ckpt/{f}"
-        )
+        ], check=True)
     print("[BIOEMU_SAMPLE] Checkpoint loaded from S3", flush=True)
 
     bioemu_main(
@@ -206,7 +210,7 @@ process POCKET_MINER {
     tag "$meta.id"
     label 'process_medium'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
 
     input:
     tuple val(meta), path(ensemble_tgz)
@@ -374,7 +378,7 @@ process CONFORMATIONAL_SUMMARY {
     tag "$meta.id"
     label 'process_low'
 
-    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.5'
+    container '399683337364.dkr.ecr.us-west-2.amazonaws.com/biomate/protein-dynamics-nf:v1.0.6'
 
     input:
     tuple val(meta), path(ensemble_tgz)
