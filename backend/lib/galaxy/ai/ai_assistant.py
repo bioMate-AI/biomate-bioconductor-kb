@@ -2061,6 +2061,8 @@ Respond with a single JSON object — no other text:
         'tracedir', 'awsbatch', 'awsqueue', 'awsregion', 'input', 'output',
         # CryoSPARC connection — all infra-level, set by admin not users
         'cryosparc_email', 'cryosparc_host', 'cryosparc_port', 'cryosparc_project_dir', 'cryosparc_lane',
+        # CryoSPARC license — injected at runtime by executor from credential vault, not user-entered
+        'cryosparc_license',
         # Dev/testing flags — never shown to users (false = mock mode which breaks production)
         'use_cryosparc',
         # Parallelism / executor internals — auto-set by BioMate executor before launch
@@ -2075,6 +2077,7 @@ Respond with a single JSON object — no other text:
     # default is null — they fall back gracefully inside the workflow scripts.
     _OPTIONAL_NULL_PARAMS = frozenset({
         # Cryo-EM / CryoSPARC
+        'cryosparc_password',         # server-side auth — always injected by executor from env
         'gain_ref',                   # optional gain reference for gain correction
         'dose_per_frame',             # auto-estimated from total_dose / num_frames
         'particle_box_size',          # auto-calculated from particle diameter

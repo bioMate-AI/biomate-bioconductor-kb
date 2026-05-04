@@ -2,11 +2,15 @@
  * code-runner.ts — Lightweight inline code executor for the BioMate agent.
  *
  * Runs Python / R / bash in a restricted subprocess with:
- *  - Hard timeout (default 15s, max 60s)
+ *  - Hard timeout (default 30s, max 300s)
  *  - Working directory isolated to /tmp/biomate_code/<session_id>/output/
- *  - Input datasets pre-staged at /tmp/biomate_code/<session_id>/input/<dataset_id>/
+ *  - Input datasets pre-staged at /tmp/biomate_code/<session_id>/input/<dataset_id>/<original_filename>
  *  - stdout + stderr captured and returned
  *  - Output files scanned and summarised
+ *
+ * File staging: datasets are saved with their original filename (e.g. scogs_fungi.zip),
+ * not a generic "dataset". Code can reference them as:
+ *   os.path.join(os.environ['DATA_DIR'], '<galaxy_dataset_id>', '<filename>')
  */
 
 import { execFile, spawn } from 'child_process';
@@ -16,11 +20,18 @@ import { randomUUID } from 'crypto';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export interface DatasetRef {
+  /** galaxy_dataset_id used for download */
+  id: string;
+  /** original filename (e.g. "scogs_fungi.zip") — used to name the staged file */
+  filename?: string;
+}
+
 export interface CodeRunRequest {
   language: 'python' | 'r' | 'bash';
   code: string;
-  /** Galaxy dataset IDs whose files are staged at /data/<id>/ inside the run. */
-  input_datasets?: string[];
+  /** Galaxy dataset IDs (or DatasetRef objects) whose files are staged for the run. */
+  input_datasets?: (string | DatasetRef)[];
   timeout_seconds?: number;
   /** Optional download function for Galaxy datasets. Signature matches galaxyAPIProxy. */
   downloadDataset?: (id: string) => Promise<AsyncIterable<Buffer>>;
@@ -81,7 +92,8 @@ async function scanOutputDir(dir: string): Promise<OutputFile[]> {
 
 export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
   const sessionId = randomUUID();
-  const timeoutMs = Math.min((req.timeout_seconds ?? 15), 60) * 1000;
+  // Allow up to 300s for complex analysis (e.g. parsing large ZIP files, running R stats)
+  const timeoutMs = Math.min((req.timeout_seconds ?? 30), 300) * 1000;
   const baseDir = path.join('/tmp', 'biomate_code', sessionId);
   const inputDir = path.join(baseDir, 'input');
   const outputDir = path.join(baseDir, 'output');
@@ -91,19 +103,31 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
 
   const start = Date.now();
 
+  // Track staged file info for the preamble comment
+  const stagedFiles: { id: string; filename: string; dir: string }[] = [];
+
   try {
-    // Stage input datasets
+    // Stage input datasets — preserve original filename so code can reference by name
     if (req.input_datasets?.length && req.downloadDataset) {
       await Promise.all(
-        req.input_datasets.map(async (datasetId) => {
+        req.input_datasets.map(async (ref) => {
+          const datasetId = typeof ref === 'string' ? ref : ref.id;
+          const filename = (typeof ref === 'object' && ref.filename) ? ref.filename : 'dataset';
           const datasetDir = path.join(inputDir, datasetId);
           await fs.mkdir(datasetDir, { recursive: true });
           try {
             const stream = await req.downloadDataset!(datasetId);
             const chunks: Buffer[] = [];
             for await (const chunk of stream) chunks.push(chunk);
-            // Save with a generic filename; real filename unknown without metadata
-            await fs.writeFile(path.join(datasetDir, 'dataset'), Buffer.concat(chunks));
+            // Save with the original filename so file-type-aware code works (e.g. zipfile, pandas)
+            await fs.writeFile(path.join(datasetDir, filename), Buffer.concat(chunks));
+            // Also write a generic 'dataset' symlink for backwards compat
+            if (filename !== 'dataset') {
+              try {
+                await fs.symlink(filename, path.join(datasetDir, 'dataset'));
+              } catch { /* ignore if symlink already exists */ }
+            }
+            stagedFiles.push({ id: datasetId, filename, dir: datasetDir });
           } catch (err: any) {
             console.warn(`[CodeRunner] Failed to stage dataset ${datasetId}:`, err.message);
           }
@@ -113,6 +137,14 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
 
     // Build the wrapper script that sets DATA_DIR, OUTPUT_DIR, then runs user code
     const dataDir = inputDir;
+
+    // Generate a comment block listing staged files so the AI's code knows exact paths
+    const stagedComment = stagedFiles.length > 0
+      ? '# Staged input files:\n' + stagedFiles.map(
+          f => `#   ${f.id}/${f.filename}  →  ${path.join(f.dir, f.filename)}`
+        ).join('\n') + '\n'
+      : '';
+
     let scriptPath: string;
     let interpreter: string;
     let args: string[];
@@ -126,7 +158,7 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         `os.chdir(${JSON.stringify(outputDir)})`,
       ].join('\n');
       scriptPath = path.join(baseDir, 'script.py');
-      await fs.writeFile(scriptPath, `${preamble}\n\n${req.code}`);
+      await fs.writeFile(scriptPath, `${preamble}\n\n${stagedComment}${req.code}`);
       interpreter = 'python3';
       args = [scriptPath];
     } else if (req.language === 'r') {
@@ -135,8 +167,13 @@ export async function runCode(req: CodeRunRequest): Promise<CodeRunResult> {
         `Sys.setenv(OUTPUT_DIR = ${JSON.stringify(outputDir)})`,
         `setwd(${JSON.stringify(outputDir)})`,
       ].join('\n');
+      const rStagedComment = stagedFiles.length > 0
+        ? '# Staged input files:\n' + stagedFiles.map(
+            f => `#   ${f.id}/${f.filename}  ->  ${path.join(f.dir, f.filename)}`
+          ).join('\n') + '\n'
+        : '';
       scriptPath = path.join(baseDir, 'script.R');
-      await fs.writeFile(scriptPath, `${preamble}\n\n${req.code}`);
+      await fs.writeFile(scriptPath, `${preamble}\n\n${rStagedComment}${req.code}`);
       interpreter = 'Rscript';
       args = [scriptPath];
     } else {

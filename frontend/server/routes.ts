@@ -967,6 +967,10 @@ const upload = multer({
       '.json', '.xml',
       // Cryo-EM / electron microscopy formats
       '.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.spi', '.dm4', '.map',
+      // Archive formats (capsule data, bulk uploads)
+      '.zip', '.tar', '.tar.gz', '.tgz',
+      // Notebook and R formats
+      '.ipynb', '.rds', '.rda', '.xlsx', '.xls',
     ];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.some(allowed => file.originalname.toLowerCase().endsWith(allowed))) {
@@ -11573,11 +11577,32 @@ Show your reasoning. Tool invocations and results are visible to the user in ful
     }
     try {
       const { runCode } = await import('./code-runner');
+
+      // Resolve filenames for dataset IDs so staged files keep their original names
+      const rawIds: (string | { id: string; filename?: string })[] =
+        Array.isArray(input_datasets) ? input_datasets : [];
+      const datasetRefs = await Promise.all(rawIds.map(async (ref) => {
+        if (typeof ref === 'object' && ref !== null) return ref;
+        const id = String(ref);
+        try {
+          const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
+          const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
+            signal: AbortSignal.timeout(5000),
+          });
+          if (meta.ok) {
+            const data = await meta.json() as any;
+            const filename = data?.name || data?.file_name || id;
+            return { id, filename: String(filename) };
+          }
+        } catch { /* fall through */ }
+        return { id, filename: id };
+      }));
+
       const result = await runCode({
         language: language as 'python' | 'r' | 'bash',
         code,
-        input_datasets: Array.isArray(input_datasets) ? input_datasets : [],
-        timeout_seconds: typeof timeout_seconds === 'number' ? timeout_seconds : 15,
+        input_datasets: datasetRefs,
+        timeout_seconds: typeof timeout_seconds === 'number' ? Math.min(timeout_seconds, 300) : 30,
         downloadDataset: (id: string) => galaxyAPIProxy.downloadDataset(id),
       });
       res.json(result);
