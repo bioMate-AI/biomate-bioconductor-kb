@@ -2977,7 +2977,7 @@ The distinction is the nature of the task, not the presence of file names in the
 
 BioMate can run computational pipelines in all the domains below. When a user wants to execute a pipeline or process data in any of these areas, classify as workflow_generation. Asking about, discussing, or planning one of these is not workflow_generation unless the user is asking BioMate to actually run it. Representative workflows per domain:
 
-**Transcriptomics (865):** nf-core/rnaseq, DESeq2, edgeR, Kallisto/sleuth, STAR-RSEM, nf-core/differentialabundance, nf-core/scrnaseq, nf-core/spatialvi, nf-core/lncpipe, nf-core/circrna — inputs: FASTQ files or SRA/GEO accessions
+**Transcriptomics (865):** nf-core/rnaseq (raw FASTQ → counts), nf-core/differentialabundance (pre-computed count matrix → DESeq2/edgeR DE analysis + GO enrichment), DESeq2, edgeR, clusterProfiler/enrichGO, Kallisto/sleuth, STAR-RSEM, nf-core/scrnaseq, nf-core/spatialvi, nf-core/lncpipe, nf-core/circrna — inputs: FASTQ files, SRA/GEO accessions, OR pre-computed count matrix + sample metadata CSV
 
 **Genomics (369):** nf-core/sarek (WGS/WES somatic+germline), nf-core/raredisease, nf-core/mag (metagenome assembly), BWA-MEM, GATK HaplotypeCaller, nf-core/nanoseq, nf-core/phageannotator, nf-core/bacass — inputs: FASTQ/BAM or SRA accessions
 
@@ -3023,9 +3023,17 @@ These patterns MUST be classified as **workflow_generation** even when they soun
 
 **Omics analysis requests (always workflow_generation when user-data is involved):**
 - "Identify genes [upregulated/downregulated/differentially expressed] in [condition/tissue/disease]" → the user wants to run RNA-seq + DE analysis
+- "Run DESeq2/edgeR on my count matrix" → nf-core/differentialabundance (NOT nf-core/rnaseq — that takes FASTQ, not count matrices)
+- "Differential expression from count matrix / pre-computed counts" → nf-core/differentialabundance (inputs: matrix CSV + sample metadata + contrasts)
+- "GO enrichment / enrichGO / clusterProfiler on DEGs" → nf-core/differentialabundance with GO enrichment module (includes clusterProfiler/gprofiler2)
 - "Find [variants/mutations/SNPs/indels] in [my samples/cohort/patient]" → the user wants to run variant calling
 - "Identify [cell types/clusters/populations] in [my single-cell data/samples]" → the user wants to run scRNA-seq
 - "Detect [peaks/binding sites/open chromatin] in [my data/samples]" → the user wants to run ChIP-seq/ATAC-seq
+
+**Count matrix vs FASTQ routing rule (critical):**
+- User provides count matrix CSV/TSV + sample metadata → nf-core/differentialabundance
+- User provides FASTQ files or SRA/GEO accessions → nf-core/rnaseq first, then optionally differentialabundance
+- "Run DESeq2 on my data" with a count matrix = nf-core/differentialabundance, NOT nf-core/rnaseq
 
 **Spatial/imaging data requests (always workflow_generation):**
 - "I need spatial gene expression data showing where genes are expressed in [tissue/tumor/section]" → run nf-core/spatialvi

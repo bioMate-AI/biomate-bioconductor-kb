@@ -4566,13 +4566,19 @@ Examples of good inference:
             'metabolomics, mass spectrometry metabolomics.'
         ),
         'drug_discovery': (
-            'Computational drug discovery, molecular docking, ADMET prediction, and '
-            'molecular dynamics simulation. Tools: AutoDock Vina, DiffDock, GROMACS, '
-            'AMBER, REINVENT4, OpenFE, Schrödinger, RDKit, AlphaFold. Methods: '
-            'virtual screening, SMILES-based design, lead optimization, free energy '
-            'perturbation, MD simulation, pharmacokinetics. Keywords: drug discovery, '
-            'ADMET, docking, molecular dynamics, SMILES, lead optimization, drug design, '
-            'binding affinity, pharmacophore, GROMACS, AMBER.'
+            'Computational drug discovery, molecular docking, ADMET prediction, '
+            'molecular dynamics simulation, and virtual cell mechanistic modeling. '
+            'Tools: AutoDock Vina, DiffDock, GROMACS, AMBER, REINVENT4, OpenFE, '
+            'Schrödinger, RDKit, AlphaFold, Tellurium, COPASI, GEARS, CPA, PhysiCell. '
+            'Methods: virtual screening, SMILES-based design, lead optimization, '
+            'free energy perturbation, MD simulation, pharmacokinetics, ODE signaling '
+            'simulation, CiPA cardiac safety, FBA metabolic flux, DILI prediction, '
+            'drug combination synergy, tumor growth inhibition TGI, virtual patient. '
+            'Keywords: drug discovery, ADMET, docking, molecular dynamics, SMILES, '
+            'lead optimization, drug design, binding affinity, pharmacophore, GROMACS, '
+            'AMBER, cardiac safety hERG, CiPA, signaling pathway ODE, MAPK ERK, '
+            'metabolic flux DILI, gene perturbation GEARS, drug synergy combination, '
+            'TGI tumor, virtual patient cohort PTA, LINCS MoA.'
         ),
         'structural_biology': (
             'Computational protein structure prediction and analysis outside of cryo-EM. '
@@ -4643,6 +4649,27 @@ Examples of good inference:
             'modeling, fermentation optimization, protein expression optimization. '
             'Keywords: bioengineering, tissue engineering, biomaterial, scaffold, '
             'bioreactor, fermentation, bioprocess.'
+        ),
+        'virtual_cell': (
+            'Virtual cell modeling, mechanistic ODE simulation, gene perturbation '
+            'prediction, drug combination synergy, and tumor growth inhibition. '
+            'Tools: Tellurium, COPASI, AMICI, GEARS, CPA, Geneformer, TranscriptFormer, '
+            'PhysiCell, SBMLtoODEjax, COBRApy, LINCS L1000, scFoundation, rBio. '
+            'Methods: ODE signaling cascade simulation (MAPK/ERK, PI3K/AKT, NF-kB, '
+            'JAK-STAT, EGFR, Wnt, apoptosis, TGF-beta), SBML model simulation, '
+            'CiPA cardiac safety (hERG, Nav1.5, Cav1.2, action potential, APD90, qNET, '
+            'TdP risk), flux balance analysis FBA (glycolysis, TCA cycle, beta-oxidation, '
+            'mitochondrial toxicity, DILI, steatosis, cholestasis), gene regulatory '
+            'network perturbation (CRISPR KO/KD/OE CRISPRa CRISPRi), drug combination '
+            'synergy (Bliss, ZIP, HSA, synergistic antagonistic additive), '
+            'transcriptomic MoA via LINCS connectivity map, Simeoni TGI tumor growth '
+            'inhibition, Norton-Simon, Monte Carlo virtual patient cohort, population '
+            'pharmacokinetics PopPK, percent target attainment PTA, special populations. '
+            'Keywords: virtual cell, mechanistic model, ODE simulation, signaling pathway, '
+            'gene perturbation, single cell perturbation, GEARS, CPA drug combination, '
+            'cardiac safety CiPA, metabolic flux FBA DILI, LINCS MoA connectivity map, '
+            'tumor TGI Simeoni, virtual patient cohort PTA dose optimization, '
+            'perturbation prediction, drug synergy, ion channel model.'
         ),
     }
 
@@ -5005,6 +5032,11 @@ Examples of good inference:
                 'index': 1, 'authors': ['Punjani A', 'Rubinstein JL', 'Fleet DJ', 'Brubaker MA'],
                 'year': 2017, 'title': 'cryoSPARC: algorithms for rapid unsupervised cryo-EM structure determination',
                 'journal': 'Nature Methods', 'doi': '10.1038/nmeth.4169', 'pmid': '28165473',
+            },
+            'virtual_cell': {
+                'index': 1, 'authors': ['Roohani Y', 'Huang K', 'Leskovec J'],
+                'year': 2024, 'title': 'Predicting transcriptional outcomes of novel multigene perturbations with GEARS',
+                'journal': 'Nature Biotechnology', 'doi': '10.1038/s41587-023-01905-6', 'pmid': '37749249',
             },
         }
 
