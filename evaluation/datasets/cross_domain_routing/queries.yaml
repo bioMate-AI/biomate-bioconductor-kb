@@ -1206,3 +1206,147 @@
   disqualified: [nf-core/rnaseq]
   confusable_with: bulk_rnaseq
   notes: "Source: nf-co.re/differentialabundance — accepts count matrices and performs DE + GSEA; nf-co.re/rnaseq explicitly does NOT compare samples statistically"
+
+# =========================================================
+# DOMAIN 11: VIRTUAL CELL — 15 queries (direct + adversarial)
+# Added: 2026-05-04
+# =========================================================
+
+- id: vc_001
+  query: "Run CiPA cardiac safety assessment — my compound has hERG IC50 150nM and Cmax 80nM"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: cipa_cardiac_safety_ode
+  acceptable_alts: []
+  disqualified: [predict_admet_properties]
+  notes: "CiPA + hERG IC50 + Cmax → ODE cardiac safety (ICH S7B Tier 2); not QSAR ADMET"
+
+- id: vc_002
+  query: "Predict APD90 and qNET score for arrhythmia risk, hERG block 70%, Nav1.5 IC50 2µM"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: cipa_cardiac_safety_ode
+  acceptable_alts: []
+  disqualified: [predict_admet_properties]
+  notes: "APD90 / qNET / TdP — unambiguous CiPA ODE terminology"
+
+- id: vc_003
+  query: "Simulate MAPK/ERK signaling pathway inhibition with my MEK inhibitor IC50 3nM"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: ode_signaling_simulation
+  acceptable_alts: []
+  disqualified: [predict_admet_properties, drug_discovery_standard_docking]
+  notes: "Signaling pathway ODE simulation; not docking or ADMET"
+
+- id: vc_004
+  query: "Predict apoptosis pathway dynamics for venetoclax BCL2 inhibition in cancer cells"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: ode_signaling_simulation
+  acceptable_alts: []
+  disqualified: []
+  notes: "Pathway ODE with BCL2 / apoptosis cascade"
+
+- id: vc_005
+  query: "FBA metabolic flux for hepatocyte DILI — Complex I IC50 5µM, BSEP IC50 2µM"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: metabolic_flux_fba
+  acceptable_alts: []
+  disqualified: [predict_admet_properties]
+  notes: "FBA + DILI + Complex I/BSEP IC50 → metabolic flux; not QSAR"
+
+- id: vc_006
+  query: "Find drugs with the same transcriptional signature as my upregulated MYC CDK4 CCND1 genes using LINCS"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: transcriptomic_moa_lincs
+  acceptable_alts: []
+  disqualified: [nf-core/rnaseq]
+  notes: "LINCS L1000 connectivity map — MoA signature matching"
+
+- id: vc_007
+  query: "Predict transcriptional response to MYC knockout in K562 using gene perturbation model"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: gears_perturbation_prediction
+  acceptable_alts: [gears_perturbation_prediction_gpu]
+  disqualified: [nf-core/rnaseq]
+  notes: "Gene perturbation prediction (GEARS-style); not RNA-seq processing"
+
+- id: vc_008
+  query: "Drug combination synergy analysis: trametinib plus palbociclib, predict Bliss and ZIP scores"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: cpa_drug_combination_synergy
+  acceptable_alts: []
+  disqualified: [predict_admet_properties]
+  notes: "Explicit synergy model names (Bliss, ZIP) → CPA synergy workflow"
+
+- id: vc_009
+  query: "Tumor growth inhibition prediction using Simeoni model — erlotinib Cmax 3mg/L, 12 weeks"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: physicell_tumor_tgi
+  acceptable_alts: []
+  disqualified: [pbpk_simulation]
+  notes: "Simeoni TGI model explicit; 12 weeks treatment; tumor volume endpoint"
+
+- id: vc_010
+  query: "Monte Carlo virtual patient simulation 1000 patients, PopPK, CL=15L/h, PTA optimization"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: virtual_patient_cohort
+  acceptable_alts: []
+  disqualified: [clinical_trial_simulation_boin, pbpk_simulation]
+  notes: "PopPK virtual patient + PTA → virtual_patient_cohort; not BOIN dose escalation"
+
+- id: vc_011
+  query: "Classify cell type from my gene expression profile, high MKI67 and MYC, using single-cell model"
+  difficulty: direct
+  domain: virtual_cell
+  correct_workflow: transcriptformer_cell_state
+  acceptable_alts: [transcriptformer_cell_state_gpu]
+  disqualified: [nf-core/scrnaseq]
+  notes: "Cell state classification from expression profile; not scRNA-seq preprocessing pipeline"
+
+- id: vc_012
+  query: "Predict which drugs would reverse a cancer gene expression signature to healthy state"
+  difficulty: adversarial
+  domain: virtual_cell
+  correct_workflow: transcriptomic_moa_lincs
+  acceptable_alts: []
+  disqualified: [nf-core/differentialabundance]
+  confusable_with: transcriptomics
+  notes: "Disease reversal = LINCS reverse mode; not DE analysis which computes not predicts"
+
+- id: vc_013
+  query: "hERG safety assessment for IND submission — do I need the mechanistic model or QSAR is enough?"
+  difficulty: adversarial
+  domain: virtual_cell
+  correct_workflow: cipa_cardiac_safety_ode
+  acceptable_alts: [predict_admet_properties]
+  disqualified: []
+  confusable_with: admet
+  notes: "IND + mechanistic = CiPA ODE Tier 2; QSAR (ADMET) is acceptable alt for Tier 1"
+
+- id: vc_014
+  query: "Run a dose-response curve for my drug in a virtual tumor model connected to PBPK output"
+  difficulty: adversarial
+  domain: virtual_cell
+  correct_workflow: physicell_tumor_tgi
+  acceptable_alts: []
+  disqualified: [pbpk_simulation]
+  confusable_with: pharmacology
+  notes: "Virtual tumor + PBPK bridge → TGI model; pbpk_simulation produces PK not tumor response"
+
+- id: vc_015
+  query: "Special population analysis: dose for elderly renally impaired patients, target 90% PTA"
+  difficulty: adversarial
+  domain: virtual_cell
+  correct_workflow: virtual_patient_cohort
+  acceptable_alts: []
+  disqualified: [pbpk_pediatric_pregnancy, clinical_trial_simulation_boin]
+  confusable_with: pharmacology
+  notes: "PTA + special populations (elderly/renal) + dose optimization → virtual_patient_cohort"

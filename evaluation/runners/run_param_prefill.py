@@ -59,6 +59,8 @@ CATEGORIES = [
     "reference_file_selection",
     "multi_param_inference",
     "negative_cases",
+    "param_name_disambiguation",
+    "virtual_cell_params",
     "all",
 ]
 

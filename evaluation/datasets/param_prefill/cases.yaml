@@ -1323,3 +1323,285 @@ cases:
       - trim_5p
     difficulty: hard
     notes: "RRBS flag; trim non-CpG → non_directional=false; coverage cutoff → min_coverage not depth"
+
+  # ── Category 12: virtual_cell_params (20 cases) ──────────────────────────
+
+  - id: pf_116
+    category: virtual_cell_params
+    workflow: cipa_cardiac_safety_ode
+    user_query: "Run CiPA cardiac safety for my compound, hERG IC50 is 150 nM, Cmax 80 nM free"
+    expected_params:
+      herg_ic50_nM: 150
+      cmax_nM: 80
+    must_not_fill:
+      - nav15_ic50_nM
+      - cav12_ic50_nM
+    difficulty: easy
+    notes: "Direct IC50/Cmax extraction from sentence"
+
+  - id: pf_117
+    category: virtual_cell_params
+    workflow: cipa_cardiac_safety_ode
+    user_query: "Multi-channel CiPA assessment: hERG 300nM, Nav1.5 2µM, Cav1.2 500nM, patient Cmax 100ng/mL MW 400"
+    expected_params:
+      herg_ic50_nM: 300
+      nav15_ic50_nM: 2000
+      cav12_ic50_nM: 500
+    must_not_fill:
+      - heart_rate_bpm
+    difficulty: hard
+    notes: "Nav1.5 2µM → 2000 nM; Cmax in ng/mL requires MW conversion (not extractable without MW context)"
+
+  - id: pf_118
+    category: virtual_cell_params
+    workflow: cipa_cardiac_safety_ode
+    user_query: "Assess cardiac risk at 60 bpm pacing, hERG IC50 50nM, fu=0.3, total Cmax 200nM"
+    expected_params:
+      herg_ic50_nM: 50
+      fu_plasma: 0.3
+      cmax_nM: 200
+      heart_rate_bpm: 60
+    must_not_fill: []
+    difficulty: medium
+    notes: "fu_plasma from unbound fraction; heart_rate from bpm"
+
+  - id: pf_119
+    category: virtual_cell_params
+    workflow: ode_signaling_simulation
+    user_query: "Simulate MAPK/ERK pathway inhibition with trametinib, MEK IC50 3nM, Cmax 50nM"
+    expected_params:
+      pathway: MAPK_ERK
+      target_node: MEK
+      drug_ic50_nM: 3
+      cmax_nM: 50
+    must_not_fill:
+      - stimulus_conc_nM
+    difficulty: easy
+    notes: "MAPK/ERK pathway + MEK target from drug name trametinib"
+
+  - id: pf_120
+    category: virtual_cell_params
+    workflow: ode_signaling_simulation
+    user_query: "PI3K signaling with AKT inhibitor ipatasertib IC50 0.2µM, 24h simulation, EGF 10nM stimulus"
+    expected_params:
+      pathway: PI3K_AKT
+      target_node: AKT
+      drug_ic50_nM: 200
+      simulation_time_h: 24
+      stimulus_conc_nM: 10
+      stimulus: EGF
+    must_not_fill: []
+    difficulty: hard
+    notes: "0.2µM → 200nM; PI3K_AKT from ipatasertib; AKT node"
+
+  - id: pf_121
+    category: virtual_cell_params
+    workflow: ode_signaling_simulation
+    user_query: "Apoptosis ODE for venetoclax BCL2 inhibitor, IC50 1nM, Cmax 3nM in K562 cells"
+    expected_params:
+      pathway: APOPTOSIS
+      target_node: BCL2
+      drug_ic50_nM: 1
+      cmax_nM: 3
+    must_not_fill:
+      - pathway_is_apoptosis
+    difficulty: medium
+    notes: "venetoclax → BCL2 inhibitor → APOPTOSIS pathway"
+
+  - id: pf_122
+    category: virtual_cell_params
+    workflow: metabolic_flux_fba
+    user_query: "DILI metabolic liability in hepatocytes, Complex I IC50 5µM, BSEP IC50 2µM, Cmax 10µM"
+    expected_params:
+      cell_type: hepatocyte
+      complex_i_ic50_uM: 5
+      bsep_ic50_uM: 2
+      cmax_uM: 10
+    must_not_fill:
+      - complex_iii_ic50_uM
+    difficulty: easy
+    notes: "hepatocytes + Complex I IC50 + BSEP IC50 → direct extraction"
+
+  - id: pf_123
+    category: virtual_cell_params
+    workflow: metabolic_flux_fba
+    user_query: "Cardiac mito toxicity for doxorubicin, complex III inhibition IC50 8µM, beta oxidation IC50 15µM"
+    expected_params:
+      cell_type: cardiomyocyte
+      complex_iii_ic50_uM: 8
+      fat_oxidation_ic50_uM: 15
+    must_not_fill:
+      - bsep_ic50_uM
+    difficulty: medium
+    notes: "cardiac → cardiomyocyte; doxorubicin → cardiac context; beta oxidation → fat_oxidation_ic50_uM"
+
+  - id: pf_124
+    category: virtual_cell_params
+    workflow: transcriptomic_moa_lincs
+    user_query: "Find drugs that mimic MYC CDK4 CCND1 upregulation and TP53 CDKN1A downregulation in MCF7"
+    expected_params:
+      up_genes: MYC,CDK4,CCND1
+      down_genes: TP53,CDKN1A
+      query_mode: mimic
+      cell_line: MCF7
+    must_not_fill:
+      - include_fda_only
+    difficulty: medium
+    notes: "mimic mode (find same direction); genes comma-separated"
+
+  - id: pf_125
+    category: virtual_cell_params
+    workflow: transcriptomic_moa_lincs
+    user_query: "Disease reversal: find compounds opposing BCL2 MYC upregulation and BAX CASP3 downregulation in K562"
+    expected_params:
+      up_genes: BCL2,MYC
+      down_genes: BAX,CASP3
+      query_mode: reverse
+      cell_line: K562
+    must_not_fill: []
+    difficulty: medium
+    notes: "opposing = reverse mode; disease reversal keyword"
+
+  - id: pf_126
+    category: virtual_cell_params
+    workflow: gears_perturbation_prediction
+    user_query: "Predict transcriptional response to MYC knockout in K562 cells, top 50 DEGs"
+    expected_params:
+      perturb_genes: MYC
+      cell_line: K562
+      perturbation_type: KO
+      top_k_degs: 50
+    must_not_fill:
+      - epistasis_model
+    difficulty: easy
+    notes: "knockout → KO; gene name, cell line direct"
+
+  - id: pf_127
+    category: virtual_cell_params
+    workflow: gears_perturbation_prediction
+    user_query: "Double CRISPRi knockdown of KRAS and BRAF in RPE1, predict gene expression changes"
+    expected_params:
+      perturb_genes: KRAS,BRAF
+      cell_line: RPE1
+      perturbation_type: CRISPRi
+    must_not_fill:
+      - lincs_crossval
+    difficulty: medium
+    notes: "CRISPRi → perturbation_type; double = two genes comma-separated"
+
+  - id: pf_128
+    category: virtual_cell_params
+    workflow: cpa_drug_combination_synergy
+    user_query: "Synergy analysis: trametinib (MEK inhibitor) plus palbociclib (CDK4/6 inhibitor) in MCF7 at Cmax 50nM and 100nM"
+    expected_params:
+      drug_a_name: trametinib
+      drug_a_targets: MAP2K1,MAP2K2
+      drug_a_cmax_nM: 50
+      drug_b_name: palbociclib
+      drug_b_targets: CDK4,CDK6
+      drug_b_cmax_nM: 100
+      cell_line: MCF7
+    must_not_fill:
+      - synergy_model
+    difficulty: medium
+    notes: "trametinib → MAP2K1/MAP2K2 targets; palbociclib → CDK4/CDK6"
+
+  - id: pf_129
+    category: virtual_cell_params
+    workflow: cpa_drug_combination_synergy
+    user_query: "ZIP synergy model for venetoclax BCL2 inhibitor (Cmax 3nM) plus navitoclax BCL-XL inhibitor (Cmax 10nM)"
+    expected_params:
+      drug_a_name: venetoclax
+      drug_a_targets: BCL2
+      drug_a_cmax_nM: 3
+      drug_b_name: navitoclax
+      drug_b_targets: BCL2L1
+      drug_b_cmax_nM: 10
+      synergy_model: zip
+    must_not_fill: []
+    difficulty: hard
+    notes: "ZIP model from query; venetoclax→BCL2; navitoclax→BCL2L1 (BCL-XL)"
+
+  - id: pf_130
+    category: virtual_cell_params
+    workflow: physicell_tumor_tgi
+    user_query: "Predict TGI for NSCLC, baseline tumor 150mm3, erlotinib Cmax 3mg/L, EC50 0.5mg/L, 12-week treatment"
+    expected_params:
+      drug_name: erlotinib
+      initial_tumor_vol_mm3: 150
+      cmax_mg_L: 3
+      ec50_mg_L: 0.5
+      treatment_days: 84
+    must_not_fill:
+      - k1_growth_per_day
+    difficulty: medium
+    notes: "12 weeks = 84 days; mm3 → initial_tumor_vol_mm3"
+
+  - id: pf_131
+    category: virtual_cell_params
+    workflow: physicell_tumor_tgi
+    user_query: "Simeoni TGI model with 30% tumor penetration, AUC 120mg*h/L, dosing every 3 days"
+    expected_params:
+      tumor_penetration: 0.3
+      auc_mg_h_L: 120
+      dosing_interval_days: 3
+      tgi_model: simeoni
+    must_not_fill:
+      - initial_tumor_vol_mm3
+    difficulty: hard
+    notes: "30% → 0.3; every 3 days → dosing_interval_days=3; simeoni explicit"
+
+  - id: pf_132
+    category: virtual_cell_params
+    workflow: virtual_patient_cohort
+    user_query: "Virtual patient simulation 1000 patients, CL=15 L/h, Vd=80L, bioavailability 60%, EC50 2mg/L, dose 200mg"
+    expected_params:
+      n_patients: 1000
+      cl_L_h: 15
+      vd_L: 80
+      bioavailability: 0.6
+      ec50_mg_L: 2
+      dose_mg: 200
+    must_not_fill:
+      - iiv_cl_cv
+    difficulty: easy
+    notes: "Direct PK parameter extraction; 60% → 0.6"
+
+  - id: pf_133
+    category: virtual_cell_params
+    workflow: virtual_patient_cohort
+    user_query: "PopPK simulation with 40% IIV on clearance, target 90% PTA at EC50 1mg/L, range 50-400mg"
+    expected_params:
+      iiv_cl_cv: 0.4
+      pta_target: 0.9
+      ec50_mg_L: 1
+      dose_range: 50,100,200,400
+    must_not_fill:
+      - n_patients
+    difficulty: hard
+    notes: "40% IIV → 0.4 as CV; 90% PTA → 0.9; range expansion from 50-400mg"
+
+  - id: pf_134
+    category: virtual_cell_params
+    workflow: virtual_patient_cohort
+    user_query: "Dose optimization for elderly patients (mean age 70) with renal impairment, 30% renally cleared"
+    expected_params:
+      covariate_age_mean: 70
+      renal_clearance_fraction: 0.3
+    must_not_fill:
+      - n_patients
+      - cl_L_h
+    difficulty: medium
+    notes: "elderly → covariate_age_mean=70; 30% renally → renal_clearance_fraction=0.3"
+
+  - id: pf_135
+    category: virtual_cell_params
+    workflow: transcriptformer_cell_state
+    user_query: "Classify cell type from scRNA-seq with high MKI67, MYC, CDK4 and low CDKN1A expression"
+    expected_params:
+      inline_genes: "MKI67:high,MYC:high,CDK4:high,CDKN1A:low"
+      cell_type_hint: auto
+    must_not_fill:
+      - species
+    difficulty: hard
+    notes: "high/low descriptors need to be converted to relative values; MKI67 high → proliferating"

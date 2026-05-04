@@ -573,6 +573,123 @@ QC_NAMED_PROFILES: Dict[str, Dict[str, Any]] = {
             "[SILVER] CPIC guidelines — 15× minimum for tier 2 research use",
         ],
     },
+
+    # ── Virtual Cell QC profiles ─────────────────────────────────────────
+    "cipa_ind_submission": {
+        "description": (
+            "CiPA Tier 2 in silico cardiac safety QC for IND submission. "
+            "Applies FDA/ICH S7B thresholds: qNET < −30 pC/pF → HIGH TdP risk (halt); "
+            "APD90 prolongation > 30% → INTERMEDIATE escalation advisory; "
+            "hERG safety margin < 30× Cmax → automatic escalation regardless of qNET. "
+            "All three checks must pass (LOW or INTERMEDIATE with margin ≥ 30×) before "
+            "the cardiac safety section of the IND CMC package can be signed off. "
+            "Regulatory basis: ICH S7B (2021), FDA CiPA initiative, Dutta et al. 2017."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "cipa_qnet_high_risk_threshold":   -30.0,   # pC/pF; > -30 = HIGH TdP risk (halt)
+            "cipa_qnet_intermediate_threshold": -40.0,  # pC/pF; -40 to -30 = INTERMEDIATE
+            "cipa_apd90_prolongation_max_pct":   30.0,  # % change above baseline; > 30% = advisory
+            "cipa_herg_safety_margin_min":        30.0,  # ×Cmax; < 30× = escalation flag
+            "cipa_ead_probability_halt":           0.7,  # EAD probability; > 0.7 = halt
+        },
+        "references": [
+            "[GOLD] ICH S7B (2021) + E14/S7B Q&A — CiPA framework Tier 2",
+            "[GOLD] Dutta et al. 2017 Front Physiol 8:616 — qNET validation thresholds",
+            "[SILVER] Lancaster & Sobie 2016 JPET 358(3) — APD sensitivity coefficients",
+            "[SILVER] FDA CiPA initiative (fda.gov/media/cipa)",
+        ],
+    },
+    "cipa_preclinical_screen": {
+        "description": (
+            "Preclinical CiPA cardiac screen — relaxed thresholds for early-stage "
+            "lead optimization screening where hits are expected to have hERG liability. "
+            "Flags rather than halts on qNET > −30 pC/pF. Suitable for SAR rounds "
+            "where the goal is to rank-order compounds, not pass/fail for IND. "
+            "Use cipa_ind_submission profile when generating IND package."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "cipa_qnet_high_risk_threshold":   -20.0,   # more permissive; advisory only
+            "cipa_apd90_prolongation_max_pct":   50.0,
+            "cipa_herg_safety_margin_min":        10.0,  # early-stage: 10× flag
+            "cipa_ead_probability_halt":           0.9,
+        },
+        "references": [
+            "[SILVER] ICH S7B — preclinical context; screening not IND submission",
+        ],
+    },
+    "tgi_oncology_solid_tumor": {
+        "description": (
+            "TGI model QC for solid tumor preclinical-to-clinical translation. "
+            "Applies Claret et al. 2009 (J Clin Oncol) OS prediction thresholds: "
+            "TGI < 40% → poor OS prognosis (halt — dose insufficient); "
+            "TGI 40–70% → stable disease (advisory); TGI > 70% → favourable. "
+            "RECIST: best response ≤ −30% (PR) required for advancement advisory. "
+            "Tumor penetration factor < 0.3 triggers spatial heterogeneity advisory."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "tgi_pct_halt":                    40.0,   # < 40% = dose insufficient (halt)
+            "tgi_pct_advisory":                70.0,   # 40–70% = advisory (SD range)
+            "recist_pr_threshold_pct":        -30.0,   # < −30% change = PR
+            "tumor_penetration_min":            0.3,   # < 0.3 = spatial advisory
+            "ttp_days_min":                    60.0,   # TTP < 60 days = progressive disease
+        },
+        "references": [
+            "[GOLD] Claret et al. 2009 J Clin Oncol 27:4103 — TGI→OS relationship",
+            "[SILVER] Simeoni et al. 2004 Cancer Res 64:1094 — TGI ODE model",
+            "[SILVER] RECIST v1.1 (Eisenhauer 2009) — response criteria",
+        ],
+    },
+    "virtual_patient_pta_standard": {
+        "description": (
+            "Virtual patient cohort QC for dose optimization — standard adult population. "
+            "FDA 2019 Population PK Guidance thresholds: PTA (% target attainment) must "
+            "reach ≥ 80% in the general population and ≥ 70% in key special populations "
+            "(renal impaired CrCl < 60, hepatic impaired Child-Pugh B/C, elderly > 65). "
+            "IIV CV > 60% on clearance triggers high-variability advisory — dose "
+            "individualization or TDM may be required per FDA guidance."
+        ),
+        "domain_hint": "pharmacology",
+        "overrides": {
+            "pta_general_population_min":   0.80,   # ≥ 80% general PTA required
+            "pta_special_population_min":   0.70,   # ≥ 70% renal/hepatic/elderly
+            "iiv_cl_cv_max":                0.60,   # > 60% CV = high variability advisory
+            "iiv_vd_cv_max":                0.50,
+            "auc_variability_fold_max":     5.0,    # AUC P95/P5 fold > 5 = dose review
+        },
+        "references": [
+            "[GOLD] FDA 2019 Population PK Guidance (fda.gov)",
+            "[SILVER] Sheiner & Ludden 1992 Clin Pharmacokinet (PopPK principles)",
+            "[SILVER] Brendel et al. 2006 J Pharmacokinet Pharmacodyn (VPC)",
+        ],
+    },
+    "metabolic_flux_dili_strict": {
+        "description": (
+            "Strict DILI metabolic FBA QC for IND-enabling toxicology package. "
+            "Halts if composite DILI score > 0.6 (Aleo et al. 2017 HIGH tier); "
+            "requires mitochondrial liability < 0.5 and steatosis risk < 0.4 per "
+            "FDA DILI guidance. ROS index > 0.5 (significant oxidative stress) "
+            "triggers ICH M7 genotoxicity advisory. ATP impairment > 40% = halt. "
+            "Regulatory basis: FDA 2023 draft DILI guidance; Aleo 2017 benchmark."
+        ),
+        "domain_hint": "drug_discovery",
+        "overrides": {
+            "dili_score_halt":              0.60,   # > 0.6 = HIGH DILI → halt
+            "dili_score_advisory":          0.35,   # 0.35–0.6 = INTERMEDIATE → advisory
+            "mito_liability_max":           0.50,
+            "steatosis_risk_max":           0.40,
+            "cholestasis_risk_max":         0.40,
+            "ros_index_advisory":           0.50,   # > 0.5 = oxidative stress advisory
+            "atp_impairment_pct_halt":     40.0,   # > 40% ATP loss = halt
+        },
+        "references": [
+            "[GOLD] Aleo et al. 2017 Chem Res Toxicol 30:1789 — mitDILI classification",
+            "[SILVER] FDA 2023 draft DILI guidance",
+            "[SILVER] Dykens & Will 2007 Drug Discov Today 12(17):777",
+        ],
+    },
 }
 
 

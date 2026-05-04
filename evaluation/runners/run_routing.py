@@ -30,7 +30,7 @@ from evaluation.adapters import RoutingBenchmarkAdapter
 DOMAINS = [
     "rna_seq", "single_cell", "variant_calling", "epigenomics",
     "metagenomics", "proteomics", "transcriptomics", "genomics",
-    "immunology", "drug_discovery",
+    "immunology", "drug_discovery", "virtual_cell",
 ]
 
 
