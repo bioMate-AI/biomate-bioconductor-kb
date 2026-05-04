@@ -714,7 +714,9 @@ function PhaseGroupSection({
                   aria-checked={autoloopEnabled}
                   data-testid={`autoloop-toggle-${group.key}`}
                 />
-                <span>Auto-loop this phase on fail <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
+                <span
+                  title="When ON: if a QC gate fails, BioMate automatically adjusts parameters and resumes the pipeline (up to 3 times). When OFF: a review card appears so you can approve or reject the suggested fix before continuing."
+                >Auto-loop this phase on fail <span style={{fontFamily:'var(--font-mono)', color:'var(--text-dim)'}}>(max 3×)</span></span>
               </div>
             </div>
           )}
@@ -2167,6 +2169,7 @@ export function NextflowWorkflowViewer({
                 <div>
                   <button
                     type="button"
+                    data-testid="button-toggle-advanced-settings"
                     className={`strip${globalParamsOpen ? ' open' : ''}`}
                     onClick={() => setGlobalParamsOpen(p => !p)}
                     title="Global workflow settings (infrastructure, output, connection parameters)"

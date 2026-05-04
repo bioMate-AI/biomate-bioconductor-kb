@@ -242,9 +242,28 @@ class UnifiedWorkflowSearch:
             'proteomics': 3.0, 'dia': 2.5, 'dda': 2.5, 'mass-spec': 2.0,
             'dia-nn': 3.0, 'maxquant': 2.5,
 
-            # Single-cell
+            # Single-cell — core
             'single-cell': 3.0, 'scrna': 3.0, 'scrnaseq': 3.0,
             'scanpy': 2.5, 'seurat': 2.5, 'cellranger': 2.5,
+            # Single-cell — multimodal instruments
+            'cite-seq': 4.0, 'citeseq': 4.0, 'adt': 3.5, 'totalseq': 4.0,
+            'antibody-derived': 3.5, 'dsb normalization': 4.0, 'dsb normaliz': 3.5,
+            'wnn': 3.0, 'weighted nearest neighbour': 3.5, 'weighted nearest neighbor': 3.5,
+            'multiome': 4.0, 'cell ranger arc': 4.0, 'chromvar': 3.5,
+            'peak-to-gene': 3.5, 'peak to gene': 3.5, 'tf motif': 3.5,
+            'rhapsody': 4.0, 'bd rhapsody': 4.5, 'abseq': 4.0, 'microwell': 3.5,
+            'parse biosciences': 4.5, 'evercode': 4.5, 'split-pool': 4.0,
+            'splitseq': 4.0, 'split seq': 4.0, 'combinatorial barcoding': 4.0,
+            'merfish': 5.0, 'seqfish': 4.5, 'merscope': 5.0, 'vizgen': 5.0,
+            'subcellular': 4.0, 'subcellular resolution': 4.5, 'subcellular rna': 5.0,
+            'molecule detection': 4.0, 'rna molecule': 4.0, 'transcript detection': 3.5,
+            'imaging-based spatial': 4.5, 'image-based spatial': 4.5,
+            'not spot': 4.0, 'not spot-based': 4.5,
+            'cellpose': 3.5, 'baysor': 3.5, 'spatially variable': 3.5,
+            # Doublet detection
+            'doubletfinder': 4.5, 'doublet finder': 4.5, 'scrublet': 4.5,
+            'doublet detection': 4.0, 'doublet removal': 4.0, 'doublets': 3.5,
+            'multiplet': 3.5, 'cell multiplet': 4.0, 'pann score': 4.0,
 
             # Methylation
             'methylation': 3.0, 'bisulfite': 2.5, 'methylseq': 3.0,
@@ -788,6 +807,13 @@ class UnifiedWorkflowSearch:
         'atacseq': ['atac', 'seq', 'chromatin', 'accessibility'],
         'scrna': ['single', 'cell', 'rna'],
         'scrnaseq': ['single', 'cell', 'rna', 'seq'],
+        'cite': ['cite', 'seq', 'antibody', 'adt'],  # CITE-seq
+        'adt': ['antibody', 'derived', 'tag', 'cite', 'seq'],
+        'wnn': ['weighted', 'nearest', 'neighbour', 'multimodal'],
+        'dsb': ['dsb', 'normalization', 'adt', 'background'],
+        'merfish': ['merfish', 'spatial', 'transcriptomics', 'imaging'],
+        'codex': ['codex', 'spatial', 'protein', 'imaging'],
+        'tbi': ['total', 'based', 'imaging'],  # image-based spatial
         'bwa': ['bwa', 'alignment', 'mapping'],
         'bowtie': ['bowtie', 'alignment', 'mapping'],
         'star': ['star', 'alignment', 'spliced'],

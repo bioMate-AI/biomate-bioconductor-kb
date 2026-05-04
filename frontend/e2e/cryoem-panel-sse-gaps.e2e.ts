@@ -117,7 +117,7 @@ async function assertLiveRun(page: Page): Promise<boolean> {
 }
 
 async function openWorkflowSettings(page: Page): Promise<void> {
-  const strip = page.locator('button.strip:has-text("Workflow settings"), button:has-text("Workflow settings")').first();
+  const strip = page.locator('[data-testid="button-toggle-advanced-settings"]').first();
   if (!await strip.isVisible({ timeout: 5000 }).catch(() => false)) return;
   const isOpen = await strip.evaluate(el => el.classList.contains("open")).catch(() => false);
   if (!isOpen) { await strip.click(); await page.waitForTimeout(600); }
@@ -219,6 +219,23 @@ async function getWorkflowCardAndRun(page: Page): Promise<string | null> {
     if (attr && attr !== '') runId = attr;
   }
   console.log("[GAP] final invocationId:", runId);
+
+  // Wait for viewer's EventSource to establish for this invocationId.
+  // Without this, SSE events injected immediately after run-start race against the connection.
+  if (runId) {
+    await page.waitForFunction(
+      (id: string) => {
+        // Check overall status badge — once it updates from idle/pending, SSE is live
+        const badge = document.querySelector('[data-testid="workflow-overall-status-badge"]');
+        const status = badge?.getAttribute('data-status') ?? '';
+        return status !== '' && status !== 'idle';
+      },
+      runId,
+      { timeout: 15_000 }
+    ).catch(() => {}); // non-fatal: continue even if SSE takes longer
+    await page.waitForTimeout(1000); // small buffer after status changes
+  }
+
   return runId;
 }
 

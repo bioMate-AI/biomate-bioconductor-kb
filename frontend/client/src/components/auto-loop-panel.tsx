@@ -290,7 +290,7 @@ export function AutoLoopPanel({ state, onDismiss, onAccept, currentParams }: Aut
 
       <CardContent className="pt-0 space-y-3">
         {/* Gate results table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" data-testid="autoloop-gate-table">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-blue-200 dark:border-blue-800">
@@ -323,7 +323,7 @@ export function AutoLoopPanel({ state, onDismiss, onAccept, currentParams }: Aut
 
         {/* Phase outcome banner */}
         {complete && complete.outcome === "pass" && (
-          <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm">
+          <div data-testid="autoloop-phase-complete-banner" className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>Phase passed ({complete.level ?? gateResults.overall_level})</span>
           </div>
@@ -353,7 +353,7 @@ export function AutoLoopPanel({ state, onDismiss, onAccept, currentParams }: Aut
 
         {/* Remediation suggestions */}
         {remediations.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-2" data-testid="autoloop-remediation-card">
             <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
               Suggested parameter adjustments for next run:
             </p>
