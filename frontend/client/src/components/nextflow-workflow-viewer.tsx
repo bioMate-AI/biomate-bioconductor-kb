@@ -890,6 +890,9 @@ export function NextflowWorkflowViewer({
   });
   // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
   const [autoloopMap, setAutoloopMap] = useState<Record<string, boolean>>({});
+  // Ref mirrors state so SSE event handlers always read the latest value (avoids stale closure)
+  const autoloopMapRef = React.useRef<Record<string, boolean>>({});
+  React.useEffect(() => { autoloopMapRef.current = autoloopMap; }, [autoloopMap]);
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   // Billing usage meter
@@ -1606,7 +1609,7 @@ export function NextflowWorkflowViewer({
         // Auto-loop ON → apply suggestions automatically using Nextflow -resume, no card shown.
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
-        const autoloopOn = autoloopMap[phaseKey] !== false;
+        const autoloopOn = autoloopMapRef.current[phaseKey] !== false;
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
