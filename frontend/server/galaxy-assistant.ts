@@ -52,11 +52,19 @@ const BIOMATE_TOOLS: Anthropic.Tool[] = [
   {
     name: 'run_code',
     description: `Execute Python, R, or bash code on the user's uploaded datasets.
-Use this for: filtering/subsetting data, format conversion, basic statistics,
-generating plots, exploring file contents, counting rows/records, or any ad-hoc computation.
-Input datasets are staged at $DATA_DIR/<dataset_id>/dataset (use os.environ['DATA_DIR'] in Python).
-Write output files to $OUTPUT_DIR (use os.environ['OUTPUT_DIR']) — they will be shown to the user.
-Prefer Python for data manipulation, R for statistical analysis.`,
+Use this for: filtering/subsetting data, format conversion, statistics, generating plots,
+exploring file contents, counting rows/records, parsing ZIP/archive files, or any ad-hoc computation.
+
+File access: Input datasets are staged at $DATA_DIR/<galaxy_dataset_id>/<original_filename>.
+The preamble comment in your script shows the exact path for each dataset.
+Example — if scogs_fungi.zip was uploaded with galaxy_dataset_id=abc123:
+  import os, zipfile
+  zp = os.path.join(os.environ['DATA_DIR'], 'abc123', 'scogs_fungi.zip')
+  with zipfile.ZipFile(zp) as z: ...
+
+Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
+Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
+Default timeout: 30s. For complex analysis (parsing large ZIPs, running DESeq2), set timeout_seconds=120.`,
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -5189,11 +5197,28 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
       };
     };
 
+    // Resolve filenames for each dataset ID from Galaxy metadata, so staged files
+    // keep their original names (e.g. scogs_fungi.zip not just "dataset")
+    const rawIds: string[] = input.input_datasets ?? [];
+    const datasetRefs = await Promise.all(rawIds.map(async (id: string) => {
+      try {
+        const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (meta.ok) {
+          const data = await meta.json() as any;
+          const filename = data?.name || data?.file_name || data?.metadata_dbkey || id;
+          return { id, filename: String(filename) };
+        }
+      } catch { /* fall through */ }
+      return { id, filename: id };
+    }));
+
     return runCode({
       language: input.language,
       code: input.code,
-      input_datasets: input.input_datasets ?? [],
-      timeout_seconds: input.timeout_seconds ?? 15,
+      input_datasets: datasetRefs,
+      timeout_seconds: input.timeout_seconds ?? 30,
       downloadDataset,
     });
   }

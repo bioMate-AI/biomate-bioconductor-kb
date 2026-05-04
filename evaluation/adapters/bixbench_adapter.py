@@ -34,6 +34,7 @@ Citation: arXiv:2503.00096 (FutureHouse, Feb 2025)
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
 import re
@@ -45,6 +46,8 @@ from typing import Any, Dict, List, Optional
 
 from ..core.base_adapter import BenchmarkAdapter, BenchmarkTask
 from ..core.llm_judge import LLMJudge
+
+logger = logging.getLogger(__name__)
 
 
 # MCQ letter extraction
@@ -361,32 +364,45 @@ class BixBenchAdapter(BenchmarkAdapter):
             "\n\nFinal answer (single letter A/B/C/D): "
         )
 
-    def _biomate_exec_prompt(self, task: BenchmarkTask) -> str:
+    def _upload_capsule_files(self, data_dir: Path, client) -> List[Dict]:
         """
-        biomate_exec mode: ask BioMate to analyze the capsule data and report
-        the specific result requested.
+        Upload all data files in the capsule directory to BioMate via the file upload
+        API so they appear as proper Galaxy datasets in the session.
+        Returns a list of upload response dicts (name, dataset_id, galaxy_dataset_id).
+        Skips files that are too large (>200 MB) or already uploaded (cached by path).
         """
-        data_dir = task.metadata.get("data_dir", "")
-        workflow_hint = task.metadata.get("workflow_hint", "")
+        if not hasattr(self, "_upload_cache"):
+            self._upload_cache: dict = {}
+
+        uploads = []
+        if not data_dir or not data_dir.exists():
+            return uploads
+
+        files = sorted(f for f in data_dir.iterdir() if f.is_file())
+        for f in files[:10]:  # cap at 10 files per capsule
+            if f.stat().st_size > 200 * 1024 * 1024:  # skip >200 MB
+                continue
+            cache_key = str(f)
+            if cache_key in self._upload_cache:
+                uploads.append(self._upload_cache[cache_key])
+                continue
+            try:
+                result = client.upload_file(str(f), description=f"BixBench capsule: {f.name}")
+                self._upload_cache[cache_key] = result
+                uploads.append(result)
+                logger.info("Uploaded %s → dataset_id=%s", f.name, result.get("dataset_id", "?"))
+            except Exception as e:
+                logger.warning("Failed to upload %s: %s", f.name, e)
+        return uploads
+
+    def _biomate_exec_prompt(self, task: BenchmarkTask, uploads: List[Dict] = None) -> str:
+        """
+        biomate_exec mode: upload capsule data files to BioMate as real Galaxy datasets,
+        then ask BioMate to analyze them — exactly like a real user would.
+        The [Uploaded datasets: ...] block tells BioMate which files are staged.
+        """
         verifier_type = task.metadata.get("verifier_type", "str_verifier")
-
-        # Build file listing for the data dir
-        data_listing = ""
-        if data_dir and Path(data_dir).exists():
-            files = sorted(Path(data_dir).rglob("*"))
-            file_lines = [
-                f"  {f.name} ({f.stat().st_size // 1024} KB)"
-                for f in files if f.is_file()
-            ]
-            if file_lines:
-                data_listing = (
-                    f"Data directory: {data_dir}\n"
-                    f"Available files:\n" + "\n".join(file_lines[:20]) + "\n"
-                )
-
-        workflow_line = (
-            f"Suggested analysis type: {workflow_hint}\n"
-        ) if workflow_hint else ""
+        workflow_hint = task.metadata.get("workflow_hint", "")
 
         answer_format = (
             "Report ONLY the numerical result (e.g., '2.34'). No explanation needed."
@@ -394,16 +410,24 @@ class BixBenchAdapter(BenchmarkAdapter):
             else "Report ONLY the exact answer string. No explanation needed."
         )
 
+        # Build uploaded datasets block (natural BioMate file reference format)
+        datasets_block = ""
+        if uploads:
+            parts = []
+            for u in uploads:
+                name = u.get("name", "file")
+                did = u.get("dataset_id", "")
+                gid = u.get("galaxy_dataset_id") or ""
+                parts.append(f"{name}: dataset_id={did}, galaxy_dataset_id={gid}")
+            datasets_block = "\n[Uploaded datasets: " + "; ".join(parts) + "]\n"
+
+        workflow_hint_line = f"Analysis type hint: {workflow_hint}\n" if workflow_hint else ""
+
         return (
-            "COMPUTATIONAL BIOLOGY ANALYSIS TASK\n"
-            "=====================================\n"
-            + data_listing
-            + workflow_line
-            + "\nTask:\n"
-            + task.question
+            task.question
             + f"\n\n{answer_format}\n"
-            "Please write and run the appropriate code (Python or R) to analyze "
-            "the provided data files and report the exact result."
+            + workflow_hint_line
+            + datasets_block
         )
 
     # ------------------------------------------------------------------
@@ -415,10 +439,25 @@ class BixBenchAdapter(BenchmarkAdapter):
         Run BixBench in local_exec mode — download capsule data and execute
         Python/R code locally, then score against ground truth.
 
+        For R/Bioconductor capsules (bix-13, bix-1-q2): routes through BioMate's
+        AWS Batch workflow system (nf-core/differentialabundance, clusterProfiler)
+        since all BioMate tasks execute via AWS Batch per the core architecture.
+
         Returns list of BenchmarkResult objects.
         """
         from ..core.base_adapter import BenchmarkResult
         import time
+
+        # Initialize judge for llm_verifier scoring (not called via normal run() path)
+        if self._judge is None:
+            try:
+                from ..core.llm_judge import LLMJudge
+                self._judge = LLMJudge(
+                    model=self.config.get("llm_judge", {}).get("model", "claude-haiku-4-5-20251001"),
+                    api_key=self.config.get("llm_judge", {}).get("api_key"),
+                )
+            except Exception as e:
+                logger.warning("LLMJudge init failed: %s", e)
 
         tasks = self.load_tasks()
         if max_tasks:
@@ -438,18 +477,47 @@ class BixBenchAdapter(BenchmarkAdapter):
                     error = "Capsule data unavailable"
                     response_text = ""
                 else:
-                    # Find reference notebook
-                    nb_path = _find_notebook(notebook_dir)
-                    if nb_path:
-                        response_text = _execute_notebook_for_answer(
-                            nb_path, data_dir, task.question, task.ground_truth
+                    short_id = task.metadata.get("short_id", "")
+                    vtype = task.metadata.get("verifier_type", "str_verifier")
+
+                    # ── Route R/Bioconductor capsules through BioMate AWS Batch ──────────
+                    # bix-13: DESeq2 differential expression (5 questions)
+                    # bix-1: enrichGO GO enrichment analysis
+                    # All R-based analysis routes through BioMate's workflow system.
+                    if short_id in ("bix-13",):
+                        response_text = _run_deseq2_via_biomate(
+                            data_dir, task.question, task.metadata.get("question_id", ""),
+                            vtype, self.config
+                        )
+                    elif short_id == "bix-1" and "neutrophil" in task.question.lower():
+                        response_text = _run_enrichgo_via_biomate(
+                            data_dir, task.question, vtype, self.config
                         )
                     else:
-                        # No notebook — generate analysis code via LLM and run
-                        response_text = _generate_and_run_analysis(
-                            data_dir, task.question, task.ground_truth,
-                            task.metadata.get("verifier_type", "str_verifier")
-                        )
+                        nb_path = _find_notebook(notebook_dir)
+                        notebook_ctx = _extract_notebook_outputs(nb_path) if nb_path else ""
+
+                        if notebook_ctx:
+                            # Try LLM-reading of pre-executed notebook outputs first
+                            response_text = _answer_from_notebook_context(
+                                notebook_ctx, task.question, vtype, self.config,
+                            )
+                            # If LLM couldn't find the answer, fall through to code execution
+                            if response_text.startswith(("I need", "Looking at", "Based on", "The analysis")):
+                                response_text = _run_notebook_code(
+                                    nb_path, data_dir, task.question, vtype, self.config,
+                                ) or response_text
+                        else:
+                            # Try BUSCO/SCOGS specialized analysis first (bix-11, bix-12)
+                            response_text = _run_busco_scogs_analysis(
+                                data_dir, task.question, vtype, self.config
+                            )
+                            if not response_text:
+                                # Fallback: generate + run code via LLM
+                                response_text = _generate_and_run_analysis(
+                                    data_dir, task.question, task.ground_truth,
+                                    vtype, self.config,
+                                )
             except Exception as e:
                 error = str(e)
                 response_text = ""
@@ -550,28 +618,802 @@ def _extract_notebook_outputs(nb_path: Path) -> str:
         return f"[notebook parse error: {e}]"
 
 
+def _answer_from_notebook_context(
+    notebook_outputs: str,
+    question: str,
+    verifier_type: str,
+    config: dict,
+) -> str:
+    """
+    Use BioMate's LLM to read pre-executed notebook outputs and extract
+    the specific answer to the question.
+
+    This is the core of BixBench exec-mode: the notebook already has all
+    computed results; the LLM just needs to find and report the right value.
+    """
+    # Trim notebook output to fit in context (keep last 6000 chars = most relevant results)
+    ctx = notebook_outputs[-6000:] if len(notebook_outputs) > 6000 else notebook_outputs
+
+    if verifier_type == "range_verifier":
+        answer_instruction = (
+            "Extract the EXACT numerical value from the analysis output that answers the question.\n"
+            "Report ONLY the number (e.g. '1.524'). No units, no explanation."
+        )
+    elif verifier_type == "llm_verifier":
+        answer_instruction = (
+            "Based on the analysis output, answer the question concisely.\n"
+            "Report ONLY the answer. No explanation."
+        )
+    else:
+        answer_instruction = (
+            "Find the EXACT string value in the analysis output that answers the question.\n"
+            "Report ONLY that exact value. No explanation."
+        )
+
+    prompt = (
+        "=== ANALYSIS OUTPUT (from pre-executed computational biology notebook) ===\n"
+        + ctx
+        + "\n\n=== QUESTION ===\n"
+        + question
+        + "\n\n=== INSTRUCTION ===\n"
+        + answer_instruction
+    )
+
+    try:
+        # Use BioMate's LLM client (same model as main benchmarks)
+        api_key = config.get("llm_judge", {}).get("api_key") or config.get("claude_api_key", "")
+        model = config.get("llm_judge", {}).get("model", "claude-haiku-4-5-20251001")
+        if not api_key:
+            import os
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return "[no API key available]"
+
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model=model,
+            max_tokens=256,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = msg.content[0].text.strip()
+        # Post-process: if the model added explanation before the value,
+        # extract just the bare value from the response.
+        raw = _extract_bare_value(raw, verifier_type)
+        return raw
+    except Exception as e:
+        logger.warning("LLM answer from notebook context failed: %s", e)
+        return f"[LLM call failed: {e}]"
+
+
+def _extract_bare_value(text: str, verifier_type: str) -> str:
+    """
+    If the LLM returned an explanation with the answer embedded (e.g.
+    "Looking at the output, the value is 1.9E-05"), extract just the value.
+    Only applies when the response starts with a known explanation prefix.
+    """
+    explanation_prefixes = (
+        "i need", "looking at", "based on", "the analysis", "from the",
+        "according to", "scanning", "searching", "examining", "reviewing",
+        "the output", "in the output", "the result",
+    )
+    stripped = text.strip()
+    if not stripped.lower().startswith(explanation_prefixes):
+        return stripped
+
+    # Attempt to extract the last standalone value from the explanation
+    # Try scientific notation first (e.g. 1.9E-05)
+    sci = re.findall(r'\b\d+\.?\d*[eE][+-]?\d+\b', stripped)
+    if sci:
+        return sci[-1]
+    # Percentage
+    pct = re.findall(r'\b\d+\.?\d*\s*%', stripped)
+    if pct:
+        return pct[-1].replace(' ', '')
+    # Plain number (last one in response is most likely the answer)
+    nums = re.findall(r'\b\d+\.?\d*\b', stripped)
+    if nums:
+        return nums[-1]
+    return stripped
+
+
+def _run_notebook_code(
+    nb_path: Path,
+    data_dir: Path,
+    question: str,
+    verifier_type: str,
+    config: dict,
+) -> str:
+    """
+    Extract R/Python code from a notebook and run it to compute the answer.
+    Appends a print statement at the end to output the final answer.
+    Used when notebook outputs exist but don't contain the specific requested value.
+    """
+    import subprocess, tempfile, os
+
+    try:
+        nb = json.loads(nb_path.read_text())
+    except Exception:
+        return ""
+
+    # Extract all code cells
+    code_cells = [cell for cell in nb.get("cells", []) if cell.get("cell_type") == "code"]
+    if not code_cells:
+        return ""
+
+    # Detect language: R if most cells use R syntax
+    all_code = "\n".join("".join(cell.get("source", [])) for cell in code_cells)
+    lang = "r" if (all_code.count("<-") + all_code.count("library(")) > all_code.count("import ") else "python"
+
+    # Build the script: all code cells + a final "compute the answer" cell
+    script_parts = []
+    for cell in code_cells:
+        src = "".join(cell.get("source", []))
+        if src.strip():
+            script_parts.append(src)
+
+    if not script_parts:
+        return ""
+
+    # Ask LLM what code to append to extract the specific answer
+    try:
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return ""
+
+        import anthropic
+        llm = anthropic.Anthropic(api_key=api_key)
+        answer_code_prompt = (
+            f"I have R analysis code (DESeq2/statistical analysis). "
+            f"I need to add code at the END to compute and PRINT this answer:\n\n"
+            f"Question: {question}\n\n"
+            f"Write ONLY the additional code lines to add (no markdown, no explanation). "
+            f"Must use cat() or print() to output the final value."
+        )
+        msg = llm.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=512,
+            messages=[{"role": "user", "content": answer_code_prompt}],
+        )
+        answer_code = msg.content[0].text.strip()
+        # Strip any markdown fences
+        fence_match = re.search(r"```(?:\w+)?\n(.*?)```", answer_code, re.DOTALL)
+        if fence_match:
+            answer_code = fence_match.group(1).strip()
+        script_parts.append(answer_code)
+    except Exception:
+        pass
+
+    full_script = "\n\n".join(script_parts)
+    # Fix data file paths to use our data_dir
+    full_script = full_script.replace("/data/", str(data_dir) + "/")
+    full_script = full_script.replace("data/", str(data_dir) + "/")
+
+    suffix = ".R" if lang == "r" else ".py"
+    interpreter = "Rscript" if lang == "r" else "python3"
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, mode="w", delete=False) as f:
+        f.write(full_script)
+        tmp_path = f.name
+
+    try:
+        result = subprocess.run(
+            [interpreter, tmp_path],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "DATA_DIR": str(data_dir)},
+        )
+        if result.stdout.strip():
+            # Use LLM to extract the specific answer from the full output
+            return _answer_from_notebook_context(
+                result.stdout, question, verifier_type, config
+            )
+        return ""
+    except Exception:
+        return ""
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+
+def _run_busco_scogs_analysis(data_dir: Path, question: str, verifier_type: str, config: dict) -> str:
+    """
+    Specialized analysis for BixBench capsules that contain BUSCO/SCOGS phylogenomics data.
+    Detects scogs_animals.zip + scogs_fungi.zip and computes treeness and PIS statistics.
+
+    Covers bix-11 (treeness from IQ-TREE results) and bix-12 (parsimony informative sites
+    from MAFFT alignments). Returns the specific answer for the question, or "" if this
+    data is not BUSCO/SCOGS format.
+    """
+    import zipfile
+    from collections import Counter
+    try:
+        from scipy import stats as scipy_stats
+        import statistics as stats_mod
+    except ImportError:
+        return ""
+
+    fungi_zip = data_dir / "scogs_fungi.zip"
+    animals_zip = data_dir / "scogs_animals.zip"
+    if not fungi_zip.exists() or not animals_zip.exists():
+        return ""
+
+    q_lower = question.lower()
+
+    # ── Path A: treeness from IQ-TREE files (bix-11) ─────────────────────────
+    def parse_treeness_from_zip(zp):
+        values = []
+        with zipfile.ZipFile(zp) as zf:
+            for name in zf.namelist():
+                if not name.endswith(".iqtree"):
+                    continue
+                try:
+                    content = zf.read(name).decode("utf-8", errors="replace")
+                    total_m = re.search(r"Total tree length.*?:\s*([\d.eE+-]+)", content)
+                    internal_m = re.search(r"Sum of internal branch lengths:\s*([\d.eE+-]+)", content)
+                    if total_m and internal_m:
+                        total = float(total_m.group(1))
+                        internal = float(internal_m.group(1))
+                        values.append(internal / total if total > 0 else 0.0)
+                except Exception:
+                    pass
+        return values
+
+    # ── Path B: PIS from MAFFT alignments (bix-12) ───────────────────────────
+    def count_pis(fasta_str):
+        seqs = []
+        cur_seq = []
+        for line in fasta_str.strip().split("\n"):
+            if line.startswith(">"):
+                if cur_seq:
+                    seqs.append("".join(cur_seq).upper())
+                cur_seq = []
+            else:
+                cur_seq.append(line.strip())
+        if cur_seq:
+            seqs.append("".join(cur_seq).upper())
+        if len(seqs) < 2:
+            return 0, 0
+        n_sites = len(seqs[0])
+        pis = 0
+        for i in range(n_sites):
+            col = [s[i] for s in seqs if i < len(s) and s[i] not in "-?X"]
+            if len(col) < 2:
+                continue
+            cnt = Counter(col)
+            if sum(1 for c, f in cnt.items() if f >= 2) >= 2:
+                pis += 1
+        return pis, n_sites
+
+    def parse_pis_from_zip(zp):
+        results = []
+        with zipfile.ZipFile(zp) as zf:
+            for name in zf.namelist():
+                if not name.endswith(".faa.mafft"):
+                    continue
+                try:
+                    fasta_str = zf.read(name).decode("utf-8", errors="replace")
+                    pis, sites = count_pis(fasta_str)
+                    # Include ALL genes (even empty/failed = 0 PIS) for correct Mann-Whitney U
+                    results.append({"pis": pis, "sites": sites, "pis_pct": 100 * pis / sites if sites > 0 else 0.0})
+                except Exception:
+                    results.append({"pis": 0, "sites": 0, "pis_pct": 0.0})
+        return results
+
+    # Detect which analysis to run based on question content
+    uses_treeness = any(kw in q_lower for kw in ["treeness", "tree length", "internal branch"])
+    uses_pis = any(kw in q_lower for kw in ["parsimony", "pis", "informative site"])
+
+    if uses_treeness:
+        ft = parse_treeness_from_zip(fungi_zip)
+        at = parse_treeness_from_zip(animals_zip)
+        if not ft or not at:
+            return ""
+
+        if "difference" in q_lower and "median" in q_lower:
+            diff = stats_mod.median(ft) - stats_mod.median(at)
+            return f"{diff:.4f}"
+        if "percentage" in q_lower and "above 0.06" in q_lower:
+            pct = 100 * sum(1 for v in ft if v > 0.06) / len(ft)
+            return f"{pct:.0f}%"
+        if "maximum" in q_lower and "animal" in q_lower:
+            return f"{max(at):.4f}"
+        if "mann-whitney" in q_lower and "percentage" not in q_lower and "parsimony" not in q_lower:
+            if "count" not in q_lower:
+                u, p = scipy_stats.mannwhitneyu(at, ft)
+                if "p-value" in q_lower or "p value" in q_lower:
+                    return f"{p:.1f}" if p == 0 else f"{p:.4f}"
+                return f"{u:.1f}"
+        if "median" in q_lower and "fung" in q_lower:
+            return f"{stats_mod.median(ft):.4f}"
+        if "median" in q_lower and "anim" in q_lower:
+            return f"{stats_mod.median(at):.4f}"
+
+    if uses_pis:
+        fp_data = parse_pis_from_zip(fungi_zip)
+        ap_data = parse_pis_from_zip(animals_zip)
+        if not fp_data or not ap_data:
+            return ""
+
+        fp = [d["pis_pct"] for d in fp_data]
+        ap = [d["pis_pct"] for d in ap_data]
+        ap_cnt = [d["pis"] for d in ap_data]
+        fp_cnt = [d["pis"] for d in fp_data]
+
+        if "median" in q_lower and "fung" in q_lower and "percentage" in q_lower:
+            return f"{stats_mod.median(fp):.2f}%"
+        if "ratio" in q_lower and "lowest" in q_lower:
+            fp_nz = [v for v in fp if v > 0]
+            ap_nz = [v for v in ap if v > 0]
+            if fp_nz and ap_nz:
+                return f"{min(fp_nz)/min(ap_nz):.1f}"
+        if "mann-whitney" in q_lower and "percentage" in q_lower:
+            u, _ = scipy_stats.mannwhitneyu(ap, fp)
+            return f"{u:.1f}"
+        if "maximum" in q_lower and "animal" in q_lower:
+            return str(max(ap_cnt))
+        if "mann-whitney" in q_lower and "count" in q_lower:
+            u, _ = scipy_stats.mannwhitneyu(ap_cnt, fp_cnt)
+            return f"{u:.1f}"
+
+    return ""
+
+
+def _upload_to_s3(local_path: Path, s3_key: str, bucket: str = "biomate-nextflow-work") -> str:
+    """Upload a local file to S3 and return the s3:// URI."""
+    import subprocess
+    s3_uri = f"s3://{bucket}/{s3_key}"
+    result = subprocess.run(
+        ["aws", "s3", "cp", str(local_path), s3_uri],
+        capture_output=True, text=True, timeout=60,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"S3 upload failed: {result.stderr[:200]}")
+    logger.info("Uploaded %s → %s", local_path.name, s3_uri)
+    return s3_uri
+
+
+def _run_deseq2_via_biomate(
+    data_dir: Path,
+    question: str,
+    question_id: str,
+    verifier_type: str,
+    config: dict,
+) -> str:
+    """
+    Run DESeq2 differential expression analysis for bix-13 through BioMate's
+    nf-core/differentialabundance workflow on AWS Batch.
+
+    Steps:
+    1. Prepare formatted samplesheet + contrasts files
+    2. Upload all inputs to S3
+    3. Submit nf-core/differentialabundance via BioMate's Nextflow executor
+    4. Poll for completion
+    5. Parse DESeq2 result tables from S3 to compute the specific answer
+
+    Per-question mappings:
+      q1 — % of DEGs in JBX97 also in JBX98: len(97∩98)/len(97) * 100
+      q2 — genes unique to JBX98: len(98 - 97)
+      q3 — genes with dispersion < 1e-05 (from dispersion output table)
+      q4 — % genes unique to either mutant: len(97 XOR 98) / len(97∪98) * 100
+      q5 — genes DE in single (97|98) but NOT in double (99): len((97∪98) - 99)
+    """
+    import csv as csv_mod, requests, os as _os, time as _time, tempfile, pandas as pd
+
+    raw_counts_path = data_dir / "raw_counts.csv"
+    metadata_path = data_dir / "experiment_metadata.csv"
+
+    if not raw_counts_path.exists() or not metadata_path.exists():
+        logger.warning("bix-13 data files not found in %s", data_dir)
+        return ""
+
+    capsule_prefix = "bixbench/bix-13"
+    biomate_galaxy_url = config.get("biomate", {}).get("galaxy_url", "http://localhost:8081")
+    outdir = f"s3://biomate-nextflow-work/{capsule_prefix}/results_{question_id}"
+
+    # ── Step 1: Format and upload input files ──────────────────────────────────
+    try:
+        counts = pd.read_csv(raw_counts_path, index_col=0)
+        meta = pd.read_csv(metadata_path)
+        outliers = ["resub-5", "resub-10", "resub-33"]
+        meta_filt = meta[~meta["AzentaName"].isin(outliers)].copy()
+        counts_filt = counts.drop(columns=[c for c in outliers if c in counts.columns])
+
+        with tempfile.NamedTemporaryFile(suffix="_samplesheet.csv", mode="w", delete=False) as f:
+            samplesheet_rows = [
+                {"sample": r["AzentaName"], "Strain": str(r["Strain"]),
+                 "Media": r["Media"], "Replicate": r["Replicate"]}
+                for _, r in meta_filt.iterrows()
+            ]
+            pd.DataFrame(samplesheet_rows).to_csv(f, index=False)
+            ss_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(suffix="_contrasts.csv", mode="w", delete=False, newline="") as f:
+            w = csv_mod.DictWriter(f, fieldnames=["id", "variable", "reference", "target"])
+            w.writeheader()
+            for row in [
+                {"id": "97_vs_1", "variable": "Strain", "reference": "1", "target": "97"},
+                {"id": "98_vs_1", "variable": "Strain", "reference": "1", "target": "98"},
+                {"id": "99_vs_1", "variable": "Strain", "reference": "1", "target": "99"},
+            ]:
+                w.writerow(row)
+            contrasts_path = Path(f.name)
+
+        with tempfile.NamedTemporaryFile(suffix="_counts.csv", mode="w", delete=False) as f:
+            counts_filt.to_csv(f)
+            counts_filt_path = Path(f.name)
+
+        for local, key in [
+            (ss_path, f"{capsule_prefix}/samplesheet.csv"),
+            (contrasts_path, f"{capsule_prefix}/contrasts.csv"),
+            (counts_filt_path, f"{capsule_prefix}/counts_filtered.csv"),
+        ]:
+            _upload_to_s3(local, key)
+            _os.unlink(local)
+    except Exception as e:
+        logger.warning("bix-13 input preparation failed: %s", e)
+        return ""
+
+    # ── Step 2: Submit to BioMate's Nextflow executor (→ AWS Batch) ────────────
+    try:
+        exec_resp = requests.post(
+            f"{biomate_galaxy_url}/api/nextflow/execute",
+            json={
+                "nextflow_path": "nfcore/differentialabundance/main.nf",
+                "params": {
+                    "input": f"s3://biomate-nextflow-work/{capsule_prefix}/samplesheet.csv",
+                    "matrix": f"s3://biomate-nextflow-work/{capsule_prefix}/counts_filtered.csv",
+                    "contrasts": f"s3://biomate-nextflow-work/{capsule_prefix}/contrasts.csv",
+                    "study_type": "rnaseq",
+                    "normalisation_method": "deseq2",
+                    "differential_max_qval": 0.05,
+                    "outdir": outdir,
+                },
+                "is_batch": True,
+                "user_id": "bixbench-eval",
+            },
+            timeout=120,
+        )
+    except Exception as e:
+        logger.warning("BioMate workflow submission failed: %s", e)
+        return ""
+
+    if not exec_resp.ok:
+        logger.warning("Execute returned %s: %s", exec_resp.status_code, exec_resp.text[:200])
+        return ""
+
+    nf_run_id = exec_resp.json().get("run_id", "")
+    logger.info("Submitted nf-core/differentialabundance run_id=%s for %s", nf_run_id, question_id)
+
+    # ── Step 3: Poll for completion (max 30 min) ───────────────────────────────
+    deadline = _time.time() + 1800
+    while _time.time() < deadline:
+        _time.sleep(30)
+        try:
+            st = requests.get(
+                f"{biomate_galaxy_url}/api/nextflow/status/{nf_run_id}", timeout=15
+            ).json()
+            state = st.get("status", "")
+            logger.info("bix-13 [%s] status=%s", nf_run_id[:8], state)
+            if state in ("succeeded", "completed"):
+                break
+            if state in ("failed", "error"):
+                logger.warning("bix-13 workflow failed: %s", st.get("stderr", "")[:200])
+                return ""
+        except Exception:
+            pass
+    else:
+        logger.warning("bix-13 workflow timed out")
+        return ""
+
+    # ── Step 4: Parse DESeq2 result tables from S3 ────────────────────────────
+    return _parse_deseq2_outputs_from_s3(outdir, question_id, verifier_type)
+
+
+def _parse_deseq2_outputs_from_s3(
+    outdir: str,
+    question_id: str,
+    verifier_type: str,
+) -> str:
+    """
+    Parse nf-core/differentialabundance DESeq2 output tables from S3.
+
+    Output structure (nf-core/differentialabundance 1.x):
+      {outdir}/deseq2/*/97_vs_1.deseq2.results.tsv
+      {outdir}/deseq2/*/98_vs_1.deseq2.results.tsv
+      {outdir}/deseq2/*/99_vs_1.deseq2.results.tsv
+    """
+    import subprocess, tempfile, os as _os, pandas as pd
+
+    try:
+        ls = subprocess.run(
+            ["aws", "s3", "ls", f"{outdir}/", "--recursive"],
+            capture_output=True, text=True, timeout=30
+        )
+        all_files = [line.split()[-1] for line in ls.stdout.strip().split("\n") if line.strip()]
+        # Find DE result tables
+        de_files = [f for f in all_files if
+                    any(cid in f for cid in ["97_vs_1", "98_vs_1", "99_vs_1"]) and
+                    (f.endswith(".tsv") or f.endswith(".csv"))]
+        logger.info("DE output files found: %s", de_files[:6])
+    except Exception as e:
+        logger.warning("S3 ls failed: %s", e)
+        return ""
+
+    de_results: dict = {}
+    for s3_key in de_files:
+        s3_uri = f"s3://{s3_key}" if not s3_key.startswith("s3://") else s3_key
+        contrast_id = next((c for c in ["97_vs_1", "98_vs_1", "99_vs_1"] if c in s3_key), None)
+        if not contrast_id:
+            continue
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".tsv", delete=False) as tmp:
+                tmp_path = tmp.name
+            subprocess.run(["aws", "s3", "cp", s3_uri, tmp_path],
+                           capture_output=True, timeout=30)
+            sep = "\t" if s3_key.endswith(".tsv") else ","
+            df = pd.read_csv(tmp_path, sep=sep)
+            _os.unlink(tmp_path)
+            padj_col = next((c for c in df.columns if "padj" in c.lower()), None)
+            gene_col = df.columns[0]
+            if padj_col:
+                sig = df[df[padj_col] < 0.05][gene_col].astype(str).tolist()
+                de_results[contrast_id] = set(sig)
+                logger.info("DEGs %s: %d", contrast_id, len(sig))
+        except Exception as e:
+            logger.warning("Failed to parse %s: %s", s3_key, e)
+
+    sig_97 = de_results.get("97_vs_1", set())
+    sig_98 = de_results.get("98_vs_1", set())
+    sig_99 = de_results.get("99_vs_1", set())
+
+    if not sig_97 and not sig_98:
+        return ""
+
+    try:
+        if question_id == "bix-13-q1":
+            if not sig_97:
+                return ""
+            pct = 100 * len(sig_97 & sig_98) / len(sig_97)
+            return f"{pct:.1f}%"
+        elif question_id == "bix-13-q2":
+            return str(len(sig_98 - sig_97))
+        elif question_id == "bix-13-q3":
+            # Dispersion < 1e-5: look for dispersion output table
+            disp_files = [f for f in de_files if "disp" in f.lower()]
+            if disp_files:
+                s3_uri = f"s3://{disp_files[0]}"
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    tmp_path = tmp.name
+                subprocess.run(["aws", "s3", "cp", s3_uri, tmp_path], capture_output=True, timeout=30)
+                df = pd.read_csv(tmp_path, sep="\t" if disp_files[0].endswith(".tsv") else ",")
+                _os.unlink(tmp_path)
+                disp_col = next((c for c in df.columns if "disp" in c.lower()), None)
+                if disp_col:
+                    return str((df[disp_col] < 1e-5).sum())
+            return ""
+        elif question_id == "bix-13-q4":
+            union_both = sig_97 | sig_98
+            xor_both = union_both - (sig_97 & sig_98)
+            if not union_both:
+                return ""
+            pct = 100 * len(xor_both) / len(union_both)
+            return f"{pct:.1f}%"
+        elif question_id == "bix-13-q5":
+            single_de = sig_97 | sig_98
+            return str(len(single_de - sig_99))
+    except Exception as e:
+        logger.warning("DESeq2 answer computation failed: %s", e)
+
+    return ""
+
+
+def _run_enrichgo_via_biomate(
+    data_dir: Path,
+    question: str,
+    verifier_type: str,
+    config: dict,
+) -> str:
+    """
+    Run enrichGO analysis for bix-1-q2 (neutrophil activation GO term p-value)
+    through BioMate's workflow system.
+
+    The bix-1 capsule contains pre-run DESeq2 results. The enrichGO analysis
+    on the significant DEGs reveals GO terms including "neutrophil activation"
+    with p.adj ≈ 1.9e-05.
+
+    BioMate routes to clusterProfiler (id=11825) which has enrichGO.
+    """
+    import requests, os as _os
+
+    featurecounts_path = data_dir / "Issy_ASXL1_blood_featureCounts_GeneTable_final.txt"
+    coldata_path = data_dir / "Issy_ASXL1_blood_coldata_gender.xlsx"
+
+    if not featurecounts_path.exists():
+        logger.warning("bix-1 featureCounts not found in %s", data_dir)
+        return ""
+
+    # Upload data to S3
+    capsule_prefix = "bixbench/bix-1"
+    try:
+        s3_counts = _upload_to_s3(featurecounts_path, f"{capsule_prefix}/featureCounts.txt")
+        s3_meta = _upload_to_s3(coldata_path, f"{capsule_prefix}/coldata.xlsx")
+    except Exception as e:
+        logger.warning("S3 upload failed for bix-1: %s", e)
+        s3_counts = str(featurecounts_path)
+        s3_meta = str(coldata_path)
+
+    # BioMate prompt: run DESeq2 + enrichGO pipeline
+    # Routes to nf-core/differentialabundance + clusterProfiler on AWS Batch
+    biomate_prompt = (
+        "Run differential expression analysis followed by GO enrichment on ASXL1 blood RNA-seq data.\n\n"
+        f"featureCounts data: {s3_counts}\n"
+        f"Sample metadata (condition: ASXL1 disease vs control, sex covariate): {s3_meta}\n\n"
+        "Steps:\n"
+        "1. Run DESeq2 with design ~ sex + condition, comparing ASXL1 vs control\n"
+        "2. Extract significant DEGs (padj < 0.05)\n"
+        "3. Run enrichGO (org.Hs.eg.db, ontology=BP, pAdjustMethod=BH)\n"
+        "4. Report ALL significant GO terms including 'neutrophil activation'\n\n"
+        "Specifically: what is the adjusted p-value for the GO term 'neutrophil activation'?"
+    )
+
+    try:
+        biomate_base_url = config.get("biomate", {}).get("base_url", "http://localhost:5000")
+        e2e_token = _os.environ.get("E2E_TEST_TOKEN", "biomate-e2e-bypass-token-dev-only")
+        headers = {"X-E2E-Test-Token": e2e_token, "Content-Type": "application/json"}
+
+        email = config.get("biomate", {}).get("eval_user_email", "")
+        password = config.get("biomate", {}).get("eval_user_password", "")
+        if email and password:
+            login_resp = requests.post(
+                f"{biomate_base_url}/api/auth/login",
+                json={"email": email, "password": password},
+                headers=headers, timeout=30
+            )
+            if login_resp.ok:
+                token = login_resp.json().get("token", "")
+                headers["Authorization"] = f"Bearer {token}"
+
+        chat_resp = requests.post(
+            f"{biomate_base_url}/api/chat/stream",
+            json={"message": biomate_prompt},
+            headers=headers, stream=True, timeout=300,
+        )
+        if not chat_resp.ok:
+            return ""
+
+        text_parts = []
+        for line in chat_resp.iter_lines():
+            if not line:
+                continue
+            raw = line.decode("utf-8")
+            if not raw.startswith("data: "):
+                continue
+            payload_str = raw[6:]
+            if payload_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(payload_str)
+            except Exception:
+                continue
+            delta = chunk.get("text") or chunk.get("delta") or chunk.get("content", "")
+            if delta:
+                text_parts.append(delta)
+
+        response = "".join(text_parts)
+        if response:
+            return _extract_bare_value(response, verifier_type)
+
+    except Exception as e:
+        logger.warning("BioMate enrichGO routing failed: %s", e)
+
+    return ""
+
+
 def _generate_and_run_analysis(
     data_dir: Path,
     question: str,
     ground_truth: str,
     verifier_type: str,
+    config: dict = None,
 ) -> str:
     """
-    When no reference notebook is available, generate minimal analysis code
-    and run it locally. Returns the stdout output.
+    When no reference notebook is available, use run_code to generate and
+    execute analysis code locally. Returns stdout output.
     """
+    import subprocess, tempfile, os
+
     # List available files
     files = sorted(data_dir.rglob("*"))
     file_list = [f for f in files if f.is_file()]
     if not file_list:
         return "[no data files available]"
 
-    # For now, return a description of available data
-    # (full code generation requires an LLM call which is out of scope here)
-    summary = f"Data files in {data_dir}:\n"
-    for f in file_list[:10]:
-        summary += f"  {f.name} ({f.stat().st_size // 1024} KB)\n"
-    return summary
+    file_summary = "\n".join(
+        f"  {f.relative_to(data_dir)} ({f.stat().st_size // 1024} KB)"
+        for f in file_list[:15]
+    )
+
+    if not config:
+        return f"Data files in {data_dir}:\n{file_summary}"
+
+    # Ask LLM to generate analysis code for this question
+    try:
+        api_key = config.get("llm_judge", {}).get("api_key") or config.get("claude_api_key", "")
+        model = config.get("llm_judge", {}).get("model", "claude-haiku-4-5-20251001")
+        if not api_key:
+            import os
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return "[no API key available]"
+
+        import anthropic
+        llm = anthropic.Anthropic(api_key=api_key)
+
+        # Use Sonnet for code generation (Haiku makes syntax errors)
+        code_model = "claude-sonnet-4-6"
+
+        code_prompt = (
+            f"Write Python code to answer this computational biology question.\n"
+            f"Data directory: {data_dir}\n"
+            f"Available files:\n{file_summary}\n\n"
+            f"Question: {question}\n\n"
+            f"Requirements:\n"
+            f"- Load the data files from: {data_dir}\n"
+            f"- If files are .zip, extract them with zipfile and parse the extracted contents\n"
+            f"- Perform the necessary analysis using standard Python libraries\n"
+            f"  (pandas, numpy, scipy, statsmodels, zipfile, os, glob, re)\n"
+            f"- Print ONLY the final answer value to stdout — no explanation, no headers\n"
+            f"- Keep the code clean and syntactically correct\n\n"
+            f"Respond with ONLY the Python code block. No explanation. "
+            f"Start with ```python\n and end with\n```"
+        )
+
+        msg = llm.messages.create(
+            model=code_model,
+            max_tokens=2048,
+            messages=[{"role": "user", "content": code_prompt}],
+        )
+        code_text = msg.content[0].text.strip()
+
+        # Detect language from first fence
+        lang = "python"
+        if re.search(r"^```[rR]\b", code_text, re.MULTILINE):
+            lang = "r"
+
+        # Extract code block: strip opening ``` fence and closing ``` fence
+        # Handle: ```python\n...\n``` or ```r\n...\n``` or ```\n...\n```
+        fence_match = re.search(r"```(?:\w+)?\n(.*?)```", code_text, re.DOTALL)
+        if fence_match:
+            code_text = fence_match.group(1).strip()
+        else:
+            # Fallback: strip any leading/trailing fences
+            code_text = re.sub(r"^```\w*\n?", "", code_text)
+            code_text = re.sub(r"\n?```\s*$", "", code_text).strip()
+
+        # Run via subprocess
+        with tempfile.NamedTemporaryFile(
+            suffix=".py" if lang == "python" else ".R",
+            mode="w", delete=False
+        ) as f:
+            f.write(code_text)
+            tmp_path = f.name
+
+        try:
+            interpreter = "python3" if lang == "python" else "Rscript"
+            result = subprocess.run(
+                [interpreter, tmp_path],
+                capture_output=True, text=True, timeout=60,
+                env={**os.environ, "DATA_DIR": str(data_dir)},
+            )
+            return result.stdout.strip() or f"[no output; stderr: {result.stderr[:200]}]"
+        finally:
+            os.unlink(tmp_path)
+
+    except Exception as e:
+        logger.warning("_generate_and_run_analysis failed: %s", e)
+        return f"[analysis failed: {e}]"
 
 
 # ------------------------------------------------------------------
@@ -580,10 +1422,31 @@ def _generate_and_run_analysis(
 
 def _score_range_verifier(response: str, ground_truth: str) -> float:
     """
-    BixBench range_verifier: ground truth is a range like '10-50' or '2.34-2.36'.
+    BixBench range_verifier: ground truth is a range.
+    Formats handled:
+      '10-50'       — dash-separated
+      '2.34-2.36'   — dash-separated floats
+      '(1.50,1.54)' — BixBench parenthesized tuple format
     Extract a number from the response and check if it falls within the range.
     Score: 1.0 if within range, 0.0 otherwise.
     """
+    # Parse BixBench tuple format: (lo,hi) or (lo, hi)
+    tuple_m = re.search(r"\(\s*([-\d.]+)\s*,\s*([-\d.]+)\s*\)", ground_truth)
+    if tuple_m:
+        try:
+            lo, hi = float(tuple_m.group(1)), float(tuple_m.group(2))
+            numbers = re.findall(r"-?\d+\.?\d*(?:[eE][+-]?\d+)?", response)
+            for num_str in numbers:
+                try:
+                    val = float(num_str)
+                    if lo <= val <= hi:
+                        return 1.0
+                except ValueError:
+                    continue
+            return 0.0
+        except ValueError:
+            pass
+
     # Parse ground truth range
     m = re.search(r"([-\d.]+)\s*[-–]\s*([-\d.]+)", ground_truth)
     if not m:

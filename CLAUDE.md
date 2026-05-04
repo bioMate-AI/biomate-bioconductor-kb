@@ -29,6 +29,30 @@ Never ship a fix that only works locally — always verify on dev.
 
 ---
 
+## Core Architectural Principle: BioMate Is the Execution Engine
+
+**BioMate tasks should run through BioMate's production capabilities — not local workarounds that bypass the system.**
+
+### Execution priority order for R/Bioconductor tasks
+
+1. **Check indexed workflows first.** BioMate has 1,000+ Bioconductor workflows indexed in its AI tool DB (DESeq2, clusterProfiler/enrichGO, edgeR, limma, Seurat, etc.). Always search these first via BioMate's workflow routing. If a matching workflow exists, use it — it runs on AWS Batch workers with full R + Bioconductor installed.
+
+2. **Generate a new workflow if no match.** If no indexed workflow matches the intent, generate a new Nextflow/R workflow stub, add it to the DB, and route through AWS Batch. This extends BioMate's coverage.
+
+3. **Execute R directly via `run_code` as a last resort.** If the task is ad-hoc, short, or does not need a full pipeline (e.g., a single statistical test on a small dataset), BioMate's `run_code` tool can execute R or Python code directly in the backend. This is acceptable when the result feeds back insight about a capability gap, not as a permanent replacement for a proper workflow.
+
+### What this means in practice
+
+- **Do not install R packages locally** or run `Rscript` outside of BioMate's `run_code` tool or AWS Batch. Installing system-level R packages (apt-get, conda) bypasses BioMate entirely.
+- **Do not use pydeseq2/pydeseq as substitutes.** Python reimplementations of R tools are not equivalent and do not prove BioMate's capability.
+- **Benchmark work must feed back to BioMate production.** Scores achieved by bypassing BioMate (local subprocess hacks, direct file parsing outside BioMate) are worthless for improving the product. The correct loop:
+  1. Benchmark reveals a capability gap
+  2. Fix is applied via BioMate (indexed workflow, new workflow, or `run_code`)
+  3. Re-run benchmark via `biomate_exec` mode to verify the fix is real
+- **For pure Python analysis** (parsing text files, basic statistics with scipy/pandas), using BioMate's `run_code` Python path is fine and preferred over local subprocess workarounds in the benchmark adapter itself.
+
+---
+
 ## Benchmark-Driven Development
 
 **The purpose of all benchmarks is to improve BioMate's generalized capabilities for long-term use on rich real-world data — not to track a score for reporting.**
