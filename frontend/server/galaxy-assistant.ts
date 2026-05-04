@@ -2929,6 +2929,11 @@ Return: {"covered_count": <integer 1 to ${intents.length}>, "confidence": <0.0-1
 Describe the user's information need with a descriptive label. You may use these common labels or create a new one that better fits:
 
 **workflow_generation** — Execute a computational pipeline or run code on user data. Covers: (a) Nextflow pipelines processing files/accessions (set needsWorkflowGeneration: true), and (b) direct code execution via run_code for ad-hoc computations on provided inputs such as a pasted sequence, numeric parameters, or a small dataset (set needsWorkflowGeneration: false, needsLLMReasoning: true). Both are execution tasks — the distinction is whether BioMate needs to launch a full Nextflow workflow or can compute directly.
+
+**R/Bioconductor execution priority** — When a task requires R or Bioconductor tools (DESeq2, edgeR, limma, clusterProfiler, Seurat, etc.), follow this order:
+1. Search BioMate's indexed Bioconductor workflows first (1,000+ available). If a matching workflow exists, use it (needsWorkflowGeneration: true, runs on AWS Batch with full R + Bioconductor).
+2. If no indexed workflow matches, generate a new Nextflow/R workflow and add it to BioMate's DB.
+3. If the task is ad-hoc or too small for a full pipeline (single statistical test, small inline dataset), execute R directly via run_code (needsWorkflowGeneration: false).
 **research_question** — Look up or synthesize information from scientific literature and papers.
 **database_lookup** — Query a specific biological database (GWAS Catalog, Open Targets, OMIM, ClinVar, Ensembl, mygene.info, Monarch) for structured facts. Use when the question needs real-time database query results, not just literature recall.
 **genomics_knowledge** — GWAS variant-to-phenotype associations, causal gene identification at a locus, eQTL evidence, gene-disease links, published CRISPR screen results. Triggered by: candidate SNP/gene selection tasks, "from this list which is causal", GWAS phenotype + rsID candidates, "which gene showed the strongest effect in this CRISPR screen", "identify the gene from this published screen". Requires live GWAS Catalog / Open Targets / DepMap / GenomeCRISPR lookup. Candidate gene/SNP lists in the prompt are published data to look up — NOT user-provided files.
@@ -4679,7 +4684,11 @@ Your role:
 
 COMPUTATION RULE:
 - You CAN and SHOULD compute and calculate directly for scientific/knowledge questions
-- For non-trivial numerical work (statistics, sequence operations, data processing), use the run_code tool (Python preferred, R for statistics)
+- For non-trivial numerical work (statistics, sequence operations, data processing), use the run_code tool
+- **R/Bioconductor tasks — three-tier decision:**
+  1. First check BioMate's indexed Bioconductor workflows (1,000+ available: DESeq2, clusterProfiler, edgeR, limma, Seurat, etc.). If a matching workflow exists, route there.
+  2. If no indexed workflow matches the intent, generate a new Nextflow/R workflow.
+  3. For small ad-hoc tasks (single statistical test, inline dataset), use run_code with R directly.
 - Never refuse to compute just because a bioinformatics tool exists for it — use run_code for ad-hoc calculations
 - For simple arithmetic or lookups, answer directly without run_code
 - GROUP RATE CALCULATION: When a question says "considering all groups as a whole", "across all groups", "combined", or "for the total population", calculate the rate using the SUM of all numerators divided by the SUM of all denominators — NOT by averaging per-group rates. Example: Group A 13/30 + Group B 4/35 = (13+4)/(30+35) = 17/65 = 26.2%, NOT (43%+11%)/2.
@@ -4714,7 +4723,8 @@ Do NOT deviate from these three formats. No freeform narrative, no "Next Steps" 
 ════════════════════════════════════════════════════════
 
 IMPORTANT RULES:
-${isWorkflowTurn ? `- NEVER compute or calculate results yourself for workflow tasks (e.g., sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead` : `- You CAN and SHOULD compute, calculate, and reason directly when no Nextflow workflow panel is open. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.`}
+${isWorkflowTurn ? `- NEVER compute or calculate results yourself for workflow tasks (e.g., sequence alignment, variant calling, etc.) — ALWAYS run the appropriate BioMate tool or workflow instead` : `- You CAN and SHOULD compute, calculate, and reason directly when no Nextflow workflow panel is open. Use the run_code tool for numerical computations, statistical calculations, sequence operations, or data manipulation. Prefer run_code over mental arithmetic for non-trivial calculations.
+- R/BIOCONDUCTOR EXECUTION PRIORITY: (1) Search BioMate's 1,000+ indexed Bioconductor workflows first — if a match exists, use it. (2) If no match, generate a new workflow. (3) For small ad-hoc tasks or single statistical tests, use run_code with R directly — do not refuse to execute R code.`}
 - If a runnable workflow was generated, explain it and encourage the user to click "Run"
 - If workflow generation failed, explicitly explain likely reasons using available diagnostics and process outputs (error details, confidence, template match, tool/runtime signals)
 - If workflow generation failed, collaborate with the user by asking targeted follow-up questions and proposing concrete next recovery actions
