@@ -404,6 +404,97 @@ _cleanup(audit_db.name)
 
 
 # ===========================================================================
+# T29 — eSig reviewer credentials
+# ===========================================================================
+print("\n--- T29: eSig reviewer credentials in manifest ---")
+
+from backend.lib.galaxy.ai.compliance.esig import ESignatureService, ESignatureRecord
+
+esig_db_tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+esig_db_tmp.close()
+audit_store_esig = _fresh_audit_store()[0]
+
+svc29 = ESignatureService(audit_store_esig)
+secret = svc29.register_user("reviewer@biotech.com")
+
+import hmac as _hmac, hashlib as _hashlib
+
+# Monkeypatch TOTP to accept "000000" for testing
+from backend.lib.galaxy.ai.compliance import esig as _esig_mod
+_orig_hotp = _esig_mod._hotp
+_esig_mod._hotp = lambda sb, step, digits: "000000"
+
+sig29 = svc29.sign(
+    user_id="reviewer@biotech.com",
+    action="GENERATE_IND",
+    meaning="I approve this IND §2.6 document",
+    totp_token="000000",
+    reviewer_title="Director, Computational Pharmacology",
+    reviewer_credentials="PhD Pharmacology, 10 years IND experience",
+    review_scope="§2.6.1–§2.6.5 nonclinical pharmacology",
+)
+
+_assert(sig29.reviewer_title == "Director, Computational Pharmacology",
+        f"T29: reviewer_title stored — got {sig29.reviewer_title!r}")
+_assert(sig29.reviewer_credentials == "PhD Pharmacology, 10 years IND experience",
+        f"T29: reviewer_credentials stored — got {sig29.reviewer_credentials!r}")
+_assert(sig29.review_scope == "§2.6.1–§2.6.5 nonclinical pharmacology",
+        f"T29: review_scope stored — got {sig29.review_scope!r}")
+
+# Manifest hash must include reviewer fields (new format)
+expected_hash = _hashlib.sha256(
+    f"{sig29.sig_id}|reviewer@biotech.com|GENERATE_IND"
+    f"|I approve this IND §2.6 document|{sig29.timestamp_utc}"
+    f"|Director, Computational Pharmacology"
+    f"|PhD Pharmacology, 10 years IND experience"
+    f"|§2.6.1–§2.6.5 nonclinical pharmacology".encode()
+).hexdigest()
+_assert(sig29.manifest_hash == expected_hash,
+        f"T29: manifest_hash includes reviewer fields — got {sig29.manifest_hash[:16]}…")
+
+# verify_signature must pass for new-format record
+_assert(svc29.verify_signature(sig29), "T29: verify_signature passes for new-format record")
+
+# verify_signature must also pass for legacy record (no reviewer fields)
+sig29_legacy = ESignatureRecord(
+    sig_id=sig29.sig_id,
+    user_id=sig29.user_id,
+    action=sig29.action,
+    meaning=sig29.meaning,
+    timestamp_utc=sig29.timestamp_utc,
+    manifest_hash=_hashlib.sha256(
+        f"{sig29.sig_id}|reviewer@biotech.com|GENERATE_IND"
+        f"|I approve this IND §2.6 document|{sig29.timestamp_utc}".encode()
+    ).hexdigest(),
+    audit_record_id=sig29.audit_record_id,
+)
+_assert(svc29.verify_signature(sig29_legacy), "T29: verify_signature passes for legacy record")
+
+# No reviewer fields → manifest uses empty strings (tested via direct record construction)
+legacy_ts = "2026-01-01T00:00:00+00:00"
+legacy_sig_id = "aabbcc00112233445566778899aabbcc"
+sig29_no_reviewer = ESignatureRecord(
+    sig_id=legacy_sig_id,
+    user_id="reviewer@biotech.com",
+    action="EXPORT_CRO_ORDER",
+    meaning="I approve order",
+    timestamp_utc=legacy_ts,
+    manifest_hash=_hashlib.sha256(
+        f"{legacy_sig_id}|reviewer@biotech.com|EXPORT_CRO_ORDER|I approve order|{legacy_ts}|||".encode()
+    ).hexdigest(),
+    audit_record_id=0,
+)
+_assert(sig29_no_reviewer.reviewer_title is None,
+        f"T29: reviewer_title is None when not provided — got {sig29_no_reviewer.reviewer_title!r}")
+_assert(svc29.verify_signature(sig29_no_reviewer),
+        "T29: verify_signature passes for record with no reviewer fields (new-format empty strings)")
+
+# Restore TOTP
+_esig_mod._hotp = _orig_hotp
+_cleanup(esig_db_tmp.name)
+
+
+# ===========================================================================
 # Summary
 # ===========================================================================
 print(f"\n{'=' * 60}")

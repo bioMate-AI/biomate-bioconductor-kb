@@ -55,27 +55,39 @@ router = APIRouter(prefix="/api/drug-discovery", tags=["drug_discovery"])
 _ind_cache: dict[str, dict] = {}  # campaign_id → {markdown_path, docx_path, markdown_content}
 
 
-def _store_ind_document_hash(db_path: str, campaign_id: str, doc_hash: str, generated_at: str) -> None:
+def _store_ind_document_hash(
+    db_path: str,
+    campaign_id: str,
+    doc_hash: str,
+    generated_at: str,
+    markdown_path: Optional[str] = None,
+) -> None:
     """Store the SHA-256 hash of a newly assembled IND document in the campaign DB."""
     import sqlite3
     with sqlite3.connect(db_path) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS ind_document_hashes (
-                campaign_id TEXT NOT NULL,
-                doc_hash    TEXT NOT NULL,
-                generated_at TEXT NOT NULL,
-                frozen_at   TEXT,
-                frozen_by   TEXT,
-                sig_id      TEXT,
-                is_frozen   INTEGER DEFAULT 0,
+                campaign_id   TEXT NOT NULL,
+                doc_hash      TEXT NOT NULL,
+                generated_at  TEXT NOT NULL,
+                frozen_at     TEXT,
+                frozen_by     TEXT,
+                sig_id        TEXT,
+                is_frozen     INTEGER DEFAULT 0,
+                markdown_path TEXT,
                 PRIMARY KEY (campaign_id, doc_hash)
             )
         """)
+        # Migration-safe: add markdown_path column if it doesn't exist yet
+        try:
+            conn.execute("ALTER TABLE ind_document_hashes ADD COLUMN markdown_path TEXT")
+        except Exception:
+            pass
         conn.execute("""
             INSERT OR REPLACE INTO ind_document_hashes
-                (campaign_id, doc_hash, generated_at, is_frozen)
-            VALUES (?, ?, ?, 0)
-        """, (campaign_id, doc_hash, generated_at))
+                (campaign_id, doc_hash, generated_at, is_frozen, markdown_path)
+            VALUES (?, ?, ?, 0, ?)
+        """, (campaign_id, doc_hash, generated_at, markdown_path))
         conn.commit()
 
 
@@ -86,7 +98,8 @@ def _get_latest_ind_hash(db_path: str, campaign_id: str) -> Optional[dict]:
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.execute("""
-                SELECT doc_hash, generated_at, frozen_at, frozen_by, sig_id, is_frozen
+                SELECT doc_hash, generated_at, frozen_at, frozen_by, sig_id, is_frozen,
+                       markdown_path, reviewer_title, reviewer_credentials, review_scope
                 FROM ind_document_hashes
                 WHERE campaign_id = ?
                 ORDER BY generated_at DESC
@@ -98,33 +111,110 @@ def _get_latest_ind_hash(db_path: str, campaign_id: str) -> Optional[dict]:
         return None
 
 
-def _freeze_ind_document(db_path: str, campaign_id: str, sig_id: str, user_id: str) -> Optional[str]:
-    """Mark the most recent IND document hash as frozen after eSig. Returns the frozen hash."""
-    import sqlite3
+def _freeze_ind_document(
+    db_path: str,
+    campaign_id: str,
+    sig_id: str,
+    user_id: str,
+    reviewer_title: Optional[str] = None,
+    reviewer_credentials: Optional[str] = None,
+    review_scope: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Mark the most recent IND document hash as frozen after eSig.
+
+    If reviewer credentials are provided they are appended to the stored
+    markdown as a regulatory disclosure block (FDA/EMA AI Guidance Jan 2026).
+    Returns the frozen hash.
+    """
+    import sqlite3, json
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()
     try:
         with sqlite3.connect(db_path) as conn:
-            # Find latest unfrozen hash
+            # Find latest unfrozen record (hash + markdown path)
             cur = conn.execute("""
-                SELECT doc_hash FROM ind_document_hashes
+                SELECT doc_hash, markdown_path FROM ind_document_hashes
                 WHERE campaign_id = ? AND is_frozen = 0
                 ORDER BY generated_at DESC LIMIT 1
             """, (campaign_id,))
             row = cur.fetchone()
             if not row:
                 return None
-            doc_hash = row[0]
+            doc_hash, markdown_path = row[0], row[1] if len(row) > 1 else None
+
+            # Add reviewer disclosure block to the markdown file
+            if markdown_path:
+                _append_reviewer_disclosure(
+                    markdown_path, sig_id, user_id, now,
+                    reviewer_title, reviewer_credentials, review_scope,
+                )
+
+            # Ensure reviewer columns exist (migration-safe)
+            try:
+                conn.execute("ALTER TABLE ind_document_hashes ADD COLUMN reviewer_title TEXT")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE ind_document_hashes ADD COLUMN reviewer_credentials TEXT")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE ind_document_hashes ADD COLUMN review_scope TEXT")
+            except Exception:
+                pass
+
             conn.execute("""
                 UPDATE ind_document_hashes
-                SET frozen_at = ?, frozen_by = ?, sig_id = ?, is_frozen = 1
+                SET frozen_at = ?, frozen_by = ?, sig_id = ?, is_frozen = 1,
+                    reviewer_title = ?, reviewer_credentials = ?, review_scope = ?
                 WHERE campaign_id = ? AND doc_hash = ?
-            """, (now, user_id, sig_id, campaign_id, doc_hash))
+            """, (now, user_id, sig_id,
+                  reviewer_title, reviewer_credentials, review_scope,
+                  campaign_id, doc_hash))
             conn.commit()
             return doc_hash
     except Exception as exc:
         log.warning("_freeze_ind_document failed for campaign %s: %s", campaign_id, exc)
         return None
+
+
+def _append_reviewer_disclosure(
+    markdown_path: str,
+    sig_id: str,
+    user_id: str,
+    signed_at: str,
+    reviewer_title: Optional[str],
+    reviewer_credentials: Optional[str],
+    review_scope: Optional[str],
+) -> None:
+    """Append a 21 CFR Part 11 reviewer disclosure block to the frozen markdown."""
+    try:
+        from pathlib import Path
+        p = Path(markdown_path)
+        if not p.exists():
+            return
+        lines = ["\n\n---\n"]
+        lines.append("## Electronic Signature Record\n\n")
+        lines.append(f"**Signature ID:** `{sig_id}`  \n")
+        lines.append(f"**Signed by:** {user_id}  \n")
+        lines.append(f"**Signed at:** {signed_at} UTC  \n")
+        if reviewer_title:
+            lines.append(f"**Reviewer title:** {reviewer_title}  \n")
+        if reviewer_credentials:
+            lines.append(f"**Reviewer credentials:** {reviewer_credentials}  \n")
+        if review_scope:
+            lines.append(f"**Review scope:** {review_scope}  \n")
+        lines.append(
+            "\n*This document has been electronically signed and is frozen. "
+            "Any subsequent modification invalidates this signature record. "
+            "Signed per 21 CFR Part 11 §11.50 and FDA/EMA Joint Guidance on Good "
+            "AI Practice in Drug Development (January 2026).*\n"
+        )
+        with open(p, "a", encoding="utf-8") as fh:
+            fh.writelines(lines)
+    except Exception as exc:
+        log.warning("_append_reviewer_disclosure failed for %s: %s", markdown_path, exc)
 
 
 def _store_pk_summary(db_path: str, campaign_id: str, pk_data: dict) -> None:
@@ -979,7 +1069,8 @@ async def assemble_ind_section(
     # Compute and store document hash (hash of content already includes footer hash)
     doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
     try:
-        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at)
+        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at,
+                                 markdown_path=result.markdown_path)
     except Exception as exc:
         log.warning("Failed to store IND document hash for campaign %s: %s", campaign_id, exc)
 
@@ -1146,7 +1237,8 @@ async def supersede_ind_assembly(
     doc_hash = hashlib.sha256(markdown_content.encode()).hexdigest()
 
     try:
-        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at)
+        _store_ind_document_hash(db_path, campaign_id, doc_hash, result.generated_at,
+                                 markdown_path=result.markdown_path)
     except Exception as exc:
         log.warning("Failed to store supersede hash for campaign %s: %s", campaign_id, exc)
 
@@ -1971,6 +2063,10 @@ class EsigSignRequest(BaseModel):
     action: str          # e.g. "EXPORT_CRO_ORDER"
     meaning: str         # "I approve…" — permanently recorded
     totp_token: str
+    # 21 CFR Part 11 §11.50 reviewer credentials (optional but recommended for IND actions)
+    reviewer_title: Optional[str] = None        # e.g. "Director, Computational Pharmacology"
+    reviewer_credentials: Optional[str] = None  # e.g. "PhD Pharmacology, 10 years IND experience"
+    review_scope: Optional[str] = None          # e.g. "§2.6.1–§2.6.5 nonclinical pharmacology"
 
 
 @router.post("/{campaign_id}/esig/sign")
@@ -1997,6 +2093,9 @@ async def esig_sign(campaign_id: str, body: EsigSignRequest):
             action=body.action,
             meaning=body.meaning,
             totp_token=body.totp_token,
+            reviewer_title=body.reviewer_title,
+            reviewer_credentials=body.reviewer_credentials,
+            review_scope=body.review_scope,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
@@ -2006,15 +2105,25 @@ async def esig_sign(campaign_id: str, body: EsigSignRequest):
 
     response: dict = {
         "sig_id": sig.sig_id,
-        "signed_at": sig.signed_at,
+        "signed_at": sig.timestamp_utc,
         "action": sig.action,
         "meaning": sig.meaning,
     }
+    # Include reviewer credentials in response if provided
+    if sig.reviewer_title:
+        response["reviewer_title"] = sig.reviewer_title
+    if sig.reviewer_credentials:
+        response["reviewer_credentials"] = sig.reviewer_credentials
+    if sig.review_scope:
+        response["review_scope"] = sig.review_scope
 
     # Freeze IND document when signing an IND-related action
     if body.action in ("GENERATE_IND", "ASSEMBLE_IND"):
         frozen_hash = _freeze_ind_document(
-            _campaign_db(campaign_id), campaign_id, sig.sig_id, body.user_id
+            _campaign_db(campaign_id), campaign_id, sig.sig_id, body.user_id,
+            reviewer_title=body.reviewer_title,
+            reviewer_credentials=body.reviewer_credentials,
+            review_scope=body.review_scope,
         )
         if frozen_hash:
             response["frozen_doc_hash"] = frozen_hash

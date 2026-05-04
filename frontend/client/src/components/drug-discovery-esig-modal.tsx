@@ -111,6 +111,11 @@ interface EsigSignProps {
   action: string
   actionLabel?: string    // human-readable description of what is being signed
   meaning: string
+  // Reviewer credentials — required for IND actions (GENERATE_IND / ASSEMBLE_IND)
+  // per 21 CFR Part 11 §11.50 and FDA/EMA AI Guidance Jan 2026
+  reviewerTitle?: string
+  reviewerCredentials?: string
+  reviewScope?: string
   onSigned: (sigId: string) => void
   onClose: () => void
   open: boolean
@@ -130,10 +135,24 @@ export type DrugDiscoveryEsigModalProps = EsigSignProps | EsigEnrollProps
 // Sign modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EsigSignModal({ campaignId, userId, action, actionLabel, meaning, onSigned, onClose, open }: Omit<EsigSignProps, "mode">) {
+const IND_ACTIONS = new Set(["GENERATE_IND", "ASSEMBLE_IND"])
+
+function EsigSignModal({
+  campaignId, userId, action, actionLabel, meaning,
+  reviewerTitle: initialReviewerTitle,
+  reviewerCredentials: initialReviewerCredentials,
+  reviewScope: initialReviewScope,
+  onSigned, onClose, open
+}: Omit<EsigSignProps, "mode">) {
   const [otpState, setOtpState] = useState<OtpState>("idle")
   const [countdown, setCountdown] = useState(30)
   const [errorMsg, setErrorMsg] = useState("")
+  const isIndAction = IND_ACTIONS.has(action)
+  const [reviewerTitle, setReviewerTitle] = useState(initialReviewerTitle ?? "")
+  const [reviewerCredentials, setReviewerCredentials] = useState(initialReviewerCredentials ?? "")
+  const [reviewScope, setReviewScope] = useState(
+    initialReviewScope ?? (isIndAction ? "§2.6.1–§2.6.5 nonclinical pharmacology and toxicology" : "")
+  )
 
   useEffect(() => {
     if (otpState === "success") return
@@ -145,11 +164,17 @@ function EsigSignModal({ campaignId, userId, action, actionLabel, meaning, onSig
     setOtpState("checking")
     setErrorMsg("")
     try {
+      const body: Record<string, string> = { user_id: userId, action, meaning, totp_token: code }
+      if (isIndAction) {
+        if (reviewerTitle) body.reviewer_title = reviewerTitle
+        if (reviewerCredentials) body.reviewer_credentials = reviewerCredentials
+        if (reviewScope) body.review_scope = reviewScope
+      }
       const res = await fetch(`/api/drug-discovery/${campaignId}/esig/sign`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, action, meaning, totp_token: code }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -163,7 +188,7 @@ function EsigSignModal({ campaignId, userId, action, actionLabel, meaning, onSig
       setOtpState("error")
       setTimeout(() => setOtpState("idle"), 1500)
     }
-  }, [campaignId, userId, action, meaning, onSigned])
+  }, [campaignId, userId, action, meaning, onSigned, isIndAction, reviewerTitle, reviewerCredentials, reviewScope])
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -201,6 +226,54 @@ function EsigSignModal({ campaignId, userId, action, actionLabel, meaning, onSig
             This meaning is permanently recorded in the audit trail.
           </div>
         </div>
+
+        {/* Reviewer credentials (IND actions only) — 21 CFR Part 11 §11.50 */}
+        {isIndAction && (
+          <div className="space-y-2 border rounded-md px-3 py-2.5 bg-amber-50/40 dark:bg-amber-950/20 border-amber-200">
+            <div className="text-xs font-medium text-amber-800 dark:text-amber-300">
+              Reviewer Credentials — FDA/EMA AI Guidance (Jan 2026)
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs text-muted-foreground">Title / Role</label>
+              <input
+                type="text"
+                value={reviewerTitle}
+                onChange={(e) => setReviewerTitle(e.target.value)}
+                placeholder="e.g. Director, Computational Pharmacology"
+                disabled={otpState === "checking" || otpState === "success"}
+                className="w-full text-xs border rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="esig-reviewer-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs text-muted-foreground">Credentials</label>
+              <input
+                type="text"
+                value={reviewerCredentials}
+                onChange={(e) => setReviewerCredentials(e.target.value)}
+                placeholder="e.g. PhD Pharmacology, 10 years IND experience"
+                disabled={otpState === "checking" || otpState === "success"}
+                className="w-full text-xs border rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="esig-reviewer-credentials"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs text-muted-foreground">Review Scope</label>
+              <input
+                type="text"
+                value={reviewScope}
+                onChange={(e) => setReviewScope(e.target.value)}
+                placeholder="e.g. §2.6.1–§2.6.5 nonclinical pharmacology"
+                disabled={otpState === "checking" || otpState === "success"}
+                className="w-full text-xs border rounded px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-blue-500"
+                data-testid="esig-review-scope"
+              />
+            </div>
+            <div className="text-xs text-amber-700/70 dark:text-amber-400/70 italic">
+              Optional but recommended for pre-IND submissions. Recorded in the frozen document.
+            </div>
+          </div>
+        )}
 
         {/* OTP */}
         <div>

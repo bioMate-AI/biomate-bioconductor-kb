@@ -178,8 +178,12 @@ class ESignatureRecord:
     action: str          # what was signed (e.g. "EXPORT_CRO_ORDER")
     meaning: str         # human-readable statement of intent
     timestamp_utc: str
-    manifest_hash: str   # SHA-256 of (sig_id + user_id + action + meaning + timestamp_utc)
+    manifest_hash: str   # SHA-256 of (sig_id + user_id + action + meaning + timestamp_utc + reviewer fields)
     audit_record_id: int # id of the ESIG record in the audit log
+    # 21 CFR Part 11 §11.50 / FDA/EMA AI Guidance (Jan 2026) — reviewer credentials
+    reviewer_title: Optional[str] = None        # e.g. "Director, Computational Pharmacology"
+    reviewer_credentials: Optional[str] = None  # e.g. "PhD Pharmacology, 10 yrs IND experience"
+    review_scope: Optional[str] = None          # e.g. "§2.6.1–§2.6.5 computational pharmacology"
 
 
 # ---------------------------------------------------------------------------
@@ -287,9 +291,17 @@ class ESignatureService:
         action: str,
         meaning: str,
         totp_token: str,
+        reviewer_title: Optional[str] = None,
+        reviewer_credentials: Optional[str] = None,
+        review_scope: Optional[str] = None,
     ) -> ESignatureRecord:
         """
         Sign an action with a TOTP token.
+
+        reviewer_title / reviewer_credentials / review_scope are optional
+        fields for 21 CFR Part 11 §11.50 regulatory defensibility.  When
+        provided they are included in the manifest hash and stored in the
+        audit record details so they are tamper-evident.
 
         Raises:
             ValueError: user not registered, token invalid, or replay detected.
@@ -334,11 +346,25 @@ class ESignatureService:
                 (cutoff_step,),
             )
 
-        # Build signature manifest
+        # Build signature manifest — include reviewer fields so they are tamper-evident
         sig_id = secrets.token_hex(16)
+        reviewer_title_s = reviewer_title or ""
+        reviewer_credentials_s = reviewer_credentials or ""
+        review_scope_s = review_scope or ""
         manifest_hash = hashlib.sha256(
-            f"{sig_id}|{user_id}|{action}|{meaning}|{ts_now}".encode()
+            f"{sig_id}|{user_id}|{action}|{meaning}|{ts_now}"
+            f"|{reviewer_title_s}|{reviewer_credentials_s}|{review_scope_s}".encode()
         ).hexdigest()
+
+        # Build details string — include reviewer credentials for audit trail
+        details_parts = [f"action={action}", f"meaning={meaning[:120]}"]
+        if reviewer_title_s:
+            details_parts.append(f"reviewer_title={reviewer_title_s[:80]}")
+        if reviewer_credentials_s:
+            details_parts.append(f"reviewer_credentials={reviewer_credentials_s[:120]}")
+        if review_scope_s:
+            details_parts.append(f"review_scope={review_scope_s[:120]}")
+        details = " | ".join(details_parts)
 
         # Append ESIG record to audit log
         from .audit_store import AuditAction, AuditEvent, hash_payload
@@ -349,7 +375,7 @@ class ESignatureService:
                 resource_type="esig",
                 resource_id=sig_id,
                 payload_hash=manifest_hash,
-                details=f"action={action} meaning={meaning[:120]}",
+                details=details,
             )
         )
 
@@ -361,6 +387,9 @@ class ESignatureService:
             timestamp_utc=ts_now,
             manifest_hash=manifest_hash,
             audit_record_id=audit_record.id,
+            reviewer_title=reviewer_title or None,
+            reviewer_credentials=reviewer_credentials or None,
+            review_scope=review_scope or None,
         )
 
     # ------------------------------------------------------------------
@@ -371,8 +400,19 @@ class ESignatureService:
         """
         Verify that a signature record's manifest_hash is internally consistent.
         Does NOT re-verify the TOTP (token is single-use and may be expired).
+        Supports both old (4-field) and new (7-field with reviewer credentials) manifests.
         """
-        expected = hashlib.sha256(
+        reviewer_title_s = sig.reviewer_title or ""
+        reviewer_credentials_s = sig.reviewer_credentials or ""
+        review_scope_s = sig.review_scope or ""
+        new_format = hashlib.sha256(
+            f"{sig.sig_id}|{sig.user_id}|{sig.action}|{sig.meaning}|{sig.timestamp_utc}"
+            f"|{reviewer_title_s}|{reviewer_credentials_s}|{review_scope_s}".encode()
+        ).hexdigest()
+        if hmac.compare_digest(new_format, sig.manifest_hash):
+            return True
+        # Legacy format (pre-reviewer-credentials) — still valid for existing records
+        legacy = hashlib.sha256(
             f"{sig.sig_id}|{sig.user_id}|{sig.action}|{sig.meaning}|{sig.timestamp_utc}".encode()
         ).hexdigest()
-        return hmac.compare_digest(expected, sig.manifest_hash)
+        return hmac.compare_digest(legacy, sig.manifest_hash)

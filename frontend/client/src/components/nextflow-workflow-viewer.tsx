@@ -448,11 +448,13 @@ function PhaseGroupSection({
   );
   const allDone = completedCount === steps.length && steps.length > 0;
 
-  // Auto-expand when running or failed (spec §7.2)
-  const [open, setOpen] = useState(() => anyRunning || anyFailed);
+  // Auto-expand when running, failed, or a QC gate/autoloop event fires for this phase
+  const hasGateForPhase = !!(autoLoopPanelState?.gateResults &&
+    autoloopPhaseMatches(group.key, autoLoopPanelState.gateResults.phase));
+  const [open, setOpen] = useState(() => anyRunning || anyFailed || hasGateForPhase);
   React.useEffect(() => {
-    if (anyRunning || anyFailed) setOpen(true);
-  }, [anyRunning, anyFailed]);
+    if (anyRunning || anyFailed || hasGateForPhase) setOpen(true);
+  }, [anyRunning, anyFailed, hasGateForPhase]);
 
   // Direct lookup using the pre-computed map — no per-render matching.
   const phaseRenderedParams = renderedParameters.filter(p => {
@@ -892,9 +894,9 @@ export function NextflowWorkflowViewer({
   });
   // Per-phase auto-loop toggle: true = enabled (default), false = user suppressed
   const [autoloopMap, setAutoloopMap] = useState<Record<string, boolean>>({});
-  // Ref mirrors state so SSE event handlers always read the latest value (avoids stale closure)
+  // Ref mirrors state so SSE event handlers always read the latest value synchronously.
+  // Updated inside the state setter (not in useEffect) to avoid async timing gaps.
   const autoloopMapRef = React.useRef<Record<string, boolean>>({});
-  React.useEffect(() => { autoloopMapRef.current = autoloopMap; }, [autoloopMap]);
   const [isApplyingSuggestions, setIsApplyingSuggestions] = useState(false);;
 
   // Billing usage meter
@@ -2113,7 +2115,11 @@ export function NextflowWorkflowViewer({
                     }
                     autoloopEnabled={autoloopMap[group.key] !== false}
                     onToggleAutoloop={() =>
-                      setAutoloopMap(prev => ({ ...prev, [group.key]: prev[group.key] === false ? true : false }))
+                      setAutoloopMap(prev => {
+                        const next = { ...prev, [group.key]: prev[group.key] === false ? true : false };
+                        autoloopMapRef.current = next;
+                        return next;
+                      })
                     }
                     onDismissAutoloop={() =>
                       setAutoLoopPanel({ gateResults: null, remediations: [], complete: null })
