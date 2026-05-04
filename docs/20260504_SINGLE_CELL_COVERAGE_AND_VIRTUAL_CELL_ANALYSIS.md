@@ -111,6 +111,48 @@
 
 ---
 
+---
+
+## Part 3 — Benchmark Coverage Added (2026-05-02)
+
+### Routing Benchmark (cross_domain_routing/queries.yaml)
+
+Added 12 new cases sc_013–sc_024 covering all 6 new single cell workflows:
+
+| ID | Difficulty | Workflow | Key discriminator |
+|----|-----------|---------|------------------|
+| sc_013 | direct | cite_seq_preprocessing | ADT/antibody-derived tag keyword |
+| sc_014 | direct | multiome_rna_atac | 10x Multiome + peak calling |
+| sc_015 | direct | scrna_doublet_qc | DoubletFinder + Scrublet tools named |
+| sc_016 | direct | bd_rhapsody_scrna | BD Rhapsody instrument name |
+| sc_017 | direct | parse_split_seq_scrna | Parse Biosciences / SPLiT-seq |
+| sc_018 | direct | merfish_spatial_analysis | Vizgen MERSCOPE instrument |
+| sc_019 | indirect | cite_seq_preprocessing | TotalSeq antibodies + co-profiling |
+| sc_020 | indirect | multiome_rna_atac | Joint ATAC+RNA on same cells |
+| sc_021 | indirect | scrna_doublet_qc | Cells co-expressing T+B cell markers |
+| sc_022 | adversarial | merfish_spatial_analysis | Subcellular molecule detection (not spot-based Visium) |
+| sc_023 | adversarial | parse_split_seq_scrna | Combinatorial barcoding vs droplet/microwell |
+| sc_024 | adversarial | bd_rhapsody_scrna | Microwell array + AbSeq (not droplet CITE-seq) |
+
+**Total routing cases: 147 (was 135), 11 domains (was 10)**
+
+### Param Prefill Benchmark (param_prefill/cases.yaml)
+
+Added 20 new cases pf_136–pf_155 in new `single_cell_params` category:
+
+- **cite_seq_preprocessing** (pf_136–pf_137, pf_149): genome, expected_cells, dsb_normalize, protocol, wnn_integration
+- **multiome_rna_atac** (pf_138–pf_139, pf_151): genome, min_atac_fragments, tss_enrichment_min, link_peaks_to_genes, tf_activity
+- **scrna_doublet_qc** (pf_140–pf_141, pf_150, pf_155): n_cells, expected_doublet_rate, method, pca_components, n_neighbors, doublet_threshold
+- **bd_rhapsody_scrna** (pf_142–pf_143, pf_152): panel, genome, expected_cells, abseq, min_umis
+- **parse_split_seq_scrna** (pf_144–pf_145, pf_153): kit, genome, expected_cells, min_umis, min_genes
+- **merfish_spatial_analysis** (pf_146–pf_148, pf_154): platform, n_genes, n_cells_expected, segmentation_method, spatial_analysis, deconvolution
+
+All 20 expected_params validated against actual `params.*` declarations in NF workflow files.
+
+**Total param prefill cases: 155 (was 135), 10 categories (was 9)**
+
+---
+
 ## Open Items
 
 | Item | Notes |
