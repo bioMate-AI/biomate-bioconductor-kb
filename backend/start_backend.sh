@@ -9,6 +9,8 @@ export GEMINI_API_KEY=AIzaSyDoFJyQuwTYsfhoLO4DBL1ME9Ojl7VpFHI
 export GALAXY_CONFIG_ENABLE_AI_ASSISTANT=true
 export GALAXY_CONFIG_FILE=lib/galaxy/config/sample/galaxy.yml.sample
 export GALAXY_CONFIG_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
+# Install DB shares same connection (tool shed tables created by manage_db.sh init on first run)
+export GALAXY_CONFIG_INSTALL_DATABASE_CONNECTION=sqlite:////tmp/biomate_connection_formal.sqlite
 
 # Billing settings
 # LOCAL DEV:  Redis = biomate-redis-test Docker container on port 6379
