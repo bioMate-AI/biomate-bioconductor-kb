@@ -4753,7 +4753,7 @@ TURN-2 QUALIFIER RULE:
 ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
 - SECOND-TURN OVERRIDE: If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), GENERATE THE WORKFLOW IMMEDIATELY. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel.
-- When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". Use the galaxy_dataset_id values as the workflow input parameters (e.g. input_bam, reads, input_vcf). Do NOT ask the user for data again — proceed directly to workflow generation using those IDs.
+- When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". For workflow generation, use the galaxy_dataset_id values as input parameters. For run_code, use galaxy_dataset_id when present; fall back to dataset_id if galaxy_dataset_id is null or missing — both are accepted by the run_code input_datasets array and the local file registry. Do NOT ask the user for data again — proceed directly.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
@@ -5177,37 +5177,60 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
   /** run_code tool handler — calls the /api/code/run endpoint. */
   private async _toolRunCode(input: any): Promise<unknown> {
     const { runCode } = await import('./code-runner');
+    const { getUploadedFile } = await import('./routes');
     const galaxyUrl = process.env.GALAXY_URL || 'http://localhost:8081';
-    // Build a download function that proxies through the Galaxy API proxy
+
+    // Download function: tries Galaxy first, falls back to locally uploaded file
     const downloadDataset = async (id: string): Promise<AsyncIterable<Buffer>> => {
-      const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
-        signal: AbortSignal.timeout(30000),
-      });
-      if (!r.ok) throw new Error(`Dataset ${id} not accessible`);
-      // Convert Web ReadableStream to Node async iterable
-      const reader = r.body!.getReader();
-      return {
-        [Symbol.asyncIterator]: async function*() {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            yield Buffer.from(value);
-          }
+      // 1. Try Galaxy API
+      try {
+        const r = await fetch(`${galaxyUrl}/api/datasets/${id}/display`, {
+          signal: AbortSignal.timeout(30000),
+        });
+        if (r.ok) {
+          const reader = r.body!.getReader();
+          return {
+            [Symbol.asyncIterator]: async function*() {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                yield Buffer.from(value);
+              }
+            }
+          };
         }
-      };
+      } catch { /* fall through to local */ }
+
+      // 2. Fall back to locally stored file (works when Redis/Galaxy are unavailable)
+      const local = getUploadedFile(id);
+      if (local?.filePath) {
+        const nodeFs = await import('fs/promises');
+        const data = await nodeFs.readFile(local.filePath);
+        return {
+          [Symbol.asyncIterator]: async function*() {
+            yield data;
+          }
+        };
+      }
+
+      throw new Error(`Dataset ${id} not accessible via Galaxy or local storage`);
     };
 
-    // Resolve filenames for each dataset ID from Galaxy metadata, so staged files
-    // keep their original names (e.g. scogs_fungi.zip not just "dataset")
+    // Resolve filenames: check local registry first, then Galaxy metadata
     const rawIds: string[] = input.input_datasets ?? [];
     const datasetRefs = await Promise.all(rawIds.map(async (id: string) => {
+      // Local registry always has the original filename
+      const local = getUploadedFile(id);
+      if (local?.name) return { id, filename: local.name };
+
+      // Fallback: Galaxy metadata
       try {
         const meta = await fetch(`${galaxyUrl}/api/datasets/${id}`, {
           signal: AbortSignal.timeout(5000),
         });
         if (meta.ok) {
           const data = await meta.json() as any;
-          const filename = data?.name || data?.file_name || data?.metadata_dbkey || id;
+          const filename = data?.name || data?.file_name || id;
           return { id, filename: String(filename) };
         }
       } catch { /* fall through */ }

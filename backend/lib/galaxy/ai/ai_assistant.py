@@ -2521,7 +2521,7 @@ Rules:
 - For protein/nucleotide sequence parameters: extract the raw sequence string.
 - For select parameters, the value MUST be one of the listed enum values.
 - For boolean parameters, value must be true or false (unquoted).
-- Do NOT guess file paths — never suggest a value for file-type parameters.
+- For file/path parameters (movies_path, reads, input, etc.): ONLY suggest a value when the user's message contains an explicit path (e.g. s3://, gs://, or a local path like /data/...). Extract the exact path token from the query — never invent or guess a path.
 - Each parameter shows its [current: X] default. ONLY suggest a value when the user provides something DIFFERENT from the current default.
 - If the user explicitly states a value (e.g. "PDB: 1M17", "erlotinib SMILES: C#Cc1..."), always include it even if a default exists — the user is overriding the default.
 - Do NOT include a parameter if the value the user mentions equals the [current: X] default.
@@ -2541,7 +2541,9 @@ Examples of good inference:
 - User says "SARS-CoV-2 Mpro" → reactive_residue = "CYS:145" for covalent docking
 - User says "oral drug" → route = "oral"
 - User says "GPU available" or "use GPU" → gpu = true
-- User says "screen against KRAS G12C (PDB: 6OIM)" → receptor_pdb = "6OIM\""""
+- User says "screen against KRAS G12C (PDB: 6OIM)" → receptor_pdb = "6OIM"
+- User says "Run CryoSPARC on s3://my-bucket/movies" → movies_path = "s3://my-bucket/movies"
+- User says "process my data at /nfs/cryo/run01/movies" → movies_path = "/nfs/cryo/run01/movies\""""
 
     def _infer_params_from_intent_llm(
         self,
@@ -2560,8 +2562,11 @@ Examples of good inference:
 
         # Build a compact param catalogue for the prompt
         all_params = req + opt
-        # Skip file params — LLM should not fill paths
-        inferable = [p for p in all_params if p.get("type") not in ("file",)]
+        # Include file params only when the query contains an explicit path-like token
+        # (S3, GCS, local path, or filename) so the LLM can extract it accurately.
+        import re as _re2
+        _query_has_path = bool(_re2.search(r's3://|gs://|/[a-zA-Z]|\.(?:mrc|tif|eer|dm4|fastq|fq|bam|vcf)', user_intent))
+        inferable = [p for p in all_params if p.get("type") not in ("file",) or _query_has_path]
         if not inferable:
             return []
 
@@ -2862,11 +2867,6 @@ Examples of good inference:
                 _m = _re.search(rf'\b{_kw}\s*=\s*([^\s,;]+)', user_intent, _re.IGNORECASE)
                 if _m:
                     _exec_params[_kw] = _m.group(1).rstrip('.,;')
-            # Also extract bare S3/GCS/NFS paths as movies_path when not set explicitly
-            if not _exec_params.get('movies_path'):
-                _s3_m = _re.search(r'\b(s3://[^\s,;]+|gs://[^\s,;]+|/\S+/(?:movies|micrographs|raw)[^\s,;]*)', user_intent, _re.IGNORECASE)
-                if _s3_m:
-                    _exec_params['movies_path'] = _s3_m.group(1).rstrip('.,;)')
         # Auto-inject movies_path from uploaded files for ALL cryo-EM workflows (CryoSPARC + Nextflow)
         if _is_cryo_em and not _exec_params.get('movies_path') and uploaded_datasets:
             _cryo_exts = ('.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.dm4')

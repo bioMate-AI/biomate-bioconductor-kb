@@ -910,6 +910,18 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_GB * 1024 * 1024 * 1024; // 5GB
 
 const uploadDir = path.join(process.cwd(), 'data', 'uploads');
 
+/**
+ * In-memory registry of uploaded files keyed by dataset_id.
+ * Used by run_code as a local fallback when Galaxy upload is unavailable
+ * (e.g. Redis session missing, Galaxy not connected).
+ * Entries expire after UPLOAD_TTL_MS to match the file cleanup cycle.
+ */
+const uploadedFileRegistry = new Map<string, { name: string; filePath: string; uploadedAt: number }>();
+
+export function getUploadedFile(datasetId: string): { name: string; filePath: string } | undefined {
+  return uploadedFileRegistry.get(datasetId);
+}
+
 // Clean up temp uploads older than UPLOAD_TTL_HOURS to prevent unbounded disk growth.
 const UPLOAD_TTL_MS = (parseInt(process.env.UPLOAD_TTL_HOURS || '48', 10)) * 60 * 60 * 1000;
 async function cleanStaleUploads(): Promise<void> {
@@ -2722,6 +2734,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Register in in-memory registry so run_code can find files without Galaxy/Redis
+      uploadedFileRegistry.set(datasetId, {
+        name: file.originalname,
+        filePath: file.path,
+        uploadedAt: Date.now(),
+      });
+      // Also register by galaxy_dataset_id for cross-lookup
+      if (galaxyDatasetId) {
+        uploadedFileRegistry.set(galaxyDatasetId, {
+          name: file.originalname,
+          filePath: file.path,
+          uploadedAt: Date.now(),
+        });
+      }
+
       // Store dataset in session for validation
       if (req.session) {
         if (!req.session.uploadedDatasets) {
@@ -2734,7 +2761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: description,
           file_type: file.mimetype,
           file_size: file.size,
-          file_path: file.path,  // local path — Nextflow executor can read this directly
+          file_path: file.path,
         });
       }
 
