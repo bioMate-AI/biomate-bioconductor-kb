@@ -1605,3 +1605,269 @@ cases:
       - species
     difficulty: hard
     notes: "high/low descriptors need to be converted to relative values; MKI67 high → proliferating"
+
+# ── Single Cell Instrument Params (pf_136–pf_155) ────────────────────────────
+
+  - id: pf_136
+    category: single_cell_params
+    workflow: cite_seq_preprocessing
+    user_query: "Run CITE-seq preprocessing for human samples, 5000 cells, use DSB normalization for ADT counts"
+    expected_params:
+      genome: GRCh38
+      expected_cells: 5000
+      dsb_normalize: true
+    must_not_fill:
+      - min_rna_counts
+    difficulty: easy
+    notes: "human → GRCh38; 5000 cells; DSB normalization explicit → dsb_normalize=true"
+
+  - id: pf_137
+    category: single_cell_params
+    workflow: cite_seq_preprocessing
+    user_query: "CITE-seq on mouse tissue with TotalSeq-B antibodies — 10,000 cells, disable WNN integration"
+    expected_params:
+      genome: GRCm38
+      expected_cells: 10000
+      protocol: totalseq_b
+      wnn_integration: false
+    must_not_fill:
+      - min_adt_counts
+    difficulty: medium
+    notes: "mouse → GRCm38; TotalSeq-B → protocol=totalseq_b; disable WNN → wnn_integration=false"
+
+  - id: pf_138
+    category: single_cell_params
+    workflow: multiome_rna_atac
+    user_query: "10x Multiome RNA+ATAC on human PBMC, minimum 200 ATAC fragments per cell, TSS enrichment ≥ 5.0"
+    expected_params:
+      genome: GRCh38
+      min_atac_fragments: 200
+      tss_enrichment_min: 5.0
+    must_not_fill:
+      - expected_cells
+    difficulty: medium
+    notes: "human PBMC → GRCh38; min_atac_fragments=200; TSS enrichment threshold → tss_enrichment_min=5.0"
+
+  - id: pf_139
+    category: single_cell_params
+    workflow: multiome_rna_atac
+    user_query: "Joint RNA-ATAC profiling of mouse brain neurons — link chromatin accessibility to gene expression"
+    expected_params:
+      genome: GRCm38
+      link_peaks_to_genes: true
+    must_not_fill:
+      - min_atac_fragments
+      - expected_cells
+    difficulty: easy
+    notes: "mouse → GRCm38; peak-to-gene linkage requested → link_peaks_to_genes=true"
+
+  - id: pf_140
+    category: single_cell_params
+    workflow: scrna_doublet_qc
+    user_query: "Loaded 8000 cells on 10x Chromium — detect doublets, expected rate 6.4% for this loading"
+    expected_params:
+      n_cells: 8000
+      expected_doublet_rate: 0.064
+    must_not_fill:
+      - doublet_threshold
+    difficulty: medium
+    notes: "8000 cells; 6.4% = 0.064 as fraction; 10x Chromium loading rate formula"
+
+  - id: pf_141
+    category: single_cell_params
+    workflow: scrna_doublet_qc
+    user_query: "Run DoubletFinder only (not Scrublet) on 3000 cells, use 30 PCA components and 25 neighbors"
+    expected_params:
+      n_cells: 3000
+      method: doubletfinder
+      pca_components: 30
+      n_neighbors: 25
+    must_not_fill:
+      - expected_doublet_rate
+    difficulty: medium
+    notes: "DoubletFinder only → method=doubletfinder; 30 PCA; 25 neighbors direct"
+
+  - id: pf_142
+    category: single_cell_params
+    workflow: bd_rhapsody_scrna
+    user_query: "Process BD Rhapsody WTA data for human 15,000 cells — also have AbSeq with 45 proteins"
+    expected_params:
+      panel: WTA
+      genome: GRCh38
+      expected_cells: 15000
+      abseq: true
+    must_not_fill:
+      - min_umis
+    difficulty: easy
+    notes: "WTA panel explicit; human → GRCh38; 15000 cells; AbSeq present → abseq=true"
+
+  - id: pf_143
+    category: single_cell_params
+    workflow: bd_rhapsody_scrna
+    user_query: "BD Rhapsody targeted panel run on mouse samples, 5000 cells, minimum 300 UMIs per cell"
+    expected_params:
+      panel: targeted
+      genome: GRCm38
+      expected_cells: 5000
+      min_umis: 300
+    must_not_fill:
+      - abseq
+    difficulty: medium
+    notes: "targeted panel explicit; mouse → GRCm38; min_umis=300 direct; abseq not mentioned → must_not_fill"
+
+  - id: pf_144
+    category: single_cell_params
+    workflow: parse_split_seq_scrna
+    user_query: "Parse Biosciences Evercode WT mega kit — profiling 1 million human cells from frozen tissue"
+    expected_params:
+      kit: WT_mega
+      genome: GRCh38
+      expected_cells: 1000000
+    must_not_fill:
+      - min_umis
+      - min_genes
+    difficulty: medium
+    notes: "WT mega kit → kit=WT_mega; human → GRCh38; 1 million cells; frozen tissue compatible"
+
+  - id: pf_145
+    category: single_cell_params
+    workflow: parse_split_seq_scrna
+    user_query: "Run Parse Evercode WT mini on mouse embryos, 20,000 cells, strict quality: min 200 UMIs, 100 genes"
+    expected_params:
+      kit: WT_mini
+      genome: GRCm38
+      expected_cells: 20000
+      min_umis: 200
+      min_genes: 100
+    must_not_fill: []
+    difficulty: easy
+    notes: "WT mini → kit=WT_mini; mouse → GRCm38; min_umis=200, min_genes=100 direct"
+
+  - id: pf_146
+    category: single_cell_params
+    workflow: merfish_spatial_analysis
+    user_query: "Analyze Vizgen MERSCOPE data — 500 gene panel, cortex tissue, expect 8000 cells, use Baysor segmentation"
+    expected_params:
+      platform: merfish
+      n_genes: 500
+      n_cells_expected: 8000
+      segmentation_method: baysor
+    must_not_fill:
+      - deconvolution
+    difficulty: easy
+    notes: "Vizgen MERSCOPE → platform=merfish; 500 genes; 8000 cells; Baysor segmentation explicit"
+
+  - id: pf_147
+    category: single_cell_params
+    workflow: merfish_spatial_analysis
+    user_query: "seqFISH+ spatial data from intestinal organoids — run spatialDE domain detection and cell type deconvolution with a reference atlas"
+    expected_params:
+      platform: seqfish
+      spatial_analysis: true
+      deconvolution: true
+    must_not_fill:
+      - n_genes
+    difficulty: medium
+    notes: "seqFISH+ → platform=seqfish; spatialDE requested → spatial_analysis=true; deconvolution requested → true"
+
+  - id: pf_148
+    category: single_cell_params
+    workflow: merfish_spatial_analysis
+    user_query: "10x Xenium data from tumor biopsy — map tumor core, invasive margin, and immune infiltrate domains"
+    expected_params:
+      platform: xenium
+      spatial_analysis: true
+    must_not_fill:
+      - deconvolution
+      - segmentation_method
+    difficulty: medium
+    notes: "10x Xenium → platform=xenium; spatial domain mapping requested → spatial_analysis=true"
+
+  - id: pf_149
+    category: single_cell_params
+    workflow: cite_seq_preprocessing
+    user_query: "Multimodal CITE-seq: disable WNN integration, use RNA only for clustering; human, 8000 cells"
+    expected_params:
+      genome: GRCh38
+      expected_cells: 8000
+      wnn_integration: false
+    must_not_fill:
+      - n_antibodies
+    difficulty: hard
+    notes: "disable WNN → wnn_integration=false; RNA-only clustering when WNN off; human → GRCh38"
+
+  - id: pf_150
+    category: single_cell_params
+    workflow: scrna_doublet_qc
+    user_query: "Use consensus doublet calling (both DoubletFinder AND Scrublet must agree) to minimize false positives"
+    expected_params:
+      method: consensus
+    must_not_fill:
+      - n_cells
+      - doublet_threshold
+    difficulty: easy
+    notes: "consensus = both tools must agree → method=consensus; reduces false positives explicit in description"
+
+  - id: pf_151
+    category: single_cell_params
+    workflow: multiome_rna_atac
+    user_query: "Run TF motif enrichment analysis with chromVAR on my joint RNA+ATAC data — human cancer cells"
+    expected_params:
+      genome: GRCh38
+      tf_activity: true
+    must_not_fill:
+      - min_atac_fragments
+    difficulty: medium
+    notes: "chromVAR TF motif analysis requested → tf_activity=true; human cancer → GRCh38"
+
+  - id: pf_152
+    category: single_cell_params
+    workflow: bd_rhapsody_scrna
+    user_query: "BD Rhapsody multiome ATAC+RNA panel on human T cells, 2000 expected cells"
+    expected_params:
+      panel: multiome
+      genome: GRCh38
+      expected_cells: 2000
+    must_not_fill:
+      - abseq
+      - min_genes
+    difficulty: medium
+    notes: "multiome panel variant of Rhapsody → panel=multiome; human → GRCh38; 2000 cells"
+
+  - id: pf_153
+    category: single_cell_params
+    workflow: parse_split_seq_scrna
+    user_query: "Parse split-pool barcoding — run on human samples, standard WT kit, filter very low quality cells: min 500 UMIs"
+    expected_params:
+      genome: GRCh38
+      kit: WT
+      min_umis: 500
+    must_not_fill:
+      - expected_cells
+    difficulty: easy
+    notes: "WT kit default; human → GRCh38; min 500 UMIs → min_umis=500 quality gate"
+
+  - id: pf_154
+    category: single_cell_params
+    workflow: merfish_spatial_analysis
+    user_query: "CODEX multiplex protein imaging of lymph node — map B cell follicles, T cell zones, germinal centers"
+    expected_params:
+      platform: codex
+      spatial_analysis: true
+    must_not_fill:
+      - segmentation_method
+      - n_genes
+    difficulty: medium
+    notes: "CODEX protein imaging → platform=codex; domain mapping of lymph node structure → spatial_analysis=true"
+
+  - id: pf_155
+    category: single_cell_params
+    workflow: scrna_doublet_qc
+    user_query: "Lower doublet threshold to 0.15 to be more aggressive in doublet removal — 12,000 cells loaded"
+    expected_params:
+      n_cells: 12000
+      doublet_threshold: 0.15
+    must_not_fill:
+      - method
+    difficulty: hard
+    notes: "aggressive removal → lower threshold 0.15; 12000 cells; method not specified → must_not_fill"

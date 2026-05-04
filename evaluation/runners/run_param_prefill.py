@@ -61,6 +61,7 @@ CATEGORIES = [
     "negative_cases",
     "param_name_disambiguation",
     "virtual_cell_params",
+    "single_cell_params",
     "all",
 ]
 

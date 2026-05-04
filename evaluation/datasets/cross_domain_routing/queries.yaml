@@ -1,5 +1,5 @@
 # Cross-Domain Routing Accuracy Benchmark
-# 140 annotated queries across 10 domains, 3 difficulty levels
+# 147 annotated queries across 11 domains, 3 difficulty levels
 #
 # Generated: 2026-04-07
 # Source: Official nf-co.re pipeline documentation (fetched live)
@@ -1350,3 +1350,116 @@
   disqualified: [pbpk_pediatric_pregnancy, clinical_trial_simulation_boin]
   confusable_with: pharmacology
   notes: "PTA + special populations (elderly/renal) + dose optimization → virtual_patient_cohort"
+
+# ── Single Cell Instruments / New Platforms (sc_013–sc_024) ──────────────────
+
+- id: sc_013
+  query: "Process CITE-seq data — I have RNA and antibody-derived tag (ADT) reads from 10x Chromium"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: cite_seq_preprocessing
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "ADT/CITE-seq keyword → cite_seq_preprocessing with DSB normalization + WNN; scrnaseq handles RNA-only"
+
+- id: sc_014
+  query: "Multimodal single-cell: align RNA and ATAC from 10x Multiome, call peaks, link to genes"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/scrnaseq]
+  notes: "10x Multiome + peak-to-gene linkage → multiome_rna_atac; not bulk ATAC or RNA-only"
+
+- id: sc_015
+  query: "Remove doublets from my 10x scRNA-seq data before clustering — use DoubletFinder and Scrublet"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: scrna_doublet_qc
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Doublet removal + tool names → scrna_doublet_qc; scrnaseq preprocessing does not include doublet detection"
+
+- id: sc_016
+  query: "I ran BD Rhapsody WTA; process barcode correction and UMI deduplication"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: bd_rhapsody_scrna
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "BD Rhapsody instrument keyword → bd_rhapsody_scrna; scrnaseq is 10x/Drop-seq centric"
+
+- id: sc_017
+  query: "Preprocess Parse Biosciences Evercode WT data — split-pool barcoding, no microfluidics"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: parse_split_seq_scrna
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Parse Biosciences / SPLiT-seq / split-pool keywords → parse_split_seq_scrna"
+
+- id: sc_018
+  query: "Analyze MERFISH data from Vizgen MERSCOPE — cell segmentation, spatially variable genes"
+  difficulty: direct
+  domain: single_cell
+  correct_workflow: merfish_spatial_analysis
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  notes: "MERFISH + Vizgen MERSCOPE instrument → merfish_spatial_analysis; spatialvi is probe-based (Visium)"
+
+- id: sc_019
+  query: "I profiled protein surface markers simultaneously with transcriptomics using TotalSeq antibodies"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: cite_seq_preprocessing
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "TotalSeq antibodies = CITE-seq ADT; co-profiling RNA+protein → cite_seq_preprocessing"
+
+- id: sc_020
+  query: "Single-cell ATAC and RNA joint profiling on the same cells — open chromatin + gene expression"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: multiome_rna_atac
+  acceptable_alts: []
+  disqualified: [nf-core/atacseq, nf-core/scrnaseq]
+  notes: "Joint ATAC+RNA on same cells = Multiome; bulk ATAC is atacseq; RNA-only is scrnaseq"
+
+- id: sc_021
+  query: "My scRNA-seq has inflated cell counts — I see clusters co-expressing T cell and B cell markers"
+  difficulty: indirect
+  domain: single_cell
+  correct_workflow: scrna_doublet_qc
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq]
+  notes: "Co-expression of mutually exclusive markers = doublet artefact; → scrna_doublet_qc"
+
+- id: sc_022
+  query: "Spatial transcriptomics with subcellular RNA molecule detection, not spot-based — 300 gene panel"
+  difficulty: adversarial
+  domain: single_cell
+  correct_workflow: merfish_spatial_analysis
+  acceptable_alts: []
+  disqualified: [nf-core/spatialvi]
+  confusable_with: single_cell
+  notes: "Subcellular + molecule-level detection = MERFISH/seqFISH imaging; Visium spatialvi is spot-based"
+
+- id: sc_023
+  query: "Scale scRNA-seq to 500,000 cells at low cost — fixed cells, combinatorial barcoding approach"
+  difficulty: adversarial
+  domain: single_cell
+  correct_workflow: parse_split_seq_scrna
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq, bd_rhapsody_scrna]
+  confusable_with: single_cell
+  notes: "Combinatorial barcoding + fixed cells + high cell number = Parse SPLiT-seq; not droplet or microwell"
+
+- id: sc_024
+  query: "We use a microwell array system — no droplets, capture 50,000 cells with AbSeq protein co-detection"
+  difficulty: adversarial
+  domain: single_cell
+  correct_workflow: bd_rhapsody_scrna
+  acceptable_alts: []
+  disqualified: [nf-core/scrnaseq, cite_seq_preprocessing]
+  confusable_with: single_cell
+  notes: "Microwell + AbSeq = BD Rhapsody; CITE-seq uses droplets; scrnaseq doesn't handle AbSeq"
