@@ -2862,6 +2862,11 @@ Examples of good inference:
                 _m = _re.search(rf'\b{_kw}\s*=\s*([^\s,;]+)', user_intent, _re.IGNORECASE)
                 if _m:
                     _exec_params[_kw] = _m.group(1).rstrip('.,;')
+            # Also extract bare S3/GCS/NFS paths as movies_path when not set explicitly
+            if not _exec_params.get('movies_path'):
+                _s3_m = _re.search(r'\b(s3://[^\s,;]+|gs://[^\s,;]+|/\S+/(?:movies|micrographs|raw)[^\s,;]*)', user_intent, _re.IGNORECASE)
+                if _s3_m:
+                    _exec_params['movies_path'] = _s3_m.group(1).rstrip('.,;)')
         # Auto-inject movies_path from uploaded files for ALL cryo-EM workflows (CryoSPARC + Nextflow)
         if _is_cryo_em and not _exec_params.get('movies_path') and uploaded_datasets:
             _cryo_exts = ('.mrc', '.mrcs', '.tif', '.tiff', '.eer', '.dm4')
