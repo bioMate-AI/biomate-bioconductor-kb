@@ -1614,6 +1614,7 @@ export function NextflowWorkflowViewer({
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
         const autoloopOn = autoloopMapRef.current[phaseKey] !== false;
+        console.log("[QC Gate DEBUG] phaseKey:", phaseKey, "autoloopMapRef.current:", JSON.stringify(autoloopMapRef.current), "autoloopOn:", autoloopOn, "activeRunId:", activeRunId, "suggestions:", gateData.suggestions.length, "failures:", gateData.failures.length);
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
