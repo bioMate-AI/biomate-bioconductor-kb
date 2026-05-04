@@ -2658,6 +2658,22 @@ Examples of good inference:
             if matched_name and value:
                 suggestions.append({"name": matched_name, "value": value, "rationale": "Value provided explicitly in your query."})
 
+        # Rule: bare S3/GCS/NFS path in query → movies_path (CryoSPARC) or reads/input (genomics)
+        # Only applies when no movies_path/reads was already found via key=value.
+        _already_set = {s["name"] for s in suggestions}
+        _file_path_params = [n for n in all_param_names if n in ('movies_path', 'movie_dir', 'reads', 'reads1', 'input') and n not in _already_set]
+        if _file_path_params:
+            _path_m = _re.search(r'\b(s3://\S+|gs://\S+|/(?:data|nfs|mnt|home|scratch)\S+)', user_intent)
+            if _path_m:
+                _path = _path_m.group(1).rstrip('.,;)')
+                # Pick the most appropriate param — movies_path preferred for cryo paths
+                _target = _file_path_params[0]
+                for _fp in _file_path_params:
+                    if _fp == 'movies_path':
+                        _target = _fp
+                        break
+                suggestions.append({"name": _target, "value": _path, "rationale": "Path found in query."})
+
         return suggestions
 
     def _apply_llm_suggestions(
