@@ -6637,8 +6637,32 @@ ${paramLines || '(none recorded)'}`;
           const effectiveExecutionRun = executionRun;
 
           if (effectiveExecutionRun) {
-            const nextflowStatus = effectiveExecutionRun?.execution?.nextflowStatus;
-            const nfRunId = effectiveExecutionRun?.execution?.nextflowRunId;
+            let nextflowStatus = effectiveExecutionRun?.execution?.nextflowStatus;
+            const nfRunId = effectiveExecutionRun?.execution?.nextflowRunId
+              || effectiveExecutionRun?.execution?.galaxyInvocationId;
+
+            // Live fallback: if stored nextflowStatus has no S3 files but a Nextflow run ID
+            // exists, query Galaxy directly (covers both running and recently completed runs
+            // where the poller may have exited before storing file listings).
+            const storedS3Files = Array.isArray(nextflowStatus?.s3_output_files)
+              ? nextflowStatus!.s3_output_files
+              : [];
+            if (nfRunId && storedS3Files.length === 0) {
+              try {
+                const liveResp = await fetch(
+                  `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${nfRunId}`,
+                  { headers: { 'X-API-Key': process.env.GALAXY_API_KEY || '' }, signal: AbortSignal.timeout(12_000) }
+                );
+                if (liveResp.ok) {
+                  const liveData = await liveResp.json() as any;
+                  if (Array.isArray(liveData.s3_output_files) && liveData.s3_output_files.length > 0) {
+                    nextflowStatus = { ...nextflowStatus, ...liveData };
+                    console.log(`[Outputs] live Galaxy S3 scan: ${liveData.s3_output_files.length} files`);
+                  }
+                }
+              } catch { /* non-fatal */ }
+            }
+
             console.log(`[Outputs] invId=${effectiveInvocationId} nfRunId=${nfRunId} nfOutdir=${nextflowStatus?.outdir} nfStatus=${nextflowStatus?.status}`);
 
             const artifacts: string[] = [];
@@ -7722,6 +7746,7 @@ ${paramLines || '(none recorded)'}`;
               let completedSteps: number = 0;
               let totalSteps: number = 4;
 
+              let latestNfStatus: any = null;
               if (effectiveEngine === 'nextflow') {
                 const statusResp = await fetch(
                   `${process.env.GALAXY_URL || 'http://localhost:8081'}/api/nextflow/status/${csRunId}`,
@@ -7732,6 +7757,7 @@ ${paramLines || '(none recorded)'}`;
                   return;
                 }
                 const s = await statusResp.json();
+                latestNfStatus = s;
                 const nfStatus = (s.status as string || '').toLowerCase();
                 console.log(`[CryoSPARC/NF Poller] run=${csRunId} nfStatus=${nfStatus} steps=${s.completedSteps}/${s.totalSteps}`);
                 // Nextflow executor reports: running | succeeded | failed | interrupted
@@ -7766,6 +7792,7 @@ ${paramLines || '(none recorded)'}`;
                   ...executionRun.execution,
                   galaxyInvocationId: csRunId,
                   status: mappedStatus,
+                  nextflowStatus: latestNfStatus ?? executionRun.execution?.nextflowStatus,
                 },
                 progress: {
                   ...executionRun.progress,

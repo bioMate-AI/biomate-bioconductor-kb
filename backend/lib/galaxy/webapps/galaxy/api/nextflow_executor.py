@@ -3396,7 +3396,33 @@ def get_nextflow_status(
                     "duration_s": _fb_duration_s,
                 }
 
-            # Still running
+            # Still running — list intermediate S3 outputs so the UI can show them
+            _running_s3_files: list = []
+            if _s3_outdir:
+                try:
+                    import subprocess as _sp
+                    _ls_run = _sp.run(
+                        ["aws", "s3", "ls", _s3_outdir + "/", "--recursive"],
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    for _line in _ls_run.stdout.splitlines():
+                        _parts = _line.split()
+                        if len(_parts) >= 4:
+                            _key = _parts[3]
+                            _fname = _key.split("/")[-1]
+                            _ext = _fname.rsplit(".", 1)[-1].lower() if "." in _fname else ""
+                            # Only surface user-facing output files, skip empty/internal
+                            if _ext and _ext not in {"txt", "html", "dot", "yml", "run", "sh", "log", "err", "out", "env", "trace"}:
+                                _running_s3_files.append({
+                                    "s3_uri": f"s3://{_s3_outdir.split('s3://')[1].split('/')[0]}/{_key}",
+                                    "filename": _fname,
+                                    "size": int(_parts[2]) if _parts[2].isdigit() else 0,
+                                })
+                except Exception:
+                    pass
+            _running_processes = _build_processes_from_s3_files(
+                _running_s3_files, _s3_outdir or "", _disk_timing.get("workflow_domain", "")
+            ) if _running_s3_files and _s3_outdir else []
             return {
                 "run_id": run_id,
                 "invocation_id": run_id,
@@ -3406,11 +3432,11 @@ def get_nextflow_status(
                 "work_dir": str(log_dir / "work"),
                 "log_tail": log_tail_fallback,
                 "is_batch": bool(_s3_outdir),
-                "s3_output_files": [],
+                "s3_output_files": _running_s3_files,
                 "completedSteps": completed_steps_fb,
                 "totalSteps": total_steps_fb,
                 "progressPercent": 50 if total_steps_fb == 0 else int(100 * completed_steps_fb / total_steps_fb),
-                "processes": [],
+                "processes": _running_processes,
                 "started_at": _fb_started_at,
                 "completed_at": None,
                 "duration_s": _fb_duration_s,

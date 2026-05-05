@@ -8,8 +8,8 @@ import { MotionHistogramChart } from '@/components/viewers/motion-histogram-char
 import { CtfQualityChart } from '@/components/viewers/ctf-quality-chart';
 import { DensityMapViewer } from '@/components/viewers/density-map-viewer';
 
-const RUN_ID = 'bbb23492-bd5c-415d-b5f5-678921480534';
-const S3 = 's3://biomate-nextflow-work/nextflow/outputs/bbb23492-bd5c-415d-b5f5-678921480534/e5810297';
+const RUN_ID = '89c7f6a1-e444-4809-bd45-59f96f76d189';
+const S3 = 's3://biomate-nextflow-work/nextflow/outputs/5832459d-633c-4d0c-9756-b577241d5fce/e02a238c';
 
 function sfUrl(s3: string) {
   const name = s3.split('/').pop()!;
@@ -52,7 +52,7 @@ export default function CryoViewerTest() {
   return (
     <div style={{ background: '#0f172a', minHeight: '100vh', padding: 24, color: '#e2e8f0' }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, marginBottom: 24 }}>
-        CryoEM Viewer Test — Run bbb23492 (EMPIAR-10028, 20 micrographs)
+        CryoEM Viewer Test — Run 89c7f6a1 (EMPIAR-10028, 2 micrographs, beta-galactosidase D2)
       </h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
@@ -103,8 +103,8 @@ export default function CryoViewerTest() {
             2D Class Averages (128×128×50 stack — montage viewer)
           </h2>
           <MrcViewer
-            s3={`${S3}/09_classify_2d_round1/pbatch_0000/cs_out_J6_020_class_averages.mrc`}
-            title="class_averages (50 classes)"
+            s3={`${S3}/09_classify_2d_round1/pbatch_0003/cs_out_J9_020_class_averages.mrc`}
+            title="class_averages (20 classes, pbatch_0003)"
           />
         </section>
 
@@ -113,8 +113,8 @@ export default function CryoViewerTest() {
             Sharpened 3D Map (192×192×192 — 3-axis slicer)
           </h2>
           <MrcViewer
-            s3={`${S3}/23_sharpening/volume_sharpened.mrc`}
-            title="volume_sharpened (final map)"
+            s3={`${S3}/09_classify_2d_round1/pbatch_0002/cs_out_J9_020_class_averages.mrc`}
+            title="class_averages (20 classes, pbatch_0002)"
           />
         </section>
       </div>

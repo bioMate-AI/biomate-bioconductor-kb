@@ -103,7 +103,7 @@ def mock_smarts_match(smiles_str, pattern_name, mw, logp):
     hits = []
     smi = smiles_str.lower()
     # Retinoic acid: polyene chain + carboxylic acid
-    if re.search(r'c=cc=cc.*c\(=o\)o', smi) or re.search(r'c=c.*c=c.*cooh', smi):
+    if re.search(r'c=cc=cc.*c\\(=o\\)o', smi) or re.search(r'c=c.*c=c.*cooh', smi):
         hits.append("retinoid_carboxylic_acid")
     # Glutarimide
     if 'n1c(=o)ccc1=o' in smi.replace(' ', ''):
@@ -358,20 +358,19 @@ report = {
 with open("ich_s5_safety_report.json", "w") as f:
     json.dump(report, f, indent=2)
 
-summary = '''ICH S5(R3) Reproductive Toxicology Assessment
-==============================================
-Compound: {report['compound']}
-Overall: {overall_color}
-
-Structural alerts: {alerts['structural_alert_count']} (highest: {alerts['highest_severity']})
-Fertility concern (FEED/Segment I): {dart['dart_assessment']['fertility_concern']}
-EFD concern (Segment II): {dart['dart_assessment']['efd_concern']}
-Margin of safety: {mos:.1f}x
-Placental transfer (estimated Kp): {dart['physicochemical']['kp_placenta_estimated']}
-FDA pregnancy category (legacy): {dart['dart_assessment']['fda_pregnancy_category_legacy']}
-
-Regulatory study timing:
-'''
+summary = (
+    "ICH S5(R3) Reproductive Toxicology Assessment\\n" +
+    "=" * 46 + "\\n" +
+    "Compound: " + str(report['compound']) + "\\n" +
+    "Overall: " + overall_color + "\\n\\n" +
+    "Structural alerts: " + str(alerts['structural_alert_count']) + " (highest: " + alerts['highest_severity'] + ")\\n" +
+    "Fertility concern (FEED/Segment I): " + dart['dart_assessment']['fertility_concern'] + "\\n" +
+    "EFD concern (Segment II): " + dart['dart_assessment']['efd_concern'] + "\\n" +
+    "Margin of safety: " + str(round(mos, 1)) + "x\\n" +
+    "Placental transfer (estimated Kp): " + str(dart['physicochemical']['kp_placenta_estimated']) + "\\n" +
+    "FDA pregnancy category (legacy): " + dart['dart_assessment']['fda_pregnancy_category_legacy'] + "\\n\\n" +
+    "Regulatory study timing:\\n"
+)
 for phase, req in phase_req.items():
     summary += "  {}: {}\\n".format(phase, req)
 

@@ -322,18 +322,17 @@ report = {
 with open("transporter_ddi_report.json", "w") as f:
     json.dump(report, f, indent=2)
 
-summary = '''Transporter DDI Assessment - {data['compound']}
-{'='*50}
-Overall: {overall}
-
-Concentrations used:
-  Cmax,total: {data['concentrations']['cmax_total_ng_ml']} ng/mL ({data['concentrations']['cmax_um']:.4f} µM)
-  Cmax,u: {data['concentrations']['cmax_u_um']:.4f} µM
-  Igut: {data['concentrations']['igut_um']:.4f} µM (FDA 2020: dose/250mL)
-  Iin,max: {data['concentrations']['iin_max_um']:.4f} µM
-
-Clinical Study Triggers:
-'''
+summary = (
+    "Transporter DDI Assessment - " + data['compound'] + "\\n" +
+    "=" * 50 + "\\n" +
+    "Overall: " + overall + "\\n\\n" +
+    "Concentrations used:\\n" +
+    "  Cmax,total: " + str(data['concentrations']['cmax_total_ng_ml']) + " ng/mL (" + str(round(data['concentrations']['cmax_um'], 4)) + " uM)\\n" +
+    "  Cmax,u: " + str(round(data['concentrations']['cmax_u_um'], 4)) + " uM\\n" +
+    "  Igut: " + str(round(data['concentrations']['igut_um'], 4)) + " uM (FDA 2020: dose/250mL)\\n" +
+    "  Iin,max: " + str(round(data['concentrations']['iin_max_um'], 4)) + " uM\\n\\n" +
+    "Clinical Study Triggers:\\n"
+)
 if flags:
     for fl in flags:
         summary += "  FLAGGED: {} R={} ≥ {} → {}\\n".format(fl['transporter'], fl['R'], fl['threshold'], fl['action'])
