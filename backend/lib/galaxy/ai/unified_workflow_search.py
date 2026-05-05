@@ -264,6 +264,14 @@ class UnifiedWorkflowSearch:
             'doubletfinder': 4.5, 'doublet finder': 4.5, 'scrublet': 4.5,
             'doublet detection': 4.0, 'doublet removal': 4.0, 'doublets': 3.5,
             'multiplet': 3.5, 'cell multiplet': 4.0, 'pann score': 4.0,
+            # Licensed tool wrappers — high priority when user names the tool
+            'simcyp': 5.0, 'pk-sim': 5.0, 'pksim': 5.0, 'open systems pharmacology': 4.5,
+            'osp suite': 4.5, 'certara pbpk': 5.0,
+            'nonmem': 5.0, 'nmfe75': 5.0, 'population pk nonmem': 5.0,
+            'gastroplus': 5.0, 'gastro plus': 5.0, 'simulations plus pbpk': 4.5,
+            'fep+': 5.0, 'fep plus': 5.0, 'schrodinger fep': 5.0, 'free energy perturbation': 4.5,
+            'stardrop': 5.0, 'optibrium': 4.5, 'nova generative': 4.5,
+            'monolix': 5.0, 'lixoft': 4.5, 'saem estimation': 4.0,
             # Bispecific antibody
             'bispecific': 5.0, 'bsab': 5.0, 'bite': 4.5, 'bispecific t-cell engager': 5.0,
             'crossmab': 5.0, 'dart bispecific': 5.0, 'dvd-ig': 4.5, 'dvd ig': 4.5,

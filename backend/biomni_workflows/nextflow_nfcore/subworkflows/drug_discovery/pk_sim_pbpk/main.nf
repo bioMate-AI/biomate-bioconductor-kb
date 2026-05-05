@@ -650,7 +650,7 @@ def nca_compute(t_arr, cp_arr, dose_ug, mw_g_mol):
         return {'Cmax_ng_mL': 0.0, 'AUC0inf_h_ng_mL': 0.0, 'Tmax_h': 0.0,
                 't_half_h': None, 'CL_L_h': None, 'Vss_L_kg': None, 'F_oral': None}
 
-    auc_obs = float(np.trapz(cp, t_arr))   # ug/mL * h
+    auc_obs = float(np.trapezoid(cp, t_arr) if hasattr(np, 'trapezoid') else np.trapz(cp, t_arr))   # ug/mL * h
     cmax    = float(cp.max())               # ug/mL
     tmax    = float(t_arr[np.argmax(cp)])   # h
 
@@ -743,7 +743,8 @@ for _ind in range(n_individuals):
             cp_ind    = dose_ind / 1000.0 / vd_ind * np.exp(-kel_ind * t_pop)
         cp_ind    = np.maximum(0.0, cp_ind)
         pop_cmax.append(float(cp_ind.max()) * 1000.0)   # ng/mL
-        pop_auc.append(float(np.trapz(cp_ind, t_pop)) * 1000.0)
+        _trapz = np.trapezoid if hasattr(np, 'trapezoid') else np.trapz
+        pop_auc.append(float(_trapz(cp_ind, t_pop)) * 1000.0)
     else:
         pop_cmax.append(pk_mean['Cmax_ng_mL'])
         pop_auc.append(pk_mean['AUC0inf_h_ng_mL'])
@@ -835,7 +836,7 @@ if PKSIM_BINARY:
         print(f"[WARN] PK-Sim execution failed ({exc}); using BioMate native PBPK fallback.", file=sys.stderr)
 
 if tool_used is None:
-    tool_used = 'BioMate native PBPK (fallback — PK-Sim binary not found or failed)'
+    tool_used = 'BioMate native PBPK (structural fallback — install PK-Sim for calibrated results; values are indicative only)'
     print("[INFO] Using BioMate native 10-compartment PBPK (Willmann 2003 physiology).", file=sys.stderr)
 
 # ---------------------------------------------------------------------------
