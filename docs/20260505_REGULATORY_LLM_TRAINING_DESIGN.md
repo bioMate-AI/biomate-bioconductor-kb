@@ -210,12 +210,27 @@ Computed on the 271-example test split (section_generation only):
 
 | Metric | Target | What it measures |
 |--------|--------|-----------------|
-| **ROUGE-L** | ≥ 0.30 | Lexical overlap with reference regulatory prose |
+| **ROUGE-L** | diagnostic only — no pass/fail threshold | Lexical overlap vs reference (see note) |
 | **Citation recall** | ≥ 0.40 | Fraction of expected ICH/FDA/EMA citations present in output |
 | **Avg output length** | 300–600 words | Appropriate section length |
 | **Eval loss** | < 1.5 | Model confidence (perplexity proxy) |
 
-ROUGE-L target is intentionally modest (0.30) because regulatory prose generation is a many-to-one problem — there are multiple valid ways to write a section, and lexical match with a single reference underestimates quality.
+**Why ROUGE-L has no threshold (empirical finding):**
+
+We computed baselines on the 168 test examples:
+- Copy-context baseline (output the USER findings summary verbatim): ROUGE-L = **0.448**
+- Cross-reference ceiling (two valid outputs for the same section type): ROUGE-L = **0.201**
+- Empty-string baseline: ROUGE-L = 0.000
+
+These numbers reveal two problems with ROUGE-L for this task:
+
+1. **The ceiling is only 0.201.** Two genuinely good but differently-phrased regulatory sections for different drugs share only ~20% lexical overlap. This is inherent: different drug names, different doses, different studies. A model producing excellent novel prose for a new compound would score ≤0.201 against any single reference.
+
+2. **The copy-context baseline (0.448) beats any generative target.** Because our sliding-window dataset design has ASST = words 0–600 and USER context = words 60–140, there is inherent overlap. A model that simply copies its input context would score 0.448 — higher than any threshold we'd set for a real generative model.
+
+**Conclusion:** ROUGE-L is not a meaningful pass/fail metric for this task. It will be reported as a diagnostic signal to detect degenerate behaviour (near-zero = no output; near-0.448 = copying input) but not used for deployment decisions.
+
+**Primary automated signal: eval_loss** on the dev set during training, and **citation recall** which directly measures whether the model learned to cite specific ICH/FDA/EMA guideline identifiers.
 
 ### 5.2 Functional evaluation — 76/76 IND gold standard
 
@@ -348,12 +363,17 @@ FDA NDA nonclinical review PDFs (★★★★★) are an even better source beca
 
 ### 7.4 Evaluation methodology rationale
 
-**Why ROUGE-L ≥ 0.30 (not higher)?**
+**Why ROUGE-L has no threshold (empirical finding):**
 
-ROUGE-L measures lexical n-gram overlap with a reference text. For regulatory prose generation, ROUGE-L has fundamental limits:
-- Regulatory prose is highly paraphrasable: "no evidence of carcinogenic potential" = "no tumorigenic findings" = "the compound was not carcinogenic"
-- A model could score ROUGE-L = 0.15 while producing clinically excellent prose, or ROUGE-L = 0.45 while containing a factual error
-- We set 0.30 as a signal of stylistic alignment, not a proxy for correctness
+We computed ROUGE-L baselines on the 168 test examples before training:
+- **Copy-context baseline** (output the user's findings summary verbatim): ROUGE-L = **0.448**
+- **Cross-reference ceiling** (two valid expert outputs for the same section): ROUGE-L = **0.201**
+
+This revealed that ROUGE-L is not a useful threshold metric here:
+- The copy-context baseline (0.448) is higher than any reasonable target — a model that just echoes its input would "pass"
+- The cross-reference ceiling (0.201) means even two human-written regulatory sections about different drugs share only ~20% lexical overlap; a genuinely generative model producing correct novel prose would always score below any threshold
+
+ROUGE-L is retained as a diagnostic signal only (near-zero = degenerate output; near-0.448 = copying input), not as a deployment criterion.
 
 **Why the regulatory auditor is the primary functional metric?**
 
@@ -361,13 +381,25 @@ BioMate's `regulatory_auditor.py` implements the same rule-based checks that the
 
 The MAJOR-findings-per-document metric is directly actionable: each MAJOR finding in the current Gemini baseline represents real risk for the client's IND submission. Reducing this rate is the primary business value of fine-tuning.
 
-**Why 12 curated QA pairs (not 400+)?**
+**Why 12 curated QA pairs — and is that enough?**
 
-The original design used 400+ QA pairs derived from ICH guideline text, where the "answer" was the same guideline text repeated with "Per ICH_M4S_R2: " prepended. These circular examples teach the model nothing — 100% of the "answers" exactly matched the questions. 
+The 12 pairs replaced 652 ICH-derived pairs where the answer was a verbatim copy of the question text ("Per ICH_M4S_R2: [question text repeated]"). Dropping those was correct. But "12" is not a principled number — it is simply how many were written.
 
-The 12 curated pairs are genuinely informative: each answer provides regulatory interpretation, specific thresholds, and cross-guideline reasoning that is not present in the question. A model that has memorized these 12 answers can correctly answer regulatory qualification questions at IND submission quality.
+**What the 12 pairs cover:**
+- PBPK: EMA 67% criterion, required metrics, failed-criterion handling (3 pairs)
+- hERG/cardiac: Redfern thresholds, in silico vs GLP requirement (2 pairs)
+- Genotoxicity: ICH S2(R1) follow-up after positive Ames (1 pair)
+- DILI: EMA Tier 1/2 presentation of computational predictions (1 pair)
+- Multi-region: NMPA GLP declarations, PMDA ethnic bridging (2 pairs)
+- 21 CFR Part 11: eSig requirements for IND records (1 pair)
+- ADMET applicability domain: QSAR leverage method (1 pair)
+- AI/regulatory: FDA/EMA joint guidance (January 2026) (1 pair)
 
-The appropriate expansion path is to write more curated QA pairs (not to generate them from guideline text), targeting the regulatory knowledge gaps identified by BioMate's audit failures.
+**Known gaps not covered:** ICH S7A (safety pharmacology battery), ICH S7B(R1) ion channel assays, ICH S1A/S1B (carcinogenicity timing), ICH M3(R2) (nonclinical testing phases), FDA PBPK reporting expectations (FDA PBPK Guidance 2018), PMDA Japanese-language specific formatting.
+
+**Is 12 enough?** Unknown — it has not been tested. The 12 pairs represent ~1% of the training data (28/2073 examples after 3x augmentation) and will have limited influence on a 43M-parameter LoRA adapter trained primarily on 1,288 section_generation examples. They are included as knowledge anchors for specific regulatory thresholds (67%, hERG IC50 categories, etc.) that the model must not hallucinate.
+
+**Right expansion path:** Write 50–100 additional curated pairs specifically targeting the regulatory claims that BioMate's audit flags as MAJOR findings. These can be identified after v1 training by running the auditor on model outputs and noting which guideline citations are wrong or missing.
 
 ### 7.5 Benchmarks used for evaluation comparison
 
