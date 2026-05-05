@@ -7609,6 +7609,7 @@ ${paramLines || '(none recorded)'}`;
       // CryoSPARC executor; otherwise fall through to Nextflow which runs the
       // cryosparc_standard_spa/main.nf pipeline on AWS Batch GPU workers.
       const hasCryoSPARCInstance = !!(process.env.CRYOSPARC_INSTANCE_ID || process.env.CRYOSPARC_AMI_ID);
+      console.log('[Execute DEBUG] workflow_type=', request.workflowDefinition.workflow_type, 'hasCryoSPARCInstance=', hasCryoSPARCInstance, 'CRYOSPARC_AMI_ID=', !!process.env.CRYOSPARC_AMI_ID);
       if (request.workflowDefinition.workflow_type === 'cryosparc' && hasCryoSPARCInstance) {
         console.log('[CryoSPARC Direct] Detected workflow_type=cryosparc (instance configured)');
 
