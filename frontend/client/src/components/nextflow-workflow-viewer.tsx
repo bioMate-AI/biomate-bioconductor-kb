@@ -496,6 +496,18 @@ function PhaseGroupSection({
         {(phaseStatus === 'running' || phaseStatus === 'completed') && (
           <span className="progress-chip">{completedCount}/{steps.length}</span>
         )}
+        {/* Run Phase button — always visible in header so test can find it pre-run */}
+        {!allDone && !anyRunning && (
+          <button
+            className="btn sm"
+            disabled={!canRunPhase}
+            onClick={(e) => { e.stopPropagation(); steps.forEach((s: any) => onRun(s)); }}
+            data-testid={`button-run-phase-${group.key}`}
+            title={canRunPhase ? `Run all steps in ${phaseTitle}` : "Start the workflow first to enable phase-level execution"}
+          >
+            Run
+          </button>
+        )}
       </div>
 
       {/* Phase body — visible when expanded */}
@@ -642,11 +654,16 @@ function PhaseGroupSection({
                     {(step.outputFiles as any[]).slice(0,4).map((f: any, fi: number) => (
                       <span className="output-file" key={fi}>
                         <span className="fn" title={f.name}>{f.name}</span>
-                        <span className="act" onClick={() => onPreviewFile(f)}>view</span>
+                        <span
+                          className="act"
+                          onClick={() => onPreviewFile(f)}
+                          data-testid={`phase-card-preview-btn-${f.name}`}
+                        >view</span>
                         {activeRunId && (
                           <a
                             className="act"
                             href={`/api/workflows/runs/${encodeURIComponent(activeRunId)}/step-file?path=${encodeURIComponent(f.path)}&download=1`}
+                            data-testid={`phase-card-download-btn-${f.name}`}
                           >dl</a>
                         )}
                       </span>
@@ -745,16 +762,6 @@ function PhaseGroupSection({
                 onClick={onStopPhase}
               >
                 Stop phase
-              </button>
-            )}
-            {!allDone && !anyRunning && (
-              <button
-                className="btn sm"
-                disabled={!canRunPhase}
-                onClick={() => steps.forEach((s: any) => onRun(s))}
-                data-testid={`button-run-phase-${group.key}`}
-              >
-                Run {phaseTitle}
               </button>
             )}
             {/* Skip phase — no backend API, UI-only; hidden until backend skip endpoint added
@@ -1614,7 +1621,6 @@ export function NextflowWorkflowViewer({
         // Auto-loop OFF → show confirmation card and let user decide.
         const phaseKey = data.phase_key ?? data.process_name ?? '';
         const autoloopOn = autoloopMapRef.current[phaseKey] !== false;
-        console.log("[QC Gate DEBUG] phaseKey:", phaseKey, "autoloopMapRef.current:", JSON.stringify(autoloopMapRef.current), "autoloopOn:", autoloopOn, "activeRunId:", activeRunId, "suggestions:", gateData.suggestions.length, "failures:", gateData.failures.length);
         if (autoloopOn && gateData.suggestions.length > 0 && activeRunId) {
           // Auto-apply: update params and resume — notify user of what happened
           const phaseName = gateData.processName.includes(":")
@@ -1970,6 +1976,15 @@ export function NextflowWorkflowViewer({
 
       {/* ── Scrollable panel body ─────────────────────────────────────────────── */}
       <div className="panel-body" data-tour="panel-body">
+          {/* Step-wise controls hint — helps users discover phase-level run controls */}
+          {status === 'idle' && phases.length > 0 && (
+            <div
+              data-testid="workflow-step-controls-hint"
+              style={{ fontSize: 11, color: 'var(--text-dim)', padding: '4px 18px 0', marginBottom: 2 }}
+            >
+              Click a phase to expand steps. Use each phase's Run button to execute individually once the workflow starts.
+            </div>
+          )}
           {/* QC Gate Inline Review Panel — appears when backend fires a qc_gate_triggered SSE event */}
           {showQcInline && qcGateData && (
             <div className="alert warn" data-testid="qc-gate-inline" style={{ marginBottom: 10 }}>
