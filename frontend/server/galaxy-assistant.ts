@@ -55,12 +55,13 @@ const BIOMATE_TOOLS: Anthropic.Tool[] = [
 Use this for: filtering/subsetting data, format conversion, statistics, generating plots,
 exploring file contents, counting rows/records, parsing ZIP/archive files, or any ad-hoc computation.
 
-File access: Input datasets are staged at $DATA_DIR/<galaxy_dataset_id>/<original_filename>.
+File access: Input datasets are staged at $DATA_DIR/<dataset_id>/<original_filename>.
+Use galaxy_dataset_id if present, otherwise use dataset_id — both work as the path component.
 The preamble comment in your script shows the exact path for each dataset.
-Example — if scogs_fungi.zip was uploaded with galaxy_dataset_id=abc123:
-  import os, zipfile
-  zp = os.path.join(os.environ['DATA_DIR'], 'abc123', 'scogs_fungi.zip')
-  with zipfile.ZipFile(zp) as z: ...
+Example — if raw_counts.csv was uploaded with dataset_id=abc123:
+  import os, pandas as pd
+  path = os.path.join(os.environ['DATA_DIR'], 'abc123', 'raw_counts.csv')
+  df = pd.read_csv(path, index_col=0)
 
 Write output files to $OUTPUT_DIR (os.environ['OUTPUT_DIR']) — they will be shown to the user.
 Prefer Python for data manipulation; R for Bioconductor/statistical analysis.
@@ -4767,7 +4768,7 @@ TURN-2 QUALIFIER RULE:
 ONE-QUESTION RULE:
 - Ask at most ONE clarification question per conversation. Once the user has replied with any data OR answered a question (even if no data was provided), generate the workflow immediately using the information gathered and sensible default parameter values. Do NOT ask multiple rounds of clarifying questions — parameters can be adjusted in the workflow parameter panel after generation.
 - SECOND-TURN OVERRIDE: If the conversation history shows that the assistant already asked a question in the previous turn (e.g., asked for data or asked germline/somatic clarification), and the user's current message replies to that question (even if no data accession was given), GENERATE THE WORKFLOW IMMEDIATELY. Do not ask for data again. Use placeholder values for missing required params — the user can fill them in the parameter panel.
-- When the message contains an "[Uploaded datasets: ...]" block, it means the user has already provided their input data via the file attachment button. Parse it: the format is "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". For workflow generation, use the galaxy_dataset_id values as input parameters. For run_code, use galaxy_dataset_id when present; fall back to dataset_id if galaxy_dataset_id is null or missing — both are accepted by the run_code input_datasets array and the local file registry. Do NOT ask the user for data again — proceed directly.
+- When the message contains an "[Uploaded datasets: ...]" block, parse it. Format: "filename: dataset_id=<ID>" or "filename: dataset_id=<ID>, galaxy_dataset_id=<GALAXY_ID>". For run_code input_datasets: use galaxy_dataset_id when present and non-empty, otherwise use dataset_id. Both IDs are valid for the local file registry and $DATA_DIR/<id>/<filename> path. If neither is present, the upload failed. Do NOT ask for data again — proceed directly with run_code using the provided IDs.
 - When the message contains an "[Attached files: ...]" block without a corresponding "[Uploaded datasets: ...]" block, the upload failed. Tell the user which files failed and ask them to try again.
 ${isDrugDevelopmentQuery ? `- For drug-development requests, provide decision-grade guidance: list concrete workflow phases, critical safety/quality gates, required inputs, and explicit next actions` : ''}
 ${isDrugDevelopmentQuery ? `- For drug-development WORKFLOW GENERATION FAILURES ONLY (when the system returns an error or cannot find a matching workflow): include at least TWO distinct blocker categories (e.g., tool gap, input gap, domain mismatch) and ask at least TWO targeted follow-up questions. IMPORTANT: This rule does NOT apply when the user has already provided input data (SMILES, sequence, files) — in that case generate the workflow immediately.` : ''}
