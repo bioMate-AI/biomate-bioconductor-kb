@@ -1099,17 +1099,21 @@ export class GalaxyAssistant {
       ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-2.0-flash');
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
+    const typeMap: Record<string, SchemaType> = {
+      string: SchemaType.STRING, number: SchemaType.NUMBER, integer: SchemaType.INTEGER,
+      boolean: SchemaType.BOOLEAN, array: SchemaType.ARRAY, object: SchemaType.OBJECT,
+    };
     const geminiTools = toolContext?.tools
       ? [{
           functionDeclarations: toolContext.tools.map(t => ({
             name: t.name,
-            description: t.description,
+            description: t.description ?? '',
             parameters: {
-              type: 'OBJECT',
+              type: SchemaType.OBJECT,
               properties: Object.fromEntries(
                 Object.entries((t.input_schema as any).properties || {}).map(([k, v]: [string, any]) => [
                   k,
-                  { type: (v.type as string).toUpperCase(), description: v.description || '', ...(v.enum ? { enum: v.enum } : {}) },
+                  { type: typeMap[v.type] ?? SchemaType.STRING, description: v.description ?? '', ...(v.enum ? { enum: v.enum } : {}) },
                 ])
               ),
               required: (t.input_schema as any).required || [],
@@ -1122,7 +1126,7 @@ export class GalaxyAssistant {
       model: geminiModelName,
       systemInstruction: systemPrompt,
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 },
-      ...(geminiTools ? { tools: geminiTools } : {}),
+      ...(geminiTools ? { tools: geminiTools as any } : {}),
     });
 
     let rawResponse = '';
