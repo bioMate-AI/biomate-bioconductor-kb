@@ -78,25 +78,19 @@ export default function CryoViewerTest() {
         </section>
       </div>
 
-      {/* Row 1b: All 3 homogeneous refinement volumes */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 24, marginBottom: 32 }}>
-        <section data-testid="volume-3d-k1">
+      {/* Row 1b: Final sharpened map + Non-uniform refinement */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+        <section data-testid="volume-sharpened">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            3D Map — Homo Refinement vol_1 (J22, D2)
+            ★ Final Sharpened 3D Map — 128×128×128 voxels (8.4 MB)
           </h2>
-          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_1/cs_out_J22_003_volume_precision.mrc`} title="vol_1 (4.3 MB)" />
+          <MrcViewer s3={`${S3}/23_sharpening/volume_sharpened.mrc`} title="volume_sharpened.mrc" />
         </section>
-        <section data-testid="volume-3d-k2">
+        <section data-testid="volume-nu-refined">
           <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            3D Map — Homo Refinement vol_2 (J21, D2)
+            Non-Uniform Refinement Volume — 128×128×128 voxels (4.3 MB)
           </h2>
-          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_2/cs_out_J21_004_volume_precision.mrc`} title="vol_2 (4.3 MB)" />
-        </section>
-        <section data-testid="volume-3d-homo">
-          <h2 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#94a3b8' }}>
-            3D Map — Homo Refinement vol_3 (J20, D2, 28,477 ptcls)
-          </h2>
-          <MrcViewer s3={`${S3}/17_homogeneous_refinement/vol_3/cs_out_J20_003_volume_precision.mrc`} title="vol_3 (4.3 MB)" />
+          <MrcViewer s3={`${S3}/21_non_uniform_refinement/volume_nu_refined.mrc`} title="volume_nu_refined.mrc" />
         </section>
       </div>
 
