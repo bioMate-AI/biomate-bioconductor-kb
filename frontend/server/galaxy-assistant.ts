@@ -1096,12 +1096,22 @@ export class GalaxyAssistant {
   ): Promise<string> {
     if (!this.gemini) throw new Error('Gemini client not initialized — set GEMINI_API_KEY');
     const geminiModelName = modelOverride
-      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-2.0-flash');
+      ?? (this.modelConfig.responseModel.startsWith('gemini-') ? this.modelConfig.responseModel : 'gemini-3-flash-preview');
 
     // Convert Anthropic tool definitions → Gemini FunctionDeclarations
     const typeMap: Record<string, SchemaType> = {
       string: SchemaType.STRING, number: SchemaType.NUMBER, integer: SchemaType.INTEGER,
       boolean: SchemaType.BOOLEAN, array: SchemaType.ARRAY, object: SchemaType.OBJECT,
+    };
+    const convertProp = (v: any): any => {
+      const base: any = { type: typeMap[v.type] ?? SchemaType.STRING, description: v.description ?? '' };
+      if (v.enum) base.enum = v.enum;
+      if (v.type === 'array' && v.items) base.items = convertProp(v.items);
+      if (v.type === 'object' && v.properties) {
+        base.properties = Object.fromEntries(Object.entries(v.properties).map(([k, pv]) => [k, convertProp(pv)]));
+        if (v.required) base.required = v.required;
+      }
+      return base;
     };
     const geminiTools = toolContext?.tools
       ? [{
@@ -1111,10 +1121,7 @@ export class GalaxyAssistant {
             parameters: {
               type: SchemaType.OBJECT,
               properties: Object.fromEntries(
-                Object.entries((t.input_schema as any).properties || {}).map(([k, v]: [string, any]) => [
-                  k,
-                  { type: typeMap[v.type] ?? SchemaType.STRING, description: v.description ?? '', ...(v.enum ? { enum: v.enum } : {}) },
-                ])
+                Object.entries((t.input_schema as any).properties || {}).map(([k, v]: [string, any]) => [k, convertProp(v)])
               ),
               required: (t.input_schema as any).required || [],
             },
@@ -1149,8 +1156,9 @@ export class GalaxyAssistant {
       // Collect text
       const textParts = response.candidates?.[0]?.content?.parts?.filter((p: any) => p.text) || [];
       for (const part of textParts) {
-        rawResponse += part.text;
-        onResponseDelta?.(part.text);
+        const txt: string = part.text ?? '';
+        rawResponse += txt;
+        if (txt) onResponseDelta?.(txt);
       }
 
       // Check for function calls
@@ -1160,7 +1168,9 @@ export class GalaxyAssistant {
       // Execute all function calls
       const functionResults: object[] = [];
       for (const part of fnCalls) {
-        const { name, args } = part.functionCall;
+        const fnCall = part.functionCall;
+        if (!fnCall) continue;
+        const { name, args } = fnCall as { name: string; args: any };
         toolContext.onToolEvent?.({ type: 'tool_call', tool_use_id: name, name, input: args });
         let output: unknown = null;
         let error: string | undefined;
@@ -5220,10 +5230,10 @@ ${isDrugDevelopmentQuery && workflowGenerationFailed && !hasInlineData ? 'DRUG-F
             })),
             { role: 'user' as const, content: userPrompt },
           ];
-          // Pass tools so Gemini can call run_code and read_file
-          const geminiTools = (!isWorkflowTurn && onToolEvent) ? BIOMATE_TOOLS : undefined;
+          // Pass tools so Gemini can call run_code and read_file (always enable for analysis turns)
+          const geminiTools = !isWorkflowTurn ? BIOMATE_TOOLS : undefined;
           const geminiResponse = await this._generateWithGemini(
-            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-2.0-flash',
+            systemPrompt, plainMessages, onResponseDelta, 4096, 'gemini-3-flash-preview',
             geminiTools ? { tools: geminiTools, context, onToolEvent } : undefined,
           );
           return { message: geminiResponse, truncated: false };
