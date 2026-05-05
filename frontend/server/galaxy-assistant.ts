@@ -202,7 +202,7 @@ export function shouldEnableThinking(message: string, intent: string): boolean {
 
 export const DEFAULT_MODEL_CONFIG: ModelConfig = {
   intentModel: 'gemini-3-flash-preview',  // overridden by BIOMATE_INTENT_MODEL env var; gemini-3-flash-preview in production
-  toolRankingModel: GEMINI_FLASH_MODEL,  // Gemini Flash: fast lightweight ranking
+  toolRankingModel: 'claude-haiku-4-5-20251001',  // Haiku: fast lightweight ranking
   responseModel: 'claude-sonnet-4-6',    // Default to Sonnet 4.6
   enableThinking: false,                 // Disable thinking by default for lower latency
   thinkingBudget: 2000,
@@ -857,7 +857,7 @@ class SessionMemoryUpdater {
   private static readonly DEBOUNCE_MS = 30_000;  // 30 s — same as DeerFlow
   private static readonly SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours idle eviction
 
-  private static readonly HAIKU_MODEL = GEMINI_FLASH_MODEL;
+  private static readonly HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
   private static readonly UPDATE_PROMPT = `You are maintaining a session memory for a bioinformatics research session.
 Given the new conversation turn below and the current memory, produce an updated memory JSON.
