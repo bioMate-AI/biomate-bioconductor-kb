@@ -188,7 +188,7 @@ def CS_HELPER = '''
     }
 
     def cs_connect(license, host, port, email, password=None):
-        """Return authenticated CryoSPARC client using license key (cryosparc-tools v5)."""
+        '''Return authenticated CryoSPARC client using license key (cryosparc-tools v5).'''
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             cs = CryoSPARC(license=license, host=host, base_port=int(port), email=email)
@@ -208,7 +208,7 @@ def CS_HELPER = '''
         return ws.uid
 
     def _connect_with_aliases(job, proj_uid, target_input, src_job_uid, src_output):
-        """Try all v4/v5 IO name aliases until a connection succeeds."""
+        '''Try all v4/v5 IO name aliases until a connection succeeds.'''
         inputs  = [target_input] + _IO_ALIASES.get(target_input, [])
         outputs = [src_output]   + _IO_ALIASES.get(src_output, [])
         for t_in in inputs:
@@ -289,11 +289,11 @@ def CS_HELPER = '''
     _gpu_count_cache = {}
 
     def _get_lane_gpu_count(cs, lane="default"):
-        """Return max GPUs on any single worker in the lane.
+        '''Return max GPUs on any single worker in the lane.
         compute_num_gpus tells CryoSPARC how many GPUs to use on the worker
         that runs the job — it must not exceed the per-worker GPU count.
         cryosparc-tools v5+ returns Pydantic SchedulerTarget objects, so
-        we access .config.gpus (list) rather than dict .get()."""
+        we access .config.gpus (list) rather than dict .get().'''
         if lane in _gpu_count_cache:
             return _gpu_count_cache[lane]
         count = 1  # safe default
@@ -330,10 +330,10 @@ def CS_HELPER = '''
         return count
 
     def _lane_for_batch(batch_id: str, num_workers: int, base_lane: str = "default") -> str:
-        """Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
+        '''Map a batch_id (e.g. 'batch_0003') or class index string (e.g. '2') to a CryoSPARC
         lane name.  When num_workers == 1 the base_lane is returned unchanged — identical to
         prior single-lane behaviour.  With num_workers > 1, lanes 'worker_0' .. 'worker_{N-1}'
-        must be pre-registered by nextflow_executor.py via SSH before the workflow starts."""
+        must be pre-registered by nextflow_executor.py via SSH before the workflow starts.'''
         if num_workers <= 1:
             return base_lane
         # batch_id may be 'batch_0003' or a raw integer string '3'
@@ -344,8 +344,8 @@ def CS_HELPER = '''
         return f"worker_{idx % num_workers}"
 
     def cs_download_outputs(cs, proj_uid, job_uid, mrc_prefix="cs_out_", png_prefix="cs_thumb_"):
-        """Download output MRC files and thumbnails from a completed CryoSPARC job.
-        Returns list of local filenames that were actually written."""
+        '''Download output MRC files and thumbnails from a completed CryoSPARC job.
+        Returns list of local filenames that were actually written.'''
         downloaded = []
         try:
             all_files = cs.list_files(proj_uid, prefix=f"{job_uid}/", recursive=True)
